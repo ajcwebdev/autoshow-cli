@@ -10,7 +10,9 @@ const collectCompactRenderNested: NestedCollector = (ctx) => {
     if (!isRecord(rawSlot) || typeof rawSlot['slotHash'] !== 'string' || !isSha256(rawSlot['sha256'])) return false
     const slotDir = posix.dirname(ctx.reference.path)
     const mediaRoot = slotDir.includes('/') ? posix.dirname(slotDir) : ''
-    const slotPath = mediaRoot ? `${mediaRoot}/slots/${rawSlot['slotHash']}.wav` : `slots/${rawSlot['slotHash']}.wav`
+    const defaultSlotPath = mediaRoot ? `${mediaRoot}/slots/${rawSlot['slotHash']}.wav` : `slots/${rawSlot['slotHash']}.wav`
+    const slotPath = rawSlot['audioArtifactRef'] ?? defaultSlotPath
+    if (typeof slotPath !== 'string' || ![defaultSlotPath, defaultSlotPath.replace(/\.wav$/, '-' + rawSlot['sha256'] + '.wav')].includes(slotPath)) return false
     ctx.nested.push({ path: slotPath, sha256: rawSlot['sha256'] as string, kind: 'audio', scope: 'run-root' })
   }
   return true

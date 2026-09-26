@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { preScanJsonMode, runCliInProcess } from '~/cli/create-cli'
-import { flushStagedResult, runWithResultInvocation, stageResult } from '~/utils/app-logger/result-emitter'
+import { flushStagedResult, isolateCommandResult, requireIsolatedResult, runWithResultInvocation, stageResult } from '~/utils/app-logger/result-emitter'
 import { captureConsoleText, captureProcessOutput } from '../../../test-utils/console-capture'
 
 const parseLines = (text: string): Array<Record<string, unknown>> => text.trim()
@@ -110,5 +110,19 @@ describe('JSON CLI output protocol', () => {
       stageResult({ first: true })
       stageResult({ second: true })
     })).rejects.toThrow('more than one terminal result')
+  })
+
+  test('isolated workflow results remain private until the combined terminal result is published', async () => {
+    const captured = await captureProcessOutput(() => runWithResultInvocation({ json: true, runId: 'combined' }, async () => {
+      const first = requireIsolatedResult(await isolateCommandResult(async () => { stageResult({ first: true }, 'First workflow') }))
+      const second = await isolateCommandResult(async () => { stageResult({ second: true }, 'Second workflow'); return 'value' })
+      expect(second.value).toBe('value')
+      stageResult({ first: first.data, second: second.result?.data }, 'Combined')
+      flushStagedResult()
+    }))
+    expect(parseLines(captured.stdout)).toEqual([expect.objectContaining({ message: 'Combined', data: { first: { first: true }, second: { second: true } } })])
+    expect((await isolateCommandResult(async () => 1)).result).toBeUndefined()
+    expect(() => requireIsolatedResult({ value: undefined })).toThrow('without staging a successful result')
+    await expect(isolateCommandResult(async () => { stageResult({ first: true }); stageResult({ second: true }) })).rejects.toThrow('more than one terminal result')
   })
 })

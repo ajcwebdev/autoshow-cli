@@ -302,6 +302,8 @@ export const buildCompactSlots = (input: {
   if (!output) throw UsageError(`Compact TTS render is missing paid output for ${slot.generationSlotId}.`)
   return {
     slotHash: input.paidSpeechSlotHash(slot),
+    generationSlotId: slot.generationSlotId,
+    ...(slot.audioArtifactRef && !slot.audioArtifactRef.endsWith('/' + input.paidSpeechSlotHash(slot) + '.wav') ? { audioArtifactRef: slot.audioArtifactRef } : {}),
     turnIds: [...slot.turnIds],
     sha256: output.sha256,
     durationMs: output.durationMs ?? 0,

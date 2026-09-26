@@ -1,3 +1,4 @@
+import { adoptExactRetainedTtsChunkPlan } from '../../../../audio/tts/script-to-audio/tts-retained-chunk-plan'
 import type { CliCommandContext, ComicRecoveryFlags, CurrentTtsResumePricePlan, StepEstimate } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { createResourceGate } from '~/utils/resource-gate'
@@ -31,6 +32,8 @@ export const planComicAudio = async (ctx: CliCommandContext, scriptPath: string)
   const executions = voices ? targets.map(target => buildTargetExecution({ target, baseOptions, snapshot: voices.snapshot, dialoguePlan, mode, deliveryPolicy, sampleRate, channels, codec, resourceGate })) : []
   const estimates: CurrentTtsResumePricePlan[] = []
   for (const execution of executions) {
+    const retained = compatible.manifest.items[0]?.providers.find(state => state.targetKey === execution.target.targetKey)
+    adoptExactRetainedTtsChunkPlan({ target: execution.target, sourceText: execution.sourceText, ttsOptions: execution.options, comicContext: execution.context }, retained)
     validateTtsRenderInputsForTargets([execution.target], execution.sourceText, execution.options, { comicContext: execution.context })
     estimates.push(await planCurrentTtsResumePrice({ rootDir: compatible.sceneRunDir, state: compatible.manifest.items[0]?.providers.find(state => state.targetKey === execution.target.targetKey), target: execution.target, sourceText: execution.sourceText, ttsOptions: execution.options, comicContext: execution.context }))
   }

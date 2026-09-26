@@ -1,4 +1,4 @@
-import { cartesiaTtsRequestControls, cartesiaTtsVoiceField } from '../tts-services/cartesia/cartesia-tts-request'
+import { sonioxTtsRequestControls, SONIOX_TTS_SERIALIZER_VERSION } from '../tts-services/tts-soniox/soniox-tts-request'
 import type {
   AttemptTurn,
   ProtectedAssetRef,
@@ -11,8 +11,6 @@ import type {
   TypedProviderSynthesisSettings,
 } from '~/types'
 import {
-  validateSpeechifyTtsLanguageForModel,
-  validateSpeechifyTtsModel,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
 import { resolveTtsTargetInvocationControls } from '../tts-targets/tts-invocation-controls'
@@ -54,16 +52,6 @@ const controlReader = (effectiveControls: Readonly<Record<string, unknown>>): Co
 
 const buildOpenAiSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'openai.tts.phase-0-v1', controls: { responseFormat: 'wav', ...(controls.string('instructions') ? { instructions: controls.string('instructions') } : {}), ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}) } })
 const buildGrokSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'grok.tts.phase-0-v1', controls: { ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), language: controls.string('language') ?? 'auto', textNormalization: controls.boolean('textNormalization') === true, outputFormat: { codec: 'wav', sample_rate: 24000 } } })
-const buildCartesiaSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'cartesia.tts.phase-0-v1', controls: cartesiaTtsRequestControls(target.model, controls.string('language'), controls.number('speed')) })
-const buildSpeechifySerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: 'wav', ...(controls.string('language') ? { language: controls.string('language') } : {}) } })
-const buildMistralSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: 'mistral.tts.phase-0-v1', controls: { stream: false, responseFormat: controls.string('responseFormat') ?? 'wav' } })
-const buildHumeSerializer: SerializerBuilder = ({ target, strategy, controls }) => {
-  if (target.model === 'octave-2' && controls.string('description')) throw UsageError('Hume Octave 2 does not support acting descriptions; use Octave 1 for description controls.')
-  if (strategy === 'native-utterances' && controls.string('responseFormat')) throw UsageError('Hume native multi-speaker utterances do not support --tts-response-format; remove it or use segmented dialogue.')
-  return strategy === 'native-utterances'
-  ? { endpointKind: 'native-utterance-synthesis', serializerVersion: 'hume.native-utterances.phase-3-v1', controls: { version: '2', format: { type: 'mp3' }, numGenerations: 1, includeTimestampTypes: ['word', 'phoneme'] } }
-  : { endpointKind: 'speech-synthesis', serializerVersion: 'hume.tts.phase-0-v1', controls: { version: target.model === 'octave-1' ? '1' : '2', format: { type: controls.string('responseFormat') ?? 'mp3' }, numGenerations: 1, ...(controls.number('speed') !== undefined ? { speed: controls.number('speed') } : {}), ...(controls.number('trailingSilence') !== undefined ? { trailingSilence: controls.number('trailingSilence') } : {}), ...(controls.string('description') ? { description: controls.string('description') } : {}) } }
-}
 
 const buildInworldSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: inworldTtsRequestControls(target.model, controls.string('steeringPrompt'), controls.number('speed')) })
 
@@ -114,14 +102,12 @@ const buildElevenLabsSerializer: SerializerBuilder = ({ target, strategy, contro
 }
 
 const SERIALIZER_BUILDERS = {
+  gemini: ({ target, controls }) => ({ endpointKind: target.transport === 'gemini-batch' ? 'batchGenerateContent' : 'interactions', serializerVersion: 'gemini.tts.v1', controls: { ...(controls.string('instructions') ? { instructions: controls.string('instructions') } : {}), responseFormat: controls.string('responseFormat') ?? (target.transport === 'gemini-stream' ? 'pcm' : 'wav'), mode: target.transport?.replace('gemini-', '') ?? 'unary' } }),
   openai: buildOpenAiSerializer,
+  soniox: ({ controls }) => ({ endpointKind: 'speech-synthesis', serializerVersion: SONIOX_TTS_SERIALIZER_VERSION, controls: sonioxTtsRequestControls(controls.string('language'), controls.number('speed')) }),
   grok: buildGrokSerializer,
-  cartesia: buildCartesiaSerializer,
-  hume: buildHumeSerializer,
-  speechify: buildSpeechifySerializer,
   inworld: buildInworldSerializer,
   elevenlabs: buildElevenLabsSerializer,
-  mistral: buildMistralSerializer,
 } satisfies Record<TtsProvider, SerializerBuilder>
 
 export const buildProviderSerializerDescriptor = (
@@ -164,20 +150,9 @@ export const resolveEffectiveProviderControls = (
       return controls
     }
     case 'elevenlabs': return resolveTtsTargetInvocationControls('elevenlabs', invocation, { languageCode: selection.elevenLabsLanguageCode, stability: selection.elevenLabsStability, similarityBoost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}), speed: selection.elevenLabsSpeed, seed: selection.elevenLabsSeed, textNormalization: selection.elevenLabsTextNormalization, pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators, responseFormat: selection.elevenLabsResponseFormat as (typeof ELEVENLABS_TTS_RESPONSE_FORMATS)[number] | undefined })
+    case 'gemini': return resolveTtsTargetInvocationControls('gemini', invocation, { instructions: selection.geminiInstructions, responseFormat: selection.geminiResponseFormat })
+    case 'soniox': return resolveTtsTargetInvocationControls('soniox', invocation, { language: selection.sonioxLanguage ?? 'en', speed: selection.sonioxSpeed ?? 1 })
     case 'grok': return resolveTtsTargetInvocationControls('grok', invocation, { speed: selection.grokSpeed, language: selection.grokLanguage, ...(selection.grokTextNormalization ? { textNormalization: true } : {}) })
-    case 'mistral': return resolveTtsTargetInvocationControls('mistral', invocation, { responseFormat: (selection.mistralResponseFormat ?? 'wav') as 'wav' | 'mp3' | 'flac' | 'opus' })
-    case 'speechify': {
-      const controls = resolveTtsTargetInvocationControls('speechify', invocation, { language: selection.speechifyLanguage })
-      const language = validateSpeechifyTtsLanguageForModel(validateSpeechifyTtsModel(target.model), controls.language)
-      return Object.freeze({ ...controls, ...(language ? { language } : {}) })
-    }
-    case 'hume': return resolveTtsTargetInvocationControls('hume', invocation, {
-      speed: selection.humeSpeed,
-      trailingSilence: selection.humeTrailingSilence,
-      description: selection.humeDescription,
-      responseFormat: selection.humeResponseFormat as 'mp3' | 'wav' | undefined
-    })
-    case 'cartesia': return resolveTtsTargetInvocationControls('cartesia', invocation, { language: selection.cartesiaLanguage, speed: selection.cartesiaSpeed })
     case 'inworld': return resolveTtsTargetInvocationControls('inworld', invocation, { steeringPrompt: selection.inworldInstructions, speed: selection.inworldSpeed })
   }
 }
@@ -185,16 +160,14 @@ export const resolveEffectiveProviderControls = (
 export const providerSerializerVoiceField = (
   target: TtsTarget,
   strategy: ProviderRenderStrategy,
-  voiceKind: AttemptTurn['voice']['kind']
+  _voiceKind: AttemptTurn['voice']['kind']
 ): string => {
   switch (target.service) {
     case 'openai': return 'voice'
+    case 'gemini': return 'generation_config.speech_config'
+    case 'soniox': return 'voice'
     case 'grok': return 'voice_id'
-    case 'cartesia': return cartesiaTtsVoiceField(target.model)
-    case 'hume': return strategy === 'native-utterances' ? 'utterances[].voice.id' : 'utterances[].voice'
-    case 'speechify': return 'voice_id'
     case 'elevenlabs': return strategy === 'native-dialogue' ? 'inputs[].voice_id' : 'path.voice_id'
-    case 'mistral': return voiceKind === 'reference-asset' ? 'ref_audio' : 'voice_id'
     case 'inworld': return 'voiceId'
   }
 }

@@ -6,12 +6,10 @@ import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import type { PipelineProviderState, TtsTarget } from '~/types'
-import { validateCartesiaTtsModel, validateCartesiaTtsVoice, validateInworldTtsModel, validateInworldTtsVoice } from '~/cli/commands/setup-and-utilities/models/tts-models'
+import { validateInworldTtsModel, validateInworldTtsVoice } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import { getTtsCost } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { buildCartesiaTtsRequestBody, cartesiaTtsRequestControls, validateCartesiaTtsLanguage } from '~/cli/commands/audio/tts/tts-services/cartesia/cartesia-tts-request'
 import { buildInworldTtsRequestBody, inworldTtsRequestControls, resolveInworldTtsApiModelId } from '~/cli/commands/audio/tts/tts-services/inworld/inworld-tts-request'
 import { buildInworldWebSocketRequests } from '~/cli/commands/audio/tts/tts-services/inworld/inworld-tts-websocket'
-import { collectCartesiaTtsTargets } from '~/cli/commands/audio/tts/tts-services/cartesia/cartesia-tts-targets'
 import { collectInworldTtsTargets } from '~/cli/commands/audio/tts/tts-services/inworld/inworld-tts-targets'
 import { createTtsTargetSelection } from '~/cli/commands/audio/tts/tts-targets/tts-target-selection'
 import { normalizeTtsTurnControls } from '~/cli/commands/audio/tts/tts-targets/tts-invocation-controls'
@@ -23,42 +21,33 @@ import { ttsResumeConfig } from '~/cli/commands/setup-and-utilities/resume/gener
 import { createMockWavBase64 } from '../../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 
-const dirs = setupContractSuiteLifecycle({ envKeys: ['CARTESIA_API_KEY', 'INWORLD_API_KEY'], tempPrefix: 'autoshow-tts-p1-' })
-const cartesiaModels = ['sonic-3.6-2026-08-27'] as const
+const dirs = setupContractSuiteLifecycle({ envKeys: [ 'INWORLD_API_KEY'], tempPrefix: 'autoshow-tts-p1-' })
 const inworldModels = ['realtime-tts-2'] as const
 
-const targetFor = (service: 'cartesia' | 'inworld', model: string): TtsTarget => {
-  const selection = createTtsTargetSelection(service === 'cartesia' ? { cartesiaTtsModels: [model] } : { inworldTtsModels: [model] })
-  return { ...(service === 'cartesia' ? collectCartesiaTtsTargets(selection) : collectInworldTtsTargets(selection))[0]!, operation: 'tts-synthesis', transport: 'hosted-api', targetKey: canonicalTargetKey('tts-synthesis', service, model, 'hosted-api') }
+const targetFor = (service: 'inworld', model: string): TtsTarget => {
+  const selection = createTtsTargetSelection({ inworldTtsModels: [model] })
+  return { ...collectInworldTtsTargets(selection)[0]!, operation: 'tts-synthesis', transport: 'hosted-api', targetKey: canonicalTargetKey('tts-synthesis', service, model, 'hosted-api') }
 }
 
 describe('P1 TTS models', () => {
   test('accepts current model selectors with provider prices', () => {
-    for (const model of cartesiaModels) expect(validateCartesiaTtsModel(model)).toBe(model)
     for (const model of inworldModels) expect(validateInworldTtsModel(model)).toBe(model)
-    expect(() => validateCartesiaTtsModel('sonic-preview')).toThrow()
-    expect(() => validateCartesiaTtsModel('sonic-3.6')).toThrow()
     expect(() => validateInworldTtsModel('inworld-tts-2-flash')).toThrow()
     expect(resolveInworldTtsApiModelId('realtime-tts-2')).toBe('inworld-tts-2')
-    expect(getTtsCost('cartesia', cartesiaModels[0])).toBe(6.5)
     expect(getTtsCost('inworld', inworldModels[0]) * 1000).toBe(2500)
   })
 
   test('expands new models and preserves bare-provider defaults', () => {
     const all = buildOptsFromFlags({ 'all-tts': true })
-    expect(all.cartesiaTtsModels).toEqual([...cartesiaModels])
     expect(all.inworldTtsModels).toEqual([...inworldModels])
-    const defaults = buildOptsFromFlags({ 'cartesia-tts': true, 'inworld-tts': true })
-    expect(defaults.cartesiaTtsModels).toEqual([cartesiaModels[0]])
+    const defaults = buildOptsFromFlags({  'inworld-tts': true })
     expect(defaults.inworldTtsModels).toEqual([inworldModels[0]])
   })
 
   test('validates language, voice and unsupported format controls without network calls', () => {
     const calls = installMockFetch(() => { throw new Error('Unexpected HTTP') })
-    for (const validate of [validateCartesiaTtsVoice, validateInworldTtsVoice]) expect(() => validate(' ')).toThrow()
-    for (const lang of ['or', 'ur', 'en']) expect(validateCartesiaTtsLanguage(cartesiaModels[0], lang)).toBe(lang)
-    for (const lang of ['xx', 'en_BOGUS']) expect(() => validateCartesiaTtsLanguage(cartesiaModels[0], lang)).toThrow()
-    for (const service of ['cartesia', 'inworld'] as const) {
+    for (const validate of [ validateInworldTtsVoice]) expect(() => validate(' ')).toThrow()
+    for (const service of [ 'inworld'] as const) {
       expect(() => normalizeTtsTurnControls({ 'dialogue-turn-001': { [service]: { outputFormat: 'flac' } } })).toThrow()
     }
     expect(() => buildInworldTtsRequestBody({ model: inworldModels[0], text: 'a'.repeat(2001), voiceId: 'Dennis' })).toThrow()
@@ -68,16 +57,13 @@ describe('P1 TTS models', () => {
     expect(calls).toHaveLength(0)
   })
 
-  test('uses the current Cartesia wire shape and maps Inworld WebSocket synthesis', () => {
-    expect(buildCartesiaTtsRequestBody(cartesiaModels[0], 'Hello', 'voice-id', 'en')).toMatchObject({ voice: 'voice-id', model_id: cartesiaModels[0], language: 'en' })
-    expect(cartesiaTtsRequestControls(cartesiaModels[0])).toEqual({ outputFormat: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 24000 }, modelId: cartesiaModels[0], version: '2026-08-14' })
+  test('maps Inworld WebSocket synthesis', () => {
     expect(inworldTtsRequestControls(inworldModels[0])).toEqual({ format: 'wav', timestampType: 'WORD', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 } })
     expect(buildInworldWebSocketRequests({ model: inworldModels[0], text: 'Hello', voiceId: 'Dennis', contextId: 'ctx' })[0]).toMatchObject({ create: { modelId: 'inworld-tts-2', voiceId: 'Dennis' } })
   })
 
-  for (const [service, models] of [['cartesia', cartesiaModels], ['inworld', inworldModels]] as const) {
+  for (const [service, models] of [ ['inworld', inworldModels]] as const) {
     test(`${service} new model synthesizes and resumes completed audio without redispatch`, async () => {
-      process.env['CARTESIA_API_KEY'] = 'local-test-key'
       process.env['INWORLD_API_KEY'] = 'local-test-key'
       const root = await dirs.make()
       const text = 'A synthetic narration for local resume verification.'
@@ -87,17 +73,14 @@ describe('P1 TTS models', () => {
       const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text)
       const target = targetFor(service, models[models.length - 1]!)
       const calls = installMockFetch(call => {
-        expect(call.url).toBe(service === 'cartesia' ? 'https://api.cartesia.ai/tts/bytes' : 'https://api.inworld.ai/tts/v1/voice')
-        return service === 'cartesia' ? new Response(Buffer.from(createMockWavBase64(), 'base64')) : Response.json({ audioContent: createMockWavBase64() })
+        expect(call.url).toBe('https://api.inworld.ai/tts/v1/voice')
+        return Response.json({ audioContent: createMockWavBase64() })
       })
       const states: PipelineProviderState[] = []
       const result = await runTtsForTargets(text, root, {}, [target], { sourceIdentity, dialoguePlan, onProviderState: async state => { states.push(structuredClone(state)) } })
       expect(calls).toHaveLength(1)
       expect(result.metadata[0]?.ttsModel).toBe(models[models.length - 1]!)
-      if (service === 'cartesia') {
-        expect(calls[0]?.headers.get('cartesia-version')).toBe('2026-08-14')
-        expect(calls[0]?.bodyJson).toMatchObject({ model_id: models[models.length - 1]!, voice: 'f786b574-daa5-4673-aa0c-cbe3e8534c02', output_format: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 24000 } })
-      } else {
+      {
         expect(calls[0]?.bodyJson).toMatchObject({ modelId: 'inworld-tts-2', voiceId: 'Dennis', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 }, timestampType: 'WORD' })
         expect(calls[0]?.bodyJson).not.toHaveProperty('instruction')
       }
@@ -110,7 +93,6 @@ describe('P1 TTS models', () => {
     }, 15_000)
 
     test(`${service} resumes an interrupted two-chunk render and preserves completed audio`, async () => {
-      process.env['CARTESIA_API_KEY'] = 'local-test-key'
       process.env['INWORLD_API_KEY'] = 'local-test-key'
       const root = await dirs.make()
       const text = `${'a'.repeat(2000)} ${'b'.repeat(100)}`
@@ -122,8 +104,8 @@ describe('P1 TTS models', () => {
       let attempt = 0
       const calls = installMockFetch(() => {
         attempt += 1
-        if (attempt === 2) return service === 'cartesia' ? new Response(new Uint8Array()) : Response.json({})
-        return service === 'cartesia' ? new Response(Buffer.from(createMockWavBase64(), 'base64')) : Response.json({ audioContent: createMockWavBase64() })
+        if (attempt === 2) return Response.json({})
+        return Response.json({ audioContent: createMockWavBase64() })
       })
       const states: PipelineProviderState[] = []
       await expect(runTtsForTargets(text, root, { ttsChunkConcurrency: 1 }, [target], { sourceIdentity, dialoguePlan, onProviderState: async state => { states.push(structuredClone(state)) } })).rejects.toThrow()
@@ -132,7 +114,6 @@ describe('P1 TTS models', () => {
       await writeManifest(root, createManifest('tts', 'single', [createManifestItem(root, { input: canonicalFileInput(sourceIdentity), status: 'failed', metadata: { tts: [] }, providers: [retained] })]))
       await ttsResumeConfig.runMissingTargets([target], text, root, { ttsAllowAmbiguousRedispatch: true, ttsChunkConcurrency: 1 }, { outputDir: root, runtimeOptions: { ttsAllowAmbiguousRedispatch: true }, targets: [target], existingEntries: [], currentManifestMetadata: {}, currentProviderStates: [retained] })
       expect(calls).toHaveLength(3)
-      expect(calls[2]?.bodyJson?.[service === 'cartesia' ? 'transcript' : 'text']).toBe('b'.repeat(100))
     }, 15_000)
 
   }

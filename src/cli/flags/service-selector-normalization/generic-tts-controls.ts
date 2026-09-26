@@ -11,24 +11,22 @@ export type GenericTtsControlMap = {
 }
 
 export const GENERIC_TTS_CONTROL_MAP = {
-  'tts-speed': { openai: 'speed', elevenlabs: 'speed', grok: 'speed', hume: 'speed', cartesia: 'speed', inworld: 'speed' },
-  'tts-language': { grok: 'language', speechify: 'language', cartesia: 'language', elevenlabs: 'languageCode' },
+  'tts-speed': { soniox: 'speed', openai: 'speed', elevenlabs: 'speed', grok: 'speed', inworld: 'speed' },
+  'tts-language': { soniox: 'language', grok: 'language', elevenlabs: 'languageCode' },
   'tts-text-normalization': { grok: 'textNormalization', elevenlabs: 'textNormalization' },
-  'tts-instructions': { openai: 'instructions', inworld: 'steeringPrompt', hume: 'description' },
+  'tts-instructions': { gemini: 'instructions', openai: 'instructions', inworld: 'steeringPrompt' },
   'tts-stability': { elevenlabs: 'stability' },
   'tts-similarity': { elevenlabs: 'similarityBoost' },
   'tts-style': { elevenlabs: 'style' },
   'tts-speaker-boost': { elevenlabs: 'useSpeakerBoost' },
   'tts-seed': { elevenlabs: 'seed' },
   'tts-pronunciation-dictionary': { elevenlabs: 'pronunciationDictionaryLocators' },
-  'tts-trailing-silence': { hume: 'trailingSilence' },
-  'tts-response-format': { mistral: 'responseFormat', elevenlabs: 'responseFormat', hume: 'responseFormat' }
+  'tts-response-format': { gemini: 'responseFormat', elevenlabs: 'responseFormat' }
 } as const satisfies GenericTtsControlMap
 
 // Flags that select a voice identity in the target layer rather than a control in the control layer.
 export const GENERIC_TTS_IDENTITY_MAP = {
-  'tts-voice': ['elevenlabs', 'grok', 'mistral', 'openai', 'speechify', 'hume', 'cartesia', 'inworld'],
-  'tts-ref-audio': ['mistral']
+  'tts-voice': ['soniox', 'gemini', 'elevenlabs', 'grok', 'openai', 'inworld'],
 } as const satisfies Record<string, readonly TtsProvider[]>
 
 export type GenericTtsControlFlag = keyof typeof GENERIC_TTS_CONTROL_MAP

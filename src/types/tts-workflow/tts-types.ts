@@ -44,16 +44,28 @@ export type TtsPronunciationLexicon = {
   lexiconSha256: string
 }
 
-export type TtsChunkBoundary = 'paragraph' | 'sentence' | 'clause' | 'word' | 'hard' | 'end'
+export const TTS_CHUNK_BOUNDARIES = ['paragraph', 'sentence', 'clause', 'word', 'hard', 'end'] as const
+export type TtsChunkBoundary = typeof TTS_CHUNK_BOUNDARIES[number]
 
 export type TtsChunkingOptions = {
-  boundary: 'smart' | 'legacy'
+  boundary: 'smart'
+  /** Internal compatibility mode for replaying a retained plan; never a new-run CLI option. */
+  replay?: 'legacy-v0' | 'smart-v1' | undefined
   maxChars?: number | undefined
 }
 
 export type PlannedTtsChunk = {
   text: string
   boundaryAfter: TtsChunkBoundary
+}
+
+export type ResolvedTtsChunk = PlannedTtsChunk & {
+  /** UTF-16 offsets into the prepared provider text, before whitespace trimming. */
+  sourceStart: number
+  sourceEnd: number
+  providerMaxChars: number
+  effectiveMaxChars: number
+  policyVersion: 'smart-v2' | 'legacy-v0' | 'smart-v1'
 }
 
 export type TtsDeliveryLoudness =
@@ -185,6 +197,8 @@ export type TtsTimingIdentity = Readonly<{ turnId: string, subjectKey: string }>
 export type TtsTimingFactory = (identity: TtsTimingIdentity) => import('./script-to-audio-types').NormalizedTiming<'take-audio-ms'>
 
 export type TtsRequestEvidenceScope = Readonly<{
+  /** Exact texts authorized by the immutable render plan, scoped to this invocation. */
+  plannedChunks?: readonly string[] | undefined
   forInvocation?: ((invocation: TtsTargetInvocation) => TtsRequestEvidenceScope) | undefined
   recoverCompletedOutputs?: (() => Promise<Readonly<{
     paths: readonly string[]
@@ -299,6 +313,7 @@ export type HostedTtsRunChunksOptions = {
 }
 
 export type HostedTtsChunkScheduler = {
+  waitForRequestStart?: ((provider: TtsProvider, signal?: AbortSignal) => Promise<void>) | undefined
   runChunks: <T>(
     provider: TtsProvider,
     chunks: readonly string[],
@@ -333,6 +348,7 @@ export type TtsTarget = ProviderTargetBase<TtsProvider> & {
   allowFailedImplicitDefaultReplan?: boolean | undefined
   voice?: string
   multiSpeakerStrategy?: MultiSpeakerStrategy
+  numericSpeed?: number | undefined
   chunkCharacterLimit?: number | undefined
   setupCostCents?: number | undefined
   setupTimeMs?: number | undefined
@@ -354,7 +370,8 @@ export type TtsCustomVoiceSampleAudio = {
   durationSeconds?: number | undefined
 }
 
-export type TtsDeliverySeamBoundary = TtsChunkBoundary | 'turn'
+export const TTS_DELIVERY_SEAM_BOUNDARIES = [...TTS_CHUNK_BOUNDARIES, 'turn'] as const
+export type TtsDeliverySeamBoundary = typeof TTS_DELIVERY_SEAM_BOUNDARIES[number]
 
 export type TtsDeliverySegmentInput = {
   id: string

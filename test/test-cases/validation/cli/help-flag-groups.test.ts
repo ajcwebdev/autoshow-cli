@@ -162,5 +162,9 @@ const PROVIDER_DEPENDENT_DEFAULT_ALLOWLIST: Record<string, string> = {
   'characters-root': 'Resolved at run time relative to the project root.',
   color: 'Auto-detected from the TTY unless FORCE_COLOR/NO_COLOR is set.',
   'panels-per-image': 'Two stage-specific defaults: the final-image stage and the sketch stage differ.',
-  prompt: 'Repeatable flag: a seeded array default would be appended to, not replaced by, explicit values.'
+  prompt: 'Repeatable flag: a seeded array default would be appended to, not replaced by, explicit values.',
+  'tts-trim-silence': 'Profile-dependent: an omitted flag keeps the audio profile preset, and any supplied value is rejected with --tts-audio-profile legacy-16k.',
+  'gemini-tts-mode': 'Must stay unset when omitted: any value, including unary, requires an explicit Gemini TTS selection.',
+  'gemini-tts-batch-wait-seconds': 'Must stay unset when omitted: any value requires --gemini-tts-mode batch.',
+  'provider-job-action': 'Must stay unset when omitted: any value is rejected for resume directories without a recorded Gemini provider job.'
 }

@@ -15,6 +15,7 @@ const LOGGER_SINK_FILES = [
 
 const PAYLOAD_STDOUT_FILES = [
   'src/tools/tts-controls-benchmark.ts',
+  'src/tools/compact-tts-benchmarks.ts',
   'src/cli/commands/setup-and-utilities/setup/network-check.ts',
   'src/cli/native/dispatcher.ts',
   'src/cli/commands/sources/download/download-targets/single/metadata-output.ts',

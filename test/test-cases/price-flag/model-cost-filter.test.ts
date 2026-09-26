@@ -39,15 +39,14 @@ describe('--max-model-cents', () => {
       STABLE_TTS_MD_PATH,
       '--all-providers',
       '--max-model-cents',
-      '0.5',
+      '0.2',
       '--price', '--json'
     ])
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
     expect(result.exitCode).toBe(0)
     expect(output).toContain('Excluded')
-    expect(output).toContain('speechify')
-    expect(output).not.toContain('speech-hume-octave-1.wav')
+    expect(output).not.toContain('speech-inworld-realtime-tts-2.wav')
     expect(output).not.toContain('speech-elevenlabs-eleven_v3.wav')
   })
 

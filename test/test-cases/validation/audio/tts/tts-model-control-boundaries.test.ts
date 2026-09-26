@@ -3,7 +3,6 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { runTtsForTargets } from '~/cli/commands/audio/tts/run-tts'
 import { planCurrentTtsReadiness } from '~/cli/commands/audio/tts/script-to-audio/current-render-attempt'
-import { buildCartesiaTtsRequestBody } from '~/cli/commands/audio/tts/tts-services/cartesia/cartesia-tts-request'
 import { runElevenLabsTts } from '~/cli/commands/audio/tts/tts-services/tts-elevenlabs/run-elevenlabs-tts'
 import { validateTtsBenchmarkContent } from '~/tools/tts-benchmark-content'
 import type { ElevenLabsTtsVoiceSettings, TtsOptions } from '~/types'
@@ -48,17 +47,6 @@ test('unsupported per-turn v3 controls fail in planning, before any request', ()
     expect(() => planCurrentTtsReadiness({ target: collectTtsTargets(opts)[0]!, sourceText: 'Only these words.', ttsOptions: opts })).toThrow('Eleven v3')
   }
   expect(calls).toHaveLength(0)
-})
-
-// https://dev.hume.ai/docs/text-to-speech-tts/acting-instructions
-test('Octave 2 acting descriptions fail in preflight, not in the serializer after setup', () => {
-  const opts: TtsOptions = { ...buildOptsFromFlags({ 'hume-tts': 'octave-2' }), ttsTurnControls: { 'dialogue-turn-001': { hume: { description: 'Speak sadly.' } } } }
-  expect(() => planCurrentTtsReadiness({ target: collectTtsTargets(opts)[0]!, sourceText: 'Hello there.', ttsOptions: opts })).toThrow('Octave 2 does not support acting descriptions')
-})
-
-// https://docs.cartesia.ai/api-reference/tts/bytes
-test('Cartesia preserves documented locale syntax in the actual request', () => {
-  expect(buildCartesiaTtsRequestBody('sonic-3.6-2026-08-27', 'Hello.', 'voice-a', 'en-GB')).toMatchObject({ language: 'en-GB', transcript: 'Hello.', voice: 'voice-a' })
 })
 
 test('benchmark validation catches bracketed prose and changed spoken words independently of HTTP success', () => {

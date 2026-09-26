@@ -300,7 +300,6 @@ describe('test-runner contracts', () => {
   test('TTS service budget preflight includes active service entries', () => {
       const allFiles = [
         'test/test-cases/e2e/service/audio/tts/grok-tts.test.ts',
-        'test/test-cases/e2e/service/audio/tts/cartesia-sonic-3.6-2026-08-27.test.ts',
         'test/test-cases/e2e/service/audio/tts/openai-gpt-4o-mini-tts-2025-12-15.test.ts',
       ]
 
@@ -309,7 +308,6 @@ describe('test-runner contracts', () => {
       ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
 
       expect(keys).toContain('tts-grok-grok-tts')
-      expect(keys).toContain('tts-cartesia-sonic-3.6-2026-08-27')
       expect(keys).toContain('tts-openai-gpt-4o-mini-tts-2025-12-15')
     })
 

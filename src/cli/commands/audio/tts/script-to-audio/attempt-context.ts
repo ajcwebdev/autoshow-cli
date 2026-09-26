@@ -1,3 +1,4 @@
+import { retainTtsSlotAudio } from './tts-slot-audio-cache'
 import { readdir } from 'node:fs/promises'
 import type {
   AccountCapabilityObservation,
@@ -59,6 +60,8 @@ const resolveAttemptLayout = (
   const targetDir = `${options.outputDir}/${targetRelativeDir}`
   const renderRoot = `${targetDir}/renders/${renderIdentity}`
   const paidSpeechSlotHash = (slot: AttemptSlot): string => slot.slotHash ?? computePaidSpeechSlotHash({
+    provider: options.target.service,
+    model: options.target.model,
     dialoguePlanId: planned.dialoguePlan.dialoguePlanId,
     turnIds: slot.turnIds,
     providerText: slot.providerText,
@@ -112,9 +115,15 @@ const prepareRecoveredExecution = async (
   if (requestedSlotLimit !== undefined && planned.strategy !== 'segmented') throw UsageError('Bounded generation-slot execution is supported only for segmented TTS renders.')
   for (const [slotId, recovered] of recoveredBySlot) {
     if (recovered.value.provenance !== 'slot-reuse') continue
-    recoveredBySlot.set(slotId, { ...recovered, path: `${layout.renderRoot}/slots/${recovered.value.slotHash}/provider-batch-result.json` })
+    recoveredBySlot.set(slotId, { ...recovered, path: `${layout.renderRoot}/slots/${slotId}/provider-batch-result.json` })
   }
   await Promise.all([...recoveredBySlot.values()].map(async batch => await materializeRecoveredBatch(options.outputDir, batch)))
+  // Old attempts/archives retain verified audio under the previous slot identity.
+  // Copy it into the model-scoped cache before publishing a new compact archive.
+  for (const [slotId, recovered] of recoveredBySlot) {
+    const slot = planned.slots.find(entry => entry.generationSlotId === slotId)!
+    slot.audioArtifactRef = await retainTtsSlotAudio(options.outputDir, layout.layout, layout.paidSpeechSlotHash(slot), recovered.outputPaths[0]!, recovered.value.outputs[0]!.sha256)
+  }
   const attemptSlots = requestedSlotLimit === undefined ? unresolvedSlots : unresolvedSlots.slice(0, requestedSlotLimit)
   const unresolvedPlannedCost = sumCosts(attemptSlots.map(slot => slot.plannedCost))
   const priorAttemptNumbers = (await readdir(layout.attemptsRoot).catch(() => []))

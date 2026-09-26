@@ -69,7 +69,7 @@ const resolveDelivery = (flags: Record<string, unknown>): TtsDeliveryProfile | u
   const paragraphMs = readMs(flags, 'tts-paragraph-pause')
   if (paragraphMs !== undefined) profile.gapsMs = { ...profile.gapsMs, paragraph: paragraphMs, turn: paragraphMs }
   const sentenceMs = readMs(flags, 'tts-sentence-pause')
-  if (sentenceMs !== undefined) profile.gapsMs = { ...profile.gapsMs, sentence: sentenceMs, clause: Math.min(profile.gapsMs.clause, sentenceMs) }
+  if (sentenceMs !== undefined) profile.gapsMs = { ...profile.gapsMs, sentence: sentenceMs }
   profile.leadInMs = readMs(flags, 'tts-lead-in') ?? profile.leadInMs
   profile.leadOutMs = readMs(flags, 'tts-lead-out') ?? profile.leadOutMs
   return profile

@@ -2,7 +2,7 @@ import type { TtsProvider } from '../provider-core/provider-types'
 import type { ProviderBatchResultRelativeArtifactPath, RenderRelativeArtifactPath } from './artifact-path-types'
 import type { PlannedCost, PreparedProviderText, ProtectedAssetRef, ProviderResolvedDialogueTurn, RequestedAudioFormat, ResolvedVoiceBinding, TypedProviderDeliverySettings, TypedProviderRequestSettings, TypedProviderSynthesisSettings } from './voice-and-dialogue-types'
 
-export type ProviderRenderStrategy = 'native-dialogue' | 'native-utterances' | 'segmented' | 'hybrid'
+export type ProviderRenderStrategy = 'native-dialogue' | 'segmented' | 'hybrid'
 export type ProviderRenderModePreference = 'auto' | 'native' | 'segmented' | 'repair'
 
 export type ProviderGenerationSlotPlan = {

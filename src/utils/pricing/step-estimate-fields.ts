@@ -37,6 +37,15 @@ const STEP_FIELDS = {
     'pricingNote'
   ],
   tts: [
+    'inputCostPer1MTokensCents',
+    'outputCostPer1MAudioTokensCents',
+    'estimatedTextTokens',
+    'estimatedAudioTokens',
+    'estimatedDurationSeconds',
+    'rateIdentity',
+    'executionMode',
+    'estimateProvenance',
+    'authorizationBoundCents',
     'costMultiplier',
     'costPerRequestCents',
     'requestCount',
@@ -104,6 +113,15 @@ const STEP_REPORT_FIELDS = {
     'pricingNote'
   ],
   tts: [
+    'inputCostPer1MTokensCents',
+    'outputCostPer1MAudioTokensCents',
+    'estimatedTextTokens',
+    'estimatedAudioTokens',
+    'estimatedDurationSeconds',
+    'rateIdentity',
+    'executionMode',
+    'estimateProvenance',
+    'authorizationBoundCents',
     ['characterCount', 'characters'],
     ['requestCount', 'requests'],
     'costPerRequestCents',

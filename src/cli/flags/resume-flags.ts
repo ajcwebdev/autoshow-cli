@@ -28,6 +28,7 @@ const extractProvidersFor = (kind: 'stt' | 'ocr'): Record<string, unknown> =>
   Object.fromEntries(Object.entries(EXTRACT_PUBLIC_SELECTOR_FLAGS).filter(([, targets]) => targets[kind] !== undefined))
 
 const resumeProviderSelectionFlags = {
+  'provider-job-action': strFlag('Recorded Gemini TTS Batch job: status|wait|cancel (default wait). Local interruption does not cancel remote work.'),
   ...booleanAllProvidersFlag,
   ...booleanAllLocalFlag,
   provider: strListFlag([

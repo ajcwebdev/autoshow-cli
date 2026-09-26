@@ -4,7 +4,7 @@ import { buildFinalTimelineLayout } from '~/cli/commands/audio/tts/script-to-aud
 
 describe('comic authored-delivery capability accounting', () => {
   test('recognizes only provider/model paths that actually serialize the direction', () => {
-    expect(serializesComicDelivery({ service: 'hume', model: 'octave-1' }, 'flat, professional')).toBe(true)
+    expect(serializesComicDelivery({ service: 'gemini', model: 'gemini-3.8-flash-tts' }, 'flat, professional')).toBe(true)
     expect(serializesComicDelivery({ service: 'elevenlabs', model: 'eleven_v3' }, 'deadpan')).toBe(true)
     expect(serializesComicDelivery({ service: 'elevenlabs', model: 'eleven_v3' }, 'flat, professional')).toBe(false)
     expect(serializesComicDelivery({ service: 'inworld', model: 'realtime-tts-2' }, 'rushing')).toBe(false)

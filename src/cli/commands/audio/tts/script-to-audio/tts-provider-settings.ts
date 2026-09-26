@@ -1,8 +1,9 @@
+import { recordSonioxResumeOptions } from '../tts-services/tts-soniox/soniox-resume-options'
+import { recordGeminiResumeOptions } from '../tts-services/tts-gemini/gemini-resume-options'
 import type { AttemptTurn, ProviderSettingsRecord, PureCurrentTtsRenderPlan, PureCurrentTtsRenderPlanOptions } from '~/types'
 import { createProviderSettingsRecord } from '~/cli/commands/command-shared/pipeline-manifest/provider-settings-record'
-import { resolveTtsChunkMaxChars } from '../tts-utils/tts-chunk-planner'
+import { recordSharedTtsResumeOptions } from '../tts-utils/tts-resume-options'
 import { canonicalTtsJson } from './contract-identity'
-import { chunkLimit } from './comic-segmented-audio'
 import { buildProviderSerializerDescriptor } from './provider-serializer-registry'
 
 const recordedVoice = (turn: AttemptTurn): Record<string, unknown> => ({
@@ -42,18 +43,24 @@ const buildRequest = (options: PureCurrentTtsRenderPlanOptions, plan: PureCurren
     : { ...base, speakers: entries.map((entry) => ({ speakers: entry.speakers, ...entry.settings })) }
 }
 
-const buildLocal = (options: PureCurrentTtsRenderPlanOptions): Record<string, unknown> => {
+const buildLocal = (options: PureCurrentTtsRenderPlanOptions, plan: PureCurrentTtsRenderPlan): Record<string, unknown> => {
   const tts = options.ttsOptions
   const delivery = tts.ttsDelivery
-  const providerChunkLimit = chunkLimit(options.target)
+  const chunks = plan.planned.slots.flatMap(slot => slot.chunk ? [slot.chunk] : [])
   return {
+    ttsResume: recordSharedTtsResumeOptions(tts),
+    ...(options.target.service === 'soniox' ? { sonioxResume: recordSonioxResumeOptions(tts) } : {}),
+    ...(options.target.service === 'gemini' ? { geminiResume: recordGeminiResumeOptions(tts) } : {}),
     audioProfile: delivery?.preset ?? 'legacy-16k',
     ...(delivery ? { delivery } : {}),
     chunking: {
-      boundary: tts.ttsChunking?.boundary ?? 'legacy',
+      boundary: 'smart',
+      policyVersion: chunks[0]?.policyVersion ?? tts.ttsChunking?.replay ?? 'smart-v2',
       ...(tts.ttsChunking?.maxChars !== undefined ? { requestedMaxChars: tts.ttsChunking.maxChars } : {}),
-      providerLimit: providerChunkLimit,
-      effectiveMaxChars: resolveTtsChunkMaxChars(providerChunkLimit, tts.ttsChunking),
+      ...(chunks.length ? { providerLimit: Math.min(...chunks.map(chunk => chunk.providerMaxChars)), effectiveMaxChars: Math.min(...chunks.map(chunk => chunk.effectiveMaxChars)) } : {}),
+      requestCount: plan.planned.slots.length,
+      requests: plan.planned.slots.map(slot => ({ generationSlotId: slot.generationSlotId, turnIds: slot.turnIds, ...(slot.timingSegmentIndex !== undefined ? { timingSegmentIndex: slot.timingSegmentIndex } : {}), characters: slot.providerText.length,
+        ...(slot.chunk ? { sourceStart: slot.chunk.sourceStart, sourceEnd: slot.chunk.sourceEnd, boundaryAfter: slot.chunk.boundaryAfter, effectiveMaxChars: slot.chunk.effectiveMaxChars } : {}) })),
     },
     textPreflight: tts.ttsTextPreflight ?? true,
     ...(tts.ttsExport ? { export: tts.ttsExport } : {}),
@@ -76,7 +83,7 @@ export const ttsProviderSettings = (
     service: options.target.service,
     operation: plan.operation,
     request: buildRequest(options, plan),
-    local: buildLocal(options),
+    local: buildLocal(options, plan),
   })
   settingsByPlan.set(plan, settings)
   return settings

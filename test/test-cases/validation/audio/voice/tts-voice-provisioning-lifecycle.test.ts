@@ -2,15 +2,12 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { readFile } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { join } from 'node:path'
-import type { CharacterVoiceBrief, MistralVoiceManagementRequest, ProtectedAssetRef, ProviderVoiceRef, VoiceConsentRecord, VoiceProvisioningAttempt } from '~/types'
+import type { ProtectedAssetRef, ProviderVoiceRef, VoiceConsentRecord, VoiceProvisioningAttempt } from '~/types'
 import { createProtectedVoiceAssetStore } from '~/cli/commands/audio/voice/voice-assets/protected-voice-asset-store'
 import { assertProtectedStoreOutputDisjoint } from '~/cli/commands/audio/voice/voice-assets/protected-output-boundary'
 import { computeConsentRecordId, assertVoiceConsentAllows, computeVoiceCandidateId, validateVoiceCandidate } from '~/cli/commands/audio/voice/voice-management-contracts'
 import { runCrashSafeVoiceProvisioning, loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt } from '~/cli/commands/audio/voice/provisioning-journal'
-import { createMistralSavedVoice, deleteMistralSavedVoice } from '~/cli/commands/audio/voice/mistral-voice-management'
 import { loadVoiceConsentRecord, revokeVoiceConsentRecord, storeVoiceConsentRecord } from '~/cli/commands/audio/voice/voice-consent-store'
-import { provisionMistralSavedReferenceRegistration } from '~/cli/commands/audio/voice/voice-registration-management'
-import { loadVoiceRegistrationCatalog } from '~/cli/commands/audio/voice/character-voice-registry'
 import { ProviderError, UsageError } from '~/utils/error-handler'
 import { unexpectedCall } from '../../../../test-utils/rest-contract-helpers'
 import { createTempDirTracker } from '../../../../test-utils/temp-dirs'
@@ -25,7 +22,7 @@ const asset = (letter: string): ProtectedAssetRef => ({
 })
 
 const providerVoice = (id: string): Extract<ProviderVoiceRef, { kind: 'remote-resource' }> => ({
-  kind: 'remote-resource', provider: 'mistral', resourceId: id, namespace: 'account', accountScopeHash: 'c'.repeat(64),
+  kind: 'remote-resource', provider: 'grok', resourceId: id, namespace: 'account', accountScopeHash: 'c'.repeat(64),
   origin: 'saved-reference', ownership: 'project', deletion: { state: 'eligible', checkedAt: '2026-08-11T00:00:00.000Z' }
 })
 
@@ -283,85 +280,5 @@ describe('Phase 1 provisioning journal', () => {
     })
     expect(reconciled.outcome?.state).toBe('ready')
     expect(reconciled.transitions.map(entry => entry.phase)).toEqual(['prepared', 'request-sent', 'response-received', 'ambiguous', 'terminal', 'reconciled', 'terminal'])
-  })
-})
-
-describe('Phase 1 Mistral saved-reference management', () => {
-  test('creation serializes the saved-voice API contract only through the management adapter', async () => {
-    const root = await makeRoot()
-    const samplePath = join(root, 'authorized-reference.wav')
-    await Bun.write(samplePath, new Uint8Array([1, 2, 3, 4]))
-    let observed: Record<string, unknown> | undefined
-    const request: MistralVoiceManagementRequest = async <T>(options: Parameters<MistralVoiceManagementRequest>[0]): Promise<T> => {
-      observed = options as unknown as Record<string, unknown>
-      return { id: 'voice-managed', name: 'Hero reference', slug: 'autoshow-hero-reference', languages: ['en'] } as T
-    }
-    const created = await createMistralSavedVoice({
-      apiKey: 'test-management-key',
-      protectedSamplePath: samplePath,
-      name: 'Hero reference',
-      slug: 'autoshow-hero-reference',
-      languages: ['en'],
-      request
-    })
-    expect(observed).toMatchObject({ path: '/audio/voices', method: 'POST' })
-    expect(observed?.['body']).toEqual({
-      name: 'Hero reference',
-      slug: 'autoshow-hero-reference',
-      sample_audio: Buffer.from([1, 2, 3, 4]).toString('base64'),
-      sample_filename: 'authorized-reference.wav',
-      languages: ['en']
-    })
-    expect(created.providerVoice).toMatchObject({ provider: 'mistral', resourceId: 'voice-managed', origin: 'saved-reference', ownership: 'project' })
-    expect(JSON.stringify(created)).not.toContain(samplePath)
-    let deletionRequest: Record<string, unknown> | undefined
-    const deletion = await deleteMistralSavedVoice({
-      apiKey: 'test-management-key',
-      providerVoice: created.providerVoice,
-      confirmResourceId: 'voice-managed',
-      request: async <T>(options: Parameters<MistralVoiceManagementRequest>[0]): Promise<T> => {
-        deletionRequest = options as unknown as Record<string, unknown>
-        return { id: 'voice-managed', name: 'Hero reference' } as T
-      }
-    })
-    expect(deletionRequest).toMatchObject({ path: '/audio/voices/voice-managed', method: 'DELETE' })
-    expect(deletion.providerVoice).toEqual(created.providerVoice)
-  })
-
-  test('concurrent saved-reference registrations share one provider creation and one generation chain', async () => {
-    const root = await makeRoot()
-    const charactersRoot = join(root, 'characters')
-    const samplePath = join(root, 'authorized-reference.wav')
-    await Bun.write(samplePath, new Uint8Array([9, 8, 7, 6]))
-    const store = createProtectedVoiceAssetStore({ storeId: 'test_voice_store', root: join(root, 'protected') })
-    const consentWithoutId = {
-      schemaVersion: 1 as const,
-      subjectKey: 'hero', provenanceRef: 'project:release-9', status: 'active' as const,
-      grants: [{ action: 'upload' as const, allowed: true }, { action: 'new-synthesis' as const, allowed: true }],
-      recordedAt: '2026-08-11T00:00:00.000Z', recordedBy: { namespace: 'local-user' as const, actorId: 'casting_editor' }
-    }
-    const consent: VoiceConsentRecord = { ...consentWithoutId, consentRecordId: computeConsentRecordId(consentWithoutId) }
-    const consentRecordRef = await storeVoiceConsentRecord(store, consent)
-    const brief: CharacterVoiceBrief = {
-      subjectKey: 'hero', profileKey: 'default', mannerisms: [], prohibitedCaricatures: [], pronunciations: [], allowedOrigins: ['saved-reference']
-    }
-    let calls = 0
-    const request: MistralVoiceManagementRequest = async <T>(options: Parameters<MistralVoiceManagementRequest>[0]): Promise<T> => {
-      calls++
-      await Bun.sleep(8)
-      const body = options.body as { name: string, slug: string }
-      return { id: 'voice-shared', name: body.name, slug: body.slug, created_at: '2026-08-11T00:01:00.000Z', languages: [] } as T
-    }
-    const run = () => provisionMistralSavedReferenceRegistration({
-      charactersRoot, protectedStore: store, subjectKey: 'hero', profileKey: 'default', providerModel: 'voxtral-mini-tts-2603',
-      voiceName: 'Hero reference', sourcePath: samplePath, authorizationRef: 'release:hero-v1', brief,
-      provenanceRef: 'project:casting', consent, consentRecordRef, capabilityFixtureHash: 'a'.repeat(64), apiKey: 'test-management-key', request
-    })
-    const [first, second] = await Promise.all([run(), run()])
-    expect(calls).toBe(1)
-    expect(first.generationId).toBe(second.generationId)
-    const catalog = await loadVoiceRegistrationCatalog(charactersRoot)
-    expect(catalog.registrations).toHaveLength(2)
-    expect(catalog.registrations.map(entry => entry.provisioning.state)).toEqual(['pending', 'ready'])
   })
 })

@@ -18,15 +18,15 @@ test('usage-error output redacts password flag values', async () => {
   expect(`${result.stdout}\n${result.stderr}`).not.toContain(secret)
 })
 
-test('usage-error output redacts Speechify custom voice consent email', async () => {
+test('usage-error output redacts unknown custom voice consent email', async () => {
   const secret = 'voice-owner@example.com'
   const result = await runCommand([
     'src/cli/create-cli.ts',
     'tts',
     'input/examples/tts/01-tts-short.md',
-    '--speechify',
+    '--fixture',
     'definitely-not-a-model',
-    '--speechify-tts-consent-email',
+    '--fixture-tts-consent-email',
     secret
   ])
 

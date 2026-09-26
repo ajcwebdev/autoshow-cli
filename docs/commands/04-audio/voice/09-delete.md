@@ -18,7 +18,6 @@ bun autoshow voice delete <registration-id> [flags]
 | -------------------------- | ------------------------------------------------------------------- |
 | `--generation-id <sha256>` | Optional unless more than one generation could match                |
 | `--confirm-voice-id <id>`  | Required exact provider resource ID confirmation                    |
-| `--expected-name <name>`   | Exact current Hume voice name required for Hume deletion            |
 | `--reconcile`              | Finish an ambiguous voice creation without creating the voice again |
 | `--price`                  | Validate and estimate without provider calls or artifact writes     |
 

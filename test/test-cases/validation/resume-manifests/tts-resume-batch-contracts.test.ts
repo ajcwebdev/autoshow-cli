@@ -7,14 +7,35 @@ import { createCurrentTtsRenderAttempt } from '~/cli/commands/audio/tts/script-t
 import { priceGenerationTarget, resumeGenerationTarget } from '~/cli/commands/setup-and-utilities/resume/generation-resume'
 import { buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { ttsResumeConfig } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume'
-import { createFileTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from '~/cli/commands/audio/tts/script-to-audio/generic-dialogue-plan'
+import { createBatchItemTtsSourceIdentity, createFileTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from '~/cli/commands/audio/tts/script-to-audio/generic-dialogue-plan'
+import { verifyManifestProjectionArtifacts, verifyManifestUpdateProjectionArtifacts } from '~/cli/commands/command-shared/pipeline-manifest/projection-artifact-graph'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/audio/tts/script-to-audio/item-dialogue-plan-artifact'
 import type { Step4Metadata, TtsOptions } from '~/types'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { runTtsForTargets } from '~/cli/commands/audio/tts/run-tts'
-import { canonicalFileInput, localTtsResumeConfig, materializeFailedProviderState, policySkippedState, successfulTarget, ttsTarget } from './tts-resume-fixtures'
+import { canonicalFileInput, localTtsResumeConfig, materializeBlockedReadinessProviderState, materializeFailedProviderState, policySkippedState, successfulTarget, ttsTarget } from './tts-resume-fixtures'
 
 describe('canonical TTS resume — item-scoped and batch scope', () => {
+  test('single-item directory exports retain their source index while full batches enforce ordering and artifact integrity', async () => {
+    await withTempDir('autoshow-tts-exported-item-', async dir => {
+      const text = 'Fourth directory item.'
+      const sourceIdentity = await createBatchItemTtsSourceIdentity(dir, 3, text)
+      const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text)
+      const target = { ...ttsTarget(), voice: 'alloy' }
+      const state = await materializeBlockedReadinessProviderState({ rootDir: dir, target, text, sourceIdentity, dialoguePlan, ttsOptions: { openaiTtsModels: [target.model] } })
+      const item = createManifestItem(dir, { input: 'fourth.txt', status: 'failed', metadata: { tts: [] }, providers: [state] })
+      const single = createManifest('tts', 'single', [item])
+      expect(await verifyManifestProjectionArtifacts(dir, single)).toBe(true)
+      const previous = { ...single, items: [{ ...item, providers: [] }] }
+      expect(await verifyManifestUpdateProjectionArtifacts(dir, previous, single)).toBe(true)
+      expect(await verifyManifestProjectionArtifacts(dir, { ...single, scope: 'batch' })).toBe(false)
+      const reference = state.options['dialoguePlan'] as { path: string }
+      await Bun.write(join(dir, reference.path), '{}\n')
+      expect(await verifyManifestProjectionArtifacts(dir, single)).toBe(false)
+      expect(await verifyManifestUpdateProjectionArtifacts(dir, previous, single)).toBe(false)
+    })
+  })
+
   test('real prepared provider states use item-scoped stable target containers', async () => {
     await withTempDir('autoshow-tts-prepared-roots-', async (dir) => {
       const text = 'Prepared root fixture.'

@@ -76,40 +76,37 @@ Input file mode is standalone. Do not combine it with provider selectors, sectio
 
 Accepted provider selectors are the lowercase names below. Fetch other documentation through direct URL or input file mode.
 
-| Provider selector           | Sections                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------- |
-| `--provider assembly`       | `general`, `llmstxt`, `models`, `stt`                                           |
-| `--provider cartesia`       | `general`, `llmstxt`, `models`, `tts`                                           |
-| `--provider claude`         | `general`, `llmstxt`, `models`, `ocr`, `text`                                   |
-| `--provider deepgram`       | `general`, `llmstxt`, `stt`                                                     |
-| `--provider deepinfra`      | `general`, `llmstxt`, `models`, `ocr`, `stt`                                    |
-| `--provider elevenlabs`     | `general`, `llmstxt`, `models`, `music`, `tts`                                  |
-| `--provider fal`            | `general`, `image`, `llmstxt`, `video`                                          |
-| `--provider firecrawl`      | `general`, `llmstxt`, `url`                                                     |
-| `--provider gemini`         | `general`, `image`, `llmstxt`, `models`, `music`, `ocr`, `stt`, `text`, `video` |
-| `--provider gladia`         | `general`, `llmstxt`, `models`, `stt`                                           |
-| `--provider glm`            | `general`, `llmstxt`, `models`, `ocr`, `text`, `url`                            |
-| `--provider grok`           | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`, `video`   |
-| `--provider happyscribe`    | `llmstxt`, `stt`                                                                |
-| `--provider hume`           | `general`, `llmstxt`, `tts`                                                     |
-| `--provider inworld`        | `general`, `llmstxt`, `models`, `tts`                                           |
-| `--provider kimi`           | `general`, `llmstxt`, `models`, `ocr`, `text`                                   |
-| `--provider ltx`            | `llmstxt`, `models`, `video`                                                    |
-| `--provider lumalabs`       | `general`, `image`, `llmstxt`, `models`, `video`                                |
-| `--provider minimax`        | `general`, `llmstxt`, `models`, `music`                                         |
-| `--provider mistral`        | `general`, `llmstxt`, `models`, `ocr`, `stt`, `tts`                             |
-| `--provider openai`         | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`            |
-| `--provider replicate`      | `general`, `llmstxt`, `models`                                                  |
-| `--provider scrapecreators` | `general`, `llmstxt`, `stt`                                                     |
-| `--provider soniox`         | `general`, `llmstxt`, `stt`                                                     |
-| `--provider speechify`      | `llmstxt`, `models`, `tts`                                                      |
-| `--provider speechmatics`   | `general`, `llmstxt`, `stt`                                                     |
-| `--provider spider`         | `general`, `llmstxt`, `url`                                                     |
-| `--provider supadata`       | `general`, `llmstxt`, `stt`, `url`                                              |
-| `--provider together`       | `general`, `llmstxt`, `models`, `stt`, `text`                                   |
-| `--provider whisperfile`    | `llmstxt`, `stt`                                                                |
-| `--provider x`              | `general`, `llmstxt`, `url`                                                     |
-| `--provider zyte`           | `general`, `llmstxt`, `url`                                                     |
+| Provider selector           | Sections                                                                               |
+| --------------------------- | -------------------------------------------------------------------------------------- |
+| `--provider assembly`       | `general`, `llmstxt`, `models`, `stt`                                                  |
+| `--provider claude`         | `general`, `llmstxt`, `models`, `ocr`, `text`                                          |
+| `--provider deepgram`       | `general`, `llmstxt`, `stt`                                                            |
+| `--provider deepinfra`      | `general`, `llmstxt`, `models`, `ocr`, `stt`                                           |
+| `--provider elevenlabs`     | `general`, `llmstxt`, `models`, `music`, `tts`                                         |
+| `--provider fal`            | `general`, `image`, `llmstxt`, `video`                                                 |
+| `--provider firecrawl`      | `general`, `llmstxt`, `url`                                                            |
+| `--provider gemini`         | `general`, `image`, `llmstxt`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
+| `--provider gladia`         | `general`, `llmstxt`, `models`, `stt`                                                  |
+| `--provider glm`            | `general`, `llmstxt`, `models`, `ocr`, `text`, `url`                                   |
+| `--provider grok`           | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`, `video`          |
+| `--provider happyscribe`    | `llmstxt`, `stt`                                                                       |
+| `--provider inworld`        | `general`, `llmstxt`, `models`, `tts`                                                  |
+| `--provider kimi`           | `general`, `llmstxt`, `models`, `ocr`, `text`                                          |
+| `--provider ltx`            | `llmstxt`, `models`, `video`                                                           |
+| `--provider lumalabs`       | `general`, `image`, `llmstxt`, `models`, `video`                                       |
+| `--provider minimax`        | `general`, `llmstxt`, `models`, `music`                                                |
+| `--provider mistral`        | `general`, `llmstxt`, `models`, `ocr`, `stt`                                           |
+| `--provider openai`         | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`                   |
+| `--provider replicate`      | `general`, `llmstxt`, `models`                                                         |
+| `--provider scrapecreators` | `general`, `llmstxt`, `stt`                                                            |
+| `--provider soniox`         | `general`, `llmstxt`, `stt`                                                            |
+| `--provider speechmatics`   | `general`, `llmstxt`, `stt`                                                            |
+| `--provider spider`         | `general`, `llmstxt`, `url`                                                            |
+| `--provider supadata`       | `general`, `llmstxt`, `stt`, `url`                                                     |
+| `--provider together`       | `general`, `llmstxt`, `models`, `stt`, `text`                                          |
+| `--provider whisperfile`    | `llmstxt`, `stt`                                                                       |
+| `--provider x`              | `general`, `llmstxt`, `url`                                                            |
+| `--provider zyte`           | `general`, `llmstxt`, `url`                                                            |
 
 ## Global sections
 
@@ -142,7 +139,11 @@ bun autoshow links --provider openai general text
 
 bun autoshow links --provider openai models --provider gemini text
 
-bun autoshow links --provider hume tts --provider cartesia tts
+bun autoshow links --provider elevenlabs tts --provider inworld tts
+
+bun autoshow links --provider gemini tts
+
+bun autoshow links --provider gemini general models tts
 
 bun autoshow links tts --provider openai general text --provider fal video
 
@@ -150,6 +151,8 @@ bun autoshow links --refresh
 
 bun autoshow links --refresh --provider openai models --output-dir output/<earlier-run>
 ```
+
+Gemini's `tts` section includes its current and preview TTS model cards, speech generation and control guides, voice design and replication, and the legacy Generate Content equivalents. Include `general models` to also capture shared pricing, release notes, API references, limits, and deprecations.
 
 ## Output format
 
@@ -165,7 +168,7 @@ Each fetched page is appended to the combined file with a source marker. Failed 
 
 Pass `--refresh` to compare a selection with its previous refresh. The run rewrites the markdown bundle and writes a JSON sidecar beside it, replacing `.md` with `.refresh.json`. From the second run on it also writes a changes file, replacing `.md` with `.changes.md`.
 
-Without `--output-dir`, a refresh reuses one git-ignored directory per selection under `docs/links/`. `bun autoshow links --refresh` writes `docs/links/all-all-links/`. `--provider cartesia --provider inworld` writes `docs/links/cartesia-all--inworld-all-links/`. `--output-dir` pins another directory. `--output-root` does not move a refresh that omits `--output-dir`.
+Without `--output-dir`, a refresh reuses one git-ignored directory per selection under `docs/links/`. `bun autoshow links --refresh` writes `docs/links/all-all-links/`. `--provider elevenlabs --provider inworld` writes `docs/links/elevenlabs-all--inworld-all-links/`. `--output-dir` pins another directory. `--output-root` does not move a refresh that omits `--output-dir`.
 
 Change status on each link is one of:
 

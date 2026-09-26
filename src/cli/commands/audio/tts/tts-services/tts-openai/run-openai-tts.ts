@@ -1,7 +1,6 @@
 import type { HostedTtsChunkScheduler, OpenAITtsModel, Step4Metadata, TtsChunkingOptions, TtsRequestEvidenceScope } from '~/types'
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
-import { splitTtsText } from '~/cli/commands/audio/tts/tts-utils/tts-chunk-planner'
-import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
+import { resolveTtsDispatchChunks } from '../../tts-utils/tts-provider-chunk-policy'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import { OPENAI_DEFAULT_TTS_VOICE, resolveOpenAITtsVoiceForModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { requireTtsCredential } from '~/cli/commands/audio/tts/tts-utils/tts-credentials'
@@ -29,7 +28,7 @@ export const runOpenAITts = async (
     options.model,
     options.voiceId?.trim() || OPENAI_DEFAULT_TTS_VOICE
   )
-  const chunks = splitTtsText(text, TTS_CHUNK_CHARACTER_LIMITS.openai, options.chunking)
+  const chunks = resolveTtsDispatchChunks({ provider: 'openai', model: options.model, text: text, chunking: options.chunking }, options.requestEvidence)
 
   if (chunks.length === 0) {
     throw ValidationError('OpenAI TTS input text is empty', { stage: 'tts:openai' })

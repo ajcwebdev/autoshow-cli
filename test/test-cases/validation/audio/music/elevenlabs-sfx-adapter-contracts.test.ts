@@ -26,7 +26,7 @@ describe('ElevenLabs Phase 1 sound-effect adapter', () => {
     const plan = createSoundEffectRenderPlan({ plan: taskPlan('hatch slam'), target })
     expect(serializeElevenLabsSoundEffectRequest(plan.tasks[0]!, target)).toEqual({ path: '/v1/sound-generation', query: { output_format: 'mp3_44100_128' }, body: { text: 'hatch slam', model_id: 'eleven_text_to_sound_v2', duration_seconds: 1, prompt_influence: 0.3, loop: false } })
     expect(plan.routingDecisions).toEqual([expect.objectContaining({ kind: 'action-sfx', route: 'dedicated-sfx', targetKey: target.targetKey })])
-    expect(() => resolveSoundEffectTarget('cartesia=sonic-3')).toThrow(/Unsupported sound-effect provider cartesia/)
+    expect(() => resolveSoundEffectTarget('unsupported-provider=model')).toThrow(/Unsupported sound-effect provider unsupported-provider/)
     expect(() => resolveSoundEffectTarget('elevenlabs=eleven_v3')).toThrow(/Unsupported ElevenLabs sound-effect model/)
   })
 

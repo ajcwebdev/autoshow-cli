@@ -36,11 +36,10 @@ describe('config load schema contracts', () => {
           }
         },
         tts: {
-          speechifyTts: ['simba-3.2'],
-          mistralTts: ['voxtral-mini-tts-2603'],
+          geminiTts: ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'],
           openaiTts: ['gpt-4o-mini-tts-2025-12-15'],
           elevenlabsTts: ['eleven_v3'],
-          voice: ['speechify=narrator_voice', 'mistral=voice_abc123', 'openai=alloy'],
+          voice: ['openai=alloy'],
           speed: 1.1,
           language: 'en',
           textNormalization: 'on',
@@ -79,13 +78,13 @@ describe('config load schema contracts', () => {
     const elevenLabsClone = await writeTempConfig({
       defaults: { tts: { elevenlabsTtsRefAudio: 'private-reference.wav' } }
     })
-    const speechifyConsent = await writeTempConfig({
-      defaults: { tts: { speechifyTtsConsentEmail: 'performer@example.com' } }
+    const obsoleteConsent = await writeTempConfig({
+      defaults: { tts: { unsupportedConsentEmail: 'performer@example.com' } }
     })
 
-    await expect(loadConfig(mistralReference)).rejects.toThrow('Configured --tts-ref-audio paths cannot be used as synthesis defaults')
+    await expect(loadConfig(mistralReference)).rejects.toThrow('is no longer supported')
     await expect(loadConfig(elevenLabsClone)).rejects.toThrow('autoshow config')
-    await expect(loadConfig(speechifyConsent)).rejects.toThrow('autoshow config')
+    await expect(loadConfig(obsoleteConsent)).rejects.toThrow('autoshow config')
   })
 
   // v.strictObject would already reject these, but with a message that does not say where the value
@@ -125,7 +124,7 @@ describe('config load schema contracts', () => {
   })
 
   test('obsolete TTS provider keys fail with migration guidance', async () => {
-    for (const key of ['geminiTts', 'deepgramTts', 'replicateTts', 'falTts']) {
+    for (const key of ['deepgramTts', 'replicateTts', 'falTts']) {
       const configPath = await writeTempConfig({ defaults: { tts: { [key]: ['historical-model'] } } })
       await expect(loadConfig(configPath)).rejects.toThrow(`TTS provider configuration ${key} is no longer supported.`)
     }

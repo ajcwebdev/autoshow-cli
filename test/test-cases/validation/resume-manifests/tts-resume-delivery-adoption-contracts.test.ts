@@ -17,17 +17,17 @@ import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 import { canonicalFileInput, successfulTarget, ttsTarget } from './tts-resume-fixtures'
 
-const TEXT = 'A sufficiently long recovery sentence. '.repeat(160)
+const TEXT = 'x'.repeat(120) + ' Dr. Morgan returns. '.repeat(320)
 
 // An output directory from before delivery mastering: legacy chunking, no delivery profile, and
 // one purchased chunk retained before the run was interrupted.
-const createInterruptedLegacyRun = async (dir: string) => {
+const createInterruptedLegacyRun = async (dir: string, replay: 'legacy-v0' | 'smart-v1' = 'legacy-v0') => {
   const inputPath = join(dir, 'source.txt')
   await Bun.write(inputPath, TEXT)
   const sourceIdentity = await createFileTtsSourceIdentity(inputPath, TEXT)
   const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, TEXT)
   const target = { ...ttsTarget(), voice: 'alloy' }
-  const chunks = splitTextIntoChunks(TEXT, TTS_CHUNK_CHARACTER_LIMITS.openai)
+  const chunks = planTtsChunks(TEXT, TTS_CHUNK_CHARACTER_LIMITS.openai, { boundary: 'smart', replay }).map(chunk => chunk.text)
   const bytes = createSyntheticWavBytes({ durationSeconds: 0.05, amplitude: 0.2, frequencyHz: 440 })
   const states: PipelineProviderState[] = []
   const interruptedTarget = {
@@ -58,7 +58,7 @@ const createInterruptedLegacyRun = async (dir: string) => {
       throw new Error('fixture unexpectedly completed')
     }
   }
-  await expect(runTtsForTargets(TEXT, dir, {}, [interruptedTarget], {
+  await expect(runTtsForTargets(TEXT, dir, { ttsChunking: { boundary: 'smart', replay } }, [interruptedTarget], {
     sourceIdentity,
     dialoguePlan,
     onProviderState: async (state) => { states.push(structuredClone(state)) }
@@ -102,10 +102,24 @@ describe('TTS resume adopts retained chunking and delivery settings', () => {
       const options: TtsOptions = { ...resolveTtsDeliveryOptions({}), ttsDeliveryFallbackAllowed: true, ttsAllowAmbiguousRedispatch: true }
       const metadata = await resume(dir, fixture, options, () => { providerCalls += 1 })
       expect(providerCalls).toBe(fixture.chunks.length - 1)
-      expect(options.ttsChunking).toEqual({ boundary: 'legacy' })
+      expect(options.ttsChunking).toEqual({ boundary: 'smart', replay: 'legacy-v0' })
       expect(options.ttsDelivery).toBeUndefined()
       const observed = await inspectSoundscapeAudio(join(dir, metadata[0]?.audioFileName as string))
       expect(observed.format).toEqual({ codec: 'pcm_s16le', container: 'wav', sampleRate: 16000, channels: 1 })
+    })
+  }, 20_000)
+
+  test('transport: older smart plans retain their exact paid text after sentence recognition changes', async () => {
+    await withTempDir('autoshow-tts-resume-old-smart-', async (dir) => {
+      const fixture = await createInterruptedLegacyRun(dir, 'smart-v1')
+      expect(fixture.chunks).not.toEqual(planTtsChunks(TEXT, 2000).map(chunk => chunk.text))
+      // Simulate an older saved state without the new shared settings snapshot.
+      delete fixture.retainedWithDialogue.settings
+      let calls = 0
+      const options: TtsOptions = { ...resolveTtsDeliveryOptions({}), ttsDeliveryFallbackAllowed: true, ttsAllowAmbiguousRedispatch: true }
+      await resume(dir, fixture, options, () => { calls += 1 })
+      expect(options.ttsChunking).toEqual({ boundary: 'smart', replay: 'smart-v1' })
+      expect(calls).toBe(fixture.chunks.length - 1)
     })
   }, 20_000)
 

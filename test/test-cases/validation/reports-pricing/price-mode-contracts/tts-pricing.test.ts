@@ -23,26 +23,6 @@ const buildTtsMetadata = createMetadataFixtureBuilder<Step4Metadata>({
 })
 
 describe('price mode contracts', () => {
-  test('Mistral TTS estimates use published output-character pricing and provisional speed', () => {
-      const model = 'voxtral-mini-tts-2603'
-      const opts = {
-        mistralTtsModels: [model],
-        mistralTtsVoice: 'voice-existing'
-      } as Parameters<typeof estimateTtsCosts>[0]
-
-      const cost = estimateTtsCosts(opts, 1000)[0]
-      expect(cost?.inputCostPer1MCharactersCents).toBe(0)
-      expect(cost?.outputCostPer1MCharactersCents).toBe(1600)
-      expect(cost?.totalCost).toBe(1.6)
-
-      const timing = computeEstimatedProcessingTimes({
-        ttsTargets: [{ service: 'mistral', model }],
-        ttsCharacterCount: 1000
-      })
-      expect(timing.steps.find((step) => step.provider === 'mistral')?.processingTimeMs)
-        .toBe(Math.round(getTtsEstimation('mistral', model).msPer1KChars))
-    })
-
   test('Grok TTS estimates use current xAI Voice API character pricing', () => {
       const cost = estimateTtsCosts({
         grokTtsModels: ['grok-tts']
@@ -306,38 +286,6 @@ describe('price mode contracts', () => {
 
       expect(actualTotal).toBe(separateTotal)
       expect(actualTotal).toBeLessThan(flattenedOvercount)
-    })
-
-  test('Speechify TTS estimates use registry pricing and timing defaults', () => {
-      const costs = estimateTtsCosts({
-        speechifyTtsModels: ['simba-3.2']
-      } as Parameters<typeof estimateTtsCosts>[0], 1000)
-
-      expect(costs.map((cost) => ({
-        provider: cost.provider,
-        model: cost.model,
-        costPer1kCharactersCents: cost.costPer1kCharactersCents,
-        setupCostCents: cost.setupCostCents,
-        setupTimeMs: cost.setupTimeMs,
-        totalCost: cost.totalCost
-      }))).toEqual([
-        { provider: 'speechify', model: 'simba-3.2', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 }
-      ])
-
-      const timing = computeEstimatedProcessingTimes({
-        ttsTargets: [
-          { service: 'speechify', model: 'simba-3.2' }
-        ],
-        ttsCharacterCount: 1000
-      })
-
-      expect(timing.steps.map((step) => ({
-        provider: step.provider,
-        model: step.model,
-        processingTimeMs: step.processingTimeMs
-      }))).toEqual([
-        { provider: 'speechify', model: 'simba-3.2', processingTimeMs: 4_500 }
-      ])
     })
 
   test('ElevenLabs TTS estimates use current API rates and target setup timing', () => {

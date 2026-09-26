@@ -2,6 +2,7 @@ import { mkdtempSync } from 'node:fs'
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { PROJECT_ROOT } from '~/utils/project-root'
 
 export const makeTempDir = async (prefix: string): Promise<string> =>
   await mkdtemp(join(tmpdir(), prefix))
@@ -25,7 +26,8 @@ export const withLocalTestDir = async <T>(
   prefix: string,
   fn: (dir: string) => Promise<T>
 ): Promise<T> => {
-  const dir = join(process.cwd(), '.test-work', `${prefix}-${crypto.randomUUID()}`)
+  // Keep project-relative fixtures under the existing, ignored runtime directory.
+  const dir = join(PROJECT_ROOT, 'runtime', `test-${prefix}-${crypto.randomUUID()}`)
   await mkdir(dir, { recursive: true })
   try {
     return await fn(dir)

@@ -1,13 +1,20 @@
 import type { SpeakerVoiceRegistry } from '~/types'
 
 export type TtsTargetSelection = {
+  geminiModels: string[]
+  geminiVoice?: string | undefined
+  geminiInstructions?: string | undefined
+  geminiResponseFormat?: string | undefined
+  geminiMode?: 'unary' | 'stream' | 'batch' | undefined
+  geminiBatchWaitSeconds?: number | undefined
+
   elevenlabsModels: string[]
+  sonioxModels?: string[] | undefined
+  sonioxVoiceId?: string | undefined
+  sonioxLanguage?: string | undefined
+  sonioxSpeed?: number | undefined
   grokModels: string[]
-  mistralModels: string[]
   openaiModels: string[]
-  speechifyModels: string[]
-  humeModels: string[]
-  cartesiaModels: string[]
   inworldModels: string[]
   speakerVoiceRegistry: SpeakerVoiceRegistry | undefined
   multiSpeakerRequested: boolean
@@ -24,15 +31,6 @@ export type TtsTargetSelection = {
   elevenLabsSeed: number | undefined
   elevenLabsTextNormalization: string | undefined
   elevenLabsPronunciationDictionaryLocators: string[] | undefined
-  speechifyVoiceId: string | undefined
-  speechifyLanguage: string | undefined
-  humeSpeed?: number | undefined
-  humeTrailingSilence?: number | undefined
-  humeDescription?: string | undefined
-  humeVoice: string | undefined
-  cartesiaVoiceId: string | undefined
-  cartesiaSpeed?: number | undefined
-  cartesiaLanguage: string | undefined
   inworldVoiceId: string | undefined
   inworldInstructions: string | undefined
   inworldSpeed: number | undefined
@@ -40,9 +38,6 @@ export type TtsTargetSelection = {
   grokSpeed?: number | undefined
   grokLanguage: string | undefined
   grokTextNormalization: boolean
-  mistralVoiceId: string | undefined
-  mistralResponseFormat?: string | undefined
   elevenLabsResponseFormat?: string | undefined
-  humeResponseFormat?: string | undefined
   dialogueRequested: boolean
 }

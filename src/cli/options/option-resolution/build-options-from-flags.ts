@@ -36,7 +36,6 @@ export const buildOptsFromFlags = (
   const scopeIncludes = (...scopes: NonNullable<BuildOptsResolutionContext['scope']>[]): boolean =>
     scope === 'all' || scopes.includes(scope)
   const flagOccurrences = context.flagOccurrences ?? []
-  const ttsOptionResolutionAuthority = context.ttsOptionResolutionAuthority ?? {}
   const rawModelOccurrences = collectRepeatableModelFlagOccurrences(flagOccurrences)
 
   const mergedFlags: Record<string, unknown> = { ...flags }
@@ -132,11 +131,7 @@ export const buildOptsFromFlags = (
     renderedOutDir: readOptionalStringFlag(mergedFlags, 'rendered-out-dir'),
     trackList: readOptionalStringFlag(mergedFlags, 'track-list'),
     promptMd: readBooleanFlag(mergedFlags, 'prompt-md'),
-    ...buildTtsOptions(scopeIncludes('tts') ? mergedFlags : {}, scopeIncludes('tts') ? flagOccurrences : [], scopeIncludes('tts') ? modelOptions : inactiveModelOptions, {
-      explicitFlags,
-      configuredFlags,
-      ...ttsOptionResolutionAuthority
-    }),
+    ...buildTtsOptions(scopeIncludes('tts') ? mergedFlags : {}, scopeIncludes('tts') ? flagOccurrences : [], scopeIncludes('tts') ? modelOptions : inactiveModelOptions),
     markdown: readBooleanFlag(mergedFlags, 'markdown'),
     save: readBooleanFlag(mergedFlags, 'save'),
     reasoningEffort: parseReasoningEffort(readOptionalStringFlag(mergedFlags, 'reasoning-effort'))

@@ -12,7 +12,7 @@ import type {
 
 export type WorkingTtsMetadata = Step4Metadata & {
   _ttsObservedTurns?: CurrentTtsObservedTurn[] | undefined
-  _ttsRenderStrategy?: 'native-dialogue' | 'native-utterances' | 'segmented' | undefined
+  _ttsRenderStrategy?: 'native-dialogue' | 'segmented' | undefined
 }
 
 export type WorkingTtsResult = Step4Metadata & {

@@ -259,12 +259,10 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'llm-provider-concurrency': ['defaults', 'llm', 'providerConcurrency'],
   'llm-local-concurrency': ['defaults', 'llm', 'localConcurrency'],
   'elevenlabs-tts':    ['defaults', 'tts', 'elevenlabsTts'],
+  'gemini-tts':        ['defaults', 'tts', 'geminiTts'],
+  'soniox-tts':        ['defaults', 'tts', 'sonioxTts'],
   'grok-tts':          ['defaults', 'tts', 'grokTts'],
-  'mistral-tts':       ['defaults', 'tts', 'mistralTts'],
   'openai-tts':        ['defaults', 'tts', 'openaiTts'],
-  'speechify-tts':     ['defaults', 'tts', 'speechifyTts'],
-  'hume-tts':          ['defaults', 'tts', 'humeTts'],
-  'cartesia-tts':      ['defaults', 'tts', 'cartesiaTts'],
   'inworld-tts':       ['defaults', 'tts', 'inworldTts'],
   'tts-voice':         ['defaults', 'tts', 'voice'],
   'tts-speed':         ['defaults', 'tts', 'speed'],
@@ -279,7 +277,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'tts-speaker-boost': ['defaults', 'tts', 'speakerBoost'],
   'tts-seed':          ['defaults', 'tts', 'seed'],
   'tts-pronunciation-dictionary': ['defaults', 'tts', 'pronunciationDictionary'],
-  'tts-trailing-silence': ['defaults', 'tts', 'trailingSilence'],
   'tts-response-format': ['defaults', 'tts', 'responseFormat'],
   'tts-audio-profile': ['defaults', 'tts', 'audioProfile'],
   'tts-sample-rate': ['defaults', 'tts', 'sampleRate'],
@@ -369,7 +366,6 @@ export const RUNTIME_ONLY_FLAGS = new Set([
   'reset',
   'config-path',
   'password',
-  'tts-ref-audio'
 ])
 
 const setNestedValue = (obj: Record<string, unknown>, path: string[], value: unknown): void => {

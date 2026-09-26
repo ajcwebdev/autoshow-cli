@@ -6,10 +6,11 @@ import { normalizeTtsTurnControls } from '~/cli/commands/audio/tts/tts-targets/t
 import { planCurrentTtsReadiness } from '~/cli/commands/audio/tts/script-to-audio/current-render-attempt'
 import { validateTtsBenchmarkContent } from '~/tools/tts-benchmark-content'
 import type { TtsOptions, TtsTurnControls } from '~/types'
-import { createMockWavBytes } from '../../../../test-utils/media-fixtures'
+import { createMockWavBytes, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
+import { unary } from './tts-provider-contracts/gemini-fixtures'
 
-const envKeys = ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'XAI_API_KEY', 'CARTESIA_API_KEY', 'HUME_API_KEY', 'SPEECHIFY_API_KEY', 'INWORLD_API_KEY']
+const envKeys = ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'XAI_API_KEY', 'INWORLD_API_KEY', 'SONIOX_API_KEY', 'GEMINI_API_KEY']
 const dirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-speed-benchmark-' })
 const audio = createMockWavBytes()
 const base64 = Buffer.from(audio).toString('base64')
@@ -22,10 +23,10 @@ for (const suite of ['emotion', 'speed-pauses']) {
     for (const entry of plan.cases) test(entry.id, async () => {
       validateTtsBenchmarkContent(entry)
       for (const key of envKeys) process.env[key] = 'mock-tts-key'
-      const calls = installMockFetch(call => {
+      const calls = installMockFetch(() => {
+        if (entry.provider === 'gemini') return Response.json(unary())
+        if (entry.provider === 'soniox') return new Response(createSyntheticWavBytes({ sampleRate: 24000, durationSeconds: 0.1, amplitude: 0.2, frequencyHz: 440 }))
         if (entry.provider === 'inworld') return Response.json({ audioContent: base64 })
-        if (entry.provider === 'speechify') return Response.json({ audio_data: base64 })
-        if (entry.provider === 'hume' && call.url.endsWith('/v0/tts')) return Response.json({ generations: [{ audio: base64, generation_id: 'mock-generation' }] })
         return new Response(audio, { headers: { 'content-type': 'audio/wav' } })
       })
       const options: TtsOptions = {
@@ -41,29 +42,38 @@ for (const suite of ['emotion', 'speed-pauses']) {
       expect(source).not.toMatch(/\[(?:laugh[^\]]*|crying|sighs?|cough|yawn|sings|clear throat)\]/i)
       if (suite === 'emotion') {
         expect(source).not.toMatch(/<speed\b|<break\b|\[(?:slow|slowly|fast|rushed|normal pace|.*pause)\]/i)
-        expect(JSON.stringify(entry.turnControls)).not.toMatch(/"(?:speed|trailingSilence)"/)
       }
       await runTtsForTargets(source, await dirs.make(), options, targets)
       const bodies = calls.map(call => call.bodyJson!)
       expect(bodies.length).toBeGreaterThan(0)
-      const texts = bodies.flatMap(body => entry.provider === 'hume'
-        ? (body['utterances'] as Array<Record<string, unknown>>).map(turn => turn['text'])
-        : [body['text'] ?? body['input'] ?? body['transcript']])
+      const texts = bodies.flatMap(body => entry.provider === 'gemini'
+          ? (body['input'] as Array<{ content: Array<{ text: string }> }>).flatMap(input => input.content.map(content => content.text))
+          : [body['text'] ?? body['input'] ?? body['transcript']])
+      if (entry.provider === 'soniox') {
+        // Soniox REST contract: native tags belong in text; speed is a number, not instructions.
+        expect(calls).toHaveLength(5)
+        for (const call of calls) expect(call).toMatchObject({ url: 'https://tts-rt.soniox.com/tts', method: 'POST', bodyJson: { model: 'tts-rt-v2', voice: 'Adrian', language: 'en', audio_format: 'wav', sample_rate: 24000 } })
+        const rates = bodies.map(body => body['speed'])
+        expect(rates).toEqual(entry.id.endsWith('-numeric') ? [1, 0.7, 1.3, 1, 1] : [1, 1, 1, 1, 1])
+        for (const body of bodies) expect(body['instructions']).toBeUndefined()
+      }
       if (entry.flags['tts-dialogue-format']) expect(texts).toEqual(entry.lines)
       else expect(String(texts[0]).trim()).toBe(source.trim())
       for (const [index, line] of entry.lines.entries()) {
         const turn = entry.turnControls[`dialogue-turn-${String(index + 1).padStart(3, '0')}`]
         const controls = turn?.[entry.provider as keyof typeof turn]
         if (!controls) continue
-        const body = entry.model === 'octave-2' ? bodies[0]! : bodies[index]!
-        const utterance = entry.provider === 'hume' ? (body['utterances'] as Array<Record<string, unknown>>)[entry.model === 'octave-2' ? index : 0]! : undefined
+        const body = bodies[index]!
         if (controls['speed'] !== undefined) {
-          const actual = entry.provider === 'hume' ? utterance?.['speed'] : entry.provider === 'cartesia' ? (body['generation_config'] as Record<string, unknown>)?.['speed'] : body['speed']
+          const actual = body['speed']
           expect(actual).toBe(controls['speed'])
         }
-        if (controls['trailingSilence'] !== undefined) expect(utterance?.['trailing_silence']).toBe(controls['trailingSilence'])
-        if (controls['instructions'] !== undefined) expect(body['instructions']).toBe(controls['instructions'])
-        if (controls['description'] !== undefined) expect(utterance?.['description']).toBe(controls['description'])
+        if (controls['instructions'] !== undefined) {
+          if (entry.provider === 'gemini') {
+            const input = body['input'] as Array<{ content: Array<{ annotations: Array<{ type: string, style: string }> }> }>
+            expect(input[0]!.content[0]!.annotations).toEqual([{ type: 'speech_metadata', style: String(controls['instructions']) }])
+          } else expect(body['instructions']).toBe(controls['instructions'])
+        }
         if (controls['steeringPrompt'] !== undefined) expect(body['instruction']).toBe(controls['steeringPrompt'])
         expect(texts).toContain(line)
       }
@@ -75,14 +85,9 @@ describe('speed capability validation', () => {
   for (const [provider, model, voice] of [
     ['grok', 'grok-tts', 'eve'],
     ['inworld', 'realtime-tts-2', 'Dennis'],
-    ['cartesia', 'sonic-3.6-2026-08-27', '0834f3df-e650-4766-a20c-5a93a43aa6e3'],
-    ['hume', 'octave-1', '9e068547-5ba4-4c8e-8e03-69282a008f04'],
-    ['hume', 'octave-2', '9e068547-5ba4-4c8e-8e03-69282a008f04'],
   ] as const) test(`${provider}/${model}: generic default, override and explicit reset reach transport`, async () => {
     for (const key of envKeys) process.env[key] = 'mock-tts-key'
-    const calls = installMockFetch(call => provider === 'hume' && call.url.endsWith('/v0/tts')
-      ? Response.json({ generations: [{ audio: base64, generation_id: 'mock-generation' }] })
-      : provider === 'inworld' ? Response.json({ audioContent: base64 })
+    const calls = installMockFetch(() => provider === 'inworld' ? Response.json({ audioContent: base64 })
       : new Response(audio, { headers: { 'content-type': 'audio/wav' } }))
     const options: TtsOptions = {
       ...buildOptsFromFlags({ [`${provider}-tts`]: model, 'tts-speed': '1.1', 'tts-dialogue-format': 'labeled', 'tts-speaker': [`Narrator=${voice}`] }),
@@ -93,9 +98,7 @@ describe('speed capability validation', () => {
       },
     }
     await runTtsForTargets('Narrator: First.\nNarrator: Second.\nNarrator: Third.', await dirs.make(), options, collectTtsTargets(options))
-    const rates = calls.flatMap(call => provider === 'hume'
-      ? (call.bodyJson?.['utterances'] as Array<Record<string, unknown>>).map(turn => turn['speed'])
-      : [provider === 'inworld' ? (call.bodyJson?.['audioConfig'] as Record<string, unknown> | undefined)?.['speakingRate'] : provider === 'cartesia' ? (call.bodyJson?.['generation_config'] as Record<string, unknown> | undefined)?.['speed'] : call.bodyJson?.['speed']])
+    const rates = calls.flatMap(call => [provider === 'inworld' ? (call.bodyJson?.['audioConfig'] as Record<string, unknown> | undefined)?.['speakingRate'] : call.bodyJson?.['speed']])
     expect(rates).toEqual([1.1, 0.75, undefined])
   }, 20_000)
 
@@ -105,7 +108,7 @@ describe('speed capability validation', () => {
     expect(() => planCurrentTtsReadiness({ target: collectTtsTargets(options)[0]!, sourceText: 'Narrator: Hello.', ttsOptions: options })).toThrow('does not support numeric speed')
   })
   test('validates model-specific numeric ranges and rejects zero, NaN and infinity', () => {
-    for (const [provider,model,min,max] of [['inworld','realtime-tts-2',0.5,1.5], ['grok','grok-tts',0.7,1.5], ['cartesia','sonic-3.6-2026-08-27',0.6,1.5], ['hume','octave-1',0.5,2]] as const) {
+    for (const [provider,model,min,max] of [['inworld','realtime-tts-2',0.5,1.5], ['grok','grok-tts',0.7,1.5]] as const) {
       for (const speed of [min,max]) expect(buildOptsFromFlags({ [`${provider}-tts`]: model, 'tts-speed': String(speed) })[`${provider}TtsSpeed`]).toBe(speed)
       for (const speed of [0,min - 0.01,max + 0.01,NaN,Infinity]) {
         expect(() => buildOptsFromFlags({ [`${provider}-tts`]: model, 'tts-speed': String(speed) })).toThrow()

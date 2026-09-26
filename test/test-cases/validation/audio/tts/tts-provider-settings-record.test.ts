@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { buildPureCurrentTtsRenderPlan } from '~/cli/commands/audio/tts/script-to-audio/current-render-attempt'
-import { resolveEffectiveProviderControls } from '~/cli/commands/audio/tts/script-to-audio/provider-serializer-registry'
 import { ttsProviderSettings } from '~/cli/commands/audio/tts/script-to-audio/tts-provider-settings'
-import { createTtsTargetSelection } from '~/cli/commands/audio/tts/tts-targets/tts-target-selection'
 import { ttsDeliveryPreset } from '~/cli/commands/audio/tts/tts-utils/tts-delivery-profile'
 import { parseProviderState } from '~/cli/commands/command-shared/pipeline-manifest/provider-state-parser'
 import { createProviderSettingsRecord, describeSettingsFile, parseProviderSettingsRecord } from '~/cli/commands/command-shared/pipeline-manifest/provider-settings-record'
@@ -79,7 +77,7 @@ describe('TTS provider settings record (plan-derived, no dispatch)', () => {
       endpointKind: 'speech-synthesis',
       controls: { outputFormat: 'mp3_44100_128' },
     })
-    expect(settings.local).toMatchObject({ audioProfile: 'legacy-16k', textPreflight: true, chunking: { boundary: 'legacy', providerLimit: 5000, effectiveMaxChars: 5000 } })
+    expect(settings.local).toMatchObject({ audioProfile: 'legacy-16k', textPreflight: true, chunking: { boundary: 'smart', providerLimit: 5000, effectiveMaxChars: 5000 } })
   })
 
   test('ElevenLabs records stability, seed, text normalization, and response format overrides', () => {
@@ -97,24 +95,18 @@ describe('TTS provider settings record (plan-derived, no dispatch)', () => {
     })
   })
 
-  test('Inworld records speed and steering instruction; Speechify records language', () => {
+  test('Inworld records speed and steering instruction', () => {
     const inworld = settingsFor(target('inworld', 'realtime-tts-2'), { inworldTtsSpeed: 0.9, inworldTtsInstructions: 'Calm, measured narration' })
     expect(inworld.request['voice']).toBeDefined()
     expect(JSON.stringify(inworld.request['controls'])).toContain('0.9')
     expect(JSON.stringify(inworld.request['controls'])).toContain('Calm, measured narration')
-    const speechify = settingsFor(target('speechify', 'simba-3.2'), { speechifyTtsLanguage: 'en-US' })
-    expect(speechify.request).toMatchObject({ voice: 'geffen_32', controls: { audioFormat: 'wav', language: 'en-US' } })
   })
 
   test('every hosted TTS provider produces a request record with endpoint, serializer, and voice', () => {
     const targets = [
       target('openai', 'gpt-4o-mini-tts-2025-12-15'),
       target('grok', 'grok-tts'),
-      target('mistral', 'voxtral-mini-tts-2603', 'voice_fixture'),
-      target('hume', 'octave-2'),
-      target('cartesia', 'sonic-3.6-2026-08-27'),
       target('inworld', 'realtime-tts-2'),
-      target('speechify', 'simba-3.2'),
       target('elevenlabs', 'eleven_v3'),
     ]
     for (const ttsTarget of targets) {
@@ -129,7 +121,7 @@ describe('TTS provider settings record (plan-derived, no dispatch)', () => {
   test('audiobook delivery, pause overrides, chunking, and export settings are recorded locally', () => {
     const delivery = ttsDeliveryPreset('audiobook')
     delivery.gapsMs = { ...delivery.gapsMs, paragraph: 1000, turn: 1000, sentence: 450 }
-    const settings = settingsFor(target('speechify', 'simba-3.2'), {
+    const settings = settingsFor(target('inworld', 'realtime-tts-2'), {
       ttsDelivery: delivery,
       ttsChunking: { boundary: 'smart', maxChars: 300 },
       ttsExport: { format: 'mp3', bitrateKbps: 192, metadata: { title: 'Audiobook Test' } },
@@ -149,15 +141,5 @@ describe('TTS provider settings record (plan-derived, no dispatch)', () => {
     } as TtsOptions, 'ALICE: Hello there.\nBOB: Hi, Alice.')
     const speakers = settings.request['speakers'] as Array<Record<string, unknown>>
     expect(speakers.map((entry) => entry['voice']).sort()).toEqual(['alloy', 'verse'])
-  })
-})
-
-describe('Mistral response format planning', () => {
-  test('the render plan uses the selected response format that dispatch sends', () => {
-    const invocation = Object.freeze({ sourceId: 't1', sourceIndex: 0, speaker: 'NARRATOR', voice: { kind: 'id' as const, value: 'voice_fixture' }, controls: {} })
-    const mp3 = resolveEffectiveProviderControls(target('mistral', 'voxtral-mini-tts-2603', 'voice_fixture'), invocation, createTtsTargetSelection({ mistralTtsResponseFormat: 'mp3' }))
-    expect(mp3['responseFormat']).toBe('mp3')
-    const defaulted = resolveEffectiveProviderControls(target('mistral', 'voxtral-mini-tts-2603', 'voice_fixture'), invocation, createTtsTargetSelection({}))
-    expect(defaulted['responseFormat']).toBe('wav')
   })
 })

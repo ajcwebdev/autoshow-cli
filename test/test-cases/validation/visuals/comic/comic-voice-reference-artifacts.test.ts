@@ -123,19 +123,19 @@ describe('Phase 1 comic voice reference artifacts', () => {
     await expect(approveVoiceRegistration({ charactersRoot: root, registrationId: draft.registrationId, generationId: auditioned.generationId, audition, approvedBy: { namespace: 'local-user', actorId: 'editor_two' }, expectedIndexRevision: 0 })).rejects.toThrow('expected revision 0, found 1')
   })
 
-  test('model-qualified current selections coexist for one shared Hume resource and block unsafe deletion', async () => {
+  test('model-qualified current selections coexist for one shared Gemini resource and block unsafe deletion', async () => {
     const root = await makeRoot()
-    const humeBrief: CharacterVoiceBrief = { ...brief, allowedOrigins: ['designed'] }
-    await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [humeBrief] })
+    const geminiBrief: CharacterVoiceBrief = { ...brief, allowedOrigins: ['designed'] }
+    await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [geminiBrief] })
     const providerVoice = {
-      kind: 'remote-resource' as const, provider: 'hume' as const, resourceId: 'shared-hume-voice', namespace: 'account' as const, accountScopeHash: 'c'.repeat(64),
+      kind: 'remote-resource' as const, provider: 'gemini' as const, resourceId: 'shared-gemini-voice', namespace: 'account' as const, accountScopeHash: 'c'.repeat(64),
       origin: 'designed' as const, ownership: 'project' as const,
       deletion: { state: 'eligible' as const, checkedAt: '2026-08-11T00:00:00.000Z' }
     }
     const { appendVoiceRegistration } = await import('~/cli/commands/audio/voice/character-voice-registry')
     let expectedIndexRevision = 0
-    for (const providerModel of ['octave-1', 'octave-2']) {
-      const draft = buildReadyVoiceRegistrationDraft({ subjectKey: 'hero', profileKey: 'default', provider: 'hume', providerModel, providerVoice, brief: humeBrief, provenanceRef: 'project:casting', capabilityFixtureHash: 'b'.repeat(64) })
+    for (const providerModel of ['gemini-3.8-flash-lite-tts', 'gemini-3.8-flash-tts']) {
+      const draft = buildReadyVoiceRegistrationDraft({ subjectKey: 'hero', profileKey: 'default', provider: 'gemini', providerModel, providerVoice, brief: geminiBrief, provenanceRef: 'project:casting', capabilityFixtureHash: 'b'.repeat(64) })
       await appendVoiceRegistration(root, draft)
       const audition = auditionFor(draft)
       const auditioned = await recordVoiceAudition({ charactersRoot: root, registrationId: draft.registrationId, generationId: draft.generationId, audition })
@@ -146,11 +146,11 @@ describe('Phase 1 comic voice reference artifacts', () => {
     const catalog = await loadVoiceRegistrationCatalog(root)
     const current = await loadCurrentVoiceRegistrationIndex(root, catalog)
     expect(current.schemaVersion).toBe(2)
-    expect(current.selections.map(selection => selection.providerModel).sort()).toEqual(['octave-1', 'octave-2'])
-    const octave1 = await requireCurrentVoiceRegistration(root, 'hero', 'hume', 'octave-1', 'default')
-    const octave2 = await requireCurrentVoiceRegistration(root, 'hero', 'hume', 'octave-2', 'default')
-    expect(octave1.registrationId).not.toBe(octave2.registrationId)
-    await expect(beginVoiceRegistrationDeletion({ charactersRoot: root, registrationId: octave1.registrationId, generationId: octave1.generationId })).rejects.toThrow('shares the same provider resource')
+    expect(current.selections.map(selection => selection.providerModel).sort()).toEqual(['gemini-3.8-flash-lite-tts', 'gemini-3.8-flash-tts'])
+    const liteModel = await requireCurrentVoiceRegistration(root, 'hero', 'gemini', 'gemini-3.8-flash-lite-tts', 'default')
+    const flashModel = await requireCurrentVoiceRegistration(root, 'hero', 'gemini', 'gemini-3.8-flash-tts', 'default')
+    expect(liteModel.registrationId).not.toBe(flashModel.registrationId)
+    await expect(beginVoiceRegistrationDeletion({ charactersRoot: root, registrationId: liteModel.registrationId, generationId: liteModel.generationId })).rejects.toThrow('shares the same provider resource')
   })
 
   test('canonical audition validation rejects approval without required comparison coverage', async () => {
@@ -194,8 +194,8 @@ describe('Phase 1 comic voice reference artifacts', () => {
       charactersRoot: root,
       subjectKey: 'role:narrator',
       profileKey: 'default',
-      provider: 'hume',
-      providerModel: 'octave-2',
+      provider: 'gemini',
+      providerModel: 'gemini-3.8-flash-tts',
       resourceId: '176a55b1-4468-4736-8878-db82729667c1',
       origin: 'provider-stock',
       brief: { ...brief, subjectKey: 'role:narrator' },

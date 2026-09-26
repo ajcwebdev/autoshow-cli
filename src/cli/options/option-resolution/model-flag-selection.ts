@@ -10,11 +10,8 @@ import {
   SUPPORTED_TOGETHER_MODELS,
   SUPPORTED_ELEVENLABS_TTS_MODELS,
   SUPPORTED_GROK_TTS_MODELS,
-  SUPPORTED_MISTRAL_TTS_MODELS,
+  SUPPORTED_GEMINI_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_MODELS,
-  SUPPORTED_SPEECHIFY_TTS_MODELS,
-  SUPPORTED_HUME_TTS_MODELS,
-  SUPPORTED_CARTESIA_TTS_MODELS,
   SUPPORTED_INWORLD_TTS_MODELS,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import {
@@ -47,12 +44,10 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   kimi: { shortcut: 'all-llm', supported: SUPPORTED_KIMI_MODELS },
   together: { shortcut: 'all-llm', supported: SUPPORTED_TOGETHER_MODELS },
   'elevenlabs-tts': { shortcut: 'all-tts', supported: SUPPORTED_ELEVENLABS_TTS_MODELS },
+  'gemini-tts': { shortcut: 'all-tts', supported: SUPPORTED_GEMINI_TTS_MODELS },
+  'soniox-tts': { shortcut: 'all-tts', supported: ['tts-rt-v2'] },
   'grok-tts': { shortcut: 'all-tts', supported: SUPPORTED_GROK_TTS_MODELS },
-  'mistral-tts': { shortcut: 'all-tts', supported: SUPPORTED_MISTRAL_TTS_MODELS },
   'openai-tts': { shortcut: 'all-tts', supported: SUPPORTED_OPENAI_TTS_MODELS },
-  'speechify-tts': { shortcut: 'all-tts', supported: SUPPORTED_SPEECHIFY_TTS_MODELS },
-  'hume-tts': { shortcut: 'all-tts', supported: SUPPORTED_HUME_TTS_MODELS },
-  'cartesia-tts': { shortcut: 'all-tts', supported: SUPPORTED_CARTESIA_TTS_MODELS },
   'inworld-tts': { shortcut: 'all-tts', supported: SUPPORTED_INWORLD_TTS_MODELS },
   ...GENERATION_ALL_SHORTCUT_MODEL_EXPANSIONS
 }

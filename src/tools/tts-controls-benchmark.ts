@@ -16,11 +16,11 @@ const planSchema = v.object({
   schemaVersion: v.literal(1),
   cases: v.array(v.object({
     id: v.pipe(v.string(), v.regex(/^[a-z0-9.-]+$/)),
-    provider: v.picklist(['elevenlabs', 'hume', 'grok', 'cartesia', 'inworld']),
+    provider: v.picklist(['elevenlabs',  'grok',  'inworld', 'gemini', 'soniox']),
     model: v.string(),
     input: v.string(),
     flags: v.record(v.string(), v.unknown()),
-    turnControls: v.record(v.string(), v.record(v.picklist(['elevenlabs', 'openai', 'hume', 'grok', 'cartesia', 'inworld']), v.record(v.string(), controlValue))),
+    turnControls: v.record(v.string(), v.record(v.picklist(['elevenlabs', 'openai',  'grok',  'inworld', 'gemini', 'soniox']), v.record(v.string(), controlValue))),
     mechanism: v.string(),
     source: v.pipe(v.string(), v.url()),
     lines: v.pipe(v.array(v.string()), v.length(5)),
@@ -30,7 +30,7 @@ const planSchema = v.object({
 
 const args = Bun.argv.slice(2)
 if (args.includes('--help')) {
-  console.log('Usage: bun src/tools/tts-controls-benchmark.ts [--price | --run] [--suite all|emotion|speed-pauses] [--spent-cents N] [--output-dir BASE] [--approved-budget-cents N]\nDefaults to no-cost pricing of both suites under docs/benchmarks/tts. Prior conservative spending and the active output directory are read from the shared ledger. Raising the 25-cent ceiling requires explicit user approval. Matching completed outputs are reused; incomplete outputs must be reconciled. No nonverbal cues or all-provider calls. Plans: input/examples/tts/controls/{emotion,speed-pauses}/benchmark-plan.json')
+  console.log('Usage: bun src/tools/tts-controls-benchmark.ts [--price | --run] [--suite all|emotion|speed-pauses] [--provider NAME[=MODEL]] [--spent-cents N] [--output-dir BASE] [--approved-budget-cents N]\nDefaults to no-cost pricing of both suites under docs/benchmarks/tts. Repeat --provider to select documented cases; a bare provider selects all its models. Prior conservative spending and the active output directory are read from the shared ledger. Raising the 25-cent ceiling requires explicit user approval. Matching completed outputs are reused; incomplete outputs must be reconciled. No nonverbal cues or all-provider calls. Plans: input/examples/tts/controls/{emotion,speed-pauses}/benchmark-plan.json')
   process.exit(0)
 }
 const ledgerPath = 'input/examples/tts/controls/benchmark-plan.json'
@@ -41,11 +41,17 @@ let spentCents: number = ledger.priorEstimatedCents
 let approvedBudgetCents = 25
 let suite = 'all'
 let outputDir: string | undefined
+const providers: string[] = []
 for (let i = 0; i < args.length; i++) {
   const arg = args[i]
   if (arg === '--run') run = true
   else if (arg === '--price') { /* price is the default */ }
   else if (arg === '--suite') suite = args[++i] ?? ''
+  else if (arg === '--provider') {
+    const value = args[++i]
+    if (!value || !/^[a-z0-9-]+(?:=[a-zA-Z0-9_.-]+)?$/.test(value)) throw UsageError('--provider requires NAME or NAME=MODEL')
+    providers.push(value)
+  }
   else if (arg === '--approved-budget-cents') approvedBudgetCents = Number(args[++i])
   else if (arg === '--spent-cents') spentCents = Number(args[++i])
   else if (arg === '--output-dir') {
@@ -60,12 +66,18 @@ if (spentCents < ledger.priorEstimatedCents) throw UsageError('--spent-cents can
 if (!['all', 'emotion', 'speed-pauses'].includes(suite)) throw UsageError('--suite must be emotion, speed-pauses or all')
 if (!Number.isFinite(approvedBudgetCents) || approvedBudgetCents < 0) throw UsageError('--approved-budget-cents must be nonnegative; values above 25 require explicit user approval')
 const suites = suite === 'all' ? ['emotion', 'speed-pauses'] : [suite]
+const benchmarkDate = ledger.benchmarkDate ?? new Date().toISOString().slice(0, 10)
+if (typeof benchmarkDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(benchmarkDate)) throw UsageError('Invalid controls benchmark date in spending ledger')
 const cases = []
 for (const category of suites) {
   const parsed = v.parse(planSchema, await Bun.file(`input/examples/tts/controls/${category}/benchmark-plan.json`).json())
   cases.push(...parsed.cases.map(entry => ({ ...entry, category })))
 }
-const plan = { cases }
+const matchesProvider = (entry: { provider: string, model: string }, selector: string): boolean => selector === entry.provider || selector === `${entry.provider}=${entry.model}`
+for (const selector of providers) {
+  if (!cases.some(entry => matchesProvider(entry, selector))) throw UsageError(`No documented cases for --provider ${selector} in the selected suites`)
+}
+const plan = { cases: providers.length ? cases.filter(entry => providers.some(selector => matchesProvider(entry, selector))) : cases }
 if (new Set(plan.cases.map(c => `${c.category}/${c.id}`)).size !== plan.cases.length) throw UsageError('Duplicate benchmark case ID')
 const preparedCases = []
 for (const entry of plan.cases) {
@@ -76,7 +88,7 @@ for (const entry of plan.cases) {
   const expectedText = lines
   if (fixtureText.trim() !== expectedText) throw UsageError(`Fixture and five-line plan differ: ${entry.id}`)
   if (/\[(?:laugh[^\]]*|cry(?:ing)?|sob[^\]]*|sigh[^\]]*|cough[^\]]*|yawn[^\]]*|clear[^\]]*throat|sings?|singing|snort[^\]]*|breathe?|inhale|exhale|hum-tune|wheezing)\]/i.test(fixtureText)) throw UsageError(`Nonverbal cue excluded: ${entry.id}`)
-  if (entry.category === 'emotion' && /<speed\b|<break\b|\[(?:slow|slowly|fast|rushed|normal pace|.*pause)\]|"(?:speed|trailingSilence)"/.test(fixtureText + JSON.stringify(entry.turnControls))) throw UsageError(`Timing controls belong in speed-pauses: ${entry.id}`)
+  if (entry.category === 'emotion' && /<speed\b|<break\b|\[(?:slow|slowly|fast|rushed|normal pace|.*pause)\]|"speed"/.test(fixtureText + JSON.stringify(entry.turnControls))) throw UsageError(`Timing controls belong in speed-pauses: ${entry.id}`)
   const options = {
     ...buildOptsFromFlags(entry.flags, {}, new Set(Object.keys(entry.flags)), { scope: 'tts' }),
     batchConcurrency: 1,
@@ -90,16 +102,14 @@ for (const entry of plan.cases) {
   }
   const prepared = await prepareTtsInput(entry.input, options, new Date().toISOString())
   validateTtsRenderInputsForTargets(targets, prepared.text, options, prepared)
-  // Native Hume planning includes speaker labels in its billable-text estimate.
-  const estimateInput = entry.provider === 'hume' && entry.model === 'octave-2'
-    ? { ...prepared, ttsCharacterCount: prepared.text.trim().length }
-    : prepared
-  const estimate = await buildTtsEstimateForInput(estimateInput, options, targets)
+  const estimate = await buildTtsEstimateForInput(prepared, options, targets)
   if (!Number.isFinite(estimate.totalEstimatedCost) || estimate.totalEstimatedCost < 0) throw UsageError(`Unknown cost for ${entry.id}`)
+  const authorizationCents = estimate.steps.reduce((sum, step) => sum + (step.step === 'tts' ? step.authorizationBoundCents ?? step.totalCost : step.totalCost), 0)
+  if (!Number.isFinite(authorizationCents) || authorizationCents < 0) throw UsageError(`Unknown spending bound for ${entry.id}`)
   // Adding an evaluation reference must not invalidate unchanged, already-paid synthesis.
   const { spokenLines: _spokenLines, ...synthesisEntry } = entry
   const fingerprint = new Bun.CryptoHasher('sha256').update(JSON.stringify(synthesisEntry)).update(prepared.sourceBytes).digest('hex')
-  const directory = resolve(outputDir ?? ledger.outputBase ?? 'docs/benchmarks/tts', entry.category === 'emotion' ? '2026-09-12_05-tts-emotion' : '2026-09-12_06-tts-speed-pauses', entry.id)
+  const directory = resolve(outputDir ?? ledger.outputBase ?? 'docs/benchmarks/tts', `${benchmarkDate}_${entry.category === 'emotion' ? '05-tts-emotion' : '06-tts-speed-pauses'}`, entry.id)
   const existing = Bun.file(`${directory}/manifest.json`)
   let reuse = false
   if (!await existing.exists() && await Bun.file(`${directory}/benchmark-fingerprint.txt`).exists()) throw UsageError(`Interrupted preparation at ${directory}; inspect it before retrying`)
@@ -113,11 +123,12 @@ for (const entry of plan.cases) {
     const hash = new Bun.CryptoHasher('sha256').update(await Bun.file(`${directory}/${ref.path}`).arrayBuffer()).digest('hex')
     if (hash !== ref.sha256) throw UsageError(`Cached audio hash mismatch: ${directory}`)
   }
-  preparedCases.push({ entry, options, targets, estimate, fingerprint, directory, reuse })
+  preparedCases.push({ entry, options, targets, estimate, authorizationCents, fingerprint, directory, reuse })
 }
 const incrementalCents = preparedCases.reduce((sum, c) => sum + (c.reuse ? 0 : c.estimate.totalEstimatedCost), 0)
-console.log(JSON.stringify({ mode: run ? 'run' : 'price', spentCents, incrementalCents, combinedCents: spentCents + incrementalCents, cases: preparedCases.map(c => ({ suite: c.entry.category, id: c.entry.id, reuse: c.reuse, estimatedCents: c.estimate.totalEstimatedCost, source: c.entry.source })) }, null, 2))
-if (run && spentCents + incrementalCents > approvedBudgetCents) throw UsageError('Combined estimate exceeds the spending ceiling; approval is required before raising --approved-budget-cents above 25')
+const incrementalAuthorizationCents = preparedCases.reduce((sum, c) => sum + (c.reuse ? 0 : c.authorizationCents), 0)
+console.log(JSON.stringify({ mode: run ? 'run' : 'price', spentCents, incrementalCents, combinedCents: spentCents + incrementalCents, incrementalAuthorizationCents, combinedAuthorizationCents: spentCents + incrementalAuthorizationCents, cases: preparedCases.map(c => ({ suite: c.entry.category, id: c.entry.id, reuse: c.reuse, estimatedCents: c.estimate.totalEstimatedCost, authorizationCents: c.authorizationCents, source: c.entry.source })) }, null, 2))
+if (run && spentCents + incrementalAuthorizationCents > approvedBudgetCents) throw UsageError('Combined spending bound exceeds the spending ceiling; approval is required before raising --approved-budget-cents above 25')
 if (run) for (const c of preparedCases) {
   if (c.reuse) continue
   configurePinnedRunDir(c.directory)
@@ -126,10 +137,13 @@ if (run) for (const c of preparedCases) {
   await Bun.write(`${c.directory}/controls.json`, JSON.stringify(c.entry, null, 2) + '\n')
   const remainingCents = approvedBudgetCents - spentCents
   // Reserve the full estimate before dispatch: failures and interruption never reset spending.
-  spentCents += c.estimate.totalEstimatedCost
+  spentCents += c.authorizationCents
   ledger.priorEstimatedCents = spentCents
+  ledger.benchmarkDate = benchmarkDate
   await Bun.write(ledgerPath, JSON.stringify(ledger, null, 2) + '\n')
-  await runSingleTtsInput(c.entry.input, c.options, c.targets, remainingCents)
+  await runSingleTtsInput(c.entry.input, c.options, c.targets, remainingCents, {
+    resolveReportedOutput: () => ({ path: resolve(c.directory, `${c.entry.id}.wav`), fileName: `${c.entry.id}.wav` })
+  })
   const result = await Bun.file(`${c.directory}/manifest.json`).json()
   if (result.items?.[0]?.providers?.[0]?.status !== 'succeeded') throw UsageError(`Generation failed: ${c.directory}; preserve outputs before retrying`)
 }

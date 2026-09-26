@@ -14,7 +14,7 @@ import {
   ttsIdentityProvidersForFlag
 } from './generic-tts-controls'
 
-const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'gemini', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'])
+const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra', 'mistral'])
 
 export const TTS_OPTION_DOMAIN: GenericOptionDomain = {
   label: 'TTS',
@@ -22,6 +22,7 @@ export const TTS_OPTION_DOMAIN: GenericOptionDomain = {
   providerTargets: STANDALONE_TTS_PROVIDER_TARGETS,
   retiredProviders: RETIRED_TTS_PROVIDERS,
   flagNames: [...GENERIC_TTS_IDENTITY_FLAGS, ...GENERIC_TTS_CONTROL_FLAGS],
+  strictProviderQualifierFlags: ['tts-voice'],
   controlsFor: ttsControlsForFlag,
   identityProviders: ttsIdentityProvidersForFlag
 }
@@ -47,10 +48,6 @@ export const assertNoVoiceIdentityWithDialogue = (
 
   if (explicitFlags.has('tts-voice')) {
     throw UsageError('--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
-  }
-
-  if (explicitFlags.has('tts-ref-audio')) {
-    throw UsageError('Voice identity options such as --tts-ref-audio cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
   }
 }
 

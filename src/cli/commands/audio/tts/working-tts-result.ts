@@ -12,6 +12,7 @@ const projectionEnvelope = (
     : { ttsAudio: artifacts.projection }
 
 const terminalRenderFields = (renderArtifacts: CurrentTtsRenderArtifacts) => ({
+  ...(renderArtifacts.sonioxProviderAudioSeconds !== undefined ? { sonioxProviderAudioSeconds: renderArtifacts.sonioxProviderAudioSeconds, sonioxInputCharacters: renderArtifacts.sonioxInputCharacters } : {}),
   operation: renderArtifacts.operation,
   targetKey: renderArtifacts.targetKey,
   transport: renderArtifacts.transport,

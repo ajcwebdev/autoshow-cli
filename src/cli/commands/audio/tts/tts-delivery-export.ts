@@ -8,10 +8,12 @@ export const ttsDeliveryExportFileName = (audioFileName: string, options: Pick<T
 }
 
 // The mastered WAV stays in place as the render's reported output; the export is written beside it.
+// Audio named in `reuseExisting` was already delivered, so an export that already exists is kept.
 export const exportTtsDeliveryAudio = async (
   audioDir: string,
   metadata: readonly Step4Metadata[],
-  options: TtsExportOptions | undefined
+  options: TtsExportOptions | undefined,
+  reuseExisting: ReadonlySet<string> = new Set()
 ): Promise<Step4Metadata[]> => {
   if (!options || options.format === 'wav') return [...metadata]
   const exported: Step4Metadata[] = []
@@ -21,7 +23,10 @@ export const exportTtsDeliveryAudio = async (
       continue
     }
     const fileName = ttsDeliveryExportFileName(entry.audioFileName, options)
-    const outputPath = await encodeTtsDelivery({ sourcePaths: [join(audioDir, entry.audioFileName)], outputPath: join(audioDir, fileName), options })
+    const existingPath = join(audioDir, fileName)
+    const outputPath = reuseExisting.has(entry.audioFileName) && await Bun.file(existingPath).exists()
+      ? existingPath
+      : await encodeTtsDelivery({ sourcePaths: [join(audioDir, entry.audioFileName)], outputPath: existingPath, options })
     exported.push({
       ...entry,
       deliveryExport: {

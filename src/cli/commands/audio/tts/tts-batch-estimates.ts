@@ -1,5 +1,8 @@
+import { buildPureCurrentTtsRenderPlan } from './script-to-audio/attempt-planning'
+import { sonioxEstimateFromPlannedCost } from './tts-services/tts-soniox/soniox-tts-pricing'
+import { collectTtsTargets } from './tts-targets'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
-import { buildTtsEstimates, buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
+import { buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { logSuitePriceSummary } from '~/cli/commands/sources/download/download-targets/suite-price-logging'
 import type { ActualCostBreakdown, AggregatedPriceEstimate, EstimatedCostBreakdown, PreparedTtsInput, StepTimingBreakdown, TtsBatchEstimateReport, TtsOptions, TtsTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
@@ -14,9 +17,22 @@ export const buildTtsEstimateForInput = async (
   ttsOptions: TtsOptions,
   targets?: readonly TtsTarget[]
 ): Promise<AggregatedPriceEstimate> => {
-  const steps = targets
-    ? await buildTtsTargetEstimates(targets, ttsOptions, prepared.ttsCharacterCount)
-    : await buildTtsEstimates(ttsOptions, prepared.ttsCharacterCount)
+  const selected = targets ?? collectTtsTargets(ttsOptions)
+  const plans = selected.map(target => buildPureCurrentTtsRenderPlan({ target, sourceText: prepared.text, sourceIdentity: prepared.sourceIdentity, dialoguePlan: prepared.dialoguePlan, ttsOptions }))
+  const steps = (await Promise.all(selected.map((target, index) => {
+    const slots = plans[index]!.planned.slots
+    return buildTtsTargetEstimates([target], ttsOptions, slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0), [slots.length])
+  }))).flat()
+  for (const [index, target] of selected.entries()) {
+    const plan = plans[index]!
+    const step = steps[index]!
+    step.chunkLengths = plan.planned.slots.map(slot => slot.providerText.length)
+    step.requestCount = plan.planned.slots.length
+    if (target.service !== 'soniox') continue
+    const characters = plan.planned.slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0)
+    const cents = plan.plannedRenderCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0)
+    Object.assign(step, sonioxEstimateFromPlannedCost(characters, cents), { characterCount: characters })
+  }
   return aggregateExplicitPriceEstimate(steps, ttsOptions, {
     ttsTimingCharacterCount: prepared.ttsCharacterCount,
     ttsInputText: prepared.ttsTimingInputText

@@ -8,7 +8,6 @@ export type AdapterSupport = 'implemented' | 'planned' | 'unsupported'
 export type VoiceCapabilityFeature =
   | 'turn-synthesis'
   | 'native-dialogue'
-  | 'native-utterances'
   | 'voice-catalog'
   | 'voice-design'
   | 'voice-remix'
@@ -42,6 +41,8 @@ export type CapabilityScope = {
   transport?: string | undefined
 }
 export type TurnSynthesisConstraints = {
+  maxInputTokens?: number | undefined
+  maxOutputTokens?: number | undefined
   voiceKinds: ProviderVoiceLocator['kind'][]
   maxCharacters?: number | undefined
   supportedOutputFormats?: string[] | undefined
@@ -51,11 +52,6 @@ export type NativeDialogueConstraints = TurnSynthesisConstraints & {
   minSpeakers: number
   maxSpeakers: number
   maxTurns?: number | undefined
-}
-
-export type NativeUtteranceConstraints = TurnSynthesisConstraints & {
-  maxUtterances?: number | undefined
-  maxTakesPerRequest?: number | undefined
 }
 
 export type VoiceCatalogConstraints = {
@@ -76,7 +72,6 @@ export type TimingConstraints = {
 export type CapabilityConstraintsByFeature = {
   'turn-synthesis': TurnSynthesisConstraints
   'native-dialogue': NativeDialogueConstraints
-  'native-utterances': NativeUtteranceConstraints
   'voice-catalog': VoiceCatalogConstraints
   'voice-design': VoiceManagementConstraints
   'voice-remix': VoiceManagementConstraints

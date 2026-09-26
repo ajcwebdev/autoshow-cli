@@ -26,7 +26,7 @@ describe('TTS delivery option resolution', () => {
     const resolved = resolveTtsDeliveryOptions({
       'tts-audio-profile': 'audiobook', 'tts-sample-rate': '48000', 'tts-channels': '2', 'tts-loudness': '-16', 'tts-true-peak': '-1',
       'tts-trim-silence': 'off', 'tts-paragraph-pause': '900', 'tts-sentence-pause': '100', 'tts-lead-in': '0', 'tts-lead-out': '2500',
-      'tts-chunk-boundary': 'legacy', 'tts-chunk-size': '1500', 'tts-text-preflight': 'off',
+      'tts-chunk-boundary': 'smart', 'tts-chunk-size': '1500', 'tts-text-preflight': 'off',
     })
     expect(resolved.ttsDelivery).toEqual({
       ...ttsDeliveryPreset('audiobook'),
@@ -34,11 +34,11 @@ describe('TTS delivery option resolution', () => {
       channels: 2,
       loudness: { mode: 'ebu-r128', integratedLufs: -16, truePeakDb: -1 },
       trimSilence: false,
-      gapsMs: { paragraph: 900, turn: 900, sentence: 100, clause: 100 },
+      gapsMs: { paragraph: 900, turn: 900, sentence: 100, clause: 0 },
       leadInMs: 0,
       leadOutMs: 2500,
     })
-    expect(resolved.ttsChunking).toEqual({ boundary: 'legacy', maxChars: 1500 })
+    expect(resolved.ttsChunking).toEqual({ boundary: 'smart', maxChars: 1500 })
     expect(resolved.ttsTextPreflight).toBe(false)
   })
 
@@ -57,6 +57,7 @@ describe('TTS delivery option resolution', () => {
 
   for (const [flags, message] of [
     [{ 'tts-audio-profile': 'studio' }, 'Invalid --tts-audio-profile value "studio"'],
+    [{ 'tts-chunk-boundary': 'legacy' }, 'Invalid --tts-chunk-boundary value "legacy"'],
     [{ 'tts-chunk-boundary': 'word' }, 'Invalid --tts-chunk-boundary value "word"'],
     [{ 'tts-chunk-size': '50' }, 'Invalid --tts-chunk-size value "50"'],
     [{ 'tts-sample-rate': '12345' }, 'Invalid --tts-sample-rate value "12345"'],
@@ -106,4 +107,14 @@ describe('TTS delivery option resolution', () => {
     expect(Object.keys(resumeFlags)).toContain('tts-audio-profile')
     expect(Object.keys(resumeFlags)).not.toContain('tts-book')
   })
+})
+
+test('configured trim and additive gaps yield to explicit zero and off values', () => {
+  const config = { defaults: { tts: { trimSilence: 'on', paragraphPause: '750', sentencePause: '350' } } } as const
+  const inherited = resolveTtsDeliveryOptions(mergeConfigIntoRawFlags({}, config, new Set(), 'tts')).ttsDelivery!
+  expect(inherited.trimSilence).toBe(true)
+  expect(inherited.gapsMs).toEqual({ paragraph: 750, turn: 750, sentence: 350, clause: 0 })
+  const flags = { 'tts-trim-silence': 'off', 'tts-paragraph-pause': '0', 'tts-sentence-pause': '0' }
+  const reset = resolveTtsDeliveryOptions(mergeConfigIntoRawFlags(flags, config, new Set(Object.keys(flags)), 'tts')).ttsDelivery!
+  expect(reset).toEqual(ttsDeliveryPreset('native'))
 })

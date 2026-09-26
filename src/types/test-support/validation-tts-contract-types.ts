@@ -13,10 +13,6 @@ import type {
 
 export type TtsVoiceMatrixEnvKey =
   | 'ELEVENLABS_API_KEY'
-  | 'SPEECHIFY_API_KEY'
-  | 'HUME_API_KEY'
-  | 'CARTESIA_API_KEY'
-  | 'MISTRAL_API_KEY'
   | 'OPENAI_API_KEY'
   | 'XAI_API_KEY'
   | 'INWORLD_API_KEY'

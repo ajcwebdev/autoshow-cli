@@ -1,8 +1,9 @@
+import { planProviderTtsChunks } from '../tts-utils/tts-provider-chunk-policy'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { AttemptSlot, AttemptTurn, CanonicalDialogueTurn, ComicDialoguePlan, TtsMasteringProfile, TtsTarget } from '~/types'
+import type { ResolvedTtsChunk, TtsChunkingOptions, AttemptSlot, AttemptTurn, CanonicalDialogueTurn, ComicDialoguePlan, TtsMasteringProfile, TtsTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import { concatAndConvertToWav, createSilenceWav, filterAudioToWav, mixAudioToWav, splitTextIntoChunks } from '../tts-utils/audio-utils'
+import { concatAndConvertToWav, createSilenceWav, filterAudioToWav, mixAudioToWav } from '../tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit, TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
 import { prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { PREPARATION_VERSION } from './attempt-shared'
@@ -35,7 +36,7 @@ export const serializesComicDelivery = (
   target: Pick<TtsTarget, 'service' | 'model'>,
   delivery: string
 ): boolean => {
-  if (target.service === 'hume' && target.model === 'octave-1') return true
+  if (target.service === 'gemini') return true
   return prepareSegmentedTurnText('', target as TtsTarget, delivery).spans.some(span => span.kind === 'provider-only')
 }
 
@@ -60,28 +61,35 @@ const splitCanonicalTextAtTimingCues = (turn: CanonicalDialogueTurn): string[] =
 
 export const prepareComicSegmentedProviderTexts = (
   turn: CanonicalDialogueTurn,
-  target: TtsTarget
-): { providerTexts: string[], timingSegmentIndexes: number[] } => {
+  target: TtsTarget,
+  controls?: { instructions?: string | undefined } | undefined,
+  chunking?: TtsChunkingOptions
+): { providerTexts: string[], timingSegmentIndexes: number[], chunks: ResolvedTtsChunk[] } => {
+  const chunks: ResolvedTtsChunk[] = []
   const providerTexts: string[] = []
   const timingSegmentIndexes: number[] = []
   const limit = chunkLimit(target)
   for (const [timingSegmentIndex, segment] of splitCanonicalTextAtTimingCues(turn).entries()) {
     if (!segment) continue
     const prepared = prepareSegmentedTurnText(segment, target, turn.delivery?.description).providerText
-    for (const chunk of splitTextIntoChunks(prepared, limit)) {
-      providerTexts.push(chunk)
+    for (const chunk of planProviderTtsChunks({ provider: target.service, model: target.model, text: prepared,
+      speaker: turn.originalSpeakerLabel, voice: target.voice, style: controls ? controls.instructions : turn.delivery?.description,
+      characterLimit: limit, chunking: chunking?.replay ? { boundary: 'smart', replay: 'legacy-v0' } : chunking })) {
+      chunks.push(chunk)
+      providerTexts.push(chunk.text)
       timingSegmentIndexes.push(timingSegmentIndex)
     }
   }
-  return { providerTexts, timingSegmentIndexes }
+  return { providerTexts, timingSegmentIndexes, chunks }
 }
 
 export const segmentedSlotGroup = (
   turn: AttemptTurn,
-  target: TtsTarget
-): { turnIds: string[], providerTexts: string[], timingSegmentIndexes: number[] } => {
-  const { providerTexts, timingSegmentIndexes } = prepareComicSegmentedProviderTexts(turn.canonical, target)
-  return { turnIds: [turn.canonical.turnId], providerTexts, timingSegmentIndexes }
+  target: TtsTarget,
+  chunking?: TtsChunkingOptions
+): { turnIds: string[], providerTexts: string[], timingSegmentIndexes: number[], chunks: ResolvedTtsChunk[] } => {
+  const { providerTexts, timingSegmentIndexes, chunks } = prepareComicSegmentedProviderTexts(turn.canonical, { ...target, ...(turn.voice.value ? { voice: turn.voice.value } : {}) }, { instructions: turn.effectiveControls['instructions'] as string | undefined }, chunking)
+  return { turnIds: [turn.canonical.turnId], providerTexts, timingSegmentIndexes, chunks }
 }
 
 export const assembleComicSegmentedAudio = async (input: {

@@ -1,3 +1,4 @@
+import { estimateGeminiTtsCost } from '../tts/tts-services/tts-gemini/gemini-tts-pricing'
 import { join } from 'node:path'
 import type { CliCommandContext } from '~/types'
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
@@ -32,10 +33,12 @@ export const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   const provider = providerFlag(ctx)
   if (!isDesignProvider(provider)) throw UsageError(`Voice Design currently supports ${DESIGN_PROVIDERS.join(', ')}; the selected provider has no implemented text-prompt design adapter.`)
   const providerModel = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
-  const creationModel = requiredFlag(ctx, 'creation-model')
+  const creationModel = provider === 'gemini' ? optionalFlag(ctx, 'creation-model') ?? providerModel : requiredFlag(ctx, 'creation-model')
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
   const description = requiredFlag(ctx, 'description')
-  const previewText = requiredFlag(ctx, 'preview-text')
+  const previewText = provider === 'gemini' ? optionalFlag(ctx, 'preview-text') ?? '' : requiredFlag(ctx, 'preview-text')
+  const desiredName = provider === 'gemini' ? requiredFlag(ctx, 'voice-name') : undefined
+  if (provider === 'gemini' && creationModel !== providerModel) throw UsageError('Gemini design creation and selected synthesis models must match.')
   const candidateCount = positiveIntegerFlag(ctx, 'candidates', provider === 'elevenlabs' ? 3 : 1)
   const sourceVoiceId = optionalFlag(ctx, 'source-voice-id')
   const eligibilitySnapshotHash = optionalFlag(ctx, 'eligibility-snapshot-hash')
@@ -51,6 +54,7 @@ export const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   })
   await requireBrief(subjectKey, profileKey)
   if (ctx.flags['price'] === true) {
+    if (provider === 'gemini') { reportVoicePrice('Gemini voice design pricing is unknown', { provider, providerModel, creationModel, candidateCount, estimatedCostCents: null, pricing: 'unknown-provider-operation-rate', separatePreview: previewText ? { perCandidate: estimateGeminiTtsCost(providerModel, previewText.length), candidateCount, totalCostCents: candidateCount * estimateGeminiTtsCost(providerModel, previewText.length).totalCost } : null, mutation: false, providerCalls: 0 }); return }
     const rate = getTtsPricing(provider, providerModel).costPer1kCharsCents
     if (rate === undefined) throw UsageError(`Voice design pricing is unavailable for ${provider}/${providerModel}; provider dispatch is blocked.`)
     const estimatedCostCents = ([...previewText].length / 1000) * rate
@@ -71,7 +75,7 @@ export const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   } : undefined
   const candidates = await createAdvancedVoiceCandidates({
     charactersRoot: getCharactersRoot(), protectedStore: managedVoiceAssetStore, provider: adapter, providerModel, creationModel,
-    subjectKey, profileKey, description, previewText, candidateCount,
+    subjectKey, profileKey, description, previewText, candidateCount, desiredName,
     ...(sourceVoice ? { sourceVoice, eligibilitySnapshotHash } : {}),
     ...(seed !== undefined ? { seed } : {})
   })

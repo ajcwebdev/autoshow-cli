@@ -1,3 +1,4 @@
+import { validateGeminiReferenceRecording } from './voice-assets/gemini-reference-audio-preflight'
 import { join } from 'node:path'
 import type { CliCommandContext } from '~/types'
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
@@ -10,7 +11,6 @@ import { loadVoiceRegistrationCatalog } from './character-voice-registry'
 import { managedVoiceAssetStore, MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
 import { loadVoiceConsentRecord } from './voice-consent-store'
 import { assertVoiceConsentAllows } from './voice-management-contracts'
-import { provisionMistralSavedReferenceRegistration } from './voice-registration-management'
 import {
   CLONE_PROVIDERS, PROFILE_DEFAULT, advancedCapabilityFixtureHash,
   advancedProvider, cloneFileExtension, cloneMediaType, isCloneProvider, maybeCompleteRegistrationJournal, optionalFlag,
@@ -22,9 +22,7 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   const subjectKey = parameter(ctx, 'subjectKey')
   const provider = providerFlag(ctx)
   if (!isCloneProvider(provider)) {
-    if (provider === 'hume') throw UsageError('Hume voice cloning is performed in the Hume platform. Clone there, then register the resulting custom voice with voice import.')
     if (provider === 'openai') throw UsageError('OpenAI voice cloning is deferred because creation requires a separate consent resource and the API does not expose matching catalog, inspection, and deletion operations.')
-    if (provider === 'speechify') throw UsageError('Speechify voice cloning is deferred because the current workflow requires a challenge phrase and a separate consent recording.')
     throw UsageError(`Voice clone supports ${CLONE_PROVIDERS.join(', ')}; ${provider} has no API cloning capability in this release.`)
   }
   const providerModel = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
@@ -41,7 +39,9 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   }
   const samplePaths = repeatableFlag(ctx, 'sample')
   if (samplePaths.length === 0) throw UsageError(`${provider} instant voice clone requires at least one --sample.`)
-  if ((provider === 'cartesia' || provider === 'grok' || provider === 'mistral') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
+  if ((provider === 'gemini' || provider === 'grok') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
+  const consentAudioPath = provider === 'gemini' ? requiredFlag(ctx, 'consent-audio') : undefined
+  if (provider !== 'gemini' && optionalFlag(ctx, 'consent-audio')) throw UsageError('--consent-audio is currently supported only for Gemini replication.')
   const consentRecordRef = requiredFlag(ctx, 'consent-ref')
   const consent = await loadVoiceConsentRecord(managedVoiceAssetStore, consentRecordRef)
   if (consent.subjectKey !== subjectKey) throw UsageError('Voice clone consent subject does not match the requested subject.')
@@ -49,7 +49,15 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   assertVoiceConsentAllows(consent, 'new-synthesis')
   const authorizationRef = requiredFlag(ctx, 'authorization-ref')
   const planned = await Promise.all(samplePaths.map(sourcePath => managedVoiceAssetStore.plan({ sourcePath, authorizationRef, speakerKey: subjectKey })))
+  const plannedConsent = consentAudioPath ? await managedVoiceAssetStore.plan({ sourcePath: consentAudioPath, authorizationRef, speakerKey: subjectKey }) : undefined
+  if (provider === 'gemini') {
+    if (plannedConsent?.protectedAsset.sha256 === planned[0]?.protectedAsset.sha256) throw UsageError('Gemini reference and consent recordings must be separate.')
+    await validateGeminiReferenceRecording(samplePaths[0]!)
+    await validateGeminiReferenceRecording(consentAudioPath!, true)
+  }
   const request = {
+    providerModel,
+    ...(plannedConsent ? { protectedConsentAudio: plannedConsent.protectedAsset } : {}),
     cloneKind: 'instant',
     desiredName: requiredFlag(ctx, 'voice-name'),
     localAttemptId: 'price-plan',
@@ -59,27 +67,18 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
     ...(optionalFlag(ctx, 'description') ? { description: optionalFlag(ctx, 'description') } : {}),
   } as const
   if (ctx.flags['price'] === true) {
-    const estimate = planAdvancedClone(request)
+    const estimate = provider === 'gemini' ? { estimatedCostCents: null, pricing: 'unknown-provider-operation-rate' } : planAdvancedClone(request)
     reportVoicePrice('Voice clone estimate', { operation: 'voice-clone', provider, providerModel, cloneKind: 'instant', sampleCount: samplePaths.length, ...estimate, mutation: false, providerCalls: 0 })
     return
   }
   const brief = await requireBrief(subjectKey, profileKey)
-  if (provider === 'mistral') {
-    const registration = await provisionMistralSavedReferenceRegistration({
-      charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), protectedStore: managedVoiceAssetStore,
-      subjectKey, profileKey, providerModel, voiceName: request.desiredName, sourcePath: samplePaths[0]!, authorizationRef,
-      brief, provenanceRef: request.provenanceRef, consent, consentRecordRef, capabilityFixtureHash: advancedCapabilityFixtureHash('mistral'),
-      apiKey: resolveCredential('mistral', 'require', { stage: 'voice:mistral', description: 'Mistral voice clone' })
-    })
-    reportVoiceResult('Voice clone provisioned', { registrationId: registration.registrationId, generationId: registration.generationId, state: registration.provisioning.state })
-    return
-  }
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
   if (!managedVoiceAssetStore.ingestManaged) throw UsageError('Managed protected store cannot retain clone samples.')
   const createdAt = new Date().toISOString()
   const protectedSamples = await Promise.all(samplePaths.map(async (sourcePath, index) => (await managedVoiceAssetStore.ingestManaged!({ sourcePath, authorizationRef, speakerKey: subjectKey }, {
     schemaVersion: 1, purpose: 'reference-audio', authorizationRef, retention: { mode: 'retain-until-revoked', obligationRef: request.provenanceRef }, consentRecordRef, createdAt,
   }, planned[index]?.protectedAsset)).protectedAsset))
+  const protectedConsentAudio = consentAudioPath ? (await managedVoiceAssetStore.ingestManaged!({ sourcePath: consentAudioPath, authorizationRef, speakerKey: subjectKey }, { schemaVersion: 1, purpose: 'consent-evidence', authorizationRef, retention: { mode: 'retain-until-revoked' }, consentRecordRef, createdAt }, plannedConsent?.protectedAsset)).protectedAsset : undefined
   const resolveProtectedAsset = async (asset: typeof protectedSamples[number]) => {
       const path = await managedVoiceAssetStore.resolve(asset)
       const bytes = new Uint8Array(await Bun.file(path).arrayBuffer())
@@ -89,18 +88,17 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   const resolveDurationProtectedAsset = async (asset: typeof protectedSamples[number]) => {
     const resolved = await resolveProtectedAsset(asset)
     const path = await managedVoiceAssetStore.resolve(asset)
+    if (provider === 'gemini') return { ...resolved, durationMs: await validateGeminiReferenceRecording(path, asset.sha256 === protectedConsentAudio?.sha256) }
     const durationSeconds = await getAudioDuration(path)
     if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) throw UsageError(`${provider} clone sample duration could not be verified before upload.`)
     return { ...resolved, durationMs: Math.round(durationSeconds * 1000) }
   }
-  const adapter = provider === 'elevenlabs'
+  const adapter = provider === 'gemini' ? advancedProvider('gemini', { resolveGeminiProtectedAsset: resolveDurationProtectedAsset }) : provider === 'elevenlabs'
     ? advancedProvider('elevenlabs', {
         elevenLabsApiKey: resolveCredential('elevenlabs', 'require', { stage: 'voice:elevenlabs', description: 'ElevenLabs instant voice clone' }),
         resolveElevenLabsProtectedAsset: resolveProtectedAsset,
       })
-    : provider === 'cartesia'
-        ? advancedProvider('cartesia', { resolveCartesiaProtectedAsset: resolveProtectedAsset })
-        : provider === 'grok'
+    : provider === 'grok'
             ? advancedProvider('grok', { resolveGrokProtectedAsset: resolveDurationProtectedAsset })
             : advancedProvider('inworld', {
               inworldApiKey: resolveCredential('inworld', 'require', { stage: 'voice:inworld', description: 'Inworld instant voice clone' }),
@@ -109,7 +107,7 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   const { localAttemptId: _planningId, ...cloneRequest } = request
   const result = await provisionAdvancedVoiceClone({
     charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), provider: adapter, providerModel, subjectKey, profileKey, brief,
-    request: { ...cloneRequest, protectedSamples }, capabilityFixtureHash: advancedCapabilityFixtureHash(provider),
+    request: { ...cloneRequest, protectedSamples, ...(protectedConsentAudio ? { protectedConsentAudio } : {}) }, capabilityFixtureHash: advancedCapabilityFixtureHash(provider),
   })
   reportVoiceResult('Voice clone provisioned', { registrationId: result.registration.registrationId, generationId: result.registration.generationId, state: result.registration.provisioning.state })
 }

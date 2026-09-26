@@ -176,9 +176,6 @@ export const handleDelete = async (ctx: CliCommandContext): Promise<void> => {
   const confirmResourceId = requiredFlag(ctx, 'confirm-voice-id')
   if (confirmResourceId !== providerVoice.resourceId) throw UsageError('--confirm-voice-id must match the exact registered provider resource ID.')
   if (providerVoice.ownership !== 'project' || providerVoice.deletion.state !== 'eligible') throw UsageError('Voice deletion is allowed only for an eligibility-checked project-owned resource.')
-  const expectedName = optionalFlag(ctx, 'expected-name')
-  if (registration.provider === 'hume' && !expectedName) throw UsageError('Hume deletion requires --expected-name with the exact current remote voice name.')
-  if (registration.provider !== 'hume' && expectedName) throw UsageError('--expected-name is only valid for Hume voice deletion.')
   if (ctx.flags['price'] === true) {
     reportVoicePrice('Voice delete estimate', { operation: 'voice-delete', estimatedCostCents: 0, mutation: false, registrationId, generationId, resourceId: providerVoice.resourceId })
     return
@@ -192,7 +189,6 @@ export const handleDelete = async (ctx: CliCommandContext): Promise<void> => {
   const deleted = await adapter.lifecycle.delete({
     providerVoice: pending.provisioning.providerVoice,
     expectedResourceId: confirmResourceId,
-    ...(expectedName ? { expectedName } : {}),
   })
   const terminal = await transitionVoiceRegistrationLifecycle({
     charactersRoot: getCharactersRoot(), registrationId, generationId: pending.generationId, action: 'delete', transitionedAt: deleted.deletedAt

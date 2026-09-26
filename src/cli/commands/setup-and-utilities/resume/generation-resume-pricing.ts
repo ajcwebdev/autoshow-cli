@@ -34,7 +34,7 @@ const priceGenerationItem = async <TTarget extends ProviderIdentity, TMetadata, 
     return { steps: [], input: '', priceOpts: opts }
   }
   const input = await resolveGenerationInput(target, prep, config)
-  const targetsToRun = await resolveGenerationTargetsToRunOrThrow(target, prep, config, opts)
+  const targetsToRun = await resolveGenerationTargetsToRunOrThrow(target, prep, config, opts, explicitFlags)
   const priceOpts = config.modelFields
     ? buildGenerationPriceOptions(targetsToRun, opts, config.modelFields)
     : opts

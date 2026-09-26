@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
 import { writePortableFileSync } from "../shared/portable_paths";
-import { existsSync, readFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { discoverCombinedRuns } from "../shared/combined_report_lib";
 import {
   type CombinedDashboardModel,
@@ -347,162 +347,6 @@ function metricTable(entries: RankingEntry[]): string {
   return `${header}\n${rows.join("\n")}`;
 }
 
-function benchmarkSummaryRankingTable(
-  entries: RankingEntry[],
-  value: (entry: RankingEntry) => string,
-  totalRuns: number,
-): string {
-  if (entries.length === 0) {
-    return "_Unavailable: no entries are present in the current STT report files._";
-  }
-  return [
-    "| Rank | Provider/model | Runs | Average |",
-    "| ---: | --- | ---: | ---: |",
-    ...entries.map((entry) => `| ${entry.rank} | ${entry.providerKey} | ${entry.runsCovered}/${totalRuns} runs | ${value(entry)} |`),
-  ].join("\n");
-}
-
-function sttSummaryIdentity(rootDir: string): { slug: string; heading: string } {
-  const slug = basename(rootDir);
-  if (slug === "stt-with-speakers") {
-    return { slug, heading: "STT With Speakers" };
-  }
-  if (slug === "stt-without-speakers") {
-    return { slug, heading: "STT Without Speakers" };
-  }
-  if (slug === "stt-local") {
-    return { slug, heading: "STT Local" };
-  }
-  return { slug: slug || "stt", heading: "STT" };
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-interface InventoryRow {
-  slug: string;
-  reports: number;
-  rows: number;
-  groups: string;
-}
-
-function parseInventoryRows(summary: string): InventoryRow[] {
-  const rows: InventoryRow[] = [];
-  const pattern = /^\| ([a-z0-9-]+) +\| +(\d+) +\| +(\d+) +\| +([^|\n]+?) +\|$/gm;
-  for (const match of summary.matchAll(pattern)) {
-    if (match[1] === "stt") {
-      continue;
-    }
-    rows.push({
-      slug: match[1],
-      reports: Number(match[2]),
-      rows: Number(match[3]),
-      groups: match[4].trim(),
-    });
-  }
-  return rows;
-}
-
-function formatInventoryTable(rows: InventoryRow[]): string {
-  const data = [...rows].sort((left, right) => left.slug.localeCompare(right.slug));
-  const totalReports = data.reduce((sum, row) => sum + row.reports, 0);
-  const totalRows = data.reduce((sum, row) => sum + row.rows, 0);
-  const groupSet = new Set(data.flatMap((row) => row.groups.split(",").map((group) => group.trim()).filter(Boolean)));
-  const categoryWidth = Math.max(8, ...data.map((row) => row.slug.length));
-  const header = `| ${"Category".padEnd(categoryWidth)} | Reports | Provider rows | Groups present |`;
-  const divider = `| ${"-".repeat(categoryWidth)} | ------: | ------------: | --- |`;
-  const body = data.map((row) =>
-    `| ${row.slug.padEnd(categoryWidth)} | ${String(row.reports).padStart(7)} | ${String(row.rows).padStart(13)} | ${row.groups} |`
-  );
-  const total = `| ${"**Total**".padEnd(categoryWidth)} | **${totalReports}** | **${totalRows}** | **${groupSet.size} groups** |`;
-  return [header, divider, ...body, total].join("\n");
-}
-
-function upsertInventoryRow(summary: string, row: InventoryRow): string {
-  const rows = parseInventoryRows(summary);
-  const existing = rows.find((candidate) => candidate.slug === row.slug);
-  if (existing) {
-    existing.reports = row.reports;
-    existing.rows = row.rows;
-    existing.groups = row.groups;
-  } else {
-    rows.push(row);
-  }
-  return summary.replace(
-    /\|\s*Category[\s\S]*?\|\s*\*\*Total\*\*\s*\|[^\n]+\|\n/,
-    `${formatInventoryTable(rows)}\n`,
-  );
-}
-
-function replaceOrInsertHeadingSection(summary: string, heading: string, body: string): string {
-  const headingPattern = new RegExp(`## ${escapeRegExp(heading)}\\n[\\s\\S]*?(?=\\n## )`);
-  if (headingPattern.test(summary)) {
-    return summary.replace(headingPattern, `${body}\n\n`);
-  }
-  summary = summary.replace(/## STT\n[\s\S]*?(?=\n## )/, "");
-  const before = heading === "STT With Speakers" && summary.includes("## STT Without Speakers\n")
-    ? "STT Without Speakers"
-    : "TTS";
-  return summary.replace(`\n## ${before}\n`, `\n${body}\n\n## ${before}\n`);
-}
-
-function benchmarkSttSection(
-  heading: string,
-  slug: string,
-  metricRankings: Record<GroupKey, Record<MetricName, RankingEntry[]>>,
-  groupedProviders: Record<GroupKey, AggregatedProvider[]>,
-  totalRuns: number,
-): string {
-  const lines = [`## ${heading}`, ""];
-  for (const group of GROUPS) {
-    lines.push(`### ${group}`, "", "#### Cost Ranking", "");
-    lines.push(benchmarkSummaryRankingTable(metricRankings[group].price, (entry) => formatPrice(entry.value), totalRuns));
-    lines.push("", "#### Speed Ranking", "");
-    lines.push(benchmarkSummaryRankingTable(metricRankings[group].speed, (entry) => formatSpeed(entry.value), totalRuns));
-    lines.push("", "#### Realtime Throughput Ranking", "");
-    const throughput = [...groupedProviders[group]]
-      .filter((provider) => provider.aggregateRealtimeFactor !== null)
-      .sort((left, right) => (right.aggregateRealtimeFactor ?? -1) - (left.aggregateRealtimeFactor ?? -1) || left.providerKey.localeCompare(right.providerKey))
-      .map((provider, index) => buildEntry(provider, "speed", provider.meanProcessingTimeMs, formatSpeed(provider.meanProcessingTimeMs), index + 1));
-    lines.push(benchmarkSummaryRankingTable(
-      throughput,
-      (entry) => entry.aggregateRealtimeFactor === null ? "n/a" : `${entry.aggregateRealtimeFactor.toFixed(2)}× realtime`,
-      totalRuns,
-    ));
-    lines.push("", "#### Auto-Quality Ranking", "");
-    lines.push(benchmarkSummaryRankingTable(metricRankings[group].qualityScore, (entry) => formatQuality(entry.value), totalRuns));
-    lines.push("", "#### Human Quality Ranking", "");
-    lines.push(`_Unavailable: no humanQuality entries are present for \`${slug}/${group}\` in the current report files._`, "");
-  }
-  return lines.join("\n").trimEnd();
-}
-
-function updateBenchmarkSummary(
-  rootDir: string,
-  metricRankings: Record<GroupKey, Record<MetricName, RankingEntry[]>>,
-  groupedProviders: Record<GroupKey, AggregatedProvider[]>,
-  runs: RunRef[],
-): void {
-  const summaryPath = resolve(rootDir, "..", "summary.md");
-  if (!existsSync(summaryPath)) {
-    return;
-  }
-  const { slug, heading } = sttSummaryIdentity(rootDir);
-  const providerRows = runs.reduce((total, run) => total + run.providerCount, 0);
-  let summary = readFileSync(summaryPath, "utf8");
-  summary = upsertInventoryRow(summary, {
-    slug,
-    reports: runs.length,
-    rows: providerRows,
-    groups: "local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization",
-  });
-  const section = benchmarkSttSection(heading, slug, metricRankings, groupedProviders, runs.length);
-  summary = replaceOrInsertHeadingSection(summary, heading, section);
-  writePortableFileSync(summaryPath, summary);
-  console.log(`Wrote ${summaryPath}`);
-}
-
 function perRunMatrix(providers: AggregatedProvider[], runs: RunRef[]): string {
   if (providers.length === 0 || runs.length === 0) {
     return "No providers.";
@@ -742,7 +586,6 @@ export function writeSttCombinedReport(rootDirRaw: string): SttCombinedBuildResu
   const markdownPath = join(rootDir, "combined-comparison-report.md");
   writePortableFileSync(jsonPath, JSON.stringify(result.report));
   writePortableFileSync(markdownPath, result.markdown);
-  updateBenchmarkSummary(rootDir, result.metricRankings, result.groupedProviders, result.runs);
   console.log(`Wrote ${jsonPath}`);
   console.log(`Wrote ${markdownPath}`);
   console.log(`Aggregated ${result.providerCount} providers across ${result.runCount} runs.`);

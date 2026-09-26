@@ -218,7 +218,8 @@ export const resolveGenerationTargetsToRunOrThrow = async <TTarget extends Provi
   target: ResumeTarget,
   prep: GenerationResumePreparation<TTarget, TMetadata>,
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
-  opts: TOptions
+  opts: TOptions,
+  explicitFlags?: ReadonlySet<string>
 ): Promise<TTarget[]> => {
   const getProviderKey = (provider: ProviderIdentity): string => getConfiguredProviderKey(config, provider)
   const providerKeys = new Set(prep.resolved.providersToRun.map(getProviderKey))
@@ -240,12 +241,14 @@ export const resolveGenerationTargetsToRunOrThrow = async <TTarget extends Provi
   }
   const ordinaryKeys = new Set(ordinaryReconstruction.map(getProviderKey))
   const ordinaryIsComplete = prep.resolved.providersToRun.every((provider) => ordinaryKeys.has(getProviderKey(provider)))
-  const reconstructed = explicitlySelected.length > 0
+  const reconstructed = config.requiresStoredSettings?.(prep.resolved.providersToRun) && config.resolveStoredTargets
+    ? await config.resolveStoredTargets(prep.resolved.providersToRun, opts, target, prep.item, explicitFlags)
+    : explicitlySelected.length > 0
     ? explicitlySelected
     : ordinaryIsComplete
       ? ordinaryReconstruction
       : config.resolveStoredTargets
-        ? await config.resolveStoredTargets(prep.resolved.providersToRun, opts, target, prep.item)
+        ? await config.resolveStoredTargets(prep.resolved.providersToRun, opts, target, prep.item, explicitFlags)
         : ordinaryReconstructionError !== undefined
           ? (() => { throw ordinaryReconstructionError })()
           : ordinaryReconstruction

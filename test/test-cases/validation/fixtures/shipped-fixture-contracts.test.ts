@@ -1,6 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { existsSync } from 'node:fs'
-import { MISTRAL_DEFAULT_REF_AUDIO } from '~/cli/commands/setup-and-utilities/models/tts-models'
 
 const GIT_TIMEOUT_MS = 60_000
 
@@ -33,7 +31,7 @@ const ignoredPaths = async (paths: readonly string[]): Promise<string[]> => {
   return toLines(stdout)
 }
 
-const trackedInputFiles = async (): Promise<string[]> => toLines((await runGit(['ls-files', '--', 'input/'])).stdout)
+const trackedInputFiles = async (): Promise<string[]> => toLines((await runGit(['ls-files', '--', 'input/', ':!:**/.DS_Store'])).stdout)
 
 describe('shipped fixture contracts', () => {
   test('every tracked file under input/ survives the ignore rules', async () => {
@@ -41,12 +39,6 @@ describe('shipped fixture contracts', () => {
     expect(tracked.length).toBeGreaterThan(0)
 
     expect(await ignoredPaths(tracked)).toEqual([])
-  })
-
-  test('the Mistral reference-audio fixture is shipped, not local-only', async () => {
-    expect(MISTRAL_DEFAULT_REF_AUDIO).toStartWith('input/examples/')
-    expect(await ignoredPaths([MISTRAL_DEFAULT_REF_AUDIO])).toEqual([])
-    expect(existsSync(MISTRAL_DEFAULT_REF_AUDIO)).toBe(true)
   })
 
   test('the fixture allowlist stays an allowlist and does not sweep in personal media', async () => {

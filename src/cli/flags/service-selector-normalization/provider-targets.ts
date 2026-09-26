@@ -20,13 +20,11 @@ const deriveSelectionDescriptor = <const TEntries extends readonly GenerationSel
 } as GenerationSelectionDescriptorOf<TEntries>)
 
 export const STANDALONE_TTS_PROVIDER_TARGETS = {
+  gemini: 'gemini-tts',
   elevenlabs: 'elevenlabs-tts',
+  soniox: 'soniox-tts',
   grok: 'grok-tts',
-  mistral: 'mistral-tts',
   openai: 'openai-tts',
-  speechify: 'speechify-tts',
-  hume: 'hume-tts',
-  cartesia: 'cartesia-tts',
   inworld: 'inworld-tts'
 } as const satisfies Record<string, string>
 
@@ -68,13 +66,11 @@ export const deriveGenerationResumeProviderFlags = <const TDescriptor extends Ge
 export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   STANDALONE_TTS_PROVIDER_TARGETS,
   {
+    gemini: { modelsKey: 'geminiTtsModels' },
     elevenlabs: { modelsKey: 'elevenlabsTtsModels' },
+    soniox: { modelsKey: 'sonioxTtsModels' },
     grok: { modelsKey: 'grokTtsModels' },
-    mistral: { modelsKey: 'mistralTtsModels' },
     openai: { modelsKey: 'openaiTtsModels' },
-    speechify: { modelsKey: 'speechifyTtsModels' },
-    hume: { modelsKey: 'humeTtsModels' },
-    cartesia: { modelsKey: 'cartesiaTtsModels' },
     inworld: { modelsKey: 'inworldTtsModels' }
   }
 )

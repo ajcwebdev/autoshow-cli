@@ -1,15 +1,19 @@
 import type { PriceSelectionEntry } from '~/types'
 import { command, exact } from '../helpers'
 
+// Page pricing needs only an unambiguous article route. The explicit extension
+// avoids live header probes; .invalid exposes accidental network dependencies.
+const PRICE_ARTICLE_URL = 'https://example.invalid/article.html'
+
 export const urlRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/text/url/url-supadata.test.ts', [
-    command('extract-supadata-url', 'extract-supadata-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--provider', 'supadata', '--price']),
+    command('extract-supadata-url', 'extract-supadata-url', ['src/cli/create-cli.ts', 'extract', PRICE_ARTICLE_URL, '--provider', 'supadata', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/text/url/url-firecrawl.test.ts', [
-    command('extract-firecrawl-url', 'extract-firecrawl-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--provider', 'firecrawl', '--price']),
+    command('extract-firecrawl-url', 'extract-firecrawl-url', ['src/cli/create-cli.ts', 'extract', PRICE_ARTICLE_URL, '--provider', 'firecrawl', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/text/url/url-glm-reader.test.ts', [
-    command('extract-glm-reader-url', 'extract-glm-reader-url', ['src/cli/create-cli.ts', 'extract', 'https://ajcwebdev.com', '--provider', 'glm-reader', '--price']),
+    command('extract-glm-reader-url', 'extract-glm-reader-url', ['src/cli/create-cli.ts', 'extract', PRICE_ARTICLE_URL, '--provider', 'glm-reader', '--price']),
   ]),
   // Local input uses auto's conservative native/generation floor, rather than the public-URL generation discount.
   ...exact('test/test-cases/e2e/service/text/url/supadata-auto-url-transcript.test.ts', [

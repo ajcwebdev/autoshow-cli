@@ -1,0 +1,57 @@
+{
+  "id": "inworld-realtime-tts-2-instructions",
+  "provider": "inworld",
+  "model": "realtime-tts-2",
+  "input": "input/examples/tts/controls/emotion/inworld-realtime-tts-2-instructions.txt",
+  "flags": {
+    "inworld-tts": "realtime-tts-2",
+    "tts-dialogue-format": "labeled",
+    "tts-speaker": [
+      "Narrator=Dennis"
+    ]
+  },
+  "turnControls": {
+    "dialogue-turn-001": {
+      "inworld": {
+        "steeringPrompt": "Speak with calm reassurance, as if telling a close friend that everything is safe. Use a warm, settled tone, smooth articulation, and gentle falling inflection. Let the comfort be clear in the voice while keeping every word easy to hear. Say only the supplied words. Keep this as speech throughout."
+      }
+    },
+    "dialogue-turn-002": {
+      "inworld": {
+        "steeringPrompt": "Speak with bright excitement, as if sharing good news that means a great deal to you. Use a lively, smiling tone and clear upward pitch movement. Put joyful emphasis on the good news and let the final words sound eager and pleased. Say only the supplied words. Keep this as speech throughout."
+      }
+    },
+    "dialogue-turn-003": {
+      "inworld": {
+        "steeringPrompt": "Speak with sincere sadness, as if telling a close friend that you miss someone dear. Use a subdued, heavy tone and a gently falling pitch. Make the feeling tender and personal, with clear words and restrained vocal energy. Say only the supplied words. Keep this as speech throughout."
+      }
+    },
+    "dialogue-turn-004": {
+      "inworld": {
+        "steeringPrompt": "Speak with controlled anger, as if firmly telling someone that they have treated you unfairly. Use a tense, forceful tone and crisp consonants. Stress the words about unfairness and make the ending sound firm and final. Say only the supplied words. Keep this as speech throughout."
+      }
+    },
+    "dialogue-turn-005": {
+      "inworld": {
+        "steeringPrompt": "Speak with clear fear, as if asking someone you trust to stay close when you feel unsafe. Use a tense, uncertain tone with a slight tremble in the spoken words. Give the final request a vulnerable, pleading inflection. Say only the supplied words. Keep this as speech throughout."
+      }
+    }
+  },
+  "mechanism": "instructions",
+  "source": "https://docs.inworld.ai/tts/capabilities/steering.md",
+  "lines": [
+    "I sound calm. All is well.",
+    "I sound excited! This is great news!",
+    "I sound sad. I miss my friend.",
+    "I sound angry. That is not fair!",
+    "I sound afraid. Please stay with me."
+  ],
+  "spokenLines": [
+    "I sound calm. All is well.",
+    "I sound excited! This is great news!",
+    "I sound sad. I miss my friend.",
+    "I sound angry. That is not fair!",
+    "I sound afraid. Please stay with me."
+  ],
+  "category": "emotion"
+}

@@ -84,7 +84,7 @@ bun autoshow setup --stt happyscribe=auto --stt-organization-id happyscribe=org_
 bun autoshow setup --ocr tesseract
 bun autoshow setup --ocr mistral=mistral-ocr-4-0 --ocr-language eng --ocr-dpi 300
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice voice_123
-bun autoshow setup --tts hume=octave-2 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --step-concurrency tts-chunk=3
+bun autoshow setup --tts elevenlabs=eleven_v3 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --step-concurrency tts-chunk=3
 bun autoshow setup --image openai=gpt-image-2
 bun autoshow setup --video ltx=ltx-2-5-fast
 bun autoshow setup --batch-limit 20 --batch-order oldest --batch-concurrency 2

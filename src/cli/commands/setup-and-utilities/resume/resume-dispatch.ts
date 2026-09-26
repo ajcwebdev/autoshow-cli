@@ -1,3 +1,5 @@
+import { resumeGeminiRemoteBatch } from '../../audio/tts/tts-services/tts-gemini/gemini-tts-batch-workflow'
+import { compactCompletedTtsRun } from '../../audio/tts/compact-tts-run'
 import { partialCompletionError } from '~/cli/commands/command-shared/provider-batch-state'
 import { join, resolve as resolvePath } from 'node:path'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
@@ -12,7 +14,8 @@ import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, S
 import { logSuitePriceSummary } from '~/cli/commands/sources/download/download-targets/suite-price-logging'
 import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
-import { discardStagedResult } from '~/utils/app-logger/result-emitter'
+import { isolateCommandResult } from '~/utils/app-logger/result-emitter'
+import { mergePriceEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import type { AggregatedPriceEstimate, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, HostedConcurrencyCoordinator, PipelineManifest, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind } from '~/types'
 import { UsageError, serializeResultError } from '~/utils/error-handler'
 
@@ -228,6 +231,7 @@ const dispatchSingleResume = async (
   }
 
   const result = await handler.resume(target, opts, normalized.explicitFlags, displayOptions)
+  if (target.kind === 'tts') await compactCompletedTtsRun(target.dir)
   return { result }
 }
 
@@ -249,19 +253,29 @@ export const dispatchResume = async (
   const failures: Array<{ outputDir: string, message: string, error?: Record<string, unknown> }> = []
   const estimates: AggregatedPriceEstimate[] = []
   const resumeResults: ResumeResult[] = []
+  const providerJobResults: Record<string, unknown>[] = []
   const comicPlans: NonNullable<ResumeDispatchOutcome['comicPlan']>[] = []
   const sharedHostedConcurrency: { current?: HostedConcurrencyCoordinator | undefined } = {}
 
   for (let index = 0; index < outputDirs.length; index++) {
     const outputDir = outputDirs[index] as string
     try {
-      const outcome = await dispatchSingleResume(
-        outputDir,
-        rawFlags,
-        flagOccurrences,
-        outputDirs.length > 1 ? { itemLabel: `${index + 1}/${outputDirs.length}` } : {},
-        sharedHostedConcurrency
-      )
+      // Each directory publishes into its own scope; the combined result is built below.
+      const { value: dispatched } = await isolateCommandResult(async () => {
+        const providerJobs = await resumeGeminiRemoteBatch(outputDir, rawFlags, flagOccurrences.length ? new Set(flagOccurrences.map(occurrence => occurrence.name)) : undefined)
+        if (providerJobs) return { providerJobs }
+        return {
+          outcome: await dispatchSingleResume(
+            outputDir,
+            rawFlags,
+            flagOccurrences,
+            outputDirs.length > 1 ? { itemLabel: `${index + 1}/${outputDirs.length}` } : {},
+            sharedHostedConcurrency
+          )
+        }
+      })
+      if (dispatched.providerJobs) { providerJobResults.push(dispatched.providerJobs); continue }
+      const outcome = dispatched.outcome!
       if (outcome.comicPlan) comicPlans.push(outcome.comicPlan)
       if (outcome.estimate) {
         estimates.push(outcome.estimate)
@@ -271,16 +285,15 @@ export const dispatchResume = async (
       }
     } catch (error) {
       failures.push({ outputDir, message: formatErrorMessage(error), error: serializeResultError(error) })
-    } finally {
-      discardStagedResult()
     }
   }
+  const merged = mergePriceEstimates(estimates)
 
   if (outputDirs.length > 1 && estimates.length > 0) {
     logSuitePriceSummary({
       checkedLabel: estimates.length === 1 ? 'resume directory' : 'resume directories',
       checkedCount: estimates.length,
-      totalEstimatedCost: estimates.reduce((sum, estimate) => sum + estimate.totalEstimatedCost, 0)
+      totalEstimatedCost: merged.totalEstimatedCost
     })
   }
 
@@ -297,24 +310,25 @@ export const dispatchResume = async (
     throw buildResumeFailureError(failures)
   }
 
-  discardStagedResult()
+  if (rawFlags['price'] === true && providerJobResults.length > 0) {
+    l.report.result({ dryRun: true, providerJobResults, estimate: { steps: merged.steps, totalEstimatedCostCents: merged.totalEstimatedCost + providerJobResults.reduce((sum, result) => sum + Number(result['possibleAdditionalCostCents'] ?? 0), 0) } }, 'Resume provider-job price complete')
+    return
+  }
 
   if (estimates.length > 0 && comicPlans.length > 0) {
-    l.report.result({ steps: estimates.flatMap(estimate => estimate.steps), totalEstimatedCost: estimates.reduce((sum, estimate) => sum + estimate.totalEstimatedCost, 0), comicPlans }, 'Resume price complete')
+    l.report.result({ steps: merged.steps, totalEstimatedCost: merged.totalEstimatedCost, comicPlans }, 'Resume price complete')
     return
   }
 
   if (estimates.length > 0) {
-    l.report.price({
-      steps: estimates.flatMap(estimate => estimate.steps),
-      totalEstimatedCost: estimates.reduce((sum, estimate) => sum + estimate.totalEstimatedCost, 0)
-    })
+    l.report.price(merged)
     return
   }
 
   l.report.result({
     directories: outputDirs,
     results: resumeResults,
+    ...(providerJobResults.length ? { providerJobResults } : {}),
     totals: {
       full: resumeResults.reduce((sum, result) => sum + result.full, 0),
       incomplete: resumeResults.reduce((sum, result) => sum + result.incomplete, 0),

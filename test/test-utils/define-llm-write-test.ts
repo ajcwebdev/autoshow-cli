@@ -17,8 +17,8 @@ export const defineLLMWriteTest = ({
   llmService,
   requiresEnvVar,
   promptProfiles,
-  inputPath = 'input/examples/tts/00-tts-shortest.txt',
-  inputTitle = '00-tts-shortest',
+  inputPath = 'input/examples/tts/01-tts-short.md',
+  inputTitle = '01-tts-short',
 }: {
   models: readonly string[]
   provider: string

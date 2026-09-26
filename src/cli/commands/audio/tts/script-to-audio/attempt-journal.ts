@@ -10,7 +10,6 @@ import { contained, writeJsonCreateOnly } from './attempt-io'
 import { stateForProjection } from './attempt-planning'
 import { buildProjection, publish } from './attempt-projection'
 import { buildBatchProgress } from './attempt-batches'
-import { isArtifactConflictError } from './safe-artifact-store'
 import { ttsProviderSettings } from './tts-provider-settings'
 
 export const requireJournalFile = (ctx: AttemptContext): WrittenJson<RenderAdmissionJournalSnapshot> => {
@@ -69,16 +68,6 @@ export const ensureJournalStarted = async (ctx: AttemptContext): Promise<void> =
     throw InternalError('Reserved TTS attempt directory does not match its immutable invocation identity.', { stage: 'tts:admission' })
   }
   ctx.attemptReservation = reserved
-  try {
-    await writeJsonCreateOnly(ctx.options.outputDir, `${ctx.targetDir}/attempt-${String(ctx.attemptNumber).padStart(3, '0')}.json`, {
-      schemaVersion: 1,
-      attempt: ctx.attemptNumber,
-      invocationId: ctx.invocationId,
-      journalPath: ctx.journalRelativePath,
-    })
-  } catch (error) {
-    if (!isArtifactConflictError(error)) throw error
-  }
   ctx.journalFile = await writeJournalLine(ctx, ctx.journal)
 }
 

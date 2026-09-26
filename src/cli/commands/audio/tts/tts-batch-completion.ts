@@ -10,6 +10,7 @@ import { orderedTtsProviderStates, reduceTtsProviderStates, requestedTtsProvider
 import { mergeActualCostBreakdowns, mergeEstimatedCostBreakdowns, mergeTimingBreakdowns } from './tts-batch-estimates'
 import { computeSuccessfulTtsBatchActualCost } from './tts-batch-summary'
 import { buildTtsBatchSource } from './tts-batch-plan'
+import { compactCompletedTtsRun } from './compact-tts-run'
 
 export const buildTtsBatchInitialRecords = (
   preparedInputs: PreparedTtsInput[],
@@ -196,6 +197,7 @@ export const publishTtsBatchCompletion = async (
     })
     return { ...manifest, source: completedBatchSource, items }
   })
+  await compactCompletedTtsRun(batchDir)
   logBatchCompletion(ok, partial, 0, fail)
   l.report.complete(batchDir, {
     manifest: 'manifest.json',

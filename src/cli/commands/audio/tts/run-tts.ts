@@ -1,4 +1,5 @@
 import type { PipelineProviderState, SanitizedProviderError, Step4Metadata, TtsExecutionReadinessObservation, TtsOptions, TtsRunSourceContext, TtsTarget, WorkingTtsMetadata, WorkingTtsResult } from '~/types'
+import { buildPureCurrentTtsRenderPlan } from './script-to-audio/attempt-planning'
 import { sanitizeModelName, runTargets } from '~/cli/commands/command-shared/target-runner'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import {
@@ -483,11 +484,21 @@ export const runTtsForTargets = async (
   }
 
   if (isMultiSpeakerRequested(options)) {
-    const wrappedTargets: TtsTarget[] = targets.map((target) => ({
-      ...target,
-      run: async (t: string, dir: string, _opts: TtsOptions, _invocation, requestEvidence) =>
-        runMultiSpeakerTts(t, dir, target, _opts, requestEvidence)
-    }))
+    const wrappedTargets: TtsTarget[] = targets.map((target) => {
+      if (target.service !== 'gemini') return {
+        ...target,
+        run: async (t: string, dir: string, opts: TtsOptions, _invocation, requestEvidence) => runMultiSpeakerTts(t, dir, target, opts, requestEvidence)
+      }
+      const plan = buildPureCurrentTtsRenderPlan({ target, sourceText: text, ttsOptions: options, sourceIdentity: sourceContext?.sourceIdentity, dialoguePlan: sourceContext?.dialoguePlan, comicContext: sourceContext?.comicContext })
+      const routed = { ...target, multiSpeakerStrategy: plan.planned.strategy === 'native-dialogue' ? 'native' as const : 'segment-and-concat' as const }
+      return {
+        ...routed,
+        run: async (t: string, dir: string, opts: TtsOptions, _invocation, requestEvidence) => {
+          const turns: NonNullable<TtsOptions['ttsCanonicalTurns']> = opts.ttsCanonicalTurns ?? plan.planned.turns.map(turn => ({ turnId: turn.canonical.turnId, sourceIndex: turn.sourceIndex, speaker: turn.canonical.originalSpeakerLabel, text: turn.canonical.canonicalText, delivery: turn.canonical.delivery?.description }))
+          return runMultiSpeakerTts(t, dir, routed, { ...opts, ttsCanonicalTurns: plan.planned.strategy === 'segmented' ? turns.map(turn => ({ ...turn, providerSegments: turn.providerSegmentIndexes?.length ? turn.providerSegments : plan.planned.slots.filter(slot => slot.turnIds.includes(turn.turnId)).map(slot => slot.providerText) })) : turns, ttsTurnControls: Object.fromEntries(plan.planned.turns.filter(turn => turns.some(selected => selected.turnId === turn.canonical.turnId)).map(turn => [turn.canonical.turnId, { gemini: { instructions: turn.effectiveControls['instructions'] as string ?? null, responseFormat: turn.effectiveControls['responseFormat'] as string ?? null } }])) }, requestEvidence)
+        }
+      }
+    })
     const metadata = (await runTtsTargets(wrappedTargets, text, outputDir, options, sourceContext)).map((entry) => ({
       ...entry,
       ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})

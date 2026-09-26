@@ -260,13 +260,6 @@ function formatCostPer100Pages(value: number | null): string {
   return `$${value.toFixed(3)}`;
 }
 
-function formatAvgCost(value: number | null): string {
-  if (value === null) {
-    return "n/a";
-  }
-  return `$${(value / 100).toFixed(4)}`;
-}
-
 function formatPagesPerMinute(value: number | null): string {
   if (value === null) {
     return "n/a";

@@ -36,22 +36,14 @@ describe('option resolution contracts', () => {
         'scrapecreators-stt': 'youtube-transcript',
         'stt-language': ['scrapecreators=fr'],
         'grok-tts': 'grok-tts',
-        'mistral-tts': 'voxtral-mini-tts-2603',
-        'speechify-tts': 'simba-3.2',
-        'hume-tts': 'octave-2',
-        'cartesia-tts': 'sonic-3.6-2026-08-27',
         'elevenlabs-tts': 'eleven_v3',
         'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
         'tts-voice': [
           'grok=EVE',
-          'mistral=voice_abc123',
-          'speechify=narrator_voice',
-          'hume=Studio Voice',
-          'cartesia=cartesia-voice-id',
           'openai=alloy'
         ],
         'tts-speed': ['openai=1.1', 'elevenlabs=1.1'],
-        'tts-language': ['speechify=en-US', 'cartesia=en', 'elevenlabs=en'],
+        'tts-language': ['elevenlabs=en'],
         'tts-text-normalization': 'elevenlabs=ON',
         'tts-stability': 'elevenlabs=0.4',
         'tts-similarity': 'elevenlabs=0.8',
@@ -87,16 +79,6 @@ describe('option resolution contracts', () => {
       expect(opts.scrapecreatorsLang).toBe('fr')
       expect(opts.grokTtsModels?.[0]).toBe('grok-tts')
       expect(opts.grokTtsVoice).toBe('eve')
-      expect(opts.mistralTtsModels?.[0]).toBe('voxtral-mini-tts-2603')
-      expect(opts.mistralTtsVoice).toBe('voice_abc123')
-      expect(opts.speechifyTtsModels?.[0]).toBe('simba-3.2')
-      expect(opts.speechifyVoice).toBe('narrator_voice')
-      expect(opts.speechifyTtsLanguage).toBe('en-US')
-      expect(opts.humeTtsModels?.[0]).toBe('octave-2')
-      expect(opts.humeTtsVoice).toBe('Studio Voice')
-      expect(opts.cartesiaTtsModels?.[0]).toBe('sonic-3.6-2026-08-27')
-      expect(opts.cartesiaTtsVoice).toBe('cartesia-voice-id')
-      expect(opts.cartesiaTtsLanguage).toBe('en')
       expect(opts.elevenlabsTtsModels?.[0]).toBe('eleven_v3')
       expect(opts.elevenlabsTtsLanguageCode).toBe('en')
       expect(opts.elevenlabsTtsStability).toBe(0.4)

@@ -1,3 +1,5 @@
+import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
+import { estimateGeminiTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-tts-pricing'
 import { getTtsCost, getTtsEstimation, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { ComputeEstimatedCostsInput, CostStepsResult, EstimatedStepEntry } from '~/types'
 import { applyCostMultiplier, computeTtsCost } from '../cost-helpers'
@@ -9,6 +11,12 @@ export const buildTtsCostSteps = (input: ComputeEstimatedCostsInput): CostStepsR
 
   for (const ttsTarget of input.ttsTargets ?? []) {
     const resolvedTtsCharacterCount = typeof input.ttsCharacterCount === 'number' ? input.ttsCharacterCount : 0
+    if (ttsTarget.service === 'gemini' || ttsTarget.service === 'soniox') {
+      const estimate = ttsTarget.service === 'soniox' ? estimateSonioxTtsCost(resolvedTtsCharacterCount, ttsTarget.numericSpeed) : estimateGeminiTtsCost(ttsTarget.model, resolvedTtsCharacterCount)
+      cost += estimate.totalCost
+      steps.push({ step: 'tts', provider: ttsTarget.service, model: ttsTarget.model, cost: estimate.totalCost, estimatedInputTokens: estimate.estimatedTextTokens, estimatedOutputTokens: estimate.estimatedAudioTokens, inputCostPer1MCents: estimate.inputCostPer1MTokensCents, outputCostPer1MCents: estimate.outputCostPer1MAudioTokensCents, estimateType: 'heuristic', pricingBand: estimate.rateIdentity, pricingNote: estimate.estimateProvenance })
+      continue
+    }
     const ttsCost = computeTtsCost(ttsTarget.service, ttsTarget.model, resolvedTtsCharacterCount)
     const estimation = getTtsEstimation(ttsTarget.service, ttsTarget.model)
     const costMultiplier = resolveCostMultiplier(input, estimation.costMultiplier)

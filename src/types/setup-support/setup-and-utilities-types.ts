@@ -14,14 +14,10 @@ SUPPORTED_GEMINI_MUSIC_MODELS,
 SUPPORTED_MINIMAX_MUSIC_MODELS
 } from '~/cli/commands/setup-and-utilities/models/music-models'
 import {
-  SUPPORTED_CARTESIA_TTS_MODELS,
   SUPPORTED_INWORLD_TTS_MODELS,
   SUPPORTED_ELEVENLABS_TTS_MODELS,
   SUPPORTED_GROK_TTS_MODELS,
-  SUPPORTED_HUME_TTS_MODELS,
-  SUPPORTED_MISTRAL_TTS_MODELS,
-  SUPPORTED_OPENAI_TTS_MODELS,
-  SUPPORTED_SPEECHIFY_TTS_MODELS
+  SUPPORTED_OPENAI_TTS_MODELS
 } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import {
 SUPPORTED_GEMINI_VIDEO_MODELS,
@@ -50,12 +46,9 @@ export type ModelLinksData = Record<string, Record<string, string[]>>
 export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
 
 export type ElevenlabsTtsModel = typeof SUPPORTED_ELEVENLABS_TTS_MODELS[number]
+export type SonioxTtsModel = 'tts-rt-v2'
 export type GrokTtsModel = typeof SUPPORTED_GROK_TTS_MODELS[number]
-export type MistralTtsModel = typeof SUPPORTED_MISTRAL_TTS_MODELS[number]
 export type OpenAITtsModel = typeof SUPPORTED_OPENAI_TTS_MODELS[number]
-export type SpeechifyTtsModel = typeof SUPPORTED_SPEECHIFY_TTS_MODELS[number]
-export type HumeTtsModel = typeof SUPPORTED_HUME_TTS_MODELS[number]
-export type CartesiaTtsModel = typeof SUPPORTED_CARTESIA_TTS_MODELS[number]
 export type InworldTtsModel = typeof SUPPORTED_INWORLD_TTS_MODELS[number]
 export type ElevenlabsMusicModel = typeof SUPPORTED_ELEVENLABS_MUSIC_MODELS[number]
 export type MinimaxMusicModel = typeof SUPPORTED_MINIMAX_MUSIC_MODELS[number]

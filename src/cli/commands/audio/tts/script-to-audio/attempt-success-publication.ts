@@ -1,3 +1,4 @@
+import { sonioxRetainedCostBasis } from '../tts-services/tts-soniox/soniox-tts-pricing'
 import type {
   AudioRun,
   CurrentTtsRenderArtifacts,
@@ -18,6 +19,7 @@ const currentArtifacts = (
   audioRun: AudioRun,
   artifactDir: string
 ): CurrentTtsRenderArtifacts => ({
+  ...sonioxRetainedCostBasis(input.ctx.options.target.service, input.ctx.purePlan.planned.slots, input.resultFile.value.outputs),
   artifactDir,
   operation: input.ctx.purePlan.operation,
   targetKey: input.ctx.purePlan.targetKey,

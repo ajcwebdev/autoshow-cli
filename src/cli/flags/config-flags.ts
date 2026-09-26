@@ -38,7 +38,6 @@ const configTtsFlags = omitFlags(ttsCommandFlags, [
   'step-concurrency',
   'price',
   'max-model-cents',
-  'tts-ref-audio',
   'allow-ambiguous-redispatch',
   ...ttsRunScopedDeliveryFlagNames
 ])

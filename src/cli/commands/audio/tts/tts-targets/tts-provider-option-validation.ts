@@ -1,5 +1,4 @@
 import { validateElevenLabsVoiceSettings } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
-import { validateCartesiaTtsLanguage } from '../tts-services/cartesia/cartesia-tts-request'
 import type { TtsTargetSelection } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 
@@ -26,11 +25,9 @@ const validateRequiredProviderSelections = (selection: TtsTargetSelection): void
   const requirements = [
     { enabled: Boolean(selection.openaiInstructions || typeof selection.openaiSpeed === 'number'), models: selection.openaiModels, label: 'OpenAI TTS', provider: 'openai', detail: 'request control flags' },
     { enabled: Boolean(selection.inworldInstructions || selection.inworldSpeed !== undefined), models: selection.inworldModels, label: 'Inworld TTS', provider: 'inworld', detail: 'request control flags' },
+    { enabled: selection.sonioxLanguage !== undefined || selection.sonioxSpeed !== undefined, models: selection.sonioxModels ?? [], label: 'Soniox TTS', provider: 'soniox', detail: 'request control flags' },
     { enabled: Boolean(selection.grokLanguage || selection.grokTextNormalization || selection.grokSpeed !== undefined), models: selection.grokModels, label: 'Grok TTS', provider: 'grok', detail: 'request control flags' },
     { enabled: hasElevenLabsControls(selection), models: selection.elevenlabsModels, label: 'ElevenLabs TTS', provider: 'elevenlabs', detail: 'request control flags' },
-    { enabled: Boolean(selection.speechifyLanguage), models: selection.speechifyModels, label: 'Speechify TTS', provider: 'speechify', detail: 'request control flags' },
-    { enabled: Boolean(selection.humeVoice || selection.humeSpeed !== undefined), models: selection.humeModels, label: 'Hume TTS', provider: 'hume', detail: 'voice flags' },
-    { enabled: Boolean(selection.cartesiaVoiceId || selection.cartesiaLanguage || selection.cartesiaSpeed !== undefined), models: selection.cartesiaModels, label: 'Cartesia TTS', provider: 'cartesia', detail: 'request control flags' },
   ]
   for (const requirement of requirements) {
     if (requirement.enabled && requirement.models.length === 0) {
@@ -51,5 +48,4 @@ export const validateTtsProviderOptions = (selection: TtsTargetSelection): void 
   validateRequiredProviderSelections(selection)
   validateOpenAiInstructions(selection)
   for (const model of selection.elevenlabsModels) validateElevenLabsVoiceSettings(model, { speed: selection.elevenLabsSpeed, similarity_boost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { use_speaker_boost: true } : {}) })
-  for (const model of selection.cartesiaModels) validateCartesiaTtsLanguage(model, selection.cartesiaLanguage)
 }

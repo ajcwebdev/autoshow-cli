@@ -3,11 +3,12 @@ import { findRawHttpBodyReads, findRepositoryStructureViolations } from '~/tools
 import { triageImageAdvisories } from '~/tools/triage-image-advisories'
 
 test('repository structure rejects new root directories and Python sources while allowing nested tools', () => {
-  expect(findRepositoryStructureViolations(['src', 'test', 'docs', 'config'], ['src/tools/example.ts', 'test/docker-acceptance/example.ts'])).toEqual([])
-  const violations = findRepositoryStructureViolations(['src', 'scripts', 'another-root'], ['src/nested/tool.py', 'test/check.PY'])
-  expect(violations).toHaveLength(4)
+  expect(findRepositoryStructureViolations(['src', 'test', 'docs', 'config', 'runtime'], ['src/tools/example.ts', 'test/docker-acceptance/example.ts'])).toEqual([])
+  const violations = findRepositoryStructureViolations(['src', 'scripts', 'another-root', '.test-work'], ['src/nested/tool.py', 'test/check.PY'])
+  expect(violations).toHaveLength(5)
   expect(violations.join('\n')).toContain('scripts/')
   expect(violations.join('\n')).toContain('another-root/')
+  expect(violations.join('\n')).toContain('.test-work/')
   expect(violations.join('\n')).toContain('src/nested/tool.py')
 })
 

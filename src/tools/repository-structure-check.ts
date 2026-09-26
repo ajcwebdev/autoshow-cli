@@ -3,7 +3,7 @@ import { readdirSync, statSync } from 'node:fs'
 import { basename } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/project-root'
 
-const ROOT_DIRECTORIES = new Set(['.claude', '.codex', '.git', '.github', '.test-work', 'config', 'docs', 'input', 'node_modules', 'output', 'runtime', 'src', 'test'])
+const ROOT_DIRECTORIES = new Set(['.claude', '.codex', '.git', '.github', 'config', 'docs', 'input', 'node_modules', 'output', 'runtime', 'src', 'test'])
 const REPOSITORY_DIRECTORY_NAMES = [...new Set(['autoshow-cli', basename(PROJECT_ROOT)])]
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

@@ -5,5 +5,5 @@ import type {
 
 export type MultiSpeakerRunMetadata = Step4Metadata & {
   _ttsObservedTurns: CurrentTtsObservedTurn[]
-  _ttsRenderStrategy: 'native-dialogue' | 'native-utterances' | 'segmented'
+  _ttsRenderStrategy: 'native-dialogue' | 'segmented'
 }

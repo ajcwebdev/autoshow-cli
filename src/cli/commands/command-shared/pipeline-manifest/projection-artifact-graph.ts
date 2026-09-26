@@ -31,7 +31,7 @@ export {
 const verifyTtsItemDialoguePlan = async (
   rootDir: string,
   item: PipelineManifestItem,
-  itemIndex: number,
+  itemIndex: number | undefined,
   providersToVerify: readonly PipelineManifestItem['providers'][number][] = item.providers
 ): Promise<boolean> => {
   const synthesisProviders = item.providers.filter((provider) =>
@@ -50,7 +50,8 @@ const verifyTtsItemDialoguePlan = async (
     if (
       dialoguePlan.dialoguePlanId !== reference.dialoguePlanId
       || (dialoguePlan.sourceIdentity.sourceLocator.kind === 'file' && item.input !== dialoguePlan.sourceIdentity.sourceLocator.canonicalPath)
-      || (dialoguePlan.sourceIdentity.sourceLocator.kind === 'batch-item' && dialoguePlan.sourceIdentity.sourceLocator.itemIndex !== itemIndex)
+      // A single-item export retains its original directory-batch position.
+      || (itemIndex !== undefined && dialoguePlan.sourceIdentity.sourceLocator.kind === 'batch-item' && dialoguePlan.sourceIdentity.sourceLocator.itemIndex !== itemIndex)
     ) return false
     const changedProviderJson = new Set(providersToVerify.map((provider) => canonicalManifestJson(provider)))
     for (const provider of synthesisProviders) {
@@ -85,7 +86,7 @@ export const verifyManifestProjectionArtifacts = async (
     for (const provider of item.providers) {
       if (!await verifyProviderProjectionArtifacts(rootDir, provider)) return false
     }
-    if (manifest.command === 'tts' && !await verifyTtsItemDialoguePlan(rootDir, item, itemIndex)) return false
+    if (manifest.command === 'tts' && !await verifyTtsItemDialoguePlan(rootDir, item, manifest.scope === 'batch' ? itemIndex : undefined)) return false
     if (manifest.command === 'comic' && !await verifyComicProjectionArtifacts(rootDir, item)) return false
   }
   return true
@@ -131,7 +132,7 @@ export const verifyManifestUpdateProjectionArtifacts = async (
         || previousItem?.input !== item.input
         || previousItem?.providers.length !== item.providers.length
       )
-      && !await verifyTtsItemDialoguePlan(rootDir, item, itemIndex, changedProviders)
+      && !await verifyTtsItemDialoguePlan(rootDir, item, next.scope === 'batch' ? itemIndex : undefined, changedProviders)
     ) return false
     if (
       next.command === 'comic'

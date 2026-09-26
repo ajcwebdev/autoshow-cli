@@ -45,12 +45,12 @@ const readSlotHashes = async (outputDir: string, projection: CanonicalAudioProvi
 }
 
 describe('TTS delivery render contracts', () => {
-  test('chunking options never enter render identity when the legacy splitter is selected', () => {
+  test('implicit and explicit smart chunking produce the same render identity', () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
     const baseline = openAiOptions(undefined)
     const target = openAiTarget(baseline)
     const legacy = planCurrentTtsReadiness({ target, sourceText: LONG_TEXT, ttsOptions: baseline })
-    const explicitLegacy = planCurrentTtsReadiness({ target, sourceText: LONG_TEXT, ttsOptions: { ...baseline, ttsChunking: { boundary: 'legacy' } } })
+    const explicitLegacy = planCurrentTtsReadiness({ target, sourceText: LONG_TEXT, ttsOptions: { ...baseline, ttsChunking: { boundary: 'smart' } } })
     expect(explicitLegacy.renderPlanId).toBe(legacy.renderPlanId)
     expect(explicitLegacy.renderIdentity).toBe(legacy.renderIdentity)
     expect(legacy.renderPlan.requestedOutput).toEqual({ codec: 'pcm_s16le', container: 'wav', sampleRate: 16000, channels: 1 })
@@ -80,6 +80,19 @@ describe('TTS delivery render contracts', () => {
     expect(planned.every((chunk) => chunk.text.length <= TTS_CHUNK_CHARACTER_LIMITS.openai)).toBe(true)
   }, 30_000)
 
+  test('transport: long dialogue turns dispatch every planned segment once', async () => {
+    process.env['OPENAI_API_KEY'] = 'openai-test-key'
+    const calls = installProviderAudio()
+    const options = { ...openAiOptions({}), ttsSpeakers: ['Narrator=alloy'], ttsDialogueFormat: 'labeled' as const }
+    const spoken = LONG_TEXT.replace(/\n+/g, ' ')
+    const text = 'Narrator: ' + spoken
+    const target = openAiTarget(options)
+    const expected = planTtsChunks(spoken, 2000).map(chunk => chunk.text)
+    await runTtsForTargets(text, await tempDirs.make(), options, [target])
+    expect(expected.length).toBeGreaterThan(1)
+    expect(calls.map(readInput).sort()).toEqual(expected.sort())
+  }, 20_000)
+
   test('artifact-integrity: the default delivery keeps the provider sample rate and records seam pauses in the transform ledger', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
     installProviderAudio()
@@ -90,19 +103,19 @@ describe('TTS delivery render contracts', () => {
     expect(observed.format.sampleRate).toBe(PROVIDER_SAMPLE_RATE)
     expect(observed.format.channels).toBe(1)
     const chunkCount = planTtsChunks(LONG_TEXT, TTS_CHUNK_CHARACTER_LIMITS.openai, { boundary: 'smart' }).length
-    // Each 1 s provider chunk carries 80 ms of edge silence per side; 30 ms guard pads survive trimming.
-    const expectedMs = chunkCount * 900 + (chunkCount - 1) * 750
+    // Every provider chunk retains its full duration, including edge silence.
+    const expectedMs = chunkCount * 1000
     expect(Math.abs(observed.durationMs - expectedMs)).toBeLessThanOrEqual(chunkCount * 25)
     const ledgerPath = requireDefined([...new Bun.Glob('providers/**/audio-run/transform-ledger.json').scanSync(outputDir)][0], 'transform ledger')
     const ledger = await Bun.file(join(outputDir, ledgerPath)).json() as { operations: Array<{ kind: string, finalRangeMs: { start: number, end: number } }> }
     const pauses = ledger.operations.filter((operation) => operation.kind === 'pause')
-    expect(pauses.map((pause) => pause.finalRangeMs.end - pause.finalRangeMs.start)).toEqual(Array.from({ length: chunkCount - 1 }, () => 750))
+    expect(pauses.map((pause) => pause.finalRangeMs.end - pause.finalRangeMs.start)).toEqual([])
   }, 30_000)
 
   test('artifact-integrity: legacy-16k still produces 16 kHz mono output with no inserted pauses', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
     installProviderAudio()
-    const options = openAiOptions({ 'tts-audio-profile': 'legacy-16k', 'tts-chunk-boundary': 'legacy' })
+    const options = openAiOptions({ 'tts-audio-profile': 'legacy-16k' })
     expect(options.ttsDelivery).toBeUndefined()
     const outputDir = await tempDirs.make()
     const result = await runTtsForTargets(LONG_TEXT, outputDir, options, [openAiTarget(options)])

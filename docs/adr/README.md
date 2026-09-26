@@ -223,7 +223,7 @@ The 2026-09-22 consolidation reduced twenty-seven records to nineteen. The earli
 
 ## Next Steps
 
-Five ADRs have open follow-up work. Each item summarizes the source record's Follow-up Actions; that record remains the authority for scope and evidence. The [September 23 reasoning calibration and vocabulary review](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md#reasoning-calibration-and-provider-vocabulary-review-2026-09-23) is complete for the measured contexts; general write and unmeasured-context heuristics remain provisional. Routine hosted-model catalog maintenance, including the next Cartesia dated-snapshot check, stays with ADR-010 and the live registries under `src/cli/commands/setup-and-utilities/models/`.
+Five ADRs have open follow-up work. Each item summarizes the source record's Follow-up Actions; that record remains the authority for scope and evidence. The [September 23 reasoning calibration and vocabulary review](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md#reasoning-calibration-and-provider-vocabulary-review-2026-09-23) is complete for the measured contexts; general write and unmeasured-context heuristics remain provisional. Routine hosted-model catalog maintenance, stays with ADR-010 and the live registries under `src/cli/commands/setup-and-utilities/models/`.
 
 **Item 1: [ADR-017](ADR-017-comic-script-and-scene-authoring.md#follow-up-actions)**
 

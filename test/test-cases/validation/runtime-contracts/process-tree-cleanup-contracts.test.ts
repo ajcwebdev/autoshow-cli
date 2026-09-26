@@ -138,8 +138,6 @@ describe('staged process-tree cleanup', () => {
       'src/cli/commands/audio/tts/tts-utils/audio-utils.ts',
       'src/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline.ts',
       'src/cli/commands/audio/tts/tts-services/tts-elevenlabs/elevenlabs-native-dialogue.ts',
-      'src/cli/commands/audio/tts/tts-services/tts-mistral/run-mistral-tts.ts',
-      'src/cli/commands/audio/tts/tts-services/hume/hume-native-utterances.ts'
     ]
     const source = (await Promise.all(files.map(async (path) => await readFile(path, 'utf8')))).join('\n')
     expect(source).not.toContain('Bun.$')

@@ -41,7 +41,7 @@ const designCommand = defineCliCommand({
     'source-voice-id': strFlag('ElevenLabs remix source voice ID'), 'eligibility-snapshot-hash': strFlag('Lowercase SHA-256 required with --source-voice-id for an ElevenLabs remix'),
     save: strFlag('Candidate ID to materialize as a durable provider voice'),
     'subject-key': strFlag('Canonical character or role key when --save is set'),
-    'voice-name': strFlag('Desired provider account voice name when --save is set'),
+    'voice-name': strFlag('Desired provider voice name; required during Gemini creation and must match at --save'),
     'provenance-ref': commonRegistrationFlags['provenance-ref'],
     'consent-ref': commonRegistrationFlags['consent-ref'],
     reconcile: boolFlag('Finish an ambiguous save without creating the voice again'),
@@ -54,6 +54,7 @@ const cloneCommand = defineCliCommand({
   parameters: [{ key: '<subject-key>', description: 'Canonical character or role key' }],
   flags: {
     provider: commonRegistrationFlags.provider, model: commonRegistrationFlags.model, profile: commonRegistrationFlags.profile,
+    'consent-audio': strFlag('Separate recorded consent statement required by Gemini replication'),
     'voice-name': strFlag('Desired provider account voice name'),
     sample: strListFlag('Authorized local clone sample; repeatable for instant cloning'), 'authorization-ref': strFlag('Opaque authorization record for the clone samples'),
     description: strFlag('Optional provider-safe voice description'), 'consent-ref': commonRegistrationFlags['consent-ref'],
@@ -98,7 +99,6 @@ const deleteCommand = defineCliCommand({
   flags: {
     'generation-id': strFlag('Ready registration generation SHA-256'),
     'confirm-voice-id': strFlag('Exact provider resource ID confirmation'),
-    'expected-name': strFlag('Exact current Hume voice name required for Hume deletion'),
     reconcile: boolFlag('Complete an ambiguous provider provisioning journal without recreating the voice'),
     price: commonRegistrationFlags.price
   }
@@ -122,12 +122,11 @@ const voiceExamples = [
       ['bun autoshow voice list', 'Print the local registration catalog and current index'],
       ['bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --provenance-ref project:casting', 'Register an existing ElevenLabs voice'],
       ['bun autoshow voice list --provider elevenlabs --source account', 'Inspect an ElevenLabs account catalog'],
-      ['bun autoshow voice list --provider cartesia --source provider-library --price', 'Validate Cartesia catalog discovery without provider calls'],
+
       ['bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm, weathered guide" --preview-text "The trail opens into a quiet valley at sunrise. Keep your voice warm and steady as you guide the group toward the old wooden bridge ahead." --price', 'Plan ElevenLabs Voice Design v3 without provider calls'],
       ['bun autoshow voice design hero --provider inworld --model realtime-tts-2 --creation-model realtime-tts-2 --description "Warm, weathered guide with a grounded midrange" --preview-text "A representative passage." --price', 'Plan Inworld Voice Design without provider calls'],
       ['bun autoshow voice clone hero --provider elevenlabs --model eleven_v3 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan an ElevenLabs clone without provider calls or writes'],
-      ['bun autoshow voice clone hero --provider cartesia --model sonic-3.6-2026-08-27 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Cartesia instant clone without provider calls'],
-      ['bun autoshow voice clone hero --provider mistral --model voxtral-mini-tts-2603 --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a crash-safe Mistral saved-reference clone without provider calls'],
+
       ['bun autoshow voice design --save CANDIDATE_ID --provider elevenlabs --subject-key hero --voice-name HeroGuide --provenance-ref project:casting --price', 'Plan saving one selected design candidate without provider calls'],
       ['bun autoshow voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate a canonical audition without provider calls'],
       ['bun autoshow voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve an audition locally']
@@ -157,7 +156,7 @@ export const voiceCommand = defineCliCommand({
     notes: [
       'Each subcommand has its own flags: bun autoshow voice <subcommand> --help',
       'Voice import and local registration management support all active TTS providers. Remote capabilities are checked per subcommand from the typed voice capability registry.',
-      'OpenAI cloning is deferred, Speechify cloning requires an unsupported challenge-and-consent workflow, and Hume cloning is completed in the Hume platform before voice import. tts, write, resume, and synthesis price never create voices.'
+      'OpenAI cloning is deferred. tts, write, resume, and synthesis price never create voices.'
     ]
   }
 }, async () => {})

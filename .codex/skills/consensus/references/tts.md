@@ -34,3 +34,21 @@ Compatibility aliases are preserved:
 Automated quality uses roundtrip WER-derived accuracy when available, including median roundtrip WER from `voice-quality-report.json`. Human quality uses `humanSpeechScore` from `voice-quality-report.json`. Duration, bitrate, file size, and subjective judgment are not quality proxies.
 
 Markdown should use Local Models and Third-Party Service Models sections and should not describe TTS ranking surfaces as “Top 3”. Normalized TTS JSON and markdown omit overall ranking and model-tier output.
+
+## Repository dashboard
+
+From the repository root, refresh the TTS tab and the other benchmark tabs without provider calls:
+
+```bash
+bun .codex/skills/consensus/scripts/run.ts build-combined-dashboard
+```
+
+The TTS dashboard tab includes narration plus the independent emotion/delivery and speed/pause benchmarks. Narration reads current selected results from direct-child manifests under `docs/benchmarks/tts/`. The other two independently select the newest dated directory ending in `tts-emotion` or `tts-speed-pauses`. The controls runner uses `<YYYY-MM-DD>_05-tts-emotion/` and `<YYYY-MM-DD>_06-tts-speed-pauses/`, dated when the benchmark first runs and pinned in the shared ledger for subsequent reuse. An empty or absent TTS root produces an empty tab with no results or rankings. Complete run archives require verified render and final-audio hashes and local duration/format probes. An optional `dashboard.evidence.zip` can preserve checksummed manifests, reports, audio hashes and probe measurements for reproduction without ignored audio; source changes invalidate it, and locally present audio must match its recorded hash. The archive is read with `unzip`.
+
+Earlier controls revisions and unselected historical audio are excluded. Narration rankings require complete coverage of the common corpus; emotion/delivery and speed/pauses each have their own case table and review notes within the same TTS tab. Their different inputs and mechanisms do not justify cross-provider rankings. Evidence links point to retained manifests or reports, and audio links require the original local files.
+
+Narration manifests may explicitly select nested reruns through `items[0].metadata.benchmarkReruns`, an array of `{ directory, providerKeys }` entries. Each directory is relative to its parent run and must contain a successful run of the same input. The dashboard uses the selected rerun's measurements and evidence links while retaining the parent corpus position. Keep separately timestamped dialogue plans in their own resumable manifests.
+
+Completed runs keep byte-identical source clips in `slots/audio.zip`, read directly by resume and artifact verification. Final WAVs and selected render/timeline records remain ordinary files. `bun src/tools/compact-tts-benchmarks.ts docs/benchmarks/tts --apply` removes known unreferenced generated artifacts and duplicate per-run comparison exports, which can be regenerated with `build-report`. It preserves actual assessment notes, inputs, control fingerprints and all selected evidence. Incomplete runs are left intact. The consolidated dashboard and controls suite reports remain the benchmark views.
+
+Costs prefer observed usage, then the manifest's recorded usage estimate, then the selected render's planned estimate. Historical spending is excluded; Soniox's measured-audio costs remain estimates. Throughput divides total final audio duration by total recorded generation time. Local recovery timings stay visible but are excluded from generation rankings. Existing controls-report listening defects are displayed separately from successful execution. Accuracy and human quality remain unranked without assessment scores; valid audio and measured performance do not establish spoken-text correctness or audible control effectiveness.

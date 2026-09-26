@@ -18,14 +18,13 @@ import { isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogu
 import { runTtsForTargets, validateTtsRenderInputsForTargets } from './run-tts'
 import { exportTtsDeliveryAudio } from './tts-delivery-export'
 import { applyTtsPronunciationLexicon } from './tts-utils/tts-pronunciation-lexicon'
-import { buildEstimatedTtsTargets, buildTtsArtifactMap, collectTtsTargets, getTtsArtifactFileName, mergeTtsExecutionReadinessObservations, validateTtsTargetsForExecution } from './tts-targets'
-import { materializeStandaloneMistralReference } from '../voice/voice-assets/standalone-mistral-reference'
-import { hasMistralProtectedReferences } from '../voice/voice-assets/mistral-protected-reference-binding'
+import { buildEstimatedTtsTargets, buildTtsArtifactMap, getTtsArtifactFileName, validateTtsTargetsForExecution } from './tts-targets'
 import { appendCurrentTtsProviderState, getCurrentTtsJournalAttemptKey, serializeTtsMetadataEntries } from './script-to-audio/current-render-artifacts'
 import { createFileTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from './script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from './script-to-audio/item-dialogue-plan-artifact'
 import { buildTtsEstimateForInput } from './tts-batch-estimates'
 import { getInputStem } from './tts-batch-plan'
+import { compactCompletedTtsRun } from './compact-tts-run'
 
 export const getTtsInputKind = async (inputPath: string): Promise<'file' | 'directory'> => {
   try {
@@ -203,12 +202,14 @@ const runPreparedTtsInput = async (
   targets: TtsTarget[],
   preflightEstimate: AggregatedPriceEstimate,
   createdAt: string,
-  executionReadiness: readonly TtsExecutionReadinessObservation[]
+  executionReadiness: readonly TtsExecutionReadinessObservation[],
+  outputNaming?: Pick<TtsRunSourceContext, 'resolveReportedOutput'>
 ): Promise<Step4Metadata[]> => {
   const lifecycleStates = new Map<string, PipelineProviderState>()
   const publishedJournalAttempts = new Set<string>()
   const dialoguePlanArtifact = await materializeTtsDialoguePlanArtifact(outputDir, prepared.dialoguePlan)
   const run = await synthesizePreparedTtsInputForTargets(prepared, outputDir, ttsOptions, targets, preflightEstimate, {
+    ...outputNaming,
     executionReadiness,
     beforeDispatch: async (preparedStates) => {
       for (const unboundState of preparedStates) {
@@ -281,6 +282,7 @@ const runPreparedTtsInput = async (
     }
   })
 
+  await compactCompletedTtsRun(outputDir)
   l.report.complete(
     outputDir,
     {
@@ -307,12 +309,20 @@ const runPreparedTtsInput = async (
   return run.metadata
 }
 
-export const runSingleTtsInput = async (
+export type SingleTtsInputPlan = {
+  inputPath: string
+  createdAt: string
+  prepared: PreparedTtsInput
+  targets: TtsTarget[]
+  estimate: AggregatedPriceEstimate
+}
+
+// Validates the input and prices the selected targets without reporting, budgeting or dispatching.
+export const planSingleTtsInput = async (
   inputPath: string,
   ttsOptions: StandaloneTtsCommandOptions,
-  targets: TtsTarget[],
-  maxCents: number | undefined
-): Promise<void> => {
+  targets: TtsTarget[]
+): Promise<SingleTtsInputPlan> => {
   if (!isTextInputPath(inputPath)) {
     throw UsageError(`tts only accepts .md or .txt files. Got: ${inputPath}`)
   }
@@ -323,16 +333,37 @@ export const runSingleTtsInput = async (
   configureModelCostFilter(ttsOptions, [unfilteredEstimate])
   targets = filterModelCostTargets(targets, ttsOptions, 'tts')
   validateTtsRenderInputsForTargets(targets, prepared.text, ttsOptions, prepared)
-  const { estimate: preflightEstimate, shouldExit } = evaluatePreflightEstimate(
-    await buildTtsEstimateForInput(prepared, ttsOptions, targets),
-    ttsOptions,
-    maxCents
-  )
+  return { inputPath, createdAt, prepared, targets, estimate: await buildTtsEstimateForInput(prepared, ttsOptions, targets) }
+}
+
+export const executeSingleTtsInput = async (
+  plan: SingleTtsInputPlan,
+  ttsOptions: StandaloneTtsCommandOptions,
+  executionReadiness: readonly TtsExecutionReadinessObservation[],
+  outputNaming?: Pick<TtsRunSourceContext, 'resolveReportedOutput'>
+): Promise<void> => {
+  const outputDir = await createGenerationOutputDir(getInputStem(plan.inputPath))
+  await runPreparedTtsInput(plan.prepared, outputDir, ttsOptions, plan.targets, plan.estimate, plan.createdAt, executionReadiness, outputNaming)
+}
+
+export const runSingleTtsInput = async (
+  inputPath: string,
+  ttsOptions: StandaloneTtsCommandOptions,
+  targets: TtsTarget[],
+  maxCents: number | undefined,
+  outputNaming?: Pick<TtsRunSourceContext, 'resolveReportedOutput'>
+): Promise<void> => {
+  const plan = await planSingleTtsInput(inputPath, ttsOptions, targets)
+  targets = plan.targets
+  const { shouldExit } = evaluatePreflightEstimate(plan.estimate, ttsOptions, maxCents)
   if (shouldExit) {
     l.report.expectedOutput(
       getGenerationExpectedOutputDir('./output/<timestamp>_<label>/'),
       [
-        ...targets.map((target) => getTtsArtifactFileName(target, targets.length === 1)),
+        ...targets.map((target) => {
+          const defaultName = getTtsArtifactFileName(target, targets.length === 1)
+          return outputNaming?.resolveReportedOutput?.(target, defaultName).fileName ?? defaultName
+        }),
         ...targets.flatMap((target) => target.targetKey ? [`providers/${target.targetKey}/`] : []),
         'manifest.json'
       ]
@@ -340,18 +371,5 @@ export const runSingleTtsInput = async (
     return
   }
 
-  let executionReadiness = await validateTtsTargetsForExecution(targets)
-  const hasProtectedMistralReference = hasMistralProtectedReferences(ttsOptions)
-  if (executionReadiness.every((entry) => entry.status === 'ready')) {
-    ttsOptions = await materializeStandaloneMistralReference(ttsOptions)
-    if (hasProtectedMistralReference) {
-      targets = collectTtsTargets(ttsOptions)
-      executionReadiness = mergeTtsExecutionReadinessObservations(
-        executionReadiness,
-        await validateTtsTargetsForExecution(targets)
-      )
-    }
-  }
-  const outputDir = await createGenerationOutputDir(getInputStem(inputPath))
-  await runPreparedTtsInput(prepared, outputDir, ttsOptions, targets, preflightEstimate, createdAt, executionReadiness)
+  await executeSingleTtsInput(plan, ttsOptions, await validateTtsTargetsForExecution(targets), outputNaming)
 }

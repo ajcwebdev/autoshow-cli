@@ -1,8 +1,10 @@
+import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
 import {
   estimateTtsRequestCount,
   getTtsCost,
   getTtsPricing
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { estimateGeminiTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-tts-pricing'
 import { computeBilledSttCost } from './stt-billing'
 export { applyCostMultiplier } from '~/utils/pricing/cost-multiplier'
 
@@ -26,6 +28,8 @@ export const computeTtsCost = (
   inputCostPer1MCharactersCents?: number
   outputCostPer1MCharactersCents?: number
 } => {
+  if (service === 'soniox') return { cost: estimateSonioxTtsCost(characterCount).totalCost }
+  if (service === 'gemini') return { cost: estimateGeminiTtsCost(model, characterCount).totalCost }
   const pricing = getTtsPricing(service, model)
   if (pricing.costPerRequestCents !== undefined) {
     const requestCount = estimateTtsRequestCount(service, model, characterCount)

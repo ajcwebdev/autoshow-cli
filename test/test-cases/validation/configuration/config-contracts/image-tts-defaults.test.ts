@@ -36,32 +36,18 @@ describe('config image and TTS default contracts', () => {
     })
   })
 
-  test('buildConfigPatchFromFlags saves and merges Speechify, Hume, and Cartesia TTS defaults', () => {
+  test('buildConfigPatchFromFlags saves and merges Soniox TTS defaults', () => {
     expectConfigPatchRoundTrip({
-      'speechify-tts': ['simba-3.2'],
-      'hume-tts': ['octave-2'],
-      'cartesia-tts': ['sonic-3.6-2026-08-27'],
-      'tts-voice': ['speechify=narrator_voice', 'hume=Studio Voice', 'cartesia=cartesia-voice-id'],
-      'tts-language': ['speechify=en-US', 'cartesia=en']
+      'soniox-tts': ['tts-rt-v2'],
+      'tts-voice': ['soniox=narrator_voice'],
+      'tts-language': ['soniox=en']
     }, 'tts', {
-      speechifyTts: ['simba-3.2'],
-      humeTts: ['octave-2'],
-      cartesiaTts: ['sonic-3.6-2026-08-27'],
-      voice: ['speechify=narrator_voice', 'hume=Studio Voice', 'cartesia=cartesia-voice-id'],
-      language: ['speechify=en-US', 'cartesia=en']
+      sonioxTts: ['tts-rt-v2'],
+      voice: ['soniox=narrator_voice'],
+      language: ['soniox=en']
     })
   })
 
-  test('buildConfigPatchFromFlags persists safe Mistral defaults but excludes request references', () => {
-    expectConfigPatchRoundTrip({
-      'mistral-tts': ['voxtral-mini-tts-2603'],
-      'tts-voice': 'voice_abc123',
-      'tts-ref-audio': 'input/examples/audio/anthony-voice.mp3'
-    }, 'tts', {
-      mistralTts: ['voxtral-mini-tts-2603'],
-      voice: 'voice_abc123'
-    }, { merge: false })
-  })
 
   test('buildConfigPatchFromFlags saves and merges TTS request-control defaults', () => {
     const requestControlFlags = {

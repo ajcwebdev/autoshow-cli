@@ -14,10 +14,10 @@ import { configureCharactersRoot } from '~/cli/commands/command-shared/character
 import { writeVoiceReferenceManifest } from '~/cli/commands/visuals/comic/comic-utils/voice-reference-snapshot'
 import { createMockWavBytes, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
+
+setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_A as HASH_A, COMIC_AUDIO_PHASE_2_HASH_B as HASH_B, buildComicAudioPhase2SnapshotEntry as snapshotEntry, buildComicAudioPhase2Structured as buildStructured } from './comic-audio-phase-fixture'
-
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'HUME_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 
 beforeEach(async () => {
   configureCharactersRoot(join(await makeTempDir('autoshow-comic-audio-characters-'), 'characters'))

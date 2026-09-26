@@ -404,7 +404,7 @@ test('resume --price reports a dry-run estimate and leaves manifests unchanged',
 
 test('stored retired TTS providers are inspectable history but cannot be resumed or dispatched', async () => {
   const target: ResumeTarget = { kind: 'tts', scope: 'single', dir: '/tmp/autoshow-retired-tts-history', manifestPath: '/tmp/autoshow-retired-tts-history/manifest.json' }
-  for (const service of ['gemini', 'deepgram', 'replicate', 'fal']) {
+  for (const service of ['mistral', 'deepgram', 'replicate', 'fal']) {
     const provider = {
       service,
       model: 'historical-model',

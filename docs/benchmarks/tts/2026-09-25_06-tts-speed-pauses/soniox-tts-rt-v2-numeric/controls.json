@@ -1,0 +1,60 @@
+{
+  "id": "soniox-tts-rt-v2-numeric",
+  "provider": "soniox",
+  "model": "tts-rt-v2",
+  "input": "input/examples/tts/controls/speed-pauses/soniox-tts-rt-v2-numeric.txt",
+  "flags": {
+    "soniox-tts": "tts-rt-v2",
+    "tts-voice": "soniox=Adrian",
+    "tts-language": "soniox=en",
+    "tts-speed": "soniox=1",
+    "tts-dialogue-format": "labeled",
+    "tts-speaker": [
+      "Narrator=Adrian"
+    ]
+  },
+  "turnControls": {
+    "dialogue-turn-001": {
+      "soniox": {
+        "speed": 1
+      }
+    },
+    "dialogue-turn-002": {
+      "soniox": {
+        "speed": 0.7
+      }
+    },
+    "dialogue-turn-003": {
+      "soniox": {
+        "speed": 1.3
+      }
+    },
+    "dialogue-turn-004": {
+      "soniox": {
+        "speed": 1
+      }
+    },
+    "dialogue-turn-005": {
+      "soniox": {
+        "speed": 1
+      }
+    }
+  },
+  "mechanism": "Native numeric speed 1, 0.7, 1.3, 1, 1; native qualitative pause tags on the final two turns.",
+  "source": "https://soniox.com/docs/tts/concepts/speech-speed",
+  "lines": [
+    "I speak at a normal pace. One, two, three, four, five.",
+    "I speak slowly. One, two, three, four, five.",
+    "I speak fast. One, two, three, four, five.",
+    "I pause here. [pause] Then I speak.",
+    "I take a long pause here. [long pause] Then I speak."
+  ],
+  "spokenLines": [
+    "I speak at a normal pace. One, two, three, four, five.",
+    "I speak slowly. One, two, three, four, five.",
+    "I speak fast. One, two, three, four, five.",
+    "I pause here. Then I speak.",
+    "I take a long pause here. Then I speak."
+  ],
+  "category": "speed-pauses"
+}

@@ -74,3 +74,16 @@ export async function buildAggregatedPriceEstimate (
     ...(contribution.notes.length > 0 ? { notes: contribution.notes } : {})
   }
 }
+
+// Combines estimates from independent workflows. Timing is dropped because separately
+// scheduled workflows do not add up to one processing time.
+export const mergePriceEstimates = (
+  estimates: readonly AggregatedPriceEstimate[]
+): AggregatedPriceEstimate => {
+  const notes = [...new Set(estimates.flatMap(estimate => estimate.notes ?? []))]
+  return {
+    steps: estimates.flatMap(estimate => estimate.steps),
+    totalEstimatedCost: estimates.reduce((sum, estimate) => sum + estimate.totalEstimatedCost, 0),
+    ...(notes.length > 0 ? { notes } : {})
+  }
+}

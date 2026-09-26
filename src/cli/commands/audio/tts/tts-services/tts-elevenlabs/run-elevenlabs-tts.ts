@@ -1,8 +1,7 @@
 import { ELEVENLABS_TTS_OUTPUT_FORMAT, elevenLabsChunkExtension, readElevenLabsError } from '~/cli/commands/audio/tts/tts-services/tts-elevenlabs/elevenlabs-utils'
-import { splitTtsText } from '~/cli/commands/audio/tts/tts-utils/tts-chunk-planner'
+import { resolveTtsDispatchChunks } from '../../tts-utils/tts-provider-chunk-policy'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-pipeline'
 import { logTtsConfig } from '~/cli/commands/audio/tts/tts-utils/log-tts-config'
-import { resolveTtsChunkCharacterLimit } from '~/cli/commands/audio/tts/tts-utils/tts-chunking'
 import { ELEVENLABS_DEFAULT_VOICE_ID } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { validateElevenLabsVoiceSettings } from './elevenlabs-utils'
 import type { ElevenlabsTtsModel, ElevenLabsTtsRequestControls, ElevenLabsTtsVoiceSettings, HostedTtsChunkScheduler, Step4Metadata, TtsChunkingOptions, TtsRequestEvidenceScope } from '~/types'
@@ -48,7 +47,7 @@ export const runElevenLabsTts = async (
   const apiKey = requireTtsCredential('elevenlabs')
 
   const baseURL = ELEVENLABS_DEFAULT_BASE_URL
-  const chunks = splitTtsText(text, resolveTtsChunkCharacterLimit('elevenlabs', options.model) ?? 2000, options.chunking)
+  const chunks = resolveTtsDispatchChunks({ provider: 'elevenlabs', model: options.model, text: text, chunking: options.chunking }, options.requestEvidence)
   if (chunks.length === 0) {
     throw ValidationError('ElevenLabs TTS input text is empty', { stage: 'tts:elevenlabs' })
   }

@@ -59,6 +59,7 @@ export const buildAggregateTiming = (
       service: step.provider as Step4Metadata['ttsService'],
       model: step.model,
       characterCount: step.characterCount,
+      ...(step.chunkLengths ? { chunkLengths: step.chunkLengths } : {}),
       ...(typeof step.setupTimeMs === 'number' ? { setupTimeMs: step.setupTimeMs } : {}),
       ...(typeof step.chunkCharacterLimit === 'number' ? { chunkCharacterLimit: step.chunkCharacterLimit } : {}),
       ...(typeof step.chunkConcurrency === 'number' ? { chunkConcurrency: step.chunkConcurrency } : {})

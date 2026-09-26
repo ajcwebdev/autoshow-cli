@@ -1,9 +1,9 @@
-import type { AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, ResolvedVoiceBinding, TtsTargetInvocation, TtsTargetSelection } from '~/types'
+import type { ResolvedTtsChunk, AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, ResolvedVoiceBinding, TtsTargetInvocation, TtsTargetSelection } from '~/types'
+import { geminiNativeEligible, planGeminiNativeGroups } from '../tts-services/tts-gemini/gemini-dialogue-plan'
 import { UsageError } from '~/utils/error-handler'
 import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
 import { normalizeTtsTurnControls, resolveTtsTurnControlOverrides } from '../tts-targets/tts-invocation-controls'
 import { planElevenLabsNativeDialogueBatches } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
-import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { segmentedSlotGroup } from './comic-segmented-audio'
 import { buildProviderSerializerDescriptor, createProviderRequestSettings, createTypedProviderSettings, providerSerializerVoiceField, resolveEffectiveProviderControls } from './provider-serializer-registry'
@@ -41,7 +41,7 @@ export const resolveComicTurns = (
         : { kind: 'id' as const, value: voice.value as string }),
       controls: resolveTtsTurnControlOverrides(options.target.service, canonical.turnId, normalizedTurnControls)
     })
-    const effectiveControls = resolveEffectiveProviderControls(options.target, invocation, selection)
+    const effectiveControls = resolveEffectiveProviderControls(options.target, invocation, options.target.service === 'gemini' && canonical.delivery ? { ...selection, geminiInstructions: canonical.delivery.description } : selection)
     const controls = createTypedProviderSettings(options.target, effectiveControls, protectedAsset)
     const binding: Extract<ResolvedVoiceBinding, { kind: 'approved-snapshot' }> = {
       kind: 'approved-snapshot',
@@ -62,14 +62,10 @@ export const resolveComicTurns = (
 export const resolveComicNativeGroups = (
   context: NonNullable<CreateCurrentTtsRenderAttemptOptions['comicContext']>,
   turns: AttemptTurn[],
-  elevenLabsNative: boolean,
-  humeNative: boolean
+  elevenLabsNative: boolean
 ): Array<{ turnIds: string[], providerTexts: string[] }> => {
   if (elevenLabsNative) {
     return planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
-  }
-  if (humeNative) {
-    return planHumeNativeUtteranceBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
   }
   return []
 }
@@ -104,20 +100,20 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
   const hasSegmentedOnlyIntent = hasOverlapIntent || hasDeliveryOrEffect
   const hasTurnControls = canonicalTurns.some(turn => {
     const keys = Object.keys(normalizedTurnControls?.[turn.turnId]?.[options.target.service] ?? {})
-    return keys.length > 0 && !(options.target.service === 'hume' && keys.every(key => key === 'speed' || key === 'trailingSilence'))
+    return keys.length > 0
   })
   const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && !hasTurnControls
-  const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && !hasTurnControls && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
-  const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (elevenLabsNative || humeNative)
+  const geminiNative = options.target.service === 'gemini' && !hasOverlapIntent && geminiNativeEligible(options.target.model, turns, options.target.transport === 'gemini-stream' ? 'pcm' : 'wav')
+  const nativeEligible = canonicalTurns.length > 0 && (geminiNative || !hasSegmentedOnlyIntent && (elevenLabsNative))
   if (context.modePreference === 'native' && !nativeEligible) throw UsageError('Comic native mode requires a provider-native eligible target whose speaker, direction, control, and request limits can be represented exactly.')
   const native = context.modePreference !== 'segmented' && nativeEligible
-  const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
+  const strategy: ProviderRenderStrategy = native ? 'native-dialogue' : 'segmented'
   const nativeGroups = native
-    ? resolveComicNativeGroups(context, turns, elevenLabsNative, humeNative)
+    ? geminiNative ? planGeminiNativeGroups(options.target.model, turns, context.providerSpeakerLabelByTurnId) : resolveComicNativeGroups(context, turns, elevenLabsNative)
     : []
-  const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined }> = native
+  const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined, chunks?: ResolvedTtsChunk[] }> = native
     ? nativeGroups
-    : turns.map(turn => segmentedSlotGroup(turn, options.target))
+    : turns.map(turn => segmentedSlotGroup(turn, options.target, options.ttsOptions.ttsChunking))
 
   let includesSetup = true
   const slots: AttemptSlot[] = []
@@ -126,10 +122,10 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
     const primaryTurn = turns.find(turn => turn.canonical.turnId === group.turnIds[0]) as AttemptTurn
     const contract = buildProviderSerializerDescriptor(options.target, primaryTurn.voice.value ?? primaryTurn.voice.valueHash, primaryTurn.effectiveControls, strategy)
     const generationSlots = group.providerTexts.map((providerText, slotIndex) => {
-      const cost = plannedCost(options.target, [...providerText].length, includesSetup)
+      const cost = plannedCost(options.target, [...providerText].length, includesSetup, (primaryTurn.effectiveControls['speed'] as number | undefined) ?? (options.target.service === 'soniox' ? 1 : undefined))
       includesSetup = false
       const timingSegmentIndex = group.timingSegmentIndexes?.[slotIndex]
-      const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, expectedVoiceField: providerSerializerVoiceField(options.target, strategy, primaryTurn.voice.kind), ...(timingSegmentIndex !== undefined ? { timingSegmentIndex } : {}) }
+      const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, chunk: group.chunks?.[slotIndex], plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, expectedVoiceField: providerSerializerVoiceField(options.target, strategy, primaryTurn.voice.kind), ...(timingSegmentIndex !== undefined ? { timingSegmentIndex } : {}) }
       slots.push(slot)
       return { generationSlotId: slot.generationSlotId, slotIndex, requestedTakeCount: 1, plannedCost: cost }
     })

@@ -16,7 +16,7 @@ A `provider-stock` import becomes current immediately. Other origins require `--
 
 | Flag                         | Description                                                                                                                                                     |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--provider <name>`          | Voice provider: `elevenlabs`, `grok`, `mistral`, `openai`, `speechify`, `hume`, `cartesia`, or `inworld`                                                        |
+| `--provider <name>`          | Voice provider: `gemini`, `elevenlabs`, `soniox`, `grok`, `openai`, or `inworld`                                                                                |
 | `--model <model>`            | Provider TTS model used by this registration                                                                                                                    |
 | `--profile <key>`            | Casting profile key; default `default`                                                                                                                          |
 | `--voice-id <id>`            | Existing provider voice ID                                                                                                                                      |

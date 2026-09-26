@@ -29,7 +29,7 @@ Local cheapest rankings treat each local provider as zero monetary cost and only
 
 OCR and STT single-run reports are metric-ranking exceptions: they do not emit combined balanced-overall leaderboards, tiering, or ranking surfaces. They expose full rankings by price, speed, and quality score within category-specific provider groups. OCR, STT, and URL combined cross-run reports expose the same per-group metric rankings only. URL combined quality comes from the source automated-quality ranking surface. Local and service providers are still never ranked against each other. Combined reports do not emit weighted composites or model tiers.
 
-OCR, STT, and URL combined HTML dashboards are self-contained: embedded data, inline CSS, no third-party dependencies, and they open from `file://`. Each group's metric table defaults to quality order and can be reordered by quality, cost, or speed from the sort control and those column headers. Rank chips stay each metric's own rank. Sorting uses pre-rendered tables so the dashboard stays readable with JavaScript disabled.
+The combined HTML dashboard is a static shell that loads its generated sibling JSON, stylesheet, and script by relative name and has no third-party dependencies; the script renders it in the browser, so it is viewed over HTTP rather than from `file://`. Each group's metric table defaults to quality order and can be reordered by quality, cost, or speed from the sort control and those column headers. Rank chips stay each metric's own rank. Sorting switches between three pre-rendered orders per group with CSS radios.
 
 ## Required Ranking Surfaces
 

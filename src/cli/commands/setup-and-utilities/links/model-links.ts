@@ -1,5 +1,4 @@
 import assemblyLinks from './model-links/assembly.json'
-import cartesiaLinks from './model-links/cartesia.json'
 import claudeLinks from './model-links/claude.json'
 import deepgramLinks from './model-links/deepgram.json'
 import deepinfraLinks from './model-links/deepinfra.json'
@@ -11,7 +10,6 @@ import gladiaLinks from './model-links/gladia.json'
 import glmLinks from './model-links/glm.json'
 import grokLinks from './model-links/grok.json'
 import happyscribeLinks from './model-links/happyscribe.json'
-import humeLinks from './model-links/hume.json'
 import inworldLinks from './model-links/inworld.json'
 import kimiLinks from './model-links/kimi.json'
 import whisperfileLinks from './model-links/whisperfile.json'
@@ -24,7 +22,6 @@ import replicateLinks from './model-links/replicate.json'
 import scrapecreatorsLinks from './model-links/scrapecreators.json'
 import sonioxLinks from './model-links/soniox.json'
 import spiderLinks from './model-links/spider.json'
-import speechifyLinks from './model-links/speechify.json'
 import speechmaticsLinks from './model-links/speechmatics.json'
 import supadataLinks from './model-links/supadata.json'
 import togetherLinks from './model-links/together.json'
@@ -49,15 +46,12 @@ const providerLinks = [
   minimaxLinks,
   claudeLinks,
   assemblyLinks,
-  cartesiaLinks,
   deepgramLinks,
   deepinfraLinks,
   sonioxLinks,
   speechmaticsLinks,
-  speechifyLinks,
   replicateLinks,
   happyscribeLinks,
-  humeLinks,
   inworldLinks,
   supadataLinks,
   scrapecreatorsLinks,

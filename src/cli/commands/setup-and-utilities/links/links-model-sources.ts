@@ -12,7 +12,7 @@ type RegistryService = {
 // would report it on every run. Keys are `<step>/<service>/<model>`.
 export const UNDOCUMENTED_MODEL_IDS: ReadonlyMap<string, string> = new Map<string, string>([
   ['tts/grok/grok-tts', 'xAI\'s TTS endpoint takes no model parameter; the name appears only in the site\'s embedded catalog JSON.'],
-  ['tts/hume/octave-1', 'Hume selects Octave with a version field and its docs write "Octave 1".'],
+
   ['stt/scrapecreators/youtube-transcript', 'Registry label for the /v1/youtube/video/transcript endpoint, which has no model ID.'],
   ['extract/glm-reader/glm-reader', 'Registry label for Z.ai\'s /reader endpoint, which has no model ID.'],
   ['stt/mistral/voxtral-mini-2602', 'Mistral\'s model card renders the API name in the browser; its guides say voxtral-mini-latest.'],

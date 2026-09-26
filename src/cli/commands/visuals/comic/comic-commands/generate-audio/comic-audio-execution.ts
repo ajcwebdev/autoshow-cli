@@ -12,7 +12,6 @@ import type {
   VoiceReferenceManifest,
 } from '~/types'
 import { canonicalTargetKey } from '../../../../audio/tts/script-to-audio/contract-identity'
-import { prepareComicSegmentedProviderTexts } from '../../../../audio/tts/script-to-audio/current-render-attempt'
 import { serializesComicDelivery } from '../../../../audio/tts/script-to-audio/comic-segmented-audio'
 import { runTtsForTargets } from '../../../../audio/tts/run-tts'
 import { validateTtsTargetsForExecution } from '../../../../audio/tts/tts-targets'
@@ -104,7 +103,6 @@ export const buildTargetExecution = (input: {
     turnControls[turn.turnId] = {
       [target.service]: {
         ...entry.synthesisSettings.values,
-        ...(delivery && target.service === 'hume' && target.model === 'octave-1' ? { description: delivery } : {}),
       }
     }
     return {
@@ -112,7 +110,6 @@ export const buildTargetExecution = (input: {
       speaker,
       text: turn.canonicalText,
       ...(delivery ? { delivery } : {}),
-      providerSegments: prepareComicSegmentedProviderTexts(turn, target).providerTexts,
     }
   })
   const ttsSpeakers = [...speakers].map(([speaker, locator]) => `${speaker}=${locator}`)
@@ -126,7 +123,7 @@ export const buildTargetExecution = (input: {
     ttsMasteringProfile: { schemaVersion: 1, sampleRate: input.sampleRate, channels: input.channels, codec: input.codec, container: 'wav' },
   }
   if (Object.keys(protectedSpeakerVoiceAssets).length > 0) target.protectedSpeakerVoiceAssets = protectedSpeakerVoiceAssets
-  if (['elevenlabs', 'hume', 'cartesia', 'speechify', 'inworld'].includes(target.service)) {
+  if (['elevenlabs', 'inworld'].includes(target.service)) {
     target.readinessVoiceIds = [...new Set(input.snapshot.entries.filter((entry: ApprovedVoiceSnapshotEntry) => entry.provider === target.service && entry.providerModel === target.model && entry.providerVoice.kind === 'remote-resource').map((entry: ApprovedVoiceSnapshotEntry) => (entry.providerVoice as Extract<typeof entry.providerVoice, { kind: 'remote-resource' }>).resourceId))]
   }
   const context: ComicTtsRenderContext = {

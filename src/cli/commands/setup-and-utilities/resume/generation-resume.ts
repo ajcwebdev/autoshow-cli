@@ -136,7 +136,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
   }
 
   const input = await resolveGenerationInput(target, prep, config)
-  const targetsToRun = await resolveGenerationTargetsToRunOrThrow(target, prep, config, opts)
+  const targetsToRun = await resolveGenerationTargetsToRunOrThrow(target, prep, config, opts, explicitFlags)
 
   const providerLabels = targetsToRun.map((t) => `${t.service}/${t.model}`)
   logResumeItem({
@@ -173,7 +173,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
     logResumeSummary({ full: 0, incomplete: 0, failed: 1 })
     if (displayOptions.deferItemFailure) return { full: 0, incomplete: 0, failed: 1 }
     throw partialCompletionError(
-      buildGenerationFailureMessage(config, 'failed', targetsToRun),
+      `${buildGenerationFailureMessage(config, 'failed', targetsToRun)}${error instanceof Error ? ': ' + error.message : ''}`,
       { stage: 'resume:generation' }
     )
   }

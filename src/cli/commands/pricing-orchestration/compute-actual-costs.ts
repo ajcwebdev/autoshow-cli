@@ -1,3 +1,4 @@
+import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
 import {
   getImageCost,
   getLlmCost,
@@ -360,6 +361,17 @@ export const computeActualCosts = (input: ComputeActualCostsInput): ActualCostBr
       },
       tts: (metadata, characterCount) => {
         const ttsCost = computeTtsCost(metadata.ttsService, metadata.ttsModel, characterCount)
+        if (metadata.ttsService === 'soniox') {
+          const estimate = estimateSonioxTtsCost(metadata.sonioxInputCharacters ?? characterCount, 1, metadata.sonioxProviderAudioSeconds)
+          steps.push({ step: 'tts', provider: 'soniox', model: metadata.ttsModel, cost: estimate.totalCost, costSource: 'heuristic', inputMetric: 'estimatedCharacters', inputValue: metadata.sonioxInputCharacters ?? characterCount, pricingBand: estimate.rateIdentity, pricingNote: estimate.estimateProvenance })
+          return
+        }
+        if (metadata.ttsService === 'gemini') {
+          const usage = metadata.geminiTtsUsage ?? []
+          const complete = metadata.geminiTtsUsageComplete === true && usage.length > 0
+          steps.push({ step: 'tts', provider: 'gemini', model: metadata.ttsModel, cost: complete ? usage.reduce((total, entry) => total + entry.totalCost, 0) : ttsCost.cost, costSource: complete ? 'provider_usage' : 'heuristic', inputMetric: complete ? 'textTokens' : 'estimatedCharacters', inputValue: complete ? usage.reduce((total, entry) => total + entry.observedTextTokens, 0) : characterCount, ...(complete ? { completionTokens: usage.reduce((total, entry) => total + entry.observedAudioTokens, 0), pricingBand: usage[0]!.rateIdentity } : {}) })
+          return
+        }
         const cloneCost = typeof metadata.cloneCostCents === 'number' ? metadata.cloneCostCents : 0
         steps.push({
           step: 'tts',

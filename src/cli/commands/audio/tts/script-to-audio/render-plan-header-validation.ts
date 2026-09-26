@@ -6,7 +6,6 @@ import { assertUnique, SHA256, validatePlannedCost } from './contract-validation
 
 export const capabilityFeatureForStrategy = (strategy: ProviderRenderPlan['strategy']): VoiceCapabilityFeature => {
   if (strategy === 'native-dialogue') return 'native-dialogue'
-  if (strategy === 'native-utterances') return 'native-utterances'
   return 'turn-synthesis'
 }
 

@@ -26,14 +26,14 @@ describe('grouped report contracts', () => {
         { ttsService: 'openai', ttsModel: 'gpt-4o-mini-tts', speaker: 'alloy', processingTime: 2500, audioFileName: 'missing-openai.wav', audioFileSize: 120, chunkCount: 1 },
         { ttsService: 'elevenlabs', ttsModel: 'eleven_v3', speaker: 'Rachel', processingTime: 900, audioFileName: 'missing-elevenlabs.wav', audioFileSize: 130, chunkCount: 1 },
         { ttsService: 'minimax', ttsModel: 'speech-02-hd', speaker: 'Wise_Woman', processingTime: 1800, audioFileName: 'missing-minimax.wav', audioFileSize: 140, chunkCount: 1 },
-        { ttsService: 'cartesia', ttsModel: 'sonic-3', speaker: 'Narrator', processingTime: 3200, audioFileName: 'missing-cartesia.wav', audioFileSize: 150, chunkCount: 1 }
+        { ttsService: 'inworld', ttsModel: 'realtime-tts-2', speaker: 'Narrator', processingTime: 3200, audioFileName: 'missing-inworld.wav', audioFileSize: 150, chunkCount: 1 }
       ]
 
       const qualityByProvider: Record<string, { humanSpeechScore: number, medianWer: number }> = {
         'openai/gpt-4o-mini-tts': { humanSpeechScore: 91, medianWer: 0.04 },
         'elevenlabs/eleven_v3': { humanSpeechScore: 85, medianWer: 0.12 },
         'minimax/speech-02-hd': { humanSpeechScore: 70, medianWer: 0.01 },
-        'cartesia/sonic-3': { humanSpeechScore: 94, medianWer: 0.08 }
+        'inworld/realtime-tts-2': { humanSpeechScore: 94, medianWer: 0.08 }
       }
 
       await writeReportInputTtsManifestFixture(runDir, {
@@ -44,7 +44,7 @@ describe('grouped report contracts', () => {
                 { provider: 'openai', model: 'gpt-4o-mini-tts', cost: 6 },
                 { provider: 'elevenlabs', model: 'eleven_v3', cost: 9 },
                 { provider: 'minimax', model: 'speech-02-hd', cost: 3 },
-                { provider: 'cartesia', model: 'sonic-3', cost: 12 }
+                { provider: 'inworld', model: 'realtime-tts-2', cost: 12 }
               ]
             }
           },
@@ -114,23 +114,23 @@ describe('grouped report contracts', () => {
         'minimax/speech-02-hd',
         'openai/gpt-4o-mini-tts',
         'elevenlabs/eleven_v3',
-        'cartesia/sonic-3'
+        'inworld/realtime-tts-2'
       ])
       expect(report.rankingSurfaces.service.speed.map((entry) => entry.providerKey)).toEqual([
         'elevenlabs/eleven_v3',
         'minimax/speech-02-hd',
         'openai/gpt-4o-mini-tts',
-        'cartesia/sonic-3'
+        'inworld/realtime-tts-2'
       ])
       expect(report.rankingSurfaces.service.automatedQuality.map((entry) => entry.providerKey)).toEqual([
         'minimax/speech-02-hd',
         'openai/gpt-4o-mini-tts',
-        'cartesia/sonic-3',
+        'inworld/realtime-tts-2',
         'elevenlabs/eleven_v3'
       ])
       expect(report.rankingSurfaces.service.automatedQuality.every((entry) => entry.metric === 'roundtrip WER accuracy' && entry.label.includes('roundtrip WER'))).toBe(true)
       expect(report.rankingSurfaces.service.humanQuality.map((entry) => entry.providerKey)).toEqual([
-        'cartesia/sonic-3',
+        'inworld/realtime-tts-2',
         'openai/gpt-4o-mini-tts',
         'elevenlabs/eleven_v3',
         'minimax/speech-02-hd'
@@ -146,5 +146,40 @@ describe('grouped report contracts', () => {
       expect(markdown).not.toContain('Top 3')
       expect(markdown).not.toContain('## Overall Ranking')
       expect(markdown).not.toContain('## Tier Breakdown')
+      expect(markdown).not.toContain('Best cloud service')
+      expect(markdown).not.toContain('Best local model')
+      expect(JSON.stringify(report)).not.toContain('composite')
     })
+
+  test('TTS reports keep recovered assembly time out of generation rankings and do not infer quality', async () => {
+    const runDir = await makeTempRoot('autoshow-tts-recovery-report-')
+    const inputTextPath = join(runDir, 'input.txt')
+    await writeFile(inputTextPath, 'A short narration.\n')
+    await writeReportInputTtsManifestFixture(runDir, { tts: [
+      { ttsService: 'grok', ttsModel: 'grok-tts', processingTime: 80, audioFileName: 'missing-grok.wav', audioFileSize: 0, chunkCount: 1 },
+      { ttsService: 'inworld', ttsModel: 'realtime-tts-2', processingTime: 2500, audioFileName: 'missing-inworld.wav', audioFileSize: 0, chunkCount: 1 },
+    ] })
+    const manifestPath = join(runDir, 'manifest.json')
+    const manifest = await Bun.file(manifestPath).json()
+    manifest.items[0].providers[0].result = { ttsAudio: {
+      selectedSuccess: { renderIdentity: 'selected', eventSequence: 2 },
+      renderHistory: [{ renderIdentity: 'selected', events: [
+        { sequence: 1, audioRunRef: 'initial-audio-run.json' },
+        { sequence: 2, audioRunRef: 'recovery-audio-run-selected.json' },
+      ] }],
+    } }
+    await writeJson(manifestPath, manifest)
+    await runConsensusBuildReport('tts', runDir, ['--input-text', inputTextPath])
+    const report = await Bun.file(join(runDir, 'provider-comparison-report.json')).json()
+    expect(report.rankingSurfaces.service.speed.map((entry: { providerKey: string, value: number | null }) => [entry.providerKey, entry.value])).toEqual([
+      ['inworld/realtime-tts-2', 2500], ['grok/grok-tts', null],
+    ])
+    expect(report.rankingSurfaces.service.automatedQuality).toEqual([])
+    expect(report.rankingSurfaces.service.humanQuality).toEqual([])
+    expect(JSON.stringify(report)).not.toContain('composite')
+    const markdown = await Bun.file(join(runDir, 'provider-comparison-report.md')).text()
+    expect(markdown).toContain('Local recovery timing')
+    expect(markdown).not.toContain('Best cloud service')
+    expect(markdown).not.toContain('speaking rate naturalness')
+  })
 })

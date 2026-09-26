@@ -14,14 +14,13 @@ import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-
 import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const tempDirs = setupContractSuiteLifecycle({
-  envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'HUME_API_KEY'],
+  envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY'],
   tempPrefix: 'autoshow-tts-text-controls-'
 })
 
-const PROVIDER_FLAGS: Record<'openai' | 'elevenlabs' | 'hume', Record<string, string>> = {
+const PROVIDER_FLAGS: Record<'openai' | 'elevenlabs', Record<string, string>> = {
   openai: { 'openai-tts': 'gpt-4o-mini-tts-2025-12-15' },
   elevenlabs: { 'elevenlabs-tts': 'eleven_v3' },
-  hume: { 'hume-tts': 'octave-2' },
 }
 
 const optionsFor = (provider: keyof typeof PROVIDER_FLAGS, flags: Record<string, unknown> = {}, extra: Partial<TtsOptions> = {}): TtsOptions => ({
@@ -41,7 +40,6 @@ const installProviderAudio = () => installMockFetch(() => new Response(
 const setKeys = (): void => {
   process.env['OPENAI_API_KEY'] = 'openai-test-key'
   process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-test-key'
-  process.env['HUME_API_KEY'] = 'hume-test-key'
 }
 
 const spokenText = (call: MockFetchCall): string => {
@@ -84,7 +82,7 @@ describe('TTS pronunciation lexicon', () => {
     await expect(loadTtsPronunciationLexicon('/nonexistent/lexicon.json')).rejects.toThrow('was not found')
   })
 
-  for (const provider of ['openai', 'elevenlabs', 'hume'] as const) {
+  for (const provider of ['openai', 'elevenlabs'] as const) {
     test(`transport: ${provider} receives lexicon-substituted text and billing counts the substituted characters`, async () => {
       setKeys()
       const calls = installProviderAudio()
@@ -114,10 +112,10 @@ describe('TTS text preflight', () => {
 
   test('short delivery tags pass and long bracketed prose is flagged for every provider', () => {
     expect(inspectTtsText('[whispers] Quiet now. [long pause] Done.', [{ service: 'elevenlabs', model: 'eleven_v3' }])).toEqual([])
-    const findings = inspectTtsText('[as if sharing a private secret with a close friend] Hello.', [{ service: 'elevenlabs', model: 'eleven_v3' }, { service: 'hume', model: 'octave-2' }])
+    const findings = inspectTtsText('[as if sharing a private secret with a close friend] Hello.', [{ service: 'elevenlabs', model: 'eleven_v3' }, { service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }])
     expect(findings.map((finding) => [finding.target, finding.kind, finding.severity])).toEqual([
       ['elevenlabs/eleven_v3', 'long-inline-tag', 'warning'],
-      ['hume/octave-2', 'long-inline-tag', 'warning'],
+      ['openai/gpt-4o-mini-tts-2025-12-15', 'long-inline-tag', 'warning'],
     ])
   })
 
@@ -163,21 +161,9 @@ describe('TTS response format control', () => {
     expect(requireDefined(calls[1], 'override request').headers.get('accept')).toBe('audio/wav')
   }, 30_000)
 
-  test('transport: Hume default format is unchanged and an override reaches the request body', async () => {
-    setKeys()
-    const calls = installProviderAudio()
-    const defaults = optionsFor('hume')
-    await runTtsForTargets('Default format.', await tempDirs.make(), defaults, [targetFor(defaults, 'hume')])
-    expect(requireDefined(calls[0], 'default request').bodyJson?.['format']).toEqual({ type: 'mp3' })
-    const lossless = optionsFor('hume', { 'tts-response-format': 'wav' })
-    await runTtsForTargets('Lossless format.', await tempDirs.make(), lossless, [targetFor(lossless, 'hume')])
-    expect(requireDefined(calls[1], 'override request').bodyJson?.['format']).toEqual({ type: 'wav' })
-  }, 30_000)
-
   test('unsupported response formats and providers are rejected during option resolution', () => {
     setKeys()
     expect(() => buildOptsFromFlags({ 'elevenlabs-tts': 'eleven_v3', 'tts-response-format': 'pcm_8000' })).toThrow('tts-response-format')
-    expect(() => buildOptsFromFlags({ 'hume-tts': 'octave-2', 'tts-response-format': 'flac' })).toThrow('tts-response-format')
     expect(() => buildOptsFromFlags({ 'openai-tts': 'gpt-4o-mini-tts-2025-12-15', 'tts-response-format': 'wav' })).toThrow('tts-response-format')
   })
 })
@@ -185,7 +171,7 @@ describe('TTS response format control', () => {
 describe('TTS text preflight provider support', () => {
   test('providers documented to accept timed SSML breaks produce no markup finding', () => {
     const text = 'Wait. <break time="1s" /> Go.'
-    for (const target of [{ service: 'speechify', model: 'simba-3.2' }, { service: 'cartesia', model: 'sonic-3.6-2026-08-27' }, { service: 'inworld', model: 'realtime-tts-2' }] as const) {
+    for (const target of [{ service: 'inworld', model: 'realtime-tts-2' }] as const) {
       expect(inspectTtsText(text, [target])).toEqual([])
     }
   })

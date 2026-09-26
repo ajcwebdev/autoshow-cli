@@ -18,15 +18,15 @@ With `--provider`, `list` prints a provider or account catalog. `--provider` can
 
 ### Options
 
-| Flag                       | Description                                                                                             |
-| -------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `--generation-id <sha256>` | Optional unless more than one generation could match                                                    |
-| `--live`                   | Opt-in provider readiness check for one registration                                                    |
-| `--provider <name>`        | Remote catalog provider: `elevenlabs`, `grok`, `mistral`, `speechify`, `hume`, `cartesia`, or `inworld` |
-| `--source <source>`        | Catalog source: `account`, `provider-library`, or `shared-library`; default `account`                   |
-| `--cursor <cursor>`        | Opaque provider pagination cursor                                                                       |
-| `--reconcile`              | Complete an ambiguous provider provisioning journal without recreating the voice                        |
-| `--price`                  | Validate and estimate without provider calls or artifact writes                                         |
+| Flag                       | Description                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------- |
+| `--generation-id <sha256>` | Optional unless more than one generation could match                                  |
+| `--live`                   | Opt-in provider readiness check for one registration                                  |
+| `--provider <name>`        | Remote catalog provider: `gemini`, `elevenlabs`, `grok`, or `inworld`                 |
+| `--source <source>`        | Catalog source: `account`, `provider-library`, or `shared-library`; default `account` |
+| `--cursor <cursor>`        | Opaque provider pagination cursor                                                     |
+| `--reconcile`              | Complete an ambiguous provider provisioning journal without recreating the voice      |
+| `--price`                  | Validate and estimate without provider calls or artifact writes                       |
 
 ### Examples
 
@@ -37,7 +37,7 @@ bun autoshow voice list vr_ID --live
 bun autoshow voice list vr_ID --generation-id GENERATION_SHA256
 bun autoshow voice list --provider elevenlabs
 bun autoshow voice list --provider elevenlabs --source shared-library --cursor OPAQUE_CURSOR
-bun autoshow voice list --provider cartesia --source provider-library --price
+bun autoshow voice list --provider inworld --source provider-library --price
 ```
 
 Next: [consent](./02-consent.md).

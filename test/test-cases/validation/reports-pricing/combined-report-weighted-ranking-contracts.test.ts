@@ -6,15 +6,31 @@ import {
 import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import {
-  computeWeightedScores,
+  DASHBOARD_CLIENT_SCRIPT,
+  DASHBOARD_CLIENT_STYLESHEET,
   renderBenchmarkDashboard,
-  renderCombinedDashboard,
+  type BenchmarkDashboardData,
+  type BenchmarkDashboardTab,
   type CombinedDashboardModel
 } from '../../../../.codex/skills/consensus/scripts/shared/combined_report_html'
+import {
+  computeWeightedScores,
+  renderDashboard,
+  renderTabPanel
+} from '../../../../.codex/skills/consensus/scripts/shared/dashboard_client.js'
+import { dashboardAssetNames } from '../../../../.codex/skills/consensus/scripts/shared/build_combined_dashboard'
+import { buildTtsDashboard } from '../../../../.codex/skills/consensus/scripts/tts/build_tts_dashboard'
 import type { ArtifactReport } from '~/types'
 
 const projectRoot = resolve(import.meta.dir, '../../../../')
-const dashboardPath = join(projectRoot, 'docs', 'benchmarks', 'combined-comparison-dashboard.html')
+const benchmarksRoot = join(projectRoot, 'docs', 'benchmarks')
+const dashboardPath = join(benchmarksRoot, 'combined-comparison-dashboard.html')
+const dataPath = join(benchmarksRoot, 'combined-comparison-dashboard.json')
+const stylesheetPath = join(benchmarksRoot, 'combined-comparison-dashboard.css')
+const scriptPath = join(benchmarksRoot, 'combined-comparison-dashboard.js')
+const STYLESHEET_LINK = '<link rel="stylesheet" href="combined-comparison-dashboard.css">'
+const SCRIPT_TAG = '<script src="combined-comparison-dashboard.js"></script>'
+const DATA_SOURCE = 'data-source="combined-comparison-dashboard.json"'
 
 const DASHBOARD_TABS = [
   ['ocr', ['local', 'thirdPartyService']],
@@ -28,6 +44,112 @@ const panelFor = (html: string, key: string): string => {
   const body = html.split(`<section class="panel" id="panel-${key}">`)[1] ?? ''
   return (body.split('<section class="panel" id="panel-')[0] ?? '').split('</main>')[0] ?? ''
 }
+
+const emptyModel = (title = 'x'): CombinedDashboardModel => ({
+  title, category: 'stt', generatedAt: 'now', rootDir: '/tmp',
+  summaryStats: [], runs: [], groups: [], methodParagraphs: [], notes: []
+})
+
+const stubTab = (key: string): BenchmarkDashboardTab => ({ key, label: key, rootLabel: key, model: emptyModel() })
+
+const readCommittedData = (): BenchmarkDashboardData => JSON.parse(readFileSync(dataPath, 'utf8')) as BenchmarkDashboardData
+
+const singleGroupModel = (): CombinedDashboardModel => ({
+  title: 'Combined STT Provider Comparison',
+  category: 'stt',
+  generatedAt: '2026-08-22T00:00:00.000Z',
+  rootDir: '/tmp/stt-with-speakers',
+  summaryStats: [{ label: 'Runs', value: '1' }],
+  runs: [{ runName: '1-audio', shortLabel: 'R1', detail: '1 provider' }],
+  groups: [
+    {
+      key: 'thirdPartyServiceDiarization',
+      label: 'Third-Party Service Diarization',
+      metricColumns: { quality: 'Quality /100', speed: 'Mean time · throughput', cost: 'Mean cost' },
+      metricDirections: { quality: 'higher', speed: 'lower', cost: 'lower' },
+      evidenceColumns: ['Mean SA-WER'],
+      providers: [
+        {
+          providerKey: 'best-quality',
+          display: 'best-quality',
+          model: 'quality',
+          coverage: '1/1',
+          quality: { display: '99.00', rank: 1 },
+          speed: { display: '20.00s', rank: 3 },
+          cost: { display: '$0.20', rank: 2 },
+          evidence: ['1.00%'],
+          perRun: [{ display: '99.00', heat: 100 }]
+        },
+        {
+          providerKey: 'best-speed',
+          display: 'best-speed',
+          model: 'speed',
+          coverage: '1/1',
+          quality: { display: '90.00', rank: 3 },
+          speed: { display: '2.00s', rank: 1 },
+          cost: { display: '$0.30', rank: 3 },
+          evidence: ['10.00%'],
+          perRun: [{ display: '90.00', heat: 0 }]
+        },
+        {
+          providerKey: 'best-cost',
+          display: 'best-cost',
+          model: 'cost',
+          coverage: '1/1',
+          quality: { display: '95.00', rank: 2 },
+          speed: { display: '10.00s', rank: 2 },
+          cost: { display: '$0.01', rank: 1 },
+          evidence: ['5.00%'],
+          perRun: [{ display: '95.00', heat: 50 }]
+        }
+      ]
+    }
+  ],
+  methodParagraphs: ['Providers are matched by providerKey.'],
+  notes: ['No weighted composite is emitted.']
+})
+
+const localGroupModel = (rootDir: string, title: string): CombinedDashboardModel => ({
+  title,
+  category: 'stt',
+  generatedAt: '2026-09-16T00:00:00.000Z',
+  rootDir,
+  summaryStats: [{ label: 'Runs', value: '1' }],
+  runs: [{ runName: '1-audio', shortLabel: 'R1', detail: '1 provider' }],
+  groups: [
+    {
+      key: 'local',
+      label: 'Local',
+      metricColumns: { quality: 'Quality /100', speed: 'Mean time', cost: 'Mean cost' },
+      metricDirections: { quality: 'higher', speed: 'lower', cost: 'lower' },
+      evidenceColumns: ['Mean SA-WER'],
+      providers: [
+        {
+          providerKey: 'whisper',
+          display: 'whisper',
+          model: 'base',
+          coverage: '1/1',
+          quality: { display: '90.00', rank: 1 },
+          speed: { display: '2.00s', rank: 1 },
+          cost: { display: '$0.00', rank: 1 },
+          evidence: ['5.00%'],
+          perRun: [{ display: '90.00', heat: 100 }]
+        }
+      ]
+    }
+  ],
+  methodParagraphs: ['Providers are matched by providerKey.'],
+  notes: ['No weighted composite is emitted.']
+})
+
+const twoTabPage = () => ({
+  title: 'AutoShow Benchmark Dashboard',
+  generatedAt: '2026-09-16T00:00:00.000Z',
+  tabs: [
+    { key: 'stt-local', label: 'STT local', rootLabel: 'docs/benchmarks/stt-local', model: localGroupModel('/tmp/stt-local', 'Combined STT Provider Comparison') },
+    { key: 'url', label: 'URL', rootLabel: 'docs/benchmarks/url', model: localGroupModel('/tmp/url', 'Combined URL Provider Comparison') }
+  ]
+})
 
 describe('combined-report metric ranking contracts', () => {
   for (const [directory, schemaVersion, groups] of [
@@ -84,74 +206,20 @@ describe('combined-report metric ranking contracts', () => {
   }
 })
 
-describe('combined dashboard metric table sorting', () => {
-  test('pre-renders quality, speed, and cost orders without JavaScript', () => {
-    const html = renderCombinedDashboard({
-      title: 'Combined STT Provider Comparison',
-      category: 'stt',
-      generatedAt: '2026-08-22T00:00:00.000Z',
-      rootDir: '/tmp/stt-with-speakers',
-      summaryStats: [{ label: 'Runs', value: '1' }],
-      runs: [{ runName: '1-audio', shortLabel: 'R1', detail: '1 provider' }],
-      groups: [
-        {
-          key: 'thirdPartyServiceDiarization',
-          label: 'Third-Party Service Diarization',
-          metricColumns: { quality: 'Quality /100', speed: 'Mean time · throughput', cost: 'Mean cost' },
-          metricDirections: { quality: 'higher', speed: 'lower', cost: 'lower' },
-          evidenceColumns: ['Mean SA-WER'],
-          providers: [
-            {
-              providerKey: 'best-quality',
-              display: 'best-quality',
-              model: 'quality',
-              coverage: '1/1',
-              quality: { display: '99.00', rank: 1 },
-              speed: { display: '20.00s', rank: 3 },
-              cost: { display: '$0.20', rank: 2 },
-              evidence: ['1.00%'],
-              perRun: [{ display: '99.00', heat: 100 }],
-            },
-            {
-              providerKey: 'best-speed',
-              display: 'best-speed',
-              model: 'speed',
-              coverage: '1/1',
-              quality: { display: '90.00', rank: 3 },
-              speed: { display: '2.00s', rank: 1 },
-              cost: { display: '$0.30', rank: 3 },
-              evidence: ['10.00%'],
-              perRun: [{ display: '90.00', heat: 0 }],
-            },
-            {
-              providerKey: 'best-cost',
-              display: 'best-cost',
-              model: 'cost',
-              coverage: '1/1',
-              quality: { display: '95.00', rank: 2 },
-              speed: { display: '10.00s', rank: 2 },
-              cost: { display: '$0.01', rank: 1 },
-              evidence: ['5.00%'],
-              perRun: [{ display: '95.00', heat: 50 }],
-            },
-          ],
-        },
-      ],
-      methodParagraphs: ['Providers are matched by providerKey.'],
-      notes: ['No weighted composite is emitted.'],
-    })
+describe('combined dashboard browser renderer', () => {
+  test('renders three precomputed orders per group, switched by CSS radios', () => {
+    const html = renderTabPanel({ key: 'stt', label: 'STT', rootLabel: 'docs/benchmarks/stt', model: singleGroupModel() })
 
     expect(html).not.toMatch(/<script[\s>]/i)
-    expect(html).not.toMatch(/<link\b/i)
     expect(html).toContain('class="provider-sort"')
-    expect(html).toContain('name="sort-thirdPartyServiceDiarization"')
-    expect(html).toContain('id="sort-thirdPartyServiceDiarization-quality"')
-    expect(html).toContain('id="sort-thirdPartyServiceDiarization-speed"')
-    expect(html).toContain('id="sort-thirdPartyServiceDiarization-cost"')
+    expect(html).toContain('name="sort-stt-thirdPartyServiceDiarization"')
+    expect(html).toContain('id="sort-stt-thirdPartyServiceDiarization-quality"')
+    expect(html).toContain('id="sort-stt-thirdPartyServiceDiarization-speed"')
+    expect(html).toContain('id="sort-stt-thirdPartyServiceDiarization-cost"')
     expect(html).toContain('value="quality" checked')
-    expect(html).toContain('<label class="sort-opt" for="sort-thirdPartyServiceDiarization-quality">Quality</label>')
-    expect(html).toContain('<label class="sort-opt" for="sort-thirdPartyServiceDiarization-speed">Speed</label>')
-    expect(html).toContain('<label class="sort-opt" for="sort-thirdPartyServiceDiarization-cost">Cost</label>')
+    expect(html).toContain('<label class="sort-opt" for="sort-stt-thirdPartyServiceDiarization-quality">Quality</label>')
+    expect(html).toContain('<label class="sort-opt" for="sort-stt-thirdPartyServiceDiarization-speed">Speed</label>')
+    expect(html).toContain('<label class="sort-opt" for="sort-stt-thirdPartyServiceDiarization-cost">Cost</label>')
 
     const qualityBody = html.match(/<div class="tablewrap sort-quality">[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)?.[1] ?? ''
     const speedBody = html.match(/<div class="tablewrap sort-speed">[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)?.[1] ?? ''
@@ -164,51 +232,16 @@ describe('combined dashboard metric table sorting', () => {
   })
 
   test('renders one tabbed panel per benchmark with unique ids across shared group keys', () => {
-    const groupModel = (rootDir: string, title: string): CombinedDashboardModel => ({
-      title,
-      category: 'stt',
-      generatedAt: '2026-09-16T00:00:00.000Z',
-      rootDir,
-      summaryStats: [{ label: 'Runs', value: '1' }],
-      runs: [{ runName: '1-audio', shortLabel: 'R1', detail: '1 provider' }],
-      groups: [
-        {
-          key: 'local',
-          label: 'Local',
-          metricColumns: { quality: 'Quality /100', speed: 'Mean time', cost: 'Mean cost' },
-          metricDirections: { quality: 'higher', speed: 'lower', cost: 'lower' },
-          evidenceColumns: ['Mean SA-WER'],
-          providers: [
-            {
-              providerKey: 'whisper',
-              display: 'whisper',
-              model: 'base',
-              coverage: '1/1',
-              quality: { display: '90.00', rank: 1 },
-              speed: { display: '2.00s', rank: 1 },
-              cost: { display: '$0.00', rank: 1 },
-              evidence: ['5.00%'],
-              perRun: [{ display: '90.00', heat: 100 }]
-            }
-          ]
-        }
-      ],
-      methodParagraphs: ['Providers are matched by providerKey.'],
-      notes: ['No weighted composite is emitted.']
-    })
+    const page = twoTabPage()
+    const html = renderDashboard({ schemaVersion: 1, ...page })
 
-    const html = renderBenchmarkDashboard({
-      title: 'AutoShow Benchmark Dashboard',
-      generatedAt: '2026-09-16T00:00:00.000Z',
-      tabs: [
-        { key: 'stt-local', label: 'STT local', rootLabel: 'docs/benchmarks/stt-local', model: groupModel('/tmp/stt-local', 'Combined STT Provider Comparison') },
-        { key: 'url', label: 'URL', rootLabel: 'docs/benchmarks/url', model: groupModel('/tmp/url', 'Combined URL Provider Comparison') }
-      ]
-    })
-
-    expect(html).not.toMatch(/<link\b/i)
+    expect(html).toContain('<h1>AutoShow Benchmark Dashboard</h1>')
+    expect(html).toContain('Generated 2026-09-16T00:00:00.000Z &middot; 2 combined benchmark roots')
     expect(html).toContain('<input type="radio" name="dashboard-tab" id="tab-stt-local" checked>')
     expect(html).toContain('<input type="radio" name="dashboard-tab" id="tab-url">')
+    expect(html).toContain('<label for="tab-stt-local">STT local</label>')
+    expect(html).toContain('<section class="panel" id="panel-stt-local">')
+    expect(html).toContain('<section class="panel" id="panel-url">')
     expect(html).toContain('name="sort-stt-local-local"')
     expect(html).toContain('name="sort-url-local"')
     expect(html).toContain('id="sort-stt-local-local-quality"')
@@ -219,19 +252,73 @@ describe('combined dashboard metric table sorting', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  test('rejects duplicate and unsafe tab keys', () => {
-    const tab = (key: string) => ({
-      key,
-      label: key,
-      rootLabel: key,
-      model: {
-        title: 'x', category: 'stt', generatedAt: 'now', rootDir: '/tmp',
-        summaryStats: [], runs: [], groups: [], methodParagraphs: [], notes: []
-      } as CombinedDashboardModel
-    })
-    expect(() => renderBenchmarkDashboard({ title: 't', generatedAt: 'now', tabs: [tab('a'), tab('a')] })).toThrow('Duplicate dashboard tab key: a')
-    expect(() => renderBenchmarkDashboard({ title: 't', generatedAt: 'now', tabs: [tab('a"><script>')] })).toThrow('Invalid dashboard tab key')
+  test('rejects duplicate and unsafe tab keys in the builder and in the browser renderer', () => {
+    const data = (tabs: BenchmarkDashboardTab[]): BenchmarkDashboardData => ({ schemaVersion: 1, title: 't', generatedAt: 'now', tabs })
+
+    expect(() => renderBenchmarkDashboard({ title: 't', generatedAt: 'now', tabs: [stubTab('a'), stubTab('a')] })).toThrow('Duplicate dashboard tab key: a')
+    expect(() => renderBenchmarkDashboard({ title: 't', generatedAt: 'now', tabs: [stubTab('a"><script>')] })).toThrow('Invalid dashboard tab key')
     expect(() => renderBenchmarkDashboard({ title: 't', generatedAt: 'now', tabs: [] })).toThrow('at least one tab')
+
+    expect(() => renderDashboard(data([stubTab('a'), stubTab('a')]))).toThrow('Duplicate dashboard tab key: a')
+    expect(() => renderDashboard(data([stubTab('a"><script>')]))).toThrow('Invalid dashboard tab key')
+    expect(() => renderDashboard(data([]))).toThrow('at least one tab')
+    expect(() => renderTabPanel(stubTab('../x'))).toThrow('Invalid dashboard tab key')
+  })
+})
+
+describe('combined dashboard bundle', () => {
+  test('writes a static shell that names its data, stylesheet, and script, and data the renderer accepts', () => {
+    const page = twoTabPage()
+    const bundle = renderBenchmarkDashboard(page)
+
+    // the shell carries no data, tables, or timestamps: everything renders from the JSON at view time
+    expect(bundle.html).toContain('<title>AutoShow Benchmark Dashboard</title>')
+    expect(bundle.html).toContain(STYLESHEET_LINK)
+    expect(bundle.html).toContain(SCRIPT_TAG)
+    expect(bundle.html).toContain(`<main class="dashboard" ${DATA_SOURCE}>`)
+    expect(bundle.html).toContain('<noscript>')
+    expect(bundle.html).not.toMatch(/<style[\s>]/i)
+    expect(bundle.html).not.toContain('<table')
+    expect(bundle.html).not.toContain('sort-')
+    expect(bundle.html).not.toContain('2026-09-16')
+    expect(bundle.html).not.toContain('whisper')
+
+    const data = JSON.parse(bundle.data) as BenchmarkDashboardData
+    expect(data).toEqual({ schemaVersion: 1, title: page.title, generatedAt: page.generatedAt, tabs: page.tabs })
+    expect(bundle.data.endsWith('\n')).toBe(true)
+    expect(bundle.data.split('\n').length).toBeGreaterThan(20)
+    expect(renderDashboard(data)).toContain('<section class="panel" id="panel-url">')
+
+    // the stylesheet and script are the checked-in client files, copied verbatim
+    expect(bundle.stylesheet).toBe(readFileSync(DASHBOARD_CLIENT_STYLESHEET, 'utf8'))
+    expect(bundle.script).toBe(readFileSync(DASHBOARD_CLIENT_SCRIPT, 'utf8'))
+  })
+
+  test('links only plain sibling asset names and honours custom ones', () => {
+    const page = (assets: { stylesheet: string, script: string, data: string }) => ({
+      title: 't', generatedAt: 'now', tabs: [stubTab('a')], assets
+    })
+
+    const custom = renderBenchmarkDashboard(page({ stylesheet: 'custom-name.css', script: 'custom-name.js', data: 'custom-name.json' }))
+    expect(custom.html).toContain('<link rel="stylesheet" href="custom-name.css">')
+    expect(custom.html).toContain('<script src="custom-name.js"></script>')
+    expect(custom.html).toContain('data-source="custom-name.json"')
+    expect(custom.html).not.toContain('combined-comparison-dashboard.')
+    expect(dashboardAssetNames('/any/where/dash.html')).toEqual({ stylesheet: 'dash.css', script: 'dash.js', data: 'dash.json' })
+
+    for (const assets of [
+      { stylesheet: '../styles.css', script: 'dash.js', data: 'dash.json' },
+      { stylesheet: 'assets/styles.css', script: 'dash.js', data: 'dash.json' },
+      { stylesheet: 'styles.css', script: 'https://example.com/dash.js', data: 'dash.json' },
+      { stylesheet: 'styles.css', script: 'dash..js', data: 'dash.json' },
+      { stylesheet: 'styles.js', script: 'dash.js', data: 'dash.json' },
+      { stylesheet: 'styles.css', script: 'dash.css', data: 'dash.json' },
+      { stylesheet: 'styles.css', script: 'dash.js', data: 'dash.txt' },
+      { stylesheet: 'styles.css', script: 'dash.js', data: '/dash.json' },
+      { stylesheet: '.css', script: 'dash.js', data: 'dash.json' }
+    ]) {
+      expect(() => renderBenchmarkDashboard(page(assets))).toThrow('Invalid dashboard asset name')
+    }
   })
 })
 
@@ -299,18 +386,63 @@ describe('custom weighting composite', () => {
 })
 
 describe('committed benchmark dashboard', () => {
-  test('is a single self-contained page with one tab per combined-report root', () => {
+  test('is a static shell whose data, stylesheet, and script are the generated siblings, byte for byte', () => {
     const html = readFileSync(dashboardPath, 'utf8')
+    const data = readCommittedData()
 
-    expect(html).toContain('<style>')
-    expect(html).not.toMatch(/<link\b/i)
-    expect(html).not.toContain('fetch(')
-    expect(html).not.toContain('XMLHttpRequest')
-    expect(html).not.toContain('Quality-cost terciles')
-    expect(html).not.toContain('quality-cost-terciles-v1')
-    expect(html).not.toContain('All weighted rankings')
+    expect(html).not.toMatch(/<style[\s>]/i)
+    expect([...html.matchAll(/<link\b[^>]*>/gi)].map((match) => match[0])).toEqual([STYLESHEET_LINK])
+    expect([...html.matchAll(/<script\b[^>]*>[\s\S]*?<\/script>/gi)].map((match) => match[0])).toEqual([SCRIPT_TAG])
+    expect(html).toContain(`<main class="dashboard" ${DATA_SOURCE}>`)
+    expect(html).toContain('<noscript>')
+    expect(html).not.toContain('<table')
+    expect(html).not.toContain('Generated ')
     expect(html).not.toContain('/Users/')
-    expect([...html.matchAll(/<input type="radio" name="dashboard-tab"/g)]).toHaveLength(DASHBOARD_TABS.length)
+
+    // the shell depends only on the title, and the client files are copied verbatim
+    expect(html).toBe(renderBenchmarkDashboard({ title: data.title, generatedAt: data.generatedAt, tabs: data.tabs }).html)
+    expect(readFileSync(stylesheetPath, 'utf8')).toBe(readFileSync(DASHBOARD_CLIENT_STYLESHEET, 'utf8'))
+    expect(readFileSync(scriptPath, 'utf8')).toBe(readFileSync(DASHBOARD_CLIENT_SCRIPT, 'utf8'))
+  })
+
+  test('keeps every combined-report tab and matches the current TTS results, including an empty archive', () => {
+    const raw = readFileSync(dataPath, 'utf8')
+    const data = JSON.parse(raw) as BenchmarkDashboardData
+
+    expect(data.schemaVersion).toBe(1)
+    expect(data.title).toBe('AutoShow Benchmark Dashboard')
+    expect(data.tabs.map((tab) => tab.key)).toEqual([...DASHBOARD_TABS.map(([key]) => key), 'tts'])
+    expect(raw).not.toContain('/Users/')
+    expect(raw).not.toContain('Quality-cost terciles')
+    expect(raw).not.toContain('quality-cost-terciles-v1')
+    expect(raw).not.toContain('All weighted rankings')
+
+    for (const [key, groups] of DASHBOARD_TABS) {
+      const report = JSON.parse(
+        readFileSync(join(projectRoot, 'docs', 'benchmarks', key, 'combined-comparison-report.json'), 'utf8')
+      ) as ArtifactReport
+      const qualityMetric = key === 'url' ? 'automatedQuality' : 'qualityScore'
+      const tab = data.tabs.find((candidate) => candidate.key === key)
+
+      expect(tab?.rootLabel).toBe(`docs/benchmarks/${key}`)
+      expect(tab?.model.groups.map((group) => group.key)).toEqual([...groups])
+      for (const group of groups) {
+        const populated = (report.metricRankings[group]?.[qualityMetric] ?? []).length > 0
+        expect((tab?.model.groups.find((candidate) => candidate.key === group)?.providers.length ?? 0) > 0).toBe(populated)
+      }
+    }
+
+    const tts = data.tabs.find((candidate) => candidate.key === 'tts')
+    expect(tts?.rootLabel).toBe('docs/benchmarks/tts')
+    expect(tts?.model).toEqual(buildTtsDashboard(join(benchmarksRoot, 'tts'), data.generatedAt).dashboardModel)
+  })
+
+  test('renders its data into tabbed panels with sortable metric tables', () => {
+    const html = renderDashboard(readCommittedData())
+
+    expect(html).toContain('<input type="radio" name="dashboard-tab" id="tab-ocr" checked>')
+    expect(html).toContain('id="tab-tts"')
+    expect(panelFor(html, 'tts')).toContain('TTS benchmark results')
 
     const ids = [...html.matchAll(/ id="([^"]+)"/g)].map((match) => match[1])
     expect(new Set(ids).size).toBe(ids.length)
@@ -324,7 +456,6 @@ describe('committed benchmark dashboard', () => {
 
       expect(html).toContain(`id="tab-${key}"`)
       expect(html).toContain(`id="panel-${key}"`)
-      expect(html).toContain(`#tab-${key}:checked ~ #panel-${key} { display: block; }`)
       expect(panel).toContain(`<code>docs/benchmarks/${key}</code>`)
       expect(panel).toContain('<table class="providers">')
       expect(panel).toContain('<h3>Metric rankings</h3>')
@@ -339,23 +470,27 @@ describe('committed benchmark dashboard', () => {
       }
     }
 
-    expect(html).toContain('<input type="radio" name="dashboard-tab" id="tab-ocr" checked>')
     expect(panelFor(html, 'url')).toContain('<h3>Per-run automated quality</h3>')
     expect(panelFor(html, 'url')).toContain('rel="noreferrer"')
   })
 
-  test('ships the weight sliders as a self-contained progressive enhancement', () => {
-    const html = readFileSync(dashboardPath, 'utf8')
+  test('ships the weight sliders as a progressive enhancement in the sibling script', () => {
+    const html = renderDashboard(readCommittedData())
+    const stylesheet = readFileSync(stylesheetPath, 'utf8')
+    const script = readFileSync(scriptPath, 'utf8')
 
-    // exactly one inline script, no external or network dependency
-    expect([...html.matchAll(/<script[\s>]/gi)]).toHaveLength(1)
-    expect(html).not.toMatch(/<script[^>]+src=/i)
-    expect(html).not.toContain('fetch(')
-    expect(html).not.toContain('XMLHttpRequest')
-    expect(html).not.toContain('import(')
+    // the script loads only the relative data-source and is a classic script with no other dependency,
+    // so it still runs from file:// and can explain that the JSON needs an HTTP origin
+    expect(script).toContain('getAttribute("data-source")')
+    expect(script).not.toMatch(/https?:\/\//)
+    expect(script).not.toMatch(/^\s*(?:import|export)\b/m)
+    expect(script).not.toContain('import(')
+    expect(script).not.toContain('XMLHttpRequest')
+    expect(script).toContain('file://')
+    expect(stylesheet).not.toMatch(/@import|url\(|https?:\/\//)
 
     // the browser runs the same scoring function this suite unit-tests
-    expect(html).toContain('function computeWeightedScores(')
+    expect(script).toContain('function computeWeightedScores(')
 
     // every group carries its own slider set, with the documented defaults
     for (const [metric, value] of [['quality', 60], ['speed', 20], ['cost', 20]] as const) {
@@ -372,10 +507,9 @@ describe('committed benchmark dashboard', () => {
     expect(sliderIds.length).toBe(sliderIds.filter((id) => id.startsWith('w-')).length)
     expect(new Set(sliderIds).size).toBe(sliderIds.length)
 
-    // the control sits in the sort row and is revealed only by the JS-injected Custom radio,
-    // so a JS-off reader never sees a dead input
-    expect(html).toContain('.provider-sort > .weights { display: none; }')
-    expect(html).toContain('.provider-sort > input[value="custom"]:checked ~ .weights { display: flex; }')
+    // the control sits in the sort row and is revealed only by the script-injected Custom radio
+    expect(stylesheet).toContain('.provider-sort > .weights { display: none; }')
+    expect(stylesheet).toContain('.provider-sort > input[value="custom"]:checked ~ .weights { display: flex; }')
     expect(html).not.toMatch(/<input[^>]*value="custom"/)
     for (const key of ['ocr', 'url'] as const) {
       const sortRow = panelFor(html, key).split('<div class="provider-sort"')[1] ?? ''
@@ -390,7 +524,7 @@ describe('committed benchmark dashboard', () => {
       expect(panel).toMatch(/<tr data-q="[-\d.eE+]+" data-s="[-\d.eE+]+" data-c="[-\d.eE+]+">/)
     }
 
-    // the no-JS surface is untouched: three precomputed orders still ship per group
+    // three precomputed orders still ship per group; Custom is added by the script at view time
     const ocr = panelFor(html, 'ocr')
     expect(ocr).toContain('class="tablewrap sort-quality"')
     expect(ocr).toContain('class="tablewrap sort-speed"')

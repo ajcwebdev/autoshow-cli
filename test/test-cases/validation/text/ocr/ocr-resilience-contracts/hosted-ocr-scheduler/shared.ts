@@ -1,6 +1,8 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { waitFor as sharedWaitFor } from '../../../../../../test-utils/wait-for'
+import { withTempDir } from '../../../../../../test-utils/temp-dirs'
 import type {
   Deferred,
   HostedOcrSchedulerAdmission,
@@ -44,8 +46,7 @@ export const admission = (
 
 export const missingProfilePath = (): string =>
   join(
-    process.cwd(),
-    '.test-work',
+    tmpdir(),
     `autoshow-missing-ocr-profile-${crypto.randomUUID()}.json`
   )
 
@@ -75,21 +76,11 @@ export const buildThroughputProfile = (
 export const withThroughputProfile = async <T>(
   profile: HostedOcrThroughputProfile,
   run: (profilePath: string) => Promise<T>
-): Promise<T> => {
-  const dir = join(
-    process.cwd(),
-    '.test-work',
-    `hosted-ocr-scheduler-profile-${crypto.randomUUID()}`
-  )
+): Promise<T> => await withTempDir('hosted-ocr-scheduler-profile-', async (dir) => {
   const profilePath = join(dir, 'profiles.json')
-  await mkdir(dir, { recursive: true })
-  try {
-    await writeFile(profilePath, JSON.stringify({ version: 2, profiles: [profile] }, null, 2))
-    return await run(profilePath)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}
+  await writeFile(profilePath, JSON.stringify({ version: 2, profiles: [profile] }, null, 2))
+  return await run(profilePath)
+})
 
 export const buildTargetTelemetry = (
   overrides: Partial<HostedOcrSchedulerTargetTelemetry> = {}

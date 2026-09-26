@@ -6,16 +6,12 @@ import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { createHostedConcurrencyCoordinator } from '~/cli/commands/command-shared/hosted-concurrency-coordinator'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-scheduler'
 import type { TtsOptions, TtsTarget, TtsTargetInvocation, TtsTargetInvocationControls, TtsVoiceMatrixEnvKey, VoiceMatrixCase } from '~/types'
-import { createMockWavBase64, createMockWavBytes } from '../../../../test-utils/media-fixtures'
+import { createMockWavBytes } from '../../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const MATRIX_ENV_KEYS = [
   'ELEVENLABS_API_KEY',
-  'SPEECHIFY_API_KEY',
-  'HUME_API_KEY',
-  'CARTESIA_API_KEY',
-  'MISTRAL_API_KEY',
   'OPENAI_API_KEY',
   'XAI_API_KEY',
   'INWORLD_API_KEY'
@@ -27,14 +23,12 @@ const tempDirs = setupContractSuiteLifecycle({
 })
 
 const audioBytes = createMockWavBytes()
-const audioBase64 = createMockWavBase64()
 
 const byteResponse = (): Response => new Response(audioBytes, {
   status: 200,
   headers: { 'content-type': 'audio/wav' }
 })
 
-const jsonAudioResponse = (): Response => Response.json({ audio_data: audioBase64 })
 
 const cases: readonly VoiceMatrixCase[] = [
   {
@@ -87,76 +81,7 @@ const cases: readonly VoiceMatrixCase[] = [
     readSerializedVoice: call => String(call.bodyJson?.['voice_id'] ?? ''),
     readSerializedControl: call => call.bodyJson?.['text_normalization']
   },
-  {
-    provider: 'mistral',
-    envKey: 'MISTRAL_API_KEY',
-    flags: {
-      'mistral-tts': 'voxtral-mini-tts-2603',
-      'tts-voice': 'voice-captured'
-    },
-    capturedVoice: 'voice-captured',
-    invocationVoices: ['voice-alice', 'voice-bob', 'voice-alice'],
-    invocationControls: [{ responseFormat: 'wav' }, { responseFormat: 'flac' }, { responseFormat: 'wav' }],
-    respond: jsonAudioResponse,
-    readSerializedVoice: call => String(call.bodyJson?.['voice_id'] ?? ''),
-    readSerializedControl: call => call.bodyJson?.['response_format']
-  },
-  {
-    provider: 'speechify',
-    envKey: 'SPEECHIFY_API_KEY',
-    flags: {
-      'speechify-tts': 'simba-3.2',
-      'tts-voice': 'voice-captured',
-      'tts-language': 'en-US'
-    },
-    capturedVoice: 'voice-captured',
-    invocationVoices: ['beatrice_32', 'dominic_32', 'beatrice_32'],
-    invocationControls: [{ language: 'en-US' }, { language: 'en-GB' }, { language: 'en-US' }],
-    respond: jsonAudioResponse,
-    readSerializedVoice: call => String(call.bodyJson?.['voice_id'] ?? ''),
-    readSerializedControl: call => call.bodyJson?.['language']
-  },
-  {
-    provider: 'hume',
-    envKey: 'HUME_API_KEY',
-    flags: {
-      'hume-tts': 'octave-2',
-      'tts-voice': 'Captured Voice'
-    },
-    capturedVoice: 'Captured Voice',
-    invocationVoices: [
-      '123e4567-e89b-12d3-a456-426614174000',
-      '123e4567-e89b-12d3-a456-426614174001',
-      '123e4567-e89b-12d3-a456-426614174000'
-    ],
-    invocationControls: [{ speed: 0.9 }, { speed: 1.1 }, { speed: 0.9 }],
-    respond: byteResponse,
-    readSerializedVoice: call => {
-      const utterances = call.bodyJson?.['utterances'] as Array<Record<string, unknown>> | undefined
-      const voice = utterances?.[0]?.['voice'] as Record<string, unknown> | undefined
-      return String(voice?.['id'] ?? voice?.['name'] ?? '')
-    },
-    readSerializedControl: call => {
-      const utterances = call.bodyJson?.['utterances'] as Array<Record<string, unknown>> | undefined
-      return utterances?.[0]?.['speed']
-    }
-  },
-  {
-    provider: 'cartesia',
-    envKey: 'CARTESIA_API_KEY',
-    flags: {
-      'cartesia-tts': 'sonic-3.6-2026-08-27',
-      'tts-voice': 'voice-captured'
-    },
-    capturedVoice: 'voice-captured',
-    invocationVoices: ['voice-alice', 'voice-bob', 'voice-alice'],
-    invocationControls: [{ language: 'en' }, { language: 'fr' }, { language: 'en' }],
-    respond: byteResponse,
-    readSerializedVoice: call => {
-      return String(call.bodyJson?.['voice'] ?? '')
-    },
-    readSerializedControl: call => call.bodyJson?.['language']
-  }
+
 ]
 
 const collectOneTarget = (
@@ -226,39 +151,4 @@ describe('explicit TTS target voice dispatch', () => {
     }, 20_000)
   }
 
-  test('hume resolves an explicit named turn voice against the Hume voice library', async () => {
-    const root = await tempDirs.make()
-    const outputDir = join(root, 'turn-0')
-    await mkdir(outputDir, { recursive: true })
-    process.env['HUME_API_KEY'] = 'hume-test-key'
-    const calls = installMockFetch(byteResponse)
-    const options: TtsOptions = buildOptsFromFlags({
-      'hume-tts': 'octave-2',
-      'tts-voice': 'Captured Voice'
-    })
-    options.hostedTtsChunkScheduler = createHostedTtsChunkScheduler({
-      maxConcurrency: 2,
-      concurrencyMode: 'immediate',
-      hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: 'immediate' })
-    })
-    const target = requireDefined(
-      collectTtsTargets(options).find(candidate => candidate.service === 'hume'),
-      'Hume TTS target'
-    )
-
-    await target.run('A named custom voice.', outputDir, options, Object.freeze({
-      sourceId: 'source-turn-0',
-      sourceIndex: 0,
-      speaker: 'Alice',
-      voice: Object.freeze({ kind: 'id' as const, value: 'Alice Studio Voice' }),
-      controls: Object.freeze({}),
-      signal: new AbortController().signal
-    }))
-
-    const utterances = calls[0]?.bodyJson?.['utterances'] as Array<Record<string, unknown>> | undefined
-    expect(utterances?.[0]?.['voice']).toEqual({
-      name: 'Alice Studio Voice',
-      provider: 'HUME_AI'
-    })
-  }, 10_000)
 })
