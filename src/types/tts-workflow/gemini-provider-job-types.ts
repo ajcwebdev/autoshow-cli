@@ -1,11 +1,11 @@
-import type { TtsOptions } from './tts-types'
+import type { TtsDeliverySeamBoundary, TtsOptions } from './tts-types'
 
 export type GeminiBatchSlot = {
   key: string
   generationSlotId: string
   itemIndex: number
   model: string
-  boundaryAfter?: 'sentence' | 'turn' | undefined
+  boundaryAfter?: TtsDeliverySeamBoundary | undefined
   request: unknown
   requestFingerprint: string
   audioPath?: string | undefined

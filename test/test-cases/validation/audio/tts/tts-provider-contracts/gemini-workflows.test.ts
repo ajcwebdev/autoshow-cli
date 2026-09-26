@@ -7,13 +7,14 @@ import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
+import { readContainedArtifactFile } from '~/cli/commands/audio/tts/script-to-audio/safe-artifact-store'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { expectUnknownFlag, parseRootCli } from '../../../../../test-utils/cli-assertions'
 import { jsonResponse } from '../../../../../test-utils/rest-contract-helpers'
 import { createSyntheticWavBytes } from '../../../../../test-utils/media-fixtures'
 import { setupTtsContractLifecycle, installMockFetch } from './shared'
 import { FLASH, LITE, batchAudio, sse, unary } from './gemini-fixtures'
-import type { TtsOptions, CliCommandContext } from '~/types'
+import type { TtsOptions, CliCommandContext, CanonicalAudioProviderProjection, CompactTargetRender } from '~/types'
 const { makeTempDir } = setupTtsContractLifecycle()
 afterEach(resetPinnedRunDir)
 
@@ -34,9 +35,15 @@ test('both Gemini models resume into separate retained slots with distinct decod
   await dispatchResume(output, {})
   const manifest = await readManifest(output)
   expect(manifest?.items[0]?.status).toBe('full')
-  const slots = (await readdir(join(output, 'slots'))).filter(path => path.endsWith('.wav'))
+  const slots = (await Promise.all(manifest!.items[0]!.providers.map(async provider => {
+    const projection = provider.result!['ttsAudio'] as unknown as CanonicalAudioProviderProjection
+    const render = await Bun.file(join(output, projection.archive!.renderRef.path)).json() as CompactTargetRender
+    return render.slots.map(slot => `slots/${slot.slotHash}.wav`)
+  }))).flat()
   expect(slots).toHaveLength(2)
-  expect(new Set(await Promise.all(slots.map(async path => Buffer.from(await Bun.file(join(output, 'slots', path)).bytes()).toString('base64'))))).toEqual(new Set([...audioByModel.values()].map(audio => audio.toString('base64'))))
+  expect(new Set(slots).size).toBe(2)
+  expect(await Bun.file(join(output, 'slots/audio.zip')).exists()).toBe(true)
+  expect(new Set(await Promise.all(slots.map(async path => (await readContainedArtifactFile(output, path)).bytes.toString('base64'))))).toEqual(new Set([...audioByModel.values()].map(audio => audio.toString('base64'))))
   await dispatchResume(output, {})
   expect(calls).toHaveLength(4)
 }, 20000)

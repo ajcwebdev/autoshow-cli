@@ -17,6 +17,9 @@ import type { StandaloneTtsCommandOptions } from '~/types'
 import { runTtsDirectoryBatch } from './tts-batch-run'
 import { runGeminiRemoteBatch } from './tts-services/tts-gemini/gemini-tts-batch-workflow'
 import { UsageError } from '~/utils/error-handler'
+import { getPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
+import { collectCommandResult } from '~/utils/app-logger/result-emitter'
+import * as l from '~/utils/app-logger/app-logger'
 
 export { getTtsBatchAudioFileName, moveTtsBatchAudioFiles, buildTtsBatchSource } from './tts-batch-plan'
 export { runSingleTtsInput } from './tts-single-run'
@@ -79,22 +82,33 @@ export const ttsCommand = defineCliCommand({
   assertNoVoiceIdentityWithDialogue(unresolvedTtsOptions, ttsNormalized.explicitFlags)
 
   const ttsOptions = Object.assign(unresolvedTtsOptions, await resolveTtsDeliveryOptionsWithLexicon(ttsNormalized.flags))
-  let targets = collectTtsTargets(ttsOptions)
+  const targets = collectTtsTargets(ttsOptions)
 
   if (ttsOptions.ttsExport?.book && inputKind !== 'directory') {
     throw UsageError('--tts-book requires a directory input; each input file becomes one chapter.')
   }
 
-  if (ttsOptions.geminiTtsMode === 'batch') {
-    await runGeminiRemoteBatch(inputPath, ttsOptions, targets.filter(t => t.service === 'gemini'), maxCents)
-    targets = targets.filter(t => t.service !== 'gemini')
-    if (!targets.length) return
+  const runRemainingTargets = async (remaining: typeof targets): Promise<void> => {
+    if (inputKind === 'directory') await runTtsDirectoryBatch(inputPath, ttsOptions, remaining, maxCents)
+    else await runSingleTtsInput(inputPath, ttsOptions, remaining, maxCents)
   }
 
-  if (inputKind === 'directory') {
-    await runTtsDirectoryBatch(inputPath, ttsOptions, targets, maxCents)
+  if (ttsOptions.geminiTtsMode !== 'batch') return await runRemainingTargets(targets)
+
+  const remaining = targets.filter(t => t.service !== 'gemini')
+  if (remaining.length && getPinnedRunDir() && !ttsOptions.price) {
+    throw UsageError('--output-dir cannot be used with Gemini Batch alongside other providers; use --output-root for the separate run directories.')
+  }
+  const batch = await runGeminiRemoteBatch(inputPath, ttsOptions, targets.filter(t => t.service === 'gemini'), maxCents)
+  if (!remaining.length) {
+    l.report.result(batch.data, batch.message)
     return
   }
-
-  await runSingleTtsInput(inputPath, ttsOptions, targets, maxCents)
+  const standard = await collectCommandResult(() => runRemainingTargets(remaining))
+  const data: Record<string, unknown> = { ...standard.data, geminiBatch: batch.data }
+  if ('estimate' in batch.data) {
+    const estimate = standard.data['estimate'] as { steps: Record<string, unknown>[], totalEstimatedCostCents: number }
+    data['estimate'] = { ...estimate, steps: [...batch.data.estimate.steps, ...estimate.steps], totalEstimatedCostCents: batch.data.estimate.totalEstimatedCostCents + estimate.totalEstimatedCostCents }
+  }
+  l.report.result(data, ttsOptions.price ? 'TTS estimate including Gemini Batch' : `TTS complete; ${batch.message}`)
 })

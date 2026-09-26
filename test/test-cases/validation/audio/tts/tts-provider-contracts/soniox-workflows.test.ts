@@ -10,6 +10,7 @@ import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { verifyManifestProjectionArtifacts } from '~/cli/commands/command-shared/pipeline-manifest/projection-artifact-graph'
 import { buildPureCurrentTtsRenderPlan } from '~/cli/commands/audio/tts/script-to-audio/attempt-planning'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
+import { readContainedArtifactFile } from '~/cli/commands/audio/tts/script-to-audio/safe-artifact-store'
 import { parseRootCli } from '../../../../../test-utils/cli-assertions'
 import { jsonResponse } from '../../../../../test-utils/rest-contract-helpers'
 import { createSyntheticWavBytes } from '../../../../../test-utils/media-fixtures'
@@ -31,7 +32,7 @@ test('file dispatch preserves planned chunks; resume reuses paid audio and resto
   await expect(runSingleTtsInput(input, opts, collectTtsTargets(opts), undefined)).rejects.toThrow()
   const retained = (await readdir(join(output, 'slots'))).filter(path => path.endsWith('.wav'))
   expect(retained).toHaveLength(1)
-  const firstBytes = await Bun.file(join(output, 'slots', retained[0]!)).bytes()
+  const firstBytes = (await readContainedArtifactFile(output, `slots/${retained[0]!}`)).bytes
   await expect(dispatchResume(output, { 'tts-speed': ['soniox=1.2'] }, [], [{ name: 'tts-speed', raw: '--tts-speed', value: 'soniox=1.2', known: true }])).rejects.toThrow('differs')
   expect(calls).toHaveLength(2)
   rejectSecond = false
@@ -40,7 +41,8 @@ test('file dispatch preserves planned chunks; resume reuses paid audio and resto
   await dispatchResume(output, {})
   const manifest = await readManifest(output)
   expect(manifest?.items[0]?.status).toBe('full')
-  expect(await Bun.file(join(output, 'slots', retained[0]!)).bytes()).toEqual(firstBytes)
+  expect(await Bun.file(join(output, 'slots/audio.zip')).exists()).toBe(true)
+  expect((await readContainedArtifactFile(output, `slots/${retained[0]!}`)).bytes).toEqual(firstBytes)
   expect(calls.slice(2).every(call => call.bodyJson?.['voice'] === 'Clone_AbC' && call.bodyJson?.['speed'] === 0.8 && call.bodyJson?.['language'] === 'fr')).toBe(true)
   const successfulTexts = calls.filter((_, index) => index !== 1).map(call => call.bodyJson!['text'] as string)
   expect(successfulTexts.join(' ')).toBe(text.trim())

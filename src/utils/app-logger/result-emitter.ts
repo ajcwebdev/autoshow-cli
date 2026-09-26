@@ -36,6 +36,22 @@ export const runWithResultInvocation = async <T>(
 
 const invocation = (): ResultInvocation | undefined => resultStore.getStore()
 
+// Compose workflows without publishing their individual results to the invocation.
+// Each workflow still has to stage exactly one successful result.
+export const collectCommandResult = async (
+  fn: () => Promise<void>
+): Promise<{ data: Record<string, unknown>, message: string }> => {
+  const parent = invocation()
+  return await runWithResultInvocation({ json: parent?.json ?? false, runId: parent?.runId ?? 'internal', ...(parent?.command ? { command: parent.command } : {}) }, async () => {
+    await fn()
+    const pending = invocation()?.pending
+    if (pending?.status !== 'success' || !pending.data) {
+      throw InternalError('The workflow returned without staging a successful result', { stage: 'cli:result' })
+    }
+    return { data: pending.data, message: pending.message }
+  })
+}
+
 export const isJsonResultActive = (): boolean => invocation()?.json === true
 
 export const setResultCommand = (command: string | undefined): void => {

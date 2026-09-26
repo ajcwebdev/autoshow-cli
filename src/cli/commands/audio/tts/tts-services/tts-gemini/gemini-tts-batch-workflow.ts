@@ -16,7 +16,8 @@ import { GEMINI_JOB_FILE, partitionGeminiJobs, persistGeminiJobs, submitGeminiJo
 import { requireTtsCredential } from '../../tts-utils/tts-credentials'
 import { providerAccountScopeHash } from '../../script-to-audio/advanced-provider-contracts'
 import { masterTtsDelivery } from '../../tts-utils/tts-delivery-mastering'
-import { ttsDeliveryPreset } from '../../tts-utils/tts-delivery-profile'
+import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
+import { resolveTtsDeliverySeams } from '../../script-to-audio/tts-delivery-assembly'
 import { exportTtsDeliveryAudio } from '../../tts-delivery-export'
 import { assembleTtsBooks } from '../../tts-book-assembly'
 import { collectTtsTargets, validateTtsTargetsForExecution } from '../../tts-targets'
@@ -39,8 +40,10 @@ export const assembleGeminiBatchOutputs = async (root: string, run: GeminiProvid
       if (!slots.length || slots.some(s => !s.audioPath || s.error) || !(await Promise.all(slots.map(slot => validateRetained(root, slot)))).every(Boolean)) continue
       const fileName = `${String(itemIndex + 1).padStart(3, '0')}-${item.stem}-${model}.wav`
       const workDir = join(root, 'gemini-mastering', `${itemIndex}-${model}`); await mkdir(workDir, { recursive: true })
-      const mastered = await masterTtsDelivery({ segments: slots.map((s, index) => ({ id: s.key, path: join(root, s.audioPath!), boundaryAfter: index === slots.length - 1 ? 'end' : s.boundaryAfter ?? 'turn' })), profile: run.delivery.ttsDelivery ?? ttsDeliveryPreset('native'), workDir, providerLabel: 'Gemini Batch' })
-      await copyFile(mastered.path, join(root, fileName))
+      const masteredPath = run.delivery.ttsDelivery
+        ? (await masterTtsDelivery({ segments: slots.map((s, index) => ({ id: s.key, path: join(root, s.audioPath!), boundaryAfter: index === slots.length - 1 ? 'end' : s.boundaryAfter ?? 'turn' })), profile: run.delivery.ttsDelivery, workDir, providerLabel: 'Gemini Batch' })).path
+        : await concatAndConvertToWav(slots.map(s => join(root, s.audioPath!)), workDir, 'gemini-batch')
+      await copyFile(masteredPath, join(root, fileName))
       entries.push({ ttsService: 'gemini', ttsModel: model, processingTime: 0, audioFileName: fileName, audioFileSize: Bun.file(join(root, fileName)).size, chunkCount: slots.length, transport: 'gemini-batch', geminiTtsUsage: slots.flatMap(s => s.usage ? [s.usage] : []), geminiTtsUsageComplete: slots.every(s => s.usage !== undefined) })
       run.outputs = run.outputs.filter(o => !(o.itemIndex === itemIndex && o.model === model)); run.outputs.push({ itemIndex, model, path: fileName })
       await persistGeminiJobs(root, run)
@@ -57,7 +60,7 @@ const withLocalInterrupt = async (operation: (signal: AbortSignal) => Promise<vo
   process.once('SIGINT', interrupt); process.once('SIGTERM', interrupt)
   try { await operation(controller.signal) } finally { process.removeListener('SIGINT', interrupt); process.removeListener('SIGTERM', interrupt) }
 }
-export const runGeminiRemoteBatch = async (input: string, options: TtsOptions, targets: TtsTarget[], maxCents?: number): Promise<void> => {
+export const runGeminiRemoteBatch = async (input: string, options: TtsOptions, targets: TtsTarget[], maxCents?: number) => {
   const files = await getTtsInputKind(input) === 'directory' ? await collectTextInputFiles(input) : [input]
   if (!files.length) throw UsageError('Gemini remote batch has no text inputs.')
   const createdAt = new Date().toISOString()
@@ -68,18 +71,19 @@ export const runGeminiRemoteBatch = async (input: string, options: TtsOptions, t
     run.items.push({ input: prepared.manifestInputPath, stem: basename(file).replace(/\.[^.]*$/, '').replace(/[^A-Za-z0-9_-]/g, '-') || 'speech' })
     for (const target of targets) {
       const plan = buildPureCurrentTtsRenderPlan({ target, sourceText: prepared.text, sourceIdentity: prepared.sourceIdentity, dialoguePlan: prepared.dialoguePlan, ttsOptions: options })
+      const seams = resolveTtsDeliverySeams(plan.planned, target, options.ttsChunking)
       estimates.push({ provider: 'gemini', model: target.model, ...estimateGeminiTtsCost(target.model, prepared.ttsCharacterCount, 'batch', new Date(createdAt), plan.planned.slots.length) })
-      for (const [index, slot] of plan.planned.slots.entries()) {
+      for (const slot of plan.planned.slots) {
         const turns = plan.planned.turns.filter(t => slot.turnIds.includes(t.canonical.turnId))
         const request = serializeGeminiBatchSpeech(target.model, turns.map(t => ({ text: plan.planned.strategy === 'segmented' ? slot.providerText : t.canonical.canonicalText, speaker: t.canonical.originalSpeakerLabel, voice: t.voice.value!, style: t.effectiveControls['instructions'] as string | undefined })), turns[0]?.effectiveControls['responseFormat'] as string | undefined)
         const requestFingerprint = hashCanonicalTtsValue({ model: target.model, request }), key = hashCanonicalTtsValue({ itemIndex, generationSlotId: slot.generationSlotId, requestFingerprint })
-        run.slots.push({ key, generationSlotId: slot.generationSlotId, itemIndex, model: target.model, request, requestFingerprint, boundaryAfter: plan.planned.slots[index + 1]?.turnIds[0] === slot.turnIds[0] ? 'sentence' : 'turn' })
+        run.slots.push({ key, generationSlotId: slot.generationSlotId, itemIndex, model: target.model, request, requestFingerprint, boundaryAfter: seams.get(slot.generationSlotId) })
       }
     }
   }
   run.jobs = partitionGeminiJobs(run.slots)
   const estimatedCostCents = estimates.reduce((n, e) => n + e.totalCost, 0), authorizationBoundCents = run.slots.reduce((n, s) => n + estimateGeminiTtsCost(s.model, 1, 'batch').authorizationBoundCents, 0)
-  if (options.price) { l.report.result({ dryRun: true, estimate: { steps: estimates.map(({ totalCost, ...step }) => ({ step: 'tts', ...step, totalCostCents: totalCost })), totalEstimatedCostCents: estimatedCostCents }, authorizationBoundCents, remoteJobs: run.jobs.length, providerCalls: 0 }, 'Gemini remote Batch estimate'); return }
+  if (options.price) return { data: { dryRun: true, estimate: { steps: estimates.map(({ totalCost, ...step }) => ({ step: 'tts', ...step, totalCostCents: totalCost })), totalEstimatedCostCents: estimatedCostCents }, authorizationBoundCents, remoteJobs: run.jobs.length, providerCalls: 0 }, message: 'Gemini remote Batch estimate' }
   if (maxCents !== undefined && authorizationBoundCents > maxCents) throw UsageError(`Gemini Batch conservative bound ${authorizationBoundCents.toFixed(3)} cents exceeds --max-cents ${maxCents}.`)
   const readiness = await validateTtsTargetsForExecution(targets)
   if (readiness.some(r => r.status !== 'ready')) throw UsageError('Gemini Batch readiness failed before submission.')
@@ -95,8 +99,8 @@ export const runGeminiRemoteBatch = async (input: string, options: TtsOptions, t
       await assembleGeminiBatchOutputs(root, run)
     }), { lockRoot: join(root, '.locks') })
   } catch (error) { l.write('info', `Gemini remote jobs retained. Resume: bun autoshow resume ${JSON.stringify(toProjectRelativePath(root))}`, { category: 'pipeline' }); throw error }
-  if (run.slots.some(slot => slot.error)) { l.report.result(report(root, run), 'Gemini Batch retained partial results'); throw UsageError('Gemini Batch has failed or missing slots; successful audio is retained and resume does not repurchase failures.') }
-  l.report.result(report(root, run), run.jobs.some(j => j.state === 'pending') ? 'Gemini Batch submitted; remote jobs retained' : 'Gemini Batch collection complete')
+  if (run.slots.some(slot => slot.error)) { l.write('warn', 'Gemini Batch retained partial results', { category: 'pipeline', metadata: report(root, run) }); throw UsageError('Gemini Batch has failed or missing slots; successful audio is retained and resume does not repurchase failures.') }
+  return { data: report(root, run), message: run.jobs.some(j => j.state === 'pending') ? 'Gemini Batch submitted; remote jobs retained' : 'Gemini Batch collection complete' }
 }
 export const resumeGeminiRemoteBatch = async (root: string, flags: Record<string, unknown>, explicitFlags = new Set(Object.keys(flags))): Promise<Record<string, unknown> | undefined> => {
   const manifest = await readManifest(root)
