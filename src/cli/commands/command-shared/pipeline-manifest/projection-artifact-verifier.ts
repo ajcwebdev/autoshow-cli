@@ -25,6 +25,8 @@ import {
 } from './projection-artifact-references'
 import { validateProjectionArtifactJson } from './projection-artifact-json-validation'
 import { validateProjectionArtifactGraphLinks } from './projection-artifact-graph-links'
+import { readContainedArtifactFile } from '~/cli/commands/audio/tts/script-to-audio/safe-artifact-store'
+import { isTtsSlotPath } from '~/cli/commands/audio/tts/script-to-audio/tts-slot-bundle'
 
 export const discoverPreviousAdmissionJournalReference = async (
   artifactRoot: string,
@@ -141,6 +143,10 @@ const loadProjectionArtifact = async (
   reference: ProjectionArtifactReference
 ): Promise<CheckedArtifact | undefined> => {
   const referenceRoot = reference.scope === 'run-root' ? roots.root : roots.artifactRoot
+  if (reference.kind === 'audio' && isTtsSlotPath(reference.path)) {
+    const retained = await readContainedArtifactFile(referenceRoot, reference.path)
+    return retained.sha256 === reference.sha256 ? { sha256: retained.sha256 } : undefined
+  }
   const canonicalReferenceRoot = reference.scope === 'run-root' ? roots.canonicalRoot : roots.canonicalArtifactRoot
   const filePath = resolve(referenceRoot, reference.path)
   if (!isSafeRelativePath(referenceRoot, reference.path) || !await hasNoSymlinkBelowRoot(referenceRoot, filePath)) return undefined

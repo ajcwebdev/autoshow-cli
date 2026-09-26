@@ -141,6 +141,44 @@ describe('TTS delivery mastering', () => {
     })
   })
 
+  for (const kind of ['unsigned', 'signed'] as const) test(`artifact-integrity: ${kind} streaming WAV headers preserve decoded samples during delivery`, async () => {
+    await withTempDir('tts-delivery-streaming-', async dir => {
+      const finite = paddedToneWav(0.1, 0.5, 0.1, 440)
+      const streaming = Buffer.from(finite)
+      // Independent provider-container fixtures: UINT_MAX/UINT_MAX or
+      // RIFF=INT_MAX+36 with data=INT_MAX. Payload length is known only at EOF.
+      streaming.writeUInt32LE(kind === 'unsigned' ? 0xffffffff : 0x80000023, 4)
+      streaming.writeUInt32LE(kind === 'unsigned' ? 0xffffffff : 0x7fffffff, 40)
+      const results: string[] = []
+      for (const [name, bytes] of [['finite', finite], ['streaming', streaming]] as const) {
+        const path = join(dir, `${name}.wav`)
+        await Bun.write(path, bytes)
+        const result = await masterTtsDelivery({ segments: [{ id: 'tone', path, boundaryAfter: 'end' }], profile: ttsDeliveryPreset('native'), workDir: join(dir, name), providerLabel: 'test' })
+        expect(result.placements[0]?.endMs).toBe(700)
+        expect(sha256Bytes(new Uint8Array(await Bun.file(path).arrayBuffer()))).toBe(sha256Bytes(bytes))
+        results.push(sha256Bytes(new Uint8Array(await Bun.file(result.path).arrayBuffer())))
+      }
+      expect(results[0]).toBe(results[1])
+    })
+  })
+
+  for (const kind of ['finite-truncation', 'streaming-partial-frame', 'mismatched-sentinel'] as const) test(`invalid artifact: ${kind} remains rejected before delivery`, async () => {
+    await withTempDir('tts-delivery-bad-container-', async dir => {
+      let bytes = paddedToneWav(0.1, 0.5, 0.1, 440)
+      if (kind === 'streaming-partial-frame') {
+        bytes.writeUInt32LE(0xffffffff, 4)
+        bytes.writeUInt32LE(0xffffffff, 40)
+        bytes = bytes.subarray(0, bytes.length - 1)
+      } else if (kind === 'mismatched-sentinel') {
+        bytes.writeUInt32LE(0x80000023, 4)
+      } else bytes = bytes.subarray(0, bytes.length - 2)
+      const path = join(dir, 'broken.wav')
+      await Bun.write(path, bytes)
+      await expect(masterTtsDelivery({ segments: [{ id: 'broken', path, boundaryAfter: 'end' }], profile: ttsDeliveryPreset('native'), workDir: join(dir, 'work'), providerLabel: 'test' })).rejects.toThrow('malformed, truncated or empty WAV')
+      expect(await Bun.file(join(dir, 'work', 'assembled.wav')).exists()).toBe(false)
+    })
+  })
+
   test('an all-silent assembly cannot be loudness normalized and says how to skip it', async () => {
     await withTempDir('tts-delivery-silent-', async (dir) => {
       const path = join(dir, 'silent.wav')

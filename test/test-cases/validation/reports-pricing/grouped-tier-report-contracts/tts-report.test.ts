@@ -146,5 +146,40 @@ describe('grouped report contracts', () => {
       expect(markdown).not.toContain('Top 3')
       expect(markdown).not.toContain('## Overall Ranking')
       expect(markdown).not.toContain('## Tier Breakdown')
+      expect(markdown).not.toContain('Best cloud service')
+      expect(markdown).not.toContain('Best local model')
+      expect(JSON.stringify(report)).not.toContain('composite')
     })
+
+  test('TTS reports keep recovered assembly time out of generation rankings and do not infer quality', async () => {
+    const runDir = await makeTempRoot('autoshow-tts-recovery-report-')
+    const inputTextPath = join(runDir, 'input.txt')
+    await writeFile(inputTextPath, 'A short narration.\n')
+    await writeReportInputTtsManifestFixture(runDir, { tts: [
+      { ttsService: 'grok', ttsModel: 'grok-tts', processingTime: 80, audioFileName: 'missing-grok.wav', audioFileSize: 0, chunkCount: 1 },
+      { ttsService: 'inworld', ttsModel: 'realtime-tts-2', processingTime: 2500, audioFileName: 'missing-inworld.wav', audioFileSize: 0, chunkCount: 1 },
+    ] })
+    const manifestPath = join(runDir, 'manifest.json')
+    const manifest = await Bun.file(manifestPath).json()
+    manifest.items[0].providers[0].result = { ttsAudio: {
+      selectedSuccess: { renderIdentity: 'selected', eventSequence: 2 },
+      renderHistory: [{ renderIdentity: 'selected', events: [
+        { sequence: 1, audioRunRef: 'initial-audio-run.json' },
+        { sequence: 2, audioRunRef: 'recovery-audio-run-selected.json' },
+      ] }],
+    } }
+    await writeJson(manifestPath, manifest)
+    await runConsensusBuildReport('tts', runDir, ['--input-text', inputTextPath])
+    const report = await Bun.file(join(runDir, 'provider-comparison-report.json')).json()
+    expect(report.rankingSurfaces.service.speed.map((entry: { providerKey: string, value: number | null }) => [entry.providerKey, entry.value])).toEqual([
+      ['inworld/realtime-tts-2', 2500], ['grok/grok-tts', null],
+    ])
+    expect(report.rankingSurfaces.service.automatedQuality).toEqual([])
+    expect(report.rankingSurfaces.service.humanQuality).toEqual([])
+    expect(JSON.stringify(report)).not.toContain('composite')
+    const markdown = await Bun.file(join(runDir, 'provider-comparison-report.md')).text()
+    expect(markdown).toContain('Local recovery timing')
+    expect(markdown).not.toContain('Best cloud service')
+    expect(markdown).not.toContain('speaking rate naturalness')
+  })
 })

@@ -61,6 +61,27 @@ function fixture(root: string, run: string, options: {
 }
 
 describe('TTS dashboard metrics from archived audio', () => {
+  test('selects an explicit nested rerun without adding a corpus input and rejects mismatched or corrupt evidence', async () => {
+    await withTempDir('tts-dashboard-rerun-', async root => {
+      const original = fixture(root, '01-short', { recovery: true, processingMs: 75 })
+      const replacement = fixture(root, '01-short/reruns/timing', { processingMs: 2000 })
+      Object.assign(original.manifest.items[0]!.metadata, { benchmarkReruns: [{ directory: 'reruns/timing', providerKeys: ['soniox/tts-rt-v2'] }] })
+      writeJson(join(original.runDir, 'manifest.json'), original.manifest)
+      const result = buildTtsDashboard(root)
+      expect(result.samples).toHaveLength(1)
+      expect(result.samples[0]).toMatchObject({ run: '01-short', recovery: false, processingMs: 2000 })
+      expect(result.samples[0]!.manifestHref).toContain('reruns/timing/manifest.json')
+      expect(result.dashboardModel.groups[0]!.providers[0]!.evidence[2]).toBe('1/1')
+      replacement.manifest.items[0]!.metadata.characterCount++
+      writeJson(join(replacement.runDir, 'manifest.json'), replacement.manifest)
+      expect(() => buildTtsDashboard(root)).toThrow('same narration input')
+      replacement.manifest.items[0]!.metadata.characterCount--
+      writeJson(join(replacement.runDir, 'manifest.json'), replacement.manifest)
+      writeFileSync(join(replacement.runDir, replacement.audioRef.path), 'broken')
+      expect(() => buildTtsDashboard(root)).toThrow('hash mismatch')
+    })
+  })
+
   test('weights narration throughput and cost by corpus totals and keeps active controls separate', async () => {
     await withTempDir('tts-dashboard-', async dir => {
       const root = join(dir, 'tts')

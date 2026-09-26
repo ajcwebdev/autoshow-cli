@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "AutoShow Benchmark Dashboard",
-  "generatedAt": "2026-09-25T19:04:28.261Z",
+  "generatedAt": "2026-09-25T22:48:10.217Z",
   "tabs": [
     {
       "key": "ocr",
@@ -10,7 +10,7 @@
       "model": {
         "title": "Combined OCR Provider Comparison",
         "category": "ocr",
-        "generatedAt": "2026-09-25T19:04:28.261Z",
+        "generatedAt": "2026-09-25T22:48:10.217Z",
         "rootDir": "docs/benchmarks/ocr",
         "summaryStats": [
           {
@@ -2004,7 +2004,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-09-25T19:04:28.261Z",
+        "generatedAt": "2026-09-25T22:48:10.217Z",
         "rootDir": "docs/benchmarks/stt-local",
         "summaryStats": [
           {
@@ -2446,7 +2446,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-09-25T19:04:28.261Z",
+        "generatedAt": "2026-09-25T22:48:10.217Z",
         "rootDir": "docs/benchmarks/stt-with-speakers",
         "summaryStats": [
           {
@@ -2969,7 +2969,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-09-25T19:04:28.261Z",
+        "generatedAt": "2026-09-25T22:48:10.217Z",
         "rootDir": "docs/benchmarks/stt-without-speakers",
         "summaryStats": [
           {
@@ -3536,7 +3536,7 @@
       "model": {
         "title": "Combined URL Provider Comparison",
         "category": "url",
-        "generatedAt": "2026-09-25T19:04:28.261Z",
+        "generatedAt": "2026-09-25T22:48:10.217Z",
         "rootDir": "docs/benchmarks/url",
         "summaryStats": [
           {
@@ -4180,31 +4180,52 @@
       "model": {
         "title": "TTS benchmark results",
         "category": "tts",
-        "generatedAt": "2026-09-25T19:04:28.261Z",
+        "generatedAt": "2026-09-25T22:48:10.217Z",
         "rootDir": "docs/benchmarks/tts",
         "summaryStats": [
           {
             "label": "Narration inputs",
-            "value": "0"
+            "value": "4"
           },
           {
             "label": "Narration models",
-            "value": "0"
+            "value": "7"
           },
           {
             "label": "Controls results",
-            "value": "0"
+            "value": "14"
           },
           {
             "label": "Audio measurements",
-            "value": "0"
+            "value": "42"
           },
           {
             "label": "Quality assessment",
             "value": "Unavailable"
           }
         ],
-        "runs": [],
+        "runs": [
+          {
+            "runName": "2026-09-25_01-tts-short",
+            "shortLabel": "R1",
+            "detail": "7 provider/model results"
+          },
+          {
+            "runName": "2026-09-25_02-tts-hard",
+            "shortLabel": "R2",
+            "detail": "7 provider/model results"
+          },
+          {
+            "runName": "2026-09-25_03-tts-harder",
+            "shortLabel": "R3",
+            "detail": "7 provider/model results"
+          },
+          {
+            "runName": "2026-09-25_04-tts-long",
+            "shortLabel": "R4",
+            "detail": "7 provider/model results"
+          }
+        ],
         "groups": [
           {
             "key": "service",
@@ -4226,7 +4247,323 @@
               "Human quality"
             ],
             "showPerRun": false,
-            "providers": []
+            "providers": [
+              {
+                "providerKey": "elevenlabs/eleven_v3",
+                "display": "elevenlabs/eleven_v3",
+                "model": "eleven_v3",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "Not assessed",
+                  "rank": null,
+                  "value": null
+                },
+                "speed": {
+                  "display": "5.46×",
+                  "rank": 4,
+                  "value": 5.455326861808975
+                },
+                "cost": {
+                  "display": "$0.10000",
+                  "rank": 7,
+                  "value": 9.999999999999998
+                },
+                "evidence": [
+                  "2335.60s",
+                  "$3.53940",
+                  "4/4",
+                  "Not assessed"
+                ],
+                "perRun": [
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  }
+                ]
+              },
+              {
+                "providerKey": "gemini/gemini-3.8-flash-lite-tts",
+                "display": "gemini/gemini-3.8-flash-lite-tts",
+                "model": "gemini-3.8-flash-lite-tts",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "Not assessed",
+                  "rank": null,
+                  "value": null
+                },
+                "speed": {
+                  "display": "3.14×",
+                  "rank": 6,
+                  "value": 3.140662786680486
+                },
+                "cost": {
+                  "display": "$0.01293",
+                  "rank": 2,
+                  "value": 1.292817991750014
+                },
+                "evidence": [
+                  "2363.60s",
+                  "$0.45758",
+                  "4/4",
+                  "Not assessed"
+                ],
+                "perRun": [
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  }
+                ]
+              },
+              {
+                "providerKey": "gemini/gemini-3.8-flash-tts",
+                "display": "gemini/gemini-3.8-flash-tts",
+                "model": "gemini-3.8-flash-tts",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "Not assessed",
+                  "rank": null,
+                  "value": null
+                },
+                "speed": {
+                  "display": "5.18×",
+                  "rank": 5,
+                  "value": 5.176105880344877
+                },
+                "cost": {
+                  "display": "$0.01837",
+                  "rank": 5,
+                  "value": 1.8368000226027013
+                },
+                "evidence": [
+                  "2244.08s",
+                  "$0.65012",
+                  "4/4",
+                  "Not assessed"
+                ],
+                "perRun": [
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  }
+                ]
+              },
+              {
+                "providerKey": "grok/grok-tts",
+                "display": "grok/grok-tts",
+                "model": "grok-tts",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "Not assessed",
+                  "rank": null,
+                  "value": null
+                },
+                "speed": {
+                  "display": "9.24×",
+                  "rank": 1,
+                  "value": 9.244119706892098
+                },
+                "cost": {
+                  "display": "$0.01500",
+                  "rank": 4,
+                  "value": 1.5
+                },
+                "evidence": [
+                  "2183.71s",
+                  "$0.53091",
+                  "4/4",
+                  "Not assessed"
+                ],
+                "perRun": [
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  }
+                ]
+              },
+              {
+                "providerKey": "inworld/realtime-tts-2",
+                "display": "inworld/realtime-tts-2",
+                "model": "realtime-tts-2",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "Not assessed",
+                  "rank": null,
+                  "value": null
+                },
+                "speed": {
+                  "display": "8.33×",
+                  "rank": 2,
+                  "value": 8.332319847108364
+                },
+                "cost": {
+                  "display": "$0.02500",
+                  "rank": 6,
+                  "value": 2.4999999999999996
+                },
+                "evidence": [
+                  "1822.42s",
+                  "$0.88485",
+                  "4/4",
+                  "Not assessed"
+                ],
+                "perRun": [
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  }
+                ]
+              },
+              {
+                "providerKey": "openai/gpt-4o-mini-tts-2025-12-15",
+                "display": "openai/gpt-4o-mini-tts-2025-12-15",
+                "model": "gpt-4o-mini-tts-2025-12-15",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "Not assessed",
+                  "rank": null,
+                  "value": null
+                },
+                "speed": {
+                  "display": "7.07×",
+                  "rank": 3,
+                  "value": 7.068063698251825
+                },
+                "cost": {
+                  "display": "$0.01260",
+                  "rank": 1,
+                  "value": 1.26
+                },
+                "evidence": [
+                  "2124.25s",
+                  "$0.44596",
+                  "4/4",
+                  "Not assessed"
+                ],
+                "perRun": [
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  }
+                ]
+              },
+              {
+                "providerKey": "soniox/tts-rt-v2",
+                "display": "soniox/tts-rt-v2",
+                "model": "tts-rt-v2",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "Not assessed",
+                  "rank": null,
+                  "value": null
+                },
+                "speed": {
+                  "display": "2.34×",
+                  "rank": 7,
+                  "value": 2.3428894171631027
+                },
+                "cost": {
+                  "display": "$0.01335",
+                  "rank": 3,
+                  "value": 1.3354598707878929
+                },
+                "evidence": [
+                  "2401.79s",
+                  "$0.47267",
+                  "4/4",
+                  "Not assessed"
+                ],
+                "perRun": [
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  },
+                  {
+                    "display": "Not assessed",
+                    "heat": null
+                  }
+                ]
+              }
+            ]
           },
           {
             "key": "local",
@@ -4269,11 +4606,1135 @@
               "Evidence",
               "Controls"
             ],
-            "rows": []
+            "rows": [
+              [
+                {
+                  "display": "2026-09-25_01-tts-short"
+                },
+                {
+                  "display": "elevenlabs/eleven_v3"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "3.19s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "5.920s"
+                },
+                {
+                  "display": "$0.00870"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "44.1 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/speech-elevenlabs-eleven_v3.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_01-tts-short"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "4.89s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "5.960s"
+                },
+                {
+                  "display": "$0.00173"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/speech-gemini-gemini-3.8-flash-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_01-tts-short"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-lite-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "9.32s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "6.400s"
+                },
+                {
+                  "display": "$0.00124"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/speech-gemini-gemini-3.8-flash-lite-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_01-tts-short"
+                },
+                {
+                  "display": "inworld/realtime-tts-2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "2.57s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "5.380s"
+                },
+                {
+                  "display": "$0.00217"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "48 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/speech-inworld-realtime-tts-2.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_01-tts-short"
+                },
+                {
+                  "display": "openai/gpt-4o-mini-tts-2025-12-15"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "4.58s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "5.900s"
+                },
+                {
+                  "display": "$0.00110"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/reruns/timing-2026-09-25/speech-openai-gpt-4o-mini-tts-2025-12-15.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/reruns/timing-2026-09-25/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_01-tts-short"
+                },
+                {
+                  "display": "soniox/tts-rt-v2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "4.93s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "5.888s"
+                },
+                {
+                  "display": "$0.00116"
+                },
+                {
+                  "display": "estimated usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/reruns/timing-2026-09-25/speech-soniox-tts-rt-v2.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/reruns/timing-2026-09-25/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_01-tts-short"
+                },
+                {
+                  "display": "grok/grok-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "1.80s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "5.430s"
+                },
+                {
+                  "display": "$0.00130"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/reruns/timing-2026-09-25/speech-grok-grok-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_01-tts-short/reruns/timing-2026-09-25/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_02-tts-hard"
+                },
+                {
+                  "display": "elevenlabs/eleven_v3"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "15.59s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "36.240s"
+                },
+                {
+                  "display": "$0.04530"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "44.1 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/speech-elevenlabs-eleven_v3.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_02-tts-hard"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "14.76s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "38.320s"
+                },
+                {
+                  "display": "$0.01110"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/speech-gemini-gemini-3.8-flash-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_02-tts-hard"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-lite-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "16.68s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "34.240s"
+                },
+                {
+                  "display": "$0.00664"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/speech-gemini-gemini-3.8-flash-lite-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_02-tts-hard"
+                },
+                {
+                  "display": "soniox/tts-rt-v2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "33.37s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "39.936s"
+                },
+                {
+                  "display": "$0.00770"
+                },
+                {
+                  "display": "estimated usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/speech-soniox-tts-rt-v2.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_02-tts-hard"
+                },
+                {
+                  "display": "grok/grok-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "9.95s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "35.352s"
+                },
+                {
+                  "display": "$0.00679"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/speech-grok-grok-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_02-tts-hard"
+                },
+                {
+                  "display": "openai/gpt-4o-mini-tts-2025-12-15"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "7.26s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "34.950s"
+                },
+                {
+                  "display": "$0.00571"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/speech-openai-gpt-4o-mini-tts-2025-12-15.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_02-tts-hard"
+                },
+                {
+                  "display": "inworld/realtime-tts-2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "7.26s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "29.380s"
+                },
+                {
+                  "display": "$0.01132"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "48 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/speech-inworld-realtime-tts-2.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_02-tts-hard/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_03-tts-harder"
+                },
+                {
+                  "display": "elevenlabs/eleven_v3"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "50.01s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "138.400s"
+                },
+                {
+                  "display": "$0.16130"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "44.1 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/speech-elevenlabs-eleven_v3.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_03-tts-harder"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "30.53s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "138.800s"
+                },
+                {
+                  "display": "$0.04022"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/speech-gemini-gemini-3.8-flash-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_03-tts-harder"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-lite-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "51.87s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "140.400s"
+                },
+                {
+                  "display": "$0.02720"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/speech-gemini-gemini-3.8-flash-lite-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_03-tts-harder"
+                },
+                {
+                  "display": "soniox/tts-rt-v2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "70.85s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "150.016s"
+                },
+                {
+                  "display": "$0.02881"
+                },
+                {
+                  "display": "estimated usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/speech-soniox-tts-rt-v2.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_03-tts-harder"
+                },
+                {
+                  "display": "grok/grok-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "27.26s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "129.511s"
+                },
+                {
+                  "display": "$0.02420"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/speech-grok-grok-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_03-tts-harder"
+                },
+                {
+                  "display": "openai/gpt-4o-mini-tts-2025-12-15"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "44.86s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "118.950s"
+                },
+                {
+                  "display": "$0.02032"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/speech-openai-gpt-4o-mini-tts-2025-12-15.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_03-tts-harder"
+                },
+                {
+                  "display": "inworld/realtime-tts-2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "23.76s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "97.880s"
+                },
+                {
+                  "display": "$0.04032"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "48 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/speech-inworld-realtime-tts-2.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_03-tts-harder/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_04-tts-long"
+                },
+                {
+                  "display": "elevenlabs/eleven_v3"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "359.35s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "2155.040s"
+                },
+                {
+                  "display": "$3.32410"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "44.1 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/speech-elevenlabs-eleven_v3.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_04-tts-long"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "383.35s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "2061.000s"
+                },
+                {
+                  "display": "$0.59707"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/speech-gemini-gemini-3.8-flash-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_04-tts-long"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-lite-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "674.72s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "2182.560s"
+                },
+                {
+                  "display": "$0.42251"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/speech-gemini-gemini-3.8-flash-lite-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_04-tts-long"
+                },
+                {
+                  "display": "soniox/tts-rt-v2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "915.99s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "2205.952s"
+                },
+                {
+                  "display": "$0.43501"
+                },
+                {
+                  "display": "estimated usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/speech-soniox-tts-rt-v2.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_04-tts-long"
+                },
+                {
+                  "display": "grok/grok-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "197.22s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "2013.418s"
+                },
+                {
+                  "display": "$0.49861"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/speech-grok-grok-tts.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_04-tts-long"
+                },
+                {
+                  "display": "openai/gpt-4o-mini-tts-2025-12-15"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "243.85s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "1964.450s"
+                },
+                {
+                  "display": "$0.41884"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "24 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/speech-openai-gpt-4o-mini-tts-2025-12-15.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ],
+              [
+                {
+                  "display": "2026-09-25_04-tts-long"
+                },
+                {
+                  "display": "inworld/realtime-tts-2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "185.13s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "1689.780s"
+                },
+                {
+                  "display": "$0.83102"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "48 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/speech-inworld-realtime-tts-2.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_04-tts-long/manifest.json"
+                },
+                {
+                  "display": "Single-voice narration"
+                }
+              ]
+            ]
           },
           {
             "title": "Emotion and delivery — individual cases",
-            "notes": [],
+            "notes": [
+              "Spoken-text correctness and audible control effectiveness remain unassessed. Successful execution and valid WAVs do not establish a controls-quality pass.",
+              "OpenAI has no case in the existing controls plans; it was included in all four narration inputs."
+            ],
             "columns": [
               "Run / case",
               "Provider / model",
@@ -4288,11 +5749,255 @@
               "Evidence",
               "Controls"
             ],
-            "rows": []
+            "rows": [
+              [
+                {
+                  "display": "elevenlabs-eleven-v3-tags"
+                },
+                {
+                  "display": "elevenlabs/eleven_v3"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "8.44s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "22.000s"
+                },
+                {
+                  "display": "$0.02950"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/elevenlabs-eleven-v3-tags/elevenlabs-eleven-v3-tags.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/elevenlabs-eleven-v3-tags/manifest.json"
+                },
+                {
+                  "display": "tags"
+                }
+              ],
+              [
+                {
+                  "display": "gemini-gemini-3.8-flash-lite-tts-instructions"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-lite-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "16.61s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "19.520s"
+                },
+                {
+                  "display": "$0.00379"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/gemini-gemini-3.8-flash-lite-tts-instructions/gemini-gemini-3.8-flash-lite-tts-instructions.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/gemini-gemini-3.8-flash-lite-tts-instructions/manifest.json"
+                },
+                {
+                  "display": "speech-metadata-style"
+                }
+              ],
+              [
+                {
+                  "display": "gemini-gemini-3.8-flash-tts-instructions"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "19.95s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "20.160s"
+                },
+                {
+                  "display": "$0.00585"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/gemini-gemini-3.8-flash-tts-instructions/gemini-gemini-3.8-flash-tts-instructions.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/gemini-gemini-3.8-flash-tts-instructions/manifest.json"
+                },
+                {
+                  "display": "speech-metadata-style"
+                }
+              ],
+              [
+                {
+                  "display": "grok-grok-tts-delivery"
+                },
+                {
+                  "display": "grok/grok-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "3.47s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "13.190s"
+                },
+                {
+                  "display": "$0.00387"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/grok-grok-tts-delivery/grok-grok-tts-delivery.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/grok-grok-tts-delivery/manifest.json"
+                },
+                {
+                  "display": "delivery"
+                }
+              ],
+              [
+                {
+                  "display": "inworld-realtime-tts-2-instructions"
+                },
+                {
+                  "display": "inworld/realtime-tts-2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "5.14s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "16.420s"
+                },
+                {
+                  "display": "$0.00400"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/inworld-realtime-tts-2-instructions/inworld-realtime-tts-2-instructions.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/inworld-realtime-tts-2-instructions/manifest.json"
+                },
+                {
+                  "display": "instructions"
+                }
+              ],
+              [
+                {
+                  "display": "soniox-tts-rt-v2-emotion-tags"
+                },
+                {
+                  "display": "soniox/tts-rt-v2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "11.22s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "14.592s"
+                },
+                {
+                  "display": "$0.00286"
+                },
+                {
+                  "display": "estimated usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/soniox-tts-rt-v2-emotion-tags/soniox-tts-rt-v2-emotion-tags.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_05-tts-emotion/soniox-tts-rt-v2-emotion-tags/manifest.json"
+                },
+                {
+                  "display": "Native inline emotion tags; five separate turns; no request-level instructions or timing controls."
+                }
+              ]
+            ]
           },
           {
             "title": "Speed and pauses — individual cases",
-            "notes": [],
+            "notes": [
+              "Spoken-text correctness and audible control effectiveness remain unassessed. Successful execution and valid WAVs do not establish a controls-quality pass. Exact pause lengths and numeric-speed effects have not been measured.",
+              "The existing ElevenLabs pacing case was skipped because its exact tags were unverified for eleven_v3. OpenAI has no case in the existing controls plans. Both providers were included in all four narration inputs."
+            ],
             "columns": [
               "Run / case",
               "Provider / model",
@@ -4307,11 +6012,331 @@
               "Evidence",
               "Controls"
             ],
-            "rows": []
+            "rows": [
+              [
+                {
+                  "display": "gemini-gemini-3.8-flash-lite-tts-instructions"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-lite-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "20.39s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "33.200s"
+                },
+                {
+                  "display": "$0.00642"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/gemini-gemini-3.8-flash-lite-tts-instructions/gemini-gemini-3.8-flash-lite-tts-instructions.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/gemini-gemini-3.8-flash-lite-tts-instructions/manifest.json"
+                },
+                {
+                  "display": "qualitative-pace-and-inline-pauses"
+                }
+              ],
+              [
+                {
+                  "display": "gemini-gemini-3.8-flash-tts-instructions"
+                },
+                {
+                  "display": "gemini/gemini-3.8-flash-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "24.09s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "33.200s"
+                },
+                {
+                  "display": "$0.00962"
+                },
+                {
+                  "display": "provider usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/gemini-gemini-3.8-flash-tts-instructions/gemini-gemini-3.8-flash-tts-instructions.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/gemini-gemini-3.8-flash-tts-instructions/manifest.json"
+                },
+                {
+                  "display": "qualitative-pace-and-inline-pauses"
+                }
+              ],
+              [
+                {
+                  "display": "grok-grok-tts-numeric"
+                },
+                {
+                  "display": "grok/grok-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "5.97s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "21.576s"
+                },
+                {
+                  "display": "$0.00341"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/grok-grok-tts-numeric/grok-grok-tts-numeric.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/grok-grok-tts-numeric/manifest.json"
+                },
+                {
+                  "display": "numeric"
+                }
+              ],
+              [
+                {
+                  "display": "grok-grok-tts-tags"
+                },
+                {
+                  "display": "grok/grok-tts"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "4.60s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "20.315s"
+                },
+                {
+                  "display": "$0.00387"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/grok-grok-tts-tags/grok-grok-tts-tags.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/grok-grok-tts-tags/manifest.json"
+                },
+                {
+                  "display": "tags"
+                }
+              ],
+              [
+                {
+                  "display": "inworld-realtime-tts-2-instructions"
+                },
+                {
+                  "display": "inworld/realtime-tts-2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "6.35s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "25.300s"
+                },
+                {
+                  "display": "$0.00617"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/inworld-realtime-tts-2-instructions/inworld-realtime-tts-2-instructions.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/inworld-realtime-tts-2-instructions/manifest.json"
+                },
+                {
+                  "display": "instructions"
+                }
+              ],
+              [
+                {
+                  "display": "inworld-realtime-tts-2-steering-tags"
+                },
+                {
+                  "display": "inworld/realtime-tts-2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "4.37s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "25.200s"
+                },
+                {
+                  "display": "$0.03762"
+                },
+                {
+                  "display": "computed usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/inworld-realtime-tts-2-steering-tags/inworld-realtime-tts-2-steering-tags.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/inworld-realtime-tts-2-steering-tags/manifest.json"
+                },
+                {
+                  "display": "steering-tags"
+                }
+              ],
+              [
+                {
+                  "display": "soniox-tts-rt-v2-numeric"
+                },
+                {
+                  "display": "soniox/tts-rt-v2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "21.87s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "27.392s"
+                },
+                {
+                  "display": "$0.00518"
+                },
+                {
+                  "display": "estimated usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/soniox-tts-rt-v2-numeric/soniox-tts-rt-v2-numeric.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/soniox-tts-rt-v2-numeric/manifest.json"
+                },
+                {
+                  "display": "Native numeric speed 1, 0.7, 1.3, 1, 1; native qualitative pause tags on the final two turns."
+                }
+              ],
+              [
+                {
+                  "display": "soniox-tts-rt-v2-pacing-tags"
+                },
+                {
+                  "display": "soniox/tts-rt-v2"
+                },
+                {
+                  "display": "succeeded"
+                },
+                {
+                  "display": "19.00s"
+                },
+                {
+                  "display": "Generation + local assembly"
+                },
+                {
+                  "display": "23.552s"
+                },
+                {
+                  "display": "$0.00451"
+                },
+                {
+                  "display": "estimated usage"
+                },
+                {
+                  "display": "16 kHz / 1 ch / pcm_s16le"
+                },
+                {
+                  "display": "WAV",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/soniox-tts-rt-v2-pacing-tags/soniox-tts-rt-v2-pacing-tags.wav"
+                },
+                {
+                  "display": "Manifest",
+                  "artifactHref": "tts/2026-09-25_06-tts-speed-pauses/soniox-tts-rt-v2-pacing-tags/manifest.json"
+                },
+                {
+                  "display": "Qualitative native pacing and pause tags; fixed numeric speed 1; pauses are not exact timed silence."
+                }
+              ]
+            ]
           }
         ],
         "methodParagraphs": [
-          "No TTS benchmark results are available. Run the benchmarks and regenerate the dashboard to populate this tab.",
           "Narration rankings use the common direct-child TTS benchmark corpus. Controls are shown separately because providers expose different native mechanisms. Emotion and delivery, and speed and pauses, each select their newest dated standalone benchmark directory independently; earlier revisions are excluded.",
           "Selected manifest audio references and SHA-256 hashes are authoritative. Duration and format are read locally with ffprobe. Current provider usage is preferred for cost, then recorded usage estimates, then the selected render estimate. Costs describe the selected audio, not all historical spending or confirmed invoices. Soniox costs remain estimates based on measured provider audio before local silence insertion.",
           "Generation throughput is total final audio duration divided by total recorded generation time, including local assembly. Local recovery timings are labeled and excluded. Speed and cost rankings require complete narration coverage; timings reflect their original concurrency and machine conditions.",

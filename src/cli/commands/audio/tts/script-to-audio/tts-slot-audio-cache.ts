@@ -1,4 +1,3 @@
-import { lstat } from 'node:fs/promises'
 import type { TtsOutputLayout } from '~/types'
 import { copyCreateOnly, hasErrorCode, readObservedAudio } from './attempt-io'
 import { sha256Bytes } from './contract-identity'
@@ -9,7 +8,6 @@ export const retainTtsSlotAudio = async (rootDir: string, layout: TtsOutputLayou
   const primary = layout.slotWavPath(slotHash)
   let artifactRef = primary
   try {
-    await lstat(rootDir + '/' + primary)
     if (sha256Bytes((await readObservedAudio(rootDir, rootDir + '/' + primary)).bytes) !== sha256) artifactRef = layout.slotWavPath(slotHash + '-' + sha256)
   } catch (error) {
     if (!hasErrorCode(error, 'ENOENT')) throw error

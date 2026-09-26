@@ -7,7 +7,7 @@ import { InfraError, UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { inspectSoundscapeAudio } from '../soundscape/soundscape-audio'
 import { createSilenceWav } from './audio-utils'
-import { validateDeliveryWav, deliveryPcmFrames } from './tts-delivery-pcm'
+import { prepareDeliveryWav, deliveryPcmFrames } from './tts-delivery-pcm'
 
 const SILENCE_THRESHOLD_DB = -50
 const SILENCE_MIN_SECONDS = 0.05
@@ -196,9 +196,9 @@ export const masterTtsDelivery = async (input: TtsDeliveryMasteringInput): Promi
     const outputPath = join(input.workDir, `segment-${ordinal}.wav`)
     const normalized: string[] = []
     for (const [partIndex, path] of segment.paths.entries()) {
-      await validateDeliveryWav(path)
+      const sourcePath = await prepareDeliveryWav(path, join(input.workDir, `slot-${ordinal}-part-${partIndex}-finite.wav`))
       const normalizedPath = join(input.workDir, `slot-${ordinal}-part-${partIndex}.wav`)
-      await runFfmpeg(['-xerror', '-err_detect', 'explode', '-i', path, '-vn', '-map', '0:a:0', '-af', formatFilter(sampleRate, channels), '-c:a', 'pcm_s16le', '-bitexact', '-y', normalizedPath], input.providerLabel, 'error', input.abortSignal)
+      await runFfmpeg(['-xerror', '-err_detect', 'explode', '-i', sourcePath, '-vn', '-map', '0:a:0', '-af', formatFilter(sampleRate, channels), '-c:a', 'pcm_s16le', '-bitexact', '-y', normalizedPath], input.providerLabel, 'error', input.abortSignal)
       await deliveryPcmFrames(normalizedPath)
       normalized.push(normalizedPath)
     }

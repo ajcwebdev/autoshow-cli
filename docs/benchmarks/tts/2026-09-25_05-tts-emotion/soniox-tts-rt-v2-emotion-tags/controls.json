@@ -1,0 +1,34 @@
+{
+  "id": "soniox-tts-rt-v2-emotion-tags",
+  "provider": "soniox",
+  "model": "tts-rt-v2",
+  "input": "input/examples/tts/controls/emotion/soniox-tts-rt-v2-emotion-tags.txt",
+  "flags": {
+    "soniox-tts": "tts-rt-v2",
+    "tts-voice": "soniox=Adrian",
+    "tts-language": "soniox=en",
+    "tts-speed": "soniox=1",
+    "tts-dialogue-format": "labeled",
+    "tts-speaker": [
+      "Narrator=Adrian"
+    ]
+  },
+  "turnControls": {},
+  "mechanism": "Native inline emotion tags; five separate turns; no request-level instructions or timing controls.",
+  "source": "https://soniox.com/docs/tts/concepts/emotion-and-tone",
+  "lines": [
+    "[calm] I sound calm. All is well.",
+    "[excited] I sound excited! This is great news!",
+    "[sad] I sound sad. I miss my friend.",
+    "[angry] I sound angry. That is not fair!",
+    "[fearful] I sound afraid. Please stay with me."
+  ],
+  "spokenLines": [
+    "I sound calm. All is well.",
+    "I sound excited! This is great news!",
+    "I sound sad. I miss my friend.",
+    "I sound angry. That is not fair!",
+    "I sound afraid. Please stay with me."
+  ],
+  "category": "emotion"
+}

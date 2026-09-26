@@ -1,4 +1,5 @@
 import { resumeGeminiRemoteBatch } from '../../audio/tts/tts-services/tts-gemini/gemini-tts-batch-workflow'
+import { compactCompletedTtsRun } from '../../audio/tts/compact-tts-run'
 import { partialCompletionError } from '~/cli/commands/command-shared/provider-batch-state'
 import { join, resolve as resolvePath } from 'node:path'
 import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
@@ -229,6 +230,7 @@ const dispatchSingleResume = async (
   }
 
   const result = await handler.resume(target, opts, normalized.explicitFlags, displayOptions)
+  if (target.kind === 'tts') await compactCompletedTtsRun(target.dir)
   return { result }
 }
 

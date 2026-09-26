@@ -10,7 +10,7 @@ import { contained, copyCreateOnly, hasErrorCode, readObservedAudio, readVerifie
 import { withIdentity } from './attempt-shared'
 import { buildPureCurrentTtsRenderPlan, readAudioProjection } from './attempt-planning'
 import { paidSlotOutputFormat, slotOutputFormatOfPlan } from './tts-slot-output-format'
-import { readContainedArtifactFile } from './safe-artifact-store'
+import { readContainedArtifactFile, writeImmutableArtifactFile } from './safe-artifact-store'
 import { resolveStableTtsArtifactDir, resolveTtsOutputLayout } from './tts-output-layout'
 import { resolveRetainedPath } from './recovery-evidence'
 import { sanitizeModelName } from '~/cli/commands/command-shared/target-runner'
@@ -153,6 +153,11 @@ const recoverSlotReuseFromExistingWav = async (input: {
 }): Promise<CurrentTtsRecoveredGenerationSlot> => {
   const artifactRef = input.audioArtifactRef ?? input.layout.slotWavPath(input.slotHash)
   const wavPath = `${input.rootDir}/${artifactRef}`
+  if (input.requiresMaterialization) {
+    const retained = await readContainedArtifactFile(input.rootDir, artifactRef)
+    if (input.expectedSha256 && retained.sha256 !== input.expectedSha256) throw UsageError(`Stored TTS slot ${input.slotHash} no longer matches its archive checksum.`)
+    await writeImmutableArtifactFile(input.rootDir, artifactRef, retained.bytes)
+  }
   return await recoverSlotReuseFromWav({
     ...input,
     wavPath,
@@ -263,7 +268,7 @@ const recoverArchivedSlots = async (
       const matchingSlot = archivedSlot?.slotHash === slotHash ? archivedSlot : archivedByHash.get(slotHash)
       const wavPath = `${options.rootDir}/${matchingSlot?.audioArtifactRef ?? layout.slotWavPath(slotHash)}`
       try {
-        await lstat(wavPath)
+        await readContainedArtifactFile(options.rootDir, contained(options.rootDir, wavPath))
       } catch (error) {
         if (!hasErrorCode(error, 'ENOENT')) throw error
         const legacyHash = paidSpeechSlotHashFor(options, pure.planned, slot, true)

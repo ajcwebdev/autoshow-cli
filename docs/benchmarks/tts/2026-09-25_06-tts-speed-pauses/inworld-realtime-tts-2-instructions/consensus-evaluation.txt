@@ -1,0 +1,1 @@
+Transport completed and local audio integrity was verified. Spoken words, numeric-speed effects, qualitative pacing, and requested pauses have not been assessed. Successful synthesis is not a controls-quality pass.

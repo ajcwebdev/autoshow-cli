@@ -139,7 +139,7 @@ const writeManifestUnlocked = async (
 
   const tempPath = join(rootDir, `.${PIPELINE_MANIFEST_FILE}.${process.pid}.${crypto.randomUUID()}.tmp`)
   try {
-    await writeFileExact(tempPath, `${JSON.stringify(parsed, null, 2)}\n`)
+    await writeFileExact(tempPath, `${JSON.stringify(parsed, null, parsed.command === 'tts' ? undefined : 2)}\n`)
     await rename(tempPath, manifestPath)
   } finally {
     await rm(tempPath, { force: true }).catch(() => undefined)

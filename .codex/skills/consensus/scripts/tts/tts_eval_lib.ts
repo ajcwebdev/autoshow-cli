@@ -42,6 +42,7 @@ interface RunStepTimingEntry {
 }
 
 export interface TtsManifestRecord {
+  recoveredProviderKeys?: string[];
   metadata: {
     tts: TtsEntryMetadata[];
     cost?: {
@@ -81,7 +82,15 @@ export function loadTtsManifestRecord(runDir: string): TtsManifestRecord {
   if (!Array.isArray(metadata["tts"]) || metadata["tts"].length === 0) {
     throw new Error("Canonical TTS manifest item metadata.tts is missing or empty");
   }
-  return { metadata: metadata as TtsManifestRecord["metadata"] };
+  const recoveredProviderKeys = manifest.command === 'tts' ? manifest.items.flatMap(item => item.providers.flatMap(provider => {
+    const value = provider.result?.['ttsAudio'] ?? provider.metadata['ttsAudio'];
+    if (!isRecord(value) || !isRecord(value['selectedSuccess']) || !Array.isArray(value['renderHistory'])) return [];
+    const selected = value['selectedSuccess'];
+    const render = value['renderHistory'].filter(isRecord).find(row => row['renderIdentity'] === selected['renderIdentity']);
+    const event = Array.isArray(render?.['events']) ? render['events'].filter(isRecord).find(row => row['sequence'] === selected['eventSequence']) : undefined;
+    return String(event?.['audioRunRef'] ?? '').includes('recovery-audio-run-') ? [makeProviderKey(provider.service, provider.model ?? '')] : [];
+  })) : [];
+  return { metadata: metadata as TtsManifestRecord["metadata"], recoveredProviderKeys };
 }
 
 function containedArtifactPath(runDir: string, ...parts: string[]): string | null {

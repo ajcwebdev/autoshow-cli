@@ -1,4 +1,4 @@
-import { rename } from 'node:fs/promises'
+import { lstat, rename } from 'node:fs/promises'
 import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import type { CanonicalAudioProviderProjection, CurrentTtsRecoveredGenerationSlot, ObservedAudioFormat, WrittenJson } from '~/types'
@@ -106,13 +106,16 @@ export const readObservedAudio = async (rootDir: string, path: string): Promise<
     return { bytes, format: { codec: bitsPerSample === 24 ? 'pcm_s24le' : 'pcm_s16le', container: 'wav', sampleRate, channels }, durationMs: byteRate > 0 ? Math.round(dataBytes / byteRate * 1000) : 0 }
   }
 
+  let bundled = false
+  try { await lstat(path) } catch (error) { if (!hasErrorCode(error, 'ENOENT')) throw error; bundled = true }
   const probe = Bun.spawn([
     getFfprobeBinary(),
     '-v', 'error',
-    '-show_entries', 'format=format_name,duration,bit_rate:stream=codec_name,sample_rate,channels,bit_rate',
+    '-show_entries', `format=format_name,duration,bit_rate:stream=codec_name,sample_rate,channels,bit_rate${bundled ? ':frame=nb_samples' : ''}`,
+    ...(bundled ? ['-show_frames', '-select_streams', 'a:0'] : []),
     '-of', 'json',
-    path
-  ], { env: childEnv(), stdout: 'pipe', stderr: 'pipe' })
+    bundled ? 'pipe:0' : path
+  ], { env: childEnv(), ...(bundled ? { stdin: bytes } : {}), stdout: 'pipe', stderr: 'pipe' })
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(probe.stdout).text(),
     new Response(probe.stderr).text(),
@@ -122,6 +125,7 @@ export const readObservedAudio = async (rootDir: string, path: string): Promise<
   let parsed: {
     format?: { format_name?: string | undefined, duration?: string | undefined, bit_rate?: string | undefined } | undefined
     streams?: Array<{ codec_name?: string | undefined, sample_rate?: string | undefined, channels?: number | undefined, bit_rate?: string | undefined }> | undefined
+    frames?: Array<{ nb_samples?: number }> | undefined
   }
   try {
     parsed = JSON.parse(stdout) as typeof parsed
@@ -141,7 +145,8 @@ export const readObservedAudio = async (rootDir: string, path: string): Promise<
   return {
     bytes,
     format: { codec, container, sampleRate, channels, ...(Number.isFinite(bitRate) && bitRate > 0 ? { bitRate } : {}) },
-    durationMs: Number.isFinite(durationSeconds) && durationSeconds > 0 ? Math.round(durationSeconds * 1000) : 0
+    durationMs: Number.isFinite(durationSeconds) && durationSeconds > 0 ? Math.round(durationSeconds * 1000)
+      : Math.round((parsed.frames ?? []).reduce((sum, frame) => sum + Number(frame.nb_samples ?? 0), 0) / sampleRate * 1000)
   }
 }
 

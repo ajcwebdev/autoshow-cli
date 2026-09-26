@@ -5,6 +5,7 @@ import type { ContainedArtifactFile, ImmutableArtifactFile, SafeArtifactDirector
 import { unlinkPath as unlink } from '~/utils/bun-file-io'
 import { UsageError, hasErrorCode } from '~/utils/error-handler'
 import { ARTIFACT_CONFLICT_STATE, DIRECTORY_MODE, FILE_MODE, inspectCreatedSafeDirectory, inspectExistingSafeArtifactDirectory, inspectSafeDirectory, inspectSafeRoot, normalizeSafeRelativePath, retryCreatedArtifactVisibility } from './safe-artifact-validation'
+import { isTtsSlotPath, readBundledTtsSlot } from './tts-slot-bundle'
 
 export const ensureSafeArtifactDirectory = async (
   rootDir: string,
@@ -68,7 +69,11 @@ export const readContainedArtifactFile = async (
     'Contained artifact directory'
   )
   const path = join(parent.path, fileName)
-  const bytes = await readExistingImmutableBytes(path)
+  let bytes: Buffer
+  try { bytes = await readExistingImmutableBytes(path) } catch (error) {
+    if (!hasErrorCode(error, 'ENOENT') || !isTtsSlotPath(normalized)) throw error
+    bytes = await readBundledTtsSlot(parent.path, fileName)
+  }
   return {
     path,
     relativePath: normalized,

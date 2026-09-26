@@ -20,6 +20,11 @@ runtime/*
 **/*.mp4
 **/*.wav
 
+# Purchased TTS source audio stays local alongside the ignored final recordings.
+# Small dashboard.evidence.zip archives remain eligible for Git.
+**/slots/audio.zip
+/docs/benchmarks/tts/**/slots/
+
 input/*
 !input/examples/
 !input/examples/audio/

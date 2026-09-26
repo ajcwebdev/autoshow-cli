@@ -569,7 +569,9 @@ export async function buildReport(
 
     const speakingRate = durationSeconds !== null ? computeSpeakingRate(charCount, durationSeconds) : null;
     const costCents = costLookup.get(providerKey) ?? null;
-    const processingTimeMs = timingLookup.get(providerKey) ?? (isFiniteNumber(entry.processingTime) ? entry.processingTime : null);
+    const processingTimeMs = manifestRecord.recoveredProviderKeys?.includes(providerKey)
+      ? null
+      : timingLookup.get(providerKey) ?? (isFiniteNumber(entry.processingTime) ? entry.processingTime : null);
 
     let wer: number | null = null;
     if (hasRoundtrip) {
@@ -660,31 +662,9 @@ export async function buildReport(
       ? "roundtrip-wer"
       : "composite";
 
-  const notes: string[] = [];
-
-  const bestOverall = rankedOverall[0];
-  const worstOverall = rankedOverall.at(-1);
-  if (bestOverall) {
-    notes.push(
-      `Best overall provider: \`${bestOverall.providerKey}\` scored ${bestOverall.overallScore.toFixed(2)}/100 using balanced overall weighting.`,
-    );
-  }
-  if (worstOverall) {
-    notes.push(
-      `Worst overall provider: \`${worstOverall.providerKey}\` scored ${worstOverall.overallScore.toFixed(2)}/100 using balanced overall weighting.`,
-    );
-  }
-
-  if (rankedLocalWithTiers.length > 0 && rankedLocalWithTiers[0]) {
-    notes.push(
-      `Best local model: \`${rankedLocalWithTiers[0].providerKey}\` scored ${rankedLocalWithTiers[0].score.toFixed(2)}/100.`,
-    );
-  }
-  if (rankedCloudWithTiers.length > 0 && rankedCloudWithTiers[0]) {
-    notes.push(
-      `Best cloud service: \`${rankedCloudWithTiers[0].providerKey}\` scored ${rankedCloudWithTiers[0].score.toFixed(2)}/100.`,
-    );
-  }
+  const notes: string[] = (manifestRecord.recoveredProviderKeys ?? []).map(key =>
+    `Local recovery timing for \`${key}\` is excluded from generation speed rankings; purchased audio was reused.`,
+  );
 
   const cloudWithCost = rankedCloudWithTiers.filter((p) => p.costCents !== null);
   if (cloudWithCost.length > 0) {
@@ -718,11 +698,11 @@ export async function buildReport(
 
   if (scoringMethod === "voice-quality") {
     notes.push(
-      "Voice quality scores from voice-quality-report.json were used as the primary quality metric (human speech quality: 55% naturalness + 45% speech quality).",
+      "Explicit assessment evidence from voice-quality-report.json is used for separate automated and human quality rankings.",
     );
   } else if (scoringMethod === "composite") {
     notes.push(
-      "No roundtrip STT data was available. Existing local/cloud ranking used a composite of speaking rate naturalness (60%), cost (20%), and speed (20%); overall ranking used neutral 50/100 accuracy components for providers without roundtrip data.",
+      "No assessment evidence was available. Spoken-text accuracy and perceptual quality remain unassessed; duration, cost, and speed do not establish quality.",
     );
   }
 
@@ -737,8 +717,8 @@ export async function buildReport(
     inputTextPath,
     inputTextCharCount: charCount,
     inputTextWordCount: wordCount,
-    metric: scoringMethod,
-    scoreFormula,
+    metric: "separate-evidence-metrics",
+    scoreFormula: "Automated quality uses roundtrip WER accuracy; human quality uses explicit humanSpeechScore. Missing assessment evidence remains unavailable.",
     overallMetric: "balanced-overall",
     overallWeights: OVERALL_WEIGHTS,
     tiering,

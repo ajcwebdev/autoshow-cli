@@ -59,7 +59,7 @@ function readSamples(root: string, runDir: string, suite: TtsDashboardSample['su
   const controlsPath = join(runDir, 'controls.json');
   const controls = existsSync(controlsPath) ? object(JSON.parse(readFileSync(controlsPath, 'utf8'))) : {};
   const link = (path: string) => relative(dirname(root), path).split('\\').join('/');
-  return item.providers.filter(provider => provider.status !== 'skipped').map(provider => {
+  const samples = item.providers.filter(provider => provider.status !== 'skipped').map(provider => {
     const providerKey = `${provider.service}/${provider['model']}`;
     const targetKey = (provider as unknown as JsonObject)['targetKey'];
     const entry = entries.find(entry => targetKey && entry['targetKey'] === targetKey)
@@ -103,6 +103,21 @@ function readSamples(root: string, runDir: string, suite: TtsDashboardSample['su
     } else { sample.costCents = planned; sample.costBasis = planned === null ? 'unavailable' : 'planned estimate'; }
     return sample;
   });
+  for (const replacement of records(item.metadata['benchmarkReruns'])) {
+    const directory = artifactPath(runDir, replacement['directory']);
+    const rerun = readCanonicalManifest(directory);
+    if (rerun.items.length !== 1 || rerun.items[0]?.input !== item.input || rerun.items[0]?.metadata['characterCount'] !== item.metadata['characterCount']) throw Error('TTS benchmark rerun must use the same narration input');
+    if (suite !== 'narration' || !Array.isArray(replacement['providerKeys']) || replacement['providerKeys'].some(key => typeof key !== 'string')) throw Error('Invalid TTS benchmark rerun selection');
+    const replacements = readSamples(root, directory, suite);
+    for (const key of replacement['providerKeys']) {
+      const selected = replacements.filter(row => row.providerKey === key);
+      if (selected.length !== 1 || selected[0]!.status !== 'succeeded') throw Error(`Missing successful TTS benchmark rerun: ${key}`);
+      const sample = { ...selected[0]!, run: relative(root, runDir).split('\\').join('/') };
+      const index = samples.findIndex(row => row.providerKey === key);
+      if (index < 0) samples.push(sample); else samples[index] = sample;
+    }
+  }
+  return samples;
 }
 
 export function collectTtsDashboardSamples(rootDir: string): TtsDashboardSample[] {

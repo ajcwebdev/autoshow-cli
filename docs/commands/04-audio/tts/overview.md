@@ -180,7 +180,11 @@ Text preflight rejects SSML-style tags such as `<break>` for a provider document
 
 ### Existing output directories
 
-Purchased request audio is kept under `slots/` (`items/<stem>/slots/` in a directory run) and reused.
+Completed TTS runs losslessly bundle purchased request audio into `slots/audio.zip` (`items/<stem>/slots/audio.zip` in a directory run). Final audio stays directly playable; the manifest, provider render/timeline records, source dialogue plan, costs and timings remain available. `resume --price` validates compressed audio without extracting it. Local reassembly restores only the source clips it needs, and successful completion bundles them again. Incomplete runs retain their working audio and reconciliation journals.
+
+To compact existing TTS benchmarks, preview with `bun src/tools/compact-tts-benchmarks.ts docs/benchmarks/tts`, then add `--apply`. This removes obsolete generated recovery files and regenerable per-run comparison reports, while preserving selected audio, resume evidence, control fixtures/fingerprints, and assessment notes. No provider calls are made.
+
+Compression does not make purchased audio suitable for Git. Source bundles named `slots/audio.zip` and final WAVs are ignored; benchmark slot directories under `docs/benchmarks/tts/` are also excluded. Commit the small benchmark metadata and generated dashboard assets. Preserve the complete local run separately for playback, artifact verification, regeneration, and resume. A metadata-only checkout can display the saved dashboard but cannot resume a run without its audio. See [TTS benchmark storage](../../../benchmarks/tts/README.md).
 
 Choose the audio profile and pause settings on the first run. Rerunning a completed directory with different mastering flags purchases nothing and changes nothing, because completed chapters are skipped. Single-file runs do not attach to an existing directory. A directory rerun rebuilds only the export layer: format, bitrate, tags, cover art, and the book file.
 

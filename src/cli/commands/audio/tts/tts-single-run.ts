@@ -24,6 +24,7 @@ import { createFileTtsSourceIdentity, createGenericTtsDialoguePlan, createSingle
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from './script-to-audio/item-dialogue-plan-artifact'
 import { buildTtsEstimateForInput } from './tts-batch-estimates'
 import { getInputStem } from './tts-batch-plan'
+import { compactCompletedTtsRun } from './compact-tts-run'
 
 export const getTtsInputKind = async (inputPath: string): Promise<'file' | 'directory'> => {
   try {
@@ -281,6 +282,7 @@ const runPreparedTtsInput = async (
     }
   })
 
+  await compactCompletedTtsRun(outputDir)
   l.report.complete(
     outputDir,
     {

@@ -1,0 +1,29 @@
+{
+  "id": "elevenlabs-eleven-v3-tags",
+  "provider": "elevenlabs",
+  "model": "eleven_v3",
+  "input": "input/examples/tts/controls/emotion/elevenlabs-eleven-v3-tags.txt",
+  "flags": {
+    "elevenlabs-tts": "eleven_v3",
+    "tts-voice": "hpp4J3VqNfWAUOO0d1Us",
+    "elevenlabs-tts-stability": "0.5"
+  },
+  "turnControls": {},
+  "mechanism": "tags",
+  "source": "https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices",
+  "lines": [
+    "[whispers] I am whispering. This is just for you.",
+    "[sarcastic] I sound sarcastic. Oh, great. More work. Just what I need.",
+    "[excited] I sound excited! This is GREAT news! I cannot wait!",
+    "[angry] I sound angry. That is not fair! I said no!",
+    "[sad] I sound sad. I miss my friend. I wish they were here."
+  ],
+  "spokenLines": [
+    "I am whispering. This is just for you.",
+    "I sound sarcastic. Oh, great. More work. Just what I need.",
+    "I sound excited! This is GREAT news! I cannot wait!",
+    "I sound angry. That is not fair! I said no!",
+    "I sound sad. I miss my friend. I wish they were here."
+  ],
+  "category": "emotion"
+}
