@@ -3,7 +3,7 @@ import { open, readdir, rename, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { crc32, deflateRaw, inflateRaw } from 'node:zlib'
 import { promisify } from 'node:util'
-import { UsageError, hasErrorCode } from '~/utils/error-handler'
+import { InfraError, UsageError, hasErrorCode } from '~/utils/error-handler'
 import { withProcessLock } from '~/utils/process-lock'
 import { inspectExistingSafeArtifactDirectory } from './safe-artifact-validation'
 
@@ -82,7 +82,7 @@ export const readBundledTtsSlot = async (directory: string, name: string): Promi
   const file = await openRegular(join(directory, TTS_SLOT_BUNDLE))
   try {
     const member = (await readIndex(file)).get(name)
-    if (!member) throw Object.assign(new Error(`Missing compressed TTS slot ${name}`), { code: 'ENOENT' })
+    if (!member) throw InfraError(`Missing compressed TTS slot ${name}`, { stage: 'tts:slot-bundle', cause: { code: 'ENOENT' } })
     return await decodeMember(file, member)
   } finally { await file.close() }
 }

@@ -16,6 +16,7 @@ import { readManifest, writeManifest } from '~/cli/commands/command-shared/pipel
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/audio/tts/script-to-audio/item-dialogue-plan-artifact'
 import { compactTtsBenchmarkRun, planTtsBenchmarkCompaction } from '~/tools/compact-tts-benchmarks'
 import { readObservedAudio } from '~/cli/commands/audio/tts/script-to-audio/attempt-io'
+import { hasErrorCode, isAppError } from '~/utils/error-handler'
 
 const dirs = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY'], tempPrefix: 'tts-slot-bundle-' })
 
@@ -88,6 +89,10 @@ test('bundle append retains previous bytes and rejects corrupted archives before
   const audio = createSyntheticWavBytes({ durationSeconds: 0.1, amplitude: 0.2, frequencyHz: 440 })
   await Bun.write(join(root, 'slots', first), audio)
   await compactTtsSlotDirectory(root, 'slots')
+  const missing = await readBundledTtsSlot(join(root, 'slots'), second).catch(error => error)
+  expect(isAppError(missing)).toBe(true)
+  expect(missing.kind).toBe('infrastructure')
+  expect(hasErrorCode(missing, 'ENOENT')).toBe(true)
   const archive = join(root, 'slots/audio.zip'), valid = await Bun.file(archive).bytes()
   await Bun.write(join(root, 'slots', second), audio)
   await Bun.write(archive, valid.subarray(0, valid.length - 1))
@@ -134,6 +139,14 @@ test('benchmark maintenance keeps selected evidence and unrelated notes, removes
   await Bun.write(audioPath, bytes)
   const plan = await planTtsBenchmarkCompaction(root)
   expect(plan.remove).toEqual(['provider-comparison-report.json'])
+  const preview = Bun.spawn([process.execPath, '--no-env-file', 'src/tools/compact-tts-benchmarks.ts', root], { stdout: 'pipe', stderr: 'pipe' })
+  const [stdout, stderr, exitCode] = await Promise.all([new Response(preview.stdout).text(), new Response(preview.stderr).text(), preview.exited])
+  expect(exitCode).toBe(0)
+  expect(stderr).toBe('')
+  expect(JSON.parse(stdout)).toMatchObject({ applied: false, runs: [{ skipped: false, removableFiles: 1 }] })
+  expect(await readManifest(root)).toEqual(manifest)
+  expect(await Bun.file(join(root, 'provider-comparison-report.json')).exists()).toBe(true)
+  expect(await Bun.file(join(root, 'slots/audio.zip')).exists()).toBe(false)
   await compactTtsBenchmarkRun(root)
   expect(await readManifest(root)).toEqual(manifest)
   expect(await Bun.file(audioPath).bytes()).toEqual(bytes)
