@@ -1,8 +1,8 @@
 import type { PreparedTtsInput, StandaloneTtsCommandOptions, TtsBatchEstimateReport, TtsExecutionReadinessObservation, TtsTarget } from '~/types'
-import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
+import { configureModelCostFilter, filterModelCostTargets } from '~/cli/commands/pricing-orchestration/model-cost-filter'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { validateTtsRenderInputsForTargets } from './run-tts'
-import { collectTtsTargets, validateTtsTargetsForExecution } from './tts-targets'
+import { validateTtsTargetsForExecution } from './tts-targets'
 import { createBatchItemTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from './script-to-audio/generic-dialogue-plan'
 import { buildTtsEstimateForInput, enforceTtsBatchBudget, reportTtsBatchEstimates } from './tts-batch-estimates'
 import { prepareTtsInput } from './tts-single-run'
@@ -12,6 +12,7 @@ export interface PreparedTtsDirectoryBatch {
   targets: TtsTarget[]
   concurrency: number
   estimateReport: TtsBatchEstimateReport
+  createdAt: string
 }
 
 export const prepareTtsDirectoryBatch = async (
@@ -40,13 +41,14 @@ export const prepareTtsDirectoryBatch = async (
       unfilteredEstimates.push(await buildTtsEstimateForInput(prepared, ttsOptions, targets))
     }
     configureModelCostFilter(ttsOptions, unfilteredEstimates)
-    targets = collectTtsTargets(ttsOptions)
+    // Filter the requested targets only; recollecting from options would re-add targets another workflow owns.
+    targets = filterModelCostTargets(targets, ttsOptions, 'tts')
   }
   for (const prepared of preparedInputs) validateTtsRenderInputsForTargets(targets, prepared.text, ttsOptions, prepared)
   const shouldLogEstimates = ttsOptions.price || maxCents !== undefined || ttsOptions.maxModelCents !== undefined
   const estimateReport = await reportTtsBatchEstimates(preparedInputs, ttsOptions, targets, shouldLogEstimates, concurrency)
   enforceTtsBatchBudget(estimateReport.totalEstimatedCost, maxCents, ttsOptions.allowOverBudget)
-  return { preparedInputs, targets, concurrency, estimateReport }
+  return { preparedInputs, targets, concurrency, estimateReport, createdAt }
 }
 
 export const prepareTtsBatchExecution = async (

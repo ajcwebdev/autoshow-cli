@@ -73,10 +73,17 @@ export type CompleteOptions = {
   totalCost?: number
 }
 
+export type PriceReportExtra = {
+  /** Additional result fields published beside the estimate. */
+  data?: Record<string, unknown>
+  /** Appended to the estimate message so text output carries the same facts as JSON. */
+  detail?: string
+}
+
 export type Reporter = {
   expectedOutput: (outputDir: string, files: string[]) => void
-  estimate: (estimate: AggregatedPriceEstimate) => void
-  price: (estimate: AggregatedPriceEstimate) => void
+  estimate: (estimate: AggregatedPriceEstimate, extra?: PriceReportExtra) => void
+  price: (estimate: AggregatedPriceEstimate, extra?: PriceReportExtra) => void
   complete: (outputDir: string, files: Record<string, string>, options?: CompleteOptions) => void
   result: (data: Record<string, unknown>, message?: string) => void
 }

@@ -309,13 +309,20 @@ const runPreparedTtsInput = async (
   return run.metadata
 }
 
-export const runSingleTtsInput = async (
+export type SingleTtsInputPlan = {
+  inputPath: string
+  createdAt: string
+  prepared: PreparedTtsInput
+  targets: TtsTarget[]
+  estimate: AggregatedPriceEstimate
+}
+
+// Validates the input and prices the selected targets without reporting, budgeting or dispatching.
+export const planSingleTtsInput = async (
   inputPath: string,
   ttsOptions: StandaloneTtsCommandOptions,
-  targets: TtsTarget[],
-  maxCents: number | undefined,
-  outputNaming?: Pick<TtsRunSourceContext, 'resolveReportedOutput'>
-): Promise<void> => {
+  targets: TtsTarget[]
+): Promise<SingleTtsInputPlan> => {
   if (!isTextInputPath(inputPath)) {
     throw UsageError(`tts only accepts .md or .txt files. Got: ${inputPath}`)
   }
@@ -326,11 +333,29 @@ export const runSingleTtsInput = async (
   configureModelCostFilter(ttsOptions, [unfilteredEstimate])
   targets = filterModelCostTargets(targets, ttsOptions, 'tts')
   validateTtsRenderInputsForTargets(targets, prepared.text, ttsOptions, prepared)
-  const { estimate: preflightEstimate, shouldExit } = evaluatePreflightEstimate(
-    await buildTtsEstimateForInput(prepared, ttsOptions, targets),
-    ttsOptions,
-    maxCents
-  )
+  return { inputPath, createdAt, prepared, targets, estimate: await buildTtsEstimateForInput(prepared, ttsOptions, targets) }
+}
+
+export const executeSingleTtsInput = async (
+  plan: SingleTtsInputPlan,
+  ttsOptions: StandaloneTtsCommandOptions,
+  executionReadiness: readonly TtsExecutionReadinessObservation[],
+  outputNaming?: Pick<TtsRunSourceContext, 'resolveReportedOutput'>
+): Promise<void> => {
+  const outputDir = await createGenerationOutputDir(getInputStem(plan.inputPath))
+  await runPreparedTtsInput(plan.prepared, outputDir, ttsOptions, plan.targets, plan.estimate, plan.createdAt, executionReadiness, outputNaming)
+}
+
+export const runSingleTtsInput = async (
+  inputPath: string,
+  ttsOptions: StandaloneTtsCommandOptions,
+  targets: TtsTarget[],
+  maxCents: number | undefined,
+  outputNaming?: Pick<TtsRunSourceContext, 'resolveReportedOutput'>
+): Promise<void> => {
+  const plan = await planSingleTtsInput(inputPath, ttsOptions, targets)
+  targets = plan.targets
+  const { shouldExit } = evaluatePreflightEstimate(plan.estimate, ttsOptions, maxCents)
   if (shouldExit) {
     l.report.expectedOutput(
       getGenerationExpectedOutputDir('./output/<timestamp>_<label>/'),
@@ -346,7 +371,5 @@ export const runSingleTtsInput = async (
     return
   }
 
-  const executionReadiness = await validateTtsTargetsForExecution(targets)
-  const outputDir = await createGenerationOutputDir(getInputStem(inputPath))
-  await runPreparedTtsInput(prepared, outputDir, ttsOptions, targets, preflightEstimate, createdAt, executionReadiness, outputNaming)
+  await executeSingleTtsInput(plan, ttsOptions, await validateTtsTargetsForExecution(targets), outputNaming)
 }

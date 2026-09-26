@@ -124,10 +124,11 @@ export class ProviderBatchCompletionError extends AppInfrastructureError {
 
 export const partialCompletionError = (
   message: string,
-  options: { stage: string, metadata?: Record<string, unknown> }
+  options: { stage: string, metadata?: Record<string, unknown>, hints?: string[] }
 ): AppInfrastructureError => InfraError(message, {
   stage: options.stage,
   exitCode: PARTIAL_COMPLETION_EXIT_CODE,
   retryable: false,
-  ...(options.metadata ? { metadata: options.metadata } : {})
+  ...(options.metadata ? { metadata: options.metadata } : {}),
+  ...(options.hints?.length ? { hints: options.hints } : {})
 })

@@ -1,5 +1,5 @@
 import { rm } from 'node:fs/promises'
-import type { StandaloneTtsCommandOptions, TtsTarget } from '~/types'
+import type { AggregatedPriceEstimate, StandaloneTtsCommandOptions, TtsBatchEstimateReport, TtsExecutionReadinessObservation, TtsTarget } from '~/types'
 import { createGenerationOutputDir } from '~/cli/commands/command-shared/generation-command-utils'
 import { attachExistingTtsDirectoryBatch } from '~/cli/commands/setup-and-utilities/resume/generation/tts-batch-resume'
 import { collectTextInputFiles } from '~/cli/commands/text/write/text-input-utils'
@@ -10,10 +10,16 @@ import { materializeTtsDialoguePlanArtifact } from './script-to-audio/item-dialo
 import { createTtsBatchAccumulators, createTtsBatchPlanItems, getInputStem } from './tts-batch-plan'
 import { createTtsBatchLifecycleCoordinator } from './tts-batch-lifecycle'
 import { prepareTtsBatchExecution, prepareTtsDirectoryBatch } from './tts-batch-preparation'
+import type { PreparedTtsDirectoryBatch } from './tts-batch-preparation'
 import { dispatchTtsDirectoryBatch } from './tts-batch-dispatch'
 import { projectTtsBatchCompletion, publishTtsBatchCompletion, reportTtsBatchCompletionItems } from './tts-batch-completion'
 import { assembleTtsBooks } from './tts-book-assembly'
 import { updateManifest } from '~/cli/commands/command-shared/pipeline-manifest'
+
+export const ttsDirectoryBatchEstimate = (report: TtsBatchEstimateReport): AggregatedPriceEstimate => ({
+  steps: report.estimates.flatMap(estimate => estimate.steps),
+  totalEstimatedCost: report.totalEstimatedCost
+})
 
 export const runTtsDirectoryBatch = async (
   inputPath: string,
@@ -29,23 +35,24 @@ export const runTtsDirectoryBatch = async (
 
   if (await attachExistingTtsDirectoryBatch(inputPath, inputFiles, ttsOptions, targets, maxCents)) return
 
-  const createdAt = new Date().toISOString()
-
-  const prepared = await prepareTtsDirectoryBatch(inputPath, inputFiles, ttsOptions, targets, maxCents, createdAt)
-  const { preparedInputs, concurrency, estimateReport } = prepared
-  targets = prepared.targets
+  const prepared = await prepareTtsDirectoryBatch(inputPath, inputFiles, ttsOptions, targets, maxCents, new Date().toISOString())
 
   if (ttsOptions.price) {
-    l.report.price({
-      steps: estimateReport.estimates.flatMap(estimate => estimate.steps),
-      totalEstimatedCost: estimateReport.totalEstimatedCost
-    })
+    l.report.price(ttsDirectoryBatchEstimate(prepared.estimateReport))
     return
   }
 
-  const execution = await prepareTtsBatchExecution(ttsOptions, targets)
-  ttsOptions = execution.ttsOptions
-  targets = execution.targets
+  const execution = await prepareTtsBatchExecution(ttsOptions, prepared.targets)
+  await executeTtsDirectoryBatch(inputPath, execution.ttsOptions, { ...prepared, targets: execution.targets }, execution.executionReadiness)
+}
+
+export const executeTtsDirectoryBatch = async (
+  inputPath: string,
+  ttsOptions: StandaloneTtsCommandOptions,
+  prepared: PreparedTtsDirectoryBatch,
+  executionReadiness: TtsExecutionReadinessObservation[]
+): Promise<void> => {
+  const { preparedInputs, concurrency, estimateReport, targets, createdAt } = prepared
   const batchDir = await createGenerationOutputDir(getInputStem(inputPath))
   const dialoguePlanArtifacts = await Promise.all(preparedInputs.map(async (prepared) =>
     await materializeTtsDialoguePlanArtifact(batchDir, prepared.dialoguePlan)
@@ -86,7 +93,7 @@ export const runTtsDirectoryBatch = async (
   }
 
   const schedulerTelemetry = await dispatchTtsDirectoryBatch(
-    plans, accumulators, batchDir, ttsOptions, targets, execution.executionReadiness, estimateReport, lifecycleCoordinator
+    plans, accumulators, batchDir, ttsOptions, targets, executionReadiness, estimateReport, lifecycleCoordinator
   )
   const completion = projectTtsBatchCompletion(preparedInputs, targets, accumulators)
   reportTtsBatchCompletionItems(completion)

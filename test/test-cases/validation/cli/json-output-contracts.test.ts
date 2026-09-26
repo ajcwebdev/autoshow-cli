@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { preScanJsonMode, runCliInProcess } from '~/cli/create-cli'
-import { collectCommandResult, flushStagedResult, runWithResultInvocation, stageResult } from '~/utils/app-logger/result-emitter'
+import { flushStagedResult, isolateCommandResult, requireIsolatedResult, runWithResultInvocation, stageResult } from '~/utils/app-logger/result-emitter'
 import { captureConsoleText, captureProcessOutput } from '../../../test-utils/console-capture'
 
 const parseLines = (text: string): Array<Record<string, unknown>> => text.trim()
@@ -112,15 +112,17 @@ describe('JSON CLI output protocol', () => {
     })).rejects.toThrow('more than one terminal result')
   })
 
-  test('collected workflow results remain private until the combined terminal result is published', async () => {
+  test('isolated workflow results remain private until the combined terminal result is published', async () => {
     const captured = await captureProcessOutput(() => runWithResultInvocation({ json: true, runId: 'combined' }, async () => {
-      const first = await collectCommandResult(async () => { stageResult({ first: true }, 'First workflow') })
-      const second = await collectCommandResult(async () => { stageResult({ second: true }, 'Second workflow') })
-      stageResult({ first: first.data, second: second.data }, 'Combined')
+      const first = requireIsolatedResult(await isolateCommandResult(async () => { stageResult({ first: true }, 'First workflow') }))
+      const second = await isolateCommandResult(async () => { stageResult({ second: true }, 'Second workflow'); return 'value' })
+      expect(second.value).toBe('value')
+      stageResult({ first: first.data, second: second.result?.data }, 'Combined')
       flushStagedResult()
     }))
     expect(parseLines(captured.stdout)).toEqual([expect.objectContaining({ message: 'Combined', data: { first: { first: true }, second: { second: true } } })])
-    await expect(collectCommandResult(async () => {})).rejects.toThrow('without staging a successful result')
-    await expect(collectCommandResult(async () => { stageResult({ first: true }); stageResult({ second: true }) })).rejects.toThrow('more than one terminal result')
+    expect((await isolateCommandResult(async () => 1)).result).toBeUndefined()
+    expect(() => requireIsolatedResult({ value: undefined })).toThrow('without staging a successful result')
+    await expect(isolateCommandResult(async () => { stageResult({ first: true }); stageResult({ second: true }) })).rejects.toThrow('more than one terminal result')
   })
 })

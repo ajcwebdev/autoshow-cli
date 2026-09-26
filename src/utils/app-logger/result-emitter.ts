@@ -36,20 +36,27 @@ export const runWithResultInvocation = async <T>(
 
 const invocation = (): ResultInvocation | undefined => resultStore.getStore()
 
-// Compose workflows without publishing their individual results to the invocation.
-// Each workflow still has to stage exactly one successful result.
-export const collectCommandResult = async (
-  fn: () => Promise<void>
-): Promise<{ data: Record<string, unknown>, message: string }> => {
+export type IsolatedCommandResult<T> = {
+  value: T
+  result?: { data: Record<string, unknown>, message: string } | undefined
+}
+
+// Runs one workflow in its own result scope so a command can compose several workflows.
+// Whatever the workflow stages is returned to the caller instead of being published.
+export const isolateCommandResult = async <T>(
+  fn: () => Promise<T>
+): Promise<IsolatedCommandResult<T>> => {
   const parent = invocation()
   return await runWithResultInvocation({ json: parent?.json ?? false, runId: parent?.runId ?? 'internal', ...(parent?.command ? { command: parent.command } : {}) }, async () => {
-    await fn()
+    const value = await fn()
     const pending = invocation()?.pending
-    if (pending?.status !== 'success' || !pending.data) {
-      throw InternalError('The workflow returned without staging a successful result', { stage: 'cli:result' })
-    }
-    return { data: pending.data, message: pending.message }
+    return { value, ...(pending?.status === 'success' && pending.data ? { result: { data: pending.data, message: pending.message } } : {}) }
   })
+}
+
+export const requireIsolatedResult = <T>(isolated: IsolatedCommandResult<T>): { data: Record<string, unknown>, message: string } => {
+  if (!isolated.result) throw InternalError('The workflow returned without staging a successful result', { stage: 'cli:result' })
+  return isolated.result
 }
 
 export const isJsonResultActive = (): boolean => invocation()?.json === true

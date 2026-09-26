@@ -11,6 +11,7 @@ import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from 
 import type { CanonicalAudioProviderProjection, PipelineManifest, Step4Metadata, TtsTarget } from '~/types'
 import { runSingleTtsInput, runTtsDirectoryBatch } from '~/cli/commands/audio/tts/define-tts-command'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
+import { readContainedArtifactFile } from '~/cli/commands/audio/tts/script-to-audio/safe-artifact-store'
 
 import { createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
@@ -118,7 +119,9 @@ describe('canonical standalone TTS lifecycle persistence', () => {
         const archive = (provider.metadata?.['ttsAudio'] as CanonicalAudioProviderProjection).archive!
         const render = await Bun.file(join(outputDir, archive.renderRef.path)).json()
         expect(render.slots.length).toBeGreaterThan(0)
-        for (const slot of render.slots) expect(await Bun.file(join(outputDir, 'slots', slot.slotHash + '.wav')).exists()).toBe(true)
+        // Completed runs bundle retained slots into slots/audio.zip; every paid slot must still be readable.
+        expect(await Bun.file(join(outputDir, 'slots/audio.zip')).exists()).toBe(true)
+        for (const slot of render.slots) expect((await readContainedArtifactFile(outputDir, 'slots/' + slot.slotHash + '.wav')).bytes.length).toBeGreaterThan(44)
         expect(await Bun.file(join(outputDir, archive.finalRef.path)).exists()).toBe(true)
         expect(() => assertAppendOnlyAudioProjection({ ...provider, artifactDir: 'providers/' + provider.targetKey }, { ...provider, artifactDir: 'unrelated/' + provider.targetKey })).toThrow('artifact directory')
       }

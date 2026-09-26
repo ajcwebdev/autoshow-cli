@@ -1,5 +1,9 @@
 import { afterEach, expect, test } from 'bun:test'
+import { unlink } from 'node:fs/promises'
 import { join } from 'node:path'
+import { runCliInProcess } from '~/cli/create-cli'
+import { extractErrorMetadata } from '~/utils/error-handler'
+import { captureProcessOutput } from '../../../../../test-utils/console-capture'
 import { runGeminiRemoteBatch } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-tts-batch-workflow'
 import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
@@ -111,4 +115,43 @@ test('Batch resume rejects delivery overrides before provider dispatch', async (
   const callsBefore = fixture.calls.length
   await expect(dispatchResume(fixture.output, { 'tts-audio-profile': 'legacy-16k' })).rejects.toThrow('overrides')
   expect(fixture.calls).toHaveLength(callsBefore)
+})
+
+test('decoded artifact integrity: resume keeps a recorded output instead of re-rendering it, and rebuilds only a missing one', async () => {
+  const fixture = await prepareBatch(paragraphs, { 'tts-audio-profile': 'legacy-16k' })
+  await fixture.run()
+  const run = await Bun.file(join(fixture.output, 'gemini-provider-jobs.json')).json() as GeminiProviderJobRun
+  const path = join(fixture.output, run.outputs[0]!.path)
+  expect((await readObservedAudio(fixture.output, path)).format.sampleRate).toBe(16000)
+  // Stands in for an output delivered by an earlier release with a different render.
+  const delivered = createSyntheticWavBytes({ sampleRate: 24000, durationSeconds: 0.25, frequencyHz: 330, amplitude: 0.2 })
+  await Bun.write(path, delivered)
+  const callsBefore = fixture.calls.length
+  await dispatchResume(fixture.output, { 'provider-job-action': 'wait' })
+  expect(fixture.calls).toHaveLength(callsBefore)
+  expect(Buffer.from(await Bun.file(path).bytes()).equals(delivered)).toBe(true)
+  await unlink(path)
+  await dispatchResume(fixture.output, { 'provider-job-action': 'wait' })
+  expect(fixture.calls).toHaveLength(callsBefore)
+  const rebuilt = await readObservedAudio(fixture.output, path)
+  expect(rebuilt.format.sampleRate).toBe(16000)
+  expect(rebuilt.durationMs).toBe(200)
+}, 20000)
+
+test('a Gemini-only Batch failure result carries the retained run and resume command', async () => {
+  const fixture = await prepareBatch(paragraphs, { 'tts-audio-profile': 'legacy-16k' }, true)
+  const error = await fixture.run().then(() => undefined, (reason: unknown) => reason)
+  expect(extractErrorMetadata(error)['geminiBatch']).toMatchObject({ outputDir: expect.any(String), resumeCommand: expect.stringContaining('--provider-job-action wait'), failedSlots: [expect.anything(), expect.anything()] })
+})
+
+test('resume with failed slots logs a warning, not a success, before failing', async () => {
+  const fixture = await prepareBatch(paragraphs, { 'tts-audio-profile': 'legacy-16k' }, true)
+  await expect(fixture.run()).rejects.toThrow('failed or missing slots')
+  const captured = await captureProcessOutput(() => runCliInProcess(['resume', fixture.output, '--provider-job-action', 'wait', '--json']))
+  expect(captured.result).not.toBe(0)
+  const events = captured.stderr.trim().split('\n').map(line => JSON.parse(line) as { level: string, message: string })
+  const partial = events.filter(event => event.message === 'Gemini Batch retained partial results')
+  expect(partial.map(event => event.level)).toEqual(['warn'])
+  expect(JSON.parse(captured.stdout.trim()).status).toBe('failure')
+  expect(fixture.calls.filter(call => call.method === 'POST')).toHaveLength(1)
 })

@@ -44,7 +44,8 @@ export type TtsPronunciationLexicon = {
   lexiconSha256: string
 }
 
-export type TtsChunkBoundary = 'paragraph' | 'sentence' | 'clause' | 'word' | 'hard' | 'end'
+export const TTS_CHUNK_BOUNDARIES = ['paragraph', 'sentence', 'clause', 'word', 'hard', 'end'] as const
+export type TtsChunkBoundary = typeof TTS_CHUNK_BOUNDARIES[number]
 
 export type TtsChunkingOptions = {
   boundary: 'smart'
@@ -369,7 +370,8 @@ export type TtsCustomVoiceSampleAudio = {
   durationSeconds?: number | undefined
 }
 
-export type TtsDeliverySeamBoundary = TtsChunkBoundary | 'turn'
+export const TTS_DELIVERY_SEAM_BOUNDARIES = [...TTS_CHUNK_BOUNDARIES, 'turn'] as const
+export type TtsDeliverySeamBoundary = typeof TTS_DELIVERY_SEAM_BOUNDARIES[number]
 
 export type TtsDeliverySegmentInput = {
   id: string

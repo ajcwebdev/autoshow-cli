@@ -1,7 +1,7 @@
 import { formatCost, formatDuration, formatEstimatedCostWithExactCents } from '~/utils/app-logger/formatters'
 import { stageResult } from '~/utils/app-logger/result-emitter'
 import { stepEstimateToReport } from '~/utils/pricing/step-estimate-fields'
-import type { AggregatedPriceEstimate, CompleteOptions, Logger, Reporter, StepEstimate } from '~/types'
+import type { AggregatedPriceEstimate, CompleteOptions, Logger, PriceReportExtra, Reporter, StepEstimate } from '~/types'
 
 const formatSttProvider = (provider: string): string => provider
 
@@ -10,18 +10,20 @@ const formatEstimateIdentity = (estimate: StepEstimate): Pick<StepEstimate, 'pro
   model: estimate.model
 })
 
-const buildEstimateData = (estimate: AggregatedPriceEstimate): Record<string, unknown> => ({
+const buildEstimateData = (estimate: AggregatedPriceEstimate, extra?: PriceReportExtra): Record<string, unknown> => ({
   dryRun: true,
   estimate: {
     steps: estimate.steps.map(step => stepEstimateToReport(step, formatEstimateIdentity(step))),
     totalEstimatedCostCents: estimate.totalEstimatedCost,
     ...(estimate.timing ? { timing: estimate.timing } : {})
-  }
+  },
+  ...extra?.data
 })
 
-const estimateMessage = (estimate: AggregatedPriceEstimate): string => {
+const estimateMessage = (estimate: AggregatedPriceEstimate, extra?: PriceReportExtra): string => {
   const values = [`${estimate.steps.length} step${estimate.steps.length === 1 ? '' : 's'}`, formatEstimatedCostWithExactCents(estimate.totalEstimatedCost)]
   if (estimate.timing && estimate.timing.steps.length > 0) values.push(formatDuration(estimate.timing.totalProcessingTimeMs))
+  if (extra?.detail) values.push(extra.detail)
   return `Estimate: ${values.join(', ')}`
 }
 
@@ -58,12 +60,12 @@ export const createReporter = (logger: Logger): Reporter => ({
       metadata: { outputDir, files }
     })
   },
-  estimate: (estimate) => {
-    logger.write('info', estimateMessage(estimate), { category: 'pricing', metadata: buildEstimateData(estimate) })
+  estimate: (estimate, extra) => {
+    logger.write('info', estimateMessage(estimate, extra), { category: 'pricing', metadata: buildEstimateData(estimate, extra) })
   },
-  price: (estimate) => {
-    const data = buildEstimateData(estimate)
-    const message = estimateMessage(estimate)
+  price: (estimate, extra) => {
+    const data = buildEstimateData(estimate, extra)
+    const message = estimateMessage(estimate, extra)
     logger.write('success', message, { category: 'pricing', metadata: data })
     stageResult(data, message)
   },
