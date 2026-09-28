@@ -13,8 +13,7 @@ import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command
 import { createResourceGate } from '~/utils/resource-gate'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
-import { makeTempDir } from '../../../../test-utils/temp-dirs'
+const tempDirs = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_A as HASH_A, COMIC_AUDIO_PHASE_2_HASH_B as HASH_B, buildComicAudioPhase2SnapshotEntry as snapshotEntry, buildComicAudioPhase2Structured as buildStructured } from './comic-audio-phase-fixture'
 
 describe('comic audio phase 2 contracts', () => {
@@ -30,7 +29,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('comic target execution carries every Inworld snapshot voice into readiness', async () => {
-    const root = await makeTempDir('autoshow-inworld-readiness-')
+    const root = await tempDirs.make('autoshow-inworld-readiness-')
     const sourcePath = join(root, 'scene.md')
     await writeFile(sourcePath, 'Inworld readiness')
     const sourceIdentity = await createComicSourceIdentity(sourcePath, 'Inworld readiness')
@@ -71,7 +70,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('targetless zero-turn command completes locally without provider state', async () => {
-    const root = await makeTempDir('autoshow-comic-audio-empty-')
+    const root = await tempDirs.make('autoshow-comic-audio-empty-')
     const sourcePath = join(root, 'silent-scene.md')
     const sceneRunDir = join(root, 'run')
     const sourceText = 'A silent bridge.\n'

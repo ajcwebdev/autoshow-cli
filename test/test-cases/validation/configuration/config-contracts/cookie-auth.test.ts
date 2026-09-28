@@ -5,8 +5,10 @@ import { applyConfiguredYtDlpAuth } from '~/cli/commands/setup-and-utilities/con
 import { buildConfigPatchFromFlags, FLAG_TO_CONFIG_PATH } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 import { configureYtDlpAuth, inspectYtDlpAuthState } from '~/cli/commands/command-shared/shared-yt-dlp-options'
 import { runCommand } from '../../../../test-utils/test-helpers'
-import { writeTempConfig } from './shared'
+import { setupTempConfigWriter } from './shared'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+
+const writeTempConfig = setupTempConfigWriter()
 
 const tempDirs: string[] = []
 

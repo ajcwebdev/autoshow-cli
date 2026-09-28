@@ -25,17 +25,16 @@ import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { createSyntheticWavBytes, redDotPng } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
-import { makeTempDir } from '../../../test-utils/temp-dirs'
 import { captureProcessOutput } from '../../../test-utils/console-capture'
 import { runCliInProcess } from '~/cli/create-cli'
 import { resetLoggerForInvocation } from '~/utils/app-logger/app-logger'
 import { buildComicAudioPhase2SnapshotEntry, buildComicAudioPhase2Structured, COMIC_AUDIO_PHASE_2_CREATED_AT as createdAt } from '../visuals/comic/comic-audio-phase-fixture'
 
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'GEMINI_API_KEY', 'AUTOSHOW_REQUIRED_IMAGE_MODEL'], tempPrefix: 'autoshow-comic-resume-' })
+const tempDirs = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'GEMINI_API_KEY', 'AUTOSHOW_REQUIRED_IMAGE_MODEL'], tempPrefix: 'autoshow-comic-resume-' })
 afterEach(() => { resetPinnedRunDir(); resetSceneRunContext(); configureCharactersRoot('input/characters'); resetLoggerForInvocation(false) })
 
 const fixture = async () => {
-  const root = await makeTempDir('autoshow-comic-resume-')
+  const root = await tempDirs.make('autoshow-comic-resume-')
   const source = '# Episode\n\n## Bridge\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
   const scriptPath = join(root, 'scene.md')
   const run = join(root, 'run')

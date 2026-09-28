@@ -88,7 +88,9 @@ export const resolveStructuredSchema = async (
     return buildFreeformEnvelopeSchema()
   }
 
-  const registryLeaves = await collectLeafPrompts(promptNames)
+  const registryLeaves = promptNames.length === 0 && options.extraLeaves?.length
+    ? []
+    : await collectLeafPrompts(promptNames)
   const leaves = [...registryLeaves, ...(options.extraLeaves ?? [])]
   if (leaves.length === 0) {
     throw InternalError('No prompt leaves resolved for structured output', { stage: 'write:structured-schema' })
