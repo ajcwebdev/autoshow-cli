@@ -1,4 +1,7 @@
-import { describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, test } from 'bun:test'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { buildStep3Metadata, runWithLLMInstrumentation } from '~/cli/commands/text/write/write-utils/llm-instrumentation'
 import { getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { CommandPricingOptions } from '~/types'
@@ -6,6 +9,11 @@ import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestrati
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
+
+const temporary = await mkdtemp(join(tmpdir(), 'autoshow-observed-write-'))
+const sourcePath = join(temporary, 'source.txt')
+await writeFile(sourcePath, 'The report describes the observations and the conclusions drawn from them.\n')
+afterAll(async () => { await rm(temporary, { recursive: true, force: true }) })
 
 describe('price mode contracts', () => {
   test('text write estimated costs stay price-aligned while observed LLM counts stay uncalibrated', async () => {
@@ -16,7 +24,7 @@ describe('price mode contracts', () => {
         urlBackend: 'defuddle',
         urlBackendExplicit: false
       } as unknown as CommandPricingOptions
-      const priceEstimate = await buildAggregatedPriceEstimate('write', 'input/examples/tts/1-tts.md', opts)
+      const priceEstimate = await buildAggregatedPriceEstimate('write', sourcePath, opts)
       const estimated = preflightToEstimated(priceEstimate)
       const observedEstimate = computeEstimatedCosts({
         applyCostMultipliers: false,

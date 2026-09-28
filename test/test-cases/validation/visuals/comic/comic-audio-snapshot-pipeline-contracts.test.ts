@@ -14,15 +14,14 @@ import { loadVoiceReferenceManifest, writeVoiceReferenceManifest } from '~/cli/c
 import { createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 import { requireDefined } from '../../../../test-utils/value-assertions'
-import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_A as HASH_A, COMIC_AUDIO_PHASE_2_HASH_B as HASH_B, buildComicAudioPhase2SnapshotEntry as snapshotEntry, buildComicAudioPhase2Structured as buildStructured } from './comic-audio-phase-fixture'
 
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
+const tempDirs = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 
 describe('comic audio phase 2 contracts', () => {
   test('finalizes a fully compatible snapshot-identity change without another provider call', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
-    const root = await makeTempDir('autoshow-comic-cross-snapshot-recovery-')
+    const root = await tempDirs.make('autoshow-comic-cross-snapshot-recovery-')
     const sourcePath = join(root, 'scene.md')
     const sourceBytes = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
     await writeFile(sourcePath, sourceBytes)
@@ -156,7 +155,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('append-only voice snapshot indexes retain and resolve recast revisions independently', async () => {
-    const sceneRunDir = await makeTempDir('autoshow-comic-voice-recast-')
+    const sceneRunDir = await tempDirs.make('autoshow-comic-voice-recast-')
     const firstBase = {
       schemaVersion: 1 as const,
       sceneRunIdentity: HASH_A,
@@ -185,7 +184,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('canonical image and audio stage updates preserve each other and replace only their own provider targets', async () => {
-    const root = await makeTempDir('autoshow-comic-stage-state-')
+    const root = await tempDirs.make('autoshow-comic-stage-state-')
     const sourcePath = join(root, 'scene.md')
     const sceneRunDir = join(root, 'run')
     await writeFile(sourcePath, 'stage state')

@@ -50,6 +50,15 @@ export type TtsChunkPolicyInput = {
   chunking?: TtsChunkingOptions | undefined
 }
 
+// OpenAI receives bracketed source prose as text, not as a native delivery tag.
+// Keep existing short-bracket boundaries, but let long editorial passages split
+// at ordinary prose seams instead of treating the whole passage as one request.
+const preserveOpenAiProseBoundary = (text: string, index: number, limit: number): number => {
+  const start = text.lastIndexOf('[', index - 1), end = text.indexOf(']', index)
+  const longPassage = start >= 0 && text.lastIndexOf(']', index - 1) < start && end - start + 1 > limit
+  return preserveTtsInlineBoundary(text, index, limit, longPassage ? [] : [['[', ']']])
+}
+
 export type TtsProviderChunkPolicy = {
   providerMaxChars: number
   effectiveMaxChars: number
@@ -76,6 +85,7 @@ export const resolveTtsProviderChunkPolicy = (input: TtsChunkPolicyInput): TtsPr
     providerMaxChars, effectiveMaxChars, chunking, policyVersion: chunking?.replay ?? 'smart-v2',
     adjustBoundary: chunking?.replay
       ? input.provider === 'gemini' ? preserveInlineNotation : input.provider === 'soniox' ? preserveSonioxBoundary : (_text, index) => index
+      : input.provider === 'openai' ? preserveOpenAiProseBoundary
       : (text, index, limit) => preserveTtsInlineBoundary(text, index, limit, input.provider === 'gemini' ? [['<', '>'], ['[', ']']] : [['[', ']']]),
     validate: (text) => {
       if (text.length > effectiveMaxChars) throw UsageError('TTS request exceeds its resolved chunk budget.')

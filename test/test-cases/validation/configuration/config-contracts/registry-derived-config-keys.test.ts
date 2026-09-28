@@ -7,8 +7,10 @@ import {
 } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { AutoshowConfigSchema } from '~/types'
 import type { Step2Command } from '~/types'
-import { writeTempConfig } from './shared'
+import { setupTempConfigWriter } from './shared'
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
+
+const writeTempConfig = setupTempConfigWriter()
 
 const unwrap = (schema: unknown): { entries: Record<string, unknown> } => {
   const candidate = schema as { wrapped?: unknown, entries?: Record<string, unknown> }

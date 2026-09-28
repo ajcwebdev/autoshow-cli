@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { loadConfig } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
-import { writeTempConfig } from './shared'
+import { setupTempConfigWriter } from './shared'
+
+const writeTempConfig = setupTempConfigWriter()
 
 describe('config load schema contracts', () => {
   test('loadConfig accepts current array-shaped defaults', async () => {

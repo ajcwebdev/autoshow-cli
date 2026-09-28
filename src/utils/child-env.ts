@@ -1,6 +1,11 @@
+// The variables os.tmpdir() reads; without them children fall back to the shared
+// /tmp instead of the parent's (per-user) temp directory.
+export const TEMP_DIRECTORY_ENV_KEYS = ['TMPDIR', 'TMP', 'TEMP'] as const
+
 export const DEFAULT_CHILD_ENV_KEYS = [
   'PATH',
   'HOME',
+  ...TEMP_DIRECTORY_ENV_KEYS,
   'FORCE_COLOR',
   'NO_COLOR'
 ] as const

@@ -8,6 +8,7 @@ import { buildImageEstimates, buildMusicEstimates, buildVideoEstimates } from '.
 import { buildLlmEstimates } from './llm-estimates'
 import { buildSttEstimates } from './stt-estimates'
 import { buildTtsEstimates } from './tts-estimates'
+import { readUtf8FileExact } from '~/utils/bun-file-io'
 
 type PricingOptions = CommandPricingOptions | WriteRuntimeOptions | ProcessingOptions
 
@@ -81,7 +82,7 @@ export const buildPriceEstimateContribution = async (
   context: { ttsInputText?: string | undefined }
 ): Promise<PriceEstimateContribution> => {
   if (command === 'write') {
-    return { steps: await buildLlmEstimates(opts as WriteRuntimeOptions), notes: [] }
+    return { steps: await buildLlmEstimates(opts as WriteRuntimeOptions, await readUtf8FileExact(resolvedTarget)), notes: [] }
   }
   if (command === 'tts' || command === 'image' || command === 'video' || command === 'music') {
     return await buildGenerationContribution(command, opts, characterCount, context)

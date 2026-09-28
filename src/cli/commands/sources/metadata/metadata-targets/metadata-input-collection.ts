@@ -45,6 +45,22 @@ const parseListEntry = (line: string): string => {
   return raw.replace(/^`|`$/g, '').trim()
 }
 
+// Prose is probed here as a possible filename. A long paragraph is not a
+// filesystem failure and must not make a text document look like an input list.
+const listCandidateExists = async (candidate: string): Promise<boolean> => {
+  if (candidate.includes('\0')) return false
+  // Avoid probing impossible filename components: some mounted filesystems
+  // report EINPROGRESS rather than ENAMETOOLONG for these paths.
+  const components = candidate.split(process.platform === 'win32' ? /[\\/]/ : '/')
+  if (components.some((part) => (process.platform === 'win32' ? part.length : Buffer.byteLength(part, 'utf8')) > 255)) return false
+  try {
+    return await fileExists(candidate)
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENAMETOOLONG') return false
+    throw error
+  }
+}
+
 const BATCH_LIST_CACHE_FILE = join(tmpdir(), 'autoshow-batch-list-cache.json')
 const BATCH_LIST_CACHE_LOCK = 'batch-list-cache'
 
@@ -118,12 +134,12 @@ export const readInputList = async (filePath: string): Promise<string[]> => {
       }
 
       const resolvedPath = resolve(baseDir, entry)
-      if (await fileExists(resolvedPath)) {
+      if (await listCandidateExists(resolvedPath)) {
         valid.push(resolvedPath)
         continue
       }
 
-      if (await fileExists(entry)) {
+      if (await listCandidateExists(entry)) {
         valid.push(entry)
         continue
       }
@@ -176,7 +192,7 @@ export const isLikelyInputListFile = async (filePath: string): Promise<boolean> 
         continue
       }
 
-      if (await fileExists(resolve(baseDir, entry)) || await fileExists(entry)) {
+      if (await listCandidateExists(resolve(baseDir, entry)) || await listCandidateExists(entry)) {
         valid++
       }
     }
