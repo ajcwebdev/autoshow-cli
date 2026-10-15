@@ -25,6 +25,13 @@
 - For provider failure debugging, complete local/no-cost preparation and validation first, then apply these spending rules to any billable execution.
 - If an unapproved paid-provider process is accidentally started, stop it promptly and report what was run.
 
+# Episode Publishing Workflow
+
+- All episode transcripts prepared for ajcwebdev pages must use AssemblyAI Universal-3.5 Pro explicitly: `--provider assemblyai=universal-3-5-pro --diarization`. This applies to new episodes and rebuilds. Do not replace it with YouTube captions, Whisper, another provider, or another AssemblyAI model.
+- Reuse a saved episode transcript only when its manifest confirms AssemblyAI, `universal-3-5-pro`, and speaker diarization. Otherwise transcribe the recording again, retaining earlier assets as evidence.
+- Estimate the complete related transcription and writing batch before dispatch, including speaker diarization and billable retries, and apply the Paid Provider Execution Rules above. Prefer cached source recordings to duplicate downloads.
+- Map diarized labels to verified names using introductions, handoffs, and the recording. Resolve generic speaker labels before publishing, and regenerate summaries and chapters from the reviewed AssemblyAI transcript. Preserve metadata, source links, guest profiles, and raw provider results.
+
 # Work Preservation & Slot Recovery Rules
 
 - For TTS controls benchmarks, verify support for each model/control pair and use the model's native input syntax or request fields before any paid call. Keep emotion/delivery/instruction tests separate from speed/pause tests, with five self-describing lines per case. Exclude nonverbal vocalizations and sound effects entirely. Distinguish numeric speed from qualitative pacing guidance and exact timed silence from qualitative pause tags. Use explicit provider/model selections, never `--all-providers`. Skip unsupported or unverified model/control pairs; do not synthesize them as plain-text fallbacks. Reuse already-completed compatible audio rather than purchasing it again.
