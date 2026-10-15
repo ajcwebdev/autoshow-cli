@@ -317,6 +317,7 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'gemini-stt': () => selectCheapestSttModel('gemini-stt'),
   'together-stt': () => selectCheapestSttModel('together'),
   'openai-stt': () => selectCheapestSttModel('openai-stt'),
+  'cloudflare-stt': () => selectCheapestSttModel('cloudflare'),
   'mistral-ocr': () => selectCheapestExtractModel('mistral'),
   'glm-ocr': () => selectCheapestExtractModel('glm'),
   'kimi-ocr': () => selectCheapestExtractModel('kimi'),

@@ -48,18 +48,20 @@ const fetched = (sourceUrl: string, markdownContent: string, status: FetchUrlRes
   markdownContent
 })
 
-test('coverage key ignores www, trailing slash, markdown suffix, query, and fragment, and site domain spans subdomains', () => {
+test('coverage key ignores www, trailing slash, markdown suffix, index markdown twin, query, and fragment, and site domain spans subdomains', () => {
   const variants = [
     'https://ai.acme.test/docs/pricing',
     'https://www.ai.acme.test/docs/pricing/',
     'https://ai.acme.test/docs/pricing.md',
     'https://ai.acme.test/docs/pricing.md.txt',
+    'https://ai.acme.test/docs/pricing/index.md',
     'https://ai.acme.test/docs/pricing?hsLang=en#tts',
     'blob:https://ai.acme.test/docs/pricing'
   ]
 
   expect(new Set(variants.map(getSourceCoverageKey))).toEqual(new Set(['ai.acme.test/docs/pricing']))
   expect(getSourceCoverageKey('https://docs.acme.test/pricing.html')).toBe('docs.acme.test/pricing.html')
+  expect(getSourceCoverageKey('https://docs.acme.test/index.md')).toBe('docs.acme.test')
   expect([getSiteDomain('https://docs.acme.test/a'), getSiteDomain('https://acme.test/b')]).toEqual(['acme.test', 'acme.test'])
 })
 

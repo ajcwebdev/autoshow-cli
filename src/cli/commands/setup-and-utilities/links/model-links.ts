@@ -1,5 +1,6 @@
 import assemblyLinks from './model-links/assembly.json'
 import claudeLinks from './model-links/claude.json'
+import cloudflareLinks from './model-links/cloudflare.json'
 import deepgramLinks from './model-links/deepgram.json'
 import deepinfraLinks from './model-links/deepinfra.json'
 import elevenlabsLinks from './model-links/elevenlabs.json'
@@ -48,6 +49,7 @@ const providerLinks = [
   assemblyLinks,
   deepgramLinks,
   deepinfraLinks,
+  cloudflareLinks,
   sonioxLinks,
   speechmaticsLinks,
   replicateLinks,

@@ -20,6 +20,7 @@ const STT_ENGINE_CAPABILITIES = {
   'gemini-stt': { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
   together: { diarizationByDefault: false, supportsSpeakerCountHint: true, options: NO_OPTIONS },
   'openai-stt': { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS },
+  cloudflare: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS },
   whisperfile: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS },
   'youtube-captions': { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS }
 } as const satisfies Record<TranscribeEngine, Pick<TranscribeEngineCapabilities, 'diarizationByDefault' | 'supportsSpeakerCountHint'> & { options: SttEngineOptionCapabilities }>
@@ -52,6 +53,7 @@ export const STT_ENGINE_PROVIDER_NAME: Record<TranscribeEngine, string | undefin
   'gemini-stt': 'gemini',
   together: 'together',
   'openai-stt': 'openai',
+  cloudflare: 'cloudflare',
   whisperfile: 'whisperfile',
   'youtube-captions': undefined
 }

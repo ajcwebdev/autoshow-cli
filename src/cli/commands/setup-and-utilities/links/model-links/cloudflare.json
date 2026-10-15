@@ -1,0 +1,34 @@
+{
+  "Cloudflare": {
+    "LLMSTXT": [
+      "https://developers.cloudflare.com/workers-ai/llms.txt"
+    ],
+    "General": [
+      "https://developers.cloudflare.com/workers-ai/get-started/rest-api/index.md",
+      "https://developers.cloudflare.com/api/resources/ai/methods/run/",
+      "https://developers.cloudflare.com/fundamentals/api/get-started/create-token/index.md",
+      "https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/index.md",
+      "https://developers.cloudflare.com/workers-ai/platform/pricing/index.md",
+      "https://developers.cloudflare.com/workers-ai/platform/limits/index.md",
+      "https://developers.cloudflare.com/workers-ai/platform/errors/index.md",
+      "https://developers.cloudflare.com/workers-ai/platform/data-usage/index.md",
+      "https://developers.cloudflare.com/workers-ai/changelog/index.md"
+    ],
+    "Models": [
+      "https://developers.cloudflare.com/workers-ai/models/whisper-large-v3-turbo/index.md",
+      "https://developers.cloudflare.com/workers-ai/models/whisper-large-v3-turbo/schema-input.json",
+      "https://developers.cloudflare.com/workers-ai/models/whisper-large-v3-turbo/schema-output.json",
+      "https://developers.cloudflare.com/workers-ai/models/whisper/index.md",
+      "https://developers.cloudflare.com/workers-ai/models/whisper/schema-input.json",
+      "https://developers.cloudflare.com/workers-ai/models/whisper/schema-output.json",
+      "https://developers.cloudflare.com/workers-ai/models/whisper-tiny-en/index.md",
+      "https://developers.cloudflare.com/api/resources/ai/subresources/models/methods/list/",
+      "https://developers.cloudflare.com/api/resources/ai/subresources/models/subresources/schema/methods/get/"
+    ],
+    "STT": [
+      "https://developers.cloudflare.com/workers-ai/guides/tutorials/build-a-workers-ai-whisper-with-chunking/index.md",
+      "https://developers.cloudflare.com/workers-ai/features/batch-api/index.md",
+      "https://developers.cloudflare.com/workers-ai/features/batch-api/rest-api/index.md"
+    ]
+  }
+}

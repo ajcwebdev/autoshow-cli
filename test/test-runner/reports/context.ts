@@ -46,6 +46,7 @@ const KNOWN_SERVICE_HINTS: Array<{ pattern: RegExp, service: string }> = [
   { pattern: /\belevenlabs\b/i, service: 'elevenlabs' },
   { pattern: /\bdeepgram\b/i, service: 'deepgram' },
   { pattern: /\bdeepinfra\b/i, service: 'deepinfra' },
+  { pattern: /\bcloudflare\b/i, service: 'cloudflare' },
   { pattern: /\bsoniox\b/i, service: 'soniox' },
   { pattern: /\bspeechmatics\b/i, service: 'speechmatics' },
   { pattern: /\brev\b/i, service: 'rev' },

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "AutoShow Benchmark Dashboard",
-  "generatedAt": "2026-09-25T22:48:10.217Z",
+  "generatedAt": "2026-10-14T04:03:03.032Z",
   "tabs": [
     {
       "key": "ocr",
@@ -10,7 +10,7 @@
       "model": {
         "title": "Combined OCR Provider Comparison",
         "category": "ocr",
-        "generatedAt": "2026-09-25T22:48:10.217Z",
+        "generatedAt": "2026-10-14T04:03:03.032Z",
         "rootDir": "docs/benchmarks/ocr",
         "summaryStats": [
           {
@@ -2004,7 +2004,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-09-25T22:48:10.217Z",
+        "generatedAt": "2026-10-14T04:03:03.032Z",
         "rootDir": "docs/benchmarks/stt-local",
         "summaryStats": [
           {
@@ -2446,7 +2446,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-09-25T22:48:10.217Z",
+        "generatedAt": "2026-10-14T04:03:03.032Z",
         "rootDir": "docs/benchmarks/stt-with-speakers",
         "summaryStats": [
           {
@@ -2969,7 +2969,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-09-25T22:48:10.217Z",
+        "generatedAt": "2026-10-14T04:03:03.032Z",
         "rootDir": "docs/benchmarks/stt-without-speakers",
         "summaryStats": [
           {
@@ -2978,11 +2978,11 @@
           },
           {
             "label": "Providers",
-            "value": "10"
+            "value": "13"
           },
           {
             "label": "Non-diarization",
-            "value": "10"
+            "value": "13"
           },
           {
             "label": "Diarization",
@@ -2997,22 +2997,22 @@
           {
             "runName": "1-audio",
             "shortLabel": "R1",
-            "detail": "10 providers"
+            "detail": "13 providers"
           },
           {
             "runName": "2022-09-30-widgets-fsjam-40-minutes",
             "shortLabel": "R2",
-            "detail": "10 providers"
+            "detail": "13 providers"
           },
           {
             "runName": "2023-03-15-jsjam-qwik-misko-hevery",
             "shortLabel": "R3",
-            "detail": "10 providers"
+            "detail": "13 providers"
           },
           {
             "runName": "2023-04-05-jsjam-react-miami-2023-10-minutes",
             "shortLabel": "R4",
-            "detail": "10 providers"
+            "detail": "13 providers"
           }
         ],
         "groups": [
@@ -3056,6 +3056,138 @@
             ],
             "providers": [
               {
+                "providerKey": "cloudflare/@cf/openai/whisper",
+                "display": "cloudflare-@cf_openai_whisper",
+                "model": "@cf/openai/whisper",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "87.06",
+                  "rank": 11,
+                  "value": 87.0593246466631
+                },
+                "speed": {
+                  "display": "343.36s · 7.18×",
+                  "rank": 13,
+                  "value": 343358
+                },
+                "cost": {
+                  "display": "$0.0186",
+                  "rank": 7,
+                  "value": 1.8600605265075003
+                },
+                "evidence": [
+                  "12.94%",
+                  "12.07%",
+                  "not-supported"
+                ],
+                "perRun": [
+                  {
+                    "display": "90.91",
+                    "heat": 84
+                  },
+                  {
+                    "display": "86.04",
+                    "heat": 71
+                  },
+                  {
+                    "display": "81.96",
+                    "heat": 59
+                  },
+                  {
+                    "display": "89.32",
+                    "heat": 80
+                  }
+                ]
+              },
+              {
+                "providerKey": "cloudflare/@cf/openai/whisper-large-v3-turbo",
+                "display": "cloudflare-@cf_openai_whisper-large-v3-turbo",
+                "model": "@cf/openai/whisper-large-v3-turbo",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "93.54",
+                  "rank": 6,
+                  "value": 93.54388667490228
+                },
+                "speed": {
+                  "display": "191.75s · 12.85×",
+                  "rank": 11,
+                  "value": 191749.5
+                },
+                "cost": {
+                  "display": "$0.0211",
+                  "rank": 8,
+                  "value": 2.1064261591575
+                },
+                "evidence": [
+                  "6.46%",
+                  "5.50%",
+                  "not-supported"
+                ],
+                "perRun": [
+                  {
+                    "display": "95.00",
+                    "heat": 95
+                  },
+                  {
+                    "display": "93.50",
+                    "heat": 91
+                  },
+                  {
+                    "display": "93.05",
+                    "heat": 90
+                  },
+                  {
+                    "display": "92.63",
+                    "heat": 89
+                  }
+                ]
+              },
+              {
+                "providerKey": "cloudflare/@cf/openai/whisper-tiny-en",
+                "display": "cloudflare-@cf_openai_whisper-tiny-en",
+                "model": "@cf/openai/whisper-tiny-en",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "81.78",
+                  "rank": 12,
+                  "value": 81.77973732831798
+                },
+                "speed": {
+                  "display": "175.63s · 14.03×",
+                  "rank": 10,
+                  "value": 175632
+                },
+                "cost": {
+                  "display": "$0.0003",
+                  "rank": 1,
+                  "value": 0.027305524285375003
+                },
+                "evidence": [
+                  "18.22%",
+                  "17.39%",
+                  "not-supported"
+                ],
+                "perRun": [
+                  {
+                    "display": "80.91",
+                    "heat": 56
+                  },
+                  {
+                    "display": "86.01",
+                    "heat": 70
+                  },
+                  {
+                    "display": "78.26",
+                    "heat": 49
+                  },
+                  {
+                    "display": "81.95",
+                    "heat": 59
+                  }
+                ]
+              },
+              {
                 "providerKey": "deepinfra/mistralai/Voxtral-Mini-3B-2507",
                 "display": "deepinfra-mistralai_Voxtral-Mini-3B-2507",
                 "model": "mistralai/Voxtral-Mini-3B-2507",
@@ -3072,7 +3204,7 @@
                 },
                 "cost": {
                   "display": "$0.0411",
-                  "rank": 6,
+                  "rank": 9,
                   "value": 4.1060938775
                 },
                 "evidence": [
@@ -3106,17 +3238,17 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "78.04",
-                  "rank": 10,
+                  "rank": 13,
                   "value": 78.03698661857916
                 },
                 "speed": {
                   "display": "283.92s · 8.68×",
-                  "rank": 10,
+                  "rank": 12,
                   "value": 283917
                 },
                 "cost": {
                   "display": "$0.1232",
-                  "rank": 9,
+                  "rank": 12,
                   "value": 12.3182816325
                 },
                 "evidence": [
@@ -3150,7 +3282,7 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "92.30",
-                  "rank": 7,
+                  "rank": 8,
                   "value": 92.3046350911546
                 },
                 "speed": {
@@ -3160,7 +3292,7 @@
                 },
                 "cost": {
                   "display": "$0.0082",
-                  "rank": 2,
+                  "rank": 3,
                   "value": 0.8212187755000001
                 },
                 "evidence": [
@@ -3194,7 +3326,7 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "89.40",
-                  "rank": 8,
+                  "rank": 9,
                   "value": 89.39729593741546
                 },
                 "speed": {
@@ -3204,7 +3336,7 @@
                 },
                 "cost": {
                   "display": "$0.0185",
-                  "rank": 5,
+                  "rank": 6,
                   "value": 1.8477422448750003
                 },
                 "evidence": [
@@ -3238,7 +3370,7 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "88.40",
-                  "rank": 9,
+                  "rank": 10,
                   "value": 88.39995953539949
                 },
                 "speed": {
@@ -3248,7 +3380,7 @@
                 },
                 "cost": {
                   "display": "$0.0082",
-                  "rank": 3,
+                  "rank": 4,
                   "value": 0.8212187755000001
                 },
                 "evidence": [
@@ -3292,7 +3424,7 @@
                 },
                 "cost": {
                   "display": "$0.0082",
-                  "rank": 1,
+                  "rank": 2,
                   "value": 0.8212187755000001
                 },
                 "evidence": [
@@ -3336,7 +3468,7 @@
                 },
                 "cost": {
                   "display": "$0.0185",
-                  "rank": 4,
+                  "rank": 5,
                   "value": 1.8477422448750003
                 },
                 "evidence": [
@@ -3380,7 +3512,7 @@
                 },
                 "cost": {
                   "display": "$0.1848",
-                  "rank": 10,
+                  "rank": 13,
                   "value": 18.48
                 },
                 "evidence": [
@@ -3414,7 +3546,7 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "93.27",
-                  "rank": 6,
+                  "rank": 7,
                   "value": 93.26751355405074
                 },
                 "speed": {
@@ -3424,7 +3556,7 @@
                 },
                 "cost": {
                   "display": "$0.0616",
-                  "rank": 8,
+                  "rank": 11,
                   "value": 6.15914081625
                 },
                 "evidence": [
@@ -3468,7 +3600,7 @@
                 },
                 "cost": {
                   "display": "$0.0616",
-                  "rank": 7,
+                  "rank": 10,
                   "value": 6.15914081625
                 },
                 "evidence": [
@@ -3536,7 +3668,7 @@
       "model": {
         "title": "Combined URL Provider Comparison",
         "category": "url",
-        "generatedAt": "2026-09-25T22:48:10.217Z",
+        "generatedAt": "2026-10-14T04:03:03.032Z",
         "rootDir": "docs/benchmarks/url",
         "summaryStats": [
           {
@@ -4180,7 +4312,7 @@
       "model": {
         "title": "TTS benchmark results",
         "category": "tts",
-        "generatedAt": "2026-09-25T22:48:10.217Z",
+        "generatedAt": "2026-10-14T04:03:03.032Z",
         "rootDir": "docs/benchmarks/tts",
         "summaryStats": [
           {

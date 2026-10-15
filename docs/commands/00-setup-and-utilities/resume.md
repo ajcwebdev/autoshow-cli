@@ -14,6 +14,7 @@ bun autoshow resume <outputDirs...> [flags]
 - Supported targets: `extract` (STT, OCR, URL article), write LLM, TTS, image, video, music, and comic scene runs.
 - For standalone runs, `resume` retries missing or failed providers and adds any `--provider` / `--all-providers` / `--all-local` selections. Already-successful providers are skipped. Write LLM resume requires explicit `--provider` or `--all-providers`.
 - Successful outputs are kept if some providers fail.
+- A split STT provider keeps each finished segment in `split-attempts/`. A recovery pass or a later `resume` that plans the same segment from the same audio, model, and options reuses it, so only unfinished segments are sent again.
 - Multiple directories are processed sequentially with the same flags. Per-directory failures do not stop later directories; all failures are reported at the end.
 - Parent `extract` batch directories resume their media, document, or article children. X Space runs are not resumable.
 - `--price` estimates the same missing or additive work without calling providers or writing files.

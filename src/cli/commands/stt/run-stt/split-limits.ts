@@ -11,7 +11,8 @@ const SPLIT_RETRY_ON_TOO_LARGE_ENGINES = new Set<string>([
   'happyscribe',
   'together',
   'gemini-stt',
-  'openai-stt'
+  'openai-stt',
+  'cloudflare'
 ])
 
 const MIN_ADAPTIVE_SPLIT_SEGMENT_SECONDS = 60

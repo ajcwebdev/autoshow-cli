@@ -319,7 +319,7 @@ export type SttAsyncJobLifecycle = {
 
 export type SttSegmentLifecycle = {
   provider: string
-  action: 'started' | 'completed'
+  action: 'started' | 'completed' | 'reused'
   segmentNumber?: number
   totalSegments?: number
   model?: string

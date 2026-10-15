@@ -1,4 +1,4 @@
 export const normalizeCredentialValue = (raw: string | undefined): string | undefined => {
   const value = raw?.trim()
-  return value && !/^your_[a-z0-9_]+_(?:key|token)_here$/i.test(value) ? value : undefined
+  return value && !/^your_[a-z0-9_]+_(?:key|token|id)_here$/i.test(value) ? value : undefined
 }

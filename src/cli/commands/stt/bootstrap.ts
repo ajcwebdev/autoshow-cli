@@ -24,6 +24,7 @@ const toBootstrapProviderId = (
     case 'gemini-stt':
     case 'together':
     case 'openai-stt':
+    case 'cloudflare':
       return getStep2BootstrapProviderId('stt', target.service) ?? ''
     case 'youtube-captions':
       return ''

@@ -93,6 +93,8 @@ Hosted commands require the matching environment variable:
 | `SONIOX_API_KEY`         | Soniox STT and TTS                     |
 | `SPEECHMATICS_API_KEY`   | Speechmatics STT                       |
 | `TOGETHER_API_KEY`       | Together write/STT                     |
+| `CLOUDFLARE_API_TOKEN`   | Cloudflare Workers AI STT              |
+| `CLOUDFLARE_ACCOUNT_ID`  | Cloudflare Workers AI account ID       |
 | `HAPPYSCRIBE_API_KEY`    | Happy Scribe STT                       |
 | `SUPADATA_API_KEY`       | Supadata STT/URL                       |
 | `SCRAPECREATORS_API_KEY` | ScrapeCreators STT                     |

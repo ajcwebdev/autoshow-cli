@@ -1,0 +1,59 @@
+{
+  "cloudflare": {
+    "description": "Cloudflare Workers AI Whisper speech-to-text",
+    "type": "api",
+    "models": {
+      "@cf/openai/whisper-large-v3-turbo": {
+        "description": "OpenAI Whisper large v3 turbo on Cloudflare Workers AI's run-model REST route",
+        "pricingSourceUrl": "https://developers.cloudflare.com/workers-ai/models/whisper-large-v3-turbo/",
+        "pricingCheckedAt": "2026-10-13",
+        "pricingCurrency": "USD",
+        "pricingTier": "Workers AI per-model unit pricing, billed in Neurons at $0.011 per 1,000",
+        "pricingNotes": "Cloudflare lists @cf/openai/whisper-large-v3-turbo at $0.000513 per audio minute (46.63 Neurons), stored as $0.03078/hr. The daily free allocation of 10,000 Neurons, AI Gateway credits, taxes, and provider credits are ignored.",
+        "costPerHourCents": 3.078,
+        "limits": {
+          "effectiveBytes": 8388608,
+          "notes": "The request is a JSON body carrying base64 audio, with optional task, language, vad_filter, initial_prompt, prefix, and decoding thresholds that AutoShow leaves at their defaults. Cloudflare publishes no audio size cap. A 7.2 MB, 10-minute mp3 succeeded as one request on 2026-10-13, so AutoShow applies a conservative 8 MiB operational cap and splits larger audio. Automatic Speech Recognition is rate limited at 720 requests per minute. A 413 (code 3006, request too large) triggers an adaptive split."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 78
+        }
+      },
+      "@cf/openai/whisper": {
+        "description": "OpenAI Whisper on Cloudflare Workers AI's run-model REST route",
+        "pricingSourceUrl": "https://developers.cloudflare.com/workers-ai/models/whisper/",
+        "pricingCheckedAt": "2026-10-13",
+        "pricingCurrency": "USD",
+        "pricingTier": "Workers AI per-model unit pricing, billed in Neurons at $0.011 per 1,000",
+        "pricingNotes": "Cloudflare lists @cf/openai/whisper at $0.000453 per audio minute (41.14 Neurons), stored as $0.02718/hr. The daily free allocation of 10,000 Neurons, AI Gateway credits, taxes, and provider credits are ignored.",
+        "costPerHourCents": 2.718,
+        "limits": {
+          "effectiveBytes": 4194304,
+          "notes": "The request body is the raw audio bytes and the model takes no other input. Cloudflare publishes no audio size cap. On 2026-10-13, 11-minute (8 MB) pieces of a long episode took up to 346 s and about one in six returned 408 (code 3046, AiError: Request timeout), so AutoShow caps requests at 4 MiB (about 5.5 minutes of 96 kbps mp3) and re-sends a timed-out request up to three times; account analytics showed timed-out requests billed no Neurons. Automatic Speech Recognition is rate limited at 720 requests per minute. A 413 (code 3006, request too large) triggers an adaptive split."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 139
+        }
+      },
+      "@cf/openai/whisper-tiny-en": {
+        "description": "OpenAI Whisper tiny English-only beta model on Cloudflare Workers AI's run-model REST route",
+        "pricingSourceUrl": "https://developers.cloudflare.com/workers-ai/models/whisper-tiny-en/",
+        "pricingCheckedAt": "2026-10-13",
+        "pricingCurrency": "USD",
+        "pricingTier": "Workers AI Neuron billing at $0.011 per 1,000, rate measured from response usage",
+        "pricingNotes": "Cloudflare marks @cf/openai/whisper-tiny-en as beta and publishes no unit price or Neuron rate for it. On 2026-10-13 a live response reported usage.neurons of 0.5997 for 59.585 seconds of audio, about 0.604 Neurons per audio minute, which at $0.011 per 1,000 Neurons is about $0.0000066 per audio minute, stored as $0.000399/hr. The same check on @cf/openai/whisper-large-v3-turbo matched its published 46.63 Neurons per minute. The daily free allocation of 10,000 Neurons, AI Gateway credits, taxes, and provider credits are ignored.",
+        "costPerHourCents": 0.0399,
+        "limits": {
+          "effectiveBytes": 4194304,
+          "notes": "The request body is the raw audio bytes and the model takes no other input. English only. Cloudflare publishes no audio size cap. It shares the 4 MiB cap set for @cf/openai/whisper after that model timed out (408, code 3046) on 11-minute pieces on 2026-10-13. Cloudflare notes that beta models may have lower rate limits than the 720 requests per minute Automatic Speech Recognition default. A 413 (code 3006, request too large) triggers an adaptive split."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 71
+        }
+      }
+    }
+  }
+}

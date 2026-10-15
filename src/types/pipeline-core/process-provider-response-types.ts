@@ -183,6 +183,50 @@ export const DeepgramResponseSchema = v.looseObject({
   })
 })
 
+const CloudflareWhisperWordSchema = v.looseObject({
+  word: v.nullish(v.string()),
+  start: v.nullish(v.number()),
+  end: v.nullish(v.number())
+})
+
+// @cf/openai/whisper-tiny-en returns segments whose words and decoding fields are null.
+const CloudflareWhisperSegmentSchema = v.looseObject({
+  start: v.nullish(v.number()),
+  end: v.nullish(v.number()),
+  text: v.nullish(v.string()),
+  words: v.nullish(v.array(CloudflareWhisperWordSchema))
+})
+
+const CloudflareApiMessageSchema = v.looseObject({
+  code: v.optional(v.number(), undefined),
+  message: v.optional(v.string(), undefined)
+})
+
+// Workers AI wraps every model result in the Cloudflare API envelope. @cf/openai/whisper returns top-level
+// words; @cf/openai/whisper-tiny-en returns top-level words plus segments without words;
+// @cf/openai/whisper-large-v3-turbo returns segments that carry their own words, plus transcription_info.
+// Successful results require text (including an empty string for silence); failure envelopes may omit it.
+export const CloudflareWhisperResponseSchema = v.pipe(v.looseObject({
+  success: v.optional(v.boolean(), undefined),
+  errors: v.optional(v.array(CloudflareApiMessageSchema), undefined),
+  result: v.optional(v.nullable(v.looseObject({
+    text: v.nullish(v.string()),
+    word_count: v.nullish(v.number()),
+    vtt: v.nullish(v.string()),
+    words: v.nullish(v.array(CloudflareWhisperWordSchema)),
+    segments: v.nullish(v.array(CloudflareWhisperSegmentSchema)),
+    transcription_info: v.optional(v.looseObject({
+      language: v.optional(v.string(), undefined),
+      language_probability: v.optional(v.number(), undefined),
+      duration: v.optional(v.number(), undefined),
+      duration_after_vad: v.optional(v.number(), undefined)
+    }), undefined)
+  })), undefined)
+}), v.forward(v.check(
+  response => response.success === false || typeof response.result?.text === 'string',
+  'Cloudflare Workers AI STT success response requires result.text to be a string.'
+), ['result', 'text']))
+
 export const SonioxFileResponseSchema = v.object({
   id: v.string()
 })
@@ -297,3 +341,4 @@ export const SpeechmaticsTranscriptResponseSchema = v.looseObject({
 
 export type GladiaStatusResponse = v.InferOutput<typeof GladiaStatusResponseSchema>
 export type DeepgramResponse = v.InferOutput<typeof DeepgramResponseSchema>
+export type CloudflareWhisperResponse = v.InferOutput<typeof CloudflareWhisperResponseSchema>

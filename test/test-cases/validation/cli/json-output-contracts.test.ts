@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test'
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { preScanJsonMode, runCliInProcess } from '~/cli/create-cli'
+import { resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { flushStagedResult, isolateCommandResult, requireIsolatedResult, runWithResultInvocation, stageResult } from '~/utils/app-logger/result-emitter'
 import { captureConsoleText, captureProcessOutput } from '../../../test-utils/console-capture'
 
@@ -100,6 +104,35 @@ describe('JSON CLI output protocol', () => {
     expect(text.stdout).toMatch(/^v\d/)
     expect(text.stdout).not.toContain('"type":"result"')
   })
+
+  for (const concurrency of [1, 2]) {
+    test(`download batches with concurrency ${concurrency} publish one result for all completed items`, async () => {
+      const root = await mkdtemp(join(tmpdir(), 'autoshow-json-download-batch-'))
+      try {
+        const input = join(root, 'input')
+        const output = join(root, 'output')
+        await mkdir(input)
+        await Bun.write(join(input, 'first.csv'), 'name,value\nfirst,1\n')
+        await Bun.write(join(input, 'second.csv'), 'name,value\nsecond,2\n')
+
+        const captured = await captureProcessOutput(() => runCliInProcess([
+          'download', input, '--batch-limit', 'all', '--batch-concurrency', String(concurrency), '--output-dir', output, '--json'
+        ]))
+        const results = parseLines(captured.stdout)
+        const manifest = await Bun.file(join(output, 'manifest.json')).json()
+
+        expect(captured.result).toBe(0)
+        expect(results).toHaveLength(1)
+        expect(results[0]).toMatchObject({ status: 'success', exitCode: 0, data: { outputDir: output } })
+        expect(manifest.items).toHaveLength(2)
+        expect(manifest.items.map((item: { status: string }) => item.status)).toEqual(['full', 'full'])
+        expect(parseLines(captured.stderr).filter(record => record['level'] === 'error')).toEqual([])
+      } finally {
+        resetPinnedRunDir()
+        await rm(root, { recursive: true, force: true })
+      }
+    })
+  }
 
   test('missing and duplicate staged results are internal errors before output', async () => {
     await expect(runWithResultInvocation({ json: false, runId: 'missing' }, () => {

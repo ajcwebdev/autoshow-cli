@@ -29,6 +29,7 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'gemini-stt',
   'together-stt',
   'openai-stt',
+  'cloudflare-stt',
   'mistral-ocr',
   'glm-ocr',
   'kimi-ocr',
@@ -82,6 +83,7 @@ const STT_SELECTION_PROBE = {
   geminiSttModels: ['gemini-3-flash-preview'],
   togetherSttModels: ['openai/whisper-large-v3'],
   openaiSttModels: ['gpt-transcribe'],
+  cloudflareSttModels: undefined,
   whisperfileModels: ['tiny'],
   step2SelectionOrigins: {
     'gemini-stt': 'explicit',

@@ -1,6 +1,7 @@
 import { isSttPartialCompletionError } from '~/cli/commands/stt/batch'
 import type { BatchItemOutcome, ExecuteBatchItemContext } from '~/types'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
+import { isolateCommandResult } from '~/utils/app-logger/result-emitter'
 import { attachOutputDir, getErrorOutputDir, getPipelineItemErrorCount, getPipelineItemStatus, readBatchChildItemRecord } from './pipeline-item-record-state'
 import { buildSttBatchItemDetail, logBatchItemStatus } from './download-batch-summary'
 
@@ -12,7 +13,7 @@ export const executeBatchItem = async <TOptions extends object>(
   item: string,
   index: number
 ): Promise<BatchItemOutcome> =>
-  await runWithLogContext({ batchId: ctx.batchDirName, itemIndex: index + 1, itemCount: ctx.itemCount }, async () => {
+  (await isolateCommandResult(() => runWithLogContext({ batchId: ctx.batchDirName, itemIndex: index + 1, itemCount: ctx.itemCount }, async (): Promise<BatchItemOutcome> => {
     logBatchItemStatus('info', item, 'processing')
 
     try {
@@ -82,4 +83,4 @@ export const executeBatchItem = async <TOptions extends object>(
       logBatchItemStatus('error', item, 'failed', message)
       return { itemRecord: null, errorCount: 0, status: 'failed', failureError: error }
     }
-  })
+  }))).value

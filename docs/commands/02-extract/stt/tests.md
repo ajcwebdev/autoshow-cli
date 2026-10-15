@@ -1,6 +1,6 @@
 # STT Tests
 
-Local whisperfile coverage, plus hosted speech-to-text for AssemblyAI, Deepgram, DeepInfra, Gemini, Gladia, Grok, Mistral, OpenAI, Soniox, Speechmatics, and Together. The hosted command may call paid or quota-limited providers.
+Local whisperfile coverage, plus hosted speech-to-text for AssemblyAI, Cloudflare, Deepgram, DeepInfra, Gemini, Gladia, Grok, Mistral, OpenAI, Soniox, Speechmatics, and Together. The hosted command may call paid or quota-limited providers.
 
 ## Quick Start
 

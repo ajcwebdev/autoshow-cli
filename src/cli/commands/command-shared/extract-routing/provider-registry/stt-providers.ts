@@ -14,6 +14,7 @@ import {
   SUPPORTED_GEMINI_STT_MODELS,
   SUPPORTED_TOGETHER_STT_MODELS,
   SUPPORTED_OPENAI_STT_MODELS,
+  SUPPORTED_CLOUDFLARE_STT_MODELS,
   validateWhisperfileModel,
   validateDeepinfraSttModel,
   validateDeepgramSttModel,
@@ -28,7 +29,8 @@ import {
   validateScrapeCreatorsSttModel,
   validateGeminiSttModel,
   validateTogetherSttModel,
-  validateOpenAISttModel
+  validateOpenAISttModel,
+  validateCloudflareSttModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { buildModelDescription } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import type { Step2ProviderRegistryEntry } from '~/types'
@@ -109,6 +111,11 @@ export const STEP2_STT_PROVIDER_REGISTRY = [
     supportedModels: SUPPORTED_OPENAI_STT_MODELS,
     validateModel: validateOpenAISttModel,
     description: buildModelDescription('OpenAI batch STT model (API, billed)', SUPPORTED_OPENAI_STT_MODELS)
+  }),
+  sttModelProvider('cloudflare', 'cloudflareStt', {
+    supportedModels: SUPPORTED_CLOUDFLARE_STT_MODELS,
+    validateModel: validateCloudflareSttModel,
+    description: buildModelDescription('Cloudflare Workers AI Whisper STT model (API, billed)', SUPPORTED_CLOUDFLARE_STT_MODELS)
   }),
   sttModelProvider('whisperfile', 'whisperfile', {
     bootstrapProviderId: 'whisperfile',

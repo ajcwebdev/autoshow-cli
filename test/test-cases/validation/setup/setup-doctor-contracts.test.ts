@@ -5,7 +5,7 @@ import {
   runDoctor
 } from '~/cli/commands/setup-and-utilities/setup/run-doctor'
 import {
-  findHostedProviderEnvKeyForConfigPath,
+  findHostedProviderEnvKeysForConfigPath,
   getHostedProviderEnvKeysForConfigPrefix,
   HOSTED_PROVIDER_ENV_CHECKS
 } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
@@ -336,9 +336,9 @@ describe('setup doctor contracts', () => {
       const expected = new Set<string>()
       const unmapped: string[] = []
       for (const flagName of Object.values(targets)) {
-        const envVar = findHostedProviderEnvKeyForConfigPath(configPathFor(flagName))
-        if (envVar === undefined) unmapped.push(flagName)
-        else expected.add(envVar)
+        const envVars = findHostedProviderEnvKeysForConfigPath(configPathFor(flagName))
+        if (envVars.length === 0) unmapped.push(flagName)
+        for (const envVar of envVars) expected.add(envVar)
       }
 
       expect(unmapped).toEqual([])
@@ -358,14 +358,16 @@ describe('setup doctor contracts', () => {
       if (enginesWithoutHostedCredentials.has(target)) continue
       const suffix = target.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())
       const configPath = `${prefix}${suffix}`
-      const envVar = findHostedProviderEnvKeyForConfigPath(configPath)
-      if (envVar === undefined) unmapped.push(target)
-      else expected.add(envVar)
+      const envVars = findHostedProviderEnvKeysForConfigPath(configPath)
+      if (envVars.length === 0) unmapped.push(target)
+      for (const envVar of envVars) expected.add(envVar)
     }
 
     expect(unmapped).toEqual([])
     expect([...getHostedProviderEnvKeysForConfigPrefix(prefix)].sort()).toEqual([...expected].sort())
     expect(expected).toContain('OPENAI_API_KEY')
+    expect(expected).toContain('CLOUDFLARE_API_TOKEN')
+    expect(expected).toContain('CLOUDFLARE_ACCOUNT_ID')
     expect(expected).not.toContain('GLM_API_KEY')
     expect(expected).not.toContain('ELEVENLABS_API_KEY')
   })
@@ -382,9 +384,9 @@ describe('setup doctor contracts', () => {
       for (const target of Object.values(targets)) {
         if (localTargets.has(target)) continue
         const suffix = target.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())
-        const envVar = findHostedProviderEnvKeyForConfigPath(`${prefix}${suffix}`)
-        if (envVar === undefined) unmapped.push(target)
-        else expected.add(envVar)
+        const envVars = findHostedProviderEnvKeysForConfigPath(`${prefix}${suffix}`)
+        if (envVars.length === 0) unmapped.push(target)
+        for (const envVar of envVars) expected.add(envVar)
       }
 
       expect(unmapped).toEqual([])

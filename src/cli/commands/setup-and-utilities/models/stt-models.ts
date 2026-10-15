@@ -76,6 +76,12 @@ export const SUPPORTED_TOGETHER_STT_MODELS = [
   'nvidia/parakeet-tdt-0.6b-v3'
 ] as const satisfies readonly string[]
 
+export const SUPPORTED_CLOUDFLARE_STT_MODELS = [
+  '@cf/openai/whisper-large-v3-turbo',
+  '@cf/openai/whisper',
+  '@cf/openai/whisper-tiny-en'
+] as const satisfies readonly string[]
+
 export const validateWhisperfileModel = createModelValidator(SUPPORTED_WHISPERFILE_MODELS, 'whisperfile', 'This selector uses local whisperfile models.')
 export const validateDeepgramSttModel = createModelValidator(SUPPORTED_DEEPGRAM_STT_MODELS, 'deepgram-stt')
 export const validateDeepinfraSttModel = createModelValidator(SUPPORTED_DEEPINFRA_STT_MODELS, 'deepinfra-stt', 'This selector accepts DeepInfra batch speech-to-text deployments served on the OpenAI-compatible transcription route.')
@@ -90,4 +96,5 @@ export const validateSupadataSttModel = createModelValidator(SUPPORTED_SUPADATA_
 export const validateScrapeCreatorsSttModel = createModelValidator(SUPPORTED_SCRAPECREATORS_STT_MODELS, 'scrapecreators-stt')
 export const validateGeminiSttModel = createRetiringModelValidator('stt', 'gemini-stt', SUPPORTED_GEMINI_STT_MODELS, 'gemini-stt')
 export const validateTogetherSttModel = createModelValidator(SUPPORTED_TOGETHER_STT_MODELS, 'together-stt', 'This selector accepts concrete Together serverless batch transcription models.')
+export const validateCloudflareSttModel = createModelValidator(SUPPORTED_CLOUDFLARE_STT_MODELS, 'cloudflare-stt', 'This selector accepts the Whisper models Cloudflare Workers AI serves on its run-model REST route.')
 export const validateOpenAISttModel = createModelValidator(SUPPORTED_OPENAI_STT_MODELS, 'openai-stt', 'This selector accepts OpenAI batch transcription models on /v1/audio/transcriptions; streaming-only and deprecated transcription identities are excluded.')

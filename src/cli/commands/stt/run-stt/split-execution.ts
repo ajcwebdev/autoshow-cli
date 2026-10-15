@@ -1,19 +1,22 @@
 import { InternalError } from '~/utils/error-handler'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
-import type { IndexedTranscriptionChunk, SplitLimitClassification, SplitPolicyTarget, Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult } from '~/types'
+import type { AudioSegmentDescriptor, IndexedTranscriptionChunk, SplitLimitClassification, SplitPolicyTarget, Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult } from '~/types'
 import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import { isRecord } from '~/utils/rest-client'
 import { mergeStep2TimingMetadata } from '../workflows/timing/stt-timing-metadata'
 import { splitAudioFile } from '../stt-utils/audio-splitter'
 import { formatTranscriptText } from '../stt-utils/stt-utils'
 import { mergeTranscriptionEvidence } from '../stt-utils/stt-evidence'
-import { writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
+import { parseStoredTranscriptionResult, writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
+import { parseStoredStep2Metadata } from '../stt-batch/stt-run-state'
 import {
   DEFAULT_SPLIT_SEGMENT_DURATION_MINUTES,
   resolveEffectiveSplitSegmentDurationMinutes,
   resolveSttSplitPolicy,
   resolveTranscriptionSplitDecision
 } from '../stt-split-policy'
-import { logSttSplitDecision } from '../stt-logging'
+import { logSttSegmentLifecycle, logSttSplitDecision } from '../stt-logging'
 import { dispatchStt } from './dispatch'
 import { classifySttSplitLimitError, resolveAdaptiveSplitSegmentDurationMinutes } from './split-limits'
 import { runHostedConcurrencyRequest } from '~/cli/commands/command-shared/hosted-concurrency-coordinator'
@@ -24,6 +27,65 @@ export const resolveSplitSegmentOutputDir = (
   segmentOutputDir: string,
   segmentNumber: number
 ): string => `${segmentOutputDir}/segment-runs/segment_${String(segmentNumber).padStart(3, '0')}`
+
+export const SPLIT_SEGMENT_CHECKPOINT_FILE = 'segment-checkpoint.json'
+const SPLIT_SEGMENT_CHECKPOINT_VERSION = 1
+
+// A finished segment is saved with a fingerprint of everything that shaped its request: the segment audio bytes,
+// its place in the recording, the provider and model, and the target options that change the transcript. A later
+// adaptive pass, recovery pass, or `resume` that plans the same segment reuses it instead of paying for that audio
+// again; any difference sends the request.
+export const buildSplitSegmentFingerprint = async (
+  target: SttTarget,
+  segment: Pick<AudioSegmentDescriptor, 'path' | 'startSeconds' | 'durationSeconds'>
+): Promise<string> => {
+  const audioSha256 = new Bun.CryptoHasher('sha256').update(await Bun.file(segment.path).arrayBuffer()).digest('hex')
+  const identity = {
+    version: SPLIT_SEGMENT_CHECKPOINT_VERSION,
+    service: target.service,
+    model: target.model,
+    diarizationOptions: target.diarizationOptions ?? null,
+    nativeSubtitles: target.nativeSubtitles ?? null,
+    nativeResponseFormat: target.nativeResponseFormat ?? null,
+    grokSttVerbatim: target.grokSttVerbatim ?? null,
+    supadataChunkSize: target.supadataChunkSize ?? null,
+    startSeconds: segment.startSeconds,
+    durationSeconds: segment.durationSeconds,
+    audioSha256
+  }
+  return new Bun.CryptoHasher('sha256').update(JSON.stringify(identity)).digest('hex')
+}
+
+export const readSplitSegmentCheckpoint = async (
+  segmentRunOutputDir: string,
+  fingerprint: string
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata } | undefined> => {
+  const file = Bun.file(join(segmentRunOutputDir, SPLIT_SEGMENT_CHECKPOINT_FILE))
+  if (!(await file.exists())) return undefined
+  try {
+    const parsed: unknown = JSON.parse(await file.text())
+    if (!isRecord(parsed) || parsed['version'] !== SPLIT_SEGMENT_CHECKPOINT_VERSION || parsed['fingerprint'] !== fingerprint || !isRecord(parsed['data'])) return undefined
+    const result = parseStoredTranscriptionResult(parsed['data']['result'])
+    const metadata = parseStoredStep2Metadata(parsed['data']['metadata'])
+    if (!result || !metadata || metadata.transcriptionModel.trim().length === 0
+      || !Number.isFinite(metadata.processingTime) || metadata.processingTime < 0
+      || !Number.isFinite(metadata.tokenCount) || metadata.tokenCount < 0) return undefined
+    return { result, metadata }
+  } catch {
+    return undefined
+  }
+}
+
+export const writeSplitSegmentCheckpoint = async (
+  segmentRunOutputDir: string,
+  fingerprint: string,
+  data: { result: TranscriptionResult, metadata: Step2Metadata }
+): Promise<void> => {
+  await Bun.write(
+    join(segmentRunOutputDir, SPLIT_SEGMENT_CHECKPOINT_FILE),
+    `${JSON.stringify({ version: SPLIT_SEGMENT_CHECKPOINT_VERSION, fingerprint, data })}\n`
+  )
+}
 
 const persistTranscriptionStructuredArtifact = async (
   outputDir: string,
@@ -174,6 +236,19 @@ const runSplitTranscription = async (
 
       try {
         await mkdir(segmentRunOutputDir, { recursive: true })
+        const fingerprint = await buildSplitSegmentFingerprint(target, segmentDescriptor)
+        const checkpoint = await readSplitSegmentCheckpoint(segmentRunOutputDir, fingerprint)
+        if (checkpoint) {
+          logSttSegmentLifecycle({
+            provider: target.service,
+            action: 'reused',
+            segmentNumber: segmentDescriptor.segmentNumber,
+            totalSegments: segmentDescriptor.totalSegments,
+            model: target.model
+          })
+          results.push({ segmentIndex: currentIndex, data: checkpoint })
+          continue
+        }
         const runSegment = async () => await dispatchStt(
           target,
           segmentDescriptor.path,
@@ -204,6 +279,7 @@ const runSplitTranscription = async (
               }
             }, async () => await runSegment())
           : await runSegment()
+        await writeSplitSegmentCheckpoint(segmentRunOutputDir, fingerprint, data)
         results.push({ segmentIndex: currentIndex, data })
       } catch (error) {
         failure = error

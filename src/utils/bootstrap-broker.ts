@@ -74,6 +74,12 @@ const handlers: Record<string, BootstrapHandler> = {
   'openai-stt': {
     ensure: async (): Promise<void> => { resolveCredential('openai', 'require', { stage: 'stt:openai', description: 'OpenAI transcription' }) }
   },
+  'cloudflare-stt': {
+    ensure: async (): Promise<void> => {
+      resolveCredential('cloudflare', 'require', { stage: 'stt:cloudflare', description: 'Cloudflare Workers AI transcription' })
+      resolveCredential('cloudflare-account', 'require', { stage: 'stt:cloudflare', description: 'Cloudflare Workers AI transcription' })
+    }
+  },
 }
 
 const resolveHandler = (provider: string): { cacheKey: string, handler: BootstrapHandler, model?: string } => {

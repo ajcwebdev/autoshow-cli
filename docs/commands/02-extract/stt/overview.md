@@ -22,26 +22,27 @@ On `extract` and `resume`, pass `--provider provider[=model]`. On `setup`, persi
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | [Local](local/overview.md)                                           | Whisperfile                                                                             |
 | [Diarization](diarization/overview.md)                               | AssemblyAI, Deepgram, Gemini, Gladia, Grok, Happy Scribe, Mistral, Soniox, Speechmatics |
-| [Diarization off by default](diarization-off-by-default/overview.md) | DeepInfra, OpenAI, Together                                                             |
+| [Diarization off by default](diarization-off-by-default/overview.md) | Cloudflare, DeepInfra, OpenAI, Together                                                 |
 
 See each subgroup for selectors, examples, and per-model capabilities. Public media URL transcripts (Supadata, ScrapeCreators) and YouTube caption fallback live under [URL extraction](../url/overview.md#public-media-url-transcripts).
 
 ## STT Environment
 
-| Provider     | Required env           |
-| ------------ | ---------------------- |
-| AssemblyAI   | `ASSEMBLYAI_API_KEY`   |
-| Deepgram     | `DEEPGRAM_API_KEY`     |
-| DeepInfra    | `DEEPINFRA_API_KEY`    |
-| Gemini STT   | `GEMINI_API_KEY`       |
-| Gladia       | `GLADIA_API_KEY`       |
-| Grok STT     | `XAI_API_KEY`          |
-| Happy Scribe | `HAPPYSCRIBE_API_KEY`  |
-| Mistral      | `MISTRAL_API_KEY`      |
-| OpenAI STT   | `OPENAI_API_KEY`       |
-| Soniox       | `SONIOX_API_KEY`       |
-| Speechmatics | `SPEECHMATICS_API_KEY` |
-| Together     | `TOGETHER_API_KEY`     |
+| Provider     | Required env                                    |
+| ------------ | ----------------------------------------------- |
+| AssemblyAI   | `ASSEMBLYAI_API_KEY`                            |
+| Cloudflare   | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` |
+| Deepgram     | `DEEPGRAM_API_KEY`                              |
+| DeepInfra    | `DEEPINFRA_API_KEY`                             |
+| Gemini STT   | `GEMINI_API_KEY`                                |
+| Gladia       | `GLADIA_API_KEY`                                |
+| Grok STT     | `XAI_API_KEY`                                   |
+| Happy Scribe | `HAPPYSCRIBE_API_KEY`                           |
+| Mistral      | `MISTRAL_API_KEY`                               |
+| OpenAI STT   | `OPENAI_API_KEY`                                |
+| Soniox       | `SONIOX_API_KEY`                                |
+| Speechmatics | `SPEECHMATICS_API_KEY`                          |
+| Together     | `TOGETHER_API_KEY`                              |
 
 ## Shared STT Options
 
@@ -94,7 +95,7 @@ Per-model hourly estimates are in each subgroup capability table. `--price` prin
 AssemblyAI Universal-3.5 Pro is $0.21/hour, plus $0.02/hour for diarization ($0.23/hour by default). `--no-diarization` removes that add-on. Deepgram Nova-3 is $0.258/hour, and diarization is included. Estimates use prerecorded rates. [AssemblyAI pricing](https://www.assemblyai.com/pricing), [Deepgram pricing](https://deepgram.com/pricing).
 
 - **Happy Scribe**: Estimated at `$0.01/min` from audio duration.
-- **Duration-priced hosted providers** (AssemblyAI, Deepgram, DeepInfra, Gladia, Grok STT, Mistral, OpenAI STT, Soniox, Speechmatics, Together): Estimated from media duration and published per-hour rates.
+- **Duration-priced hosted providers** (AssemblyAI, Cloudflare, Deepgram, DeepInfra, Gladia, Grok STT, Mistral, OpenAI STT, Soniox, Speechmatics, Together): Estimated from media duration and published per-hour rates.
 - **Token-priced providers** (Gemini STT): Estimated from media duration at about $0.30/hour.
 
 ## STT Notes

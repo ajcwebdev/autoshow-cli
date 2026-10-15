@@ -31,6 +31,7 @@ const ExtractSttDefaultsSchema = v.strictObject({
   geminiStt: ModelArraySchema,
   togetherStt: ModelArraySchema,
   openaiStt: ModelArraySchema,
+  cloudflareStt: ModelArraySchema,
   whisperfile: ModelArraySchema,
   language: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
   speechmaticsStt: ModelArraySchema,

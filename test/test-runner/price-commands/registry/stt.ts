@@ -42,6 +42,11 @@ export const sttRegistry: PriceSelectionEntry[] = [
     command('transcribe-together-openai/whisper-large-v3', 'transcribe-together-openai/whisper-large-v3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'together=openai/whisper-large-v3', '--price']),
     command('transcribe-together-nvidia/parakeet-tdt-0.6b-v3', 'transcribe-together-nvidia/parakeet-tdt-0.6b-v3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'together=nvidia/parakeet-tdt-0.6b-v3', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/cloudflare-whisper.test.ts', [
+    command('transcribe-cloudflare-@cf/openai/whisper-large-v3-turbo', 'transcribe-cloudflare-@cf/openai/whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'cloudflare=@cf/openai/whisper-large-v3-turbo', '--price']),
+    command('transcribe-cloudflare-@cf/openai/whisper', 'transcribe-cloudflare-@cf/openai/whisper', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'cloudflare=@cf/openai/whisper', '--price']),
+    command('transcribe-cloudflare-@cf/openai/whisper-tiny-en', 'transcribe-cloudflare-@cf/openai/whisper-tiny-en', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'cloudflare=@cf/openai/whisper-tiny-en', '--price']),
+  ]),
   ...exact('test/test-cases/e2e/service/stt/diarization/soniox-stt-async-v5.test.ts', [
     command('transcribe-soniox-stt-async-v5', 'transcribe-soniox-stt-async-v5', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'soniox=stt-async-v5', '--price']),
   ]),

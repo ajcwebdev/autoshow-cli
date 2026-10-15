@@ -295,6 +295,8 @@ const executeExtractBatchPlan = async (
     }
     throw error
   }
+
+  l.report.complete(batchDir, { manifest: PIPELINE_MANIFEST_FILE })
 }
 
 export const executeBatchPlan = async (
@@ -352,5 +354,9 @@ export const executeBatchPlan = async (
       ;(error as Error & { exitCode?: number }).exitCode = failureExitCode
     }
     throw error
+  }
+
+  if (batchResult.batchDir) {
+    l.report.complete(batchResult.batchDir, { manifest: PIPELINE_MANIFEST_FILE })
   }
 }
