@@ -112,6 +112,7 @@ export const WRITE_STT_PROVIDER_TARGETS = {
   gemini: 'gemini-stt',
   together: 'together-stt',
   openai: 'openai-stt',
+  cloudflare: 'cloudflare-stt',
   whisperfile: 'whisperfile-stt'
 } as const satisfies Record<string, string>
 

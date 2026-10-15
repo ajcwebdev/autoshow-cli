@@ -6,6 +6,20 @@ See the [STT overview](../overview.md) for shared options, environment variables
 
 ## Providers
 
+### Cloudflare
+
+| Option   | Value                                                                                   |
+| -------- | --------------------------------------------------------------------------------------- |
+| Selector | `--provider cloudflare[=<model>]`                                                       |
+| Models   | `@cf/openai/whisper-large-v3-turbo`, `@cf/openai/whisper`, `@cf/openai/whisper-tiny-en` |
+
+```bash
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider cloudflare
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider cloudflare=@cf/openai/whisper-large-v3-turbo
+```
+
+Bare `--provider cloudflare` defaults to the cheapest model, `@cf/openai/whisper-tiny-en`. These are the Whisper models on Workers AI; set both `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. `@cf/openai/whisper-tiny-en` is an English-only beta model with no published price; its rate comes from the Neuron usage Cloudflare reports in each response.
+
 ### DeepInfra
 
 | Option   | Value                                                                                                                                                                                                                                 |
@@ -53,15 +67,18 @@ Bare `--provider openai` defaults to `gpt-transcribe`. On document and image inp
 
 Rows are newest first. Pricing is the AutoShow per-hour estimate.
 
-| Provider                                                        | Released   | Word timestamps | Duration          | File size         | Pricing   |
-| --------------------------------------------------------------- | ---------- | --------------- | ----------------- | ----------------- | --------- |
-| OpenAI `gpt-transcribe`                                         | 2026-07-28 | Text only       | No documented cap | 25 MB             | $0.27/hr  |
-| DeepInfra `nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b` | 2026-06-04 | Native words    | 15 minutes        | No documented cap | $0.012/hr |
-| DeepInfra `Qwen/Qwen3-ASR-1.7B`                                 | 2026-01-29 | Native words    | 30 minutes        | No documented cap | $0.027/hr |
-| DeepInfra `Qwen/Qwen3-ASR-0.6B`                                 | 2026-01-29 | Native words    | 30 minutes        | No documented cap | $0.012/hr |
-| Together `nvidia/parakeet-tdt-0.6b-v3`                          | 2025-08-14 | Native words    | 4 hours           | 500 MiB           | $0.09/hr  |
-| DeepInfra `mistralai/Voxtral-Small-24B-2507`                    | 2025-07-15 | Text only       | 30 minutes        | No documented cap | $0.18/hr  |
-| DeepInfra `mistralai/Voxtral-Mini-3B-2507`                      | 2025-07-15 | Text only       | 30 minutes        | No documented cap | $0.06/hr  |
-| DeepInfra `openai/whisper-large-v3-turbo`                       | 2024-09    | Native words    | No documented cap | No documented cap | $0.012/hr |
-| DeepInfra `openai/whisper-large-v3`                             | 2023-11    | Native words    | No documented cap | No documented cap | $0.027/hr |
-| Together `openai/whisper-large-v3`                              | 2023-11    | Native words    | 4 hours           | 20 MiB            | $0.09/hr  |
+| Provider                                                        | Released   | Word timestamps | Duration          | File size         | Pricing    |
+| --------------------------------------------------------------- | ---------- | --------------- | ----------------- | ----------------- | ---------- |
+| OpenAI `gpt-transcribe`                                         | 2026-07-28 | Text only       | No documented cap | 25 MB             | $0.27/hr   |
+| DeepInfra `nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b` | 2026-06-04 | Native words    | 15 minutes        | No documented cap | $0.012/hr  |
+| DeepInfra `Qwen/Qwen3-ASR-1.7B`                                 | 2026-01-29 | Native words    | 30 minutes        | No documented cap | $0.027/hr  |
+| DeepInfra `Qwen/Qwen3-ASR-0.6B`                                 | 2026-01-29 | Native words    | 30 minutes        | No documented cap | $0.012/hr  |
+| Together `nvidia/parakeet-tdt-0.6b-v3`                          | 2025-08-14 | Native words    | 4 hours           | 500 MiB           | $0.09/hr   |
+| DeepInfra `mistralai/Voxtral-Small-24B-2507`                    | 2025-07-15 | Text only       | 30 minutes        | No documented cap | $0.18/hr   |
+| DeepInfra `mistralai/Voxtral-Mini-3B-2507`                      | 2025-07-15 | Text only       | 30 minutes        | No documented cap | $0.06/hr   |
+| Cloudflare `@cf/openai/whisper-large-v3-turbo`                  | 2024-09    | Native words    | No documented cap | 8 MiB             | $0.031/hr  |
+| DeepInfra `openai/whisper-large-v3-turbo`                       | 2024-09    | Native words    | No documented cap | No documented cap | $0.012/hr  |
+| DeepInfra `openai/whisper-large-v3`                             | 2023-11    | Native words    | No documented cap | No documented cap | $0.027/hr  |
+| Together `openai/whisper-large-v3`                              | 2023-11    | Native words    | 4 hours           | 20 MiB            | $0.09/hr   |
+| Cloudflare `@cf/openai/whisper`                                 | 2022-09    | Native words    | No documented cap | 4 MiB             | $0.027/hr  |
+| Cloudflare `@cf/openai/whisper-tiny-en`                         | 2022-09    | Native words    | No documented cap | 4 MiB             | $0.0004/hr |

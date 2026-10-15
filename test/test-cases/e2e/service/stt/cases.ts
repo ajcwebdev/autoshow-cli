@@ -26,6 +26,14 @@ export const togetherTranscription = {
   envVarDescription: 'Together transcription',
 } as const
 
+export const cloudflareWhisper = {
+  provider: 'cloudflare',
+  sttService: 'cloudflare',
+  envVarKey: 'CLOUDFLARE_API_TOKEN',
+  extraEnvVarKeys: ['CLOUDFLARE_ACCOUNT_ID'],
+  envVarDescription: 'Cloudflare Workers AI transcription',
+} as const
+
 export const gladiaTranscription = {
   provider: 'gladia',
   sttService: 'gladia',

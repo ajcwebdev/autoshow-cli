@@ -56,14 +56,14 @@ const splitsSurrogatePair = (text: string, index: number): boolean => {
   return before >= 0xd800 && before <= 0xdbff
 }
 
-const selectSmartCut = (remaining: string, maxChars: number): { index: number, hardCut: boolean } => {
+const selectSmartCut = (remaining: string, maxChars: number, adjustBoundary?: (text: string, index: number, limit: number) => number): { index: number, hardCut: boolean } => {
   const parts = Math.ceil(remaining.length / maxChars)
   const target = Math.min(maxChars, Math.ceil(remaining.length / parts))
   const lowest = Math.max(1, Math.floor(target * MIN_WINDOW_RATIO))
   let best: { index: number, rank: number, distance: number } | undefined
   for (let index = lowest; index <= maxChars && index < remaining.length; index += 1) {
     if (!/\s/u.test(remaining[index] as string) || /\s/u.test(remaining[index - 1] as string)) continue
-    if (insideInlineTag(remaining, index)) continue
+    if (insideInlineTag(remaining, index) && (!adjustBoundary || adjustBoundary(remaining, index, maxChars) !== index)) continue
     const separator = /^\s+/u.exec(remaining.slice(index))?.[0] ?? ''
     const rank = BOUNDARY_RANK[classifySeam(remaining.slice(0, index), separator, false) as Exclude<TtsChunkBoundary, 'end'>]
     const distance = Math.abs(index - target)
@@ -79,7 +79,7 @@ const planSmartChunks = (text: string, maxChars: number, adjustBoundary?: (text:
   const chunks: PlannedTtsChunk[] = []
   let remaining = text.trim()
   while (remaining.length > maxChars) {
-    const cut = selectSmartCut(remaining, maxChars)
+    const cut = selectSmartCut(remaining, maxChars, adjustBoundary)
     cut.index = (adjustBoundary ?? preserveTtsInlineBoundary)(remaining, cut.index, maxChars)
     if (cut.index < 1 || cut.index > maxChars) throw UsageError('TTS chunk policy produced an invalid boundary.')
     const chunkText = remaining.slice(0, cut.index).trim()

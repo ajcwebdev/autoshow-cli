@@ -80,6 +80,7 @@ Accepted provider selectors are the lowercase names below. Fetch other documenta
 | --------------------------- | -------------------------------------------------------------------------------------- |
 | `--provider assembly`       | `general`, `llmstxt`, `models`, `stt`                                                  |
 | `--provider claude`         | `general`, `llmstxt`, `models`, `ocr`, `text`                                          |
+| `--provider cloudflare`     | `general`, `llmstxt`, `models`, `stt`                                                  |
 | `--provider deepgram`       | `general`, `llmstxt`, `stt`                                                            |
 | `--provider deepinfra`      | `general`, `llmstxt`, `models`, `ocr`, `stt`                                           |
 | `--provider elevenlabs`     | `general`, `llmstxt`, `models`, `music`, `tts`                                         |

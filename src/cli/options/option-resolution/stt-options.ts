@@ -50,6 +50,7 @@ export const STT_MODEL_KEYS = [
   'happyscribeSttModels', 'supadataSttModels',
   'scrapecreatorsSttModels', 'geminiSttModels',
   'togetherSttModels', 'openaiSttModels',
+  'cloudflareSttModels',
 ] as const satisfies readonly SttRuntimeOptionKey[]
 
 export const buildSttOptions = (ctx: ResolvedFlagContext): SttRuntimeOptions => {

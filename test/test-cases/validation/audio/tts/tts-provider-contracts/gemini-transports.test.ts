@@ -9,6 +9,7 @@ import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { runTtsForTargets } from '~/cli/commands/audio/tts/run-tts'
 import { buildPureCurrentTtsRenderPlan } from '~/cli/commands/audio/tts/script-to-audio/attempt-planning'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/audio/tts/tts-utils/hosted-tts-chunk-scheduler'
+import { deliveryPcmFrames } from '~/cli/commands/audio/tts/tts-utils/tts-delivery-pcm'
 import { jsonResponse } from '../../../../../test-utils/rest-contract-helpers'
 import { setupTtsContractLifecycle, installMockFetch } from './shared'
 import { FLASH, LITE, wav, unary, batchAudio, sse } from './gemini-fixtures'
@@ -82,6 +83,37 @@ describe('Gemini REST transport and decoded artifact integrity', () => {
     const calls = installMockFetch(() => jsonResponse({ id: 'voice_expired', expire_time: '2020-01-01T00:00:00Z', model: LITE }))
     await expect(runGeminiTts('No purchase.', await makeTempDir('gemini-expired-'), { model: LITE, voice: 'voice_expired' })).rejects.toThrow('expired')
     expect(calls.map(call => call.method)).toEqual(['GET'])
+  })
+  test('custom voice model resource names permit default, styled and reset dispatch with decoded audio', async () => {
+    // CreateVoice/GetVoice schema: https://ai.google.dev/api/voices.
+    // Live CreateVoice on 2026-09-27 returned models/gemini-3.8-flash-tts.
+    process.env['GEMINI_API_KEY'] = 'fixture-key'
+    let storedModel = FLASH
+    const calls = installMockFetch(call => jsonResponse(call.method === 'GET'
+      ? { id: 'voice_designed', model: storedModel, type: 'prompted' }
+      : unary()))
+    for (storedModel of [FLASH, `models/${FLASH}`]) {
+      for (const instructions of [undefined, 'Measured audiobook narration.', undefined]) {
+        const result = await runGeminiTts('The same passage.', await makeTempDir('gemini-designed-'), {
+          model: FLASH, voice: 'voice_designed', instructions, hostedTtsChunkScheduler: scheduler()
+        })
+        expect(calls.at(-2)).toMatchObject({ method: 'GET', url: 'https://generativelanguage.googleapis.com/v1beta/voices/voice_designed' })
+        const content = { type: 'text', text: 'The same passage.', ...(instructions ? { annotations: [{ type: 'speech_metadata', style: instructions }] } : {}) }
+        expect(calls.at(-1)?.bodyJson?.['input']).toEqual([{ type: 'user_input', content: [content] }])
+        expect(calls.at(-1)?.bodyJson?.['generation_config']).toMatchObject({ speech_config: [{ voice: 'voice_designed' }] })
+        expect(await deliveryPcmFrames(result.audioPath)).toBeGreaterThan(0)
+      }
+    }
+    expect(calls.filter(call => call.method === 'POST')).toHaveLength(6)
+  })
+  test('different or malformed model resource names still reject before synthesis dispatch', async () => {
+    process.env['GEMINI_API_KEY'] = 'fixture-key'
+    let storedModel = `models/${LITE}`
+    const calls = installMockFetch(() => jsonResponse({ id: 'voice_designed', model: storedModel }))
+    for (storedModel of [`models/${LITE}`, `models/models/${FLASH}`, `other/${FLASH}`]) {
+      await expect(runGeminiTts('No purchase.', await makeTempDir('gemini-model-rejected-'), { model: FLASH, voice: 'voice_designed' })).rejects.toThrow('incompatible')
+    }
+    expect(calls.map(call => call.method)).toEqual(['GET', 'GET', 'GET'])
   })
   test('token planning includes style overhead before dispatch', () => {
     expect(() => serializeGeminiInteraction(LITE, [{ text: 'short', speaker: 'N', voice: 'Kore', style: 'x'.repeat(8192) }])).toThrow('input-token')

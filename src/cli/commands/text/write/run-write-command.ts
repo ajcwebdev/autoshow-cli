@@ -2,6 +2,7 @@ import { resolve } from 'node:path'
 import { isLikelyUrl } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-classifier'
 import { classifyTopLevelTarget, isLikelyInputListFile } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-collection'
 import { processBatch } from '~/cli/commands/sources/download/download-targets/download-batch/process-download-batch'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
 import { reportSuitePriceEstimate } from '~/cli/commands/sources/download/download-targets/process-target-preflight'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { evaluatePreflightEstimate } from '~/cli/commands/pricing-orchestration/preflight'
@@ -12,7 +13,7 @@ import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selec
 import { WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import type { AggregatedPriceEstimate, CliFlagOccurrence, WriteRuntimeOptions } from '~/types'
-import { UsageError } from '~/utils/error-handler'
+import { InfraError, UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { runTextWrite } from './run-text-write'
 import { collectTextInputFiles, isTextInputPath, readPromptFileText, resolveWriteTextProjectDefaults } from './text-input-utils'
@@ -163,7 +164,7 @@ export const runWriteCommand = async (
     return
   }
 
-  await processBatch(
+  const batchResult = await processBatch(
     files,
     'text',
     'write',
@@ -171,4 +172,16 @@ export const runWriteCommand = async (
     async (_command, item, batchDir, opts) => await runTextWrite(item, batchDir, opts, undefined, { batchDir }),
     { concurrency: effectiveOptions.batchConcurrency }
   )
+
+  if (batchResult.ok === 0 && batchResult.fail > 0) {
+    const error = InfraError(`Batch processing failed for ${batchResult.fail} item(s)`, { stage: 'write:batch' })
+    if (batchResult.failureExitCode !== undefined) {
+      ;(error as Error & { exitCode?: number }).exitCode = batchResult.failureExitCode
+    }
+    throw error
+  }
+
+  if (batchResult.batchDir) {
+    l.report.complete(batchResult.batchDir, { manifest: PIPELINE_MANIFEST_FILE })
+  }
 }

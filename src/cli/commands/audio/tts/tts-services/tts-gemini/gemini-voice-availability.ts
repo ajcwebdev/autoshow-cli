@@ -19,7 +19,9 @@ export const assertGeminiVoiceAvailable = (record: Record<string, unknown>, id: 
   if (record['id'] !== id) throw UsageError('Gemini voice inspection returned a different resource.')
   const expiry = geminiVoiceExpiry(record)
   if (expiry && Date.parse(expiry) <= now.getTime()) throw UsageError('Gemini voice has expired; new synthesis is blocked.')
-  if (record['model'] && record['model'] !== model) throw UsageError('Gemini stored voice is incompatible with the selected synthesis model.')
+  // Voices responses can use the full model resource name rather than its ID.
+  const storedModel = typeof record['model'] === 'string' ? record['model'].replace(/^models\//, '') : record['model']
+  if (storedModel && storedModel !== model) throw UsageError('Gemini stored voice is incompatible with the selected synthesis model.')
 }
 export const inspectGeminiSynthesisVoices = async (apiKey: string, model: string, voices: readonly string[]): Promise<void> => {
   for (const id of new Set(voices.filter(voice => voice.startsWith('voice_')))) {

@@ -1,10 +1,10 @@
 import type { LlmStepEstimate, NormalizedReasoningEffort, ResolvedLLMModelOptions } from '~/types'
 import { resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { estimateLlmRates } from '~/cli/commands/text/write/write-utils/llm-pricing'
-import { estimatePromptTokensFromText, readPromptFileText } from '~/cli/commands/text/write/text-input-utils'
+import { estimatePromptTokensFromText, readPromptFile } from '~/cli/commands/text/write/text-input-utils'
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
-import { resolvePromptTokenEstimate } from '~/prompts/prompt-loader'
+import { resolvePromptNames, resolvePromptTokenEstimate } from '~/prompts/prompt-loader'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 
 export const buildLlmEstimates = async (
@@ -12,7 +12,8 @@ export const buildLlmEstimates = async (
     prompts?: string[] | undefined
     promptFile?: string | undefined
     reasoningEffort?: NormalizedReasoningEffort | undefined
-  }
+  },
+  inputText?: string
 ): Promise<LlmStepEstimate[]> => {
   const llmConfig = resolveLLMDefaults(opts)
   const rates = estimateLlmRates(llmConfig)
@@ -35,13 +36,30 @@ export const buildLlmEstimates = async (
   const promptTokenEstimate = await resolvePromptTokenEstimate(prompts, {
     fallbackToDefault: !promptFileOnly
   })
-  const promptFileText = await readPromptFileText(opts.promptFile)
+  const promptFile = await readPromptFile(opts.promptFile)
+  const promptFileText = promptFile?.kind === 'leaf'
+    ? [promptFile.leaf.instruction.trim(), promptFile.leaf.examples.json.trim()].filter(Boolean).join('\n\n')
+    : promptFile?.text
   const extraPromptTokens = promptFileText ? estimatePromptTokensFromText(promptFileText) : 0
+  const leafInputTokens = promptFile?.kind === 'leaf' ? promptFile.leaf.expectedInputTokens : 0
+  const leafOutputTokens = promptFile?.kind === 'leaf' ? promptFile.leaf.expectedOutputTokens : 0
+  const inputTokens = inputText === undefined ? undefined : estimatePromptTokensFromText(inputText)
+  const namedInstructionTokens = inputTokens === undefined ? 0 : estimatePromptTokensFromText(await resolvePromptNames(prompts, {
+    exampleFormat: 'json',
+    fallbackToDefault: !promptFileOnly
+  }))
+  // A freeform prompt has no declared response length. Use a visible heuristic
+  // instead of silently pricing a response of zero tokens.
+  const freeformOutputTokens = promptFileOnly && promptFile?.kind === 'text'
+    ? Math.max(1024, inputTokens ?? promptTokenEstimate.estimatedInputTokens)
+    : 0
 
   return plannedRates.map(({ rate: r, registryService, reasoningPolicy }) => {
     const estimation = getLlmEstimation(registryService, r.model)
-    const estimatedInputTokens = promptTokenEstimate.estimatedInputTokens + extraPromptTokens
-    const estimatedOutputTokens = promptTokenEstimate.estimatedOutputTokens
+    const estimatedInputTokens = (inputTokens === undefined
+      ? promptTokenEstimate.estimatedInputTokens + leafInputTokens
+      : inputTokens + namedInstructionTokens) + extraPromptTokens
+    const estimatedOutputTokens = promptTokenEstimate.estimatedOutputTokens + leafOutputTokens + freeformOutputTokens
     const cost = computeTokenCost(
       getLlmCost(registryService, r.model) ?? r,
       estimatedInputTokens,
@@ -62,7 +80,9 @@ export const buildLlmEstimates = async (
       totalCost: cost.totalCost,
       costMultiplier: estimation.costMultiplier,
       ...(typeof cost.pricingBand === 'string' ? { pricingBand: cost.pricingBand } : {}),
-      ...(typeof cost.pricingNote === 'string' ? { pricingNote: cost.pricingNote } : {})
+      ...((typeof cost.pricingNote === 'string' || freeformOutputTokens > 0)
+        ? { pricingNote: [cost.pricingNote, freeformOutputTokens > 0 ? 'Freeform output estimate: at least 1,024 tokens or the input document token estimate, whichever is larger; actual output and reasoning usage may differ.' : undefined].filter(Boolean).join(' ') }
+        : {})
     }
   })
 }

@@ -1,4 +1,7 @@
 import {
+  CLOUDFLARE_ALL_LINKS,
+  CLOUDFLARE_MODELS_LINKS,
+  CLOUDFLARE_STT_LINKS,
   GROK_ALL_LINKS,
   GROK_MODELS_LINKS,
   GROK_STT_LINKS,
@@ -51,6 +54,16 @@ registerProviderSelectorCases([
       { sections: ['general', 'text'], expected: [...TOGETHER_GENERAL_LINKS, ...TOGETHER_TEXT_LINKS], outputFileName: 'together-general-text-links.md' }
     ],
     invalid: { sections: ['ocr'], message: 'Unknown links section(s) for --provider together: ocr' }
+  },
+  {
+    name: 'links selector accepts cloudflare provider with general models and stt sections',
+    provider: 'cloudflare',
+    all: { expected: CLOUDFLARE_ALL_LINKS, outputFileName: 'cloudflare-all-links.md' },
+    selections: [
+      { sections: ['stt'], expected: CLOUDFLARE_STT_LINKS, outputFileName: 'cloudflare-stt-links.md' },
+      { sections: ['models', 'stt'], expected: [...CLOUDFLARE_MODELS_LINKS, ...CLOUDFLARE_STT_LINKS], outputFileName: 'cloudflare-models-stt-links.md' }
+    ],
+    invalid: { sections: ['tts'], message: 'Unknown links section(s) for --provider cloudflare: tts' }
   },
   {
     name: 'links selector accepts mistral provider with general models stt and ocr sections',

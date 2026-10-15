@@ -231,6 +231,22 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: ['defaults.llm.together', 'defaults.extract.stt.togetherStt']
   },
   {
+    providerId: 'cloudflare',
+    envVar: 'CLOUDFLARE_API_TOKEN',
+    label: 'Cloudflare Workers AI STT',
+    hintUrl: 'https://developers.cloudflare.com/workers-ai/get-started/rest-api/',
+    stages: ['stt'],
+    configPaths: ['defaults.extract.stt.cloudflareStt']
+  },
+  {
+    providerId: 'cloudflare-account',
+    envVar: 'CLOUDFLARE_ACCOUNT_ID',
+    label: 'Cloudflare Workers AI account ID',
+    hintUrl: 'https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/',
+    stages: ['stt'],
+    configPaths: ['defaults.extract.stt.cloudflareStt']
+  },
+  {
     providerId: 'happyscribe',
     envVar: 'HAPPYSCRIBE_API_KEY',
     label: 'Happy Scribe STT',
@@ -296,10 +312,13 @@ export const getHostedProviderEnvKeysForConfigPrefix = (
     .map(check => check.envVar)
 )]
 
-export const findHostedProviderEnvKeyForConfigPath = (
+// A provider can need more than one credential: Cloudflare takes an API token and an account ID.
+export const findHostedProviderEnvKeysForConfigPath = (
   configPath: string
-): string | undefined =>
-  HOSTED_PROVIDER_ENV_CHECKS.find(check => (check.configPaths as readonly string[]).includes(configPath))?.envVar
+): string[] =>
+  HOSTED_PROVIDER_ENV_CHECKS
+    .filter(check => (check.configPaths as readonly string[]).includes(configPath))
+    .map(check => check.envVar)
 
 export const findHostedProviderCredential = (
   providerId: string

@@ -31,18 +31,26 @@ const resolvePositiveInteger = (
   return fallback
 }
 
+const MAX_LOCK_DIR_NAME_LENGTH = 120
+const LOCK_NAME_DIGEST_LENGTH = 16
+
 const sanitizeLockName = (lockName: string): string => {
-  const sanitized = lockName
-    .trim()
+  const trimmed = lockName.trim()
+  const sanitized = trimmed
     .replace(/[^A-Za-z0-9._-]+/g, '_')
     .replace(/^_+|_+$/g, '')
-    .slice(0, 120)
 
   if (!sanitized || sanitized === '.' || sanitized === '..') {
     return 'process-lock'
   }
 
-  return sanitized
+  if (sanitized.length <= MAX_LOCK_DIR_NAME_LENGTH) {
+    return sanitized
+  }
+
+  // Plain truncation made distinct long names (paths sharing a prefix) share one lock.
+  const digest = new Bun.CryptoHasher('sha256').update(trimmed).digest('hex').slice(0, LOCK_NAME_DIGEST_LENGTH)
+  return `${sanitized.slice(0, MAX_LOCK_DIR_NAME_LENGTH - LOCK_NAME_DIGEST_LENGTH - 1)}-${digest}`
 }
 
 const getDefaultProcessStateDir = (): string =>

@@ -1,18 +1,19 @@
 import { afterEach } from 'bun:test'
-import { rm, writeFile } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { createTempDirTracker } from '../../../../test-utils/temp-dirs'
 
-const tempDirs: string[] = []
+export const setupTempConfigWriter = (): ((value: unknown) => Promise<string>) => {
+  const tempDirs = createTempDirTracker('autoshow-validation-config-')
+  // Register cleanup in each importing suite, not only in the first module that loads this helper.
+  afterEach(async () => {
+    await tempDirs.cleanup()
+  })
 
-export const writeTempConfig = async (value: unknown): Promise<string> => {
-  const dir = await makeTempDir('autoshow-validation-config-')
-  tempDirs.push(dir)
-  const configPath = join(dir, 'autoshow.json')
-  await writeFile(configPath, JSON.stringify(value, null, 2))
-  return configPath
+  return async (value: unknown): Promise<string> => {
+    const dir = await tempDirs.make()
+    const configPath = join(dir, 'autoshow.json')
+    await writeFile(configPath, JSON.stringify(value, null, 2))
+    return configPath
+  }
 }
-
-afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})

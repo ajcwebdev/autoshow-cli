@@ -101,7 +101,7 @@ Routine refreshes leave out products the CLI cannot already run, including domai
 
 Hosted API usage must be available without mandatory recurring fees or recurring minimum spending. Metered billing and one-time prepaid credits qualify. A free allowance followed by subscription-only overages does not qualify. Optional feature subscriptions or discounts do not disqualify independently available core API usage.
 
-Every provider addition and refresh must document route-specific billing eligibility with dated primary sources, including prepaid minimum purchases and expiry where documented. Conflicting or missing evidence remains unresolved. The [retained-provider audit](../reports/provider-pricing-eligibility-audit.md) records policy violations awaiting a separate removal decision; this change does not remove those other integrations.
+Every provider addition and refresh must document route-specific billing eligibility with dated primary sources, including prepaid minimum purchases and expiry where documented. Conflicting or missing evidence remains unresolved. The [unified provider eligibility report](../reports/documentation-and-provider-unified-report.md#provider-eligibility-actions) records policy violations awaiting a separate removal decision; this change does not remove those other integrations.
 
 #### Excluded integrations
 

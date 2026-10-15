@@ -15,6 +15,7 @@ import { runSpeechmaticsStt } from '../diarization/speechmatics/run-speechmatics
 import { runSupadataStt } from '~/cli/commands/text/url/url-services/supadata-transcript/run-supadata-stt'
 import { runOpenAIStt } from '../diarization-off-by-default/openai-stt/run-openai-stt'
 import { runTogetherStt } from '../diarization-off-by-default/together/run-together-stt'
+import { runCloudflareStt } from '../diarization-off-by-default/cloudflare/run-cloudflare-stt'
 
 const minimalOptions = (context: SttDispatchContext) => ({
   diarizationOptions: context.target.diarizationOptions,
@@ -86,6 +87,7 @@ const sttDispatchers = {
   'gemini-stt': async context => await runGeminiStt(context.audioPath, context.outputDir, basicOptions(context)),
   together: async context => await runTogetherStt(context.audioPath, context.outputDir, basicOptions(context)),
   'openai-stt': async context => await runOpenAIStt(context.audioPath, context.outputDir, basicOptions(context)),
+  cloudflare: async context => await runCloudflareStt(context.audioPath, context.outputDir, basicOptions(context)),
   'youtube-captions': async () => {
     throw InternalError('youtube-captions is resolved before STT provider dispatch', { stage: 'stt:dispatch' })
   }

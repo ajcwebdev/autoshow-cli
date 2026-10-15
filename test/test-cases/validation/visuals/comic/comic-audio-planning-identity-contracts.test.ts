@@ -11,10 +11,9 @@ import { resolveCompatibleComicSceneRun } from '~/cli/commands/visuals/comic/com
 import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { toProjectDisplayPath, toSourceIdentityDisplayPath } from '~/utils/runtime-paths'
 import { setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
-import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_A as HASH_A, COMIC_AUDIO_PHASE_2_HASH_B as HASH_B, buildComicAudioPhase2SnapshotEntry as snapshotEntry, buildComicAudioPhase2Structured as buildStructured } from './comic-audio-phase-fixture'
 
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
+const tempDirs = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 
 describe('comic audio phase 2 contracts', () => {
   test('maps host source paths to an explicit immutable-workspace identity alias without weakening containment', () => {
@@ -34,7 +33,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('source identity converges through symlinks and rejects exact-byte drift in a pinned scene run', async () => {
-    const root = await makeTempDir('autoshow-comic-audio-source-')
+    const root = await tempDirs.make('autoshow-comic-audio-source-')
     const sourcePath = join(root, 'scene.md')
     const aliasPath = join(root, 'scene-alias.md')
     const sceneRunDir = join(root, 'run')
@@ -61,7 +60,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('re-stamps the structure manifest when the same source re-parses to different structured bytes', async () => {
-    const root = await makeTempDir('autoshow-comic-structure-restamp-')
+    const root = await tempDirs.make('autoshow-comic-structure-restamp-')
     const sceneRunDir = join(root, 'run')
     const sourceBytes = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
     const sourcePath = join(root, 'scene.md')
@@ -87,7 +86,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('preserves incompatible nonempty pinned directory contents without partial initialization', async () => {
-    const root = await makeTempDir('autoshow-comic-audio-pinned-initialize-')
+    const root = await tempDirs.make('autoshow-comic-audio-pinned-initialize-')
     const sourcePath = join(root, 'scene.md')
     const sourceBytes = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
     await writeFile(sourcePath, sourceBytes)
@@ -101,7 +100,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('automatic source selection skips a newer incompatible candidate without creating a fallback run', async () => {
-    const root = await makeTempDir('autoshow-comic-audio-selection-')
+    const root = await tempDirs.make('autoshow-comic-audio-selection-')
     const outputRoot = join(root, 'output')
     const sourcePath = join(root, 'scene.md')
     const sourceBytes = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
@@ -127,7 +126,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('compound speech remains an explicit overlap unless a role policy collapses it', async () => {
-    const root = await makeTempDir('autoshow-comic-audio-overlap-')
+    const root = await tempDirs.make('autoshow-comic-audio-overlap-')
     const sourcePath = join(root, 'scene.md')
     await writeFile(sourcePath, 'compound scene')
     const sourceIdentity = await createComicSourceIdentity(sourcePath, 'compound scene')
@@ -169,7 +168,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('dialogue planning separates comms delivery and resolves loose-comedy timing cues', async () => {
-    const root = await makeTempDir('autoshow-comic-audio-pacing-')
+    const root = await tempDirs.make('autoshow-comic-audio-pacing-')
     const sourcePath = join(root, 'scene.md')
     await writeFile(sourcePath, 'paced scene')
     const sourceIdentity = await createComicSourceIdentity(sourcePath, 'paced scene')
@@ -198,7 +197,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('ElevenLabs comic planning binds approved snapshot entries and selects native dialogue', async () => {
-    const root = await makeTempDir('autoshow-comic-audio-plan-')
+    const root = await tempDirs.make('autoshow-comic-audio-plan-')
     const sourcePath = join(root, 'scene.md')
     await writeFile(sourcePath, 'two speaker scene')
     const sourceIdentity = await createComicSourceIdentity(sourcePath, 'two speaker scene')

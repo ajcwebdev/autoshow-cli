@@ -125,6 +125,48 @@ test('process lock serializes concurrent contenders', async () => {
   expect(events).toEqual(['first-enter', 'first-exit', 'second-enter'])
 })
 
+test('process lock keeps long names that share a prefix independent and a repeated long name exclusive', async () => {
+  const lockRoot = await makeTempRoot()
+  const sharedPrefix = `setup-download-${'/deep/checkout/runtime/build'.repeat(5)}`
+  const assetZero = `${sharedPrefix}/asset-0.bin`
+  const assetOne = `${sharedPrefix}/asset-1.bin`
+  const lockOptions = { lockRoot, waitMs: 5, heartbeatMs: 10, staleMs: 1000 }
+  const zeroEntered = createDeferred()
+  const releaseZero = createDeferred()
+  const events: string[] = []
+
+  expect(sharedPrefix.length).toBeGreaterThan(120)
+
+  const zero = withProcessLock(assetZero, async () => {
+    events.push('zero-enter')
+    zeroEntered.resolve()
+    await releaseZero.promise
+    events.push('zero-exit')
+  }, lockOptions)
+  await zeroEntered.promise
+
+  const one = withProcessLock(assetOne, async () => {
+    events.push('one-enter')
+  }, lockOptions)
+  const oneRanWhileZeroHeld = await Promise.race([one.then(() => true), Bun.sleep(1000).then(() => false)])
+  expect(oneRanWhileZeroHeld).toBe(true)
+
+  const zeroAgain = withProcessLock(assetZero, async () => {
+    events.push('zero-again-enter')
+  }, lockOptions)
+  await Bun.sleep(15)
+  expect(events).toEqual(['zero-enter', 'one-enter'])
+  const heldLockDirs = await readdir(lockRoot)
+  expect(heldLockDirs).toHaveLength(1)
+  expect(heldLockDirs[0]!.length).toBeLessThanOrEqual(120)
+
+  releaseZero.resolve()
+  await Promise.all([zero, one, zeroAgain])
+
+  expect(events).toEqual(['zero-enter', 'one-enter', 'zero-exit', 'zero-again-enter'])
+  expect(await readdir(lockRoot)).toEqual([])
+})
+
 const expectSerializedLockChildren = async (
   lockRoot: string,
   options?: { blockHeartbeat?: boolean, staleMs?: number } | undefined

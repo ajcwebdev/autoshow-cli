@@ -1,12 +1,14 @@
 import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
+import { TEMP_DIRECTORY_ENV_KEYS } from '~/utils/child-env'
 
 export interface ProcessOutcome { exitCode: number; stdout: string; stderr: string; durationMs: number; timedOut: boolean }
 export type ProcessRunner = (argv: string[], timeoutMs: number, logPrefix: string, onTimeout?: () => Promise<void>) => Promise<ProcessOutcome>
 
+// Host-side only: containers get an explicit --env list, so these never reach a container.
 export function dockerClientEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
   const env: Record<string, string> = {}
-  for (const key of ['PATH', 'HOME', 'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_CONFIG', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH', 'XDG_RUNTIME_DIR']) {
+  for (const key of ['PATH', 'HOME', ...TEMP_DIRECTORY_ENV_KEYS, 'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_CONFIG', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH', 'XDG_RUNTIME_DIR']) {
     if (source[key] !== undefined) env[key] = source[key]
   }
   return env

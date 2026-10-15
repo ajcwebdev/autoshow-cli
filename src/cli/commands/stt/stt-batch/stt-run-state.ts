@@ -36,6 +36,7 @@ const STT_SERVICES = new Set<string>([
   'gemini-stt',
   'together',
   'openai-stt',
+  'cloudflare',
   'youtube-captions',
   'groq',
   'grok'
@@ -44,7 +45,7 @@ const STT_SERVICES = new Set<string>([
 const isSttService = (value: unknown): value is string =>
   typeof value === 'string' && STT_SERVICES.has(value)
 
-const parseStoredStep2Metadata = (value: unknown): Step2Metadata | undefined => {
+export const parseStoredStep2Metadata = (value: unknown): Step2Metadata | undefined => {
   if (!isRecord(value) || !isSttService(value['transcriptionService']) || typeof value['transcriptionModel'] !== 'string') {
     return undefined
   }

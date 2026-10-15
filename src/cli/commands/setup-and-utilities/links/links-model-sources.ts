@@ -29,11 +29,12 @@ const parseUrl = (url: string): URL | undefined => {
 }
 
 // Two URLs cover the same page when they differ only by `www.`, a trailing slash, a markdown suffix, a query, or a
-// fragment. `docs/pricing` is covered by a configured `docs/pricing.md.txt`.
+// fragment. `docs/pricing` is covered by a configured `docs/pricing.md.txt`, and a directory page such as
+// `models/whisper/` by its `models/whisper/index.md` twin.
 export const getSourceCoverageKey = (url: string): string => {
   const parsed = parseUrl(url)
   if (!parsed) return url
-  const path = parsed.pathname.replace(/\/+$/, '').replace(/\.(?:md\.txt|md|txt)$/i, '')
+  const path = parsed.pathname.replace(/\/+$/, '').replace(/\/index\.(?:md\.txt|md|txt)$/i, '').replace(/\.(?:md\.txt|md|txt)$/i, '')
   return `${parsed.host.toLowerCase().replace(/^www\./, '')}${path}`
 }
 

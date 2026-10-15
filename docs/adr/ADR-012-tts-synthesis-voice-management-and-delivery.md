@@ -273,4 +273,4 @@ Remote Batch execution serializes GenerateContent independently and journals sta
 
 Gemini design creates persistent resources before candidate selection. The creation journal precedes POST; returned IDs are retained before preview validation. Saving adopts rather than recreates. Requested preview text is separately synthesized into protected storage. Replication requires consent records, one decoded reference and separate consent audio. Known expiry and project ownership govern reuse and deletion. Operation prices remain unknown unless documented; synthesis estimates and observed usage carry explicit token schedules.
 
-Local verification and remaining provider-evidence gaps are recorded in the [implementation report](../reports/gemini-3.8-tts-integration-2026-09-24.md). No live provider or listening result is implied by mocked transport and artifact tests.
+Local verification and remaining provider-evidence gaps are recorded in the [unified TTS report](../reports/tts-unified-report.md#tts-026). No live provider or listening result is implied by mocked transport and artifact tests.

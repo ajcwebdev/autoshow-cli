@@ -1,0 +1,6013 @@
+{
+  "result": {
+    "text": " Alright, alright about the Twitter space, her funnel got the thing working them. Well done, Scott. I know exactly what was happening has happened before. Sometimes when you start a space, it will show as starting on your own while having not actually being started. For other people who can see it and join it. But if you wait like one to two minutes somehow it just works it out. and then all of a sudden there's some patients who converge to a nap in that respect. So any other footer space hosts out there, these are the fun things we get to learn as we do this process. Yeah, thank you. So the audience for re-joining back and for Scott for soldering on and Anthony for the lesson. I'm reminded of that like old demotivated poster which was like the Titanic and it was like maybe your Your roles to be a lesson for others But but welcome back everyone Do you know Scott's gonna join him separately Anthony? Let's let's go ahead just start announcing Thanks, yeah Your cells will let him work We're gonna do great. So hi everyone welcome again to JavaScript Jam live JavaScript Jam live is an open mic We'd like to say for anything JavaScript and web development related is on topic. We love audience participation. We've got something very special for you this week and in the upcoming weeks in collaboration with React Miami. I am Esha Nada, the BQA product at EGO. It's employment platform and I'm joined by Anthony and Scott. I'll let them introduce themselves and talk about what we're doing with React Miami. Hello, my name is Anthony Campolo. I am a developer advocate at edgio And we're going to be joined today Dem Agawal who was also partnering with React Miami to help together some sweet events and activities and content for you and You're bringing him up right now. It's got if you are able to speak go ahead. You're an issues So hopefully you can hear me. Yes. All right. Great. Wow. But that was hard earlier. I thought it was. You know, it doesn't matter if you know quite a bit about Teckerdot is there's only something that makes you look like a fool. So here we are. Everything's good. They've worked it now. So anyway, so great. So glad to hear. So great, so glad to be here. React Miami, I don't know why it's that week there, but in a hospital to get this up, that's what I put. But really, it's React Miami month, which I'm renaming right now. And I'm super excited because, as anything we were sitting at there we're gonna be talking to Dev today and about React Miami and the thing. And also, we're doing our little clap with React Miami as well. And we're just so excited for that. Moving forward, we're gonna be having more speakers from React Miami, speaking here about just topics that make sense with them. And you know, we're keeping this traditional, like, JavaScript, Jam vibe that we have, rolling through all that problems. So nothing's gonna change as far as like, what you guys are typically are used to hearing. And you know, as far as like having speakers here and all that, it's gonna be a great time. So really, there's just more value actually from us being involved with React Miami, more value for you guys, and some extra goodies that we're going to talk about here a little bit later. We're really excited for itself. Thank you so much. So glad to be here. Just remember if you're a beginner or advanced user with even a little bit of doing this for a very long time as far as the web developer goes, we want to hear from everybody. It doesn't matter whether you're a beginner or advanced, like it said and so you know don't you don't be afraid to request to come up and ask questions or comments or fact opinions whatever it is you want to hear from yeah in fact actually that also helps with your value here for everybody listening in because when you that get developed typically there's some really great conversations that happen so I would love to hear from as many people as the possibly one of them up. So, all right, with that being said, I am Scott Simon and I am the 18th of 14 in the Manager at Edgio and I'm ready to rock this today. Let's get this rolling. Thank you so much. Appreciate y'all. Also, we should have introduced himself and then after that, the shell is introduced yourself and you are one of the organizers of React Miami. Thank you for joining us. How's it going everybody? Thank you very much for having me up here Thank everyone for showing up and showing interest My name is Dev or you can call me Dave both work fine and Yeah, it's great to be here this year. I am also a media partner for React Miami along with along with these two great individuals Anthony and Scott and And yeah, I'm very excited to show you guys what we have in store for next week. Or talk about it a little today.",
+    "word_count": 888,
+    "vtt": "WEBVTT\n\n00:00.000 --> 00:08.000\nAlright, alright about the Twitter space, her funnel got the thing working them.\n\n00:08.000 --> 00:09.000\nWell done, Scott.\n\n00:09.000 --> 00:13.000\nI know exactly what was happening has happened before.\n\n00:13.000 --> 00:19.000\nSometimes when you start a space, it will show as starting on your own while having not\n\n00:19.000 --> 00:21.000\nactually being started.\n\n00:21.000 --> 00:23.000\nFor other people who can see it and join it.\n\n00:23.000 --> 00:29.000\nBut if you wait like one to two minutes somehow it just works it out.\n\n00:29.000 --> 00:31.000\nand then all of a sudden there's some\n\n00:31.000 --> 00:34.000\npatients who converge to a nap in that respect.\n\n00:34.000 --> 00:37.000\nSo any other footer space hosts out there,\n\n00:37.000 --> 00:41.000\nthese are the fun things we get to learn as we do this process.\n\n00:42.000 --> 00:44.000\nYeah, thank you.\n\n00:44.000 --> 00:49.000\nSo the audience for re-joining back and for Scott for soldering on\n\n00:49.000 --> 00:52.000\nand Anthony for the lesson.\n\n00:52.000 --> 00:55.000\nI'm reminded of that like old demotivated poster\n\n00:55.000 --> 00:58.000\nwhich was like the Titanic and it was like maybe your\n\n00:58.000 --> 01:00.000\nYour roles to be a lesson for others\n\n01:01.120 --> 01:03.600\nBut but welcome back everyone\n\n01:04.520 --> 01:08.020\nDo you know Scott's gonna join him separately Anthony?\n\n01:09.280 --> 01:11.440\nLet's let's go ahead just start announcing\n\n01:11.440 --> 01:12.440\nThanks, yeah\n\n01:12.440 --> 01:14.440\nYour cells will let him work\n\n01:14.440 --> 01:19.800\nWe're gonna do great. So hi everyone welcome again to JavaScript Jam live\n\n01:20.800 --> 01:23.640\nJavaScript Jam live is an open mic\n\n01:23.640 --> 01:30.640\nWe'd like to say for anything JavaScript and web development related is on topic.\n\n01:30.640 --> 01:32.240\nWe love audience participation.\n\n01:32.240 --> 01:37.340\nWe've got something very special for you this week and in the upcoming weeks in collaboration\n\n01:37.340 --> 01:39.340\nwith React Miami.\n\n01:39.340 --> 01:43.340\nI am Esha Nada, the BQA product at EGO.\n\n01:43.340 --> 01:48.540\nIt's employment platform and I'm joined by Anthony and Scott.\n\n01:48.540 --> 01:52.040\nI'll let them introduce themselves and talk about what we're doing with React Miami.\n\n01:53.640 --> 01:58.880\nHello, my name is Anthony Campolo. I am a developer advocate at edgio\n\n01:58.880 --> 02:01.440\nAnd we're going to be joined today\n\n02:02.160 --> 02:07.920\nDem Agawal who was also partnering with React Miami to help together some sweet\n\n02:08.440 --> 02:11.760\nevents and activities and content for you and\n\n02:12.520 --> 02:17.840\nYou're bringing him up right now. It's got if you are able to speak go ahead. You're an issues\n\n02:17.840 --> 02:24.840\nSo hopefully you can hear me.\n\n02:24.840 --> 02:25.840\nYes.\n\n02:25.840 --> 02:27.840\nAll right. Great. Wow.\n\n02:27.840 --> 02:28.840\nBut that was hard earlier.\n\n02:28.840 --> 02:29.840\nI thought it was.\n\n02:29.840 --> 02:31.840\nYou know, it doesn't matter if you know quite a bit about\n\n02:31.840 --> 02:34.840\nTeckerdot is there's only something that makes you look like a fool.\n\n02:34.840 --> 02:37.840\nSo here we are.\n\n02:37.840 --> 02:40.840\nEverything's good. They've worked it now.\n\n02:40.840 --> 02:42.840\nSo anyway, so great.\n\n02:42.840 --> 02:43.840\nSo glad to hear.\n\n02:43.840 --> 02:46.360\nSo great, so glad to be here.\n\n02:46.360 --> 02:49.400\nReact Miami, I don't know why it's that week there,\n\n02:49.400 --> 02:52.520\nbut in a hospital to get this up, that's what I put.\n\n02:52.520 --> 02:55.480\nBut really, it's React Miami month,\n\n02:55.480 --> 02:57.200\nwhich I'm renaming right now.\n\n02:57.200 --> 02:59.880\nAnd I'm super excited because,\n\n02:59.880 --> 03:02.160\nas anything we were sitting at there\n\n03:02.160 --> 03:03.760\nwe're gonna be talking to Dev today\n\n03:03.760 --> 03:06.880\nand about React Miami and the thing.\n\n03:06.880 --> 03:11.440\nAnd also, we're doing our little clap\n\n03:11.440 --> 03:13.800\nwith React Miami as well.\n\n03:13.800 --> 03:16.120\nAnd we're just so excited for that.\n\n03:16.120 --> 03:19.080\nMoving forward, we're gonna be having more speakers\n\n03:19.080 --> 03:21.720\nfrom React Miami, speaking here\n\n03:21.720 --> 03:23.480\nabout just topics that make sense with them.\n\n03:23.480 --> 03:25.080\nAnd you know, we're keeping this traditional,\n\n03:25.080 --> 03:28.200\nlike, JavaScript, Jam vibe that we have,\n\n03:28.200 --> 03:29.440\nrolling through all that problems.\n\n03:29.440 --> 03:31.840\nSo nothing's gonna change as far as like,\n\n03:31.840 --> 03:33.800\nwhat you guys are typically are used to hearing.\n\n03:33.800 --> 03:36.200\nAnd you know, as far as like having speakers here\n\n03:36.200 --> 03:37.600\nand all that, it's gonna be a great time.\n\n03:37.600 --> 03:41.140\nSo really, there's just more value actually from\n\n03:41.440 --> 03:47.040\nus being involved with React Miami, more value for you guys, and some extra goodies that we're\n\n03:47.040 --> 03:52.480\ngoing to talk about here a little bit later. We're really excited for itself. Thank you so much.\n\n03:52.480 --> 03:57.200\nSo glad to be here. Just remember if you're a beginner or advanced user with even\n\n03:58.080 --> 04:01.360\na little bit of doing this for a very long time as far as the web developer goes,\n\n04:02.160 --> 04:05.840\nwe want to hear from everybody. It doesn't matter whether you're a beginner or advanced,\n\n04:05.840 --> 04:11.840\nlike it said and so you know don't you don't be afraid to request to come up and ask questions or\n\n04:12.400 --> 04:18.160\ncomments or fact opinions whatever it is you want to hear from yeah in fact actually that also helps\n\n04:18.160 --> 04:21.760\nwith your value here for everybody listening in because when you that get developed\n\n04:22.720 --> 04:26.960\ntypically there's some really great conversations that happen so I would love to hear from\n\n04:26.960 --> 04:30.240\nas many people as the possibly one of them up.\n\n04:30.240 --> 04:32.080\nSo, all right, with that being said,\n\n04:32.080 --> 04:35.040\nI am Scott Simon and I am the 18th of 14\n\n04:35.040 --> 04:40.040\nin the Manager at Edgio and I'm ready to rock this today.\n\n04:40.160 --> 04:41.720\nLet's get this rolling.\n\n04:41.720 --> 04:42.960\nThank you so much.\n\n04:42.960 --> 04:43.880\nAppreciate y'all.\n\n04:46.360 --> 04:49.720\nAlso, we should have introduced himself\n\n04:49.720 --> 04:51.080\nand then after that,\n\n04:51.080 --> 04:52.720\nthe shell is introduced yourself\n\n04:52.720 --> 04:55.760\nand you are one of the organizers of React Miami.\n\n04:55.760 --> 04:57.760\nThank you for joining us.\n\n04:59.260 --> 05:02.800\nHow's it going everybody? Thank you very much for having me up here\n\n05:02.800 --> 05:05.700\nThank everyone for showing up and showing interest\n\n05:06.160 --> 05:10.440\nMy name is Dev or you can call me Dave both work fine and\n\n05:11.400 --> 05:21.160\nYeah, it's great to be here this year. I am also a media partner for React Miami along with along with these two great individuals Anthony and Scott and\n\n05:21.160 --> 05:26.660\nAnd yeah, I'm very excited to show you guys what we have in store for next week.\n\n05:26.660 --> 05:28.660\nOr talk about it a little today.\n\n",
+    "words": [
+      {
+        "word": "",
+        "start": 0,
+        "end": 0
+      },
+      {
+        "word": "Alright,",
+        "start": 0.09876543209876543,
+        "end": 0.8888888888888888
+      },
+      {
+        "word": "alright",
+        "start": 0.9876543209876543,
+        "end": 1.6790123456790123
+      },
+      {
+        "word": "about",
+        "start": 1.7777777777777777,
+        "end": 2.271604938271605
+      },
+      {
+        "word": "the",
+        "start": 2.3703703703703702,
+        "end": 2.6666666666666665
+      },
+      {
+        "word": "Twitter",
+        "start": 2.765432098765432,
+        "end": 3.45679012345679
+      },
+      {
+        "word": "space,",
+        "start": 3.5555555555555554,
+        "end": 4.148148148148148
+      },
+      {
+        "word": "her",
+        "start": 4.246913580246913,
+        "end": 4.543209876543209
+      },
+      {
+        "word": "funnel",
+        "start": 4.641975308641975,
+        "end": 5.234567901234567
+      },
+      {
+        "word": "got",
+        "start": 5.333333333333332,
+        "end": 5.629629629629628
+      },
+      {
+        "word": "the",
+        "start": 5.728395061728394,
+        "end": 6.02469135802469
+      },
+      {
+        "word": "thing",
+        "start": 6.123456790123456,
+        "end": 6.617283950617283
+      },
+      {
+        "word": "working",
+        "start": 6.716049382716048,
+        "end": 7.4074074074074066
+      },
+      {
+        "word": "them.",
+        "start": 7.5061728395061715,
+        "end": 7.999999999999998
+      },
+      {
+        "word": "",
+        "start": 8,
+        "end": 8
+      },
+      {
+        "word": "Well",
+        "start": 8.055555555555555,
+        "end": 8.277777777777777
+      },
+      {
+        "word": "done,",
+        "start": 8.333333333333334,
+        "end": 8.611111111111112
+      },
+      {
+        "word": "Scott.",
+        "start": 8.666666666666668,
+        "end": 9.000000000000002
+      },
+      {
+        "word": "",
+        "start": 9,
+        "end": 9
+      },
+      {
+        "word": "I",
+        "start": 9.072727272727272,
+        "end": 9.145454545454545
+      },
+      {
+        "word": "know",
+        "start": 9.218181818181817,
+        "end": 9.509090909090908
+      },
+      {
+        "word": "exactly",
+        "start": 9.58181818181818,
+        "end": 10.09090909090909
+      },
+      {
+        "word": "what",
+        "start": 10.163636363636362,
+        "end": 10.454545454545453
+      },
+      {
+        "word": "was",
+        "start": 10.527272727272726,
+        "end": 10.745454545454544
+      },
+      {
+        "word": "happening",
+        "start": 10.818181818181817,
+        "end": 11.47272727272727
+      },
+      {
+        "word": "has",
+        "start": 11.545454545454543,
+        "end": 11.763636363636362
+      },
+      {
+        "word": "happened",
+        "start": 11.836363636363634,
+        "end": 12.418181818181816
+      },
+      {
+        "word": "before.",
+        "start": 12.490909090909089,
+        "end": 12.999999999999998
+      },
+      {
+        "word": "",
+        "start": 13,
+        "end": 13
+      },
+      {
+        "word": "Sometimes",
+        "start": 13.068181818181818,
+        "end": 13.681818181818182
+      },
+      {
+        "word": "when",
+        "start": 13.75,
+        "end": 14.022727272727273
+      },
+      {
+        "word": "you",
+        "start": 14.090909090909092,
+        "end": 14.295454545454547
+      },
+      {
+        "word": "start",
+        "start": 14.363636363636365,
+        "end": 14.704545454545457
+      },
+      {
+        "word": "a",
+        "start": 14.772727272727273,
+        "end": 14.840909090909092
+      },
+      {
+        "word": "space,",
+        "start": 14.90909090909091,
+        "end": 15.318181818181818
+      },
+      {
+        "word": "it",
+        "start": 15.386363636363637,
+        "end": 15.522727272727273
+      },
+      {
+        "word": "will",
+        "start": 15.590909090909092,
+        "end": 15.863636363636365
+      },
+      {
+        "word": "show",
+        "start": 15.931818181818183,
+        "end": 16.204545454545457
+      },
+      {
+        "word": "as",
+        "start": 16.272727272727273,
+        "end": 16.40909090909091
+      },
+      {
+        "word": "starting",
+        "start": 16.477272727272727,
+        "end": 17.022727272727273
+      },
+      {
+        "word": "on",
+        "start": 17.09090909090909,
+        "end": 17.227272727272727
+      },
+      {
+        "word": "your",
+        "start": 17.295454545454543,
+        "end": 17.568181818181817
+      },
+      {
+        "word": "own",
+        "start": 17.636363636363633,
+        "end": 17.840909090909086
+      },
+      {
+        "word": "while",
+        "start": 17.909090909090907,
+        "end": 18.249999999999996
+      },
+      {
+        "word": "having",
+        "start": 18.318181818181817,
+        "end": 18.727272727272727
+      },
+      {
+        "word": "not",
+        "start": 18.795454545454543,
+        "end": 18.999999999999996
+      },
+      {
+        "word": "",
+        "start": 19,
+        "end": 19
+      },
+      {
+        "word": "actually",
+        "start": 19.083333333333332,
+        "end": 19.75
+      },
+      {
+        "word": "being",
+        "start": 19.833333333333332,
+        "end": 20.25
+      },
+      {
+        "word": "started.",
+        "start": 20.333333333333332,
+        "end": 21
+      },
+      {
+        "word": "",
+        "start": 21,
+        "end": 21
+      },
+      {
+        "word": "For",
+        "start": 21.044444444444444,
+        "end": 21.177777777777777
+      },
+      {
+        "word": "other",
+        "start": 21.22222222222222,
+        "end": 21.444444444444443
+      },
+      {
+        "word": "people",
+        "start": 21.488888888888887,
+        "end": 21.755555555555553
+      },
+      {
+        "word": "who",
+        "start": 21.799999999999997,
+        "end": 21.93333333333333
+      },
+      {
+        "word": "can",
+        "start": 21.977777777777774,
+        "end": 22.111111111111107
+      },
+      {
+        "word": "see",
+        "start": 22.15555555555555,
+        "end": 22.288888888888884
+      },
+      {
+        "word": "it",
+        "start": 22.33333333333333,
+        "end": 22.422222222222217
+      },
+      {
+        "word": "and",
+        "start": 22.46666666666666,
+        "end": 22.599999999999994
+      },
+      {
+        "word": "join",
+        "start": 22.64444444444444,
+        "end": 22.822222222222216
+      },
+      {
+        "word": "it.",
+        "start": 22.86666666666666,
+        "end": 22.999999999999993
+      },
+      {
+        "word": "",
+        "start": 23,
+        "end": 23
+      },
+      {
+        "word": "But",
+        "start": 23.085714285714285,
+        "end": 23.34285714285714
+      },
+      {
+        "word": "if",
+        "start": 23.428571428571427,
+        "end": 23.599999999999998
+      },
+      {
+        "word": "you",
+        "start": 23.685714285714283,
+        "end": 23.94285714285714
+      },
+      {
+        "word": "wait",
+        "start": 24.028571428571425,
+        "end": 24.371428571428567
+      },
+      {
+        "word": "like",
+        "start": 24.457142857142852,
+        "end": 24.799999999999994
+      },
+      {
+        "word": "one",
+        "start": 24.88571428571428,
+        "end": 25.142857142857135
+      },
+      {
+        "word": "to",
+        "start": 25.22857142857142,
+        "end": 25.39999999999999
+      },
+      {
+        "word": "two",
+        "start": 25.485714285714277,
+        "end": 25.742857142857133
+      },
+      {
+        "word": "minutes",
+        "start": 25.82857142857142,
+        "end": 26.42857142857142
+      },
+      {
+        "word": "somehow",
+        "start": 26.514285714285705,
+        "end": 27.114285714285707
+      },
+      {
+        "word": "it",
+        "start": 27.199999999999992,
+        "end": 27.371428571428563
+      },
+      {
+        "word": "just",
+        "start": 27.45714285714285,
+        "end": 27.79999999999999
+      },
+      {
+        "word": "works",
+        "start": 27.885714285714275,
+        "end": 28.314285714285703
+      },
+      {
+        "word": "it",
+        "start": 28.39999999999999,
+        "end": 28.571428571428562
+      },
+      {
+        "word": "out.",
+        "start": 28.657142857142848,
+        "end": 28.99999999999999
+      },
+      {
+        "word": "",
+        "start": 29,
+        "end": 29
+      },
+      {
+        "word": "and",
+        "start": 29.05263157894737,
+        "end": 29.210526315789476
+      },
+      {
+        "word": "then",
+        "start": 29.263157894736842,
+        "end": 29.473684210526315
+      },
+      {
+        "word": "all",
+        "start": 29.526315789473685,
+        "end": 29.68421052631579
+      },
+      {
+        "word": "of",
+        "start": 29.736842105263158,
+        "end": 29.842105263157894
+      },
+      {
+        "word": "a",
+        "start": 29.894736842105264,
+        "end": 29.947368421052634
+      },
+      {
+        "word": "sudden",
+        "start": 30,
+        "end": 30.31578947368421
+      },
+      {
+        "word": "there's",
+        "start": 30.36842105263158,
+        "end": 30.736842105263158
+      },
+      {
+        "word": "some",
+        "start": 30.789473684210527,
+        "end": 31
+      },
+      {
+        "word": "",
+        "start": 31,
+        "end": 31
+      },
+      {
+        "word": "patients",
+        "start": 31.0625,
+        "end": 31.5625
+      },
+      {
+        "word": "who",
+        "start": 31.625,
+        "end": 31.8125
+      },
+      {
+        "word": "converge",
+        "start": 31.875,
+        "end": 32.375
+      },
+      {
+        "word": "to",
+        "start": 32.4375,
+        "end": 32.5625
+      },
+      {
+        "word": "a",
+        "start": 32.625,
+        "end": 32.6875
+      },
+      {
+        "word": "nap",
+        "start": 32.75,
+        "end": 32.9375
+      },
+      {
+        "word": "in",
+        "start": 33,
+        "end": 33.125
+      },
+      {
+        "word": "that",
+        "start": 33.1875,
+        "end": 33.4375
+      },
+      {
+        "word": "respect.",
+        "start": 33.5,
+        "end": 34
+      },
+      {
+        "word": "",
+        "start": 34,
+        "end": 34
+      },
+      {
+        "word": "So",
+        "start": 34.06976744186046,
+        "end": 34.20930232558139
+      },
+      {
+        "word": "any",
+        "start": 34.27906976744186,
+        "end": 34.48837209302326
+      },
+      {
+        "word": "other",
+        "start": 34.55813953488372,
+        "end": 34.906976744186046
+      },
+      {
+        "word": "footer",
+        "start": 34.97674418604651,
+        "end": 35.3953488372093
+      },
+      {
+        "word": "space",
+        "start": 35.46511627906977,
+        "end": 35.81395348837209
+      },
+      {
+        "word": "hosts",
+        "start": 35.883720930232556,
+        "end": 36.23255813953488
+      },
+      {
+        "word": "out",
+        "start": 36.302325581395344,
+        "end": 36.51162790697674
+      },
+      {
+        "word": "there,",
+        "start": 36.581395348837205,
+        "end": 36.99999999999999
+      },
+      {
+        "word": "",
+        "start": 37,
+        "end": 37
+      },
+      {
+        "word": "these",
+        "start": 37.0625,
+        "end": 37.375
+      },
+      {
+        "word": "are",
+        "start": 37.4375,
+        "end": 37.625
+      },
+      {
+        "word": "the",
+        "start": 37.6875,
+        "end": 37.875
+      },
+      {
+        "word": "fun",
+        "start": 37.9375,
+        "end": 38.125
+      },
+      {
+        "word": "things",
+        "start": 38.1875,
+        "end": 38.5625
+      },
+      {
+        "word": "we",
+        "start": 38.625,
+        "end": 38.75
+      },
+      {
+        "word": "get",
+        "start": 38.8125,
+        "end": 39
+      },
+      {
+        "word": "to",
+        "start": 39.0625,
+        "end": 39.1875
+      },
+      {
+        "word": "learn",
+        "start": 39.25,
+        "end": 39.5625
+      },
+      {
+        "word": "as",
+        "start": 39.625,
+        "end": 39.75
+      },
+      {
+        "word": "we",
+        "start": 39.8125,
+        "end": 39.9375
+      },
+      {
+        "word": "do",
+        "start": 40,
+        "end": 40.125
+      },
+      {
+        "word": "this",
+        "start": 40.1875,
+        "end": 40.4375
+      },
+      {
+        "word": "process.",
+        "start": 40.5,
+        "end": 41
+      },
+      {
+        "word": "",
+        "start": 42,
+        "end": 42
+      },
+      {
+        "word": "Yeah,",
+        "start": 42.11764705882353,
+        "end": 42.705882352941174
+      },
+      {
+        "word": "thank",
+        "start": 42.8235294117647,
+        "end": 43.41176470588235
+      },
+      {
+        "word": "you.",
+        "start": 43.52941176470588,
+        "end": 43.99999999999999
+      },
+      {
+        "word": "",
+        "start": 44,
+        "end": 44
+      },
+      {
+        "word": "So",
+        "start": 44.07462686567164,
+        "end": 44.223880597014926
+      },
+      {
+        "word": "the",
+        "start": 44.298507462686565,
+        "end": 44.52238805970149
+      },
+      {
+        "word": "audience",
+        "start": 44.59701492537313,
+        "end": 45.19402985074626
+      },
+      {
+        "word": "for",
+        "start": 45.26865671641791,
+        "end": 45.492537313432834
+      },
+      {
+        "word": "re-joining",
+        "start": 45.56716417910447,
+        "end": 46.31343283582089
+      },
+      {
+        "word": "back",
+        "start": 46.38805970149253,
+        "end": 46.686567164179095
+      },
+      {
+        "word": "and",
+        "start": 46.76119402985074,
+        "end": 46.98507462686567
+      },
+      {
+        "word": "for",
+        "start": 47.05970149253731,
+        "end": 47.28358208955223
+      },
+      {
+        "word": "Scott",
+        "start": 47.35820895522387,
+        "end": 47.731343283582085
+      },
+      {
+        "word": "for",
+        "start": 47.805970149253724,
+        "end": 48.02985074626865
+      },
+      {
+        "word": "soldering",
+        "start": 48.10447761194029,
+        "end": 48.77611940298507
+      },
+      {
+        "word": "on",
+        "start": 48.85074626865671,
+        "end": 48.99999999999999
+      },
+      {
+        "word": "",
+        "start": 49,
+        "end": 49
+      },
+      {
+        "word": "and",
+        "start": 49.107142857142854,
+        "end": 49.42857142857142
+      },
+      {
+        "word": "Anthony",
+        "start": 49.535714285714285,
+        "end": 50.285714285714285
+      },
+      {
+        "word": "for",
+        "start": 50.39285714285714,
+        "end": 50.71428571428571
+      },
+      {
+        "word": "the",
+        "start": 50.82142857142857,
+        "end": 51.14285714285714
+      },
+      {
+        "word": "lesson.",
+        "start": 51.25,
+        "end": 52
+      },
+      {
+        "word": "",
+        "start": 52,
+        "end": 52
+      },
+      {
+        "word": "I'm",
+        "start": 52.06122448979592,
+        "end": 52.244897959183675
+      },
+      {
+        "word": "reminded",
+        "start": 52.30612244897959,
+        "end": 52.79591836734694
+      },
+      {
+        "word": "of",
+        "start": 52.85714285714286,
+        "end": 52.9795918367347
+      },
+      {
+        "word": "that",
+        "start": 53.04081632653062,
+        "end": 53.28571428571429
+      },
+      {
+        "word": "like",
+        "start": 53.34693877551021,
+        "end": 53.591836734693885
+      },
+      {
+        "word": "old",
+        "start": 53.653061224489804,
+        "end": 53.83673469387756
+      },
+      {
+        "word": "demotivated",
+        "start": 53.89795918367348,
+        "end": 54.571428571428584
+      },
+      {
+        "word": "poster",
+        "start": 54.6326530612245,
+        "end": 55.000000000000014
+      },
+      {
+        "word": "",
+        "start": 55,
+        "end": 55
+      },
+      {
+        "word": "which",
+        "start": 55.05555555555556,
+        "end": 55.333333333333336
+      },
+      {
+        "word": "was",
+        "start": 55.38888888888889,
+        "end": 55.55555555555556
+      },
+      {
+        "word": "like",
+        "start": 55.611111111111114,
+        "end": 55.833333333333336
+      },
+      {
+        "word": "the",
+        "start": 55.88888888888889,
+        "end": 56.05555555555556
+      },
+      {
+        "word": "Titanic",
+        "start": 56.111111111111114,
+        "end": 56.5
+      },
+      {
+        "word": "and",
+        "start": 56.55555555555556,
+        "end": 56.72222222222222
+      },
+      {
+        "word": "it",
+        "start": 56.77777777777778,
+        "end": 56.88888888888889
+      },
+      {
+        "word": "was",
+        "start": 56.94444444444444,
+        "end": 57.11111111111111
+      },
+      {
+        "word": "like",
+        "start": 57.166666666666664,
+        "end": 57.388888888888886
+      },
+      {
+        "word": "maybe",
+        "start": 57.44444444444444,
+        "end": 57.72222222222222
+      },
+      {
+        "word": "your",
+        "start": 57.77777777777778,
+        "end": 58
+      },
+      {
+        "word": "",
+        "start": 58,
+        "end": 58
+      },
+      {
+        "word": "Your",
+        "start": 58.054054054054056,
+        "end": 58.270270270270274
+      },
+      {
+        "word": "roles",
+        "start": 58.32432432432433,
+        "end": 58.594594594594604
+      },
+      {
+        "word": "to",
+        "start": 58.64864864864865,
+        "end": 58.75675675675676
+      },
+      {
+        "word": "be",
+        "start": 58.810810810810814,
+        "end": 58.91891891891892
+      },
+      {
+        "word": "a",
+        "start": 58.972972972972975,
+        "end": 59.02702702702703
+      },
+      {
+        "word": "lesson",
+        "start": 59.08108108108108,
+        "end": 59.4054054054054
+      },
+      {
+        "word": "for",
+        "start": 59.45945945945946,
+        "end": 59.62162162162162
+      },
+      {
+        "word": "others",
+        "start": 59.67567567567568,
+        "end": 60
+      },
+      {
+        "word": "",
+        "start": 61.12,
+        "end": 61.12
+      },
+      {
+        "word": "But",
+        "start": 61.202666666666666,
+        "end": 61.45066666666666
+      },
+      {
+        "word": "but",
+        "start": 61.53333333333333,
+        "end": 61.78133333333333
+      },
+      {
+        "word": "welcome",
+        "start": 61.864,
+        "end": 62.44266666666667
+      },
+      {
+        "word": "back",
+        "start": 62.52533333333333,
+        "end": 62.855999999999995
+      },
+      {
+        "word": "everyone",
+        "start": 62.93866666666666,
+        "end": 63.599999999999994
+      },
+      {
+        "word": "",
+        "start": 64.52,
+        "end": 64.52
+      },
+      {
+        "word": "Do",
+        "start": 64.58363636363636,
+        "end": 64.71090909090908
+      },
+      {
+        "word": "you",
+        "start": 64.77454545454545,
+        "end": 64.96545454545453
+      },
+      {
+        "word": "know",
+        "start": 65.0290909090909,
+        "end": 65.28363636363635
+      },
+      {
+        "word": "Scott's",
+        "start": 65.34727272727271,
+        "end": 65.79272727272726
+      },
+      {
+        "word": "gonna",
+        "start": 65.85636363636362,
+        "end": 66.17454545454544
+      },
+      {
+        "word": "join",
+        "start": 66.2381818181818,
+        "end": 66.49272727272725
+      },
+      {
+        "word": "him",
+        "start": 66.55636363636361,
+        "end": 66.7472727272727
+      },
+      {
+        "word": "separately",
+        "start": 66.81090909090906,
+        "end": 67.4472727272727
+      },
+      {
+        "word": "Anthony?",
+        "start": 67.51090909090907,
+        "end": 68.01999999999998
+      },
+      {
+        "word": "",
+        "start": 69.28,
+        "end": 69.28
+      },
+      {
+        "word": "Let's",
+        "start": 69.33023255813954,
+        "end": 69.58139534883722
+      },
+      {
+        "word": "let's",
+        "start": 69.63162790697675,
+        "end": 69.88279069767442
+      },
+      {
+        "word": "go",
+        "start": 69.93302325581395,
+        "end": 70.03348837209302
+      },
+      {
+        "word": "ahead",
+        "start": 70.08372093023256,
+        "end": 70.33488372093024
+      },
+      {
+        "word": "just",
+        "start": 70.38511627906976,
+        "end": 70.5860465116279
+      },
+      {
+        "word": "start",
+        "start": 70.63627906976744,
+        "end": 70.88744186046512
+      },
+      {
+        "word": "announcing",
+        "start": 70.93767441860464,
+        "end": 71.44
+      },
+      {
+        "word": "",
+        "start": 71.44,
+        "end": 71.44
+      },
+      {
+        "word": "Thanks,",
+        "start": 71.51692307692308,
+        "end": 72.05538461538461
+      },
+      {
+        "word": "yeah",
+        "start": 72.13230769230769,
+        "end": 72.44
+      },
+      {
+        "word": "",
+        "start": 72.44,
+        "end": 72.44
+      },
+      {
+        "word": "Your",
+        "start": 72.50896551724138,
+        "end": 72.7848275862069
+      },
+      {
+        "word": "cells",
+        "start": 72.85379310344827,
+        "end": 73.19862068965516
+      },
+      {
+        "word": "will",
+        "start": 73.26758620689654,
+        "end": 73.54344827586206
+      },
+      {
+        "word": "let",
+        "start": 73.61241379310343,
+        "end": 73.81931034482757
+      },
+      {
+        "word": "him",
+        "start": 73.88827586206895,
+        "end": 74.0951724137931
+      },
+      {
+        "word": "work",
+        "start": 74.16413793103447,
+        "end": 74.44
+      },
+      {
+        "word": "",
+        "start": 74.44,
+        "end": 74.44
+      },
+      {
+        "word": "We're",
+        "start": 74.51243243243243,
+        "end": 74.8745945945946
+      },
+      {
+        "word": "gonna",
+        "start": 74.94702702702703,
+        "end": 75.3091891891892
+      },
+      {
+        "word": "do",
+        "start": 75.38162162162163,
+        "end": 75.5264864864865
+      },
+      {
+        "word": "great.",
+        "start": 75.59891891891893,
+        "end": 76.03351351351353
+      },
+      {
+        "word": "So",
+        "start": 76.10594594594595,
+        "end": 76.25081081081082
+      },
+      {
+        "word": "hi",
+        "start": 76.32324324324324,
+        "end": 76.46810810810811
+      },
+      {
+        "word": "everyone",
+        "start": 76.54054054054053,
+        "end": 77.11999999999999
+      },
+      {
+        "word": "welcome",
+        "start": 77.19243243243243,
+        "end": 77.69945945945945
+      },
+      {
+        "word": "again",
+        "start": 77.77189189189188,
+        "end": 78.13405405405405
+      },
+      {
+        "word": "to",
+        "start": 78.20648648648648,
+        "end": 78.35135135135135
+      },
+      {
+        "word": "JavaScript",
+        "start": 78.42378378378378,
+        "end": 79.1481081081081
+      },
+      {
+        "word": "Jam",
+        "start": 79.22054054054053,
+        "end": 79.43783783783782
+      },
+      {
+        "word": "live",
+        "start": 79.51027027027025,
+        "end": 79.79999999999998
+      },
+      {
+        "word": "",
+        "start": 80.8,
+        "end": 80.8
+      },
+      {
+        "word": "JavaScript",
+        "start": 80.88114285714285,
+        "end": 81.69257142857143
+      },
+      {
+        "word": "Jam",
+        "start": 81.77371428571428,
+        "end": 82.01714285714284
+      },
+      {
+        "word": "live",
+        "start": 82.09828571428571,
+        "end": 82.42285714285714
+      },
+      {
+        "word": "is",
+        "start": 82.50399999999999,
+        "end": 82.6662857142857
+      },
+      {
+        "word": "an",
+        "start": 82.74742857142856,
+        "end": 82.90971428571427
+      },
+      {
+        "word": "open",
+        "start": 82.99085714285712,
+        "end": 83.31542857142855
+      },
+      {
+        "word": "mic",
+        "start": 83.3965714285714,
+        "end": 83.63999999999997
+      },
+      {
+        "word": "",
+        "start": 83.64,
+        "end": 83.64
+      },
+      {
+        "word": "We'd",
+        "start": 83.72536585365853,
+        "end": 84.06682926829268
+      },
+      {
+        "word": "like",
+        "start": 84.15219512195121,
+        "end": 84.49365853658536
+      },
+      {
+        "word": "to",
+        "start": 84.57902439024389,
+        "end": 84.74975609756096
+      },
+      {
+        "word": "say",
+        "start": 84.83512195121949,
+        "end": 85.0912195121951
+      },
+      {
+        "word": "for",
+        "start": 85.17658536585364,
+        "end": 85.43268292682924
+      },
+      {
+        "word": "anything",
+        "start": 85.51804878048779,
+        "end": 86.20097560975609
+      },
+      {
+        "word": "JavaScript",
+        "start": 86.28634146341462,
+        "end": 87.13999999999999
+      },
+      {
+        "word": "and",
+        "start": 87.22536585365852,
+        "end": 87.48146341463412
+      },
+      {
+        "word": "web",
+        "start": 87.56682926829266,
+        "end": 87.82292682926827
+      },
+      {
+        "word": "development",
+        "start": 87.90829268292681,
+        "end": 88.84731707317071
+      },
+      {
+        "word": "related",
+        "start": 88.93268292682926,
+        "end": 89.53024390243901
+      },
+      {
+        "word": "is",
+        "start": 89.61560975609756,
+        "end": 89.78634146341463
+      },
+      {
+        "word": "on",
+        "start": 89.87170731707316,
+        "end": 90.04243902439023
+      },
+      {
+        "word": "topic.",
+        "start": 90.12780487804876,
+        "end": 90.63999999999999
+      },
+      {
+        "word": "",
+        "start": 90.64,
+        "end": 90.64
+      },
+      {
+        "word": "We",
+        "start": 90.69,
+        "end": 90.78999999999999
+      },
+      {
+        "word": "love",
+        "start": 90.84,
+        "end": 91.04
+      },
+      {
+        "word": "audience",
+        "start": 91.09,
+        "end": 91.49000000000001
+      },
+      {
+        "word": "participation.",
+        "start": 91.54,
+        "end": 92.24000000000001
+      },
+      {
+        "word": "",
+        "start": 92.24,
+        "end": 92.24
+      },
+      {
+        "word": "We've",
+        "start": 92.29425531914893,
+        "end": 92.56553191489361
+      },
+      {
+        "word": "got",
+        "start": 92.61978723404255,
+        "end": 92.78255319148936
+      },
+      {
+        "word": "something",
+        "start": 92.83680851063829,
+        "end": 93.32510638297872
+      },
+      {
+        "word": "very",
+        "start": 93.37936170212765,
+        "end": 93.5963829787234
+      },
+      {
+        "word": "special",
+        "start": 93.65063829787233,
+        "end": 94.03042553191489
+      },
+      {
+        "word": "for",
+        "start": 94.08468085106382,
+        "end": 94.24744680851063
+      },
+      {
+        "word": "you",
+        "start": 94.30170212765957,
+        "end": 94.46446808510638
+      },
+      {
+        "word": "this",
+        "start": 94.51872340425531,
+        "end": 94.73574468085106
+      },
+      {
+        "word": "week",
+        "start": 94.78999999999999,
+        "end": 95.00702127659574
+      },
+      {
+        "word": "and",
+        "start": 95.06127659574467,
+        "end": 95.22404255319148
+      },
+      {
+        "word": "in",
+        "start": 95.27829787234042,
+        "end": 95.38680851063829
+      },
+      {
+        "word": "the",
+        "start": 95.44106382978723,
+        "end": 95.60382978723403
+      },
+      {
+        "word": "upcoming",
+        "start": 95.65808510638297,
+        "end": 96.09212765957446
+      },
+      {
+        "word": "weeks",
+        "start": 96.1463829787234,
+        "end": 96.41765957446808
+      },
+      {
+        "word": "in",
+        "start": 96.47191489361701,
+        "end": 96.58042553191488
+      },
+      {
+        "word": "collaboration",
+        "start": 96.63468085106382,
+        "end": 97.33999999999999
+      },
+      {
+        "word": "",
+        "start": 97.34,
+        "end": 97.34
+      },
+      {
+        "word": "with",
+        "start": 97.45111111111112,
+        "end": 97.89555555555556
+      },
+      {
+        "word": "React",
+        "start": 98.00666666666667,
+        "end": 98.56222222222223
+      },
+      {
+        "word": "Miami.",
+        "start": 98.67333333333335,
+        "end": 99.34000000000002
+      },
+      {
+        "word": "",
+        "start": 99.34,
+        "end": 99.34
+      },
+      {
+        "word": "I",
+        "start": 99.44,
+        "end": 99.53999999999999
+      },
+      {
+        "word": "am",
+        "start": 99.64,
+        "end": 99.84
+      },
+      {
+        "word": "Esha",
+        "start": 99.94,
+        "end": 100.34
+      },
+      {
+        "word": "Nada,",
+        "start": 100.44,
+        "end": 100.94
+      },
+      {
+        "word": "the",
+        "start": 101.03999999999999,
+        "end": 101.33999999999999
+      },
+      {
+        "word": "BQA",
+        "start": 101.44,
+        "end": 101.74
+      },
+      {
+        "word": "product",
+        "start": 101.84,
+        "end": 102.54
+      },
+      {
+        "word": "at",
+        "start": 102.64,
+        "end": 102.84
+      },
+      {
+        "word": "EGO.",
+        "start": 102.94,
+        "end": 103.34
+      },
+      {
+        "word": "",
+        "start": 103.34,
+        "end": 103.34
+      },
+      {
+        "word": "It's",
+        "start": 103.42387096774193,
+        "end": 103.75935483870967
+      },
+      {
+        "word": "employment",
+        "start": 103.84322580645161,
+        "end": 104.68193548387097
+      },
+      {
+        "word": "platform",
+        "start": 104.7658064516129,
+        "end": 105.43677419354839
+      },
+      {
+        "word": "and",
+        "start": 105.52064516129032,
+        "end": 105.77225806451612
+      },
+      {
+        "word": "I'm",
+        "start": 105.85612903225805,
+        "end": 106.10774193548386
+      },
+      {
+        "word": "joined",
+        "start": 106.19161290322579,
+        "end": 106.6948387096774
+      },
+      {
+        "word": "by",
+        "start": 106.77870967741934,
+        "end": 106.94645161290322
+      },
+      {
+        "word": "Anthony",
+        "start": 107.03032258064515,
+        "end": 107.6174193548387
+      },
+      {
+        "word": "and",
+        "start": 107.70129032258063,
+        "end": 107.95290322580644
+      },
+      {
+        "word": "Scott.",
+        "start": 108.03677419354837,
+        "end": 108.53999999999998
+      },
+      {
+        "word": "",
+        "start": 108.54,
+        "end": 108.54
+      },
+      {
+        "word": "I'll",
+        "start": 108.58117647058825,
+        "end": 108.7458823529412
+      },
+      {
+        "word": "let",
+        "start": 108.78705882352942,
+        "end": 108.91058823529413
+      },
+      {
+        "word": "them",
+        "start": 108.95176470588237,
+        "end": 109.11647058823532
+      },
+      {
+        "word": "introduce",
+        "start": 109.15764705882354,
+        "end": 109.52823529411766
+      },
+      {
+        "word": "themselves",
+        "start": 109.56941176470589,
+        "end": 109.98117647058824
+      },
+      {
+        "word": "and",
+        "start": 110.02235294117648,
+        "end": 110.14588235294119
+      },
+      {
+        "word": "talk",
+        "start": 110.18705882352943,
+        "end": 110.35176470588237
+      },
+      {
+        "word": "about",
+        "start": 110.3929411764706,
+        "end": 110.59882352941177
+      },
+      {
+        "word": "what",
+        "start": 110.64000000000001,
+        "end": 110.80470588235296
+      },
+      {
+        "word": "we're",
+        "start": 110.84588235294119,
+        "end": 111.05176470588236
+      },
+      {
+        "word": "doing",
+        "start": 111.0929411764706,
+        "end": 111.29882352941178
+      },
+      {
+        "word": "with",
+        "start": 111.34000000000002,
+        "end": 111.50470588235297
+      },
+      {
+        "word": "React",
+        "start": 111.54588235294119,
+        "end": 111.75176470588237
+      },
+      {
+        "word": "Miami.",
+        "start": 111.7929411764706,
+        "end": 112.04000000000002
+      },
+      {
+        "word": "",
+        "start": 113.64,
+        "end": 113.64
+      },
+      {
+        "word": "Hello,",
+        "start": 113.71485714285714,
+        "end": 114.164
+      },
+      {
+        "word": "my",
+        "start": 114.23885714285714,
+        "end": 114.38857142857142
+      },
+      {
+        "word": "name",
+        "start": 114.46342857142857,
+        "end": 114.76285714285714
+      },
+      {
+        "word": "is",
+        "start": 114.83771428571428,
+        "end": 114.98742857142857
+      },
+      {
+        "word": "Anthony",
+        "start": 115.06228571428571,
+        "end": 115.58628571428571
+      },
+      {
+        "word": "Campolo.",
+        "start": 115.66114285714285,
+        "end": 116.25999999999999
+      },
+      {
+        "word": "I",
+        "start": 116.33485714285713,
+        "end": 116.40971428571427
+      },
+      {
+        "word": "am",
+        "start": 116.48457142857141,
+        "end": 116.6342857142857
+      },
+      {
+        "word": "a",
+        "start": 116.70914285714284,
+        "end": 116.78399999999998
+      },
+      {
+        "word": "developer",
+        "start": 116.85885714285712,
+        "end": 117.5325714285714
+      },
+      {
+        "word": "advocate",
+        "start": 117.60742857142854,
+        "end": 118.20628571428568
+      },
+      {
+        "word": "at",
+        "start": 118.28114285714283,
+        "end": 118.4308571428571
+      },
+      {
+        "word": "edgio",
+        "start": 118.50571428571425,
+        "end": 118.87999999999997
+      },
+      {
+        "word": "",
+        "start": 118.88,
+        "end": 118.88
+      },
+      {
+        "word": "And",
+        "start": 118.95314285714285,
+        "end": 119.17257142857142
+      },
+      {
+        "word": "we're",
+        "start": 119.24571428571429,
+        "end": 119.61142857142858
+      },
+      {
+        "word": "going",
+        "start": 119.68457142857143,
+        "end": 120.05028571428572
+      },
+      {
+        "word": "to",
+        "start": 120.12342857142858,
+        "end": 120.26971428571429
+      },
+      {
+        "word": "be",
+        "start": 120.34285714285714,
+        "end": 120.48914285714285
+      },
+      {
+        "word": "joined",
+        "start": 120.56228571428571,
+        "end": 121.00114285714285
+      },
+      {
+        "word": "today",
+        "start": 121.07428571428571,
+        "end": 121.44
+      },
+      {
+        "word": "",
+        "start": 122.16,
+        "end": 122.16
+      },
+      {
+        "word": "Dem",
+        "start": 122.232,
+        "end": 122.448
+      },
+      {
+        "word": "Agawal",
+        "start": 122.52,
+        "end": 122.952
+      },
+      {
+        "word": "who",
+        "start": 123.024,
+        "end": 123.24
+      },
+      {
+        "word": "was",
+        "start": 123.312,
+        "end": 123.52799999999999
+      },
+      {
+        "word": "also",
+        "start": 123.6,
+        "end": 123.88799999999999
+      },
+      {
+        "word": "partnering",
+        "start": 123.96,
+        "end": 124.67999999999999
+      },
+      {
+        "word": "with",
+        "start": 124.752,
+        "end": 125.03999999999999
+      },
+      {
+        "word": "React",
+        "start": 125.112,
+        "end": 125.472
+      },
+      {
+        "word": "Miami",
+        "start": 125.544,
+        "end": 125.904
+      },
+      {
+        "word": "to",
+        "start": 125.976,
+        "end": 126.12
+      },
+      {
+        "word": "help",
+        "start": 126.192,
+        "end": 126.47999999999999
+      },
+      {
+        "word": "together",
+        "start": 126.55199999999999,
+        "end": 127.12799999999999
+      },
+      {
+        "word": "some",
+        "start": 127.19999999999999,
+        "end": 127.48799999999999
+      },
+      {
+        "word": "sweet",
+        "start": 127.55999999999999,
+        "end": 127.91999999999999
+      },
+      {
+        "word": "",
+        "start": 128.44,
+        "end": 128.44
+      },
+      {
+        "word": "events",
+        "start": 128.51217391304348,
+        "end": 128.94521739130434
+      },
+      {
+        "word": "and",
+        "start": 129.01739130434783,
+        "end": 129.23391304347825
+      },
+      {
+        "word": "activities",
+        "start": 129.30608695652174,
+        "end": 130.0278260869565
+      },
+      {
+        "word": "and",
+        "start": 130.1,
+        "end": 130.31652173913042
+      },
+      {
+        "word": "content",
+        "start": 130.3886956521739,
+        "end": 130.89391304347825
+      },
+      {
+        "word": "for",
+        "start": 130.96608695652174,
+        "end": 131.18260869565216
+      },
+      {
+        "word": "you",
+        "start": 131.25478260869565,
+        "end": 131.47130434782608
+      },
+      {
+        "word": "and",
+        "start": 131.54347826086956,
+        "end": 131.76
+      },
+      {
+        "word": "",
+        "start": 132.52,
+        "end": 132.52
+      },
+      {
+        "word": "You're",
+        "start": 132.57600000000002,
+        "end": 132.91200000000003
+      },
+      {
+        "word": "bringing",
+        "start": 132.96800000000002,
+        "end": 133.41600000000003
+      },
+      {
+        "word": "him",
+        "start": 133.472,
+        "end": 133.64000000000001
+      },
+      {
+        "word": "up",
+        "start": 133.696,
+        "end": 133.808
+      },
+      {
+        "word": "right",
+        "start": 133.864,
+        "end": 134.144
+      },
+      {
+        "word": "now.",
+        "start": 134.20000000000002,
+        "end": 134.424
+      },
+      {
+        "word": "It's",
+        "start": 134.48000000000002,
+        "end": 134.704
+      },
+      {
+        "word": "got",
+        "start": 134.76000000000002,
+        "end": 134.92800000000003
+      },
+      {
+        "word": "if",
+        "start": 134.984,
+        "end": 135.096
+      },
+      {
+        "word": "you",
+        "start": 135.15200000000002,
+        "end": 135.32000000000002
+      },
+      {
+        "word": "are",
+        "start": 135.376,
+        "end": 135.544
+      },
+      {
+        "word": "able",
+        "start": 135.6,
+        "end": 135.82399999999998
+      },
+      {
+        "word": "to",
+        "start": 135.88,
+        "end": 135.992
+      },
+      {
+        "word": "speak",
+        "start": 136.048,
+        "end": 136.328
+      },
+      {
+        "word": "go",
+        "start": 136.38400000000001,
+        "end": 136.496
+      },
+      {
+        "word": "ahead.",
+        "start": 136.55200000000002,
+        "end": 136.88800000000003
+      },
+      {
+        "word": "You're",
+        "start": 136.94400000000002,
+        "end": 137.28000000000003
+      },
+      {
+        "word": "an",
+        "start": 137.336,
+        "end": 137.448
+      },
+      {
+        "word": "issues",
+        "start": 137.50400000000002,
+        "end": 137.84000000000003
+      },
+      {
+        "word": "",
+        "start": 137.84,
+        "end": 137.84
+      },
+      {
+        "word": "So",
+        "start": 138.07333333333332,
+        "end": 138.54
+      },
+      {
+        "word": "hopefully",
+        "start": 138.7733333333333,
+        "end": 140.8733333333333
+      },
+      {
+        "word": "you",
+        "start": 141.10666666666665,
+        "end": 141.80666666666664
+      },
+      {
+        "word": "can",
+        "start": 142.04,
+        "end": 142.73999999999998
+      },
+      {
+        "word": "hear",
+        "start": 142.97333333333333,
+        "end": 143.90666666666667
+      },
+      {
+        "word": "me.",
+        "start": 144.14,
+        "end": 144.83999999999997
+      },
+      {
+        "word": "",
+        "start": 144.84,
+        "end": 144.84
+      },
+      {
+        "word": "Yes.",
+        "start": 145.04,
+        "end": 145.84
+      },
+      {
+        "word": "",
+        "start": 145.84,
+        "end": 145.84
+      },
+      {
+        "word": "All",
+        "start": 145.92695652173913,
+        "end": 146.18782608695653
+      },
+      {
+        "word": "right.",
+        "start": 146.27478260869566,
+        "end": 146.79652173913044
+      },
+      {
+        "word": "Great.",
+        "start": 146.88347826086957,
+        "end": 147.40521739130435
+      },
+      {
+        "word": "Wow.",
+        "start": 147.49217391304347,
+        "end": 147.84
+      },
+      {
+        "word": "",
+        "start": 147.84,
+        "end": 147.84
+      },
+      {
+        "word": "But",
+        "start": 147.87703703703704,
+        "end": 147.98814814814816
+      },
+      {
+        "word": "that",
+        "start": 148.0251851851852,
+        "end": 148.17333333333335
+      },
+      {
+        "word": "was",
+        "start": 148.21037037037038,
+        "end": 148.3214814814815
+      },
+      {
+        "word": "hard",
+        "start": 148.35851851851854,
+        "end": 148.5066666666667
+      },
+      {
+        "word": "earlier.",
+        "start": 148.54370370370373,
+        "end": 148.84000000000003
+      },
+      {
+        "word": "",
+        "start": 148.84,
+        "end": 148.84
+      },
+      {
+        "word": "I",
+        "start": 148.89555555555555,
+        "end": 148.9511111111111
+      },
+      {
+        "word": "thought",
+        "start": 149.00666666666666,
+        "end": 149.39555555555555
+      },
+      {
+        "word": "it",
+        "start": 149.45111111111112,
+        "end": 149.56222222222223
+      },
+      {
+        "word": "was.",
+        "start": 149.61777777777777,
+        "end": 149.84
+      },
+      {
+        "word": "",
+        "start": 149.84,
+        "end": 149.84
+      },
+      {
+        "word": "You",
+        "start": 149.8744827586207,
+        "end": 149.97793103448276
+      },
+      {
+        "word": "know,",
+        "start": 150.01241379310346,
+        "end": 150.18482758620692
+      },
+      {
+        "word": "it",
+        "start": 150.2193103448276,
+        "end": 150.28827586206896
+      },
+      {
+        "word": "doesn't",
+        "start": 150.32275862068965,
+        "end": 150.56413793103448
+      },
+      {
+        "word": "matter",
+        "start": 150.59862068965518,
+        "end": 150.8055172413793
+      },
+      {
+        "word": "if",
+        "start": 150.84,
+        "end": 150.90896551724137
+      },
+      {
+        "word": "you",
+        "start": 150.94344827586207,
+        "end": 151.04689655172413
+      },
+      {
+        "word": "know",
+        "start": 151.08137931034483,
+        "end": 151.2193103448276
+      },
+      {
+        "word": "quite",
+        "start": 151.2537931034483,
+        "end": 151.42620689655175
+      },
+      {
+        "word": "a",
+        "start": 151.46068965517242,
+        "end": 151.4951724137931
+      },
+      {
+        "word": "bit",
+        "start": 151.52965517241378,
+        "end": 151.63310344827585
+      },
+      {
+        "word": "about",
+        "start": 151.66758620689654,
+        "end": 151.84
+      },
+      {
+        "word": "",
+        "start": 151.84,
+        "end": 151.84
+      },
+      {
+        "word": "Teckerdot",
+        "start": 151.88347826086957,
+        "end": 152.27478260869566
+      },
+      {
+        "word": "is",
+        "start": 152.31826086956522,
+        "end": 152.40521739130435
+      },
+      {
+        "word": "there's",
+        "start": 152.4486956521739,
+        "end": 152.75304347826088
+      },
+      {
+        "word": "only",
+        "start": 152.79652173913044,
+        "end": 152.9704347826087
+      },
+      {
+        "word": "something",
+        "start": 153.01391304347825,
+        "end": 153.40521739130435
+      },
+      {
+        "word": "that",
+        "start": 153.4486956521739,
+        "end": 153.62260869565216
+      },
+      {
+        "word": "makes",
+        "start": 153.66608695652172,
+        "end": 153.88347826086954
+      },
+      {
+        "word": "you",
+        "start": 153.92695652173913,
+        "end": 154.05739130434782
+      },
+      {
+        "word": "look",
+        "start": 154.10086956521738,
+        "end": 154.27478260869563
+      },
+      {
+        "word": "like",
+        "start": 154.3182608695652,
+        "end": 154.49217391304344
+      },
+      {
+        "word": "a",
+        "start": 154.535652173913,
+        "end": 154.57913043478257
+      },
+      {
+        "word": "fool.",
+        "start": 154.62260869565213,
+        "end": 154.83999999999995
+      },
+      {
+        "word": "",
+        "start": 154.84,
+        "end": 154.84
+      },
+      {
+        "word": "So",
+        "start": 155.0275,
+        "end": 155.4025
+      },
+      {
+        "word": "here",
+        "start": 155.59,
+        "end": 156.34
+      },
+      {
+        "word": "we",
+        "start": 156.5275,
+        "end": 156.9025
+      },
+      {
+        "word": "are.",
+        "start": 157.09,
+        "end": 157.84
+      },
+      {
+        "word": "",
+        "start": 157.84,
+        "end": 157.84
+      },
+      {
+        "word": "Everything's",
+        "start": 157.9114285714286,
+        "end": 158.76857142857145
+      },
+      {
+        "word": "good.",
+        "start": 158.84,
+        "end": 159.19714285714286
+      },
+      {
+        "word": "They've",
+        "start": 159.26857142857142,
+        "end": 159.76857142857142
+      },
+      {
+        "word": "worked",
+        "start": 159.84,
+        "end": 160.26857142857142
+      },
+      {
+        "word": "it",
+        "start": 160.34,
+        "end": 160.48285714285714
+      },
+      {
+        "word": "now.",
+        "start": 160.55428571428573,
+        "end": 160.84
+      },
+      {
+        "word": "",
+        "start": 160.84,
+        "end": 160.84
+      },
+      {
+        "word": "So",
+        "start": 160.9352380952381,
+        "end": 161.1257142857143
+      },
+      {
+        "word": "anyway,",
+        "start": 161.22095238095238,
+        "end": 161.88761904761904
+      },
+      {
+        "word": "so",
+        "start": 161.98285714285714,
+        "end": 162.17333333333335
+      },
+      {
+        "word": "great.",
+        "start": 162.26857142857142,
+        "end": 162.84
+      },
+      {
+        "word": "",
+        "start": 162.84,
+        "end": 162.84
+      },
+      {
+        "word": "So",
+        "start": 162.89882352941177,
+        "end": 163.0164705882353
+      },
+      {
+        "word": "glad",
+        "start": 163.07529411764708,
+        "end": 163.31058823529415
+      },
+      {
+        "word": "to",
+        "start": 163.3694117647059,
+        "end": 163.48705882352942
+      },
+      {
+        "word": "hear.",
+        "start": 163.5458823529412,
+        "end": 163.84
+      },
+      {
+        "word": "",
+        "start": 163.84,
+        "end": 163.84
+      },
+      {
+        "word": "So",
+        "start": 163.924,
+        "end": 164.092
+      },
+      {
+        "word": "great,",
+        "start": 164.17600000000002,
+        "end": 164.68
+      },
+      {
+        "word": "so",
+        "start": 164.764,
+        "end": 164.93200000000002
+      },
+      {
+        "word": "glad",
+        "start": 165.01600000000002,
+        "end": 165.35200000000003
+      },
+      {
+        "word": "to",
+        "start": 165.43600000000004,
+        "end": 165.60400000000004
+      },
+      {
+        "word": "be",
+        "start": 165.68800000000005,
+        "end": 165.85600000000005
+      },
+      {
+        "word": "here.",
+        "start": 165.94000000000005,
+        "end": 166.36000000000007
+      },
+      {
+        "word": "",
+        "start": 166.36,
+        "end": 166.36
+      },
+      {
+        "word": "React",
+        "start": 166.41846153846154,
+        "end": 166.71076923076924
+      },
+      {
+        "word": "Miami,",
+        "start": 166.76923076923077,
+        "end": 167.12
+      },
+      {
+        "word": "I",
+        "start": 167.17846153846153,
+        "end": 167.23692307692306
+      },
+      {
+        "word": "don't",
+        "start": 167.29538461538462,
+        "end": 167.58769230769232
+      },
+      {
+        "word": "know",
+        "start": 167.64615384615385,
+        "end": 167.88
+      },
+      {
+        "word": "why",
+        "start": 167.93846153846155,
+        "end": 168.11384615384617
+      },
+      {
+        "word": "it's",
+        "start": 168.1723076923077,
+        "end": 168.40615384615384
+      },
+      {
+        "word": "that",
+        "start": 168.4646153846154,
+        "end": 168.69846153846154
+      },
+      {
+        "word": "week",
+        "start": 168.7569230769231,
+        "end": 168.99076923076925
+      },
+      {
+        "word": "there,",
+        "start": 169.0492307692308,
+        "end": 169.40000000000003
+      },
+      {
+        "word": "",
+        "start": 169.4,
+        "end": 169.4
+      },
+      {
+        "word": "but",
+        "start": 169.4588679245283,
+        "end": 169.6354716981132
+      },
+      {
+        "word": "in",
+        "start": 169.6943396226415,
+        "end": 169.8120754716981
+      },
+      {
+        "word": "a",
+        "start": 169.8709433962264,
+        "end": 169.9298113207547
+      },
+      {
+        "word": "hospital",
+        "start": 169.988679245283,
+        "end": 170.4596226415094
+      },
+      {
+        "word": "to",
+        "start": 170.51849056603774,
+        "end": 170.63622641509434
+      },
+      {
+        "word": "get",
+        "start": 170.69509433962264,
+        "end": 170.87169811320754
+      },
+      {
+        "word": "this",
+        "start": 170.93056603773584,
+        "end": 171.16603773584905
+      },
+      {
+        "word": "up,",
+        "start": 171.22490566037735,
+        "end": 171.40150943396225
+      },
+      {
+        "word": "that's",
+        "start": 171.46037735849055,
+        "end": 171.81358490566035
+      },
+      {
+        "word": "what",
+        "start": 171.87245283018865,
+        "end": 172.10792452830185
+      },
+      {
+        "word": "I",
+        "start": 172.16679245283015,
+        "end": 172.22566037735845
+      },
+      {
+        "word": "put.",
+        "start": 172.28452830188675,
+        "end": 172.51999999999995
+      },
+      {
+        "word": "",
+        "start": 172.52,
+        "end": 172.52
+      },
+      {
+        "word": "But",
+        "start": 172.60222222222222,
+        "end": 172.8488888888889
+      },
+      {
+        "word": "really,",
+        "start": 172.9311111111111,
+        "end": 173.50666666666666
+      },
+      {
+        "word": "it's",
+        "start": 173.58888888888887,
+        "end": 173.91777777777776
+      },
+      {
+        "word": "React",
+        "start": 173.99999999999997,
+        "end": 174.41111111111107
+      },
+      {
+        "word": "Miami",
+        "start": 174.4933333333333,
+        "end": 174.9044444444444
+      },
+      {
+        "word": "month,",
+        "start": 174.98666666666665,
+        "end": 175.48
+      },
+      {
+        "word": "",
+        "start": 175.48,
+        "end": 175.48
+      },
+      {
+        "word": "which",
+        "start": 175.53733333333332,
+        "end": 175.82399999999998
+      },
+      {
+        "word": "I'm",
+        "start": 175.88133333333332,
+        "end": 176.0533333333333
+      },
+      {
+        "word": "renaming",
+        "start": 176.11066666666665,
+        "end": 176.5693333333333
+      },
+      {
+        "word": "right",
+        "start": 176.62666666666664,
+        "end": 176.9133333333333
+      },
+      {
+        "word": "now.",
+        "start": 176.97066666666663,
+        "end": 177.19999999999996
+      },
+      {
+        "word": "",
+        "start": 177.2,
+        "end": 177.2
+      },
+      {
+        "word": "And",
+        "start": 177.28645161290322,
+        "end": 177.5458064516129
+      },
+      {
+        "word": "I'm",
+        "start": 177.63225806451612,
+        "end": 177.8916129032258
+      },
+      {
+        "word": "super",
+        "start": 177.97806451612902,
+        "end": 178.41032258064516
+      },
+      {
+        "word": "excited",
+        "start": 178.4967741935484,
+        "end": 179.10193548387096
+      },
+      {
+        "word": "because,",
+        "start": 179.1883870967742,
+        "end": 179.88
+      },
+      {
+        "word": "",
+        "start": 179.88,
+        "end": 179.88
+      },
+      {
+        "word": "as",
+        "start": 179.9416216216216,
+        "end": 180.06486486486486
+      },
+      {
+        "word": "anything",
+        "start": 180.12648648648647,
+        "end": 180.61945945945945
+      },
+      {
+        "word": "we",
+        "start": 180.68108108108106,
+        "end": 180.8043243243243
+      },
+      {
+        "word": "were",
+        "start": 180.86594594594592,
+        "end": 181.1124324324324
+      },
+      {
+        "word": "sitting",
+        "start": 181.17405405405404,
+        "end": 181.60540540540538
+      },
+      {
+        "word": "at",
+        "start": 181.66702702702702,
+        "end": 181.79027027027027
+      },
+      {
+        "word": "there",
+        "start": 181.85189189189188,
+        "end": 182.16
+      },
+      {
+        "word": "",
+        "start": 182.16,
+        "end": 182.16
+      },
+      {
+        "word": "we're",
+        "start": 182.20444444444445,
+        "end": 182.42666666666668
+      },
+      {
+        "word": "gonna",
+        "start": 182.4711111111111,
+        "end": 182.69333333333333
+      },
+      {
+        "word": "be",
+        "start": 182.73777777777775,
+        "end": 182.82666666666665
+      },
+      {
+        "word": "talking",
+        "start": 182.87111111111108,
+        "end": 183.18222222222218
+      },
+      {
+        "word": "to",
+        "start": 183.22666666666663,
+        "end": 183.31555555555553
+      },
+      {
+        "word": "Dev",
+        "start": 183.35999999999996,
+        "end": 183.49333333333328
+      },
+      {
+        "word": "today",
+        "start": 183.53777777777773,
+        "end": 183.75999999999996
+      },
+      {
+        "word": "",
+        "start": 183.76,
+        "end": 183.76
+      },
+      {
+        "word": "and",
+        "start": 183.8443243243243,
+        "end": 184.09729729729727
+      },
+      {
+        "word": "about",
+        "start": 184.18162162162162,
+        "end": 184.60324324324324
+      },
+      {
+        "word": "React",
+        "start": 184.68756756756756,
+        "end": 185.10918918918918
+      },
+      {
+        "word": "Miami",
+        "start": 185.1935135135135,
+        "end": 185.61513513513512
+      },
+      {
+        "word": "and",
+        "start": 185.69945945945943,
+        "end": 185.9524324324324
+      },
+      {
+        "word": "the",
+        "start": 186.03675675675674,
+        "end": 186.28972972972971
+      },
+      {
+        "word": "thing.",
+        "start": 186.37405405405406,
+        "end": 186.88
+      },
+      {
+        "word": "",
+        "start": 186.88,
+        "end": 186.88
+      },
+      {
+        "word": "And",
+        "start": 187,
+        "end": 187.36
+      },
+      {
+        "word": "also,",
+        "start": 187.48,
+        "end": 188.07999999999998
+      },
+      {
+        "word": "we're",
+        "start": 188.2,
+        "end": 188.79999999999998
+      },
+      {
+        "word": "doing",
+        "start": 188.92,
+        "end": 189.51999999999998
+      },
+      {
+        "word": "our",
+        "start": 189.64,
+        "end": 190
+      },
+      {
+        "word": "little",
+        "start": 190.11999999999998,
+        "end": 190.83999999999997
+      },
+      {
+        "word": "clap",
+        "start": 190.95999999999998,
+        "end": 191.43999999999997
+      },
+      {
+        "word": "",
+        "start": 191.44,
+        "end": 191.44
+      },
+      {
+        "word": "with",
+        "start": 191.53076923076924,
+        "end": 191.89384615384617
+      },
+      {
+        "word": "React",
+        "start": 191.98461538461538,
+        "end": 192.43846153846152
+      },
+      {
+        "word": "Miami",
+        "start": 192.52923076923076,
+        "end": 192.9830769230769
+      },
+      {
+        "word": "as",
+        "start": 193.07384615384615,
+        "end": 193.2553846153846
+      },
+      {
+        "word": "well.",
+        "start": 193.34615384615384,
+        "end": 193.79999999999998
+      },
+      {
+        "word": "",
+        "start": 193.8,
+        "end": 193.8
+      },
+      {
+        "word": "And",
+        "start": 193.86444444444444,
+        "end": 194.05777777777777
+      },
+      {
+        "word": "we're",
+        "start": 194.12222222222223,
+        "end": 194.44444444444446
+      },
+      {
+        "word": "just",
+        "start": 194.5088888888889,
+        "end": 194.76666666666668
+      },
+      {
+        "word": "so",
+        "start": 194.8311111111111,
+        "end": 194.96
+      },
+      {
+        "word": "excited",
+        "start": 195.02444444444444,
+        "end": 195.47555555555556
+      },
+      {
+        "word": "for",
+        "start": 195.54,
+        "end": 195.73333333333332
+      },
+      {
+        "word": "that.",
+        "start": 195.79777777777778,
+        "end": 196.12
+      },
+      {
+        "word": "",
+        "start": 196.12,
+        "end": 196.12
+      },
+      {
+        "word": "Moving",
+        "start": 196.1769230769231,
+        "end": 196.51846153846157
+      },
+      {
+        "word": "forward,",
+        "start": 196.57538461538462,
+        "end": 197.03076923076924
+      },
+      {
+        "word": "we're",
+        "start": 197.08769230769232,
+        "end": 197.37230769230771
+      },
+      {
+        "word": "gonna",
+        "start": 197.4292307692308,
+        "end": 197.7138461538462
+      },
+      {
+        "word": "be",
+        "start": 197.77076923076925,
+        "end": 197.88461538461542
+      },
+      {
+        "word": "having",
+        "start": 197.94153846153847,
+        "end": 198.28307692307692
+      },
+      {
+        "word": "more",
+        "start": 198.34,
+        "end": 198.5676923076923
+      },
+      {
+        "word": "speakers",
+        "start": 198.6246153846154,
+        "end": 199.08
+      },
+      {
+        "word": "",
+        "start": 199.08,
+        "end": 199.08
+      },
+      {
+        "word": "from",
+        "start": 199.16250000000002,
+        "end": 199.4925
+      },
+      {
+        "word": "React",
+        "start": 199.57500000000002,
+        "end": 199.9875
+      },
+      {
+        "word": "Miami,",
+        "start": 200.07000000000002,
+        "end": 200.56500000000003
+      },
+      {
+        "word": "speaking",
+        "start": 200.6475,
+        "end": 201.3075
+      },
+      {
+        "word": "here",
+        "start": 201.39000000000001,
+        "end": 201.72000000000003
+      },
+      {
+        "word": "",
+        "start": 201.72,
+        "end": 201.72
+      },
+      {
+        "word": "about",
+        "start": 201.7591111111111,
+        "end": 201.95466666666667
+      },
+      {
+        "word": "just",
+        "start": 201.99377777777778,
+        "end": 202.15022222222223
+      },
+      {
+        "word": "topics",
+        "start": 202.18933333333334,
+        "end": 202.424
+      },
+      {
+        "word": "that",
+        "start": 202.46311111111112,
+        "end": 202.61955555555556
+      },
+      {
+        "word": "make",
+        "start": 202.65866666666668,
+        "end": 202.81511111111112
+      },
+      {
+        "word": "sense",
+        "start": 202.85422222222223,
+        "end": 203.0497777777778
+      },
+      {
+        "word": "with",
+        "start": 203.0888888888889,
+        "end": 203.24533333333335
+      },
+      {
+        "word": "them.",
+        "start": 203.28444444444446,
+        "end": 203.48000000000002
+      },
+      {
+        "word": "",
+        "start": 203.48,
+        "end": 203.48
+      },
+      {
+        "word": "And",
+        "start": 203.51478260869564,
+        "end": 203.6191304347826
+      },
+      {
+        "word": "you",
+        "start": 203.65391304347824,
+        "end": 203.7582608695652
+      },
+      {
+        "word": "know,",
+        "start": 203.79304347826084,
+        "end": 203.9669565217391
+      },
+      {
+        "word": "we're",
+        "start": 204.00173913043477,
+        "end": 204.17565217391302
+      },
+      {
+        "word": "keeping",
+        "start": 204.2104347826087,
+        "end": 204.45391304347828
+      },
+      {
+        "word": "this",
+        "start": 204.48869565217393,
+        "end": 204.62782608695653
+      },
+      {
+        "word": "traditional,",
+        "start": 204.66260869565218,
+        "end": 205.08
+      },
+      {
+        "word": "",
+        "start": 205.08,
+        "end": 205.08
+      },
+      {
+        "word": "like,",
+        "start": 205.1560975609756,
+        "end": 205.53658536585365
+      },
+      {
+        "word": "JavaScript,",
+        "start": 205.61268292682925,
+        "end": 206.44975609756096
+      },
+      {
+        "word": "Jam",
+        "start": 206.52585365853656,
+        "end": 206.75414634146338
+      },
+      {
+        "word": "vibe",
+        "start": 206.830243902439,
+        "end": 207.13463414634145
+      },
+      {
+        "word": "that",
+        "start": 207.21073170731705,
+        "end": 207.5151219512195
+      },
+      {
+        "word": "we",
+        "start": 207.5912195121951,
+        "end": 207.74341463414632
+      },
+      {
+        "word": "have,",
+        "start": 207.81951219512192,
+        "end": 208.19999999999996
+      },
+      {
+        "word": "",
+        "start": 208.2,
+        "end": 208.2
+      },
+      {
+        "word": "rolling",
+        "start": 208.23542857142857,
+        "end": 208.48342857142856
+      },
+      {
+        "word": "through",
+        "start": 208.51885714285714,
+        "end": 208.76685714285713
+      },
+      {
+        "word": "all",
+        "start": 208.80228571428572,
+        "end": 208.90857142857143
+      },
+      {
+        "word": "that",
+        "start": 208.94400000000002,
+        "end": 209.08571428571432
+      },
+      {
+        "word": "problems.",
+        "start": 209.12114285714287,
+        "end": 209.44000000000003
+      },
+      {
+        "word": "",
+        "start": 209.44,
+        "end": 209.44
+      },
+      {
+        "word": "So",
+        "start": 209.49714285714285,
+        "end": 209.61142857142858
+      },
+      {
+        "word": "nothing's",
+        "start": 209.66857142857143,
+        "end": 210.18285714285713
+      },
+      {
+        "word": "gonna",
+        "start": 210.24,
+        "end": 210.5257142857143
+      },
+      {
+        "word": "change",
+        "start": 210.58285714285716,
+        "end": 210.92571428571432
+      },
+      {
+        "word": "as",
+        "start": 210.98285714285717,
+        "end": 211.0971428571429
+      },
+      {
+        "word": "far",
+        "start": 211.15428571428575,
+        "end": 211.32571428571433
+      },
+      {
+        "word": "as",
+        "start": 211.38285714285718,
+        "end": 211.4971428571429
+      },
+      {
+        "word": "like,",
+        "start": 211.55428571428575,
+        "end": 211.84000000000003
+      },
+      {
+        "word": "",
+        "start": 211.84,
+        "end": 211.84
+      },
+      {
+        "word": "what",
+        "start": 211.88,
+        "end": 212.04
+      },
+      {
+        "word": "you",
+        "start": 212.07999999999998,
+        "end": 212.2
+      },
+      {
+        "word": "guys",
+        "start": 212.23999999999998,
+        "end": 212.39999999999998
+      },
+      {
+        "word": "are",
+        "start": 212.43999999999997,
+        "end": 212.55999999999997
+      },
+      {
+        "word": "typically",
+        "start": 212.59999999999997,
+        "end": 212.95999999999998
+      },
+      {
+        "word": "are",
+        "start": 212.99999999999997,
+        "end": 213.11999999999998
+      },
+      {
+        "word": "used",
+        "start": 213.15999999999997,
+        "end": 213.31999999999996
+      },
+      {
+        "word": "to",
+        "start": 213.35999999999996,
+        "end": 213.43999999999997
+      },
+      {
+        "word": "hearing.",
+        "start": 213.47999999999996,
+        "end": 213.79999999999995
+      },
+      {
+        "word": "",
+        "start": 213.8,
+        "end": 213.8
+      },
+      {
+        "word": "And",
+        "start": 213.848,
+        "end": 213.99200000000002
+      },
+      {
+        "word": "you",
+        "start": 214.04000000000002,
+        "end": 214.18400000000003
+      },
+      {
+        "word": "know,",
+        "start": 214.23200000000003,
+        "end": 214.47200000000004
+      },
+      {
+        "word": "as",
+        "start": 214.52000000000004,
+        "end": 214.61600000000004
+      },
+      {
+        "word": "far",
+        "start": 214.66400000000004,
+        "end": 214.80800000000005
+      },
+      {
+        "word": "as",
+        "start": 214.85600000000005,
+        "end": 214.95200000000006
+      },
+      {
+        "word": "like",
+        "start": 215.00000000000006,
+        "end": 215.19200000000006
+      },
+      {
+        "word": "having",
+        "start": 215.24000000000007,
+        "end": 215.52800000000008
+      },
+      {
+        "word": "speakers",
+        "start": 215.57600000000005,
+        "end": 215.96000000000004
+      },
+      {
+        "word": "here",
+        "start": 216.00800000000004,
+        "end": 216.20000000000005
+      },
+      {
+        "word": "",
+        "start": 216.2,
+        "end": 216.2
+      },
+      {
+        "word": "and",
+        "start": 216.23333333333332,
+        "end": 216.33333333333331
+      },
+      {
+        "word": "all",
+        "start": 216.36666666666665,
+        "end": 216.46666666666664
+      },
+      {
+        "word": "that,",
+        "start": 216.49999999999997,
+        "end": 216.66666666666663
+      },
+      {
+        "word": "it's",
+        "start": 216.69999999999996,
+        "end": 216.8333333333333
+      },
+      {
+        "word": "gonna",
+        "start": 216.86666666666662,
+        "end": 217.03333333333327
+      },
+      {
+        "word": "be",
+        "start": 217.0666666666666,
+        "end": 217.13333333333327
+      },
+      {
+        "word": "a",
+        "start": 217.1666666666666,
+        "end": 217.19999999999993
+      },
+      {
+        "word": "great",
+        "start": 217.23333333333326,
+        "end": 217.39999999999992
+      },
+      {
+        "word": "time.",
+        "start": 217.43333333333325,
+        "end": 217.5999999999999
+      },
+      {
+        "word": "",
+        "start": 217.6,
+        "end": 217.6
+      },
+      {
+        "word": "So",
+        "start": 217.6722448979592,
+        "end": 217.81673469387755
+      },
+      {
+        "word": "really,",
+        "start": 217.88897959183674,
+        "end": 218.39469387755102
+      },
+      {
+        "word": "there's",
+        "start": 218.46693877551022,
+        "end": 218.9726530612245
+      },
+      {
+        "word": "just",
+        "start": 219.0448979591837,
+        "end": 219.3338775510204
+      },
+      {
+        "word": "more",
+        "start": 219.4061224489796,
+        "end": 219.69510204081632
+      },
+      {
+        "word": "value",
+        "start": 219.76734693877552,
+        "end": 220.12857142857143
+      },
+      {
+        "word": "actually",
+        "start": 220.20081632653063,
+        "end": 220.7787755102041
+      },
+      {
+        "word": "from",
+        "start": 220.8510204081633,
+        "end": 221.14000000000001
+      },
+      {
+        "word": "",
+        "start": 221.44,
+        "end": 221.44
+      },
+      {
+        "word": "us",
+        "start": 221.49894736842106,
+        "end": 221.61684210526317
+      },
+      {
+        "word": "being",
+        "start": 221.6757894736842,
+        "end": 221.97052631578947
+      },
+      {
+        "word": "involved",
+        "start": 222.02947368421053,
+        "end": 222.50105263157894
+      },
+      {
+        "word": "with",
+        "start": 222.56,
+        "end": 222.7957894736842
+      },
+      {
+        "word": "React",
+        "start": 222.85473684210527,
+        "end": 223.14947368421053
+      },
+      {
+        "word": "Miami,",
+        "start": 223.2084210526316,
+        "end": 223.56210526315792
+      },
+      {
+        "word": "more",
+        "start": 223.62105263157895,
+        "end": 223.85684210526315
+      },
+      {
+        "word": "value",
+        "start": 223.9157894736842,
+        "end": 224.21052631578948
+      },
+      {
+        "word": "for",
+        "start": 224.26947368421054,
+        "end": 224.4463157894737
+      },
+      {
+        "word": "you",
+        "start": 224.50526315789475,
+        "end": 224.6821052631579
+      },
+      {
+        "word": "guys,",
+        "start": 224.74105263157895,
+        "end": 225.03578947368422
+      },
+      {
+        "word": "and",
+        "start": 225.09473684210528,
+        "end": 225.27157894736843
+      },
+      {
+        "word": "some",
+        "start": 225.33052631578948,
+        "end": 225.5663157894737
+      },
+      {
+        "word": "extra",
+        "start": 225.62526315789475,
+        "end": 225.92000000000002
+      },
+      {
+        "word": "goodies",
+        "start": 225.97894736842107,
+        "end": 226.39157894736843
+      },
+      {
+        "word": "that",
+        "start": 226.4505263157895,
+        "end": 226.6863157894737
+      },
+      {
+        "word": "we're",
+        "start": 226.74526315789475,
+        "end": 227.04000000000002
+      },
+      {
+        "word": "",
+        "start": 227.04,
+        "end": 227.04
+      },
+      {
+        "word": "going",
+        "start": 227.0960824742268,
+        "end": 227.3764948453608
+      },
+      {
+        "word": "to",
+        "start": 227.4325773195876,
+        "end": 227.5447422680412
+      },
+      {
+        "word": "talk",
+        "start": 227.60082474226803,
+        "end": 227.82515463917525
+      },
+      {
+        "word": "about",
+        "start": 227.88123711340205,
+        "end": 228.16164948453607
+      },
+      {
+        "word": "here",
+        "start": 228.21773195876287,
+        "end": 228.4420618556701
+      },
+      {
+        "word": "a",
+        "start": 228.4981443298969,
+        "end": 228.5542268041237
+      },
+      {
+        "word": "little",
+        "start": 228.61030927835048,
+        "end": 228.9468041237113
+      },
+      {
+        "word": "bit",
+        "start": 229.0028865979381,
+        "end": 229.17113402061852
+      },
+      {
+        "word": "later.",
+        "start": 229.22721649484532,
+        "end": 229.56371134020614
+      },
+      {
+        "word": "We're",
+        "start": 229.61979381443294,
+        "end": 229.90020618556696
+      },
+      {
+        "word": "really",
+        "start": 229.95628865979376,
+        "end": 230.29278350515457
+      },
+      {
+        "word": "excited",
+        "start": 230.34886597938137,
+        "end": 230.741443298969
+      },
+      {
+        "word": "for",
+        "start": 230.79752577319582,
+        "end": 230.96577319587624
+      },
+      {
+        "word": "itself.",
+        "start": 231.02185567010304,
+        "end": 231.41443298969065
+      },
+      {
+        "word": "Thank",
+        "start": 231.47051546391748,
+        "end": 231.7509278350515
+      },
+      {
+        "word": "you",
+        "start": 231.8070103092783,
+        "end": 231.97525773195872
+      },
+      {
+        "word": "so",
+        "start": 232.03134020618552,
+        "end": 232.14350515463912
+      },
+      {
+        "word": "much.",
+        "start": 232.19958762886594,
+        "end": 232.47999999999996
+      },
+      {
+        "word": "",
+        "start": 232.48,
+        "end": 232.48
+      },
+      {
+        "word": "So",
+        "start": 232.53756097560975,
+        "end": 232.65268292682927
+      },
+      {
+        "word": "glad",
+        "start": 232.71024390243903,
+        "end": 232.94048780487805
+      },
+      {
+        "word": "to",
+        "start": 232.9980487804878,
+        "end": 233.11317073170733
+      },
+      {
+        "word": "be",
+        "start": 233.1707317073171,
+        "end": 233.2858536585366
+      },
+      {
+        "word": "here.",
+        "start": 233.34341463414637,
+        "end": 233.63121951219514
+      },
+      {
+        "word": "Just",
+        "start": 233.6887804878049,
+        "end": 233.91902439024392
+      },
+      {
+        "word": "remember",
+        "start": 233.97658536585368,
+        "end": 234.43707317073174
+      },
+      {
+        "word": "if",
+        "start": 234.4946341463415,
+        "end": 234.60975609756102
+      },
+      {
+        "word": "you're",
+        "start": 234.66731707317078,
+        "end": 235.0126829268293
+      },
+      {
+        "word": "a",
+        "start": 235.07024390243907,
+        "end": 235.12780487804883
+      },
+      {
+        "word": "beginner",
+        "start": 235.1853658536586,
+        "end": 235.64585365853665
+      },
+      {
+        "word": "or",
+        "start": 235.7034146341464,
+        "end": 235.81853658536593
+      },
+      {
+        "word": "advanced",
+        "start": 235.8760975609757,
+        "end": 236.33658536585375
+      },
+      {
+        "word": "user",
+        "start": 236.3941463414635,
+        "end": 236.62439024390252
+      },
+      {
+        "word": "with",
+        "start": 236.68195121951229,
+        "end": 236.9121951219513
+      },
+      {
+        "word": "even",
+        "start": 236.96975609756106,
+        "end": 237.20000000000007
+      },
+      {
+        "word": "",
+        "start": 238.08,
+        "end": 238.08
+      },
+      {
+        "word": "a",
+        "start": 238.12,
+        "end": 238.16
+      },
+      {
+        "word": "little",
+        "start": 238.20000000000002,
+        "end": 238.44000000000003
+      },
+      {
+        "word": "bit",
+        "start": 238.48000000000002,
+        "end": 238.60000000000002
+      },
+      {
+        "word": "of",
+        "start": 238.64000000000001,
+        "end": 238.72000000000003
+      },
+      {
+        "word": "doing",
+        "start": 238.76000000000002,
+        "end": 238.96
+      },
+      {
+        "word": "this",
+        "start": 239.00000000000003,
+        "end": 239.16000000000003
+      },
+      {
+        "word": "for",
+        "start": 239.20000000000002,
+        "end": 239.32000000000002
+      },
+      {
+        "word": "a",
+        "start": 239.36,
+        "end": 239.4
+      },
+      {
+        "word": "very",
+        "start": 239.44000000000003,
+        "end": 239.60000000000002
+      },
+      {
+        "word": "long",
+        "start": 239.64000000000001,
+        "end": 239.8
+      },
+      {
+        "word": "time",
+        "start": 239.84,
+        "end": 240
+      },
+      {
+        "word": "as",
+        "start": 240.04,
+        "end": 240.12
+      },
+      {
+        "word": "far",
+        "start": 240.16,
+        "end": 240.28
+      },
+      {
+        "word": "as",
+        "start": 240.32,
+        "end": 240.4
+      },
+      {
+        "word": "the",
+        "start": 240.44,
+        "end": 240.56
+      },
+      {
+        "word": "web",
+        "start": 240.6,
+        "end": 240.72
+      },
+      {
+        "word": "developer",
+        "start": 240.76,
+        "end": 241.12
+      },
+      {
+        "word": "goes,",
+        "start": 241.16,
+        "end": 241.35999999999999
+      },
+      {
+        "word": "",
+        "start": 242.16,
+        "end": 242.16
+      },
+      {
+        "word": "we",
+        "start": 242.20134831460675,
+        "end": 242.28404494382022
+      },
+      {
+        "word": "want",
+        "start": 242.32539325842697,
+        "end": 242.49078651685394
+      },
+      {
+        "word": "to",
+        "start": 242.53213483146067,
+        "end": 242.61483146067414
+      },
+      {
+        "word": "hear",
+        "start": 242.6561797752809,
+        "end": 242.82157303370786
+      },
+      {
+        "word": "from",
+        "start": 242.8629213483146,
+        "end": 243.02831460674156
+      },
+      {
+        "word": "everybody.",
+        "start": 243.06966292134828,
+        "end": 243.4831460674157
+      },
+      {
+        "word": "It",
+        "start": 243.52449438202245,
+        "end": 243.60719101123593
+      },
+      {
+        "word": "doesn't",
+        "start": 243.64853932584268,
+        "end": 243.93797752808987
+      },
+      {
+        "word": "matter",
+        "start": 243.9793258426966,
+        "end": 244.22741573033704
+      },
+      {
+        "word": "whether",
+        "start": 244.2687640449438,
+        "end": 244.558202247191
+      },
+      {
+        "word": "you're",
+        "start": 244.5995505617977,
+        "end": 244.84764044943816
+      },
+      {
+        "word": "a",
+        "start": 244.8889887640449,
+        "end": 244.93033707865166
+      },
+      {
+        "word": "beginner",
+        "start": 244.97168539325838,
+        "end": 245.3024719101123
+      },
+      {
+        "word": "or",
+        "start": 245.34382022471905,
+        "end": 245.42651685393253
+      },
+      {
+        "word": "advanced,",
+        "start": 245.46786516853928,
+        "end": 245.83999999999995
+      },
+      {
+        "word": "",
+        "start": 245.84,
+        "end": 245.84
+      },
+      {
+        "word": "like",
+        "start": 245.9012244897959,
+        "end": 246.14612244897958
+      },
+      {
+        "word": "it",
+        "start": 246.2073469387755,
+        "end": 246.32979591836732
+      },
+      {
+        "word": "said",
+        "start": 246.39102040816323,
+        "end": 246.6359183673469
+      },
+      {
+        "word": "and",
+        "start": 246.6971428571428,
+        "end": 246.88081632653055
+      },
+      {
+        "word": "so",
+        "start": 246.94204081632648,
+        "end": 247.06448979591832
+      },
+      {
+        "word": "you",
+        "start": 247.12571428571422,
+        "end": 247.30938775510197
+      },
+      {
+        "word": "know",
+        "start": 247.3706122448979,
+        "end": 247.61551020408157
+      },
+      {
+        "word": "don't",
+        "start": 247.67673469387748,
+        "end": 247.98285714285706
+      },
+      {
+        "word": "you",
+        "start": 248.044081632653,
+        "end": 248.22775510204073
+      },
+      {
+        "word": "don't",
+        "start": 248.28897959183666,
+        "end": 248.59510204081624
+      },
+      {
+        "word": "be",
+        "start": 248.65632653061218,
+        "end": 248.778775510204
+      },
+      {
+        "word": "afraid",
+        "start": 248.83999999999992,
+        "end": 249.20734693877543
+      },
+      {
+        "word": "to",
+        "start": 249.26857142857133,
+        "end": 249.39102040816317
+      },
+      {
+        "word": "request",
+        "start": 249.45224489795908,
+        "end": 249.8808163265305
+      },
+      {
+        "word": "to",
+        "start": 249.94204081632643,
+        "end": 250.06448979591826
+      },
+      {
+        "word": "come",
+        "start": 250.12571428571417,
+        "end": 250.37061224489784
+      },
+      {
+        "word": "up",
+        "start": 250.43183673469375,
+        "end": 250.55428571428558
+      },
+      {
+        "word": "and",
+        "start": 250.6155102040815,
+        "end": 250.79918367346923
+      },
+      {
+        "word": "ask",
+        "start": 250.86040816326516,
+        "end": 251.0440816326529
+      },
+      {
+        "word": "questions",
+        "start": 251.10530612244884,
+        "end": 251.6563265306121
+      },
+      {
+        "word": "or",
+        "start": 251.71755102040802,
+        "end": 251.83999999999986
+      },
+      {
+        "word": "",
+        "start": 252.4,
+        "end": 252.4
+      },
+      {
+        "word": "comments",
+        "start": 252.45702970297032,
+        "end": 252.9132673267327
+      },
+      {
+        "word": "or",
+        "start": 252.970297029703,
+        "end": 253.0843564356436
+      },
+      {
+        "word": "fact",
+        "start": 253.1413861386139,
+        "end": 253.3695049504951
+      },
+      {
+        "word": "opinions",
+        "start": 253.4265346534654,
+        "end": 253.8827722772278
+      },
+      {
+        "word": "whatever",
+        "start": 253.9398019801981,
+        "end": 254.39603960396047
+      },
+      {
+        "word": "it",
+        "start": 254.4530693069308,
+        "end": 254.56712871287138
+      },
+      {
+        "word": "is",
+        "start": 254.6241584158417,
+        "end": 254.73821782178229
+      },
+      {
+        "word": "you",
+        "start": 254.7952475247526,
+        "end": 254.9663366336635
+      },
+      {
+        "word": "want",
+        "start": 255.02336633663379,
+        "end": 255.25148514851497
+      },
+      {
+        "word": "to",
+        "start": 255.30851485148528,
+        "end": 255.42257425742588
+      },
+      {
+        "word": "hear",
+        "start": 255.4796039603962,
+        "end": 255.70772277227738
+      },
+      {
+        "word": "from",
+        "start": 255.7647524752477,
+        "end": 255.99287128712888
+      },
+      {
+        "word": "yeah",
+        "start": 256.04990099009916,
+        "end": 256.27801980198035
+      },
+      {
+        "word": "in",
+        "start": 256.33504950495063,
+        "end": 256.44910891089125
+      },
+      {
+        "word": "fact",
+        "start": 256.50613861386154,
+        "end": 256.7342574257427
+      },
+      {
+        "word": "actually",
+        "start": 256.791287128713,
+        "end": 257.2475247524754
+      },
+      {
+        "word": "that",
+        "start": 257.30455445544567,
+        "end": 257.53267326732686
+      },
+      {
+        "word": "also",
+        "start": 257.58970297029714,
+        "end": 257.8178217821783
+      },
+      {
+        "word": "helps",
+        "start": 257.8748514851486,
+        "end": 258.1600000000001
+      },
+      {
+        "word": "",
+        "start": 258.16,
+        "end": 258.16
+      },
+      {
+        "word": "with",
+        "start": 258.20285714285717,
+        "end": 258.37428571428575
+      },
+      {
+        "word": "your",
+        "start": 258.4171428571429,
+        "end": 258.58857142857147
+      },
+      {
+        "word": "value",
+        "start": 258.6314285714286,
+        "end": 258.84571428571434
+      },
+      {
+        "word": "here",
+        "start": 258.8885714285715,
+        "end": 259.06000000000006
+      },
+      {
+        "word": "for",
+        "start": 259.1028571428572,
+        "end": 259.23142857142864
+      },
+      {
+        "word": "everybody",
+        "start": 259.2742857142858,
+        "end": 259.6600000000001
+      },
+      {
+        "word": "listening",
+        "start": 259.7028571428572,
+        "end": 260.0885714285715
+      },
+      {
+        "word": "in",
+        "start": 260.13142857142867,
+        "end": 260.21714285714296
+      },
+      {
+        "word": "because",
+        "start": 260.2600000000001,
+        "end": 260.5600000000001
+      },
+      {
+        "word": "when",
+        "start": 260.60285714285726,
+        "end": 260.77428571428584
+      },
+      {
+        "word": "you",
+        "start": 260.817142857143,
+        "end": 260.9457142857144
+      },
+      {
+        "word": "that",
+        "start": 260.98857142857156,
+        "end": 261.16000000000014
+      },
+      {
+        "word": "get",
+        "start": 261.2028571428573,
+        "end": 261.3314285714287
+      },
+      {
+        "word": "developed",
+        "start": 261.37428571428586,
+        "end": 261.76000000000016
+      },
+      {
+        "word": "",
+        "start": 262.72,
+        "end": 262.72
+      },
+      {
+        "word": "typically",
+        "start": 262.7665934065934,
+        "end": 263.1859340659341
+      },
+      {
+        "word": "there's",
+        "start": 263.23252747252747,
+        "end": 263.5586813186813
+      },
+      {
+        "word": "some",
+        "start": 263.60527472527474,
+        "end": 263.79164835164835
+      },
+      {
+        "word": "really",
+        "start": 263.8382417582418,
+        "end": 264.11780219780223
+      },
+      {
+        "word": "great",
+        "start": 264.1643956043956,
+        "end": 264.3973626373627
+      },
+      {
+        "word": "conversations",
+        "start": 264.44395604395606,
+        "end": 265.04967032967033
+      },
+      {
+        "word": "that",
+        "start": 265.0962637362637,
+        "end": 265.28263736263733
+      },
+      {
+        "word": "happen",
+        "start": 265.3292307692308,
+        "end": 265.6087912087912
+      },
+      {
+        "word": "so",
+        "start": 265.6553846153846,
+        "end": 265.74857142857144
+      },
+      {
+        "word": "I",
+        "start": 265.7951648351648,
+        "end": 265.8417582417582
+      },
+      {
+        "word": "would",
+        "start": 265.88835164835166,
+        "end": 266.1213186813187
+      },
+      {
+        "word": "love",
+        "start": 266.1679120879121,
+        "end": 266.3542857142857
+      },
+      {
+        "word": "to",
+        "start": 266.40087912087915,
+        "end": 266.494065934066
+      },
+      {
+        "word": "hear",
+        "start": 266.5406593406594,
+        "end": 266.727032967033
+      },
+      {
+        "word": "from",
+        "start": 266.7736263736264,
+        "end": 266.96000000000004
+      },
+      {
+        "word": "",
+        "start": 266.96,
+        "end": 266.96
+      },
+      {
+        "word": "as",
+        "start": 267.02978723404254,
+        "end": 267.1693617021277
+      },
+      {
+        "word": "many",
+        "start": 267.2391489361702,
+        "end": 267.5182978723404
+      },
+      {
+        "word": "people",
+        "start": 267.58808510638295,
+        "end": 268.0068085106383
+      },
+      {
+        "word": "as",
+        "start": 268.07659574468084,
+        "end": 268.216170212766
+      },
+      {
+        "word": "the",
+        "start": 268.2859574468085,
+        "end": 268.4953191489361
+      },
+      {
+        "word": "possibly",
+        "start": 268.5651063829787,
+        "end": 269.1234042553191
+      },
+      {
+        "word": "one",
+        "start": 269.19319148936165,
+        "end": 269.4025531914893
+      },
+      {
+        "word": "of",
+        "start": 269.47234042553185,
+        "end": 269.611914893617
+      },
+      {
+        "word": "them",
+        "start": 269.6817021276595,
+        "end": 269.9608510638297
+      },
+      {
+        "word": "up.",
+        "start": 270.03063829787226,
+        "end": 270.2399999999999
+      },
+      {
+        "word": "",
+        "start": 270.24,
+        "end": 270.24
+      },
+      {
+        "word": "So,",
+        "start": 270.28972972972974,
+        "end": 270.43891891891894
+      },
+      {
+        "word": "all",
+        "start": 270.4886486486487,
+        "end": 270.6378378378379
+      },
+      {
+        "word": "right,",
+        "start": 270.6875675675676,
+        "end": 270.985945945946
+      },
+      {
+        "word": "with",
+        "start": 271.0356756756757,
+        "end": 271.2345945945946
+      },
+      {
+        "word": "that",
+        "start": 271.28432432432436,
+        "end": 271.4832432432433
+      },
+      {
+        "word": "being",
+        "start": 271.532972972973,
+        "end": 271.7816216216217
+      },
+      {
+        "word": "said,",
+        "start": 271.83135135135143,
+        "end": 272.0800000000001
+      },
+      {
+        "word": "",
+        "start": 272.08,
+        "end": 272.08
+      },
+      {
+        "word": "I",
+        "start": 272.1521951219512,
+        "end": 272.2243902439024
+      },
+      {
+        "word": "am",
+        "start": 272.2965853658536,
+        "end": 272.44097560975604
+      },
+      {
+        "word": "Scott",
+        "start": 272.5131707317073,
+        "end": 272.8741463414634
+      },
+      {
+        "word": "Simon",
+        "start": 272.9463414634146,
+        "end": 273.30731707317074
+      },
+      {
+        "word": "and",
+        "start": 273.37951219512195,
+        "end": 273.59609756097564
+      },
+      {
+        "word": "I",
+        "start": 273.66829268292685,
+        "end": 273.74048780487806
+      },
+      {
+        "word": "am",
+        "start": 273.81268292682927,
+        "end": 273.9570731707317
+      },
+      {
+        "word": "the",
+        "start": 274.02926829268296,
+        "end": 274.24585365853665
+      },
+      {
+        "word": "18th",
+        "start": 274.31804878048786,
+        "end": 274.60682926829276
+      },
+      {
+        "word": "of",
+        "start": 274.67902439024397,
+        "end": 274.8234146341464
+      },
+      {
+        "word": "14",
+        "start": 274.89560975609766,
+        "end": 275.0400000000001
+      },
+      {
+        "word": "",
+        "start": 275.04,
+        "end": 275.04
+      },
+      {
+        "word": "in",
+        "start": 275.12620689655176,
+        "end": 275.2986206896552
+      },
+      {
+        "word": "the",
+        "start": 275.38482758620694,
+        "end": 275.6434482758621
+      },
+      {
+        "word": "Manager",
+        "start": 275.72965517241386,
+        "end": 276.33310344827595
+      },
+      {
+        "word": "at",
+        "start": 276.41931034482764,
+        "end": 276.59172413793107
+      },
+      {
+        "word": "Edgio",
+        "start": 276.6779310344828,
+        "end": 277.1089655172414
+      },
+      {
+        "word": "and",
+        "start": 277.19517241379316,
+        "end": 277.45379310344833
+      },
+      {
+        "word": "I'm",
+        "start": 277.5400000000001,
+        "end": 277.79862068965525
+      },
+      {
+        "word": "ready",
+        "start": 277.884827586207,
+        "end": 278.3158620689656
+      },
+      {
+        "word": "to",
+        "start": 278.40206896551734,
+        "end": 278.5744827586208
+      },
+      {
+        "word": "rock",
+        "start": 278.6606896551725,
+        "end": 279.00551724137944
+      },
+      {
+        "word": "this",
+        "start": 279.0917241379311,
+        "end": 279.43655172413804
+      },
+      {
+        "word": "today.",
+        "start": 279.52275862068973,
+        "end": 280.0400000000001
+      },
+      {
+        "word": "",
+        "start": 280.16,
+        "end": 280.16
+      },
+      {
+        "word": "Let's",
+        "start": 280.225,
+        "end": 280.55
+      },
+      {
+        "word": "get",
+        "start": 280.615,
+        "end": 280.81
+      },
+      {
+        "word": "this",
+        "start": 280.875,
+        "end": 281.135
+      },
+      {
+        "word": "rolling.",
+        "start": 281.2,
+        "end": 281.71999999999997
+      },
+      {
+        "word": "",
+        "start": 281.72,
+        "end": 281.72
+      },
+      {
+        "word": "Thank",
+        "start": 281.78526315789475,
+        "end": 282.1115789473684
+      },
+      {
+        "word": "you",
+        "start": 282.1768421052632,
+        "end": 282.3726315789474
+      },
+      {
+        "word": "so",
+        "start": 282.4378947368421,
+        "end": 282.5684210526316
+      },
+      {
+        "word": "much.",
+        "start": 282.6336842105263,
+        "end": 282.96
+      },
+      {
+        "word": "",
+        "start": 282.96,
+        "end": 282.96
+      },
+      {
+        "word": "Appreciate",
+        "start": 283.01111111111106,
+        "end": 283.5222222222222
+      },
+      {
+        "word": "y'all.",
+        "start": 283.57333333333327,
+        "end": 283.87999999999994
+      },
+      {
+        "word": "",
+        "start": 286.36,
+        "end": 286.36
+      },
+      {
+        "word": "Also,",
+        "start": 286.444,
+        "end": 286.86400000000003
+      },
+      {
+        "word": "we",
+        "start": 286.94800000000004,
+        "end": 287.11600000000004
+      },
+      {
+        "word": "should",
+        "start": 287.20000000000005,
+        "end": 287.70400000000006
+      },
+      {
+        "word": "have",
+        "start": 287.78800000000007,
+        "end": 288.1240000000001
+      },
+      {
+        "word": "introduced",
+        "start": 288.2080000000001,
+        "end": 289.0480000000001
+      },
+      {
+        "word": "himself",
+        "start": 289.13200000000006,
+        "end": 289.7200000000001
+      },
+      {
+        "word": "",
+        "start": 289.72,
+        "end": 289.72
+      },
+      {
+        "word": "and",
+        "start": 289.7847619047619,
+        "end": 289.9790476190476
+      },
+      {
+        "word": "then",
+        "start": 290.04380952380956,
+        "end": 290.3028571428572
+      },
+      {
+        "word": "after",
+        "start": 290.3676190476191,
+        "end": 290.6914285714286
+      },
+      {
+        "word": "that,",
+        "start": 290.7561904761905,
+        "end": 291.08000000000004
+      },
+      {
+        "word": "",
+        "start": 291.08,
+        "end": 291.08
+      },
+      {
+        "word": "the",
+        "start": 291.12969696969697,
+        "end": 291.27878787878785
+      },
+      {
+        "word": "shell",
+        "start": 291.32848484848483,
+        "end": 291.5769696969697
+      },
+      {
+        "word": "is",
+        "start": 291.62666666666667,
+        "end": 291.7260606060606
+      },
+      {
+        "word": "introduced",
+        "start": 291.77575757575755,
+        "end": 292.27272727272725
+      },
+      {
+        "word": "yourself",
+        "start": 292.32242424242423,
+        "end": 292.72
+      },
+      {
+        "word": "",
+        "start": 292.72,
+        "end": 292.72
+      },
+      {
+        "word": "and",
+        "start": 292.7808,
+        "end": 292.9632
+      },
+      {
+        "word": "you",
+        "start": 293.024,
+        "end": 293.2064
+      },
+      {
+        "word": "are",
+        "start": 293.2672,
+        "end": 293.4496
+      },
+      {
+        "word": "one",
+        "start": 293.5104,
+        "end": 293.6928
+      },
+      {
+        "word": "of",
+        "start": 293.7536,
+        "end": 293.8752
+      },
+      {
+        "word": "the",
+        "start": 293.936,
+        "end": 294.11839999999995
+      },
+      {
+        "word": "organizers",
+        "start": 294.1792,
+        "end": 294.7872
+      },
+      {
+        "word": "of",
+        "start": 294.84799999999996,
+        "end": 294.96959999999996
+      },
+      {
+        "word": "React",
+        "start": 295.03039999999993,
+        "end": 295.3343999999999
+      },
+      {
+        "word": "Miami.",
+        "start": 295.39519999999993,
+        "end": 295.75999999999993
+      },
+      {
+        "word": "",
+        "start": 295.76,
+        "end": 295.76
+      },
+      {
+        "word": "Thank",
+        "start": 295.8369230769231,
+        "end": 296.22153846153844
+      },
+      {
+        "word": "you",
+        "start": 296.29846153846154,
+        "end": 296.52923076923076
+      },
+      {
+        "word": "for",
+        "start": 296.60615384615386,
+        "end": 296.8369230769231
+      },
+      {
+        "word": "joining",
+        "start": 296.9138461538462,
+        "end": 297.4523076923077
+      },
+      {
+        "word": "us.",
+        "start": 297.5292307692308,
+        "end": 297.76000000000005
+      },
+      {
+        "word": "",
+        "start": 299.26,
+        "end": 299.26
+      },
+      {
+        "word": "How's",
+        "start": 299.3120588235294,
+        "end": 299.57235294117646
+      },
+      {
+        "word": "it",
+        "start": 299.6244117647059,
+        "end": 299.7285294117647
+      },
+      {
+        "word": "going",
+        "start": 299.78058823529415,
+        "end": 300.0408823529412
+      },
+      {
+        "word": "everybody?",
+        "start": 300.0929411764706,
+        "end": 300.6135294117647
+      },
+      {
+        "word": "Thank",
+        "start": 300.66558823529414,
+        "end": 300.9258823529412
+      },
+      {
+        "word": "you",
+        "start": 300.9779411764706,
+        "end": 301.1341176470589
+      },
+      {
+        "word": "very",
+        "start": 301.18617647058824,
+        "end": 301.39441176470586
+      },
+      {
+        "word": "much",
+        "start": 301.4464705882353,
+        "end": 301.6547058823529
+      },
+      {
+        "word": "for",
+        "start": 301.70676470588234,
+        "end": 301.8629411764706
+      },
+      {
+        "word": "having",
+        "start": 301.91499999999996,
+        "end": 302.22735294117643
+      },
+      {
+        "word": "me",
+        "start": 302.27941176470586,
+        "end": 302.3835294117647
+      },
+      {
+        "word": "up",
+        "start": 302.4355882352941,
+        "end": 302.53970588235296
+      },
+      {
+        "word": "here",
+        "start": 302.5917647058824,
+        "end": 302.8
+      },
+      {
+        "word": "",
+        "start": 302.8,
+        "end": 302.8
+      },
+      {
+        "word": "Thank",
+        "start": 302.85686274509806,
+        "end": 303.1411764705883
+      },
+      {
+        "word": "everyone",
+        "start": 303.19803921568626,
+        "end": 303.65294117647056
+      },
+      {
+        "word": "for",
+        "start": 303.7098039215686,
+        "end": 303.88039215686274
+      },
+      {
+        "word": "showing",
+        "start": 303.9372549019608,
+        "end": 304.33529411764704
+      },
+      {
+        "word": "up",
+        "start": 304.3921568627451,
+        "end": 304.50588235294117
+      },
+      {
+        "word": "and",
+        "start": 304.5627450980392,
+        "end": 304.73333333333335
+      },
+      {
+        "word": "showing",
+        "start": 304.7901960784314,
+        "end": 305.18823529411765
+      },
+      {
+        "word": "interest",
+        "start": 305.2450980392157,
+        "end": 305.7
+      },
+      {
+        "word": "",
+        "start": 306.16,
+        "end": 306.16
+      },
+      {
+        "word": "My",
+        "start": 306.2337931034483,
+        "end": 306.38137931034487
+      },
+      {
+        "word": "name",
+        "start": 306.45517241379315,
+        "end": 306.7503448275863
+      },
+      {
+        "word": "is",
+        "start": 306.8241379310345,
+        "end": 306.97172413793106
+      },
+      {
+        "word": "Dev",
+        "start": 307.04551724137934,
+        "end": 307.2668965517242
+      },
+      {
+        "word": "or",
+        "start": 307.34068965517247,
+        "end": 307.48827586206903
+      },
+      {
+        "word": "you",
+        "start": 307.5620689655173,
+        "end": 307.78344827586216
+      },
+      {
+        "word": "can",
+        "start": 307.85724137931044,
+        "end": 308.0786206896553
+      },
+      {
+        "word": "call",
+        "start": 308.15241379310356,
+        "end": 308.4475862068967
+      },
+      {
+        "word": "me",
+        "start": 308.5213793103449,
+        "end": 308.6689655172415
+      },
+      {
+        "word": "Dave",
+        "start": 308.74275862068976,
+        "end": 309.0379310344829
+      },
+      {
+        "word": "both",
+        "start": 309.1117241379311,
+        "end": 309.40689655172423
+      },
+      {
+        "word": "work",
+        "start": 309.48068965517245,
+        "end": 309.7758620689656
+      },
+      {
+        "word": "fine",
+        "start": 309.8496551724138,
+        "end": 310.14482758620693
+      },
+      {
+        "word": "and",
+        "start": 310.21862068965515,
+        "end": 310.44
+      },
+      {
+        "word": "",
+        "start": 311.4,
+        "end": 311.4
+      },
+      {
+        "word": "Yeah,",
+        "start": 311.46379084967316,
+        "end": 311.7827450980392
+      },
+      {
+        "word": "it's",
+        "start": 311.84653594771237,
+        "end": 312.10169934640516
+      },
+      {
+        "word": "great",
+        "start": 312.1654901960784,
+        "end": 312.4844444444444
+      },
+      {
+        "word": "to",
+        "start": 312.5482352941176,
+        "end": 312.675816993464
+      },
+      {
+        "word": "be",
+        "start": 312.7396078431372,
+        "end": 312.86718954248363
+      },
+      {
+        "word": "here",
+        "start": 312.9309803921568,
+        "end": 313.1861437908496
+      },
+      {
+        "word": "this",
+        "start": 313.24993464052284,
+        "end": 313.5050980392156
+      },
+      {
+        "word": "year.",
+        "start": 313.56888888888886,
+        "end": 313.8878431372549
+      },
+      {
+        "word": "I",
+        "start": 313.9516339869281,
+        "end": 314.01542483660126
+      },
+      {
+        "word": "am",
+        "start": 314.0792156862745,
+        "end": 314.2067973856209
+      },
+      {
+        "word": "also",
+        "start": 314.2705882352941,
+        "end": 314.5257516339869
+      },
+      {
+        "word": "a",
+        "start": 314.5895424836601,
+        "end": 314.6533333333333
+      },
+      {
+        "word": "media",
+        "start": 314.71712418300655,
+        "end": 315.0360784313726
+      },
+      {
+        "word": "partner",
+        "start": 315.09986928104576,
+        "end": 315.5464052287582
+      },
+      {
+        "word": "for",
+        "start": 315.6101960784314,
+        "end": 315.801568627451
+      },
+      {
+        "word": "React",
+        "start": 315.8653594771242,
+        "end": 316.1843137254902
+      },
+      {
+        "word": "Miami",
+        "start": 316.2481045751634,
+        "end": 316.5670588235294
+      },
+      {
+        "word": "along",
+        "start": 316.6308496732026,
+        "end": 316.9498039215686
+      },
+      {
+        "word": "with",
+        "start": 317.0135947712418,
+        "end": 317.2687581699346
+      },
+      {
+        "word": "along",
+        "start": 317.3325490196078,
+        "end": 317.65150326797385
+      },
+      {
+        "word": "with",
+        "start": 317.71529411764703,
+        "end": 317.9704575163398
+      },
+      {
+        "word": "these",
+        "start": 318.03424836601306,
+        "end": 318.3532026143791
+      },
+      {
+        "word": "two",
+        "start": 318.41699346405227,
+        "end": 318.6083660130719
+      },
+      {
+        "word": "great",
+        "start": 318.67215686274506,
+        "end": 318.9911111111111
+      },
+      {
+        "word": "individuals",
+        "start": 319.05490196078426,
+        "end": 319.7566013071895
+      },
+      {
+        "word": "Anthony",
+        "start": 319.8203921568627,
+        "end": 320.26692810457513
+      },
+      {
+        "word": "and",
+        "start": 320.3307189542483,
+        "end": 320.5220915032679
+      },
+      {
+        "word": "Scott",
+        "start": 320.5858823529411,
+        "end": 320.9048366013071
+      },
+      {
+        "word": "and",
+        "start": 320.9686274509803,
+        "end": 321.1599999999999
+      },
+      {
+        "word": "",
+        "start": 321.16,
+        "end": 321.16
+      },
+      {
+        "word": "And",
+        "start": 321.2279012345679,
+        "end": 321.4316049382716
+      },
+      {
+        "word": "yeah,",
+        "start": 321.4995061728395,
+        "end": 321.839012345679
+      },
+      {
+        "word": "I'm",
+        "start": 321.9069135802469,
+        "end": 322.1106172839506
+      },
+      {
+        "word": "very",
+        "start": 322.1785185185185,
+        "end": 322.4501234567901
+      },
+      {
+        "word": "excited",
+        "start": 322.518024691358,
+        "end": 322.9933333333333
+      },
+      {
+        "word": "to",
+        "start": 323.0612345679012,
+        "end": 323.197037037037
+      },
+      {
+        "word": "show",
+        "start": 323.2649382716049,
+        "end": 323.53654320987647
+      },
+      {
+        "word": "you",
+        "start": 323.60444444444437,
+        "end": 323.80814814814806
+      },
+      {
+        "word": "guys",
+        "start": 323.87604938271596,
+        "end": 324.14765432098756
+      },
+      {
+        "word": "what",
+        "start": 324.21555555555545,
+        "end": 324.48716049382705
+      },
+      {
+        "word": "we",
+        "start": 324.55506172839495,
+        "end": 324.69086419753074
+      },
+      {
+        "word": "have",
+        "start": 324.75876543209864,
+        "end": 325.03037037037024
+      },
+      {
+        "word": "in",
+        "start": 325.09827160493813,
+        "end": 325.23407407407393
+      },
+      {
+        "word": "store",
+        "start": 325.30197530864183,
+        "end": 325.6414814814813
+      },
+      {
+        "word": "for",
+        "start": 325.7093827160492,
+        "end": 325.9130864197529
+      },
+      {
+        "word": "next",
+        "start": 325.9809876543208,
+        "end": 326.2525925925924
+      },
+      {
+        "word": "week.",
+        "start": 326.3204938271603,
+        "end": 326.6599999999998
+      },
+      {
+        "word": "",
+        "start": 326.66,
+        "end": 326.66
+      },
+      {
+        "word": "Or",
+        "start": 326.7206060606061,
+        "end": 326.8418181818182
+      },
+      {
+        "word": "talk",
+        "start": 326.9024242424243,
+        "end": 327.1448484848485
+      },
+      {
+        "word": "about",
+        "start": 327.2054545454546,
+        "end": 327.5084848484849
+      },
+      {
+        "word": "it",
+        "start": 327.56909090909096,
+        "end": 327.6903030303031
+      },
+      {
+        "word": "a",
+        "start": 327.75090909090915,
+        "end": 327.8115151515152
+      },
+      {
+        "word": "little",
+        "start": 327.8721212121213,
+        "end": 328.23575757575765
+      },
+      {
+        "word": "today.",
+        "start": 328.2963636363637,
+        "end": 328.6600000000001
+      }
+    ],
+    "segments": [
+      {
+        "start": 0,
+        "end": 8,
+        "text": " Alright, alright about the Twitter space, her funnel got the thing working them.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 8,
+        "end": 9,
+        "text": " Well done, Scott.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 9,
+        "end": 13,
+        "text": " I know exactly what was happening has happened before.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 13,
+        "end": 19,
+        "text": " Sometimes when you start a space, it will show as starting on your own while having not",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 19,
+        "end": 21,
+        "text": " actually being started.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 21,
+        "end": 23,
+        "text": " For other people who can see it and join it.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 23,
+        "end": 29,
+        "text": " But if you wait like one to two minutes somehow it just works it out.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 29,
+        "end": 31,
+        "text": " and then all of a sudden there's some",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 31,
+        "end": 34,
+        "text": " patients who converge to a nap in that respect.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 34,
+        "end": 37,
+        "text": " So any other footer space hosts out there,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 37,
+        "end": 41,
+        "text": " these are the fun things we get to learn as we do this process.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 42,
+        "end": 44,
+        "text": " Yeah, thank you.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 44,
+        "end": 49,
+        "text": " So the audience for re-joining back and for Scott for soldering on",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 49,
+        "end": 52,
+        "text": " and Anthony for the lesson.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 52,
+        "end": 55,
+        "text": " I'm reminded of that like old demotivated poster",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 55,
+        "end": 58,
+        "text": " which was like the Titanic and it was like maybe your",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 58,
+        "end": 60,
+        "text": " Your roles to be a lesson for others",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 61.12,
+        "end": 63.6,
+        "text": " But but welcome back everyone",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 64.52,
+        "end": 68.02,
+        "text": " Do you know Scott's gonna join him separately Anthony?",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 69.28,
+        "end": 71.44,
+        "text": " Let's let's go ahead just start announcing",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 71.44,
+        "end": 72.44,
+        "text": " Thanks, yeah",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 72.44,
+        "end": 74.44,
+        "text": " Your cells will let him work",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 74.44,
+        "end": 79.8,
+        "text": " We're gonna do great. So hi everyone welcome again to JavaScript Jam live",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 80.8,
+        "end": 83.64,
+        "text": " JavaScript Jam live is an open mic",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 83.64,
+        "end": 90.64,
+        "text": " We'd like to say for anything JavaScript and web development related is on topic.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 90.64,
+        "end": 92.24,
+        "text": " We love audience participation.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 92.24,
+        "end": 97.34,
+        "text": " We've got something very special for you this week and in the upcoming weeks in collaboration",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 97.34,
+        "end": 99.34,
+        "text": " with React Miami.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 99.34,
+        "end": 103.34,
+        "text": " I am Esha Nada, the BQA product at EGO.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 103.34,
+        "end": 108.54,
+        "text": " It's employment platform and I'm joined by Anthony and Scott.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 108.54,
+        "end": 112.04,
+        "text": " I'll let them introduce themselves and talk about what we're doing with React Miami.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 113.64,
+        "end": 118.88,
+        "text": " Hello, my name is Anthony Campolo. I am a developer advocate at edgio",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 118.88,
+        "end": 121.44,
+        "text": " And we're going to be joined today",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 122.16,
+        "end": 127.92,
+        "text": " Dem Agawal who was also partnering with React Miami to help together some sweet",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 128.44,
+        "end": 131.76,
+        "text": " events and activities and content for you and",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 132.52,
+        "end": 137.84,
+        "text": " You're bringing him up right now. It's got if you are able to speak go ahead. You're an issues",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 137.84,
+        "end": 144.84,
+        "text": " So hopefully you can hear me.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 144.84,
+        "end": 145.84,
+        "text": " Yes.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 145.84,
+        "end": 147.84,
+        "text": " All right. Great. Wow.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 147.84,
+        "end": 148.84,
+        "text": " But that was hard earlier.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 148.84,
+        "end": 149.84,
+        "text": " I thought it was.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 149.84,
+        "end": 151.84,
+        "text": " You know, it doesn't matter if you know quite a bit about",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 151.84,
+        "end": 154.84,
+        "text": " Teckerdot is there's only something that makes you look like a fool.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 154.84,
+        "end": 157.84,
+        "text": " So here we are.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 157.84,
+        "end": 160.84,
+        "text": " Everything's good. They've worked it now.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 160.84,
+        "end": 162.84,
+        "text": " So anyway, so great.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 162.84,
+        "end": 163.84,
+        "text": " So glad to hear.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 163.84,
+        "end": 166.36,
+        "text": " So great, so glad to be here.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 166.36,
+        "end": 169.4,
+        "text": " React Miami, I don't know why it's that week there,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 169.4,
+        "end": 172.52,
+        "text": " but in a hospital to get this up, that's what I put.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 172.52,
+        "end": 175.48,
+        "text": " But really, it's React Miami month,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 175.48,
+        "end": 177.2,
+        "text": " which I'm renaming right now.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 177.2,
+        "end": 179.88,
+        "text": " And I'm super excited because,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 179.88,
+        "end": 182.16,
+        "text": " as anything we were sitting at there",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 182.16,
+        "end": 183.76,
+        "text": " we're gonna be talking to Dev today",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 183.76,
+        "end": 186.88,
+        "text": " and about React Miami and the thing.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 186.88,
+        "end": 191.44,
+        "text": " And also, we're doing our little clap",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 191.44,
+        "end": 193.8,
+        "text": " with React Miami as well.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 193.8,
+        "end": 196.12,
+        "text": " And we're just so excited for that.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 196.12,
+        "end": 199.08,
+        "text": " Moving forward, we're gonna be having more speakers",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 199.08,
+        "end": 201.72,
+        "text": " from React Miami, speaking here",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 201.72,
+        "end": 203.48,
+        "text": " about just topics that make sense with them.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 203.48,
+        "end": 205.08,
+        "text": " And you know, we're keeping this traditional,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 205.08,
+        "end": 208.2,
+        "text": " like, JavaScript, Jam vibe that we have,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 208.2,
+        "end": 209.44,
+        "text": " rolling through all that problems.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 209.44,
+        "end": 211.84,
+        "text": " So nothing's gonna change as far as like,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 211.84,
+        "end": 213.8,
+        "text": " what you guys are typically are used to hearing.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 213.8,
+        "end": 216.2,
+        "text": " And you know, as far as like having speakers here",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 216.2,
+        "end": 217.6,
+        "text": " and all that, it's gonna be a great time.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 217.6,
+        "end": 221.14,
+        "text": " So really, there's just more value actually from",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 221.44,
+        "end": 227.04,
+        "text": " us being involved with React Miami, more value for you guys, and some extra goodies that we're",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 227.04,
+        "end": 232.48,
+        "text": " going to talk about here a little bit later. We're really excited for itself. Thank you so much.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 232.48,
+        "end": 237.2,
+        "text": " So glad to be here. Just remember if you're a beginner or advanced user with even",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 238.08,
+        "end": 241.36,
+        "text": " a little bit of doing this for a very long time as far as the web developer goes,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 242.16,
+        "end": 245.84,
+        "text": " we want to hear from everybody. It doesn't matter whether you're a beginner or advanced,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 245.84,
+        "end": 251.84,
+        "text": " like it said and so you know don't you don't be afraid to request to come up and ask questions or",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 252.4,
+        "end": 258.16,
+        "text": " comments or fact opinions whatever it is you want to hear from yeah in fact actually that also helps",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 258.16,
+        "end": 261.76,
+        "text": " with your value here for everybody listening in because when you that get developed",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 262.72,
+        "end": 266.96,
+        "text": " typically there's some really great conversations that happen so I would love to hear from",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 266.96,
+        "end": 270.24,
+        "text": " as many people as the possibly one of them up.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 270.24,
+        "end": 272.08,
+        "text": " So, all right, with that being said,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 272.08,
+        "end": 275.04,
+        "text": " I am Scott Simon and I am the 18th of 14",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 275.04,
+        "end": 280.04,
+        "text": " in the Manager at Edgio and I'm ready to rock this today.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 280.16,
+        "end": 281.72,
+        "text": " Let's get this rolling.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 281.72,
+        "end": 282.96,
+        "text": " Thank you so much.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 282.96,
+        "end": 283.88,
+        "text": " Appreciate y'all.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 286.36,
+        "end": 289.72,
+        "text": " Also, we should have introduced himself",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 289.72,
+        "end": 291.08,
+        "text": " and then after that,",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 291.08,
+        "end": 292.72,
+        "text": " the shell is introduced yourself",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 292.72,
+        "end": 295.76,
+        "text": " and you are one of the organizers of React Miami.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 295.76,
+        "end": 297.76,
+        "text": " Thank you for joining us.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 299.26,
+        "end": 302.8,
+        "text": " How's it going everybody? Thank you very much for having me up here",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 302.8,
+        "end": 305.7,
+        "text": " Thank everyone for showing up and showing interest",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 306.16,
+        "end": 310.44,
+        "text": " My name is Dev or you can call me Dave both work fine and",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 311.4,
+        "end": 321.16,
+        "text": " Yeah, it's great to be here this year. I am also a media partner for React Miami along with along with these two great individuals Anthony and Scott and",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 321.16,
+        "end": 326.66,
+        "text": " And yeah, I'm very excited to show you guys what we have in store for next week.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      },
+      {
+        "start": 326.66,
+        "end": 328.66,
+        "text": " Or talk about it a little today.",
+        "temperature": null,
+        "avg_logprob": null,
+        "compression_ratio": null,
+        "no_speech_prob": null,
+        "words": null,
+        "word_count": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": "REDACTED",
+      "completion_tokens": "REDACTED",
+      "total_tokens": "REDACTED",
+      "prompt_tokens_details": "REDACTED",
+      "neurons": 3.33153444233441
+    }
+  },
+  "success": true,
+  "errors": [],
+  "messages": []
+}

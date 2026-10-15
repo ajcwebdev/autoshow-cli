@@ -1,4 +1,4 @@
-import { mkdir, rm } from 'node:fs/promises'
+import { mkdir, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { ProviderFailure, SttBatchBlockedProviderReason, SttBatchWorkerContext, SttTarget } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
@@ -10,6 +10,15 @@ import { classifySttProviderFailure, extractProviderRawResponse, resolveTransien
 import { getSttTargetDirectoryName, getSttTargetKey } from '../stt-targets'
 import { writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
 import { withMergedStep2Timings } from './recorded-step2'
+
+// A recovery pass starts the provider over but keeps split-attempts/, where finished segments are checkpointed, so
+// segments that already succeeded are not paid for again.
+export const clearProviderDirForRecovery = async (providerDir: string): Promise<void> => {
+  const entries = await readdir(providerDir).catch(() => [] as string[])
+  await Promise.all(entries
+    .filter(entry => entry !== 'split-attempts')
+    .map(async entry => await rm(join(providerDir, entry), { recursive: true, force: true })))
+}
 
 export const markSttTargetSkipped = async (
   ctx: SttBatchWorkerContext,
@@ -73,7 +82,7 @@ export const runSttProviderTargetAtIndex = async (
 
   try {
     if (attempt === 'recovery') {
-      await rm(providerDir, { recursive: true, force: true })
+      await clearProviderDirForRecovery(providerDir)
     }
     await mkdir(providerDir, { recursive: true })
     await markSttProviderRunning({

@@ -15,12 +15,11 @@ import { writeVoiceReferenceManifest } from '~/cli/commands/visuals/comic/comic-
 import { createMockWavBytes, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
-import { makeTempDir } from '../../../../test-utils/temp-dirs'
+const tempDirs = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 import { COMIC_AUDIO_PHASE_2_CREATED_AT as CREATED_AT, COMIC_AUDIO_PHASE_2_HASH_A as HASH_A, COMIC_AUDIO_PHASE_2_HASH_B as HASH_B, buildComicAudioPhase2SnapshotEntry as snapshotEntry, buildComicAudioPhase2Structured as buildStructured } from './comic-audio-phase-fixture'
 
 beforeEach(async () => {
-  configureCharactersRoot(join(await makeTempDir('autoshow-comic-audio-characters-'), 'characters'))
+  configureCharactersRoot(join(await tempDirs.make('autoshow-comic-audio-characters-'), 'characters'))
 })
 
 afterEach(() => configureCharactersRoot('input/characters'))
@@ -29,7 +28,7 @@ describe('comic audio phase 2 contracts', () => {
   test('soundscape-only command uses a canonical local silence clock without selecting TTS', async () => {
     process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-test-key'
     const calls = installMockFetch(() => new Response(createMockWavBytes(), { status: 200, headers: { 'content-type': 'audio/wav' } }))
-    const root = await makeTempDir('autoshow-comic-audio-soundscape-only-')
+    const root = await tempDirs.make('autoshow-comic-audio-soundscape-only-')
     const sourcePath = join(root, 'soundscape-only.md')
     const sceneRunDir = join(root, 'run')
     const prompt = `airlock closes ${crypto.randomUUID()}`
@@ -70,7 +69,7 @@ describe('comic audio phase 2 contracts', () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
     let requestOrdinal = 0
     const calls = installMockFetch(() => new Response(createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.2, frequencyHz: 220 + requestOrdinal++ * 55 }), { status: 200, headers: { 'content-type': 'audio/wav' } }))
-    const root = await makeTempDir('autoshow-comic-audio-command-')
+    const root = await tempDirs.make('autoshow-comic-audio-command-')
     const sourcePath = join(root, 'scene.md')
     const sceneRunDir = join(root, 'run')
     const sourceText = '# Episode\n\n## Scene\n\n**PILOT**\nReady? (beat) Go.\n\n**NAVIGATOR**\nReady.\n'
@@ -177,7 +176,7 @@ describe('comic audio phase 2 contracts', () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
     process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-test-key'
     const calls = installMockFetch(() => new Response(createMockWavBytes(), { status: 200, headers: { 'content-type': 'audio/wav', 'request-id': 'fixture-request' } }))
-    const root = await makeTempDir('autoshow-comic-soundscape-command-')
+    const root = await tempDirs.make('autoshow-comic-soundscape-command-')
     const sourcePath = join(root, 'scene.md')
     const sceneRunDir = join(root, 'run')
     const prompt = `hatch slams ${crypto.randomUUID()}`
@@ -230,7 +229,7 @@ describe('comic audio phase 2 contracts', () => {
   })
 
   test('local overlap mixing uses the longest child and honors the selected mastering profile', async () => {
-    const root = await makeTempDir('autoshow-comic-overlap-mix-')
+    const root = await tempDirs.make('autoshow-comic-overlap-mix-')
     const first = join(root, 'first.wav')
     const second = join(root, 'second.wav')
     const output = join(root, 'mixed.wav')

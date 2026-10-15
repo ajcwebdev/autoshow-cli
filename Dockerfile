@@ -67,7 +67,7 @@ RUN set -eux; \
 FROM ${BUN_BASE_IMAGE} AS runtime-base
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG DEBIAN_SNAPSHOT=20260913T180000Z
+ARG DEBIAN_SNAPSHOT=20261015T205142Z
 
 LABEL org.opencontainers.image.title="autoshow-cli"
 LABEL org.opencontainers.image.description="Bun-native AutoShow CLI with Debian slim local-lite tools"

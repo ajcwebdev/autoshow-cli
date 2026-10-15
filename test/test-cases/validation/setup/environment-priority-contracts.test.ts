@@ -60,7 +60,7 @@ test('readiness bounds ignored abort signals and distinguishes rejected credenti
 })
 
 test('Docker shares its connection contract and publication keeps credentials out of URLs', async () => {
-  const source = { PATH: '/bin', HOME: '/home/test', DOCKER_HOST: 'tcp://fixture:2376', DOCKER_CONTEXT: 'fixture', DOCKER_TLS_VERIFY: '1', DOCKER_CERT_PATH: '/certs', DOCKER_CONFIG: '/config', XDG_RUNTIME_DIR: '/run/test', OPENAI_API_KEY: 'secret' }
+  const source = { PATH: '/bin', HOME: '/home/test', TMPDIR: '/private/test-tmpdir', TMP: '/private/test-tmp', TEMP: '/private/test-temp', DOCKER_HOST: 'tcp://fixture:2376', DOCKER_CONTEXT: 'fixture', DOCKER_TLS_VERIFY: '1', DOCKER_CERT_PATH: '/certs', DOCKER_CONFIG: '/config', XDG_RUNTIME_DIR: '/run/test', OPENAI_API_KEY: 'secret' }
   const { OPENAI_API_KEY: _secret, ...expected } = source
   expect(dockerClientEnvironment(source)).toEqual(expected)
   const workflow = await Bun.file('.github/workflows/docker-publish.yml').text()
@@ -120,7 +120,8 @@ test('fake Docker observes the same host, context and TLS choices through the pa
     const observed = `${root}/observed-env`
     await Bun.write(`${root}/docker`, `#!/bin/sh\n/usr/bin/env > '${observed}'\nexit 71\n`)
     await chmod(`${root}/docker`, 0o755)
-    const env = { PATH: `${root}:${process.env['PATH']}`, HOME: root, DOCKER_HOST: 'tcp://fixture:2376', DOCKER_CONTEXT: 'fixture-context', DOCKER_CONFIG: '/fixture/config', DOCKER_TLS_VERIFY: '1', DOCKER_CERT_PATH: '/fixture/certs', XDG_RUNTIME_DIR: '/fixture/runtime', OPENAI_API_KEY: 'opaque-docker-secret' }
+    const temp = { TMPDIR: root, TMP: `${root}/tmp-fallback`, TEMP: `${root}/temp-fallback` }
+    const env = { PATH: `${root}:${process.env['PATH']}`, HOME: root, ...temp, DOCKER_HOST: 'tcp://fixture:2376', DOCKER_CONTEXT: 'fixture-context', DOCKER_CONFIG: '/fixture/config', DOCKER_TLS_VERIFY: '1', DOCKER_CERT_PATH: '/fixture/certs', XDG_RUNTIME_DIR: '/fixture/runtime', OPENAI_API_KEY: 'opaque-docker-secret' }
     const child = Bun.spawn([process.execPath, '--no-env-file', 'src/tools/docker-launcher.ts', 'acceptance', '--suite', 'core', '--output', `${root}/acceptance`, '--cache', `${root}/cache`], { env, stdout: 'ignore', stderr: 'ignore' })
     expect(await child.exited).toBe(1)
     const result = await Bun.file(`${root}/acceptance/results.json`).json()
@@ -132,6 +133,10 @@ test('fake Docker observes the same host, context and TLS choices through the pa
     expect((await runner(['version'], 1000, `${root}/logs/docker`)).exitCode).toBe(71)
     const runnerEnv = await Bun.file(observed).text()
     for (const [key, value] of Object.entries(dockerClientEnvironment(env))) {
+      expect(launcherEnv.split('\n')).toContain(`${key}=${value}`)
+      expect(runnerEnv.split('\n')).toContain(`${key}=${value}`)
+    }
+    for (const [key, value] of Object.entries(temp)) {
       expect(launcherEnv.split('\n')).toContain(`${key}=${value}`)
       expect(runnerEnv.split('\n')).toContain(`${key}=${value}`)
     }

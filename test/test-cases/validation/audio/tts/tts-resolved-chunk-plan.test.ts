@@ -55,6 +55,27 @@ test('provider budgets clamp overrides, protect notation and reject exhausted me
   expect(() => planProviderTtsChunks({ provider: 'openai', model: '', text: '🌍🌍', chunking: { boundary: 'smart', maxChars: 1 } })).toThrow('Unicode')
 })
 
+test('OpenAI prices long bracketed prose without dropping text or treating it as a delivery tag', async () => {
+  const target: TtsTarget = { service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15', voice: 'cedar', run: async () => { throw Error('No dispatch authorized') } }
+  for (const prefix of ['', 'An introductory sentence. ']) {
+    const text = `${prefix}[${paragraph.repeat(8)}] An ending sentence.`
+    const chunking = { boundary: 'smart' as const, maxChars: 400 }
+    const chunks = planProviderTtsChunks({ provider: 'openai', model: target.model, text, chunking })
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(chunks.every(chunk => chunk.text.length <= 400)).toBe(true)
+    expect(chunks.some(chunk => chunk.boundaryAfter === 'sentence')).toBe(true)
+    expect(chunks.map(chunk => chunk.text).join(' ').replace(/\s+/gu, ' ')).toBe(text.replace(/\s+/gu, ' '))
+    for (const chunk of chunks) expect(text.slice(chunk.sourceStart, chunk.sourceEnd)).toBe(chunk.text)
+    const sourceIdentity = createInlineTtsSourceIdentity(text)
+    const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text)
+    const prepared: PreparedTtsInput = { inputPath: 'fixture.txt', manifestInputPath: 'fixture.txt', sourceBytes: new TextEncoder().encode(text), text, sourceIdentity, dialoguePlan, ttsCharacterCount: text.length, ttsTimingInputText: text, dialogueRequested: false }
+    const estimate = await buildTtsEstimateForInput(prepared, { ...resolveTtsDeliveryOptions({}), ttsChunking: chunking }, [target])
+    expect(estimate.steps[0]).toMatchObject({ requestCount: chunks.length, chunkLengths: chunks.map(chunk => chunk.text.length) })
+  }
+  // Native delivery tags still have to fit the chosen provider's request budget.
+  expect(() => planProviderTtsChunks({ provider: 'elevenlabs', model: 'eleven_v3', text: '[a long delivery tag]', chunking: { boundary: 'smart', maxChars: 5 } })).toThrow('notation')
+})
+
 test('shared resume options round-trip across providers, respect explicit overrides and migrate old snapshots', () => {
   const original = { ...resolveTtsDeliveryOptions({ 'tts-chunk-size': '400', 'tts-audio-profile': 'audiobook', 'tts-export-format': 'mp3' }), ttsTextPreflight: false }
   for (const provider of ['openai', 'elevenlabs', 'grok', 'inworld', 'soniox', 'gemini']) {
