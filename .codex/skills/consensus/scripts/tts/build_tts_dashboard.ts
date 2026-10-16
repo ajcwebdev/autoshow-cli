@@ -21,6 +21,66 @@ export interface TtsDashboardSample {
   audioHref: string | null; manifestHref: string; mechanism: string;
 }
 
+export const TTS_ASSESSMENT_EVIDENCE = 'assessment.evidence.zip';
+interface TtsAssessmentRow {
+  run: string; providerKey: string; suite: string; audioSha256: string; transcript: string; transcriptSha256: string;
+  humanSpeechScore: null; cer: number; comparison: { referenceWords: number; substitutions: number; deletions: number; insertions: number; wer: number };
+}
+
+export function readTtsAssessment(root: string, samples: TtsDashboardSample[]): TtsAssessmentRow[] {
+  const archive = join(root, TTS_ASSESSMENT_EVIDENCE);
+  if (!existsSync(archive)) return [];
+  // The producer assesses successful recordings only. Failed benchmark rows stay
+  // visible in the dashboard, but must not require or acquire an assessment.
+  const successfulSamples = samples.filter(sample => sample.status === 'succeeded');
+  const entry = (name: string): Buffer => {
+    if (!name || isAbsolute(name) || name.split('/').includes('..')) throw Error('Unsafe TTS assessment evidence path');
+    const result = Bun.spawnSync(['unzip', '-p', archive, name]);
+    if (result.exitCode !== 0) throw Error(`Missing TTS assessment evidence: ${name}`);
+    return result.stdout;
+  };
+  const checksumLines = entry('SHA256SUMS').toString().trim().split('\n');
+  const checksums = new Map(checksumLines.map(line => {
+    const match = /^([a-f0-9]{64})  (.+)$/.exec(line);
+    if (!match) throw Error('Invalid TTS assessment checksums');
+    return [match[2]!, match[1]!] as const;
+  }));
+  if (checksums.size !== checksumLines.length) throw Error('Duplicate TTS assessment checksum entry');
+  const verified = (name: string) => {
+    const bytes = entry(name);
+    if (hash(bytes) !== checksums.get(name)) throw Error(`TTS assessment checksum mismatch: ${name}`);
+    return bytes;
+  };
+  const value = JSON.parse(verified('assessment.json').toString()) as { schemaVersion: number; sources: Array<{ path: string; scope: string; sha256: string }>; rows: TtsAssessmentRow[] };
+  if (value.schemaVersion !== 1 || !Array.isArray(value.sources) || !Array.isArray(value.rows) || value.rows.length !== successfulSamples.length) throw Error('Invalid or incomplete TTS assessment');
+  for (const name of checksums.keys()) verified(name);
+  const audioPaths = new Set(successfulSamples.filter(s => s.audioHref).map(s => resolve(dirname(root), s.audioHref!)));
+  for (const source of value.sources) {
+    if (!['benchmark', 'project'].includes(source.scope) || typeof source.path !== 'string' || !/^[a-f0-9]{64}$/.test(source.sha256)) throw Error('Invalid TTS assessment source');
+    const base = source.scope === 'benchmark' ? root : resolve(import.meta.dir, '../../../../..');
+    const path = artifactPath(base, source.path);
+    // A transferred dashboard may have metadata and assessments without ignored
+    // purchased WAVs; retained manifest evidence still binds the audio hash.
+    if (!existsSync(path) && audioPaths.has(resolve(path))) continue;
+    if (!existsSync(path) || hash(readFileSync(path)) !== source.sha256) throw Error(`Stale TTS assessment source: ${source.path}`);
+  }
+  const seen = new Set<string>();
+  for (const row of value.rows) {
+    const key = `${row.run}\0${row.providerKey}`, sample = successfulSamples.find(s => `${s.run}\0${s.providerKey}` === key);
+    const comparison = row.comparison;
+    if (!sample || seen.has(key) || row.suite !== sample.suite || row.humanSpeechScore !== null || !/^[a-f0-9]{64}$/.test(row.audioSha256) ||
+      !comparison || ![comparison.referenceWords, comparison.substitutions, comparison.deletions, comparison.insertions].every(n => Number.isInteger(n) && n >= 0) || comparison.referenceWords <= 0 ||
+      !Number.isFinite(row.cer) || row.cer < 0 || !Number.isFinite(comparison.wer) || Math.abs(comparison.wer - (comparison.substitutions + comparison.deletions + comparison.insertions) / comparison.referenceWords) > 1e-10) throw Error('Invalid TTS assessment result');
+    const audioPath = sample.audioHref ? resolve(dirname(root), sample.audioHref) : null;
+    const audioBinding = value.sources.find(source => source.scope === 'benchmark' && resolve(root, source.path) === audioPath);
+    const manifestPath = resolve(dirname(root), sample.manifestHref);
+    if (!audioBinding || audioBinding.sha256 !== row.audioSha256 || !value.sources.some(source => source.scope === 'benchmark' && resolve(root, source.path) === manifestPath)) throw Error('Unbound TTS assessment result');
+    if (hash(verified(row.transcript)) !== row.transcriptSha256) throw Error('TTS assessment transcript hash mismatch');
+    seen.add(key);
+  }
+  return value.rows;
+}
+
 function artifactPath(root: string, path: unknown): string {
   if (typeof path !== 'string' || !path || isAbsolute(path)) throw Error('Missing or absolute TTS artifact reference');
   const result = resolve(root, path), rel = relative(resolve(root), result);
@@ -149,6 +209,7 @@ function suiteReviewNotes(root: string, samples: TtsDashboardSample[]): string[]
 
 export function buildTtsDashboard(rootDir: string, generatedAt = new Date().toISOString()): { dashboardModel: CombinedDashboardModel; samples: TtsDashboardSample[] } {
   const samples = collectTtsDashboardSamples(rootDir), narration = samples.filter(row => row.suite === 'narration');
+  const assessments = readTtsAssessment(rootDir, samples);
   const runs = [...new Set(narration.map(row => row.run))];
   const groups: DashboardGroup[] = [false, true].map(local => {
     const keys = [...new Set(narration.filter(row => row.local === local).map(row => row.providerKey))].sort();
@@ -162,38 +223,46 @@ export function buildTtsDashboard(rootDir: string, generatedAt = new Date().toIS
       const chars = sumComplete(rows.map(row => row.characters));
       const throughput = elapsed && audio ? audio * 1000 / elapsed : null;
       const perThousandCents = chars && cost !== null ? cost * 1000 / chars : null;
+      const accuracyRows = rows.map(row => assessments.find(a => a.run === row.run && a.providerKey === row.providerKey));
+      const accuracy = complete && accuracyRows.every(Boolean)
+        ? Math.max(0, 100 * (1 - accuracyRows.reduce((n, a) => n + a!.comparison.substitutions + a!.comparison.deletions + a!.comparison.insertions, 0) / accuracyRows.reduce((n, a) => n + a!.comparison.referenceWords, 0))) : null;
       return {
         providerKey, display: providerKey, model: providerKey.slice(providerKey.indexOf('/') + 1), coverage: `${rows.filter(row => row.status === 'succeeded').length}/${runs.length}`,
-        quality: { display: 'Not assessed', rank: null, value: null },
+        quality: { display: accuracy === null ? 'Not assessed' : `${accuracy.toFixed(2)}% ASR`, rank: null, value: accuracy },
         speed: { display: throughput === null ? 'n/a' : `${throughput.toFixed(2)}×`, rank: null, value: throughput },
         cost: { display: dollars(perThousandCents), rank: null, value: perThousandCents },
-        evidence: [audio === null ? 'n/a' : `${audio.toFixed(2)}s`, dollars(cost), `${timings.length}/${runs.length}`, 'Not assessed'],
-        perRun: runs.map(run => ({ display: rows.find(row => row.run === run)?.status === 'succeeded' ? 'Not assessed' : 'n/a', heat: null })),
+        evidence: [audio === null ? 'n/a' : `${audio.toFixed(2)}s`, dollars(cost), `${timings.length}/${runs.length}`, assessments.length ? 'Excluded/unscored' : 'Not assessed'],
+        perRun: runs.map(run => {
+          const a = assessments.find(a => a.run === run && a.providerKey === providerKey);
+          return { display: a ? `${(100 * Math.max(0, 1 - a.comparison.wer)).toFixed(2)}% ASR` : rows.find(row => row.run === run)?.status === 'succeeded' ? 'Not assessed' : 'n/a', heat: null };
+        }),
       };
     });
-    for (const metric of ['speed', 'cost'] as const) {
-      const sorted = providers.filter(row => row[metric].value !== null).sort((a, b) => (metric === 'speed' ? -1 : 1) * (a[metric].value! - b[metric].value!) || a.providerKey.localeCompare(b.providerKey));
+    for (const metric of ['quality', 'speed', 'cost'] as const) {
+      const sorted = providers.filter(row => row[metric].value !== null).sort((a, b) => (metric === 'cost' ? 1 : -1) * (a[metric].value! - b[metric].value!) || a.providerKey.localeCompare(b.providerKey));
       sorted.forEach((row, index) => { row[metric].rank = index > 0 && row[metric].value === sorted[index - 1]![metric].value ? sorted[index - 1]![metric].rank : index + 1; });
     }
     return { key: local ? 'local' : 'service', label: local ? 'Narration — Local Models' : 'Narration — Third-Party Service Models',
-      metricColumns: { quality: 'Automated accuracy', speed: 'Audio / generation time', cost: '$ / 1K input chars' },
+      metricColumns: { quality: 'ASR roundtrip accuracy', speed: 'Audio / generation time', cost: '$ / 1K input chars' },
       metricDirections: { quality: 'higher', speed: 'higher', cost: 'lower' }, evidenceColumns: ['Total audio', 'Total cost', 'Generation timing coverage', 'Human quality'],
       showPerRun: false, providers };
   });
   const table = (suite: TtsDashboardSample['suite'], title: string) => ({ title,
     notes: suiteReviewNotes(rootDir, samples.filter(row => row.suite === suite)),
-    columns: ['Run / case', 'Provider / model', 'Execution', 'Recorded time', 'Time basis', 'Audio duration', 'Cost USD', 'Cost basis', 'Format', 'Audio', 'Evidence', 'Controls'],
+    columns: ['Run / case', 'Provider / model', 'Execution', 'Recorded time', 'Time basis', 'Audio duration', 'Cost USD', 'Cost basis', 'Format', 'Audio', 'Evidence', 'Controls', 'ASR WER', 'Assessment'],
     rows: samples.filter(row => row.suite === suite).map(row => [
       { display: basename(row.run) }, { display: row.providerKey }, { display: row.status }, { display: seconds(row.processingMs) },
       { display: row.recovery ? 'Local recovery; excluded from speed ranking' : 'Generation + local assembly' },
       { display: row.durationSeconds === null ? 'n/a' : `${row.durationSeconds.toFixed(3)}s` }, { display: dollars(row.costCents) }, { display: row.costBasis }, { display: row.format },
       { display: row.audioHref ? 'WAV' : 'Unavailable', ...(row.audioHref ? { artifactHref: row.audioHref } : {}) },
       { display: row.manifestHref.endsWith('.md') ? 'Report' : 'Manifest', artifactHref: row.manifestHref }, { display: row['mechanism'] },
+      { display: (() => { const a = assessments.find(a => a.run === row.run && a.providerKey === row.providerKey); return a ? `${(100 * a.comparison.wer).toFixed(2)}%` : 'Unavailable'; })() },
+      assessments.some(a => a.run === row.run && a.providerKey === row.providerKey) ? { display: 'ASR screening; subjective unscored', artifactHref: 'tts/assessment.md' } : { display: 'Unavailable' },
     ]) });
   return { samples, dashboardModel: {
     title: 'TTS benchmark results', category: 'tts', generatedAt, rootDir: 'docs/benchmarks/tts',
     summaryStats: [{ label: 'Narration inputs', value: String(runs.length) }, { label: 'Narration models', value: String(new Set(narration.map(row => row.providerKey)).size) },
-      { label: 'Controls results', value: String(samples.length - narration.length) }, { label: 'Audio measurements', value: String(samples.filter(row => row.audioHref).length) }, { label: 'Quality assessment', value: 'Unavailable' }],
+      { label: 'Controls results', value: String(samples.length - narration.length) }, { label: 'Audio measurements', value: String(samples.filter(row => row.audioHref).length) }, { label: 'Quality assessment', value: assessments.length ? 'ASR only; subjective unscored' : 'Unavailable' }],
     runs: runs.map((run, index) => ({ runName: run, shortLabel: `R${index + 1}`, detail: `${narration.filter(row => row.run === run).length} provider/model results` })),
     groups, sampleTables: [table('narration', 'Narration — individual results'), table('emotion', 'Emotion and delivery — individual cases'), table('speed-pauses', 'Speed and pauses — individual cases')],
     methodParagraphs: [
@@ -203,7 +272,8 @@ export function buildTtsDashboard(rootDir: string, generatedAt = new Date().toIS
         ? 'Retained evidence binds the current manifests and reports to recorded audio hashes and local ffprobe measurements. Narration costs and exact timings come from manifests; controls costs and timings retain the reports\' published precision. Original render records and controls manifests are unavailable. Locally present audio is hash-checked; absent audio is not reverified. Audio links require the original local recordings. Costs are not confirmed invoices or total historical spending; Soniox costs remain estimates.'
         : 'Selected manifest audio references and SHA-256 hashes are authoritative. Duration and format are read locally with ffprobe. Current provider usage is preferred for cost, then recorded usage estimates, then the selected render estimate. Costs describe the selected audio, not all historical spending or confirmed invoices. Soniox costs remain estimates based on measured provider audio before local silence insertion.',
       'Generation throughput is total final audio duration divided by total recorded generation time, including local assembly. Local recovery timings are labeled and excluded. Speed and cost rankings require complete narration coverage; timings reflect their original concurrency and machine conditions.',
-      'No roundtrip transcript accuracy or human listening scores are present for these benchmark archives. Automated accuracy, spoken-text correctness, audible control effectiveness and human quality are not inferred from HTTP success, audio integrity, duration, speed or cost. No quality ranking is asserted.',
+      assessments.length ? 'Automated accuracy is installed Whisper small.en roundtrip ASR screening: 100 × max(0, 1 − total word edits / total reference words), requiring every narration input. One recognizer can mishear speech, and literal number spellings remain differences. This is not acoustic adjudication. Controls remain separate unranked cases. Subjective pronunciation, speaker identity, emotion, seams/prosody, audible-control and perceptual ratings are excluded and unscored at the user’s instruction; see tts/assessment.md and its checksummed evidence archive.' : 'No roundtrip transcript accuracy or human listening scores are present for these benchmark archives. Automated accuracy, spoken-text correctness, audible control effectiveness and human quality are not inferred from HTTP success, audio integrity, duration, speed or cost. No quality ranking is asserted.',
+      'Historical OpenAI benchmark costs retain their original character-based estimate and have not been retrospectively corrected to native text/audio-token billing. Recorded costs are not observed native billing receipts.',
     ], notes: ['Audio and evidence links are relative. Audio playback requires the retained local recordings. Refreshing this page makes no provider calls and does not alter benchmark artifacts.'],
   } };
 }

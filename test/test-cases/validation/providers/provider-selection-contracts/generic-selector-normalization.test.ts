@@ -105,7 +105,7 @@ describe('provider selection contracts', () => {
     expect(suppressedNormalized.explicitFlags.has('all-local')).toBe(false)
 
     expect(() => normalizeExtractGenericSelectorFlags({
-      provider: ['firecrawl', 'supadata']
+      provider: ['spider', 'zyte']
     }, new Set(['provider']), { media: false, document: false, article: true })).toThrow(
       'Article extract supports one --provider URL backend at a time'
     )

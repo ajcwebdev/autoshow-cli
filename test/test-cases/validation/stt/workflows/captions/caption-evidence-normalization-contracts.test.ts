@@ -6,7 +6,6 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 import { collectSttTargets } from '~/cli/commands/stt/stt-targets'
 import { GladiaStatusResponseSchema } from '~/types'
 import { validateData } from '~/utils/validate/validation'
-import { parseHappyScribeTranscriptPayload } from '~/cli/commands/stt/diarization/happyscribe/parse-happyscribe-transcript'
 import { parseCompatibleSttWords } from '~/cli/commands/stt/stt-shared/openai-compatible-single-speaker'
 import { buildTogetherSttFormFields } from '~/cli/commands/stt/diarization-off-by-default/together/run-together-stt'
 import { resolveCaptionWordCoverage } from '~/cli/commands/stt/workflows/captions/caption-word-coverage'
@@ -25,15 +24,6 @@ import { setupCaptionContractLifecycle } from './caption-contract-lifecycle'
 const { withTempDir } = setupCaptionContractLifecycle()
 
 describe('caption evidence normalization contracts', () => {
-  test('Happy Scribe retains all paragraph words and inherited speakers', () => {
-    const result = parseHappyScribeTranscriptPayload([
-      { speaker: 'A', data_start: .125, data_end: 1.5, text: 'Hello world.', words: [{ text: 'Hello', data_start: .125, data_end: .5 }, { text: 'world.', data_start: .75, data_end: 1.5 }] },
-      { speaker: 'B', data_start: 2.125, data_end: 3.75, text: 'Goodbye.', words: [{ text: 'Goodbye.', data_start: 2.125, data_end: 3.75 }] }
-    ], { offsetSeconds: 1800 })
-    expect(result.evidence?.words?.map(w => w.text)).toEqual(['Hello', 'world.', 'Goodbye.'])
-    expect(result.evidence?.words?.at(-1)).toMatchObject({ speaker: 'B', startSeconds: 1802.125 })
-    expect(buildTranscriptionCues(result, TRANSCRIPT_CUE_LIMITS).cues.map(c => c.text).join(' ')).toBe('Hello world. Goodbye.')
-  })
 
   test('partial evidence falls back only for missing text without changing native evidence', () => {
     const coverage = resolveCaptionWordCoverage(partial)

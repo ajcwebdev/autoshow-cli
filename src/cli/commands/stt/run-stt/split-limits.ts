@@ -8,7 +8,6 @@ const SPLIT_RETRY_ON_TOO_LARGE_ENGINES = new Set<string>([
   'mistral',
   'assemblyai',
   'gladia',
-  'happyscribe',
   'together',
   'gemini-stt',
   'openai-stt',

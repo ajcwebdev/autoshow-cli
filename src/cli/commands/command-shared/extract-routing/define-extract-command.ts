@@ -135,7 +135,7 @@ export const extractCommand = defineCliCommand({
     const source = ctx.parameters.input
     const savedResult = typeof ctx.flags['transcript-result'] === 'string' || (typeof source === 'string' && (source.toLowerCase().endsWith('.json') || ((await statPath(source).catch(() => undefined))?.isDirectory() && await Bun.file(join(source, 'result.json')).exists())))
     if (savedResult) {
-      const incompatible = ['audio', 'transcript-text', 'font', 'keep-tmp', 'native-subtitles', 'diarization', 'stt-audio-profile', 'stt-response-format', 'stt-verbatim', 'stt-chunk-size', 'stt-language', 'stt-organization-id'].filter(flag => ctx.rawParsed.explicitFlags.has(flag))
+      const incompatible = ['audio', 'transcript-text', 'font', 'keep-tmp', 'native-subtitles', 'diarization', 'stt-audio-profile', 'stt-response-format', 'stt-verbatim', 'stt-language'].filter(flag => ctx.rawParsed.explicitFlags.has(flag))
       if (incompatible.length) throw UsageError('These options do not apply to saved-result caption export: ' + incompatible.map(flag => '--' + flag).join(', '))
       await runCaptionExport(ctx.parameters.input, ctx.flags)
       return

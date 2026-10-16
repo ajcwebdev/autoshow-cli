@@ -24,7 +24,7 @@ bun autoshow links <global-section>...
 bun autoshow links --provider <name> [section...]
 bun autoshow links <global-section>... --provider <name> [section...] [--provider <name> [section...]]
 bun autoshow links https://example.com/docs
-bun autoshow links urls.md
+bun autoshow links input/examples/batch/provider-docs.md
 ```
 Add `--refresh` to any of these invocations.
 
@@ -34,7 +34,7 @@ Each run creates a timestamped directory under `output/` (or `--output-root`) an
 
 - Curated selections write `<run-dir>/<selection>-links.md`, for example `output/<timestamp>_all-all-links/all-all-links.md`
 - Direct URL mode writes `<run-dir>/<host-and-path>-links.md`, for example `blog-railway-com-p-railway-for-agents-links.md` from `https://blog.railway.com/p/railway-for-agents`
-- Input file mode writes `<run-dir>/<input-basename>-links.md`, for example `urls-links.md` from `urls.md`
+- Input file mode writes `<run-dir>/<input-basename>-links.md`, for example `provider-docs-links.md` from `input/examples/batch/provider-docs.md`
 - Duplicate URLs are fetched once, in first-seen order
 - HTML pages are converted to markdown; markdown and text pages are appended as-is
 
@@ -66,9 +66,9 @@ Direct URL mode is standalone. Do not combine it with provider selectors, sectio
 Pass one local `.md` or `.txt` file to fetch URLs from that file instead of the curated registry:
 
 ```bash
-bun autoshow links urls.md
+bun autoshow links input/examples/batch/provider-docs.md
 ```
-The file may contain bare `http://` or `https://` URLs and markdown links like `[docs](https://example.com/docs)`. Headings, comments, blank lines, bullets, local file paths, and other non-URL prose are ignored.
+The maintained list above contains official Spider and Zyte billing documentation URLs and requires network access to fetch them. The file may contain bare `http://` or `https://` URLs and markdown links like `[docs](https://example.com/docs)`. Headings, comments, blank lines, bullets, local file paths, and other non-URL prose are ignored.
 
 Input file mode is standalone. Do not combine it with provider selectors, section selectors, or direct URL mode.
 
@@ -85,12 +85,10 @@ Accepted provider selectors are the lowercase names below. Fetch other documenta
 | `--provider deepinfra`      | `general`, `llmstxt`, `models`, `ocr`, `stt`                                           |
 | `--provider elevenlabs`     | `general`, `llmstxt`, `models`, `music`, `tts`                                         |
 | `--provider fal`            | `general`, `image`, `llmstxt`, `video`                                                 |
-| `--provider firecrawl`      | `general`, `llmstxt`, `url`                                                            |
 | `--provider gemini`         | `general`, `image`, `llmstxt`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
 | `--provider gladia`         | `general`, `llmstxt`, `models`, `stt`                                                  |
-| `--provider glm`            | `general`, `llmstxt`, `models`, `ocr`, `text`, `url`                                   |
+| `--provider glm`            | `general`, `llmstxt`, `models`, `ocr`, `text`                                          |
 | `--provider grok`           | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`, `video`          |
-| `--provider happyscribe`    | `llmstxt`, `stt`                                                                       |
 | `--provider inworld`        | `general`, `llmstxt`, `models`, `tts`                                                  |
 | `--provider kimi`           | `general`, `llmstxt`, `models`, `ocr`, `text`                                          |
 | `--provider ltx`            | `llmstxt`, `models`, `video`                                                           |
@@ -103,7 +101,6 @@ Accepted provider selectors are the lowercase names below. Fetch other documenta
 | `--provider soniox`         | `general`, `llmstxt`, `stt`                                                            |
 | `--provider speechmatics`   | `general`, `llmstxt`, `stt`                                                            |
 | `--provider spider`         | `general`, `llmstxt`, `url`                                                            |
-| `--provider supadata`       | `general`, `llmstxt`, `stt`, `url`                                                     |
 | `--provider together`       | `general`, `llmstxt`, `models`, `stt`, `text`                                          |
 | `--provider whisperfile`    | `llmstxt`, `stt`                                                                       |
 | `--provider x`              | `general`, `llmstxt`, `url`                                                            |

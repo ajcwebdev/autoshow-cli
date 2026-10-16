@@ -106,8 +106,6 @@ export const WRITE_STT_PROVIDER_TARGETS = {
   mistral: 'mistral-stt',
   assemblyai: 'assemblyai-stt',
   gladia: 'gladia-stt',
-  happyscribe: 'happyscribe-stt',
-  supadata: 'supadata-stt',
   scrapecreators: 'scrapecreators-stt',
   gemini: 'gemini-stt',
   together: 'together-stt',

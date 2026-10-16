@@ -1,5 +1,7 @@
 import { sonioxTtsRates } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
 import { geminiTtsRates } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-tts-pricing'
+import { openAITtsRates } from '~/cli/commands/audio/tts/tts-services/tts-openai/openai-tts-pricing'
+import { OPENAI_TOKEN_TTS_MODEL } from '~/cli/commands/audio/tts/tts-services/tts-openai/openai-tts-request'
 import { DEFAULT_COST_MULTIPLIER, DEFAULT_TTS_MS_PER_1K_CHARS } from './defaults'
 import { getModelRegistry, getRegistryServiceType } from './registry'
 import { getRetiredModelRate } from './retired-model-rates'
@@ -19,6 +21,7 @@ export const getTtsPricing = (
 } => {
   if (service === 'soniox' && model === 'tts-rt-v2') return sonioxTtsRates()
   if (service === 'gemini' && getModelRegistry().tts['gemini']?.models[model]) return geminiTtsRates(model)
+  if (service === 'openai' && model === OPENAI_TOKEN_TTS_MODEL) return openAITtsRates()
   const ttsModel = getModelRegistry().tts[service]?.models[model]
     ?? getRetiredModelRate('tts', service, model)
   if (!ttsModel) return {}

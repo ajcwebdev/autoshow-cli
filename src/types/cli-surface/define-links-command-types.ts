@@ -12,7 +12,7 @@ export type FetchUrlResult = {
   failureReason?: string
 }
 
-export type LinksConversionBackend = 'defuddle' | 'firecrawl'
+export type LinksConversionBackend = 'defuddle'
 
 // Identifiers (field names, camelCase names, prices) found in an HTML page's text, and those the converted markdown lost.
 export type LinksConversionCheck = {

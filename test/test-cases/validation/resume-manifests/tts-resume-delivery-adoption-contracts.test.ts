@@ -58,7 +58,7 @@ const createInterruptedLegacyRun = async (dir: string, replay: 'legacy-v0' | 'sm
       throw new Error('fixture unexpectedly completed')
     }
   }
-  await expect(runTtsForTargets(TEXT, dir, { ttsChunking: { boundary: 'smart', replay } }, [interruptedTarget], {
+  await expect(runTtsForTargets(TEXT, dir, { ttsChunking: { boundary: 'smart', replay }, ttsOpenAIAccountingReplay: true }, [interruptedTarget], {
     sourceIdentity,
     dialoguePlan,
     onProviderState: async (state) => { states.push(structuredClone(state)) }

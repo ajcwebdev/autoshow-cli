@@ -8,7 +8,7 @@ import { buildHostedStep1 } from './stt-pricing-fixtures'
 
 describe('price mode contracts', () => {
 
-  test('Supadata STT credit estimates are exact under default multipliers', () => {
+  test('Historical Supadata STT credit estimates are exact under default multipliers', () => {
       const audioDurationSeconds = 3600
       const expectedCredits = 120
       const estimated = computeEstimatedCosts({
@@ -30,7 +30,7 @@ describe('price mode contracts', () => {
       expect(estimated.totalCost).toBe(expectedCredits)
     })
 
-  test('Supadata STT estimates force generation pricing for direct media URLs', () => {
+  test('Historical Supadata STT estimates force generation pricing for direct media URLs', () => {
       const audioDurationSeconds = 2423.04
       const expectedCredits = (audioDurationSeconds / 60) * 2
       const estimated = computeEstimatedCosts({
@@ -60,7 +60,7 @@ describe('price mode contracts', () => {
       expect(platformAuto.steps[0]?.cost).toBe(expectedCredits)
     })
 
-  test('Supadata actual fallback forces generation pricing for direct media URLs', () => {
+  test('Historical Supadata actual fallback forces generation pricing for direct media URLs', () => {
       const audioDurationSeconds = 2423.04
       const expectedCredits = (audioDurationSeconds / 60) * 2
       const actual = computeActualCosts({

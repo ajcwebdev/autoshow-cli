@@ -1,3 +1,4 @@
+// Historical Supadata cost reconstruction only; the integration has no active selector or transport.
 import { MEDIA_EXTENSIONS } from '~/cli/commands/sources/metadata/formats/metadata-media-extensions'
 import type { SupadataPricingContext } from '~/types'
 

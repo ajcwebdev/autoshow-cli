@@ -1,10 +1,11 @@
 import { buildPureCurrentTtsRenderPlan } from './script-to-audio/attempt-planning'
 import { sonioxEstimateFromPlannedCost } from './tts-services/tts-soniox/soniox-tts-pricing'
+import { estimateOpenAITtsSlots } from './tts-services/tts-openai/openai-tts-pricing'
 import { collectTtsTargets } from './tts-targets'
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { logSuitePriceSummary } from '~/cli/commands/sources/download/download-targets/suite-price-logging'
-import type { ActualCostBreakdown, AggregatedPriceEstimate, EstimatedCostBreakdown, PreparedTtsInput, StepTimingBreakdown, TtsBatchEstimateReport, TtsOptions, TtsTarget } from '~/types'
+import type { ActualCostBreakdown, AggregatedPriceEstimate, EstimatedCostBreakdown, PreparedTtsInput, StepTimingBreakdown, TtsBatchEstimateReport, TtsOptions, TtsStepEstimate, TtsTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { formatDuration, formatEstimatedCostWithExactCents } from '~/utils/app-logger/formatters'
@@ -19,15 +20,22 @@ export const buildTtsEstimateForInput = async (
 ): Promise<AggregatedPriceEstimate> => {
   const selected = targets ?? collectTtsTargets(ttsOptions)
   const plans = selected.map(target => buildPureCurrentTtsRenderPlan({ target, sourceText: prepared.text, sourceIdentity: prepared.sourceIdentity, dialoguePlan: prepared.dialoguePlan, ttsOptions }))
-  const steps = (await Promise.all(selected.map((target, index) => {
+  const steps: TtsStepEstimate[] = (await Promise.all(selected.map((target, index) => {
     const slots = plans[index]!.planned.slots
-    return buildTtsTargetEstimates([target], ttsOptions, slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0), [slots.length])
+    const characters = slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0)
+    if (target.service === 'openai') return [{ step: 'tts' as const, provider: target.service, model: target.model, characterCount: characters, ...estimateOpenAITtsSlots(slots, plans[index]!.planned.turns) }]
+    return buildTtsTargetEstimates([target], ttsOptions, characters, [slots.length])
   }))).flat()
   for (const [index, target] of selected.entries()) {
     const plan = plans[index]!
     const step = steps[index]!
     step.chunkLengths = plan.planned.slots.map(slot => slot.providerText.length)
     step.requestCount = plan.planned.slots.length
+    if (target.service === 'openai') {
+      const estimate = estimateOpenAITtsSlots(plan.planned.slots, plan.planned.turns)
+      Object.assign(step, estimate, { totalCost: estimate.totalCost + (target.setupCostCents ?? 0) })
+      continue
+    }
     if (target.service !== 'soniox') continue
     const characters = plan.planned.slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0)
     const cents = plan.plannedRenderCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0)

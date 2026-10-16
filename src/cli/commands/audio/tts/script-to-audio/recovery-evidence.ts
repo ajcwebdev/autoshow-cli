@@ -1,4 +1,5 @@
 import { sonioxRetainedCostBasis } from '../tts-services/tts-soniox/soniox-tts-pricing'
+import { openaiRetainedCostBasis } from '../tts-services/tts-openai/openai-tts-pricing'
 import { lstat, readdir } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import type {
@@ -226,6 +227,7 @@ export const prepareCompactRenderRecovery = async (
       })
       return {
         ...sonioxRetainedCostBasis(options.target.service, pure.planned.slots, compactRender.slots),
+        ...openaiRetainedCostBasis(options.target.service, pure.planned.slots, pure.planned.turns),
         artifactDir: options.state.artifactDir,
         operation: pure.operation,
         targetKey: pure.targetKey,
@@ -314,6 +316,7 @@ export const prepareSelectedSuccess = async (
       await publishReportedOutput(options.rootDir, finalOutputPath, reportedOutputPath, resultProjection)
       return {
         ...sonioxRetainedCostBasis(options.target.service, pure.planned.slots, providerResult.outputs),
+        ...openaiRetainedCostBasis(options.target.service, pure.planned.slots, pure.planned.turns),
         artifactDir: options.state.artifactDir,
         operation: pure.operation,
         targetKey: pure.targetKey,

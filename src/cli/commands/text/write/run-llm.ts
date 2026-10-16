@@ -180,6 +180,7 @@ export const runLlmTargetsForStructuredPrompt = async (
         metadata: { provider: target.label, service: target.service, model: target.model }, error: err
       })
       failedTargetsByIndex[index] = `${target.service}/${target.model}: ${message}`
+      options.onTargetFailure?.(target, err)
     }
   }, options.hostedConcurrencyCoordinator, options.outputDir)
 
@@ -321,6 +322,7 @@ export const runLLM = async (
     llmLocalConcurrency: options.llmLocalConcurrency,
     concurrencyMode: options.concurrencyMode,
     hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
-    reasoningEffort: options.reasoningEffort
+    reasoningEffort: options.reasoningEffort,
+    onTargetFailure: options.onTargetFailure
   })
 }

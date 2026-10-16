@@ -1,11 +1,9 @@
 import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
-import { estimateFirecrawlScrapeCost } from '~/cli/commands/text/url/url-pricing/url-estimates'
 import { buildArticleEstimates } from '~/cli/commands/text/url/url-pricing/build-article-estimates'
-import { formatEstimatedCostWithExactCents } from '~/utils/app-logger/formatters'
 import { allocatePooledOcrPages, buildExtractEstimates } from '~/cli/commands/text/ocr/ocr-pricing/build-extract-estimates'
-import { getExtractEstimation, getExtractPricing, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getExtractEstimation, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
@@ -54,37 +52,20 @@ const expectTokenPricedOcrEstimate = (target: { provider: 'deepinfra' | 'kimi', 
 }
 
 describe('price mode contracts', () => {
-  test('URL article extract estimates use Firecrawl and glm-reader page rates without fetching', () => {
-      const firecrawl = estimateFirecrawlScrapeCost()
-      expect(firecrawl).toMatchObject({
-        provider: 'firecrawl',
-        model: 'firecrawl',
-        pageCount: 1,
-        totalCost: 0.083,
-        estimateType: 'exact'
-      })
-      expect(firecrawl.note).toContain('Firecrawl')
-
-      const glmCents = (1 / 1000) * (getExtractPricing('glm-reader', 'glm-reader').costPer1kPagesCents ?? 0)
-      expect(formatEstimatedCostWithExactCents(glmCents)).toBe('1.00¢ (1.000¢)')
-
-      const estimates = buildArticleEstimates(
-        { route: 'article', sourceKind: 'article', providers: [
-          { service: 'firecrawl', model: 'firecrawl', origin: 'explicit' },
-          { service: 'glm-reader', model: 'glm-reader', origin: 'explicit' }
-        ] },
-        { urlBackend: 'glm-reader' },
-        true
-      )
-      expect(estimates.estimates.map((step) => ({
-        provider: step.provider,
-        model: step.model,
-        totalCost: step.totalCost
-      }))).toEqual([
-        { provider: 'firecrawl', model: 'firecrawl', totalCost: 0.083 },
-        { provider: 'glm-reader', model: 'glm-reader', totalCost: 1 }
-      ])
-    })
+  test('active URL article estimates use Spider and Zyte page rates without fetching', () => {
+    const estimates = buildArticleEstimates(
+      { route: 'article', sourceKind: 'article', providers: [
+        { service: 'spider', model: 'spider', origin: 'explicit' },
+        { service: 'zyte', model: 'zyte', origin: 'explicit' }
+      ] },
+      { urlBackend: 'spider' },
+      true
+    )
+    expect(estimates.estimates.map(({ provider, model, totalCost }) => ({ provider, model, totalCost }))).toEqual([
+      { provider: 'spider', model: 'spider', totalCost: 0.12 },
+      { provider: 'zyte', model: 'zyte', totalCost: 0.16 }
+    ])
+  })
 
   test('every token-priced OCR registry entry uses multiplier 1', () => {
     const registry = getModelRegistry().extract

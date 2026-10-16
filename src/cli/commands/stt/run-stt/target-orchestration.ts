@@ -1,7 +1,6 @@
 import type { SplitPolicyTarget, Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult } from '~/types'
 import { dispatchStt } from './dispatch'
 import { ensureSttTargetSetup } from '../bootstrap'
-import { isSupadataSupportedSourceUrl } from '~/cli/commands/text/url/url-services/supadata-transcript/supadata'
 import { isScrapeCreatorsSupportedSourceUrl } from '~/cli/commands/text/url/url-services/scrapecreators/scrapecreators'
 import { writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
 import {
@@ -73,10 +72,6 @@ export const sttTarget = async (
   target: SttTarget,
   options: SttTargetOptions
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  if (target.service === 'supadata' && !isSupadataSupportedSourceUrl(options.sourceUrl)) {
-    return await dispatchHostedStt(target, audioPath, outputDir, options)
-  }
-
   if (target.service === 'scrapecreators' && !isScrapeCreatorsSupportedSourceUrl(options.sourceUrl)) {
     return await dispatchHostedStt(target, audioPath, outputDir, options)
   }
@@ -88,12 +83,6 @@ export const sttTarget = async (
         mistralPassController: createMistralSttPassController()
       }
     : options
-
-  if (target.service === 'supadata') {
-    const transcription = await dispatchHostedStt(target, audioPath, outputDir, effectiveOptions)
-    await persistTranscriptionStructuredArtifact(outputDir, transcription.result)
-    return transcription
-  }
 
   if (target.service === 'scrapecreators') {
     const transcription = await dispatchHostedStt(target, audioPath, outputDir, effectiveOptions)

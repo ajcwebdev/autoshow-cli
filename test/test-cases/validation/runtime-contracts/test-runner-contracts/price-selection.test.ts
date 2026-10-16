@@ -92,8 +92,8 @@ describe('test-runner contracts', () => {
   test('price mode uses e2e path selections', () => {
       const allFiles = [
         'test/test-cases/e2e/service/text/ocr/mistral-ocr-4-0.test.ts',
-        'test/test-cases/e2e/service/text/url/url-firecrawl.test.ts',
-        'test/test-cases/e2e/service/text/url/url-glm-reader.test.ts'
+        'test/test-cases/e2e/service/text/url/url-spider.test.ts',
+        'test/test-cases/e2e/service/text/url/url-zyte.test.ts'
       ]
 
       const selected = resolvePriceSelection(allFiles, ['test/test-cases/e2e/service/text/ocr/'])
@@ -101,13 +101,13 @@ describe('test-runner contracts', () => {
 
       expect(selected.suiteName).toBe('Selected paths: service/text/ocr')
       expect(keys).toContain('extract-mistral-mistral-ocr-4-0')
-      expect(keys).not.toContain('extract-firecrawl-url')
+      expect(keys).not.toContain('extract-spider-url')
 
       const urlSelection = resolvePriceSelection(allFiles, ['test/test-cases/e2e/service/text/url/'])
       expect(urlSelection.suiteName).toBe('Selected paths: service/text/url')
       expect(urlSelection.commands.map(command => command.key)).toEqual([
-        'extract-firecrawl-url',
-        'extract-glm-reader-url',
+        'extract-spider-url',
+        'extract-zyte-url',
       ])
     })
 
@@ -116,7 +116,7 @@ describe('test-runner contracts', () => {
       const keys = selected.commands.map((command) => command.key)
 
       expect(selected.suiteName).toBe('All mapped tests')
-      expect(keys).toContain('extract-firecrawl-url')
+      expect(keys).toContain('extract-spider-url')
       expect(keys).toContain('music-elevenlabs-music_v2')
       expect(keys).toContain('tts-openai-gpt-4o-mini-tts-2025-12-15')
     })
@@ -128,7 +128,7 @@ describe('test-runner contracts', () => {
         '--openai-ocr',
         '--mistral-stt',
         '--scrapecreators-stt',
-        '--supadata-stt'
+        '--cloudflare-stt'
       ])
 
       const offenders = BUDGET_PRICE_SELECTION_REGISTRY
@@ -145,19 +145,19 @@ describe('test-runner contracts', () => {
   test('specific e2e files resolve only their mapped price commands', () => {
       const allFiles = [
         'test/test-cases/e2e/service/text/ocr/mistral-ocr-4-0.test.ts',
-        'test/test-cases/e2e/service/text/url/url-firecrawl.test.ts'
+        'test/test-cases/e2e/service/text/url/url-spider.test.ts'
       ]
 
       const serviceModelKeys = resolvePriceSelection(allFiles, [
         'test/test-cases/e2e/service/text/ocr/mistral-ocr-4-0.test.ts'
       ]).commands.map((command) => command.key)
-      const firecrawlKeys = resolvePriceSelection(allFiles, [
-        'test/test-cases/e2e/service/text/url/url-firecrawl.test.ts'
+      const spiderKeys = resolvePriceSelection(allFiles, [
+        'test/test-cases/e2e/service/text/url/url-spider.test.ts'
       ]).commands.map((command) => command.key)
 
       expect(serviceModelKeys).toContain('extract-mistral-mistral-ocr-4-0')
-      expect(serviceModelKeys).not.toContain('extract-firecrawl-url')
-      expect(firecrawlKeys).toEqual(['extract-firecrawl-url'])
+      expect(serviceModelKeys).not.toContain('extract-spider-url')
+      expect(spiderKeys).toEqual(['extract-spider-url'])
     })
 
   test('price path selections match path boundaries', () => {

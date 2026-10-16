@@ -1,9 +1,7 @@
 import type { FetchFn, FetchUrlResult, LinksConversionCheck } from '~/types'
 import { extractHtmlToMarkdown } from '~/cli/commands/text/url/url-local/defuddle/run-defuddle-url'
-import { runFirecrawlUrl } from '~/cli/commands/text/url/url-services/firecrawl/run-firecrawl-url'
 import * as l from '~/utils/app-logger/app-logger'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
-import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'
 import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
 import { LINKS_FETCH_TIMEOUT_MS } from '~/utils/timeouts'
 import { formatErrorMessage } from '~/utils/value-helpers'
@@ -78,34 +76,13 @@ export const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUr
     let content: string
     let conversion: LinksConversionCheck | undefined
     if (isHtmlContentType(contentType) || looksLikeHtmlDocument(fetchedText)) {
-      try {
-        content = (await extractHtmlToMarkdown({
-          html: fetchedText,
-          documentUrl: finalUrl,
-          sourceUrl: url,
-          finalUrl
-        })).markdown
-        conversion = checkHtmlConversion(fetchedText, content, 'defuddle')
-      } catch (defuddleError) {
-        l.warn(`Defuddle failed for ${url}; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
-          category: 'pipeline',
-          metadata: { url, fallbackBackend: 'firecrawl' }, error: defuddleError
-        })
-        try {
-          content = (await runFirecrawlUrl(requestUrl, url)).markdown
-          conversion = checkHtmlConversion(fetchedText, content, 'firecrawl')
-        } catch (firecrawlError) {
-          throw InfraError(
-            `Defuddle failed and Firecrawl fallback failed. ` +
-            `Defuddle: ${formatErrorMessage(defuddleError)} Firecrawl: ${formatErrorMessage(firecrawlError)}`,
-            {
-              stage: 'links:fetch',
-              metadata: { defuddleError: serializeDiagnosticError(defuddleError) },
-              ...(firecrawlError instanceof Error ? { cause: firecrawlError } : {})
-            }
-          )
-        }
-      }
+      content = (await extractHtmlToMarkdown({
+        html: fetchedText,
+        documentUrl: finalUrl,
+        sourceUrl: url,
+        finalUrl
+      })).markdown
+      conversion = checkHtmlConversion(fetchedText, content, 'defuddle')
     } else {
       content = fetchedText
     }

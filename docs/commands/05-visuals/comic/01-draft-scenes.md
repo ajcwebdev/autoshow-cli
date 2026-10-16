@@ -38,18 +38,38 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 ### Examples
 
+Use the variables and fresh workspace from the [Harborlight setup](./00-comic-overview.md#setup). These examples share the same four-panel scene.
+
+The staged local route is the walkthrough default. Import the authored plan only after structure exists and the plan helper has run. Scene and full-pipeline commands are hosted and require the [complete batch estimate](./00-comic-overview.md#cumulative-estimate).
+
 ```bash
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only structure
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only prompt
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only blocking --price
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only blocking
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only blocking --blocking-plan input/blocking/01-01.json
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only blocking --rebind
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only scene
-bun autoshow comic draft-scenes 02-01 --only scene --panel-count 10 --no-blocking
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only panel-prompts
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --no-blocking
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only structure --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only prompt --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --provider openai=gpt-5.6-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --blocking-plan "$ROOT/blocking-plan.json" --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --rebind --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only scene --panel-count 4 --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only panel-prompts --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+```
+
+Optional hosted blocking replaces the imported plan; use it in a separate freshly prepared workspace after its quoted batch is accepted:
+
+```bash
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+```
+
+Optional full-pipeline and no-blocking alternatives also need separate fresh roots/runs, not the reviewed main run. Re-run setup with an unused `--root`, reset all five variables to it, then choose **one** alternative. The full pipeline creates structure/prompts and consumes the supplied references. The scene-only no-blocking alternative first needs local structure/prompts and ignores any prior plan. All alternatives keep four panels, matching the four authored notes.
+
+```bash
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --panel-count 4 --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only scene --panel-count 4 --no-blocking --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --no-blocking --panel-count 4 --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+```
+
+For an intentional review edit, first paste reviewed camera/costume directives from `review --notes` into the copied script. Then apply them to the same reviewed scene and rebuild prompts. The supplied notes alone do not alter the script.
+
+```bash
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --reconcile-from-directives --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 ### Behavior

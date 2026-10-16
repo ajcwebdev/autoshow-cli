@@ -53,7 +53,6 @@ export const resolveWriteTranscription = async (
   if (
     successfulSttProviders.length === 0
     && sttTargets.length === 1
-    && sttTargets[0]?.service !== 'supadata'
     && sttTargets[0]?.service !== 'scrapecreators'
   ) {
     const target = sttTargets[0] as SttTarget
@@ -64,7 +63,7 @@ export const resolveWriteTranscription = async (
         sttSegmentConcurrency: runtimeOptions?.sttSegmentConcurrency,
         audioDurationSeconds,
         sourceUrl: preparedMedia.step1Metadata.url,
-        language: target.service === 'scrapecreators' ? processingOptions.scrapecreatorsLang : processingOptions.supadataLang,
+        language: processingOptions.scrapecreatorsLang,
         ...(mistralPassController ? { mistralPassController } : {})
       })
     )
@@ -95,7 +94,7 @@ export const resolveWriteTranscription = async (
             sttSegmentConcurrency: runtimeOptions?.sttSegmentConcurrency,
             audioDurationSeconds,
             sourceUrl: preparedMedia.step1Metadata.url,
-            language: target.service === 'scrapecreators' ? processingOptions.scrapecreatorsLang : processingOptions.supadataLang,
+            language: processingOptions.scrapecreatorsLang,
             ...(mistralPassController ? { mistralPassController } : {})
           })
         )

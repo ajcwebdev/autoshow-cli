@@ -32,12 +32,15 @@ export const buildTtsArtifactMap = (
   })
 
 export const buildEstimatedTtsTargets = (
-  targets: TtsTarget[]
-): Array<{ service: Step4Metadata['ttsService'], model: string, setupCostCents?: number, setupTimeMs?: number, setupNote?: string, chunkCharacterLimit?: number, numericSpeed?: number }> =>
+  targets: TtsTarget[],
+  metadata: readonly Step4Metadata[] = []
+): Array<{ service: Step4Metadata['ttsService'], model: string, setupCostCents?: number, setupTimeMs?: number, setupNote?: string, chunkCharacterLimit?: number, numericSpeed?: number, instructions?: string, openaiTtsEstimate?: Step4Metadata['openaiTtsEstimate'] }> =>
   targets.map((target) => ({
     service: target.service,
     model: target.model,
     ...(target.numericSpeed !== undefined ? { numericSpeed: target.numericSpeed } : {}),
+    ...(target.instructions !== undefined ? { instructions: target.instructions } : {}),
+    ...(target.service === 'openai' ? { openaiTtsEstimate: metadata.find(entry => entry.ttsService === target.service && entry.ttsModel === target.model && (!target.targetKey || entry.targetKey === target.targetKey))?.openaiTtsEstimate } : {}),
     ...(typeof target.chunkCharacterLimit === 'number' ? { chunkCharacterLimit: target.chunkCharacterLimit } : {}),
     ...(typeof target.setupCostCents === 'number' ? { setupCostCents: target.setupCostCents } : {}),
     ...(typeof target.setupTimeMs === 'number' ? { setupTimeMs: target.setupTimeMs } : {}),

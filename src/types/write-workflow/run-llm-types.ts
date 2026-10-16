@@ -13,5 +13,6 @@ export type RunLlmTargetsForStructuredPromptOptions = HostedConcurrencyRuntimeOp
   llmProviderConcurrency?: number | undefined
   llmLocalConcurrency?: number | undefined
   reasoningEffort?: NormalizedReasoningEffort | undefined
+  onTargetFailure?: ((target: LLMTarget, error: unknown) => void) | undefined
   fileNameForTarget?: ((target: LLMTarget, index: number, defaultFileName: string) => string) | undefined
 }

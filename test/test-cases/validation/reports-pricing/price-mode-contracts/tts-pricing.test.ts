@@ -92,7 +92,9 @@ describe('price mode contracts', () => {
       })
 
       expect(timing.steps[0]?.processingTimeMs)
-        .toBe(Math.round(setupTimeMs + (2666 / 1000) * rate))
+        // ASCII chunks reserve 128 tokens inside the documented 2,000-token limit:
+        // 1,872 + 1,872 + 922 characters on two workers => 2,794 critical characters.
+        .toBe(Math.round(setupTimeMs + (2794 / 1000) * rate))
     })
 
   test('tts --price reports chunk-concurrent Grok estimated time', async () => {

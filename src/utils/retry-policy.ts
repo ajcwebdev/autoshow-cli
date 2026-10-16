@@ -51,13 +51,6 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
     maxDelayMs: 30_000,
     jitter: true,
     exponential: true
-  },
-  runtime_http_create_retriable: {
-    maxAttempts: 4,
-    baseDelayMs: 2_000,
-    maxDelayMs: 30_000,
-    jitter: true,
-    exponential: true
   }
 }
 

@@ -19,17 +19,16 @@ const RENAMED_TTS_CONFIG_KEYS: readonly (readonly [string, string])[] = [
 ]
 
 const RENAMED_STT_CONFIG_KEYS: readonly (readonly [string, string])[] = [
-  ['happyscribeOrganizationId', 'organizationId'],
-  ['supadataLang', 'language'],
   ['scrapecreatorsLang', 'language'],
   ['deepinfraResponseFormat', 'responseFormat'],
-  ['grokVerbatim', 'verbatim'],
-  ['supadataChunkSize', 'chunkSize']
+  ['grokVerbatim', 'verbatim']
 ]
 
 const validateSttConfigAuthority = (parsed: unknown): void => {
   const stt = asRecord(asRecord(asRecord(asRecord(parsed)?.['defaults'])?.['extract'])?.['stt'])
   if (!stt) return
+  const excluded = ['happyscribeStt', 'supadataStt', 'happyscribeOrganizationId', 'supadataLang', 'supadataChunkSize', 'organizationId', 'chunkSize'].filter(key => key in stt)
+  if (excluded.length > 0) throw ValidationError(`Excluded STT provider configuration ${excluded.join(', ')} is no longer supported. Remove it and select an active provider explicitly.`, { stage: 'config:load' })
   const renamed = RENAMED_STT_CONFIG_KEYS.filter(([key]) => key in stt)
   if (renamed.length > 0) {
     throw ValidationError(

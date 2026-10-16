@@ -113,7 +113,7 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
     : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined, chunks?: ResolvedTtsChunk[] }> = native
     ? nativeGroups
-    : turns.map(turn => segmentedSlotGroup(turn, options.target, options.ttsOptions.ttsChunking))
+    : turns.map(turn => segmentedSlotGroup(turn, options.target, options.ttsOptions.ttsChunking, options.ttsOptions.ttsOpenAIAccountingReplay))
 
   let includesSetup = true
   const slots: AttemptSlot[] = []
@@ -122,7 +122,7 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
     const primaryTurn = turns.find(turn => turn.canonical.turnId === group.turnIds[0]) as AttemptTurn
     const contract = buildProviderSerializerDescriptor(options.target, primaryTurn.voice.value ?? primaryTurn.voice.valueHash, primaryTurn.effectiveControls, strategy)
     const generationSlots = group.providerTexts.map((providerText, slotIndex) => {
-      const cost = plannedCost(options.target, [...providerText].length, includesSetup, (primaryTurn.effectiveControls['speed'] as number | undefined) ?? (options.target.service === 'soniox' ? 1 : undefined))
+      const cost = plannedCost(options.target, [...providerText].length, includesSetup, (primaryTurn.effectiveControls['speed'] as number | undefined) ?? (options.target.service === 'soniox' || options.target.service === 'openai' ? 1 : undefined), { text: providerText, instructions: primaryTurn.effectiveControls['instructions'] as string | undefined, legacy: options.ttsOptions.ttsOpenAIAccountingReplay })
       includesSetup = false
       const timingSegmentIndex = group.timingSegmentIndexes?.[slotIndex]
       const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, chunk: group.chunks?.[slotIndex], plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, expectedVoiceField: providerSerializerVoiceField(options.target, strategy, primaryTurn.voice.kind), ...(timingSegmentIndex !== undefined ? { timingSegmentIndex } : {}) }

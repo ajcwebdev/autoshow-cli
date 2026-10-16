@@ -82,13 +82,15 @@ Each top-level command owns one job, every command parses through the native com
 Chain commands:
 
 ```bash
-bun autoshow extract video.mp4 --provider deepgram
-bun autoshow write output/<extract-run>/transcription.txt --provider openai --prompt shortSummary --rendered-text
+bun autoshow extract input/examples/video/01-two-speaker-speech.mp4 --provider deepgram --output-dir output/speech-transcript
+bun autoshow write output/speech-transcript/transcription.txt --provider openai --prompt shortSummary --rendered-text
 bun autoshow tts output/<write-run>/text.md --provider elevenlabs
 bun autoshow music output/<write-run>/text.md --provider elevenlabs
 bun autoshow image "$(cat output/<write-run>/text.md)" --provider openai
 bun autoshow video "$(cat output/<write-run>/text.md)" --provider grok
 ```
+
+The first command transcribes the bundled licensed speech clip and produces `output/speech-transcript/transcription.txt`; the second consumes that saved text. The later `<write-run>` paths refer to the directory produced by the chosen writing run. Hosted stages incur their normal provider charges; use `--price` before execution. A caption export from the bundled saved transcript is available in the [caption guide](../commands/02-extract/stt/workflows/captions/overview.md) without transcription.
 
 `--provider` selects the model with repeatable `provider[=model]` values, and `--llm` is a compatibility alias. Boolean `--all-providers` selects every hosted LLM. `--all-local`, `--text-input`, `--stt`, `--ocr`, and the extract flag groups are unknown on `write`. One target writes `text.json` and `show-note.md`. Multiple targets write `text-<model>.json` and `show-note-<model>.md` per model, with the provider added to the filename when two providers share a model id. `--rendered-text` also writes `text.md`, or one `text-<model>.md` per model.
 

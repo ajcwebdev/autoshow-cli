@@ -5,7 +5,7 @@ import { serializeOneOrMany } from '~/cli/commands/command-shared/target-runner'
 import { collectLlmTargets, runLlmTargetsForStructuredPrompt } from '~/cli/commands/text/write/run-llm'
 import { deriveGenerationResumeProviderFlags, WRITE_LLM_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { writeShowNoteArtifacts } from '~/cli/commands/text/write/show-note-artifacts'
-import { writeRenderedTextArtifacts } from '~/cli/commands/text/write/text-input-utils'
+import { estimatePromptTokensFromText, writeRenderedTextArtifacts } from '~/cli/commands/text/write/text-input-utils'
 import { resolveStructuredSchema } from '~/cli/commands/text/write/structured-output/schema-resolver'
 import { isSongLyricsPreset } from '~/cli/commands/text/write/structured-output/preset-registry'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
@@ -15,9 +15,10 @@ import { toArray } from '~/utils/text-utils'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
+import { buildLlmEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/llm-estimates'
 import { isNormalizedReasoningEffort, resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { sha256Bytes } from '~/utils/value-helpers'
-import type { GenerationResumeConfig, LLMOptions, LLMTarget, LlmStepEstimate, ResumeTarget, Step3Metadata, StructuredValidationContext, WriteRuntimeOptions } from '~/types'
+import type { GenerationResumeConfig, LLMOptions, LLMTarget, LlmStepEstimate, PipelineManifestItem, PipelineProviderState, ResumeTarget, Step3Metadata, StructuredValidationContext, WriteRuntimeOptions } from '~/types'
 
 const WRITE_LLM_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
   WRITE_LLM_GENERATION_SELECTION,
@@ -247,7 +248,8 @@ const readSourceText = async (
 
 const resolvePromptNamesForResume = (
   opts: WriteRuntimeOptions,
-  existingEntries: Step3Metadata[]
+  existingEntries: Step3Metadata[],
+  providerStates: readonly PipelineProviderState[]
 ): string[] => {
   if (opts.prompts.length > 0) {
     return opts.prompts
@@ -257,7 +259,10 @@ const resolvePromptNamesForResume = (
     (entry) => entry.structuredPresetNames.length > 0
   )?.structuredPresetNames
 
-  return storedPromptNames ?? []
+  const storedSettingsPromptNames = providerStates
+    .map(provider => provider.settings?.local?.['prompts'])
+    .find((names): names is string[] => Array.isArray(names) && names.length > 0 && names.every(name => typeof name === 'string'))
+  return storedPromptNames ?? storedSettingsPromptNames ?? []
 }
 
 const resolveStructuredValidationContext = async (
@@ -386,7 +391,7 @@ export const writeResumeConfig = {
   selectionMode: 'selected-only' as const,
   parseManifestEntries: (metadata: Record<string, unknown>) => {
     const entries = getExistingStep3Entries(metadata)
-    return entries.length > 0 ? entries : undefined
+    return entries.length > 0 || (Array.isArray(metadata['step3']) && metadata['step3'].length === 0) ? entries : undefined
   },
   validateManifestForResume: (item, entries, opts) => {
     try {
@@ -421,7 +426,16 @@ export const writeResumeConfig = {
 
     return undefined
   },
-  resolveInput: async (target: ResumeTarget) => {
+  resolveInput: async (target: ResumeTarget, _metadata: Record<string, unknown>, item: PipelineManifestItem) => {
+    const unsupportedPromptFile = item.providers.some(provider => {
+      const local = provider.settings?.local
+      if (local?.['promptFile'] === undefined) return false
+      const prompts = local['prompts']
+      return local['promptFileKind'] !== 'text' || !Array.isArray(prompts) || prompts.length === 0 || !prompts.every(prompt => typeof prompt === 'string')
+    })
+    if (unsupportedPromptFile) {
+      throw UsageError('Write resume cannot restore the original custom prompt-file schema. Preserve this run and start a new write with the original prompt file; no provider request was made by resume.')
+    }
     const prompt = await readTextFileIfPresent(join(target.dir, 'prompt.md'))
     if (!prompt) {
       throw UsageError(`Write resume requires prompt.md in ${target.dir}.`)
@@ -446,9 +460,10 @@ export const writeResumeConfig = {
     context: {
       existingEntries: Step3Metadata[]
       currentManifestMetadata: Record<string, unknown>
+      currentProviderStates: PipelineProviderState[]
     }
   ) => {
-    const promptNames = resolvePromptNamesForResume(opts, context.existingEntries)
+    const promptNames = resolvePromptNamesForResume(opts, context.existingEntries, context.currentProviderStates)
     const { structuredSchema, structuredValidationContext } = await resolveStructuredValidationContext(
       promptNames,
       context.currentManifestMetadata
@@ -489,11 +504,27 @@ export const writeResumeConfig = {
 
     return results.map((result) => result.metadata)
   },
-  buildEstimates: (
+  buildEstimates: async (
     opts: WriteRuntimeOptions,
     _input: string,
-    context: { targets: LLMTarget[], existingEntries: Step3Metadata[] }
-  ) => buildWriteResumeLlmEstimates(context.targets, context.existingEntries, opts),
+    context: { outputDir: string, targets: LLMTarget[], existingEntries: Step3Metadata[], currentManifestMetadata: Record<string, unknown>, currentProviderStates: PipelineProviderState[] }
+  ) => {
+    if (context.existingEntries.length > 0) return buildWriteResumeLlmEstimates(context.targets, context.existingEntries, opts)
+    const source = await readSourceText(context.outputDir, context.currentManifestMetadata)
+    const prompts = resolvePromptNamesForResume(opts, context.existingEntries, context.currentProviderStates)
+    const selected = new Set(context.targets.map(targetKey))
+    return (await buildLlmEstimates({ ...opts, prompts, promptFile: undefined }, source))
+      .filter(estimate => selected.has(`${estimate.provider}:${estimate.model}`))
+      .map((estimate): LlmStepEstimate => {
+        const estimatedInputTokens = Math.max(estimate.estimatedInputTokens ?? 0, estimatePromptTokensFromText(_input))
+        const pricing = getLlmCost(estimate.provider, estimate.model)
+        if (!pricing) throw UsageError(`Cannot price write recovery for ${estimate.provider}/${estimate.model}: no registered token rate.`)
+        const cost = computeTokenCost(pricing, estimatedInputTokens, estimate.estimatedOutputTokens ?? 0, estimate.costMultiplier ?? 1)
+        const { pricingBand: _priorBand, pricingNote: _priorNote, ...previous } = estimate
+        return { ...previous, estimatedInputTokens, totalCost: cost.totalCost, inputCostPer1MCents: cost.inputCostPer1MCents, outputCostPer1MCents: cost.outputCostPer1MCents,
+          ...(cost.pricingBand ? { pricingBand: cost.pricingBand } : {}), ...(cost.pricingNote ? { pricingNote: cost.pricingNote } : {}) }
+      })
+  },
   rebuildRunMetadata: (
     metadata: Step3Metadata[],
     currentManifestMetadata: Record<string, unknown>

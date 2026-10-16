@@ -56,12 +56,6 @@ const handlers: Record<string, BootstrapHandler> = {
   'gladia-stt': {
     ensure: async (): Promise<void> => { resolveCredential('gladia', 'require', { stage: 'stt:gladia', description: 'Gladia transcription' }) }
   },
-  'happyscribe-stt': {
-    ensure: async (): Promise<void> => { resolveCredential('happyscribe', 'require', { stage: 'stt:happyscribe', description: 'Happy Scribe transcription' }) }
-  },
-  'supadata-stt': {
-    ensure: async (): Promise<void> => { resolveCredential('supadata', 'require', { stage: 'stt:supadata', description: 'Supadata transcription' }) }
-  },
   'scrapecreators-stt': {
     ensure: async (): Promise<void> => { resolveCredential('scrapecreators', 'require', { stage: 'stt:scrapecreators', description: 'ScrapeCreators transcript retrieval' }) }
   },

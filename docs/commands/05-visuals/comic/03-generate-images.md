@@ -59,18 +59,45 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 ### Examples
 
+Use the variables and fresh workspace from the [Harborlight setup](./00-comic-overview.md#setup). These examples share the same four-panel scene.
+
+Prerequisite: reviewed four-panel `scene.json`, current reference snapshots and complete panel prompt bundles from the walkthrough. Execute only the chosen image mode after the cumulative estimate. `sketches` followed by `images` is the main route; `both` is its combined alternative, not an extra required purchase.
+
 ```bash
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target both
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --panels 1,3,7
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --grid 2x3
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --provider openai=gpt-image-2 --provider gemini=gemini-3.1-flash-lite-image
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --variation animation-polish,cinematic-depth
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --panels 1-5 --qa-only --qa-provider gemini=gemini-3.8-flash --max-repairs 0 --price
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --qa-only --continuity-qa --continuity-only --labels output/episode-01-opening/qa/continuity-labels.json --trusted-anchor-panel 1 --qa-provider openai=gpt-5.6-sol --max-repairs 0
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --output-dir output/episode-01-opening --target images --panels 2,4 --panels-per-image 1 --provider openai=gpt-image-2 --qa-provider openai=gpt-5.6-sol --max-repairs 0 --revision-plan output/experiments/opening-revisions.json --comparison-passes 2 --promote clear-winners --price
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target sketches --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target both --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 1,3 --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --grid 2x2 --panels-per-image 1 --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --provider openai=gpt-image-2 --provider gemini=gemini-3.1-flash-lite-image --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --variation animation-polish --variation cinematic-depth --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
+
+Grid, subset, multiple-model, and variation commands are optional price-only comparisons. Select at most the accepted alternatives; variation/page outputs are not automatically canonical slideshow panels. The four-panel scene has no panels 5–7.
+
+After generation, inspect the selected `panels/<image-run-id>/` candidate files and use the [local canonical publication step](./00-comic-overview.md#4-build-panel-prompts-generate-images-and-review). The commands below read canonical `panels/panel-NN.png` files, not nested candidate runs.
+
+#### Optional audit and revision prerequisites
+
+These examples deliberately require artifacts produced and reviewed **after** canonical images exist. There is no fabricated labels file or revision plan in the source bundle. QA-only can be priced once those images exist:
+
+```bash
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --qa-only --max-repairs 0 --panels 1-4 --qa-provider openai=gpt-5.6-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+```
+
+For continuity evaluation, a reviewer must first author `$RUN/qa/continuity-labels.json` in the [validated labels schema](../../../../src/cli/commands/visuals/comic/comic-utils/continuity-labels.ts) against these actual panels. Confirm a real trusted anchor (panel 1 below), not an assumed correct image. The labels evaluate an audit; they are not a generation input or proof of quality.
+
+```bash
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --qa-only --max-repairs 0 --continuity-qa --labels "$RUN/qa/continuity-labels.json" --trusted-anchor-panel 1 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+```
+
+Revision evaluation additionally needs `$RUN/qa/revision-plan.json` with this scene's fingerprint and actual script, panel, contract, references and prior-QA hashes, frozen issues and correction notes for panels 2 and 4. See [revision evaluation mode](#revision-evaluation-mode) and its [validated plan schema/fingerprint helper](../../../../src/cli/commands/visuals/comic/comic-commands/generate-images/revision-plan-validation.ts). An empty template or another scene's plan is rejected. This bounded experiment reserves an edit and two comparisons per pending panel, and belongs in the cumulative estimate.
+
+```bash
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 2,4 --provider openai=gpt-image-2 --qa-provider openai=gpt-5.6-sol --revision-plan "$RUN/qa/revision-plan.json" --max-repairs 0 --comparison-passes 2 --promote clear-winners --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+```
+
+`--force` is a separate deliberate regeneration policy. Preserve the reviewed run and choose a copied compatible workspace before using it; it does not update the script or prompt bundle.
 
 ### Behavior
 

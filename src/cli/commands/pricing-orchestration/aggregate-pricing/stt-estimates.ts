@@ -1,14 +1,11 @@
 import type { SttEstimateOptions, SttStepEstimate, SttTarget } from '~/types'
 import { resolveSttInputDurationSeconds } from '~/cli/commands/stt/stt-utils/stt-duration'
 import { collectSttTargetsForSource, sttSourceFromInput } from '~/cli/commands/stt/stt-targets'
-import {
-  buildHappyScribeRegistryEstimate,
-  resolveHappyScribePriceNotes
-} from '~/cli/commands/stt/diarization/happyscribe/happyscribe-pricing'
 import { resolveYoutubeCaptionEstimateTargets } from '~/cli/commands/text/url/url-services/youtube-captions/youtube-captions'
+import { UsageError } from '~/utils/error-handler'
+import { getStep2ActiveModelsForService } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { getSttCost } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeBilledSttCost } from '~/cli/commands/pricing-orchestration/stt-billing'
-import { estimateSupadataCost } from '~/cli/commands/pricing-orchestration/supadata-pricing'
 import { estimateScrapeCreatorsCost } from '~/utils/pricing/scrapecreators-pricing'
 
 const EXACT_COST_MULTIPLIER = 1
@@ -23,23 +20,6 @@ const buildCloudSttEstimate = async (
   return { step: 'stt', provider, model, durationSeconds, totalCost, costMultiplier: EXACT_COST_MULTIPLIER }
 }
 
-const buildSupadataSttEstimate = (
-  model: string,
-  durationSeconds: number,
-  sourceUrl: string
-): SttStepEstimate => {
-  const cost = estimateSupadataCost(model, durationSeconds, { sourceUrl })
-  return {
-    step: 'stt',
-    provider: 'supadata',
-    model,
-    durationSeconds,
-    totalCost: cost.totalCost,
-    costMultiplier: EXACT_COST_MULTIPLIER,
-    note: cost.note
-  }
-}
-
 const buildScrapeCreatorsSttEstimate = (
   model: string
 ): SttStepEstimate => {
@@ -52,25 +32,6 @@ const buildScrapeCreatorsSttEstimate = (
     totalCost: cost.totalCost,
     costMultiplier: EXACT_COST_MULTIPLIER,
     note: cost.note
-  }
-}
-
-const buildHappyScribeSttEstimate = async (
-  model: string,
-  durationSeconds: number,
-  preferredOrganizationId: string | undefined
-): Promise<SttStepEstimate> => {
-  const totalCost = buildHappyScribeRegistryEstimate(model, durationSeconds)
-  const notes = await resolveHappyScribePriceNotes({ preferredOrganizationId })
-
-  return {
-    step: 'stt',
-    provider: 'happyscribe',
-    model,
-    durationSeconds,
-    totalCost,
-    costMultiplier: EXACT_COST_MULTIPLIER,
-    ...(notes.length > 0 ? { note: notes.join(' ') } : {})
   }
 }
 
@@ -89,13 +50,18 @@ export const buildSttEstimates = async (
 
 export const buildSttEstimatesForTargets = async (
   resolvedTarget: string,
-  opts: Pick<SttEstimateOptions, 'happyscribeOrganizationId'>,
+  _opts: object,
   targets: SttTarget[]
 ): Promise<SttStepEstimate[]> => {
   if (targets.length === 0) {
     return []
   }
 
+  for (const target of targets) {
+    if (target.service !== 'youtube-captions' && !getStep2ActiveModelsForService('stt', target.service)?.includes(target.model)) {
+      throw UsageError(`STT target ${target.service}/${target.model} is excluded or no longer active and cannot be priced for dispatch. Select an active STT provider explicitly.`)
+    }
+  }
   const needsDuration = targets.some((target) =>
     target.service !== 'whisperfile'
     && target.service !== 'youtube-captions'
@@ -123,18 +89,8 @@ export const buildSttEstimatesForTargets = async (
       continue
     }
 
-    if (target.service === 'supadata') {
-      estimates.push(buildSupadataSttEstimate(target.model, durationSeconds, resolvedTarget))
-      continue
-    }
-
     if (target.service === 'scrapecreators') {
       estimates.push(buildScrapeCreatorsSttEstimate(target.model))
-      continue
-    }
-
-    if (target.service === 'happyscribe') {
-      estimates.push(await buildHappyScribeSttEstimate(target.model, durationSeconds, opts.happyscribeOrganizationId))
       continue
     }
 

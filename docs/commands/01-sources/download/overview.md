@@ -47,7 +47,7 @@ Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 --keep-original-media  Keep the downloaded file instead of converting it to compressed audio
 --best-quality         Download the best available video and audio instead of compressed audio
 --flat-batch           Place each item's media file directly in the batch output directory
---url-provider         Article or HTML metadata backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
+--url-provider         Article or HTML metadata backend: defuddle|spider|zyte (default defuddle; local .html/.htm always use defuddle)
 --batch-limit          Number of items to process, or "all" (default 5)
 --batch-order          Item order: newest|oldest (default newest)
 --batch-concurrency    Number of items to process at once (default 7)
@@ -138,4 +138,4 @@ YouTube inputs may be rate-limited or challenged. Follow the [YouTube cookies gu
 
 X post URLs require `X_BEARER_TOKEN` to resolve the linked Space. Direct Space URLs and raw Space IDs may need the same cookie setup as other authenticated media sources.
 
-Hosted article backends selected with `--url-provider` need the matching API key (`FIRECRAWL_API_KEY`, `GLM_API_KEY`, `SPIDER_API_KEY`, `SUPADATA_API_KEY`, or `ZYTE_API_KEY`). Local `defuddle` does not.
+Hosted article backends selected with `--url-provider` need the matching API key (`SPIDER_API_KEY` or `ZYTE_API_KEY`). Local `defuddle` does not.

@@ -40,7 +40,7 @@ describe('price mode contracts', () => {
       expect(fractional.billedDurationSeconds).toBe(16)
     })
 
-  test('Happy Scribe zero provider quotes fall back to configured duration cost', () => {
+  test('Historical Happy Scribe zero provider quotes fall back to the retained duration cost', () => {
       const audioDurationSeconds = 600
       const actual = computeActualCosts({
         step1: buildHostedStep1({ durationSeconds: audioDurationSeconds }),

@@ -1,4 +1,5 @@
 import { retainTtsSlotAudio } from './tts-slot-audio-cache'
+import { currentOpenAITtsSlotCost } from '../tts-services/tts-openai/openai-tts-pricing'
 import { readdir } from 'node:fs/promises'
 import type {
   AccountCapabilityObservation,
@@ -125,7 +126,7 @@ const prepareRecoveredExecution = async (
     slot.audioArtifactRef = await retainTtsSlotAudio(options.outputDir, layout.layout, layout.paidSpeechSlotHash(slot), recovered.outputPaths[0]!, recovered.value.outputs[0]!.sha256)
   }
   const attemptSlots = requestedSlotLimit === undefined ? unresolvedSlots : unresolvedSlots.slice(0, requestedSlotLimit)
-  const unresolvedPlannedCost = sumCosts(attemptSlots.map(slot => slot.plannedCost))
+  const unresolvedPlannedCost = sumCosts(attemptSlots.map(slot => currentOpenAITtsSlotCost(options.target, slot, planned.turns, slot === planned.slots[0])))
   const priorAttemptNumbers = (await readdir(layout.attemptsRoot).catch(() => []))
     .flatMap(name => /^attempt-(\d+)(?:-|$)/.exec(name)?.[1] ? [Number.parseInt(/^attempt-(\d+)(?:-|$)/.exec(name)?.[1] as string, 10)] : [])
     .filter(Number.isFinite)

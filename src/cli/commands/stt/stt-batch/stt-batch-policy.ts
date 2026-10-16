@@ -14,8 +14,6 @@ const isAsyncSttBatchProvider = (
 ): boolean =>
   target.service === 'assemblyai'
   || target.service === 'gladia'
-  || target.service === 'happyscribe'
-  || target.service === 'supadata'
   || target.service === 'soniox'
   || target.service === 'speechmatics'
 

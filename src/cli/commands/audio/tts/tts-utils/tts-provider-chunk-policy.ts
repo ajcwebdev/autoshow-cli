@@ -3,6 +3,7 @@ import { UsageError } from '~/utils/error-handler'
 import { planTtsChunks, preserveTtsInlineBoundary, resolveTtsChunkMaxChars } from './tts-chunk-planner'
 import { resolveTtsChunkCharacterLimit } from './tts-chunk-limits'
 import { validateGeminiTurns } from '../tts-services/tts-gemini/gemini-tts-request'
+import { openAITtsTextByteBudget, validateOpenAITtsRequest } from '../tts-services/tts-openai/openai-tts-request'
 
 // Compatibility callbacks preserve the exact boundaries of older provider plans.
 const preserveInlineNotation = (text: string, index: number, limit: number): number => {
@@ -48,6 +49,7 @@ export type TtsChunkPolicyInput = {
   style?: string | undefined
   characterLimit?: number | undefined
   chunking?: TtsChunkingOptions | undefined
+  legacyOpenAIAccounting?: true | undefined
 }
 
 // OpenAI receives bracketed source prose as text, not as a native delivery tag.
@@ -76,6 +78,10 @@ export const resolveTtsProviderChunkPolicy = (input: TtsChunkPolicyInput): TtsPr
     if (budget < 4) throw UsageError('Gemini style and voice metadata exhaust the 8,192 input-token budget.')
     providerMaxChars = Math.max(1, Math.min(providerMaxChars, Math.floor(budget / 6)))
   }
+  if (input.provider === 'openai' && !input.legacyOpenAIAccounting) {
+    const bytesPerCodeUnit = [...input.text].reduce((maximum, character) => Math.max(maximum, Buffer.byteLength(character) / character.length), 1)
+    providerMaxChars = Math.min(providerMaxChars, Math.floor(openAITtsTextByteBudget(input.style) / bytesPerCodeUnit))
+  }
   if (input.characterLimit !== undefined) providerMaxChars = Math.min(providerMaxChars, input.characterLimit)
   // Soniox has always used smart boundaries, including before smart became the shared default.
   const chunking = input.provider === 'soniox' && input.chunking?.replay === 'legacy-v0'
@@ -90,6 +96,7 @@ export const resolveTtsProviderChunkPolicy = (input: TtsChunkPolicyInput): TtsPr
     validate: (text) => {
       if (text.length > effectiveMaxChars) throw UsageError('TTS request exceeds its resolved chunk budget.')
       if (input.provider === 'gemini') validateGeminiTurns(input.model, [{ ...turn, text }])
+      if (input.provider === 'openai' && !input.legacyOpenAIAccounting) validateOpenAITtsRequest(text, input.style)
     },
   }
 }

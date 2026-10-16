@@ -248,7 +248,7 @@ describe('test-runner contracts', () => {
 
   test('local engines are excluded from timing recommendations while hosted services keep them', async () => {
       expect(['whisperfile', 'tesseract', 'defuddle'].map(isTimingCalibratedService)).toEqual([false, false, false])
-      expect(['deepgram', 'firecrawl', 'mistral'].map(isTimingCalibratedService)).toEqual([true, true, true])
+      expect(['deepgram', 'spider', 'mistral'].map(isTimingCalibratedService)).toEqual([true, true, true])
 
       const dir = await makeTempDir('autoshow-calibration-local-timing-')
       tempDirs.push(dir)

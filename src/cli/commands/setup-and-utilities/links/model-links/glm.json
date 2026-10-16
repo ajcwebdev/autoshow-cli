@@ -25,9 +25,6 @@
     ],
     "OCR": [
       "https://docs.z.ai/guides/vlm/glm-5.3-flash.md"
-    ],
-    "URL": [
-      "https://docs.z.ai/api-reference/tools/web-reader.md"
     ]
   }
 }

@@ -1,5 +1,6 @@
 import type { DiarizationOptions, ProviderSpec, Step2ProviderSelectionFilter, SttDiarizationFlagOptions, SttSelectionOptions, TranscribeEngine, TranscribeEngineCapabilities } from '~/types'
 import { collectStep2ProviderSpecs } from '../command-shared/extract-routing/provider-registry'
+import { UsageError } from '~/utils/error-handler'
 import { DEEPINFRA_STT_RESPONSE_FORMATS, DEFAULT_DEEPINFRA_STT_RESPONSE_FORMAT } from './stt-response-format-contract'
 
 const NO_OPTIONS = {} as const
@@ -14,8 +15,8 @@ const STT_ENGINE_CAPABILITIES = {
   mistral: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
   assemblyai: { diarizationByDefault: true, supportsSpeakerCountHint: true, options: NO_OPTIONS },
   gladia: { diarizationByDefault: true, supportsSpeakerCountHint: true, options: NO_OPTIONS },
-  happyscribe: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: { organizationId: true } },
-  supadata: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: { languageHint: {}, chunkSize: true } },
+  happyscribe: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS },
+  supadata: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS },
   scrapecreators: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: { languageHint: { defaultValue: 'en' } } },
   'gemini-stt': { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
   together: { diarizationByDefault: false, supportsSpeakerCountHint: true, options: NO_OPTIONS },
@@ -28,9 +29,7 @@ const STT_ENGINE_CAPABILITIES = {
 export type SttEngineOptionCapabilities = Readonly<{
   languageHint?: Readonly<{ defaultValue?: string }>
   verbatim?: boolean
-  chunkSize?: boolean
   responseFormat?: Readonly<{ allowedValues: readonly string[], defaultValue?: string }>
-  organizationId?: boolean
 }>
 
 export const STT_ENGINE_OPTION_CAPABILITIES: Record<TranscribeEngine, SttEngineOptionCapabilities> =
@@ -47,8 +46,8 @@ export const STT_ENGINE_PROVIDER_NAME: Record<TranscribeEngine, string | undefin
   mistral: 'mistral',
   assemblyai: 'assemblyai',
   gladia: 'gladia',
-  happyscribe: 'happyscribe',
-  supadata: 'supadata',
+  happyscribe: undefined,
+  supadata: undefined,
   scrapecreators: 'scrapecreators',
   'gemini-stt': 'gemini',
   together: 'together',
@@ -80,10 +79,10 @@ export const getSttEngineCapabilities = (
   const hasDiarization = defaults.diarizationByDefault || engine === 'together'
   return {
     ...defaults,
-    supportsDiarizationToggle: hasDiarization && engine !== 'happyscribe',
+    supportsDiarizationToggle: hasDiarization,
     diarizationKind: hasDiarization ? 'native' : 'unavailable',
     diarizationValidation: hasDiarization ? 'documented' : 'unsupported',
-    nativeWordTiming: ['supadata', 'scrapecreators', 'youtube-captions', 'openai-stt', 'rev'].includes(engine) ? 'unavailable' : engine === 'mistral' ? 'without-diarization' : 'available',
+    nativeWordTiming: ['happyscribe', 'supadata', 'scrapecreators', 'youtube-captions', 'openai-stt', 'rev'].includes(engine) ? 'unavailable' : engine === 'mistral' ? 'without-diarization' : 'available',
     ...(model ? STT_MODEL_CAPABILITIES[engine]?.[model] : {})
   }
 }
@@ -121,6 +120,9 @@ export const collectSttProviderSpecs = (
   options: SttSelectionOptions,
   filter?: Step2ProviderSelectionFilter
 ): ProviderSpec[] => {
+  const raw = options as Record<string, unknown>
+  const excluded = ['happyscribeSttModels', 'supadataSttModels', 'happyscribeOrganizationId', 'supadataLang', 'supadataChunkSize'].filter(key => raw[key] !== undefined)
+  if (excluded.length > 0) throw UsageError(`Excluded STT provider settings ${excluded.join(', ')} cannot be used. Select an active STT provider explicitly.`)
   const specs = collectStep2ProviderSpecs('stt', options, filter)
 
   if (specs.length === 0 && !filter?.includeOrigins) {

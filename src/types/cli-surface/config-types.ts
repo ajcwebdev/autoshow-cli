@@ -24,9 +24,6 @@ const ExtractSttDefaultsSchema = v.strictObject({
   mistralStt: ModelArraySchema,
   assemblyaiStt: ModelArraySchema,
   gladiaStt: ModelArraySchema,
-  happyscribeStt: ModelArraySchema,
-  organizationId: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
-  supadataStt: ModelArraySchema,
   scrapecreatorsStt: ModelArraySchema,
   geminiStt: ModelArraySchema,
   togetherStt: ModelArraySchema,
@@ -42,7 +39,6 @@ const ExtractSttDefaultsSchema = v.strictObject({
   // time from the STT engine capability table rather than restated here.
   responseFormat: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
   verbatim: v.optional(v.union([v.boolean(), v.string(), v.array(v.string())]), undefined),
-  chunkSize: v.optional(v.union([v.number(), v.string(), v.array(v.string())]), undefined),
   speakerCount: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   split: v.optional(v.boolean(), undefined),
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
@@ -101,7 +97,6 @@ const TtsDefaultsSchema = v.strictObject({
   leadIn: OptionalStringOrNumberSchema,
   leadOut: OptionalStringOrNumberSchema,
   chunkBoundary: OptionalStringOrNumberSchema,
-  chunkSize: OptionalStringOrNumberSchema,
   textPreflight: OptionalStringOrNumberSchema,
   exportFormat: OptionalStringOrNumberSchema,
   bitrate: OptionalStringOrNumberSchema,
@@ -180,7 +175,7 @@ const ExtractOcrDefaultsSchema = v.strictObject({
 })
 
 const ExtractUrlDefaultsSchema = v.strictObject({
-  provider: v.optional(v.picklist(['defuddle', 'firecrawl', 'glm-reader', 'spider', 'supadata', 'zyte']), undefined)
+  provider: v.optional(v.picklist(['defuddle', 'spider', 'zyte']), undefined)
 })
 
 const ExtractDefaultsSchema = v.strictObject({

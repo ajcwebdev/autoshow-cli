@@ -55,11 +55,10 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'glm',
     envVar: 'GLM_API_KEY',
-    label: 'GLM write/OCR/URL',
+    label: 'GLM write/OCR',
     hintUrl: 'https://docs.z.ai/',
-    stages: ['write', 'ocr', 'url'],
+    stages: ['write', 'ocr'],
     configPaths: [
-      'defaults.extract.url.provider=glm-reader',
       'defaults.llm.glm',
       'defaults.extract.ocr.glmOcr'
     ]
@@ -247,36 +246,12 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: ['defaults.extract.stt.cloudflareStt']
   },
   {
-    providerId: 'happyscribe',
-    envVar: 'HAPPYSCRIBE_API_KEY',
-    label: 'Happy Scribe STT',
-    hintUrl: 'https://www.happyscribe.com/',
-    stages: ['stt'],
-    configPaths: ['defaults.extract.stt.happyscribeStt']
-  },
-  {
-    providerId: 'supadata',
-    envVar: 'SUPADATA_API_KEY',
-    label: 'Supadata STT/URL',
-    hintUrl: 'https://supadata.ai/',
-    stages: ['stt', 'url'],
-    configPaths: ['defaults.extract.url.provider=supadata', 'defaults.extract.stt.supadataStt']
-  },
-  {
     providerId: 'scrapecreators',
     envVar: 'SCRAPECREATORS_API_KEY',
     label: 'ScrapeCreators STT',
     hintUrl: 'https://scrapecreators.com/',
     stages: ['stt'],
     configPaths: ['defaults.extract.stt.scrapecreatorsStt']
-  },
-  {
-    providerId: 'firecrawl',
-    envVar: 'FIRECRAWL_API_KEY',
-    label: 'Firecrawl URL',
-    hintUrl: 'https://www.firecrawl.dev/',
-    stages: ['url'],
-    configPaths: ['defaults.extract.url.provider=firecrawl']
   },
   {
     providerId: 'spider',

@@ -87,9 +87,16 @@ export const injectGlobalCliFlags = (
     ]
 }
 
-export const buildChildEnv = (optsEnv: Record<string, string | undefined> | undefined): Record<string, string | undefined> => ({
-  ...BASE_CHILD_ENV,
-  ...liveCredentialContext.getStore(),
-  FORCE_COLOR: '0',
-  ...(optsEnv ?? {})
-})
+export const buildChildEnv = (optsEnv: Record<string, string | undefined> | undefined): Record<string, string | undefined> => {
+  const credentials = liveCredentialContext.getStore()
+  const gatewayId = credentials?.['CLOUDFLARE_API_TOKEN'] ? process.env['CLOUDFLARE_AI_GATEWAY_ID'] : undefined
+  return {
+    ...BASE_CHILD_ENV,
+    ...credentials,
+    // Routing selects the billing path. Forward it only for a declared Cloudflare
+    // live callback, without requiring a gateway or exposing unrelated settings.
+    ...(gatewayId !== undefined ? { CLOUDFLARE_AI_GATEWAY_ID: gatewayId } : {}),
+    FORCE_COLOR: '0',
+    ...(optsEnv ?? {})
+  }
+}

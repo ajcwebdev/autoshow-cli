@@ -42,9 +42,10 @@ export const logLlmTokenEstimate = (
   const outputUnitsPerCall = options.outputUnitsPerCall ?? ESTIMATED_OUTPUT_UNITS_PER_LLM_CALL
   const totalInputUnits = units * totalCalls
   const totalOutputUnits = outputUnitsPerCall * totalCalls
-  const inputCost = estimateLlmCost(model, totalInputUnits, 0)
-  const outputCost = estimateLlmCost(model, 0, totalOutputUnits)
-  const totalCost = estimateLlmCost(model, totalInputUnits, totalOutputUnits)
+  // Context bands apply to each request, not the sum of reserved retries.
+  const inputCost = estimateLlmCost(model, units, 0) * totalCalls
+  const totalCost = estimateLlmCost(model, units, outputUnitsPerCall) * totalCalls
+  const outputCost = totalCost - inputCost
 
   priceRows(
     title,
@@ -192,9 +193,9 @@ export const estimateBlockingPlanPrice = async (options: DraftScenesCommandOptio
   const inputUnitsPerCall = estimate.inputUnitsPerCall + estimate.imageInputUnitsPerCall
   const estimatedInput = inputUnitsPerCall * estimate.maxCalls
   const estimatedOutput = estimate.outputUnitsPerCall * estimate.maxCalls
-  const inputCost = estimateLlmCost(model, estimatedInput, 0)
-  const outputCost = estimateLlmCost(model, 0, estimatedOutput)
-  const totalCost = estimateLlmCost(model, estimatedInput, estimatedOutput)
+  const inputCost = estimateLlmCost(model, inputUnitsPerCall, 0) * estimate.maxCalls
+  const totalCost = estimateLlmCost(model, inputUnitsPerCall, estimate.outputUnitsPerCall) * estimate.maxCalls
+  const outputCost = totalCost - inputCost
   const promptFile = promptText ? `${sceneSlug}/metadata/blocking-prompt.md` : `${sceneSlug}/metadata/structured-script.json (blocking-prompt.md not yet written)`
   priceRows(
     'Comic - Price Estimate: draft-scenes --only blocking',

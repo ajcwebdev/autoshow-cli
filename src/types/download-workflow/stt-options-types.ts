@@ -11,18 +11,13 @@ export type SttRuntimeOptions = {
   mistralSttModels: string[] | undefined
   assemblyaiSttModels: string[] | undefined
   gladiaSttModels: string[] | undefined
-  happyscribeSttModels: string[] | undefined
-  happyscribeOrganizationId: string | undefined
-  supadataSttModels: string[] | undefined
   scrapecreatorsSttModels: string[] | undefined
   geminiSttModels: string[] | undefined
   togetherSttModels: string[] | undefined
   openaiSttModels: string[] | undefined
   cloudflareSttModels: string[] | undefined
-  supadataLang: string | undefined
   scrapecreatorsLang: string | undefined
   grokSttVerbatim?: boolean | undefined
-  supadataChunkSize?: number | undefined
   deepinfraSttResponseFormat?: string | undefined
   captionExportFlags?: Record<string, unknown> | undefined
   nativeSubtitles?: boolean | undefined

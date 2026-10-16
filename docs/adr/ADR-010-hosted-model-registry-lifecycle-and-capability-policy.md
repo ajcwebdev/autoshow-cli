@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-09-25
+- **Date Updated:** 2026-10-15
 - **Verification Status:** Passed
 - **Supersession:** Replaces per-modality registry and reasoning configurations. Absorbs the calibration and billing-authority rules of "Govern Benchmark Evidence and Generated-Report Architecture" and the comic model-resolution decision of "Integrate Comic with Shared Model and Native CLI Infrastructure". This record is the accepted authority for selector identity, lifecycle, capability, reasoning, and pricing across write, OCR, STT, TTS, music, image, and video, and for every command that resolves models through the central registries. The benchmark evidence lifecycle and paid-approval rules live in [ADR-015](ADR-015-govern-documentation-examples-and-verification-evidence.md), and the combined-report architecture is documented in [docs/benchmarks/README.md](../benchmarks/README.md).
 
@@ -101,7 +101,7 @@ Routine refreshes leave out products the CLI cannot already run, including domai
 
 Hosted API usage must be available without mandatory recurring fees or recurring minimum spending. Metered billing and one-time prepaid credits qualify. A free allowance followed by subscription-only overages does not qualify. Optional feature subscriptions or discounts do not disqualify independently available core API usage.
 
-Every provider addition and refresh must document route-specific billing eligibility with dated primary sources, including prepaid minimum purchases and expiry where documented. Conflicting or missing evidence remains unresolved. The [unified provider eligibility report](../reports/documentation-and-provider-unified-report.md#provider-eligibility-actions) records policy violations awaiting a separate removal decision; this change does not remove those other integrations.
+Every provider addition and refresh must document route-specific billing eligibility with dated primary sources, including prepaid minimum purchases and expiry where documented. Conflicting or missing evidence remains unresolved. The dated decisions and primary sources under [Excluded integrations](#excluded-integrations) record the current exclusions. Retaining another route does not establish its account entitlement, unpublished purchase terms or operation-specific tariff; verify those conditions before adding or refreshing that route.
 
 #### Excluded integrations
 
@@ -119,6 +119,22 @@ On September 25, 2026, Hume, Cartesia, and Speechify TTS were removed at the use
 Mistral TTS and voice management were removed on September 25, 2026. Its STT/OCR models, pricing, credentials, shared REST client, and resume paths remain supported. Removed TTS selectors, controls, saved settings, reference-audio inputs, voice commands, and resume attempts fail locally without substitution. Existing Mistral manifests, benchmark evidence, registered assets, purchased audio, and remote voices remain intact; removal triggers no cleanup or remote deletion.
 
 The removed utterance endpoint was the only implementation of `--tts-trailing-silence`; that flag and its saved configuration key are removed too.
+
+
+On October 15, 2026, Firecrawl URL extraction, Supadata URL extraction and STT, Happy Scribe STT, and GLM Reader URL extraction were removed from active support. Firecrawl, Supadata, and Happy Scribe require recurring paid plans for continued usage. GLM Reader is excluded because the implemented REST route lacks a verified price and billing eligibility contract; this does not establish that the route is subscription-gated. Ordinary GLM write and OCR support, credentials, and shared client remain active.
+
+<!-- excluded-extraction-providers:start -->
+| Provider     | Removed category/model tuples                    | Dated primary evidence and decision                                                                                                                                                                                                                                                       |
+| ------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Firecrawl    | `extract/firecrawl/firecrawl`                    | [Billing](https://docs.firecrawl.dev/billing), checked 2026-10-15: Free has no pay-as-you-go option; additional credits require a paid plan.                                                                                                                                              |
+| Supadata     | `extract/supadata/supadata`, `stt/supadata/auto` | [Pricing](https://supadata.ai/pricing), checked 2026-10-15: Free cannot recharge; paid subscriptions unlock recharge.                                                                                                                                                                     |
+| Happy Scribe | `stt/happyscribe/auto`                           | [Plans and pricing](https://help.happyscribe.com/en/articles/6906232-plans-and-pricing), published 2026-07-23 and checked 2026-10-15: the pay-as-you-go Starter offer was retired; one-off AI transcription requires a subscription.                                                      |
+| GLM Reader   | `extract/glm-reader/glm-reader`                  | [REST Reader](https://docs.z.ai/api-reference/tools/web-reader) and [pricing](https://docs.z.ai/guides/overview/pricing), checked 2026-10-15: no verified REST Reader tariff or independent billing entitlement. The Web Search price and Coding Plan Reader MCP are different contracts. |
+<!-- excluded-extraction-providers:end -->
+
+These five tuples leave active selectors, model catalogs, live pricing, setup credentials, saved configuration, dispatch, and examples together. The provider-only `--stt-organization-id` and `--stt-chunk-size` flags are removed. Defuddle failures stop with the extraction error; no automatic Firecrawl fallback or other paid substitute is attempted, including article downloads and documentation links.
+
+Existing manifests, raw results, benchmark evidence, transcripts, cached media, remote jobs, and recorded costs remain intact. Historical identifiers and frozen rate references remain available for reading completed artifacts and reconstructing old estimates; GLM Reader's former Web Search-based estimate remains explicitly historical and unverified. Recorded charges retain precedence over those estimates. Completed provider states may be reused alongside newly selected active targets. An unfinished excluded target, an explicit excluded selection, or obsolete saved configuration fails locally before credential lookup or network dispatch, without changing the old target or selecting a replacement.
 
 ### Complete runtime contract
 

@@ -114,8 +114,7 @@ export const runSttProviderTargetAtIndex = async (
         hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
         audioDurationSeconds: prepared.durationSeconds,
         sourceUrl: prepared.step1Metadata.url,
-        language: target.service === 'scrapecreators' ? options.scrapecreatorsLang : options.supadataLang,
-        happyscribeOrganizationId: options.happyscribeOrganizationId,
+        language: options.scrapecreatorsLang,
         runMode: runOptions.outputDir ? 'backfill' : 'initial',
         ...(mistralPassController ? { mistralPassController } : {}),
         asyncLifecycle: {

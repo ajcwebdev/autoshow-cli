@@ -66,7 +66,6 @@ const RETIRED_USD_TOKEN_BAND_FIELDS = [
 ] as const
 
 const CREDIT_PRICED_MODEL_KEYS = new Set([
-  'stt/supadata/auto',
   'stt/scrapecreators/youtube-transcript'
 ])
 

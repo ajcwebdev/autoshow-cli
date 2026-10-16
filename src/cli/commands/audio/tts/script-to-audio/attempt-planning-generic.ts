@@ -106,7 +106,7 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
         text: prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description).providerText,
         voice: turn.voice.value, speaker: turn.canonical.originalSpeakerLabel,
         style: turn.effectiveControls['instructions'] as string | undefined,
-        characterLimit: limit, chunking: options.ttsOptions.ttsChunking })
+        characterLimit: limit, chunking: options.ttsOptions.ttsChunking, legacyOpenAIAccounting: options.ttsOptions.ttsOpenAIAccountingReplay })
       return { turnIds: [turn.canonical.turnId], providerTexts: chunks.map(chunk => chunk.text), chunks }
     })
 
@@ -118,7 +118,7 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
     const primaryVoiceValue = primaryTurn.voice.value ?? primaryTurn.voice.valueHash
     const contract = buildProviderSerializerDescriptor(options.target, primaryVoiceValue, primaryTurn.effectiveControls, strategy)
     const generationSlots = group.providerTexts.map((providerText, slotIndex) => {
-      const cost = plannedCost(options.target, [...providerText].length, includesSetup, (primaryTurn.effectiveControls['speed'] as number | undefined) ?? (options.target.service === 'soniox' ? 1 : undefined))
+      const cost = plannedCost(options.target, [...providerText].length, includesSetup, (primaryTurn.effectiveControls['speed'] as number | undefined) ?? (options.target.service === 'soniox' || options.target.service === 'openai' ? 1 : undefined), { text: providerText, instructions: primaryTurn.effectiveControls['instructions'] as string | undefined, legacy: options.ttsOptions.ttsOpenAIAccountingReplay })
       includesSetup = false
       const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, chunk: group.chunks?.[slotIndex], plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, expectedVoiceField: providerSerializerVoiceField(options.target, strategy, primaryTurn.voice.kind) }
       slots.push(slot)

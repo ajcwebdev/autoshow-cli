@@ -71,9 +71,9 @@ describe('price mode contracts', () => {
         provider: 'openai',
         model: 'gpt-5.6-sol',
         costMultiplier: 1,
-        cost: 350,
+        cost: 240,
       })
-      expect(cost.totalCost).toBe(350)
+      expect(cost.totalCost).toBe(240)
     })
 
   test('LLM provider usage wins over local token counting and records source', async () => {

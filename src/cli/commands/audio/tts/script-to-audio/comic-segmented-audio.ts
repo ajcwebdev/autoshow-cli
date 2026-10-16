@@ -74,7 +74,7 @@ export const prepareComicSegmentedProviderTexts = (
     const prepared = prepareSegmentedTurnText(segment, target, turn.delivery?.description).providerText
     for (const chunk of planProviderTtsChunks({ provider: target.service, model: target.model, text: prepared,
       speaker: turn.originalSpeakerLabel, voice: target.voice, style: controls ? controls.instructions : turn.delivery?.description,
-      characterLimit: limit, chunking: chunking?.replay ? { boundary: 'smart', replay: 'legacy-v0' } : chunking })) {
+      characterLimit: limit, chunking: chunking?.replay ? { boundary: 'smart', replay: 'legacy-v0' } : chunking, legacyOpenAIAccounting: target.legacyOpenAIAccounting })) {
       chunks.push(chunk)
       providerTexts.push(chunk.text)
       timingSegmentIndexes.push(timingSegmentIndex)
@@ -86,9 +86,10 @@ export const prepareComicSegmentedProviderTexts = (
 export const segmentedSlotGroup = (
   turn: AttemptTurn,
   target: TtsTarget,
-  chunking?: TtsChunkingOptions
+  chunking?: TtsChunkingOptions,
+  legacyOpenAIAccounting?: true
 ): { turnIds: string[], providerTexts: string[], timingSegmentIndexes: number[], chunks: ResolvedTtsChunk[] } => {
-  const { providerTexts, timingSegmentIndexes, chunks } = prepareComicSegmentedProviderTexts(turn.canonical, { ...target, ...(turn.voice.value ? { voice: turn.voice.value } : {}) }, { instructions: turn.effectiveControls['instructions'] as string | undefined }, chunking)
+  const { providerTexts, timingSegmentIndexes, chunks } = prepareComicSegmentedProviderTexts(turn.canonical, { ...target, legacyOpenAIAccounting, ...(turn.voice.value ? { voice: turn.voice.value } : {}) }, { instructions: turn.effectiveControls['instructions'] as string | undefined }, chunking)
   return { turnIds: [turn.canonical.turnId], providerTexts, timingSegmentIndexes, chunks }
 }
 

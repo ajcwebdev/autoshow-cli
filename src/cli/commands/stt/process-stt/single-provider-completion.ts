@@ -33,7 +33,6 @@ export const completeSingleProviderStt = async ({
 }: SttSingleProviderCompletionContext): Promise<string | undefined> => {
   if (
     requestedTargets.length !== 1
-    || requestedTargets[0]?.service === 'supadata'
     || requestedTargets[0]?.service === 'scrapecreators'
   ) {
     return undefined
@@ -71,8 +70,7 @@ export const completeSingleProviderStt = async ({
         hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
         audioDurationSeconds,
         sourceUrl: prepared.step1Metadata.url,
-        language: target.service === 'scrapecreators' ? options.scrapecreatorsLang : options.supadataLang,
-        happyscribeOrganizationId: options.happyscribeOrganizationId,
+        language: options.scrapecreatorsLang,
         asyncLifecycle: createSttProviderProgressLifecycle(manifestSelector),
         ...(mistralPassController ? { mistralPassController } : {})
       })

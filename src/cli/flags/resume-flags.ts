@@ -53,9 +53,7 @@ const resumeTranscriptionOptionNames = [
   'native-subtitles',
   'stt-response-format',
   'stt-verbatim',
-  'stt-chunk-size',
   'stt-language',
-  'stt-organization-id',
   'split',
   'stt-segment-concurrency',
   'stt-preflight-concurrency'

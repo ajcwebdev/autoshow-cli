@@ -92,7 +92,7 @@ describe('Gemini REST transport and decoded artifact integrity', () => {
     const calls = installMockFetch(call => jsonResponse(call.method === 'GET'
       ? { id: 'voice_designed', model: storedModel, type: 'prompted' }
       : unary()))
-    for (storedModel of [FLASH, `models/${FLASH}`]) {
+    for (storedModel of [FLASH, `models/${FLASH}`, LITE, `models/${LITE}`]) {
       for (const instructions of [undefined, 'Measured audiobook narration.', undefined]) {
         const result = await runGeminiTts('The same passage.', await makeTempDir('gemini-designed-'), {
           model: FLASH, voice: 'voice_designed', instructions, hostedTtsChunkScheduler: scheduler()
@@ -104,14 +104,14 @@ describe('Gemini REST transport and decoded artifact integrity', () => {
         expect(await deliveryPcmFrames(result.audioPath)).toBeGreaterThan(0)
       }
     }
-    expect(calls.filter(call => call.method === 'POST')).toHaveLength(6)
+    expect(calls.filter(call => call.method === 'POST')).toHaveLength(12)
   })
-  test('different or malformed model resource names still reject before synthesis dispatch', async () => {
+  test('unknown or malformed creation model resource names reject before synthesis dispatch', async () => {
     process.env['GEMINI_API_KEY'] = 'fixture-key'
     let storedModel = `models/${LITE}`
     const calls = installMockFetch(() => jsonResponse({ id: 'voice_designed', model: storedModel }))
-    for (storedModel of [`models/${LITE}`, `models/models/${FLASH}`, `other/${FLASH}`]) {
-      await expect(runGeminiTts('No purchase.', await makeTempDir('gemini-model-rejected-'), { model: FLASH, voice: 'voice_designed' })).rejects.toThrow('incompatible')
+    for (storedModel of ['models/unknown', `models/models/${FLASH}`, `other/${FLASH}`]) {
+      await expect(runGeminiTts('No purchase.', await makeTempDir('gemini-model-rejected-'), { model: FLASH, voice: 'voice_designed' })).rejects.toThrow('unsupported or malformed')
     }
     expect(calls.map(call => call.method)).toEqual(['GET', 'GET', 'GET'])
   })

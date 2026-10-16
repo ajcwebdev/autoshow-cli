@@ -25,8 +25,6 @@ const PRICING_SOURCE_FILES = [
   'src/utils/pricing/scrapecreators-pricing.ts',
   'src/utils/pricing/token-pricing.ts',
   'src/utils/pricing/ocr-token-pricing.ts',
-  'src/cli/commands/stt/diarization/happyscribe/happyscribe-pricing.ts',
-  'src/cli/commands/pricing-orchestration/supadata-pricing.ts',
   EMPTY_PRICE_CONFIG_PATH
 ] as const
 

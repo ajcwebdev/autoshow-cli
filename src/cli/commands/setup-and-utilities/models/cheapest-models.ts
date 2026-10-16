@@ -1,5 +1,6 @@
 import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
 import { estimateGeminiTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-tts-pricing'
+import { estimateOpenAITtsCost } from '~/cli/commands/audio/tts/tts-services/tts-openai/openai-tts-pricing'
 import { getModelRegistry } from './model-loader'
 import { filterModelNamesByLifecycle } from './model-loader/model-lifecycle'
 import { InternalError } from '~/utils/error-handler'
@@ -176,6 +177,7 @@ const ttsModelCost = (model: {
 
 const selectCheapestTtsModel = (service: string): string => {
   if (service === 'soniox') return 'tts-rt-v2'
+  if (service === 'openai') return 'gpt-4o-mini-tts-2025-12-15'
   const serviceConfig = getModelRegistry().tts[service]
   if (!serviceConfig) {
     throw InternalError(`Missing TTS service config: ${service}`, { stage: 'models:cheapest' })
@@ -233,7 +235,7 @@ export const selectCheapestDefaultHostedTtsSelection = (): CheapestTtsSelection 
     for (const modelName of Object.keys(serviceConfig.models)) {
       const model = serviceConfig.models[modelName]
       if (!model) continue
-      const totalCost = provider === 'soniox' ? estimateSonioxTtsCost(1000).totalCost : provider === 'gemini' ? estimateGeminiTtsCost(modelName, 1000).totalCost : ttsModelCost(model)
+      const totalCost = provider === 'openai' ? estimateOpenAITtsCost(1000).totalCost : provider === 'soniox' ? estimateSonioxTtsCost(1000).totalCost : provider === 'gemini' ? estimateGeminiTtsCost(modelName, 1000).totalCost : ttsModelCost(model)
       if (!Number.isFinite(totalCost)) continue
 
       const candidate: CheapestTtsSelection = {
@@ -311,8 +313,6 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'mistral-stt': () => selectCheapestSttModel('mistral'),
   'assemblyai-stt': () => selectCheapestSttModel('assemblyai'),
   'gladia-stt': () => selectCheapestSttModel('gladia'),
-  'happyscribe-stt': () => selectCheapestSttModel('happyscribe'),
-  'supadata-stt': () => 'auto',
   'scrapecreators-stt': () => 'youtube-transcript',
   'gemini-stt': () => selectCheapestSttModel('gemini-stt'),
   'together-stt': () => selectCheapestSttModel('together'),

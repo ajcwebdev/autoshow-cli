@@ -160,16 +160,6 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
     flag: 'speechmatics-stt',
     model: 'enhanced',
     message: 'Model "enhanced" is retired for --provider/--stt speechmatics[=model]. Use "melia-1" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
-    flag: 'supadata-stt',
-    model: 'native',
-    message: 'Invalid model "native" for --provider/--stt supadata[=model]. Allowed values: auto'
-  },
-  {
-    flag: 'supadata-stt',
-    model: 'generate',
-    message: 'Invalid model "generate" for --provider/--stt supadata[=model]. Allowed values: auto'
   }
 ]
 

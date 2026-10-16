@@ -12,13 +12,11 @@ import { stripAnsi } from '~/utils/terminal-colors'
 import {
   RUNWAY_INSUFFICIENT_CREDITS_MESSAGE,
   isGlmAccountAvailabilityFailure,
-  isGlmReaderRateLimitFailure,
   isGlmCertificateExpiryFailure,
   isGlmRetryable429Exhaustion,
   isDeepInfraWhisperLargeV3CommandTimeout,
   isGeminiImageAvailabilityFailure,
   isGeminiImageEmptyResponse,
-  isSupadataPlanLimitFailure,
   isTogetherSttAvailabilityFailure
 } from './provider-failure-classifiers'
 
@@ -29,9 +27,6 @@ export const classifyLiveProviderAvailabilityFailure = (output: string): string 
   }
   if (isGlmAccountAvailabilityFailure(cleanOutput)) {
     return 'GLM account does not have enough balance or an active resource package'
-  }
-  if (isGlmReaderRateLimitFailure(cleanOutput)) {
-    return 'GLM Reader is rate limited'
   }
   if (isGlmCertificateExpiryFailure(cleanOutput)) {
     return 'GLM provider TLS certificate has expired'
@@ -47,9 +42,6 @@ export const classifyLiveProviderAvailabilityFailure = (output: string): string 
   }
   if (isGeminiImageEmptyResponse(cleanOutput)) {
     return 'Gemini image provider returned a response with no image content (refusal or filtered prompt)'
-  }
-  if (isSupadataPlanLimitFailure(cleanOutput)) {
-    return 'Supadata account plan limit is exhausted'
   }
   if (isTogetherSttAvailabilityFailure(cleanOutput)) {
     return 'Together STT provider remained unavailable after retries'

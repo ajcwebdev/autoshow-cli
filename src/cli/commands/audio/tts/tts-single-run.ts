@@ -163,7 +163,7 @@ export const synthesizePreparedTtsInputForTargets = async (
     return await exportTtsDeliveryAudio(lifecycle?.artifactOutputDir ?? outputDir, recorded, ttsOptions.ttsExport)
   })
 
-  const estimatedTtsTargets = buildEstimatedTtsTargets(targets)
+  const estimatedTtsTargets = buildEstimatedTtsTargets(targets, metadata)
   const observedEstimate = computeEstimatedCosts({
     applyCostMultipliers: false,
     ttsTargets: estimatedTtsTargets,

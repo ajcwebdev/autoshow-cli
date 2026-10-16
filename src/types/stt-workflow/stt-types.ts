@@ -55,8 +55,9 @@ export type Step2TimingMetadata = {
 }
 
 export type SttTarget = ProviderIdentityBase<TranscribeEngine> & {
-  grokSttVerbatim?: boolean | undefined
+  /** Read-only compatibility for retained Supadata targets; excluded from new selection and dispatch. */
   supadataChunkSize?: number | undefined
+  grokSttVerbatim?: boolean | undefined
   nativeResponseFormat?: 'srt' | 'vtt' | undefined
   nativeSubtitles?: boolean | undefined
   local: boolean
@@ -123,6 +124,7 @@ export type SttCompletionContextBase = {
   acquisitionTimeMs: number
   processStart: number
 }
+
 
 export type SttRequestedProvider = Pick<SttTarget, 'service' | 'model' | 'local' | 'diarizationOptions' | 'nativeSubtitles' | 'nativeResponseFormat' | 'grokSttVerbatim' | 'supadataChunkSize'> & { settings?: import('~/types').ProviderSettingsRecord | undefined }
 
@@ -243,7 +245,6 @@ export type SttTargetOptions = {
   audioDurationSeconds?: number | undefined
   sourceUrl?: string | undefined
   language?: string | undefined
-  happyscribeOrganizationId?: string | undefined
   runMode?: 'initial' | 'backfill' | undefined
   asyncLifecycle?: AsyncSttLifecycleHooks | undefined
   mistralPassController?: MistralSttPassController | undefined
@@ -285,11 +286,6 @@ export type OptionalSttHttpError<TStage extends string> = Error & {
 export type SttTranscribeHttpError = RequiredSttHttpError<'transcribe'>
 
 export type SttStageHttpError = RequiredSttHttpErrorWithRawResponse<string>
-
-export type SupadataHttpError = OptionalSttHttpError<'create' | 'poll'> & {
-  retryable?: boolean
-  skipped?: boolean
-}
 
 export type SttRequestMetrics = {
   onRequest?: (() => void) | undefined
@@ -345,89 +341,9 @@ export type SttProviderConcurrencySummary = {
   providerSlots: string
 }
 
-export type HappyScribeOrganization = {
-  id: string
-  name?: string | undefined
-  currency?: string | undefined
-}
-
-export type HappyScribeOrganizationSelection = {
-  selected?: HappyScribeOrganization | undefined
-  organizations: HappyScribeOrganization[]
-  source?: 'option' | 'env' | 'auto' | undefined
-  reason?: 'missing' | 'not_found' | 'ambiguous' | undefined
-  requestedOrganizationId?: string | undefined
-}
-
-export type HappyScribeStage = 'upload' | 'create' | 'poll' | 'result'
-
-export type HappyScribeHttpError = OptionalSttHttpError<HappyScribeStage> & {
-  retryable?: boolean
-}
-
-export type HappyScribeOrder = {
-  id: string
-  state:
-    | 'incomplete'
-    | 'waiting_for_payment'
-    | 'submitted'
-    | 'locked'
-    | 'fulfilled'
-    | 'failed'
-    | string
-  details?: {
-    totalCents?: number | undefined
-    totalCredits?: number | undefined
-    currency?: string | undefined
-  } | undefined
-  outputsIds: string[]
-  transcriptions: Array<{
-    id?: string | undefined
-    uuid?: string | undefined
-    state?: string | undefined
-  }>
-}
-
-export type HappyScribeTranscription = {
-  id?: string | undefined
-  state?: string | undefined
-  failureReason?: string | undefined
-  failureMessage?: string | undefined
-  costInCents?: number | undefined
-  downloadUrl?: string | undefined
-}
-
-export type HappyScribeExport = {
-  id: string
-  state: string
-  downloadLink?: string | undefined
-}
-
 export type MistralAvailabilityWaiter = {
   resolved: boolean
   notify: () => void
-}
-
-export type SupadataChunk = {
-  text: string
-  offset: number
-  duration: number
-  lang?: string | undefined
-}
-
-export type SupadataTranscriptPayload = {
-  content: string | SupadataChunk[]
-  lang?: string | undefined
-  availableLangs?: string[] | undefined
-}
-
-export type SupadataJobStatus = {
-  status: 'queued' | 'active' | 'completed' | 'failed'
-  content?: string | SupadataChunk[] | undefined
-  lang?: string | undefined
-  availableLangs?: string[] | undefined
-  error?: unknown
-  message?: unknown
 }
 
 export type SttSplitPolicy = {

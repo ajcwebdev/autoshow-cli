@@ -18,8 +18,6 @@ const toBootstrapProviderId = (
     case 'mistral':
     case 'assemblyai':
     case 'gladia':
-    case 'happyscribe':
-    case 'supadata':
     case 'scrapecreators':
     case 'gemini-stt':
     case 'together':
@@ -28,6 +26,9 @@ const toBootstrapProviderId = (
       return getStep2BootstrapProviderId('stt', target.service) ?? ''
     case 'youtube-captions':
       return ''
+    case 'happyscribe':
+    case 'supadata':
+      throw UsageError(`${target.service} STT is excluded and cannot dispatch. Select an active STT provider explicitly.`)
     case 'rev':
       throw UsageError('Rev STT is retired and cannot dispatch. Start a new target with an active STT provider.')
   }

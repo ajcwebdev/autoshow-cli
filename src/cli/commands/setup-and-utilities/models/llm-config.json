@@ -47,28 +47,28 @@
       },
       "gpt-5.6-sol": {
         "description": "GPT-5.6 Sol — flagship GPT-5.6 tier",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-07-13",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+        "pricingCheckedAt": "2026-10-15",
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
-        "pricingNotes": "OpenAI lists GPT-5.6 Sol Standard pricing at $5/1M input tokens, $0.50/1M cached input tokens, $6.25/1M cache write tokens, and $30/1M output tokens. AutoShow uses uncached standard input/output rates for estimates. The gpt-5.6 alias routes to gpt-5.6-sol and is intentionally not registered separately. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 500,
-        "cachedInputCostPer1MCents": 50,
-        "outputCostPer1MCents": 3000,
+        "pricingNotes": "Checked October 15, 2026: GPT-5.6 Sol promotional standard rates are $4/1M input, $0.40/1M cached input and $20/1M output tokens, available at least through November 21, 2026; no later rate is assumed. Above 272K input tokens, the full request uses $8/1M input, $0.80/1M cached input and $30/1M output. Cache writes cost 1.25x uncached input. Estimates use uncached standard rates; cache writes, batch/flex discounts, fast mode, regional uplifts, enterprise pricing, taxes and credits are excluded. The gpt-5.6 alias is not registered separately.",
+        "inputCostPer1MCents": 400,
+        "cachedInputCostPer1MCents": 40,
+        "outputCostPer1MCents": 2000,
         "tokenPricingBands": [
           {
             "label": "standard-short-context",
             "maxInputTokens": 272000,
-            "inputCostPer1MCents": 500,
-            "cachedInputCostPer1MCents": 50,
-            "outputCostPer1MCents": 3000
+            "inputCostPer1MCents": 400,
+            "cachedInputCostPer1MCents": 40,
+            "outputCostPer1MCents": 2000
           },
           {
             "label": "standard-long-context",
             "minInputTokens": 272001,
-            "inputCostPer1MCents": 1000,
-            "cachedInputCostPer1MCents": 100,
-            "outputCostPer1MCents": 4500
+            "inputCostPer1MCents": 800,
+            "cachedInputCostPer1MCents": 80,
+            "outputCostPer1MCents": 3000
           }
         ],
         "estimation": {

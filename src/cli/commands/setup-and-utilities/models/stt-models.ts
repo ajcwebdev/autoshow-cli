@@ -51,14 +51,6 @@ export const SUPPORTED_GLADIA_STT_MODELS = [
   'solaria-3'
 ] as const satisfies readonly string[]
 
-export const SUPPORTED_HAPPYSCRIBE_STT_MODELS = [
-  'auto'
-] as const satisfies readonly string[]
-
-export const SUPPORTED_SUPADATA_STT_MODELS = [
-  'auto'
-] as const satisfies readonly string[]
-
 export const SUPPORTED_SCRAPECREATORS_STT_MODELS = [
   'youtube-transcript'
 ] as const satisfies readonly string[]
@@ -91,8 +83,6 @@ export const validateGrokSttModel = createModelValidator(SUPPORTED_GROK_STT_MODE
 export const validateMistralSttModel = createModelValidator(SUPPORTED_MISTRAL_STT_MODELS, 'mistral-stt')
 export const validateAssemblyaiSttModel = createRetiringModelValidator('stt', 'assemblyai', SUPPORTED_ASSEMBLYAI_STT_MODELS, 'assemblyai-stt')
 export const validateGladiaSttModel = createRetiringModelValidator('stt', 'gladia', SUPPORTED_GLADIA_STT_MODELS, 'gladia-stt')
-export const validateHappyscribeSttModel = createModelValidator(SUPPORTED_HAPPYSCRIBE_STT_MODELS, 'happyscribe-stt')
-export const validateSupadataSttModel = createModelValidator(SUPPORTED_SUPADATA_STT_MODELS, 'supadata-stt')
 export const validateScrapeCreatorsSttModel = createModelValidator(SUPPORTED_SCRAPECREATORS_STT_MODELS, 'scrapecreators-stt')
 export const validateGeminiSttModel = createRetiringModelValidator('stt', 'gemini-stt', SUPPORTED_GEMINI_STT_MODELS, 'gemini-stt')
 export const validateTogetherSttModel = createModelValidator(SUPPORTED_TOGETHER_STT_MODELS, 'together-stt', 'This selector accepts concrete Together serverless batch transcription models.')

@@ -84,10 +84,8 @@ export const batchFlags = {
 
 export const transcriptionFlags = {
   'youtube-captions': boolFlag('Prefer English YouTube captions before STT when available; falls back to the normal STT provider path'),
-  'stt-organization-id': genericSttOptionFlag('stt-organization-id', 'Provider organization/workspace ID; required when the API key can access multiple organizations'),
   'stt-language': genericSttOptionFlag('stt-language', 'Preferred transcript language (ISO 639-1); used when a native transcript is available'),
   'stt-verbatim': genericSttOptionFlag('stt-verbatim', 'Retain filler words and disable numeric/currency formatting for verbatim captions'),
-  'stt-chunk-size': genericSttOptionFlag('stt-chunk-size', 'Desired transcript chunk size in characters; does not add word alignment'),
   'stt-response-format': genericSttOptionFlag('stt-response-format', 'Transcription response format; verbose_json retains words, and the text formats use one inference and retain cue timing only'),
   'stt-audio-profile': strFlag('Audio preparation: default (provider compression) or lossless (verified float32 WAV, original channels/rate)'),
   'native-subtitles': boolFlag('Also save native subtitles where available, reusing the current inference/job; exports may consume provider quota'),

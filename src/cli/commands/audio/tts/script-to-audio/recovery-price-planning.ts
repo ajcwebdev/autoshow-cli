@@ -3,6 +3,8 @@ import { UsageError } from '~/utils/error-handler'
 import { buildPureCurrentTtsRenderPlan, planCurrentTtsReadiness, readAudioProjection, sumCosts } from './attempt-planning'
 import { prepareCurrentTtsCompletedRecoveryImpl } from './recovery-exact-render'
 import { prepareCurrentTtsCompatibleSlotRecoveryImpl } from './recovery-compatible-slots'
+import { currentOpenAITtsSlotCost, estimateOpenAITtsSlots } from '../tts-services/tts-openai/openai-tts-pricing'
+import { validateOpenAITtsRequest } from '../tts-services/tts-openai/openai-tts-request'
 
 export const planCurrentTtsResumePriceImpl = async (
     options: PureCurrentTtsRenderPlanOptions & {
@@ -57,10 +59,15 @@ export const planCurrentTtsResumePriceImpl = async (
     const selectedSlots = requestedSlotLimit === undefined
       ? unresolvedSlots
       : unresolvedSlots.slice(0, requestedSlotLimit)
-    const plannedCost = effectiveRecovery === undefined && requestedSlotLimit === undefined
+    if (options.target.service === 'openai') for (const slot of selectedSlots) {
+      const controls = planned.planned.turns.find(turn => turn.canonical.turnId === slot.turnIds[0])!.effectiveControls
+      validateOpenAITtsRequest(slot.providerText, controls['instructions'] as string | undefined, controls['speed'] as number | undefined)
+    }
+    const plannedCost = options.target.service !== 'openai' && effectiveRecovery === undefined && requestedSlotLimit === undefined
       ? readiness.plannedCost
-      : sumCosts(selectedSlots.map((slot) => slot.plannedCost))
+      : sumCosts(selectedSlots.map((slot) => currentOpenAITtsSlotCost(options.target, slot, planned.planned.turns, slot === planned.planned.slots[0])))
     return {
+      ...(options.target.service === 'openai' ? { openaiEstimate: estimateOpenAITtsSlots(selectedSlots, planned.planned.turns) } : {}),
       readiness,
       plannedCost,
       plannedSlotCount: selectedSlots.length,

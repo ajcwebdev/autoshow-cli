@@ -1,3 +1,4 @@
+// Retained historical cost projection only. Firecrawl cannot be selected, quoted for new work, or dispatched.
 import { getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 
 const FIRECRAWL_MODEL = 'firecrawl'

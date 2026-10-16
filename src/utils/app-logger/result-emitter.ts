@@ -23,6 +23,12 @@ type ResultInvocation = {
 
 const resultStore = new AsyncLocalStorage<ResultInvocation>()
 
+/** Write a standalone command's payload verbatim, without staging a terminal result or logging. */
+export const writeCommandPayload = (payload: string, stream: 'stdout' | 'stderr' = 'stdout'): void => {
+  if (stream === 'stderr') process.stderr.write(payload)
+  else process.stdout.write(payload)
+}
+
 export const runWithResultInvocation = async <T>(
   options: { json: boolean, runId: string, command?: string },
   fn: () => Promise<T> | T

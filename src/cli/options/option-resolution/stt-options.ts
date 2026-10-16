@@ -47,7 +47,6 @@ export const STT_MODEL_KEYS = [
   'sonioxSttModels', 'speechmaticsSttModels',
   'mistralSttModels',
   'assemblyaiSttModels', 'gladiaSttModels',
-  'happyscribeSttModels', 'supadataSttModels',
   'scrapecreatorsSttModels', 'geminiSttModels',
   'togetherSttModels', 'openaiSttModels',
   'cloudflareSttModels',
@@ -55,6 +54,8 @@ export const STT_MODEL_KEYS = [
 
 export const buildSttOptions = (ctx: ResolvedFlagContext): SttRuntimeOptions => {
   const { mergedFlags, explicitFlags, configuredFlags, allShortcutFlags, modelOptions, flagOccurrences } = ctx
+  const excluded = ['happyscribe-stt', 'supadata-stt', 'stt-chunk-size', 'stt-organization-id'].filter(key => mergedFlags[key] !== undefined)
+  if (excluded.length > 0) throw UsageError(`Excluded STT flags ${excluded.map(key => `--${key}`).join(', ')} are no longer supported. Select an active STT provider explicitly.`)
   const sttAudioProfile = readOptionalStringFlag(mergedFlags, 'stt-audio-profile')
   if (sttAudioProfile !== undefined && sttAudioProfile !== 'default' && sttAudioProfile !== 'lossless') throw UsageError('--stt-audio-profile must be default or lossless.')
 
@@ -75,11 +76,8 @@ export const buildSttOptions = (ctx: ResolvedFlagContext): SttRuntimeOptions => 
     ...pick(modelOptions, STT_MODEL_KEYS),
     // CLI spellings are provider-general; the runtime fields stay provider-specific because
     // provider-specific adapters consume them and they round-trip through resume state.
-    happyscribeOrganizationId: genericOption('stt-organization-id', 'happyscribe') as string | undefined,
-    supadataLang: genericOption('stt-language', 'supadata') as string | undefined,
     scrapecreatorsLang: (genericOption('stt-language', 'scrapecreators') as string | undefined) ?? 'en',
     grokSttVerbatim: (genericOption('stt-verbatim', 'grok') as boolean | undefined) === true,
-    supadataChunkSize: genericOption('stt-chunk-size', 'supadata') as number | undefined,
     deepinfraSttResponseFormat: genericOption('stt-response-format', 'deepinfra') as string | undefined,
     captionExportFlags: mergedFlags['captions'] === true ? Object.fromEntries(Object.entries(mergedFlags).filter(([key]) => key.startsWith('caption-') || key === 'embed-captions')) : undefined,
     nativeSubtitles: readBooleanFlag(mergedFlags, 'native-subtitles'),

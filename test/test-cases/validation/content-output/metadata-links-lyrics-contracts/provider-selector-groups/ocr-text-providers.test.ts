@@ -5,21 +5,18 @@ import {
   parseLinksArgv,
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
-  FIRECRAWL_URL_LINKS,
   GLM_OCR_LINKS,
   GLM_MODELS_LINKS,
-  GLM_URL_LINKS,
   KIMI_ALL_LINKS,
   KIMI_MODELS_LINKS,
   KIMI_OCR_LINKS,
   KIMI_TEXT_LINKS,
   SPIDER_URL_LINKS,
-  SUPADATA_URL_LINKS,
   X_URL_LINKS,
   ZYTE_URL_LINKS
 } from './fixtures/index'
 
-test('links selector accepts glm provider with separate ocr and url sections', () => {
+test('links selector retains GLM OCR and models while rejecting its removed Reader section', async () => {
   const glmOcrSelection = parseLinksArgv([
     'bun',
     'src/cli/create-cli.ts',
@@ -46,18 +43,9 @@ test('links selector accepts glm provider with separate ocr and url sections', (
     glmModelsSelection.globalSections
   )).toEqual(GLM_MODELS_LINKS)
 
-  const glmUrlSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--provider', 'glm',
-    'url'
-  ])
-
-  expect(collectLinks(
-    glmUrlSelection.serviceSelections,
-    glmUrlSelection.globalSections
-  )).toEqual(GLM_URL_LINKS)
+  await expectLinksUsageError([
+    'bun', 'src/cli/create-cli.ts', 'links', '--provider', 'glm', 'url'
+  ], 'Unknown links section(s) for --provider glm: url')
 
   const globalUrlSelection = parseLinksArgv([
     'bun',
@@ -70,11 +58,8 @@ test('links selector accepts glm provider with separate ocr and url sections', (
     globalUrlSelection.serviceSelections,
     globalUrlSelection.globalSections
   )).toEqual([
-    ...GLM_URL_LINKS,
     ...X_URL_LINKS,
-    ...SUPADATA_URL_LINKS,
     ...ZYTE_URL_LINKS,
-    ...FIRECRAWL_URL_LINKS,
     ...SPIDER_URL_LINKS
   ])
 })

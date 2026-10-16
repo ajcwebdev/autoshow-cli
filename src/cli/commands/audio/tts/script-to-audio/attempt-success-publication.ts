@@ -1,4 +1,5 @@
 import { sonioxRetainedCostBasis } from '../tts-services/tts-soniox/soniox-tts-pricing'
+import { openaiRetainedCostBasis } from '../tts-services/tts-openai/openai-tts-pricing'
 import type {
   AudioRun,
   CurrentTtsRenderArtifacts,
@@ -20,6 +21,7 @@ const currentArtifacts = (
   artifactDir: string
 ): CurrentTtsRenderArtifacts => ({
   ...sonioxRetainedCostBasis(input.ctx.options.target.service, input.ctx.purePlan.planned.slots, input.resultFile.value.outputs),
+  ...openaiRetainedCostBasis(input.ctx.options.target.service, input.ctx.purePlan.planned.slots, input.ctx.purePlan.planned.turns),
   artifactDir,
   operation: input.ctx.purePlan.operation,
   targetKey: input.ctx.purePlan.targetKey,

@@ -54,7 +54,7 @@ describe('general retry-on-any-error contracts', () => {
       reasonCode: 'non_retryable_marked',
       reason: 'error marked non-retryable'
     })
-    expect(classifyFetchRetry(error, 'runtime_http_create_retriable')).toMatchObject({
+    expect(classifyFetchRetry(error, 'runtime_http_read')).toMatchObject({
       shouldRetry: false,
       reasonCode: 'non_retryable_marked',
       reason: 'error marked non-retryable'

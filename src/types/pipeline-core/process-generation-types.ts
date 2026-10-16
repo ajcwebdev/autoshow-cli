@@ -14,6 +14,8 @@ type TtsMetadataBase<TService extends string = string> = {
 }
 
 export type Step4Metadata = TtsMetadataBase<TtsProvider> & {
+  openaiTtsEstimate?: ReturnType<typeof import('~/cli/commands/audio/tts/tts-services/tts-openai/openai-tts-pricing').estimateOpenAITtsCost> | undefined
+  openaiTtsRetainedOnly?: true | undefined
   sonioxProviderAudioSeconds?: number | undefined
   sonioxInputCharacters?: number | undefined
   geminiTtsUsage?: Array<{ rateIdentity: string, executionMode: string, observedTextTokens: number, observedAudioTokens: number, totalCost: number }> | undefined

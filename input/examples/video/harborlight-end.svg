@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#101e3b"/><stop offset="1" stop-color="#49637a"/></linearGradient></defs>
+<rect width="1080" height="1920" fill="url(#sky)"/>
+<path d="M125 230H135M130 225V235" stroke="#f6e1ab" stroke-width="3"/>
+<path d="M297 442H307M302 437V447" stroke="#f6e1ab" stroke-width="3"/>
+<path d="M783 154H793M788 149V159" stroke="#f6e1ab" stroke-width="3"/>
+<path d="M902 422H912M907 417V427" stroke="#f6e1ab" stroke-width="3"/>
+<path d="M621 557H631M626 552V562" stroke="#f6e1ab" stroke-width="3"/>
+<path d="M492 192H502M497 187V197" stroke="#f6e1ab" stroke-width="3"/>
+<path d="M719 730H729M724 725V735" stroke="#f6e1ab" stroke-width="3"/>
+<path d="M200 691H210M205 686V696" stroke="#f6e1ab" stroke-width="3"/>
+<path d="M978 710H988M983 705V715" stroke="#f6e1ab" stroke-width="3"/>
+<circle cx="853" cy="326" r="70" fill="#eee9d3"/>
+<path d="M0 1075L184 749L432 1114L680 672L1080 1152V1920H0Z" fill="#294957"/>
+<path d="M0 1267Q302 998 540 1286T1080 1210V1920H0Z" fill="#1a3c45"/>
+<path d="M108 1920Q702 1536 756 1248" fill="none" stroke="#b79a73" stroke-width="92"/>
+<path d="M65 1690L324 1248L594 1690Z" fill="#3d9490" stroke="#122e39" stroke-width="9"/>
+<path d="M324 1248L410 1690H594Z" fill="#24686c"/>
+<path d="M324 1382L238 1690H410Z" fill="#f1d39b"/>
+<path d="M680 1670L853 1286M778 1459L929 1690M778 1459L745 1747" fill="none" stroke="#d3c3a2" stroke-width="13" stroke-linecap="round"/>
+<path d="M702 1325L907 1114" stroke="#d3ddd2" stroke-width="59" stroke-linecap="round"/>
+<path d="M659 1824H1004M702 1824V1920M961 1824V1920" stroke="#9f7854" stroke-width="27"/>
+<path d="M745 1651H832L821 1805H756Z" fill="#2d8a8b" stroke="#cbd9c9" stroke-width="4"/>
+<circle cx="853" cy="1728" r="19" fill="none" stroke="#2d8a8b" stroke-width="10"/>
+<rect x="907" y="1670" width="41" height="115" rx="8" fill="#d9a650" stroke="#132e37" stroke-width="6"/>
+<path d="M907 1670Q929 1603 948 1670" fill="none" stroke="#132e37" stroke-width="6"/>
+<path d="M0 1747L43 1421L86 1747M983 1478L1026 1133L1069 1478" fill="#102d36"/>
+</svg>

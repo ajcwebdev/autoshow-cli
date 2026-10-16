@@ -1,1 +1,5 @@
-Transport completed and local audio integrity was verified. Spoken words, numeric-speed effects, qualitative pacing, and requested pauses have not been assessed. Successful synthesis is not a controls-quality pass.
+Offline ASR assessment (2026-10-16T01:08:44.227Z): speed-pauses--gemini-gemini-3.8-flash-lite-tts-instructions--gemini-gemini-3.8-flash-lite-tts. See docs/benchmarks/tts/assessment.md#speed-pauses--gemini-gemini-3.8-flash-lite-tts-instructions--gemini-gemini-3.8-flash-lite-tts and assessment.evidence.zip.
+
+Installed Whisper small.en screening: strict WER 4.76%, CER 5.85%, substitutions/deletions/insertions 0/0/2. Supplemental counting-number-fold WER 4.76% (normalized tokens 1–5 only; omissions preserved). Differences require adjudication and do not establish TTS errors. Full waveform decoding succeeded. Separate assembled-turn signal measurements are recorded.
+
+Subjective pronunciation, speaker identity, emotional/control effect, seam/prosody, and perceptual ratings are excluded and unscored at the user’s instruction. No human listening or perceptual pass is claimed. No provider calls or synthesis reruns were made.

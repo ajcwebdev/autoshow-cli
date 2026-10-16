@@ -27,7 +27,6 @@ import {
   SUPPORTED_SONIOX_TTS_MODELS,
   SUPPORTED_GROK_TTS_MODELS,
   SUPPORTED_GROK_VIDEO_MODELS,
-  SUPPORTED_HAPPYSCRIBE_STT_MODELS,
   SUPPORTED_INWORLD_TTS_MODELS,
   SUPPORTED_KIMI_MODELS,
   SUPPORTED_KIMI_OCR_MODELS,
@@ -46,7 +45,6 @@ import {
   SUPPORTED_SCRAPECREATORS_STT_MODELS,
   SUPPORTED_SONIOX_STT_MODELS,
   SUPPORTED_SPEECHMATICS_STT_MODELS,
-  SUPPORTED_SUPADATA_STT_MODELS,
   SUPPORTED_TOGETHER_MODELS,
   SUPPORTED_TOGETHER_STT_MODELS,
   SUPPORTED_OPENAI_STT_MODELS,
@@ -69,8 +67,6 @@ export const SUPPORTED_MODEL_SOURCES = [
   { step: 'stt', service: 'mistral', arrayName: 'SUPPORTED_MISTRAL_STT_MODELS', models: SUPPORTED_MISTRAL_STT_MODELS },
   { step: 'stt', service: 'assemblyai', arrayName: 'SUPPORTED_ASSEMBLYAI_STT_MODELS', models: SUPPORTED_ASSEMBLYAI_STT_MODELS },
   { step: 'stt', service: 'gladia', arrayName: 'SUPPORTED_GLADIA_STT_MODELS', models: SUPPORTED_GLADIA_STT_MODELS },
-  { step: 'stt', service: 'happyscribe', arrayName: 'SUPPORTED_HAPPYSCRIBE_STT_MODELS', models: SUPPORTED_HAPPYSCRIBE_STT_MODELS },
-  { step: 'stt', service: 'supadata', arrayName: 'SUPPORTED_SUPADATA_STT_MODELS', models: SUPPORTED_SUPADATA_STT_MODELS },
   { step: 'stt', service: 'scrapecreators', arrayName: 'SUPPORTED_SCRAPECREATORS_STT_MODELS', models: SUPPORTED_SCRAPECREATORS_STT_MODELS },
   { step: 'stt', service: 'gemini-stt', arrayName: 'SUPPORTED_GEMINI_STT_MODELS', models: SUPPORTED_GEMINI_STT_MODELS },
   { step: 'stt', service: 'together', arrayName: 'SUPPORTED_TOGETHER_STT_MODELS', models: SUPPORTED_TOGETHER_STT_MODELS },
@@ -127,7 +123,7 @@ export const SUPPORTED_MODEL_SOURCES = [
  */
 export const MODEL_SELECTOR_FREE_SERVICES: Readonly<Record<ModelCategory, readonly string[]>> = {
   stt: ['youtube-captions'],
-  extract: ['defuddle', 'firecrawl', 'glm-reader', 'spider', 'supadata', 'zyte'],
+  extract: ['defuddle', 'spider', 'zyte'],
   llm: [],
   tts: [],
   image: [],

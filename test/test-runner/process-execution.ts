@@ -134,10 +134,14 @@ export const buildTestWorkerEnv = (
   }
   const knownKeys = new Set<string>(HOSTED_PROVIDER_ENV_CHECKS.map(provider => provider.envVar))
   if (!Array.isArray(credentialKeys) || !credentialKeys.every(key => typeof key === 'string' && knownKeys.has(key))) throw new Error('AUTOSHOW_TEST_CREDENTIAL_KEYS must be a JSON array of registered credential names')
+  // Keep the user's optional billing route with authorized Cloudflare workers.
+  // This routing setting is neither a credential nor a prerequisite for access.
+  const cloudflareRoutingAllowed = live && credentialKeys.includes('CLOUDFLARE_API_TOKEN')
   const workerEnv = childEnv({
     allow: [
       ...runnerControlKeys,
       ...credentialKeys,
+      ...(cloudflareRoutingAllowed ? ['CLOUDFLARE_AI_GATEWAY_ID'] : []),
       'AUTOSHOW_PROJECT_ROOT'
     ]
   })
@@ -153,6 +157,7 @@ export const buildTestWorkerEnv = (
     ?? workerEnv['AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY']
     ?? '1'
   Object.assign(workerEnv, envOverrides)
+  if (!cloudflareRoutingAllowed) delete workerEnv['CLOUDFLARE_AI_GATEWAY_ID']
   return workerEnv
 }
 

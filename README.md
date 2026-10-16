@@ -54,6 +54,8 @@ bun autoshow extract input/examples/audio/1-audio.mp3 --provider whisperfile=tin
 bun autoshow write output/transcript/transcription.txt --provider openai=gpt-5.6-sol --prompt shortSummary takeaways
 ```
 
+The first command uses the maintained speech MP3 and writes `output/transcript/transcription.txt`; run it successfully before the second command. Local transcription needs the installed Whisperfile `tiny` model and ffmpeg/ffprobe from `setup`. The second command sends that produced transcript to OpenAI and requires `OPENAI_API_KEY`.
+
 `write` accepts local `.md` and `.txt` files or directories of those files. Use `extract` first for URLs, media, and documents. Hosted transcription and speaker diarization options are in the [STT guide](./docs/commands/02-extract/stt/overview.md).
 
 ### Extract Articles and Documents
@@ -61,8 +63,8 @@ bun autoshow write output/transcript/transcription.txt --provider openai=gpt-5.6
 These examples use local extraction:
 
 ```bash
-bun autoshow extract https://example.com/article --provider defuddle
-bun autoshow extract input/examples/document/1-document.pdf --provider tesseract
+bun autoshow extract input/examples/document/harborlight-article.html --provider defuddle
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider tesseract --no-chapters
 bun autoshow extract input/examples/document/1-epub.epub
 ```
 

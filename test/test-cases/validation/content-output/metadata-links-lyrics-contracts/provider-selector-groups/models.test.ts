@@ -66,7 +66,7 @@ test('links selector rejects provider-scoped models section when provider has no
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--provider', 'firecrawl',
+    '--provider', 'spider',
     'models'
-  ], 'Unknown links section(s) for --provider firecrawl: models')
+  ], 'Unknown links section(s) for --provider spider: models')
 })

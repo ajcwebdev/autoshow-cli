@@ -8,9 +8,7 @@ import type { GenericOptionControl } from './generic-provider-option-selectors'
 export const GENERIC_STT_OPTION_FLAGS = [
   'stt-language',
   'stt-verbatim',
-  'stt-chunk-size',
-  'stt-response-format',
-  'stt-organization-id'
+  'stt-response-format'
 ] as const
 
 export type GenericSttOptionFlag = typeof GENERIC_STT_OPTION_FLAGS[number]
@@ -27,14 +25,10 @@ const controlForEngine = (
         : undefined
     case 'stt-verbatim':
       return options.verbatim ? { spec: { kind: 'boolean' } } : undefined
-    case 'stt-chunk-size':
-      return options.chunkSize ? { spec: { kind: 'number', min: 1, integer: true } } : undefined
     case 'stt-response-format':
       return options.responseFormat
         ? { spec: { kind: 'string', normalize: (value) => value.trim().toLowerCase(), allowedValues: options.responseFormat.allowedValues }, ...(options.responseFormat.defaultValue !== undefined ? { defaultValue: options.responseFormat.defaultValue } : {}) }
         : undefined
-    case 'stt-organization-id':
-      return options.organizationId ? { spec: { kind: 'string', normalize: (value) => value.trim() } } : undefined
   }
 }
 

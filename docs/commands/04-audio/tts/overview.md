@@ -151,21 +151,21 @@ Providers do not share voice state between chunks. For `eleven_v3`, pin `--tts-s
 
 ### Audiobook workflow
 
+The maintained `harborlight-chapters` directory contains two original chapter files, `01-first-light.md` and `02-night-watch.md`. It contains no provider controls fixtures. Estimate this small book before synthesis; `setup` supplies ffmpeg/ffprobe for mastering and M4B export.
+
 ```bash
 # Estimate first; no provider calls
-bun autoshow tts input/books/my-book --provider elevenlabs=eleven_v3 --price
+bun autoshow tts input/examples/tts/harborlight-chapters --provider elevenlabs=eleven_v3 --price
 
 # One m4b per chapter file plus book.m4b with chapter markers
-bun autoshow tts input/books/my-book \
-  --provider elevenlabs=eleven_v3 --tts-voice YOUR_VOICE_ID \
+bun autoshow tts input/examples/tts/harborlight-chapters \
+  --provider elevenlabs=eleven_v3 \
   --tts-stability 0.5 --tts-seed 12345 --tts-text-normalization on \
   --tts-audio-profile audiobook --tts-export-format m4b --tts-book \
-  --tts-metadata "title=My Book" --tts-metadata "artist=Author Name" \
-  --tts-cover input/books/my-book/cover.jpg \
-  --tts-pronunciations input/books/my-book/lexicon.json \
-  --output-dir output/my-book
+  --tts-metadata "title=Harborlight Field Notes" --tts-metadata "artist=AutoShow" \
+  --output-dir output/harborlight-book
 ```
-Chapters follow input filename order with numeric collation, and chapter titles come from the filenames. `m4b` is the most widely supported container for chapter markers; MP3 chapter support varies by player. What a later run reuses or rebuilds is covered in [Existing output directories](#existing-output-directories).
+The synthesis command uses ElevenLabs' default existing voice; `--tts-voice` can select another available account voice. For your own book, substitute a directory of readable text chapters. Optional `--tts-cover` and `--tts-pronunciations` need your own existing cover image and lexicon file. Chapters follow input filename order with numeric collation, and chapter titles come from the filenames. `m4b` is the most widely supported container for chapter markers; MP3 chapter support varies by player. What a later run reuses or rebuilds is covered in [Existing output directories](#existing-output-directories).
 
 A pronunciation lexicon is a JSON array of alias rules. Rules match whole words and are case sensitive unless stated otherwise. The earliest match wins, ties go to the earlier rule, and inserted aliases are never rescanned. Avoid rules that match speaker labels in dialogue input. The lexicon changes the text sent to the provider, so billing and chunking use the substituted text.
 
@@ -249,7 +249,7 @@ Use the active `tts-rt-v2` model with the existing `SONIOX_API_KEY` credential. 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider soniox --model tts-rt-v2 --tts-voice Adrian --tts-language en --tts-speed 1 --price
 bun autoshow tts input/examples/tts/01-tts-short.md --provider soniox --tts-voice Adrian
-bun autoshow tts input/examples/tts --provider soniox --batch-concurrency 2 --price
+bun autoshow tts input/examples/tts/harborlight-chapters --provider soniox --batch-concurrency 2 --price
 ```
 
 Built-in voice names and existing cloned-voice IDs retain their case and must contain 1–50 characters. Soniox checks whether the voice is available to your account. Choose a [supported language code](https://soniox.com/docs/tts/concepts/supported-languages); `auto` is rejected. Numeric speed accepts `0.7–1.3`. Native emotion, delivery and pause tags remain in the submitted text, such as `[warm] Hello. [pause] Welcome.` Use English tag names as described in the [tag reference](https://soniox.com/docs/tts/concepts/emotion-and-tone). Free-form `--tts-instructions`, reference audio, response-format overrides and voice creation are not exposed by this adapter. [REST schema](https://soniox.com/docs/api-reference/tts/generate_tts), [speech speed](https://soniox.com/docs/tts/concepts/speech-speed).
@@ -272,8 +272,11 @@ Pricing remains estimated: $4 per million input text tokens and $21.50 per milli
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --tts-voice eve
-bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --tts-voice ab12cd34 --tts-language ar-SA --tts-text-normalization true
+bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --tts-voice eve --tts-language en --tts-text-normalization true
 ```
+
+These examples use the documented built-in `eve` voice with the English fixture and require `XAI_API_KEY`. For a custom voice, first obtain a voice ID available to your account from the xAI console's voice card or `GET /v1/custom-voices`; substitute that returned ID for `eve`. AutoShow accepts the supported ID format locally, but `--price` cannot establish that an account owns the voice or can synthesize with it. [Built-in and custom voices](https://docs.x.ai/developers/model-capabilities/audio/text-to-speech#voices).
+
 ### OpenAI
 
 | Option   | Value                                                |
@@ -282,6 +285,8 @@ bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --t
 | Models   | `gpt-4o-mini-tts-2025-12-15`                         |
 | Voice    | `--tts-voice <id>`, default `alloy`                  |
 | Controls | `--tts-instructions <text>`, `--tts-speed <0.25..4>` |
+
+OpenAI bills text-input and audio-output tokens. Price estimates include repeated instructions and numeric speed; binary WAV responses do not report authoritative token usage. The model accepts up to 2,000 input tokens, while the API separately limits input and instructions to 4,096 characters each. AutoShow applies a conservative input budget, so Unicode text and long instructions can require smaller chunks. See the [model contract](https://developers.openai.com/api/docs/models/gpt-4o-mini-tts) and [speech request](https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create).
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-voice alloy
@@ -326,14 +331,14 @@ Speed: ✅ numeric `--tts-speed`, ⚠️ SSML or tags only, ❌ not exposed. Pau
 
 Stock: ✅ a built-in voice selectable with `--tts-voice`. Design: ✅ `voice design`. Clone: ✅ `voice clone` from authorized samples, ⚠️ a platform clone registered with `voice import`, ❌ not exposed.
 
-Pricing is the AutoShow estimate. Gemini ranks use a 1,000-character passage, locally estimated duration and the September 2026 standard schedule. Cost rank is cheapest first (1 = cheapest); ties share a rank.
+Pricing shows each provider's billing units. Cost ranks compare AutoShow's count-only estimates for 1,000 input characters at speed 1, without custom instructions or voice setup fees, using the September 2026 Gemini standard schedule and the October 15 OpenAI accounting correction. These estimates include local token/duration assumptions; they are not observed charges. Cost rank is cheapest first (1 = cheapest); ties share a rank.
 
 | Provider                            | Released     | Instructions           | Speed                   | Pause                | Language           | Native dialogue    | Stock | Design | Clone           | Pricing                             | Cost rank |
 | ----------------------------------- | ------------ | ---------------------- | ----------------------- | -------------------- | ------------------ | ------------------ | ----- | ------ | --------------- | ----------------------------------- | --------- |
-| Gemini `gemini-3.8-flash-tts`       | ✅ 2026-09-22 | ✅ Style metadata       | ⚠️ Qualitative only     | ⚠️ Inline pauses     | ✅ Auto, 130        | ✅ Two stock voices | ✅     | ✅      | ✅ Consent audio | $0.50 text / $9 audio per M tokens  | 5/7       |
-| Gemini `gemini-3.8-flash-lite-tts`  | ✅ 2026-09-22 | ✅ Style metadata       | ⚠️ Qualitative only     | ⚠️ Inline pauses     | ✅ Auto, 101        | ✅ Two stock voices | ✅     | ✅      | ✅ Consent audio | $0.50 text / $6 audio per M tokens  | 2/7       |
-| Soniox `tts-rt-v2`                  | ✅ 2026-08-11 | ⚠️ Native inline tags  | ✅ `--tts-speed` 0.7–1.3 | ⚠️ Native pause tags | ✅ `--tts-language` | ❌ Local assembly   | ✅     | ❌      | ⚠️ Existing IDs | $4 text / $21.50 audio per M tokens | 3/7       |
-| Inworld `realtime-tts-2`            | ✅ 2026-05-05 | ✅ `--tts-instructions` | ✅ `--tts-speed` 0.5–1.5 | ✅ SSML breaks        | ❌ Not exposed      | ❌ Local assembly   | ✅     | ✅      | ✅               | `$0.025` / 1K chars                 | 6/7       |
-| Grok `grok-tts`                     | ✅ 2026-04    | ⚠️ Speech tags         | ✅ `--tts-speed` 0.7–1.5 | ⚠️ `[pause]` tags    | ✅ `--tts-language` | ❌ Local assembly   | ✅     | ❌      | ✅               | `$0.015` / 1K chars                 | 4/7       |
+| Gemini `gemini-3.8-flash-tts`       | ✅ 2026-09-22 | ✅ Style metadata       | ⚠️ Qualitative only     | ⚠️ Inline pauses     | ✅ Auto, 130        | ✅ Two stock voices | ✅     | ✅      | ✅ Consent audio | $0.50 text / $9 audio per M tokens  | 4/7       |
+| Gemini `gemini-3.8-flash-lite-tts`  | ✅ 2026-09-22 | ✅ Style metadata       | ⚠️ Qualitative only     | ⚠️ Inline pauses     | ✅ Auto, 101        | ✅ Two stock voices | ✅     | ✅      | ✅ Consent audio | $0.50 text / $6 audio per M tokens  | 1/7       |
+| Soniox `tts-rt-v2`                  | ✅ 2026-08-11 | ⚠️ Native inline tags  | ✅ `--tts-speed` 0.7–1.3 | ⚠️ Native pause tags | ✅ `--tts-language` | ❌ Local assembly   | ✅     | ❌      | ⚠️ Existing IDs | $4 text / $21.50 audio per M tokens | 2/7       |
+| Inworld `realtime-tts-2`            | ✅ 2026-05-05 | ✅ `--tts-instructions` | ✅ `--tts-speed` 0.5–1.5 | ✅ SSML breaks        | ❌ Not exposed      | ❌ Local assembly   | ✅     | ✅      | ✅               | `$0.025` / 1K chars                 | 5/7       |
+| Grok `grok-tts`                     | ✅ 2026-04    | ⚠️ Speech tags         | ✅ `--tts-speed` 0.7–1.5 | ⚠️ `[pause]` tags    | ✅ `--tts-language` | ❌ Local assembly   | ✅     | ❌      | ✅               | `$0.015` / 1K chars                 | 3/7       |
 | ElevenLabs `eleven_v3`              | ⚠️ 2026-02   | ⚠️ Audio tags          | ❌ Not exposed           | ⚠️ Audio tags        | ✅ `--tts-language` | ✅ Up to 10 voices  | ✅     | ✅      | ✅               | `$0.10` / 1K chars                  | 7/7       |
-| OpenAI `gpt-4o-mini-tts-2025-12-15` | ❌ 2025-12-15 | ✅ `--tts-instructions` | ✅ `--tts-speed` 0.25–4  | ⚠️ Qualitative only  | ❌ Not exposed      | ❌ Local assembly   | ✅     | ❌      | ❌               | About `$0.0126` / 1K chars          | 1/7       |
+| OpenAI `gpt-4o-mini-tts-2025-12-15` | ❌ 2025-12-15 | ✅ `--tts-instructions` | ✅ `--tts-speed` 0.25–4  | ⚠️ Qualitative only  | ❌ Not exposed      | ❌ Local assembly   | ✅     | ❌      | ❌               | $0.60 text / $12 audio per M tokens | 6/7       |

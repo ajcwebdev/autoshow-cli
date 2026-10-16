@@ -63,8 +63,8 @@ describe('provider selection contracts', () => {
       'mistral-stt',
       'assemblyai-stt',
       'gladia-stt',
-      'happyscribe-stt',
-      'supadata-stt',
+
+
       'scrapecreators-stt',
       'gemini-stt',
       'together-stt',
@@ -91,17 +91,11 @@ describe('provider selection contracts', () => {
   test('URL article provider ordering and selection helpers are registry-backed', () => {
     expect(URL_ARTICLE_BACKENDS).toEqual([
       'defuddle',
-      'firecrawl',
-      'glm-reader',
       'spider',
-      'supadata',
       'zyte'
     ])
     expect(HOSTED_URL_ARTICLE_BACKENDS).toEqual([
-      'firecrawl',
-      'glm-reader',
       'spider',
-      'supadata',
       'zyte'
     ])
     expect(LOCAL_URL_ARTICLE_BACKENDS).toEqual(['defuddle'])
@@ -137,9 +131,6 @@ describe('provider selection contracts', () => {
     )
     expect(collectStep2ProviderSelections('url', allUrlOpts).map((selection) => selection.origin)).toEqual([
       'all-shortcut',
-      'all-shortcut',
-      'all-shortcut',
-      'all-shortcut',
       'all-shortcut'
     ])
 
@@ -168,7 +159,7 @@ describe('provider selection contracts', () => {
 
     const localHtmlHostedOpts = {
       ...buildOptsFromFlags({
-        'url-provider': 'firecrawl'
+        'url-provider': 'spider'
       }, {}, new Set(['url-provider'])),
       localHtmlDocument: true
     }
@@ -220,7 +211,6 @@ describe('provider selection contracts', () => {
   test('--all-stt registry expansion excludes local providers and leaves ScrapeCreators to source-aware YouTube expansion', () => {
     const opts = buildOptsFromFlags({ 'all-stt': true })
     const services = collectSttTargets(opts).map((target) => target.service)
-    const supadataTargets = collectSttTargets(opts).filter((target) => target.service === 'supadata')
     const scrapeCreatorsTargets = collectSttTargets(opts).filter((target) => target.service === 'scrapecreators')
 
     expect(services).toContain('deepgram')
@@ -228,11 +218,8 @@ describe('provider selection contracts', () => {
     expect(services).not.toContain('rev')
     expect(services).not.toContain('reverb')
     expect(services).not.toContain('whisperfile')
-    expect(supadataTargets).toEqual([{
-      service: 'supadata',
-      model: 'auto',
-      local: false
-    }])
+    expect(services).not.toContain('supadata')
+    expect(services).not.toContain('happyscribe')
     expect(scrapeCreatorsTargets).toEqual([])
     expect(collectSttTargets(opts).filter((target) => target.service === 'deepgram').map((target) => target.model)).toEqual(['nova-3'])
     expect(collectSttTargets(opts).filter((target) => target.service === 'assemblyai').map((target) => target.model)).toEqual([
@@ -272,10 +259,10 @@ describe('provider selection contracts', () => {
     expect(localTargets.map((target) => target.service)).not.toContain('supadata')
     expect(localTargets.map((target) => target.service)).not.toContain('scrapecreators')
 
-    expect(youtubeTargets.map((target) => `${target.service}:${target.model}`)).toContain('supadata:auto')
+    expect(youtubeTargets.map((target) => target.service)).not.toContain('supadata')
     expect(youtubeTargets.map((target) => `${target.service}:${target.model}`)).toContain('scrapecreators:youtube-transcript')
 
-    expect(directMediaTargets.map((target) => `${target.service}:${target.model}`)).toContain('supadata:auto')
+    expect(directMediaTargets.map((target) => target.service)).not.toContain('supadata')
     expect(directMediaTargets.map((target) => target.service)).not.toContain('scrapecreators')
 
     expect(unsupportedStreamingTargets.map((target) => target.service)).toContain('deepgram')
@@ -285,27 +272,21 @@ describe('provider selection contracts', () => {
 
   test('explicit URL-only STT providers are not silently filtered for local media', () => {
     const opts = buildOptsFromFlags({
-      'supadata-stt': 'auto',
       'scrapecreators-stt': 'youtube-transcript'
-    }, {}, new Set(['supadata-stt', 'scrapecreators-stt']))
+    }, {}, new Set(['scrapecreators-stt']))
     const combinedAllAndExplicit = buildOptsFromFlags({
       'all-stt': true,
-      'supadata-stt': 'auto'
-    }, {}, new Set(['all-stt', 'supadata-stt']))
+      'scrapecreators-stt': 'youtube-transcript'
+    }, {}, new Set(['all-stt', 'scrapecreators-stt']))
 
     expect(collectSttTargetsForSource(opts, { filePath: 'input/examples/video/local.mp4' })).toEqual([
-      {
-        service: 'supadata',
-        model: 'auto',
-        local: false
-      },
       {
         service: 'scrapecreators',
         model: 'youtube-transcript',
         local: false
       }
     ])
-    expect(collectSttTargetsForSource(combinedAllAndExplicit, { filePath: 'input/examples/video/local.mp4' }).map((target) => `${target.service}:${target.model}`)).toContain('supadata:auto')
+    expect(collectSttTargetsForSource(combinedAllAndExplicit, { filePath: 'input/examples/video/local.mp4' }).map((target) => `${target.service}:${target.model}`)).toContain('scrapecreators:youtube-transcript')
   })
 
   test('mixed media batch items resolve different --all-stt target sets by source', () => {

@@ -71,17 +71,17 @@ test('URL article provider retry wrapper does not redispatch an ambiguous hosted
   let calls = 0
 
   await withoutSleep(async () => {
-    URL_ARTICLE_PROVIDER_ADAPTERS.firecrawl.run = async (source, sourceUrl) => {
+    URL_ARTICLE_PROVIDER_ADAPTERS.spider.run = async (source, sourceUrl) => {
       calls += 1
       if (calls === 1) {
-        const error = new Error('Firecrawl scrape failed (503 Service Unavailable): overloaded')
+        const error = new Error('Spider scrape failed (503 Service Unavailable): overloaded')
         Object.assign(error, { status: 503, headers: new Headers() })
         throw error
       }
-      return buildMockArticle('firecrawl', source, sourceUrl)
+      return buildMockArticle('spider', source, sourceUrl)
     }
 
-    await expect(runUrlArticleProviderWithStats('firecrawl', 'https://article.test/status-retry', 'https://article.test/status-retry', {
+    await expect(runUrlArticleProviderWithStats('spider', 'https://article.test/status-retry', 'https://article.test/status-retry', {
       timeoutMs: 25,
       requestAttempts: 2
     })).rejects.toThrow('503 Service Unavailable')
@@ -93,22 +93,22 @@ test('URL article provider retry wrapper redispatches an explicitly rejected hos
   let calls = 0
 
   await withoutSleep(async () => {
-    URL_ARTICLE_PROVIDER_ADAPTERS.firecrawl.run = async (source, sourceUrl) => {
+    URL_ARTICLE_PROVIDER_ADAPTERS.spider.run = async (source, sourceUrl) => {
       calls += 1
       if (calls === 1) {
-        const error = new Error('Firecrawl scrape failed (429 Too Many Requests): slow down')
+        const error = new Error('Spider scrape failed (429 Too Many Requests): slow down')
         Object.assign(error, { status: 429, headers: new Headers() })
         throw error
       }
-      return buildMockArticle('firecrawl', source, sourceUrl)
+      return buildMockArticle('spider', source, sourceUrl)
     }
 
-    const result = await runUrlArticleProviderWithStats('firecrawl', 'https://article.test/rate-limited', 'https://article.test/rate-limited', {
+    const result = await runUrlArticleProviderWithStats('spider', 'https://article.test/rate-limited', 'https://article.test/rate-limited', {
       timeoutMs: 25,
       requestAttempts: 2
     })
 
-    expect(result.article.title).toBe('firecrawl Article')
+    expect(result.article.title).toBe('spider Article')
     expect(result.attempts).toBe(2)
     expect(calls).toBe(2)
   })

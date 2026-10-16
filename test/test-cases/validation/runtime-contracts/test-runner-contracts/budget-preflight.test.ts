@@ -21,10 +21,10 @@ describe('test-runner contracts', () => {
 
   test('live service registration retains inspectable budget keys', () => {
     const inspected = inspectBudgetSource('live.ts', `
-      defineBudgetedLiveServiceTest('extract-firecrawl-url', 'article', ['FIRECRAWL_API_KEY'], () => {})
+      defineBudgetedLiveServiceTest('extract-spider-url', 'article', ['SPIDER_API_KEY'], () => {})
       defineBudgetedLiveServiceTest(['music-one', 'music-two'], 'music', ['FIRST_KEY', 'SECOND_KEY'], () => {})
     `)
-    expect(inspected.keys).toEqual(['extract-firecrawl-url', 'music-one', 'music-two'])
+    expect(inspected.keys).toEqual(['extract-spider-url', 'music-one', 'music-two'])
     expect(inspected.issues).toEqual([])
   })
 

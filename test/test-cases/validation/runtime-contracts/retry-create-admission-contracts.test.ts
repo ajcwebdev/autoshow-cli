@@ -42,7 +42,7 @@ describe('retry error contracts', () => {
     })
   })
 
-  test('classifyFetchRetry keeps every ambiguous conservative-create failure separate from retriable creates', () => {
+  test('classifyFetchRetry keeps ambiguous paid creates separate from retryable reads', () => {
     expect(classifyFetchRetry(
       new DOMException('The operation timed out.', 'TimeoutError'),
       'runtime_http_create_conservative'
@@ -63,7 +63,7 @@ describe('retry error contracts', () => {
 
     expect(classifyFetchRetry(
       new DOMException('The operation timed out.', 'TimeoutError'),
-      'runtime_http_create_retriable'
+      'runtime_http_read'
     )).toMatchObject({
       shouldRetry: true,
       reason: 'abort/timeout'
@@ -71,7 +71,7 @@ describe('retry error contracts', () => {
 
     expect(classifyFetchRetry(
       new Error('Socket connection was closed unexpectedly'),
-      'runtime_http_create_retriable'
+      'runtime_http_read'
     )).toMatchObject({
       shouldRetry: true,
       reason: 'network error'

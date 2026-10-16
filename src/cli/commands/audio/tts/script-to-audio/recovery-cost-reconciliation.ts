@@ -4,7 +4,8 @@ import { buildPureCurrentTtsRenderPlan, sumCosts } from './attempt-planning'
 
 const collectCostedDispatches = (
   pure: ReturnType<typeof buildPureCurrentTtsRenderPlan>,
-  journalEvidenceById: Map<string, RetainedJournalEvidence>
+  journalEvidenceById: Map<string, RetainedJournalEvidence>,
+  loadedBatches: LoadedRecoveryBatch[]
 ): {
   completedSlotIds: Set<string>
   retainedAttemptCosts: PlannedCost[]
@@ -27,7 +28,8 @@ const collectCostedDispatches = (
         const slot = pure.planned.slots.find((entry) => entry.generationSlotId === request.generationSlotId)
         if (!slot) throw UsageError('Stored TTS dispatch has no matching immutable planned slot cost.')
         costedDispatches.add(key)
-        retainedAttemptCosts.push(slot.plannedCost)
+        const retainedBatch = loadedBatches.find(batch => batch.value.generationSlotId === slot.generationSlotId && batch.value.invocationId === evidence.value.invocationId)
+        retainedAttemptCosts.push(retainedBatch?.value.cost.planned ?? slot.plannedCost)
       }
     }
   }
@@ -97,7 +99,8 @@ export const reconcileSlotCosts = (
 } => {
   const { completedSlotIds, retainedAttemptCosts, costedDispatches } = collectCostedDispatches(
     pure,
-    journalEvidenceById
+    journalEvidenceById,
+    loadedBatches
   )
   const reconciliationBlockers = collectReconciliationBlockers(pure, journalEvidenceById, loadedBatches)
   enforceTtsReconciliationBlockers(reconciliationBlockers, options)
