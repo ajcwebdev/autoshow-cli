@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "AutoShow Benchmark Dashboard",
-  "generatedAt": "2026-10-14T04:03:03.032Z",
+  "generatedAt": "2026-10-16T12:57:30.385Z",
   "tabs": [
     {
       "key": "ocr",
@@ -10,7 +10,7 @@
       "model": {
         "title": "Combined OCR Provider Comparison",
         "category": "ocr",
-        "generatedAt": "2026-10-14T04:03:03.032Z",
+        "generatedAt": "2026-10-16T12:57:30.385Z",
         "rootDir": "docs/benchmarks/ocr",
         "summaryStats": [
           {
@@ -2004,7 +2004,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-10-14T04:03:03.032Z",
+        "generatedAt": "2026-10-16T12:57:30.385Z",
         "rootDir": "docs/benchmarks/stt-local",
         "summaryStats": [
           {
@@ -2446,7 +2446,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-10-14T04:03:03.032Z",
+        "generatedAt": "2026-10-16T12:57:30.385Z",
         "rootDir": "docs/benchmarks/stt-with-speakers",
         "summaryStats": [
           {
@@ -2969,7 +2969,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-10-14T04:03:03.032Z",
+        "generatedAt": "2026-10-16T12:57:30.385Z",
         "rootDir": "docs/benchmarks/stt-without-speakers",
         "summaryStats": [
           {
@@ -3668,7 +3668,7 @@
       "model": {
         "title": "Combined URL Provider Comparison",
         "category": "url",
-        "generatedAt": "2026-10-14T04:03:03.032Z",
+        "generatedAt": "2026-10-16T12:57:30.385Z",
         "rootDir": "docs/benchmarks/url",
         "summaryStats": [
           {
@@ -4312,7 +4312,7 @@
       "model": {
         "title": "TTS benchmark results",
         "category": "tts",
-        "generatedAt": "2026-10-14T04:03:03.032Z",
+        "generatedAt": "2026-10-16T12:57:30.385Z",
         "rootDir": "docs/benchmarks/tts",
         "summaryStats": [
           {
@@ -4333,7 +4333,7 @@
           },
           {
             "label": "Quality assessment",
-            "value": "Unavailable"
+            "value": "ASR only; subjective unscored"
           }
         ],
         "runs": [
@@ -4363,7 +4363,7 @@
             "key": "service",
             "label": "Narration — Third-Party Service Models",
             "metricColumns": {
-              "quality": "Automated accuracy",
+              "quality": "ASR roundtrip accuracy",
               "speed": "Audio / generation time",
               "cost": "$ / 1K input chars"
             },
@@ -4386,9 +4386,9 @@
                 "model": "eleven_v3",
                 "coverage": "4/4",
                 "quality": {
-                  "display": "Not assessed",
-                  "rank": null,
-                  "value": null
+                  "display": "96.80% ASR",
+                  "rank": 2,
+                  "value": 96.80067001675042
                 },
                 "speed": {
                   "display": "5.46×",
@@ -4404,23 +4404,23 @@
                   "2335.60s",
                   "$3.53940",
                   "4/4",
-                  "Not assessed"
+                  "Excluded/unscored"
                 ],
                 "perRun": [
                   {
-                    "display": "Not assessed",
+                    "display": "100.00% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "84.38% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "89.05% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "97.33% ASR",
                     "heat": null
                   }
                 ]
@@ -4431,9 +4431,9 @@
                 "model": "gemini-3.8-flash-lite-tts",
                 "coverage": "4/4",
                 "quality": {
-                  "display": "Not assessed",
-                  "rank": null,
-                  "value": null
+                  "display": "96.97% ASR",
+                  "rank": 1,
+                  "value": 96.96817420435511
                 },
                 "speed": {
                   "display": "3.14×",
@@ -4449,23 +4449,23 @@
                   "2363.60s",
                   "$0.45758",
                   "4/4",
-                  "Not assessed"
+                  "Excluded/unscored"
                 ],
                 "perRun": [
                   {
-                    "display": "Not assessed",
+                    "display": "100.00% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "82.81% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "89.40% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "97.50% ASR",
                     "heat": null
                   }
                 ]
@@ -4476,9 +4476,9 @@
                 "model": "gemini-3.8-flash-tts",
                 "coverage": "4/4",
                 "quality": {
-                  "display": "Not assessed",
-                  "rank": null,
-                  "value": null
+                  "display": "96.62% ASR",
+                  "rank": 7,
+                  "value": 96.61641541038526
                 },
                 "speed": {
                   "display": "5.18×",
@@ -4494,23 +4494,23 @@
                   "2244.08s",
                   "$0.65012",
                   "4/4",
-                  "Not assessed"
+                  "Excluded/unscored"
                 ],
                 "perRun": [
                   {
-                    "display": "Not assessed",
+                    "display": "93.33% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "81.25% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "87.28% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "97.27% ASR",
                     "heat": null
                   }
                 ]
@@ -4521,9 +4521,9 @@
                 "model": "grok-tts",
                 "coverage": "4/4",
                 "quality": {
-                  "display": "Not assessed",
-                  "rank": null,
-                  "value": null
+                  "display": "96.68% ASR",
+                  "rank": 6,
+                  "value": 96.68341708542714
                 },
                 "speed": {
                   "display": "9.24×",
@@ -4539,23 +4539,23 @@
                   "2183.71s",
                   "$0.53091",
                   "4/4",
-                  "Not assessed"
+                  "Excluded/unscored"
                 ],
                 "perRun": [
                   {
-                    "display": "Not assessed",
+                    "display": "100.00% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "82.81% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "89.75% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "97.18% ASR",
                     "heat": null
                   }
                 ]
@@ -4566,9 +4566,9 @@
                 "model": "realtime-tts-2",
                 "coverage": "4/4",
                 "quality": {
-                  "display": "Not assessed",
-                  "rank": null,
-                  "value": null
+                  "display": "96.77% ASR",
+                  "rank": 5,
+                  "value": 96.76716917922948
                 },
                 "speed": {
                   "display": "8.33×",
@@ -4584,23 +4584,23 @@
                   "1822.42s",
                   "$0.88485",
                   "4/4",
-                  "Not assessed"
+                  "Excluded/unscored"
                 ],
                 "perRun": [
                   {
-                    "display": "Not assessed",
+                    "display": "100.00% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "89.06% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "84.10% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "97.49% ASR",
                     "heat": null
                   }
                 ]
@@ -4611,9 +4611,9 @@
                 "model": "gpt-4o-mini-tts-2025-12-15",
                 "coverage": "4/4",
                 "quality": {
-                  "display": "Not assessed",
-                  "rank": null,
-                  "value": null
+                  "display": "96.80% ASR",
+                  "rank": 2,
+                  "value": 96.80067001675042
                 },
                 "speed": {
                   "display": "7.07×",
@@ -4629,23 +4629,23 @@
                   "2124.25s",
                   "$0.44596",
                   "4/4",
-                  "Not assessed"
+                  "Excluded/unscored"
                 ],
                 "perRun": [
                   {
-                    "display": "Not assessed",
+                    "display": "100.00% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "84.38% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "87.63% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "97.40% ASR",
                     "heat": null
                   }
                 ]
@@ -4656,9 +4656,9 @@
                 "model": "tts-rt-v2",
                 "coverage": "4/4",
                 "quality": {
-                  "display": "Not assessed",
-                  "rank": null,
-                  "value": null
+                  "display": "96.78% ASR",
+                  "rank": 4,
+                  "value": 96.78391959798995
                 },
                 "speed": {
                   "display": "2.34×",
@@ -4674,23 +4674,23 @@
                   "2401.79s",
                   "$0.47267",
                   "4/4",
-                  "Not assessed"
+                  "Excluded/unscored"
                 ],
                 "perRun": [
                   {
-                    "display": "Not assessed",
+                    "display": "100.00% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "81.25% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "86.93% ASR",
                     "heat": null
                   },
                   {
-                    "display": "Not assessed",
+                    "display": "97.45% ASR",
                     "heat": null
                   }
                 ]
@@ -4701,7 +4701,7 @@
             "key": "local",
             "label": "Narration — Local Models",
             "metricColumns": {
-              "quality": "Automated accuracy",
+              "quality": "ASR roundtrip accuracy",
               "speed": "Audio / generation time",
               "cost": "$ / 1K input chars"
             },
@@ -4736,7 +4736,9 @@
               "Format",
               "Audio",
               "Evidence",
-              "Controls"
+              "Controls",
+              "ASR WER",
+              "Assessment"
             ],
             "rows": [
               [
@@ -4777,6 +4779,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -4817,6 +4826,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "6.67%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -4857,6 +4873,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -4897,6 +4920,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -4937,6 +4967,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -4977,6 +5014,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5017,6 +5061,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5057,6 +5108,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "15.63%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5097,6 +5155,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "18.75%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5137,6 +5202,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "17.19%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5177,6 +5249,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "18.75%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5217,6 +5296,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "17.19%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5257,6 +5343,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "15.63%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5297,6 +5390,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "10.94%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5337,6 +5437,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "10.95%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5377,6 +5484,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "12.72%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5417,6 +5531,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "10.60%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5457,6 +5578,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "13.07%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5497,6 +5625,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "10.25%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5537,6 +5672,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "12.37%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5577,6 +5719,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "15.90%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5617,6 +5766,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "2.67%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5657,6 +5813,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "2.73%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5697,6 +5860,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "2.50%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5737,6 +5907,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "2.55%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5777,6 +5954,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "2.82%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5817,6 +6001,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "2.60%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5857,6 +6048,13 @@
                 },
                 {
                   "display": "Single-voice narration"
+                },
+                {
+                  "display": "2.51%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ]
             ]
@@ -5864,7 +6062,7 @@
           {
             "title": "Emotion and delivery — individual cases",
             "notes": [
-              "Spoken-text correctness and audible control effectiveness remain unassessed. Successful execution and valid WAVs do not establish a controls-quality pass.",
+              "October 15 assessment: all six retained recordings received full local decoding and Whisper small.en roundtrip screening. Subjective voice-quality and audible emotion/delivery ratings are excluded and unscored at the user's instruction; no controls-quality pass is asserted.",
               "OpenAI has no case in the existing controls plans; it was included in all four narration inputs."
             ],
             "columns": [
@@ -5879,7 +6077,9 @@
               "Format",
               "Audio",
               "Evidence",
-              "Controls"
+              "Controls",
+              "ASR WER",
+              "Assessment"
             ],
             "rows": [
               [
@@ -5920,6 +6120,13 @@
                 },
                 {
                   "display": "tags"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -5960,6 +6167,13 @@
                 },
                 {
                   "display": "speech-metadata-style"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6000,6 +6214,13 @@
                 },
                 {
                   "display": "speech-metadata-style"
+                },
+                {
+                  "display": "2.94%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6040,6 +6261,13 @@
                 },
                 {
                   "display": "delivery"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6080,6 +6308,13 @@
                 },
                 {
                   "display": "instructions"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6120,6 +6355,13 @@
                 },
                 {
                   "display": "Native inline emotion tags; five separate turns; no request-level instructions or timing controls."
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ]
             ]
@@ -6127,7 +6369,7 @@
           {
             "title": "Speed and pauses — individual cases",
             "notes": [
-              "Spoken-text correctness and audible control effectiveness remain unassessed. Successful execution and valid WAVs do not establish a controls-quality pass. Exact pause lengths and numeric-speed effects have not been measured.",
+              "October 15 assessment: all eight retained recordings received local ASR screening and signal analysis. Separate turn windows support descriptive measurements in six cases. Subjective voice-quality and audible-control ratings are excluded and unscored at the user's instruction; signal gaps and reference-word throughput do not establish semantic pause accuracy or calibrated numeric-speed effects.",
               "The existing ElevenLabs pacing case was skipped because its exact tags were unverified for eleven_v3. OpenAI has no case in the existing controls plans. Both providers were included in all four narration inputs."
             ],
             "columns": [
@@ -6142,7 +6384,9 @@
               "Format",
               "Audio",
               "Evidence",
-              "Controls"
+              "Controls",
+              "ASR WER",
+              "Assessment"
             ],
             "rows": [
               [
@@ -6183,6 +6427,13 @@
                 },
                 {
                   "display": "qualitative-pace-and-inline-pauses"
+                },
+                {
+                  "display": "4.76%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6223,6 +6474,13 @@
                 },
                 {
                   "display": "qualitative-pace-and-inline-pauses"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6263,6 +6521,13 @@
                 },
                 {
                   "display": "numeric"
+                },
+                {
+                  "display": "35.71%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6303,6 +6568,13 @@
                 },
                 {
                   "display": "tags"
+                },
+                {
+                  "display": "7.14%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6343,6 +6615,13 @@
                 },
                 {
                   "display": "instructions"
+                },
+                {
+                  "display": "2.38%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6383,6 +6662,13 @@
                 },
                 {
                   "display": "steering-tags"
+                },
+                {
+                  "display": "0.00%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6423,6 +6709,13 @@
                 },
                 {
                   "display": "Native numeric speed 1, 0.7, 1.3, 1, 1; native qualitative pause tags on the final two turns."
+                },
+                {
+                  "display": "7.14%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ],
               [
@@ -6463,6 +6756,13 @@
                 },
                 {
                   "display": "Qualitative native pacing and pause tags; fixed numeric speed 1; pauses are not exact timed silence."
+                },
+                {
+                  "display": "42.86%"
+                },
+                {
+                  "display": "ASR screening; subjective unscored",
+                  "artifactHref": "tts/assessment.md"
                 }
               ]
             ]
@@ -6472,7 +6772,8 @@
           "Narration rankings use the common direct-child TTS benchmark corpus. Controls are shown separately because providers expose different native mechanisms. Emotion and delivery, and speed and pauses, each select their newest dated standalone benchmark directory independently; earlier revisions are excluded.",
           "Selected manifest audio references and SHA-256 hashes are authoritative. Duration and format are read locally with ffprobe. Current provider usage is preferred for cost, then recorded usage estimates, then the selected render estimate. Costs describe the selected audio, not all historical spending or confirmed invoices. Soniox costs remain estimates based on measured provider audio before local silence insertion.",
           "Generation throughput is total final audio duration divided by total recorded generation time, including local assembly. Local recovery timings are labeled and excluded. Speed and cost rankings require complete narration coverage; timings reflect their original concurrency and machine conditions.",
-          "No roundtrip transcript accuracy or human listening scores are present for these benchmark archives. Automated accuracy, spoken-text correctness, audible control effectiveness and human quality are not inferred from HTTP success, audio integrity, duration, speed or cost. No quality ranking is asserted."
+          "Automated accuracy is installed Whisper small.en roundtrip ASR screening: 100 × max(0, 1 − total word edits / total reference words), requiring every narration input. One recognizer can mishear speech, and literal number spellings remain differences. This is not acoustic adjudication. Controls remain separate unranked cases. Subjective pronunciation, speaker identity, emotion, seams/prosody, audible-control and perceptual ratings are excluded and unscored at the user’s instruction; see tts/assessment.md and its checksummed evidence archive.",
+          "Historical OpenAI benchmark costs retain their original character-based estimate and have not been retrospectively corrected to native text/audio-token billing. Recorded costs are not observed native billing receipts."
         ],
         "notes": [
           "Audio and evidence links are relative. Audio playback requires the retained local recordings. Refreshing this page makes no provider calls and does not alter benchmark artifacts."

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { buildTtsDashboard, collectTtsDashboardSamples } from '../../../../.codex/skills/consensus/scripts/tts/build_tts_dashboard'
+import { buildTtsDashboard, collectTtsDashboardSamples, readTtsAssessment, TTS_ASSESSMENT_EVIDENCE } from '../../../../.codex/skills/consensus/scripts/tts/build_tts_dashboard'
 import type { CombinedDashboardModel } from '../../../../.codex/skills/consensus/scripts/shared/combined_report_html'
 import { renderTabPanel } from '../../../../.codex/skills/consensus/scripts/shared/dashboard_client.js'
 import { TTS_DASHBOARD_EVIDENCE } from '../../../../.codex/skills/consensus/scripts/tts/retained_tts_evidence'
@@ -17,6 +17,129 @@ const writeJson = (path: string, value: unknown) => {
   writeFileSync(path, bytes)
   return sha256(bytes)
 }
+
+test('TTS assessment uses word-weighted corpus edits and rejects stale, unbound, incomplete or invalid scores', async () => {
+  await withTempDir('tts-dashboard-assessment-', async dir => {
+    const root = join(dir, 'tts'), stage = join(dir, 'evidence')
+    const first = fixture(root, '01-short'), second = fixture(root, '02-long')
+    const samples = collectTtsDashboardSamples(root)
+    mkdirSync(stage, { recursive: true })
+    const sourceFiles = ['01-short/manifest.json', `01-short/${first.audioRef.path}`, '02-long/manifest.json', `02-long/${second.audioRef.path}`]
+    const sources = sourceFiles.map(path => ({ path, scope: 'benchmark', sha256: sha256(readFileSync(join(root, path))) }))
+    const rows = samples.map((sample, i) => ({ run: sample.run, suite: sample.suite, providerKey: sample.providerKey,
+      audioSha256: i === 0 ? first.audioRef.sha256 : second.audioRef.sha256, transcript: `transcript-${i}.txt`, transcriptSha256: sha256(Buffer.from('exact retained transcript')),
+      humanSpeechScore: null, cer: 0.1, comparison: { referenceWords: i === 0 ? 2 : 8, substitutions: i === 0 ? 1 : 0, deletions: 0, insertions: 0, wer: i === 0 ? 0.5 : 0 } }))
+    const evidence = { schemaVersion: 1, sources, rows }
+    const archive = (value: unknown = evidence) => {
+      writeFileSync(join(stage, 'assessment.json'), JSON.stringify(value))
+      for (let i = 0; i < rows.length; i++) writeFileSync(join(stage, `transcript-${i}.txt`), 'exact retained transcript')
+      const names = ['assessment.json', ...rows.map(row => row.transcript)]
+      writeFileSync(join(stage, 'SHA256SUMS'), names.map(name => `${sha256(readFileSync(join(stage, name)))}  ${name}`).join('\n') + '\n')
+      const next = join(dir, 'next.zip')
+      if (existsSync(next)) unlinkSync(next)
+      const zip = Bun.spawnSync(['zip', '-q', next, ...names, 'SHA256SUMS'], { cwd: stage })
+      expect(zip.exitCode).toBe(0)
+      writeFileSync(join(root, TTS_ASSESSMENT_EVIDENCE), readFileSync(next))
+    }
+    archive()
+    const result = buildTtsDashboard(root)
+    expect(result.dashboardModel.groups[0]!.providers[0]!.quality.value).toBe(90) // 1/10 edits, not mean(50%, 100%).
+    expect(result.dashboardModel.groups[0]!.providers[0]!.evidence[3]).toBe('Excluded/unscored')
+    expect(result.dashboardModel.sampleTables![0]!.rows[0]![12]!.display).toBe('50.00%')
+    expect(result.dashboardModel.methodParagraphs.join(' ')).toContain('excluded and unscored')
+    archive({ ...evidence, rows: rows.slice(0, 1) })
+    expect(() => readTtsAssessment(root, samples)).toThrow('incomplete')
+    archive({ ...evidence, rows: [{ ...rows[0], cer: -1 }, rows[1]] })
+    expect(() => readTtsAssessment(root, samples)).toThrow('Invalid TTS assessment result')
+    archive({ ...evidence, rows: [{ ...rows[0], audioSha256: 'a'.repeat(64) }, rows[1]] })
+    expect(() => readTtsAssessment(root, samples)).toThrow('Unbound')
+    archive({ ...evidence, rows: [{ ...rows[0], comparison: { ...rows[0]!.comparison, wer: 0.2 } }, rows[1]] })
+    expect(() => readTtsAssessment(root, samples)).toThrow('Invalid TTS assessment result')
+    archive()
+    writeFileSync(join(root, '01-short/manifest.json'), '{}')
+    expect(() => readTtsAssessment(root, samples)).toThrow('Stale TTS assessment source')
+    writeFileSync(join(root, '01-short/manifest.json'), JSON.stringify(first.manifest))
+    // Recreate the exact source hash after intentionally changing serialization.
+    sources[0]!.sha256 = sha256(readFileSync(join(root, '01-short/manifest.json')))
+    archive()
+    unlinkSync(join(first.runDir, first.audioRef.path))
+    expect(readTtsAssessment(root, samples)).toHaveLength(2) // Transferred metadata may omit ignored audio.
+    writeFileSync(join(first.runDir, first.audioRef.path), 'corrupt waveform')
+    expect(() => readTtsAssessment(root, samples)).toThrow('Stale TTS assessment source')
+    unlinkSync(join(first.runDir, first.audioRef.path))
+    archive({ ...evidence, sources: sources.slice(1) })
+    expect(() => readTtsAssessment(root, samples)).toThrow('Unbound')
+  })
+})
+
+function mixedAssessmentFixture(dir: string, extraSuccess = false) {
+  const root = join(dir, 'tts'), stage = join(dir, 'evidence')
+  const successful = fixture(root, '01-complete'), failed = fixture(root, '02-failed', { status: 'failed' })
+  if (extraSuccess) fixture(root, '03-complete')
+  const samples = collectTtsDashboardSamples(root)
+  const sources = samples.flatMap(sample => sample.status === 'succeeded'
+    ? [sample.manifestHref, sample.audioHref!].map(path => ({ path: path.slice('tts/'.length), scope: 'benchmark', sha256: sha256(readFileSync(join(dir, path))) }))
+    : [])
+  const rows = samples.filter(sample => sample.status === 'succeeded').map(sample => ({
+    run: sample.run, suite: sample.suite, providerKey: sample.providerKey,
+    audioSha256: sha256(readFileSync(join(dir, sample.audioHref!))), transcript: 'transcript.txt', transcriptSha256: sha256(Buffer.from('exact retained transcript')),
+    humanSpeechScore: null, cer: 0, comparison: { referenceWords: 3, substitutions: 0, deletions: 0, insertions: 0, wer: 0 }
+  }))
+  const archive = (assessedRows = rows, boundSources = sources) => {
+    mkdirSync(stage, { recursive: true })
+    writeFileSync(join(stage, 'assessment.json'), JSON.stringify({ schemaVersion: 1, sources: boundSources, rows: assessedRows }))
+    writeFileSync(join(stage, 'transcript.txt'), 'exact retained transcript')
+    const names = ['assessment.json', 'transcript.txt']
+    writeFileSync(join(stage, 'SHA256SUMS'), names.map(name => `${sha256(readFileSync(join(stage, name)))}  ${name}`).join('\n') + '\n')
+    const path = join(root, TTS_ASSESSMENT_EVIDENCE)
+    if (existsSync(path)) unlinkSync(path)
+    const zip = Bun.spawnSync(['zip', '-q', path, ...names, 'SHA256SUMS'], { cwd: stage })
+    expect(zip.exitCode).toBe(0)
+  }
+  return { root, successful, failed, samples, sources, rows, archive }
+}
+
+test('archive-backed TTS assessments cover successful recordings while failed benchmark rows stay visible and unranked', async () => {
+  await withTempDir('tts-dashboard-mixed-assessment-', async dir => {
+    const { root, samples, rows, archive } = mixedAssessmentFixture(dir)
+    archive()
+    expect(readTtsAssessment(root, samples)).toEqual(rows)
+    const result = buildTtsDashboard(root)
+    expect(result.samples.map(sample => sample.status)).toEqual(['succeeded', 'failed'])
+    const provider = result.dashboardModel.groups[0]!.providers[0]!
+    expect(provider.coverage).toBe('1/2')
+    for (const metric of ['quality', 'speed', 'cost'] as const) expect(provider[metric]).toMatchObject({ value: null, rank: null })
+    expect(provider.perRun?.map(row => row.display)).toEqual(['100.00% ASR', 'n/a'])
+    const table = result.dashboardModel.sampleTables![0]!
+    expect(table.rows[0]![12]!.display).toBe('0.00%')
+    expect(table.rows[0]![13]!.display).toBe('ASR screening; subjective unscored')
+    expect(table.rows[1]![2]!.display).toBe('failed')
+    expect(table.rows[1]![12]!.display).toBe('Unavailable')
+    expect(table.rows[1]![13]).toEqual({ display: 'Unavailable' })
+  })
+})
+
+test('archive-backed TTS assessments reject missing successful recordings, duplicate rows and nonmatching targets', async () => {
+  await withTempDir('tts-dashboard-missing-assessment-', async dir => {
+    const { root, samples, rows, archive } = mixedAssessmentFixture(dir, true)
+    archive(rows.slice(0, 1))
+    expect(() => readTtsAssessment(root, samples)).toThrow('incomplete')
+    archive([rows[0]!, rows[0]!])
+    expect(() => readTtsAssessment(root, samples)).toThrow('Invalid TTS assessment result')
+    archive([rows[0]!, { ...rows[1]!, providerKey: 'nonmatching/model' }])
+    expect(() => readTtsAssessment(root, samples)).toThrow('Invalid TTS assessment result')
+  })
+})
+
+test('archive-backed TTS assessments reject failed targets even when their source and transcript hashes are valid', async () => {
+  await withTempDir('tts-dashboard-failed-assessment-', async dir => {
+    const { root, failed, samples, rows, sources, archive } = mixedAssessmentFixture(dir)
+    const failedRow = { ...rows[0]!, run: '02-failed', audioSha256: failed.audioRef.sha256 }
+    const failedSources = ['02-failed/manifest.json', `02-failed/${failed.audioRef.path}`].map(path => ({ path, scope: 'benchmark', sha256: sha256(readFileSync(join(root, path))) }))
+    archive([failedRow], [...sources, ...failedSources])
+    expect(() => readTtsAssessment(root, samples)).toThrow('Invalid TTS assessment result')
+  })
+})
 
 // Independent compact/expanded manifest fixtures. No synthesis transport is involved.
 function fixture(root: string, run: string, options: {

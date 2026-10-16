@@ -11,10 +11,7 @@ import {
 } from '~/cli/commands/text/url/url-provider-registry'
 import { processUrlArticle } from '~/cli/commands/text/url/process-url'
 import { runOcr } from '~/cli/commands/text/ocr/run-ocr'
-import { runFirecrawlUrl } from '~/cli/commands/text/url/url-services/firecrawl/run-firecrawl-url'
-import { runGlmReaderUrl } from '~/cli/commands/text/url/url-services/glm-reader/run-glm-reader-url'
 import { runSpiderUrl } from '~/cli/commands/text/url/url-services/spider/run-spider-url'
-import { runSupadataUrl } from '~/cli/commands/text/url/url-services/url-supadata/run-supadata-url'
 import { runZyteUrl } from '~/cli/commands/text/url/url-services/zyte/run-zyte-url'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
@@ -24,10 +21,8 @@ import { writeFakeDefuddleBinIn } from '../../../../../test-utils/fixtures/fake-
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../../test-utils/rest-contract-helpers'
 
 const envKeys = [
-  'FIRECRAWL_API_KEY',
   'GLM_API_KEY',
   'SPIDER_API_KEY',
-  'SUPADATA_API_KEY',
   'ZYTE_API_KEY',
   'AUTOSHOW_DEFUDDLE_ARGS_LOG',
   'AUTOSHOW_FAKE_DEFUDDLE_MODE',
@@ -122,11 +117,8 @@ export {
   installMockFetch,
   join,
   processUrlArticle,
-  runFirecrawlUrl,
-  runGlmReaderUrl,
   runOcr,
   runSpiderUrl,
-  runSupadataUrl,
   runUrlArticleProviderWithStats,
   runZyteUrl,
   URL_ARTICLE_BACKENDS,

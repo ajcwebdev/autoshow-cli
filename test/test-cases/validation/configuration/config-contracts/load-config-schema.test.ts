@@ -25,7 +25,7 @@ describe('config load schema contracts', () => {
             deepgramStt: ['nova-3']
           },
           url: {
-            provider: 'firecrawl'
+            provider: 'spider'
           },
           ocr: {
             providerConcurrency: 3,
@@ -94,12 +94,12 @@ describe('config load schema contracts', () => {
   test('loadConfig names the provider-general replacement for each renamed option key', async () => {
     const ttsStability = await writeTempConfig({ defaults: { tts: { elevenlabsTtsStability: 0.4 } } })
     const ttsDictionary = await writeTempConfig({ defaults: { tts: { elevenlabsTtsPronunciationDictionaryLocators: ['dict_1'] } } })
-    const sttLanguage = await writeTempConfig({ defaults: { extract: { stt: { supadataLang: 'es' } } } })
+    const sttLanguage = await writeTempConfig({ defaults: { extract: { stt: { scrapecreatorsLang: 'es' } } } })
     const sttResponseFormat = await writeTempConfig({ defaults: { extract: { stt: { deepinfraResponseFormat: 'srt' } } } })
 
     await expect(loadConfig(ttsStability)).rejects.toThrow('elevenlabsTtsStability (use stability)')
     await expect(loadConfig(ttsDictionary)).rejects.toThrow('elevenlabsTtsPronunciationDictionaryLocators (use pronunciationDictionary)')
-    await expect(loadConfig(sttLanguage)).rejects.toThrow('supadataLang (use language)')
+    await expect(loadConfig(sttLanguage)).rejects.toThrow('scrapecreatorsLang (use language)')
     await expect(loadConfig(sttResponseFormat)).rejects.toThrow('deepinfraResponseFormat (use responseFormat)')
   })
 

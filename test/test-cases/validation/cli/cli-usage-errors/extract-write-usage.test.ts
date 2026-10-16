@@ -50,7 +50,7 @@ test('resume rejects public --url-provider on extract resume', () => {
 
 test('extract rejects invalid URL article backend names', () => {
   expect(() => buildOptsFromFlags({ 'url-provider': 'browserless' }))
-    .toThrow('Invalid --url-provider value "browserless". Expected "defuddle", "firecrawl", "glm-reader", "spider", "supadata", or "zyte".')
+    .toThrow('Invalid --url-provider value "browserless". Expected "defuddle", "spider", or "zyte".')
 })
 
 test('extract rejects unsupported ScrapeCreators STT modes', () => {

@@ -12,7 +12,7 @@ bun autoshow resume <outputDirs...> [flags]
 ## Behavior
 
 - Supported targets: `extract` (STT, OCR, URL article), write LLM, TTS, image, video, music, and comic scene runs.
-- For standalone runs, `resume` retries missing or failed providers and adds any `--provider` / `--all-providers` / `--all-local` selections. Already-successful providers are skipped. Write LLM resume requires explicit `--provider` or `--all-providers`.
+- For standalone runs, `resume` retries missing or failed providers and adds any `--provider` / `--all-providers` / `--all-local` selections. Already-successful providers are skipped. Write LLM resume runs only explicit `--provider` or `--all-providers` selections; omitting them is a no-op.
 - Successful outputs are kept if some providers fail.
 - A split STT provider keeps each finished segment in `split-attempts/`. A recovery pass or a later `resume` that plans the same segment from the same audio, model, and options reuses it, so only unfinished segments are sent again.
 - Multiple directories are processed sequentially with the same flags. Per-directory failures do not stop later directories; all failures are reported at the end.
@@ -41,24 +41,94 @@ Automatic OCR resume skips providers that failed with a non-retryable error such
 
 Resume rejects provider-named option flags such as `--elevenlabs-tts-stability` or `--replicate-video-seed`. Use the provider-general spelling where one exists (`--tts-stability elevenlabs=0.4`), set the value under `defaults` in `config/autoshow.json`, or rerun the original command.
 
-## Examples
+## Create the runs used below
+
+Run these commands from the repository root after local setup. The examples use a fresh `output/resume-example` workspace. The preparation command refuses an existing workspace; choose another name throughout if it already exists. It creates source inputs and catalogs. Normal AutoShow commands create every manifest below.
 
 ```bash
-bun autoshow resume ./output/2026-04-22_12-00-00-000_item
+bun --no-env-file - <<'JS'
+import { mkdir, readFile, writeFile, copyFile } from 'node:fs/promises'
+import { constants } from 'node:fs'
+const root = 'output/resume-example'
+await mkdir('output', { recursive: true })
+await mkdir(root)
+await mkdir(root + '/batch-inputs')
+const article = await readFile('input/examples/document/harborlight-article.html', 'utf8')
+await writeFile(root + '/batch-inputs/01-morning.html', article, { flag: 'wx' })
+await writeFile(root + '/batch-inputs/02-review.html', article.replaceAll('A day of observations at Harborlight', 'Harborlight: a second reading'), { flag: 'wx' })
+await mkdir(root + '/comic-inputs')
+await mkdir(root + '/comic-inputs/characters')
+await mkdir(root + '/comic-inputs/locations')
+await copyFile('input/examples/comic/harborlight-camp--style-seed.png', root + '/comic-inputs/characters/style-seed.png', constants.COPYFILE_EXCL)
+await writeFile(root + '/comic-inputs/characters/characters-reference.json', JSON.stringify({ schemaVersion: 3, characters: [], groupAliases: [] }), { flag: 'wx' })
+await writeFile(root + '/comic-inputs/locations/locations-reference.json', JSON.stringify({ schemaVersion: 1, styleImage: '../characters/style-seed.png', locations: [{ key: 'harbor', name: 'Harbor', aliases: [], specification: 'A quiet pier facing a stone lighthouse across calm water.', sourceScripts: [root + '/comic-inputs/scene.md'] }] }), { flag: 'wx' })
+await writeFile(root + '/comic-inputs/scene.md', '# Episode 99: Harborlight recovery\n\n## Harbor watch\n\n**EXT. HARBOR – EVENING**\n\nA beacon sweeps across the empty pier. A folded map rests beside a teal mug. The water catches the light and settles again.\n', { flag: 'wx' })
+await writeFile(root + '/empty-config.json', '{}\n', { flag: 'wx' })
+JS
+```
 
-bun autoshow resume ./output/2026-04-22_12-00-00-000_batch
+The comic scene has no characters or dialogue, so its cast catalog is empty. Its populated location catalog and style image are real inputs. This local structure example checks recovery readiness; it does not request image, voice, audio, or slideshow work.
 
-bun autoshow resume ./output/run-a ./output/run-b ./output/run-c --provider gemini=gemini-3.5-flash-lite
+### Local item, batch, and document runs
 
-bun autoshow resume ./output/run-a ./output/run-b --provider deepinfra --price
+These commands need the local extraction tools installed by `setup`. They make no hosted calls. Each destination must be unused before its creation command.
 
-bun autoshow resume ./output/2026-04-22_*_run --all-providers
+```bash
+bun autoshow extract input/examples/document/harborlight-article.html --output-dir output/resume-example/article --config-path output/resume-example/empty-config.json
+bun autoshow extract output/resume-example/batch-inputs --batch-limit all --output-dir output/resume-example/batch --config-path output/resume-example/empty-config.json
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider tesseract --no-chapters --output-dir output/resume-example/document --config-path output/resume-example/empty-config.json
+```
 
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-local
+The item and document destinations contain `manifest.json` and nonempty `extraction.txt`. The batch destination contains a parent `manifest.json` linking the two article items through its child manifest. Pass the parent directory to resume; preserve its links and child directories.
 
-bun autoshow resume ./output/2026-06-10_16-33-20-777_write \
-  --provider together=kimi-k3 \
-  --provider glm=glm-5.3-flash
+All paths below are artifacts of the preceding commands. Completed extraction is reused. A shared selector must fit every directory: `defuddle` applies to the article item and batch, while `tesseract` applies to the document.
+
+```bash
+bun autoshow resume output/resume-example/article --price
+bun autoshow resume output/resume-example/article
+bun autoshow resume output/resume-example/article --provider defuddle --price
+bun autoshow resume output/resume-example/batch --price
+bun autoshow resume output/resume-example/batch
+bun autoshow resume output/resume-example/article output/resume-example/batch --provider defuddle --price
+bun autoshow resume output/resume-example/document --provider tesseract --price
+bun autoshow resume output/resume-example/document --all-local --price
+```
+
+`--all-local` selects the registered local document engines, currently Tesseract. It does not install tools or download models, and a zero provider price does not measure extraction quality. Local HTML always uses Defuddle and skips hosted article backends. The following document plans add hosted OCR and can cost money when executed. Inspect them without dispatch first:
+
+```bash
+bun autoshow resume output/resume-example/document --provider deepinfra=google/gemma-4-31B-it --price
+bun autoshow resume output/resume-example/document --all-providers --price
+```
+
+When substituting your own runs, use actual manifest directories. Timestamped paths and shell globs refer to prior-run artifacts. A wildcard can also match input folders or incompatible commands; prefer an explicit compatible directory list after inspecting it.
+
+### Write output and a real incomplete provider
+
+Write uses hosted LLMs. Configure Together and GLM credentials and review the upstream estimate before running it. The price command does not create the subsequent write manifest.
+
+```bash
+bun autoshow write input/examples/document/harborlight-field-notes.md --provider together=kimi-k3 --provider glm=glm-5.3-flash --prompt shortSummary --price --config-path output/resume-example/empty-config.json
+bun autoshow write input/examples/document/harborlight-field-notes.md --provider together=kimi-k3 --provider glm=glm-5.3-flash --prompt shortSummary --output-dir output/resume-example/write --config-path output/resume-example/empty-config.json
+```
+
+The upstream run creates `output/resume-example/write/manifest.json`, a source snapshot, `prompt.md`, and successful provider JSON outputs. If one provider actually fails after another succeeds, the run retains the successful output and records the incomplete target. Initial write can exit successfully with a partial-failure warning, so inspect the manifest's item and provider statuses instead of relying on its exit code. Fix the reported provider cause, preserve the source snapshot and prompt, then inspect and retry that existing run:
+
+```bash
+bun autoshow resume output/resume-example/write --provider together=kimi-k3 --provider glm=glm-5.3-flash --price
+bun autoshow resume output/resume-example/write --provider together=kimi-k3 --provider glm=glm-5.3-flash
+```
+
+The selected successful provider is reused; only the missing selected output is requested. If both already succeeded, this is a no-op. Do not delete outputs, edit manifest status, or make an empty directory to manufacture a backfill. Write resume only runs explicit provider selections; omitting them leaves incomplete write targets untouched.
+
+When all requested providers fail, the failed manifest, prompt, and source snapshot are retained. Named-preset retries use a fresh token estimate from the saved source and prepared prompt when there is no successful usage history. A custom prompt-file-only run or JSON leaf prompt-file run stops locally during resume when its original structured schema cannot be restored, including partial runs. Preserve it and start a new write with that prompt file. An ordinary named preset combined with a recorded plaintext prompt file remains supported.
+
+The retry quote covers additional work. A failed request without a valid output may already have been charged. Keep historical receipts and successful outputs, and include possible charges for both the original request and its retry in cumulative spending.
+
+This local regression creates an actual write run through the CLI, gives one provider a controlled failed HTTP response, and resumes the incomplete slot through the CLI. It verifies manifest behavior and preservation of the first output. Transport is mocked; hosted text quality is not tested. Only the test's fresh temporary workspaces are removed.
+
+```bash
+bun test test/test-cases/validation/resume-manifests/documented-resume-workflows.test.ts
 ```
 Comic directories accept `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`, and the global logging and JSON flags (`--json`, `--quiet`, `--verbose`, `--color` / `--no-color`, `--log-level`). Recorded concurrency is restored. The controls below apply to standalone and extract runs.
 
@@ -73,11 +143,16 @@ Comic directories accept `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`,
 
 ## Comic Recovery
 
+Create a comic scene manifest from the local character-free scene prepared above. Omit `--provider` so structure parsing stays local. Keep its source script and catalog workspace available.
+
 ```bash
-bun autoshow resume ./output/comic-run --price
-bun autoshow resume ./output/comic-run --price --json
-bun autoshow resume ./output/comic-run
+bun autoshow comic draft-scenes output/resume-example/comic-inputs/scene.md --only structure --characters-root output/resume-example/comic-inputs/characters --output-dir output/resume-example/comic --config-path output/resume-example/empty-config.json
+bun autoshow resume output/resume-example/comic --price
+bun autoshow resume output/resume-example/comic --price --json
+bun autoshow resume output/resume-example/comic
 ```
+
+The upstream command produces `metadata/structured-script.json` and a nonempty canonical `manifest.json`. The price plan is ready with zero provider cost and image, audio, and presentation marked `not-requested`. Resume is a no-op; it does not infer requests for those stages. A full comic backfill requires a prior stage command that recorded its exact generation choices; the [comic workflow](../05-visuals/comic/00-comic-overview.md) documents those separate prerequisites.
 Recovery continues requested image, audio, and presentation work, in that order, using the choices recorded in the original run. Current configuration defaults never select replacement providers. A `--max-generation-slots` limit is not restored; resume finishes the remaining audio slots. Completed compatible runs are no-ops, and unrequested stages remain unrequested.
 
 `--price` inspects the run without provider calls or writes. Each stage is marked `reuse`, `resume`, `not-requested`, `blocked`, or `after-audio`. With `--json`, check `comicPlans` and `ready` before running the same directory. A blocked plan can be inspected (`ready: false`), but its total covers only work that could be priced. Execution refuses a blocked plan. Invalid manifests or missing source files fail inspection.

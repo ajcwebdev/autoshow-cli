@@ -45,13 +45,35 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 ### Examples
 
+The [main Harborlight setup](./00-comic-overview.md#setup) already supplies original front-view cast drawings and a registered original establishing location image. It needs no hosted reference purchase. Those drawings are original designs, not generated turnarounds.
+
+These five examples are **optional reference variants**. First prepare a separate unused workspace, reset the variables below in that shell, and include the selected generation/QA/repairs in the [cumulative estimate](./00-comic-overview.md#cumulative-estimate). Do not replace references in the reviewed main run.
+
 ```bash
-bun autoshow comic reference-sketch --character hero
-bun autoshow comic reference-sketch --character sidekick --price
-bun autoshow comic reference-sketch --character hero --revise --notes "Correct the eye shape"
-bun autoshow comic reference-sketch --location cargo-bay
-bun autoshow comic reference-sketch --location cargo-bay --view reverse
+bun --no-env-file src/tools/prepare-harborlight-comic.ts --root runtime/examples/harborlight-comic-references
+ROOT=runtime/examples/harborlight-comic-references
+SCRIPT="$ROOT/02-script/01-harborlight-camp.md"
+CAST="$ROOT/characters"
+RUN="$ROOT/run"
+CONFIG="$ROOT/empty-config.json"
 ```
+
+Generate Papa Bear's optional turnaround, quote Mira's equivalent, or deliberately revise the generated Papa Bear sheet. The revision example requires the first generation to have completed and been inspected; it is not a required second purchase.
+
+```bash
+bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --character mira --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2 --revise --notes "Keep the original adult human face, gray beard, and rust-orange coat consistent across all three views" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+```
+
+The original establishing view is already registered, so a plain establishing request would reuse it for $0. To price a deliberate hosted replacement, use `--revise`; a reverse view can use the original establishing reference directly. A reverse generated from `existing-canonical-art` has mixed lineage, which is retained in metadata. Neither command proves a new camera view exists until actual generation, validation and registration succeed.
+
+```bash
+bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --provider openai=gpt-image-2 --revise --notes "Preserve the fixed fire ring, bench, north path, and two pine trees; keep the campsite empty" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --view reverse --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+```
+
+After accepting any replacement, inspect it and rebuild scene reference snapshots/panel prompts in that variant workspace. Return all five variables to the main setup before continuing the main walkthrough.
 
 ### Behavior
 

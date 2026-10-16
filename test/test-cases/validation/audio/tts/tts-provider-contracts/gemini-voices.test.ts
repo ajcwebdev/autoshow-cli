@@ -7,12 +7,12 @@ import { createAdvancedVoiceCandidates } from '~/cli/commands/audio/voice/advanc
 import { assertGeminiVoiceAvailable, geminiVoiceExpiry } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-voice-availability'
 import { validateGeminiReferenceRecording } from '~/cli/commands/audio/voice/voice-assets/gemini-reference-audio-preflight'
 import { setupTtsContractLifecycle } from './shared'
-import { FLASH, LITE, wav, unary } from './gemini-fixtures'
+import { FLASH, LITE, wav, unary, usage } from './gemini-fixtures'
 import { createSyntheticWavBytes } from '../../../../../test-utils/media-fixtures'
 import type { AdvancedProviderHttpRequest, ProviderVoiceCloneRequest, ProviderVoiceDesignRequest } from '~/types'
 const { makeTempDir } = setupTtsContractLifecycle()
 const date = '2026-09-24T00:00:00.000Z'
-const voice = (id = 'voice_test') => ({ id, type: 'prompted', display_name: 'Narrator', model: LITE, create_time: date, sample_audio: { mime_type: 'audio/wav', data: wav.toString('base64') } })
+const voice = (id = 'voice_test') => ({ id, type: 'prompted', display_name: 'Narrator', model: LITE, create_time: date, expire_time: '2027-09-24T00:00:00.000Z', sample_audio: { mime_type: 'audio/wav', data: wav.toString('base64') } })
 const design: ProviderVoiceDesignRequest = { description: 'Warm documentary narrator.', desiredName: 'Narrator', creationModel: LITE, previewText: '', candidateCount: 1 }
 type RequestHandler = (input: Parameters<AdvancedProviderHttpRequest>[0]) => Promise<unknown>
 const jsonRequest = (handler: RequestHandler): AdvancedProviderHttpRequest => async <T>(input: Parameters<AdvancedProviderHttpRequest>[0]) => await handler(input) as T
@@ -68,13 +68,44 @@ test('returned resource is journaled before corrupt preview validation and can b
   expect(posts).toBe(1)
 })
 
+for (const { label, metadata, error } of [
+  { label: 'numeric', metadata: { expire_time: 42 }, error: 'Invalid Gemini voice expiry' },
+  { label: 'object', metadata: { expire_time: {} }, error: 'Invalid Gemini voice expiry' },
+  { label: 'invalid date', metadata: { expire_time: 'invalid' }, error: 'Invalid Gemini voice expiry' },
+  { label: 'conflicting aliases', metadata: { expires_at: '2028-09-24T00:00:00.000Z' }, error: 'Conflicting Gemini voice expiry' },
+]) test(`returned resource survives ${label} expiry and reconciles by GET without another creation`, async () => {
+  const calls: Array<{ method: string, path: string }> = []
+  const fixture = await setup(async input => {
+    calls.push({ method: input.method, path: input.path })
+    return input.method === 'POST' ? { ...voice(), usage, ...metadata } : voice()
+  })
+  await expect(fixture.provider.design!.createCandidate(design)).rejects.toThrow(error)
+  const journalPath = join(fixture.creationJournalRoot, (await readdir(fixture.creationJournalRoot)).find(name => /^[a-f0-9]{64}\.json$/.test(name))!)
+  expect(await Bun.file(journalPath).json()).toMatchObject({
+    state: 'created', resourceId: 'voice_test', creationUsage: { textTokens: 30, audioTokens: 8 },
+  })
+  expect(calls).toEqual([{ method: 'POST', path: '/v1beta/voices' }])
+
+  const recovered = await fixture.provider.design!.createCandidate(design)
+  expect(recovered.previews[0]).toMatchObject({ providerCandidateId: 'voice_test', expiresAt: voice().expire_time })
+  expect(Buffer.from(recovered.previews[0]!.audioBase64!, 'base64')).toEqual(Buffer.from(wav))
+  expect(await Bun.file(journalPath).json()).toMatchObject({ state: 'created', resourceId: 'voice_test', expiresAt: voice().expire_time })
+  const saved = await fixture.provider.design!.materializeCandidate({ providerCandidateId: 'voice_test', desiredName: 'Narrator', localAttemptId: 'save-recovered' })
+  expect(saved.providerVoice).toMatchObject({ resourceId: 'voice_test', ownership: 'project' })
+  expect(calls).toEqual([
+    { method: 'POST', path: '/v1beta/voices' },
+    { method: 'GET', path: '/v1beta/voices/voice_test' },
+    { method: 'GET', path: '/v1beta/voices/voice_test' },
+  ])
+})
+
 test('catalog pagination distinguishes stock and stored voices and rejects shared libraries', async () => {
   const calls: unknown[] = []
   const fixture = await setup(async input => { calls.push(input); return { voices: [{ id: 'Kore', type: 'prebuilt' }, voice()], next_page_token: 'next-page' } })
   const account = await fixture.provider.catalog!.list({ source: 'account', cursor: 'previous' })
   expect(account.entries.map(entry => entry.resourceId)).toEqual(['voice_test'])
   expect(account.nextCursor).toBe('next-page')
-  expect(account.entries[0]).toMatchObject({ origin: 'designed', expiresAt: '2027-09-24T00:00:00.000Z', modelIds: [LITE] })
+  expect(account.entries[0]).toMatchObject({ origin: 'designed', expiresAt: '2027-09-24T00:00:00.000Z', modelIds: expect.arrayContaining([FLASH, LITE]) })
   const stock = await fixture.provider.catalog!.list({ source: 'provider-library' })
   expect(stock.entries.map(entry => entry.resourceId)).toEqual(['Kore'])
   await expect(fixture.provider.catalog!.list({ source: 'shared-library' })).rejects.toThrow('shared-library')
@@ -87,8 +118,8 @@ test('seed/remix reject without dispatch; model and expiry validation block unav
   await expect(fixture.provider.design!.createCandidate({ ...design, seed: 1 })).rejects.toThrow('seed')
   await expect(fixture.provider.design!.createCandidate({ ...design, creationModel: 'unknown' })).rejects.toThrow()
   expect(calls).toBe(0)
-  expect(geminiVoiceExpiry({ create_time: date })).toBe('2027-09-24T00:00:00.000Z')
-  expect(() => assertGeminiVoiceAvailable(voice(), 'voice_test', FLASH, new Date(date))).toThrow('incompatible')
+  expect(geminiVoiceExpiry({ create_time: date })).toBeUndefined()
+  expect(() => assertGeminiVoiceAvailable(voice(), 'voice_test', FLASH, new Date(date))).not.toThrow()
   expect(() => assertGeminiVoiceAvailable({ ...voice(), expire_time: '2026-09-01T00:00:00Z' }, 'voice_test', LITE, new Date(date))).toThrow('expired')
 })
 

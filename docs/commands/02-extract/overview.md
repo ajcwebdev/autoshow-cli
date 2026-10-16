@@ -20,20 +20,20 @@ For backfilling missing provider outputs from an existing run or batch, see [`re
 
 ## Input Routing
 
-| Input                                                                                               | Route                                                                                                                                                              |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| YouTube, Twitch, or TikTok URLs                                                                     | [STT](./stt/overview.md) by default; [URL transcripts](./url/overview.md#public-media-url-transcripts) for Supadata (YouTube, TikTok) and ScrapeCreators (YouTube) |
-| Direct media URLs (`.mp3`, `.mp4`, `.wav`, `.webm`, and other audio/video extensions)               | [STT](./stt/overview.md) by default; [URL transcripts](./url/overview.md#public-media-url-transcripts) for supported public URLs                                   |
-| Local media files                                                                                   | [STT](./stt/overview.md)                                                                                                                                           |
-| RSS or podcast feed batches                                                                         | [STT](./stt/overview.md)                                                                                                                                           |
-| YouTube channel or playlist batches                                                                 | [STT](./stt/overview.md)                                                                                                                                           |
-| PDF, EPUB, convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT), DOCX, PPTX, XLSX, ODF, RTF, CSV, CBZ | [OCR](./ocr/overview.md)                                                                                                                                           |
-| PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF                                                           | [OCR](./ocr/overview.md)                                                                                                                                           |
-| Remote article URLs                                                                                 | [URL / HTML extraction](./url/overview.md)                                                                                                                         |
-| Local `.html` / `.htm` files                                                                        | [URL / HTML extraction](./url/overview.md)                                                                                                                         |
-| X/Twitter Space URLs, post URLs, and raw Space IDs                                                  | [X Space metadata](./url/overview.md#x-space-path)                                                                                                                 |
-| Directory batches                                                                                   | Mixed routing per discovered item                                                                                                                                  |
-| URL-list batches (`.md` / `.txt`)                                                                   | Mixed routing per listed URL                                                                                                                                       |
+| Input                                                                                               | Route                                                                                                                               |
+| --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| YouTube, Twitch, or TikTok URLs                                                                     | [STT](./stt/overview.md) by default; [URL transcripts](./url/overview.md#public-media-url-transcripts) for ScrapeCreators (YouTube) |
+| Direct media URLs (`.mp3`, `.mp4`, `.wav`, `.webm`, and other audio/video extensions)               | [STT](./stt/overview.md) by default; [URL transcripts](./url/overview.md#public-media-url-transcripts) for supported public URLs    |
+| Local media files                                                                                   | [STT](./stt/overview.md)                                                                                                            |
+| RSS or podcast feed batches                                                                         | [STT](./stt/overview.md)                                                                                                            |
+| YouTube channel or playlist batches                                                                 | [STT](./stt/overview.md)                                                                                                            |
+| PDF, EPUB, convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, LIT), DOCX, PPTX, XLSX, ODF, RTF, CSV, CBZ | [OCR](./ocr/overview.md)                                                                                                            |
+| PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF                                                           | [OCR](./ocr/overview.md)                                                                                                            |
+| Remote article URLs                                                                                 | [URL / HTML extraction](./url/overview.md)                                                                                          |
+| Local `.html` / `.htm` files                                                                        | [URL / HTML extraction](./url/overview.md)                                                                                          |
+| X/Twitter Space URLs, post URLs, and raw Space IDs                                                  | [X Space metadata](./url/overview.md#x-space-path)                                                                                  |
+| Directory batches                                                                                   | Mixed routing per discovered item                                                                                                   |
+| URL-list batches (`.md` / `.txt`)                                                                   | Mixed routing per listed URL                                                                                                        |
 
 With no `--provider` selection, media uses local whisperfile `tiny`, PDFs and images use local Tesseract, and remote articles use local `defuddle`. Local HTML files always use `defuddle`. X/Twitter inputs produce metadata rather than a transcript.
 
@@ -63,8 +63,17 @@ A batch can mix media URLs, article URLs, document URLs, X/Twitter links, and lo
 ```bash
 bun autoshow extract input/examples/batch/2-urls.md --batch-limit all
 bun autoshow extract input/examples/document --batch-limit all
-bun autoshow extract https://www.youtube.com/@channelname --batch-limit all
 ```
+
+For a YouTube channel or playlist, supply a real public URL you can access. This is a template: replace the value before running it. Install `yt-dlp` with `setup` and follow the [cookies guide](../00-setup-and-utilities/cookies.md) if YouTube challenges the request. Start with one item so you can inspect the discovered source before expanding the batch.
+
+```bash
+YOUTUBE_BATCH_URL='<your-public-youtube-channel-or-playlist-url>'
+bun autoshow metadata "$YOUTUBE_BATCH_URL" --batch-limit 1
+bun autoshow extract "$YOUTUBE_BATCH_URL" --batch-limit 1 --price
+```
+
+After the metadata succeeds and you review the estimate, remove `--price` to extract that item. Increase `--batch-limit` deliberately; `all` selects every discovered item. Metadata success does not guarantee a later download or transcript, and price-only output does not check source availability.
 
 Mixed batches write a parent run directory with `media/`, `document/`, `article/`, and `x-space/` child directories for the routes used.
 

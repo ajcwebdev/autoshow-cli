@@ -10,7 +10,7 @@ import { readConfiguredEnvVarSync } from '../../../test-utils/test-helpers'
 import { findUnevaluatedBudgetKeys, shouldSkipBudgetKeys } from '../../../test-utils/budget'
 import { withEnv } from '../../../test-utils/rest-contract-helpers'
 
-for (const [provider, envKey] of Object.entries({ firecrawl: 'FIRECRAWL_API_KEY', 'glm-reader': 'GLM_API_KEY', spider: 'SPIDER_API_KEY', supadata: 'SUPADATA_API_KEY', zyte: 'ZYTE_API_KEY' })) {
+for (const [provider, envKey] of Object.entries({ spider: 'SPIDER_API_KEY', zyte: 'ZYTE_API_KEY' })) {
   test(`doctor selects only ${provider} URL credentials`, () => {
     const config = { defaults: { extract: { url: { provider } } } } as Parameters<typeof getMissingConfiguredHostedProviderCredentials>[1]
     expect(getMissingConfiguredHostedProviderCredentials({}, config).map(spec => spec.envVar)).toEqual([envKey])
@@ -19,10 +19,10 @@ for (const [provider, envKey] of Object.entries({ firecrawl: 'FIRECRAWL_API_KEY'
 }
 
 test('injected destinations never receive ambient keys; explicit keys are normalized', async () => {
-  await withEnv({ FIRECRAWL_API_KEY: 'opaque-synthetic-value' }, async () => {
-    expect(requireHostedUrlProviderApiKey('firecrawl', 'test', false)).toBeUndefined()
-    expect(requireHostedUrlProviderApiKey('firecrawl', 'test', true)).toBe('opaque-synthetic-value')
-    expect(requireHostedUrlProviderApiKey('firecrawl', 'test', false, ' injected ')).toBe('injected')
+  await withEnv({ SPIDER_API_KEY: 'opaque-synthetic-value' }, async () => {
+    expect(requireHostedUrlProviderApiKey('spider', 'test', false)).toBeUndefined()
+    expect(requireHostedUrlProviderApiKey('spider', 'test', true)).toBe('opaque-synthetic-value')
+    expect(requireHostedUrlProviderApiKey('spider', 'test', false, ' injected ')).toBe('injected')
   })
 })
 
@@ -200,10 +200,7 @@ test('Stability and ElevenLabs send normalized credentials through their default
 })
 
 test('all hosted URL transports bind ambient credentials to their default destination', async () => {
-  const { runFirecrawlUrl } = await import('~/cli/commands/text/url/url-services/firecrawl/run-firecrawl-url')
-  const { runGlmReaderUrl } = await import('~/cli/commands/text/url/url-services/glm-reader/run-glm-reader-url')
   const { runSpiderUrl } = await import('~/cli/commands/text/url/url-services/spider/run-spider-url')
-  const { runSupadataUrl } = await import('~/cli/commands/text/url/url-services/url-supadata/run-supadata-url')
   const { runZyteUrl } = await import('~/cli/commands/text/url/url-services/zyte/run-zyte-url')
   const original = globalThis.fetch
   let headers = new Headers()
@@ -213,7 +210,7 @@ test('all hosted URL transports bind ambient credentials to their default destin
     throw new Error('synthetic transport stop')
   }) as unknown as typeof fetch
   try {
-    for (const [envKey, run] of [['FIRECRAWL_API_KEY', runFirecrawlUrl], ['GLM_API_KEY', runGlmReaderUrl], ['SPIDER_API_KEY', runSpiderUrl], ['SUPADATA_API_KEY', runSupadataUrl], ['ZYTE_API_KEY', runZyteUrl]] as const) {
+    for (const [envKey, run] of [['SPIDER_API_KEY', runSpiderUrl], ['ZYTE_API_KEY', runZyteUrl]] as const) {
       await withEnv({ [envKey]: 'opaque-url-secret' }, async () => {
         await expect(run('https://article.invalid', undefined, undefined, 'https://injected.invalid')).rejects.toThrow('synthetic transport stop')
         expect(headers.has('Authorization') || headers.has('x-api-key')).toBe(false)

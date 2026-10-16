@@ -1,6 +1,8 @@
 import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
 import type { AnyCapabilityRecord, AttemptTurn, CanonicalDialogueTurn, CapabilityFixture, ComicDialoguePlan, CreateCurrentTtsRenderAttemptOptions, GenericTtsDialoguePlan, PlannedCost, ProtectedAssetRef, ProviderRenderStrategy, RequestedAudioFormat, ResolvedVoiceBinding, SanitizedProviderError, TtsTarget, TypedProviderSynthesisSettings } from '~/types'
 import { estimateGeminiTtsCost } from '../tts-services/tts-gemini/gemini-tts-pricing'
+import { estimateOpenAITtsCost } from '../tts-services/tts-openai/openai-tts-pricing'
+import { OPENAI_TOKEN_TTS_MODEL } from '../tts-services/tts-openai/openai-tts-request'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { ELEVENLABS_DEFAULT_VOICE_ID } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError, extractErrorMetadata } from '~/utils/error-handler'
@@ -54,9 +56,11 @@ export const sanitizeError = (error: unknown, phase: SanitizedProviderError['pha
   }
 }
 
-export const plannedCost = (target: TtsTarget, characters: number, includeSetup: boolean, speed = target.numericSpeed): PlannedCost => {
+export const plannedCost = (target: TtsTarget, characters: number, includeSetup: boolean, speed = target.numericSpeed, openai?: { text: string, instructions?: string | undefined, legacy?: true | undefined }): PlannedCost => {
   const pricing = getTtsPricing(target.service, target.model)
-  const cents = target.service === 'soniox' ? estimateSonioxTtsCost(characters, speed).totalCost : target.service === 'gemini' ? estimateGeminiTtsCost(target.model, characters, target.transport?.replace('gemini-', '')).totalCost : pricing.costPerRequestCents !== undefined
+  const cents = target.service === 'openai' && target.model === OPENAI_TOKEN_TTS_MODEL
+    ? openai?.legacy ? characters / 1e6 * 1260 : estimateOpenAITtsCost(characters, { speed: speed ?? 1, instructions: openai?.instructions, textBytes: openai ? Buffer.byteLength(openai.text) : undefined, requestCount: 1 }).totalCost
+    : target.service === 'soniox' ? estimateSonioxTtsCost(characters, speed).totalCost : target.service === 'gemini' ? estimateGeminiTtsCost(target.model, characters, target.transport?.replace('gemini-', '')).totalCost : pricing.costPerRequestCents !== undefined
     ? pricing.costPerRequestCents
     : pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
     ? characters / 1e6 * (pricing.inputCostPer1MCharsCents + pricing.outputCostPer1MCharsCents)

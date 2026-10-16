@@ -25,11 +25,17 @@ With neither option, the command writes the HTML review sheet. An empty `--notes
 
 ### Examples
 
+Use the variables and fresh workspace from the [Harborlight setup](./00-comic-overview.md#setup). These examples share the same four-panel scene.
+
+Prerequisite: the reviewed Harborlight scene. A sheet can show a missing-image notice; publishing an illustrated review or generating a slideshow additionally needs actual canonical panels from the [explicit local publication step](./00-comic-overview.md#4-build-panel-prompts-generate-images-and-review). Generated nested candidates alone do not populate the sheet. Supplied notes are an authored mapping exercise, not observed hosted-image defects.
+
 ```bash
-bun autoshow comic review 02-01
-bun autoshow comic review 02-01 --export-doc
-bun autoshow comic review 02-01 --notes review/pass-2.md
+bun --no-env-file autoshow comic review "$SCRIPT" --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic review "$SCRIPT" --export-doc --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic review "$SCRIPT" --notes "$ROOT/review-notes.md" --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
+
+Inspect mapped/unmatched/unresolved entries. Only paste directives you accept into the copied runtime script, then use the pinned [reconcile pass](./01-draft-scenes.md#reconcile-from-directives). Notes processing itself changes neither source nor scene.
 
 ### Review sheet
 

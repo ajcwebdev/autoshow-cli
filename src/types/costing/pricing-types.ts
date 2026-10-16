@@ -1,4 +1,4 @@
-import type { ActualPipelineInputsBase, CostEstimateBase, CostSource, HostedOcrTokenReasoningPolicy, HtmlArticleBackend, ImageProvider, MusicProvider, NormalizedReasoningEffort, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingStepEntry, VideoProvider } from '~/types'
+import type { ActualPipelineInputsBase, CostEstimateBase, CostSource, HostedOcrTokenReasoningPolicy, HistoricalHtmlArticleBackend, ImageProvider, MusicProvider, NormalizedReasoningEffort, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingStepEntry, VideoProvider } from '~/types'
 
 type TokenProfileEstimateFields = {
   tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'calibrated-registry' | 'registry'
@@ -70,7 +70,7 @@ export type MusicStepEstimate = ProviderModelBase<MusicProvider> & {
   note?: string
 }
 
-export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HtmlArticleBackend> & TokenProfileEstimateFields & ReasoningEstimateFields & {
+export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HistoricalHtmlArticleBackend> & TokenProfileEstimateFields & ReasoningEstimateFields & {
   step: 'extract'
   costPer1kPagesCents?: number
   inputCostPer1MCents?: number
@@ -139,7 +139,7 @@ export type ComputeEstimatedCostsInput = {
   sourceUrl?: string | undefined
   sttTargets?: SttPricingTarget[] | undefined
   extractTargets?: Array<TokenProfileEstimateFields & {
-    provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HtmlArticleBackend
+    provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HistoricalHtmlArticleBackend
     model: string
     pageCount?: number
     rasterizedPages?: number
@@ -158,6 +158,8 @@ export type ComputeEstimatedCostsInput = {
   llmTargets?: LlmPricingTarget[] | undefined
   ttsTargets?: Array<ProviderIdentityBase & {
     numericSpeed?: number | undefined
+    instructions?: string | undefined
+    openaiTtsEstimate?: Step4Metadata['openaiTtsEstimate'] | undefined
     setupCostCents?: number
     setupTimeMs?: number
     setupNote?: string
@@ -188,7 +190,7 @@ export type ComputeEstimatedProcessingTimesInput = {
   concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   sttTargets?: SttPricingTarget[] | undefined
   audioDurationSeconds?: number | undefined
-  extractTargets?: Array<{ provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HtmlArticleBackend, model: string, pageCount?: number, rasterizedPages?: number, singlePagePdfFallbackPages?: number, ocrProviderMode?: 'fanout' | 'pool' }> | undefined
+  extractTargets?: Array<{ provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal' | HistoricalHtmlArticleBackend, model: string, pageCount?: number, rasterizedPages?: number, singlePagePdfFallbackPages?: number, ocrProviderMode?: 'fanout' | 'pool' }> | undefined
   ocrConcurrency?: number | undefined
   ocrConcurrencyMode?: 'auto' | 'fixed' | undefined
   hostedOcrProfilePath?: string | undefined

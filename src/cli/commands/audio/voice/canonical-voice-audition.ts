@@ -13,6 +13,7 @@ import type {
   ProtectedVoiceAssetStore,
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
+import { buildPureCurrentTtsRenderPlan } from '../tts/script-to-audio/attempt-planning'
 import { collectTtsTargets } from '../tts/tts-targets'
 import { estimateTtsTargetCosts } from '../tts/tts-utils/tts-pricing'
 import { computeVoiceAuditionId, assertVoiceConsentAllows, validateVoiceAuditionManifest } from './voice-management-contracts'
@@ -47,7 +48,9 @@ const buildCanonicalVoiceAuditionPassages = (
 
 const voiceId = (voice: ProviderVoiceRef): string => {
   if (voice.kind === 'remote-resource') {
-    if (voice.expiresAt && Date.parse(voice.expiresAt) <= Date.now()) throw UsageError('Voice resource has expired; new auditions are blocked.')
+    // Gemini expiry renews on provider use; every synthesis dispatch performs
+    // fresh GetVoice inspection rather than trusting a stale local snapshot.
+    if (voice.provider !== 'gemini' && voice.expiresAt && Date.parse(voice.expiresAt) <= Date.now()) throw UsageError('Voice resource has expired; new auditions are blocked.')
     return voice.resourceId
   }
   if (voice.kind === 'shared-library-resource') return voice.sharedVoiceId
@@ -65,7 +68,10 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
     case 'gemini': return { geminiTtsModels: [model], geminiTtsVoice: voice }
     case 'soniox': return { sonioxTtsModels: [model], sonioxTtsVoice: voice }
     case 'grok': return { grokTtsModels: [model], grokTtsVoice: voice }
-    case 'openai': return { openaiTtsModels: [model], openaiVoiceId: voice }
+    case 'openai': {
+      const controls = registration.synthesisSettings.values
+      return { openaiTtsModels: [model], openaiVoiceId: voice, ...(typeof controls['instructions'] === 'string' ? { openaiTtsInstructions: controls['instructions'] } : {}), ...(typeof controls['speed'] === 'number' ? { openaiTtsSpeed: controls['speed'] } : {}) }
+    }
     case 'inworld': return { inworldTtsModels: [model], inworldTtsVoice: voice }
     default: throw UsageError(`TTS provider ${registration.provider} is no longer supported for voice auditions.`)
   }
@@ -85,6 +91,10 @@ export const withCanonicalVoiceAuditionScheduler = (options: TtsOptions): TtsOpt
   hostedTtsChunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1, concurrencyMode: 'immediate' })
 })
 
+const quoteAuditionText = (target: TtsTarget, options: TtsOptions, text: string): number => target.service === 'openai'
+  ? buildPureCurrentTtsRenderPlan({ target, sourceText: text, ttsOptions: options }).plannedRenderCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0)
+  : estimateTtsTargetCosts([target], [...text].length).reduce((sum, estimate) => sum + estimate.totalCost, 0)
+
 export const planCanonicalVoiceAudition = (
   registration: VoiceRegistration,
   brief: CharacterVoiceBrief,
@@ -95,9 +105,8 @@ export const planCanonicalVoiceAudition = (
   if (brief.subjectKey !== registration.subjectKey || brief.profileKey !== registration.profileKey || hashCharacterVoiceBrief(brief) !== registration.briefHash) throw UsageError('Canonical audition brief does not match the exact registration brief identity.')
   const passages = buildCanonicalVoiceAuditionPassages(brief, representativeLine)
   const characterCount = passages.reduce((sum, passage) => sum + [...passage.text].length, 0) * takeCount
-  const { target } = requireSingleTarget(registration)
-  const estimates = estimateTtsTargetCosts([target], characterCount)
-  const estimatedCostCents = estimates.reduce((sum, estimate) => sum + estimate.totalCost, 0)
+  const { target, options } = requireSingleTarget(registration)
+  const estimatedCostCents = target.service === 'openai' ? passages.reduce((sum, passage) => sum + quoteAuditionText(target, options, passage.text), 0) * takeCount : estimateTtsTargetCosts([target], characterCount).reduce((sum, estimate) => sum + estimate.totalCost, 0)
   return { passages, takeCount, characterCount, estimatedCostCents, plannedCost: { amounts: [{ amount: estimatedCostCents / 100, currency: 'USD' }] } }
 }
 
@@ -157,10 +166,10 @@ export const runCanonicalVoiceAudition = async (input: {
           protectedAudio,
           sha256: protectedAudio.sha256,
           cost: {
-            amounts: estimateTtsTargetCosts([target], [...passage.text].length).map(estimate => ({
-              amount: estimate.totalCost / 100,
+            amounts: [{
+              amount: quoteAuditionText(target, options, passage.text) / 100,
               currency: 'USD'
-            }))
+            }]
           },
           warnings: []
         })

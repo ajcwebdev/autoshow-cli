@@ -13,7 +13,6 @@ export const sttRegistry: PriceSelectionEntry[] = [
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization/gladia-current-models.test.ts', [
     command('transcribe-gladia-solaria-3', 'transcribe-gladia-solaria-3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'gladia=solaria-3', '--price']),
-    command('transcribe-happyscribe-auto', 'transcribe-happyscribe-auto', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'happyscribe=auto', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization/deepgram-nova-3.test.ts', [
     command('transcribe-deepgram-nova-3', 'transcribe-deepgram-nova-3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'deepgram=nova-3', '--price']),

@@ -1,4 +1,5 @@
 import { sonioxRetainedCostBasis } from '../tts-services/tts-soniox/soniox-tts-pricing'
+import { openaiRetainedCostBasis } from '../tts-services/tts-openai/openai-tts-pricing'
 import type {
   AggregateProviderResult,
   CanonicalAudioProviderProjection,
@@ -306,6 +307,7 @@ const publishCompletedRenderRecovery = async (
   await input.options.onProviderState?.(state)
   return {
     ...sonioxRetainedCostBasis(input.options.target.service, input.pure.planned.slots, aggregate.value.outputs),
+    ...openaiRetainedCostBasis(input.options.target.service, input.pure.planned.slots, input.pure.planned.turns),
     artifactDir: input.options.state.artifactDir,
     operation: input.pure.operation,
     targetKey: input.pure.targetKey,

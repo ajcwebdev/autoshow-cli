@@ -1,4 +1,5 @@
 import { findRegistryServiceForModel, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { computeTokenCost } from '~/utils/pricing/token-pricing'
 
 export const estimateLlmCostFromRegistry = (
   modelId: string,
@@ -15,8 +16,5 @@ export const estimateLlmCostFromRegistry = (
     return 0
   }
 
-  return (
-    (inputTokens / 1_000_000) * model.inputCostPer1MCents +
-    (outputTokens / 1_000_000) * model.outputCostPer1MCents
-  ) / 100
+  return computeTokenCost(model, inputTokens, outputTokens).totalCost / 100
 }

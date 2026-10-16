@@ -1,13 +1,12 @@
 import { isRecord } from '~/utils/rest-client'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { ensureDirectory, writeFile } from '~/utils/cli-utils'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { validateData } from '~/utils/validate/validation'
 import { estimateTokens } from '~/utils/text-utils'
-import { InfraError, serializeDiagnosticError, ValidationError } from '~/utils/error-handler'
+import { ValidationError } from '~/utils/error-handler'
 import { reserveBatchChildOutputDir } from '~/cli/commands/command-shared/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/command-shared/run-dir'
 import { buildArticleSlug } from '~/cli/commands/sources/download/document/prepare-html-article'
@@ -15,10 +14,10 @@ import { runProviderTargetScheduler } from '../../command-shared/provider-target
 import { runHostedConcurrencyRequest } from '../../command-shared/hosted-concurrency-coordinator'
 import { URL_ARTICLE_BACKENDS } from '../../command-shared/extract-routing/provider-registry'
 import { collectEstimatedExtractTargets, resolveExtractEstimatedCosts, resolveExtractObservedEstimateCosts } from '../ocr/ocr-costs'
-import { runUrlArticleProviderWithStats } from './url-provider-registry'
+import { getUrlArticleProviderAdapter, runUrlArticleProviderWithStats } from './url-provider-registry'
 import {
   getUrlProviderArtifactDir,
-  isHtmlArticleBackend,
+  isStoredHtmlArticleBackend,
   isLocalUrlBackend,
   toRequestedUrlProvider,
   uniqueBackends
@@ -191,43 +190,14 @@ const runSingleUrlBackend = async (
   extractionOpts: Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>,
   urlRunOptions: UrlRequestOptions
 ): Promise<UrlProviderSuccess> => {
-  let backend = requestedBackend
+  const backend = requestedBackend
   const startedAt = Date.now()
   let article: UrlArticleRunResult
   let attempts = 0
 
-  if (requestedBackend === 'defuddle' && sourceUrl) {
-    try {
-      const run = await runUrlArticleProviderWithStats('defuddle', source, sourceUrl, urlRunOptions)
-      article = run.article
-      attempts = run.attempts
-    } catch (defuddleError) {
-      l.warn(`Defuddle article extraction failed; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
-        category: 'pipeline',
-        metadata: { fallbackBackend: 'firecrawl' }, error: defuddleError
-      })
-      try {
-        const run = await runUrlArticleProviderWithStats('firecrawl', source, sourceUrl, urlRunOptions)
-        article = run.article
-        attempts = run.attempts
-        backend = 'firecrawl'
-      } catch (firecrawlError) {
-        throw InfraError(
-          `Defuddle article extraction failed and Firecrawl fallback failed. ` +
-          `Defuddle: ${formatErrorMessage(defuddleError)} Firecrawl: ${formatErrorMessage(firecrawlError)}`,
-          {
-            stage: 'extract:url',
-            metadata: { defuddleError: serializeDiagnosticError(defuddleError) },
-            ...(firecrawlError instanceof Error ? { cause: firecrawlError } : {})
-          }
-        )
-      }
-    }
-  } else {
-    const run = await runUrlArticleProviderWithStats(requestedBackend, source, sourceUrl, urlRunOptions)
-    article = run.article
-    attempts = run.attempts
-  }
+  const run = await runUrlArticleProviderWithStats(requestedBackend, source, sourceUrl, urlRunOptions)
+  article = run.article
+  attempts = run.attempts
 
   const result = buildUrlExtractionResult(article)
   const metadata = buildUrlExtractionMetadata(backend, result, Date.now() - startedAt, extractionOpts)
@@ -397,6 +367,7 @@ export const runAllUrlBackends = async (
   opts: Pick<UrlExtractionOptions, 'urlProviderConcurrency' | 'urlRequestTimeoutMs' | 'urlRequestAttempts' | 'hostedConcurrencyCoordinator'>,
   extractionOpts: Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>
 ): Promise<UrlProviderRunOutcome[]> => {
+  for (const backend of requestedBackends) getUrlArticleProviderAdapter(backend)
   const urlRunOptions = buildUrlRunOptions(opts)
   const scheduled = await runProviderTargetScheduler<HtmlArticleBackend, UrlProviderRunOutcome>({
     entries: requestedBackends.map((backend, index) => ({
@@ -441,6 +412,7 @@ export const runUrlArticleBackendPlan = async (
   opts: Pick<UrlExtractionOptions, 'urlProviderConcurrency' | 'urlRequestTimeoutMs' | 'urlRequestAttempts' | 'hostedConcurrencyCoordinator'>,
   extractionOpts: Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>
 ): Promise<UrlProviderRunOutcome[]> => {
+  for (const backend of plan.requestedBackends) getUrlArticleProviderAdapter(backend)
   if (plan.allUrlMode) {
     return [
       ...(plan.runnableBackends.length > 0
@@ -488,7 +460,7 @@ const parseStoredProviderBackend = (value: unknown): HtmlArticleBackend | undefi
     return undefined
   }
   const service = value['service']
-  return isHtmlArticleBackend(service) ? service : undefined
+  return isStoredHtmlArticleBackend(service) ? service : undefined
 }
 
 export const parseBackendFromExtractionMetadata = (value: unknown): HtmlArticleBackend | undefined => {
@@ -497,7 +469,7 @@ export const parseBackendFromExtractionMetadata = (value: unknown): HtmlArticleB
   }
   const match = /^html\+(.+)$/.exec(value['extractionMethod'])
   const backend = match?.[1]
-  return isHtmlArticleBackend(backend) ? backend : undefined
+  return isStoredHtmlArticleBackend(backend) ? backend : undefined
 }
 
 export const parseStoredStep2Metadata = (metadata: Record<string, unknown>): ExtractionMetadata[] => {

@@ -128,12 +128,12 @@ describe('resume target-aware provider selectors', () => {
 
     const article = normalizeResumeSelectorFlagsForTarget(
       target('extract', '/tmp/autoshow-resume-article', 'article'),
-      { provider: ['supadata'] },
+      { provider: ['spider'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'supadata']
+      ['resume', 'out', '--provider', 'spider']
     )
-    expect(article.flags['url-provider']).toBe('supadata')
-    expect(buildOpts(article.flags, article.explicitFlags, article.flagOccurrences).urlBackend).toBe('supadata')
+    expect(article.flags['url-provider']).toBe('spider')
+    expect(buildOpts(article.flags, article.explicitFlags, article.flagOccurrences).urlBackend).toBe('spider')
   })
 
   test('normalizes --all-local by resolved resume target kind and extract route', () => {

@@ -207,25 +207,12 @@ describe('additive resume provider selection', () => {
       skippedSuccessfulBackends: []
     })
 
-    const selectedFirecrawlTargets = getSelectedUrlTargets(buildOptsFromFlags({
-      'url-provider': 'firecrawl'
-    }, {}, new Set(['url-provider'])))
-    expect(resolveUrlArticleResumePlan(metadata, selectedFirecrawlTargets)).toMatchObject({
-      targetsToRun: [],
-      skippedSuccessfulTargets: [firecrawl],
-      backendsToRun: [],
-      skippedSuccessfulBackends: ['firecrawl']
-    })
+    expect(() => buildOptsFromFlags({ 'url-provider': 'firecrawl' }, {}, new Set(['url-provider'])))
+      .toThrow(/excluded|unsupported|invalid/i)
 
     const allHostedTargets = getSelectedUrlTargets(buildOptsFromFlags({
       'all-url': true
     }, {}, new Set(['all-url'])))
-    expect(allHostedTargets).toEqual([
-      firecrawl,
-      { service: 'glm-reader', model: 'glm-reader' },
-      spider,
-      { service: 'supadata', model: 'supadata' },
-      zyte
-    ])
+    expect(allHostedTargets).toEqual([spider, zyte])
   })
 })

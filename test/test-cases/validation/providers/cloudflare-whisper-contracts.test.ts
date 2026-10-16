@@ -17,11 +17,12 @@ import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../
 import { requireDefined } from '../../../test-utils/value-assertions'
 
 const tempDirs = setupContractSuiteLifecycle({
-  envKeys: ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID'],
+  envKeys: ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_AI_GATEWAY_ID'],
   tempPrefix: 'autoshow-cloudflare-stt-',
   beforeEachExtra: () => {
     process.env['CLOUDFLARE_API_TOKEN'] = 'synthetic-token'
     process.env['CLOUDFLARE_ACCOUNT_ID'] = 'synthetic-account'
+    delete process.env['CLOUDFLARE_AI_GATEWAY_ID']
   }
 })
 
@@ -169,6 +170,39 @@ describe('Cloudflare Workers AI Whisper STT contracts', () => {
   test('the run URL keeps the model id literal and encodes only the account id', () => {
     expect(buildCloudflareRunUrl('https://api.cloudflare.com/client/v4/', 'acct/1', WHISPER))
       .toBe('https://api.cloudflare.com/client/v4/accounts/acct%2F1/ai/run/@cf/openai/whisper')
+  })
+
+  // Cloudflare's AI Gateway REST API documents the existing model-in-path endpoint plus
+  // cf-aig-gateway-id for prepaid Workers AI. The gateway must separately use Unified billing.
+  // https://developers.cloudflare.com/ai-gateway/usage/rest-api/ (retrieved 2026-10-15).
+  test('all three models dispatch through an explicit gateway and reset to direct billing without changing audio encoding', async () => {
+    for (const model of [TURBO, WHISPER, TINY_EN]) {
+      const { audioPath, outputDir } = await writeAudioFixture()
+      const calls = installMockFetch(() => jsonResponse(WHISPER_RESPONSE))
+      for (const gateway of [undefined, '  prepaid-gateway  ', 'another-gateway', '', undefined]) {
+        if (gateway === undefined) delete process.env['CLOUDFLARE_AI_GATEWAY_ID']
+        else process.env['CLOUDFLARE_AI_GATEWAY_ID'] = gateway
+        const { result } = await runCloudflareStt(audioPath, outputDir, { model, segmentOffsetMinutes: 0, audioDurationSeconds: 2 })
+        const sent = calls.at(-1)!
+        expect(sent.url).toBe(`https://api.cloudflare.com/client/v4/accounts/synthetic-account/ai/run/${model}`)
+        expect(sent.headers.get('authorization')).toBe('Bearer synthetic-token')
+        expect(sent.headers.get('cf-aig-gateway-id')).toBe(gateway?.trim() || null)
+        expect(sent.headers.get('content-type')).toBe(model === TURBO ? 'application/json' : 'application/octet-stream')
+        expect(result.text).toBe('James Berkins. Welcome to')
+      }
+      expect(calls).toHaveLength(5)
+    }
+  })
+
+  test('invalid gateway IDs are rejected before credentials or provider dispatch', async () => {
+    const { audioPath, outputDir } = await writeAudioFixture()
+    delete process.env['CLOUDFLARE_API_TOKEN']
+    const calls = installMockFetch(() => { throw Error('Provider must not be called') })
+    for (const gateway of ['a'.repeat(65), 'allowed\r\nx-extra: injected', 'invalid\0gateway']) {
+      process.env['CLOUDFLARE_AI_GATEWAY_ID'] = gateway
+      await expect(runCloudflareStt(audioPath, outputDir, { model: TURBO, segmentOffsetMinutes: 0 })).rejects.toThrow('CLOUDFLARE_AI_GATEWAY_ID must be a gateway ID')
+    }
+    expect(calls).toHaveLength(0)
   })
 
   test('whisper and whisper-tiny-en send the audio bytes as the request body', async () => {

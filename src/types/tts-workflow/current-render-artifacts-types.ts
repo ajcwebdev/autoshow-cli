@@ -22,6 +22,7 @@ export type CurrentTtsObservedTurn = {
 }
 
 export type CurrentTtsRenderArtifacts = {
+  openaiTtsEstimate?: import('~/types').Step4Metadata['openaiTtsEstimate'] | undefined
   sonioxProviderAudioSeconds?: number | undefined
   sonioxInputCharacters?: number | undefined
   artifactDir: string

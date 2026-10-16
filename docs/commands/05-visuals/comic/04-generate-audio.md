@@ -38,14 +38,31 @@ Provider models and delivery markup are in [TTS](../../04-audio/tts/overview.md)
 
 ### Examples
 
+Use the variables and fresh workspace from the [Harborlight setup](./00-comic-overview.md#setup). These examples share the same four-panel scene.
+
+Prerequisite: the actual four-panel scene and approved registrations for both `papa-bear` and `mira`, for every selected provider/model/profile. Use the [voice lifecycle](../../04-audio/voice/00-voice-overview.md); the source bundle creates no approval. Price auditions, dialogue and possible billed retries together with the rest of the walkthrough before dispatch.
+
+The main target is explicit ElevenLabs v3. Grok is an optional segmented comparison requiring two separately approved Grok registrations; do not purchase it automatically after the main target.
+
 ```bash
-bun autoshow comic generate-audio 01-01 --provider elevenlabs=eleven_v3
-bun autoshow comic generate-audio 01-01 --provider grok=grok-tts --mode segmented
-bun autoshow comic generate-audio 01-01 --provider elevenlabs=eleven_v3 --sfx-provider elevenlabs=eleven_text_to_sound_v2
-bun autoshow comic generate-audio 01-01 --sfx-provider replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8 --sfx-license-use noncommercial
-bun autoshow comic generate-audio 01-01 --provider elevenlabs --role "SHIP COMPUTER=role:computer"
-bun autoshow comic generate-audio 01-01 --provider elevenlabs --slideshow
-bun autoshow comic generate-audio 01-01 --all-providers --price
+bun --no-env-file autoshow comic generate-audio "$SCRIPT" --provider elevenlabs=eleven_v3 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-audio "$SCRIPT" --provider elevenlabs=eleven_v3 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-audio "$SCRIPT" --provider grok=grok-tts --mode segmented --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+```
+
+Optional effects and roles require an intentionally edited **separate** script/workspace. The supplied scene has neither effects nor uncatalogued speakers, so these flags do not demonstrate an effect or role on it. First author an action effect such as a lantern latch with an explicit duration, rebuild structure/scene/panel prompts, and review source placement. For the role variant, author an offscreen `CAMP RADIO` line and create an approved `role:camp-radio` registration for the selected model. Account for all extra generation and auditions in the cumulative batch. AudioGen is restricted to noncommercial use; do not infer permission for a commercial workflow.
+
+```bash
+bun --no-env-file autoshow comic generate-audio "$SCRIPT" --provider elevenlabs=eleven_v3 --sfx-provider elevenlabs=eleven_text_to_sound_v2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-audio "$SCRIPT" --provider elevenlabs=eleven_v3 --sfx-provider replicate=sepal/audiogen@154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8 --sfx-license-use noncommercial --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-audio "$SCRIPT" --provider elevenlabs=eleven_v3 --role "CAMP RADIO=role:camp-radio" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+```
+
+The combined audio/slideshow alternative needs all four compatible canonical panel images **before** any hosted call. It buys the same selected dialogue as the main route, then renders locally. An all-provider quote is optional and requires exact approvals for every selected target; it is not a supported shortcut around missing approvals and is not a spending recommendation.
+
+```bash
+bun --no-env-file autoshow comic generate-audio "$SCRIPT" --provider elevenlabs=eleven_v3 --slideshow --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-audio "$SCRIPT" --all-providers --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 ### Behavior

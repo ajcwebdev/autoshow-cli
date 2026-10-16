@@ -8,6 +8,8 @@ import { OPENAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { createOpenAISpeech } from '~/utils/openai/openai-client'
 import { ValidationError } from '~/utils/error-handler'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
+import { validateOpenAITtsRequest } from './openai-tts-request'
+import { estimateOpenAITtsCost } from './openai-tts-pricing'
 
 export const runOpenAITts = async (
   text: string,
@@ -28,11 +30,14 @@ export const runOpenAITts = async (
     options.model,
     options.voiceId?.trim() || OPENAI_DEFAULT_TTS_VOICE
   )
-  const chunks = resolveTtsDispatchChunks({ provider: 'openai', model: options.model, text: text, chunking: options.chunking }, options.requestEvidence)
+  const chunks = resolveTtsDispatchChunks({ provider: 'openai', model: options.model, text, style: options.instructions, chunking: options.chunking }, options.requestEvidence)
 
   if (chunks.length === 0) {
     throw ValidationError('OpenAI TTS input text is empty', { stage: 'tts:openai' })
   }
+  // Retained chunks remain authoritative for identity, but pending requests still
+  // enforce today's bounds before credentials, admission or provider dispatch.
+  for (const chunk of chunks) validateOpenAITtsRequest(chunk, options.instructions, options.speed)
 
   const startTime = Date.now()
   const config = { apiKey: requireTtsCredential('openai'), baseURL: OPENAI_DEFAULT_BASE_URL }
@@ -64,6 +69,7 @@ export const runOpenAITts = async (
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
+    extraMetadata: { openaiTtsEstimate: estimateOpenAITtsCost(chunks.reduce((sum, chunk) => sum + [...chunk].length, 0), { textBytes: chunks.reduce((sum, chunk) => sum + Buffer.byteLength(chunk), 0), requestCount: chunks.length, instructions: options.instructions, speed: options.speed }) },
     fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
       const requestBody = {
         model: options.model,

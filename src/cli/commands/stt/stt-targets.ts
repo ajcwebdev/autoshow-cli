@@ -4,7 +4,6 @@ import { SUPPORTED_SCRAPECREATORS_STT_MODELS } from '~/cli/commands/setup-and-ut
 import { collectStep2ProviderSelections } from '../command-shared/extract-routing/provider-registry'
 import { collectSttProviderSpecs, resolveDiarizationOptions } from './stt-cli'
 import { isScrapeCreatorsSupportedSourceUrl } from '~/cli/commands/text/url/url-services/scrapecreators/scrapecreators'
-import { isSupadataSupportedSourceUrl } from '~/cli/commands/text/url/url-services/supadata-transcript/supadata'
 import { DEEPINFRA_STT_RESPONSE_FORMATS, type DeepinfraSttResponseFormat } from './stt-response-format-contract'
 
 
@@ -13,7 +12,6 @@ const LOCAL_STT_SERVICES = new Set<SttTarget['service']>([
 ])
 
 const URL_ONLY_STT_SERVICES = new Set<SttTarget['service']>([
-  'supadata',
   'scrapecreators'
 ])
 
@@ -49,7 +47,6 @@ const buildSttTarget = (
     model,
     local: LOCAL_STT_SERVICES.has(service),
     ...(service === 'grok' && options.grokSttVerbatim ? { grokSttVerbatim: true } : {}),
-    ...(service === 'supadata' && options.supadataChunkSize !== undefined ? { supadataChunkSize: options.supadataChunkSize } : {}),
     ...(service === 'deepinfra' && (responseFormat === 'srt' || responseFormat === 'vtt') ? { nativeResponseFormat: responseFormat } : {}),
     ...(options.nativeSubtitles ? { nativeSubtitles: true } : {}),
     ...(LOCAL_STT_SERVICES.has(service)
@@ -61,7 +58,6 @@ const buildSttTarget = (
 const resolveSttSourceEligibility = (
   source: SttSource
 ) => ({
-  supadata: isSupadataSupportedSourceUrl(source.url),
   scrapecreators: isScrapeCreatorsSupportedSourceUrl(source.url)
 })
 
@@ -105,10 +101,6 @@ export const collectSttTargetsForSource = (
       return true
     }
 
-    if (target.service === 'supadata') {
-      return eligibility.supadata
-    }
-
     if (target.service === 'scrapecreators') {
       return eligibility.scrapecreators
     }
@@ -122,16 +114,7 @@ export const collectSttTargetsForSource = (
     && !filteredTargets.some((target) => target.service === 'scrapecreators' && target.model === scrapeCreatorsAllProviderModel)
   ) {
     const scrapeCreatorsTarget = buildSttTarget(options, 'scrapecreators', scrapeCreatorsAllProviderModel)
-    const lastSupadataIndex = filteredTargets
-      .map((target, index) => ({ target, index }))
-      .filter((entry) => entry.target.service === 'supadata')
-      .at(-1)?.index
-
-    if (lastSupadataIndex === undefined) {
-      filteredTargets.push(scrapeCreatorsTarget)
-    } else {
-      filteredTargets.splice(lastSupadataIndex + 1, 0, scrapeCreatorsTarget)
-    }
+    filteredTargets.push(scrapeCreatorsTarget)
   }
 
   return filteredTargets

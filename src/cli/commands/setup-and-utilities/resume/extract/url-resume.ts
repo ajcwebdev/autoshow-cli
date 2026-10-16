@@ -20,6 +20,7 @@ writeUrlProviderArtifacts
 } from '~/cli/commands/text/url/url-run-state'
 import {
 collectUrlTargets,
+isHtmlArticleBackend,
 getUrlProviderArtifactDir,
 getUrlTargetBackends,
 toUrlArticleTarget,
@@ -29,7 +30,7 @@ import { logExtractManifestSummary } from '~/cli/commands/command-shared/write-m
 import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { buildArticleEstimates } from '~/cli/commands/text/url/url-pricing/build-article-estimates'
 import type { AggregatedPriceEstimate, HtmlArticleBackend, ProviderCompletionStatus, ResolvedStep2Execution, ResumeDisplayOptions, ResumeResult, ResumeTarget, Step2ProviderSelectionFilter, StepEstimate, UrlArticleResumePlan, UrlArticleResumeResult, UrlArticleTarget, UrlExtractionOptions, UrlProviderRunOutcome, WebArticleMetadata } from '~/types'
-import { ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { logResumeItem, logResumeSummary } from '../resume-logging'
 
 
@@ -55,6 +56,14 @@ export const resolveUrlArticleResumePlan = (
   selectedTargets?: readonly UrlArticleTarget[] | undefined
 ): UrlArticleResumePlan => {
   const providerStates = parseStoredProviderStates(metadata)
+  for (const state of providerStates) {
+    if (['running', 'missing', 'failed'].includes(state.status) && !isHtmlArticleBackend(state.service)) {
+      throw UsageError(`Stored URL target ${state.service}/${state.model} is incomplete, but this provider is excluded from the active registry. AutoShow will not substitute a different provider. Select an active provider in a new run.`)
+    }
+  }
+  for (const target of selectedTargets ?? []) {
+    if (!isHtmlArticleBackend(target.service)) throw UsageError(`URL provider ${target.service} is excluded and cannot be selected for resume.`)
+  }
   const storedBackends = parseStoredUrlBackends(providerStates)
   const storedTargets = storedBackends.map(toUrlArticleTarget)
   const successfulBackends = new Set<HtmlArticleBackend>(

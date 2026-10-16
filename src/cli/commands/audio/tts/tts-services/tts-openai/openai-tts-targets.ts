@@ -18,6 +18,8 @@ export const collectOpenAITtsTargets = (
     targets.push({
       service: 'openai',
       model,
+      numericSpeed: selection.openaiSpeed,
+      instructions: selection.openaiInstructions,
       ...(voiceId ? { voice: voiceId } : {}),
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('openai', invocation)

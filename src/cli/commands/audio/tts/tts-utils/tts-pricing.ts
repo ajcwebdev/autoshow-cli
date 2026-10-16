@@ -1,4 +1,6 @@
 import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
+import { estimateOpenAITtsCost } from '../tts-services/tts-openai/openai-tts-pricing'
+import { OPENAI_TOKEN_TTS_MODEL } from '../tts-services/tts-openai/openai-tts-request'
 import { estimateGeminiTtsCost } from '../tts-services/tts-gemini/gemini-tts-pricing'
 import { estimateTtsRequestCount, getTtsCost, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { TtsCostEstimate, TtsOptions, TtsRateEstimate, TtsTarget } from '~/types'
@@ -13,6 +15,10 @@ export const estimateTtsTargetCosts = (
   return targets.map((target, index) => {
     if (target.service === 'soniox') return { provider: target.service, model: target.model, characterCount: normalizedCharCount, ...estimateSonioxTtsCost(normalizedCharCount, target.numericSpeed) }
     if (target.service === 'gemini') return { provider: target.service, model: target.model, characterCount: normalizedCharCount, ...estimateGeminiTtsCost(target.model, normalizedCharCount, target.transport?.replace('gemini-', ''), new Date(), plannedRequestCounts?.[index]) }
+    if (target.service === 'openai' && target.model === OPENAI_TOKEN_TTS_MODEL) {
+      const estimate = estimateOpenAITtsCost(normalizedCharCount, { instructions: target.instructions, speed: target.numericSpeed, requestCount: plannedRequestCounts?.[index] })
+      return { provider: target.service, model: target.model, characterCount: normalizedCharCount, ...estimate, ...(target.setupCostCents !== undefined ? { setupCostCents: target.setupCostCents, totalCost: estimate.totalCost + target.setupCostCents } : {}) }
+    }
     const pricing = getTtsPricing(target.service, target.model)
     const requestCount = pricing.costPerRequestCents === undefined ? undefined : plannedRequestCounts?.[index] ?? estimateTtsRequestCount(target.service, target.model, normalizedCharCount)
     const hasDualRates = pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined

@@ -11,6 +11,7 @@ import { serializeGeminiInteraction } from './gemini-tts-request'
 import { decodeGeminiInteraction } from './gemini-tts-audio'
 import { geminiVoiceExpiry as expiry } from './gemini-voice-availability'
 import { validateGeminiVoice } from './gemini-tts-request'
+import { readGeminiTtsUsageCounts } from './gemini-tts-pricing'
 
 const evidence = buildCapabilityDocumentationEvidence(['https://ai.google.dev/gemini-api/docs/speech-generation', 'https://ai.google.dev/gemini-api/docs/voice-design', 'https://ai.google.dev/gemini-api/docs/voice-replication'], '2026-09-24T00:00:00Z')
 const records: AnyCapabilityRecord[] = [
@@ -38,15 +39,15 @@ export const createGeminiAdvancedProvider = (options: GeminiAdvancedProviderOpti
   const now = options.now ?? (() => new Date().toISOString())
   const accountScopeHash = providerAccountScopeHash('gemini', options.apiKey)
   const identity = { provider: 'gemini' as const, label: 'Gemini', labelWithArticle: 'a Gemini', accountScopeHash }
-  const voiceRef = (record: Record<string, unknown>, origin: 'designed' | 'instant-clone', createdAt = now()): ProviderVoiceRef => ({
+  const voiceRef = (record: Record<string, unknown>, origin: 'designed' | 'instant-clone'): ProviderVoiceRef => ({
     kind: 'remote-resource', provider: 'gemini', resourceId: resourceId(record), namespace: 'account', accountScopeHash, origin, ownership: 'project', deletion: { state: 'eligible', checkedAt: now() },
-    expiresAt: expiry(record) ?? expiry({ create_time: createdAt }),
+    expiresAt: expiry(record),
   })
   const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
     const row = geminiObject(value), id = string(row['id'])
     if (!id) throw UsageError('Gemini voice catalog entry omits id.')
     const prebuilt = row['type'] === 'prebuilt', expiresAt = expiry(row)
-    return { provider: 'gemini', resourceId: validateGeminiVoice(id), name: string(row['display_name']) ?? id, source: prebuilt ? 'provider-library' : 'account', origin: prebuilt ? 'provider-stock' : row['type'] === 'prompted' ? 'designed' : 'instant-clone', labels: {}, modelIds: string(row['model']) ? [String(row['model'])] : [...SUPPORTED_GEMINI_TTS_MODELS], state: expiresAt && Date.parse(expiresAt) <= Date.parse(now()) ? 'expired' : 'available', ...(expiresAt ? { expiresAt } : {}), sanitizedMetadata: Object.fromEntries(['display_name', 'description', 'type', 'create_time', 'expire_time', 'model'].flatMap(key => string(row[key]) ? [[key, String(row[key])]] : [])) }
+    return { provider: 'gemini', resourceId: validateGeminiVoice(id), name: string(row['display_name']) ?? id, source: prebuilt ? 'provider-library' : 'account', origin: prebuilt ? 'provider-stock' : row['type'] === 'prompted' ? 'designed' : 'instant-clone', labels: {}, modelIds: [...SUPPORTED_GEMINI_TTS_MODELS], state: expiresAt && Date.parse(expiresAt) <= Date.parse(now()) ? 'expired' : 'available', ...(expiresAt ? { expiresAt } : {}), sanitizedMetadata: Object.fromEntries(['display_name', 'description', 'type', 'create_time', 'expire_time', 'model'].flatMap(key => string(row[key]) ? [[key, String(row[key])]] : [])) }
   }
   const get = async (id: string) => geminiObject(await request({ method: 'GET', path: `/v1beta/voices/${encodeURIComponent(validateGeminiVoice(id))}` }))
   const requireAvailable = (row: Record<string, unknown>) => { if (mapVoice(row).state === 'expired') throw UsageError('Gemini voice has expired; new synthesis is blocked.') }
@@ -91,12 +92,21 @@ export const createGeminiAdvancedProvider = (options: GeminiAdvancedProviderOpti
       if (string(row['resourceId'])) remote = await get(String(row['resourceId']))
       else {
         remote = geminiObject(await request({ method: 'POST', path: '/v1beta/voices', body }))
-        // Retain the returned resource before validating or decoding its preview.
-        row = { ...row, state: 'created', resourceId: resourceId(remote), expiresAt: expiry(remote) ?? expiry({ create_time: row['createdAt'] }) }
+        // Retain the valid resource identity before inspecting any optional
+        // metadata. A malformed expiry or preview must remain recoverable by GET.
+        row = { ...row, state: 'created', resourceId: resourceId(remote) }
         await saveRow()
+        const creationUsage = readGeminiTtsUsageCounts(remote['usage'])
+        if (creationUsage) {
+          row['creationUsage'] = creationUsage
+          await saveRow()
+        }
       }
       requireAvailable(remote)
-      if (typeof row['expiresAt'] === 'string' && Date.parse(row['expiresAt']) <= Date.parse(now())) throw UsageError('Gemini voice has expired; new synthesis is blocked.')
+      // GetVoice observes expiry renewed by synthesis/base-voice use. Keep the current
+      // inspection separate from immutable earlier candidate/receipt records.
+      if (expiry(remote)) row['expiresAt'] = expiry(remote)
+      else delete row['expiresAt']
       const original = row['protectedPreview'] as ProtectedAssetRef | undefined
       const audio = original
         ? Buffer.from(await Bun.file(await options.protectedStore.resolve(original)).arrayBuffer())
@@ -137,7 +147,7 @@ export const createGeminiAdvancedProvider = (options: GeminiAdvancedProviderOpti
       if (creation['desiredName'] !== input.desiredName) throw UsageError('Gemini save must use the name established during creation.')
       const remote = await get(input.providerCandidateId); requireAvailable(remote)
       if (resourceId(remote) !== input.providerCandidateId || remote['display_name'] !== input.desiredName) throw UsageError('Gemini saved resource identity/name changed.')
-      return { schemaVersion: 1, provider: 'gemini', state: 'ready', providerVoice: voiceRef(remote, 'designed', String(creation['createdAt'])), sanitizedMetadata: { desiredName: input.desiredName, createdAt: String(creation['createdAt']) }, checkedAt: now() }
+      return { schemaVersion: 1, provider: 'gemini', state: 'ready', providerVoice: voiceRef(remote, 'designed'), sanitizedMetadata: { desiredName: input.desiredName, createdAt: String(creation['createdAt']) }, checkedAt: now() }
     } },
     clone: { clone: async input => {
       assertAdvancedVoiceCloneAuthorized(identity, input, 'before upload')

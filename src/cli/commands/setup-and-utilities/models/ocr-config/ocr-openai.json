@@ -53,14 +53,14 @@
       },
       "gpt-5.6-sol": {
         "description": "GPT-5.6 Sol OCR",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-07-13",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+        "pricingCheckedAt": "2026-10-15",
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
-        "pricingNotes": "OpenAI lists GPT-5.6 Sol Standard pricing at $5/1M input tokens, $0.50/1M cached input tokens, $6.25/1M cache write tokens, and $30/1M output tokens. OCR estimates multiply observed or heuristic token usage by uncached standard input/output rates. The gpt-5.6 alias routes to gpt-5.6-sol and is intentionally not registered separately. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMInputTokensCents": 500,
-        "costPerMCachedInputTokensCents": 50,
-        "costPerMOutputTokensCents": 3000,
+        "pricingNotes": "Checked October 15, 2026: GPT-5.6 Sol promotional standard rates are $4/1M input, $0.40/1M cached input and $20/1M output tokens, available at least through November 21, 2026; no later rate is assumed. Above 272K input tokens, the full request uses $8/1M input, $0.80/1M cached input and $30/1M output. Cache writes cost 1.25x uncached input. OCR estimates and observed-usage calculations use uncached standard rates; cache writes, batch/flex discounts, fast mode, regional uplifts, enterprise pricing, taxes and credits are excluded. The gpt-5.6 alias is not registered separately.",
+        "costPerMInputTokensCents": 400,
+        "costPerMCachedInputTokensCents": 40,
+        "costPerMOutputTokensCents": 2000,
         "limits": {
           "pdfBytes": 52428800,
           "notes": "https://developers.openai.com/api/docs/guides/images-vision.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
@@ -85,16 +85,16 @@
           {
             "label": "standard-short-context",
             "maxInputTokens": 272000,
-            "inputCostPer1MCents": 500,
-            "cachedInputCostPer1MCents": 50,
-            "outputCostPer1MCents": 3000
+            "inputCostPer1MCents": 400,
+            "cachedInputCostPer1MCents": 40,
+            "outputCostPer1MCents": 2000
           },
           {
             "label": "standard-long-context",
             "minInputTokens": 272001,
-            "inputCostPer1MCents": 1000,
-            "cachedInputCostPer1MCents": 100,
-            "outputCostPer1MCents": 4500
+            "inputCostPer1MCents": 800,
+            "cachedInputCostPer1MCents": 80,
+            "outputCostPer1MCents": 3000
           }
         ]
       },

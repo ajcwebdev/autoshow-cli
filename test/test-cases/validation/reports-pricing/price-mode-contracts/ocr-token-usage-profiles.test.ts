@@ -22,7 +22,7 @@ describe('price mode contracts', () => {
           completionTokensPerPage: 940,
           costMultiplier: 1,
           msPerPage: 9497,
-          expectedOnePageCost: 3.6325
+          expectedOnePageCost: 2.53
         },
         {
           provider: 'openai' as const,

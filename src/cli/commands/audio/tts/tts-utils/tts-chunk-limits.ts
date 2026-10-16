@@ -14,4 +14,5 @@ export const resolveTtsChunkCharacterLimit = (
   provider: TtsProvider,
   model: string | undefined
 ): number | undefined =>
-  model ? getTtsMaxInputCharacters(provider, model) ?? TTS_CHUNK_CHARACTER_LIMITS[provider] : TTS_CHUNK_CHARACTER_LIMITS[provider]
+  provider === 'openai' ? TTS_CHUNK_CHARACTER_LIMITS.openai
+    : model ? getTtsMaxInputCharacters(provider, model) ?? TTS_CHUNK_CHARACTER_LIMITS[provider] : TTS_CHUNK_CHARACTER_LIMITS[provider]

@@ -344,17 +344,14 @@ export const ensureMeaningfulMarkdown = (
   if (backend === 'defuddle') {
     throw ValidationError(
       'Defuddle could not extract meaningful article content. ' +
-      'The page may require client-side rendering. Retry with a remote --url-provider such as firecrawl, spider, supadata, or zyte.',
+      'The page may require client-side rendering. Retry with a remote --url-provider such as spider or zyte.',
       { stage: 'url:fetch' }
     )
   }
 
-  const displayNames: Record<Exclude<HtmlArticleBackend, 'defuddle'>, string> = {
-    firecrawl: 'Firecrawl',
-    'glm-reader': 'GLM Reader',
+  const displayNames: Partial<Record<Exclude<HtmlArticleBackend, 'defuddle'>, string>> = {
     spider: 'Spider',
-    supadata: 'Supadata',
     zyte: 'Zyte'
   }
-  throw ValidationError(`${displayNames[backend]} returned empty article markdown.`, { stage: 'url:fetch' })
+  throw ValidationError(`${displayNames[backend] ?? backend} returned empty article markdown.`, { stage: 'url:fetch' })
 }

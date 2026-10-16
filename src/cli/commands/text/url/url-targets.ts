@@ -5,6 +5,9 @@ import { isRemoteSource } from './url-utils'
 export const isLocalUrlBackend = (backend: HtmlArticleBackend): boolean =>
   (LOCAL_URL_ARTICLE_BACKENDS as readonly string[]).includes(backend)
 
+export const isStoredHtmlArticleBackend = (value: unknown): value is HtmlArticleBackend =>
+  typeof value === 'string' && ['defuddle', 'firecrawl', 'glm-reader', 'spider', 'supadata', 'zyte'].includes(value)
+
 export const isHtmlArticleBackend = (value: unknown): value is HtmlArticleBackend =>
   typeof value === 'string' && (URL_ARTICLE_BACKENDS as readonly string[]).includes(value)
 

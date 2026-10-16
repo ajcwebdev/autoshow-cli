@@ -1,4 +1,5 @@
-import { estimateFirecrawlScrapeCost } from '~/cli/commands/text/url/url-pricing/url-estimates'
+import { UsageError } from '~/utils/error-handler'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import { hasConfiguredOcrProviderSelection, HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING } from '~/cli/commands/command-shared/extract-routing/inactive-flag-warnings'
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { ArticleEstimateResult, ExtractStepEstimate, HtmlArticleBackend, OcrSelectionState, ResolvedStep2Execution, UrlSelectionOptions } from '~/types'
@@ -14,6 +15,7 @@ export const buildArticleEstimates = (
   const backends = resolvedStep2.providers.map(provider => provider.service as HtmlArticleBackend)
 
   for (const backend of backends) {
+    if (!(URL_ARTICLE_BACKENDS as readonly string[]).includes(backend)) throw UsageError(`URL provider ${backend} is excluded or unsupported and cannot be priced for a new request.`)
     if (backend === 'defuddle') {
       estimates.push({
         step: 'extract',
@@ -28,24 +30,6 @@ export const buildArticleEstimates = (
     }
 
     if (!isRemoteTarget) {
-      continue
-    }
-
-    if (backend === 'firecrawl') {
-      const estimate = estimateFirecrawlScrapeCost()
-      const estimation = getExtractEstimation(estimate.provider, estimate.model)
-      const totalCost = applyCostMultiplier(estimate.totalCost, estimation.costMultiplier)
-      estimates.push({
-        step: 'extract',
-        provider: estimate.provider,
-        model: estimate.model,
-        costPer1kPagesCents: estimate.costPer1kPagesCents,
-        pageCount: estimate.pageCount,
-        totalCost,
-        costMultiplier: estimation.costMultiplier,
-        estimateType: estimate.estimateType,
-        note: estimate.note
-      })
       continue
     }
 

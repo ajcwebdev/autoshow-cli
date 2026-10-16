@@ -10,6 +10,9 @@ import { isOpenAIImage25Model } from '~/cli/commands/setup-and-utilities/models/
 import { computeOpenAIImageUsageCostCents } from '~/cli/commands/visuals/image/image-utils/openai-image-pricing'
 import { estimateVideoCost } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import { isCostSource, isTokenPricedOcrProvider } from '~/types'
+import { estimateOpenAITtsCost, readOpenAITtsEstimate } from '~/cli/commands/audio/tts/tts-services/tts-openai/openai-tts-pricing'
+import { OPENAI_TOKEN_TTS_MODEL } from '~/cli/commands/audio/tts/tts-services/tts-openai/openai-tts-request'
+import { readGeminiTtsValuation } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-tts-pricing'
 import type { ActualCostBreakdown, ComputeActualCostsInput, CostSource, ExtractionMetadata, Step2Metadata, Step5Metadata, Step6VideoMetadata, StepCostEntry } from '~/types'
 import {
   computeSttCost,
@@ -361,15 +364,23 @@ export const computeActualCosts = (input: ComputeActualCostsInput): ActualCostBr
       },
       tts: (metadata, characterCount) => {
         const ttsCost = computeTtsCost(metadata.ttsService, metadata.ttsModel, characterCount)
+        if (metadata.ttsService === 'openai' && metadata.ttsModel === OPENAI_TOKEN_TTS_MODEL) {
+          const estimate = readOpenAITtsEstimate(metadata.openaiTtsEstimate) ?? estimateOpenAITtsCost(characterCount)
+          steps.push({ step: 'tts', provider: 'openai', model: metadata.ttsModel, cost: estimate.totalCost + (metadata.cloneCostCents ?? 0), costSource: 'heuristic', inputMetric: 'estimatedTextTokens', inputValue: estimate.estimatedTextTokens, promptTokens: estimate.estimatedTextTokens, completionTokens: estimate.estimatedAudioTokens, pricingBand: estimate.rateIdentity, pricingNote: estimate.estimateProvenance })
+          return
+        }
         if (metadata.ttsService === 'soniox') {
           const estimate = estimateSonioxTtsCost(metadata.sonioxInputCharacters ?? characterCount, 1, metadata.sonioxProviderAudioSeconds)
           steps.push({ step: 'tts', provider: 'soniox', model: metadata.ttsModel, cost: estimate.totalCost, costSource: 'heuristic', inputMetric: 'estimatedCharacters', inputValue: metadata.sonioxInputCharacters ?? characterCount, pricingBand: estimate.rateIdentity, pricingNote: estimate.estimateProvenance })
           return
         }
         if (metadata.ttsService === 'gemini') {
-          const usage = metadata.geminiTtsUsage ?? []
-          const complete = metadata.geminiTtsUsageComplete === true && usage.length > 0
-          steps.push({ step: 'tts', provider: 'gemini', model: metadata.ttsModel, cost: complete ? usage.reduce((total, entry) => total + entry.totalCost, 0) : ttsCost.cost, costSource: complete ? 'provider_usage' : 'heuristic', inputMetric: complete ? 'textTokens' : 'estimatedCharacters', inputValue: complete ? usage.reduce((total, entry) => total + entry.observedTextTokens, 0) : characterCount, ...(complete ? { completionTokens: usage.reduce((total, entry) => total + entry.observedAudioTokens, 0), pricingBand: usage[0]!.rateIdentity } : {}) })
+          const recorded = Array.isArray(metadata.geminiTtsUsage) ? metadata.geminiTtsUsage : []
+          const usage = recorded.flatMap(entry => { const valid = readGeminiTtsValuation(metadata.ttsModel, entry); return valid ? [valid] : [] })
+          // Segmented dialogue's chunkCount counts turns, each of which can
+          // require multiple requests. It is still a lower bound on receipts.
+          const complete = metadata.geminiTtsUsageComplete === true && Number.isSafeInteger(metadata.chunkCount) && metadata.chunkCount > 0 && usage.length >= metadata.chunkCount && usage.length === recorded.length && Number.isSafeInteger(usage.reduce((total, entry) => total + entry.observedTextTokens + entry.observedAudioTokens, 0))
+          steps.push({ step: 'tts', provider: 'gemini', model: metadata.ttsModel, cost: complete ? usage.reduce((total, entry) => total + entry.totalCost, 0) : ttsCost.cost, costSource: complete ? 'provider_usage' : 'heuristic', inputMetric: complete ? 'textTokens' : 'estimatedCharacters', inputValue: complete ? usage.reduce((total, entry) => total + entry.observedTextTokens, 0) : characterCount, ...(complete ? { completionTokens: usage.reduce((total, entry) => total + entry.observedAudioTokens, 0), pricingBand: usage[0]!.rateIdentity, pricingNote: 'Provider-reported modality counts valued locally at published rates; UTC max(request start, observation) selects the schedule. Not invoice-reconciled billed cost.' } : {}) })
           return
         }
         const cloneCost = typeof metadata.cloneCostCents === 'number' ? metadata.cloneCostCents : 0

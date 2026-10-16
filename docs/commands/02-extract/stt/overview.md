@@ -18,13 +18,13 @@ On `extract` and `resume`, pass `--provider provider[=model]`. On `setup`, persi
 
 ## Provider Capabilities
 
-| Group                                                                | Providers                                                                               |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| [Local](local/overview.md)                                           | Whisperfile                                                                             |
-| [Diarization](diarization/overview.md)                               | AssemblyAI, Deepgram, Gemini, Gladia, Grok, Happy Scribe, Mistral, Soniox, Speechmatics |
-| [Diarization off by default](diarization-off-by-default/overview.md) | Cloudflare, DeepInfra, OpenAI, Together                                                 |
+| Group                                                                | Providers                                                                 |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [Local](local/overview.md)                                           | Whisperfile                                                               |
+| [Diarization](diarization/overview.md)                               | AssemblyAI, Deepgram, Gemini, Gladia, Grok, Mistral, Soniox, Speechmatics |
+| [Diarization off by default](diarization-off-by-default/overview.md) | Cloudflare, DeepInfra, OpenAI, Together                                   |
 
-See each subgroup for selectors, examples, and per-model capabilities. Public media URL transcripts (Supadata, ScrapeCreators) and YouTube caption fallback live under [URL extraction](../url/overview.md#public-media-url-transcripts).
+See each subgroup for selectors, examples, and per-model capabilities. Public media URL transcripts (ScrapeCreators) and YouTube caption fallback live under [URL extraction](../url/overview.md#public-media-url-transcripts).
 
 ## STT Environment
 
@@ -37,7 +37,6 @@ See each subgroup for selectors, examples, and per-model capabilities. Public me
 | Gemini STT   | `GEMINI_API_KEY`                                |
 | Gladia       | `GLADIA_API_KEY`                                |
 | Grok STT     | `XAI_API_KEY`                                   |
-| Happy Scribe | `HAPPYSCRIBE_API_KEY`                           |
 | Mistral      | `MISTRAL_API_KEY`                               |
 | OpenAI STT   | `OPENAI_API_KEY`                                |
 | Soniox       | `SONIOX_API_KEY`                                |
@@ -46,7 +45,7 @@ See each subgroup for selectors, examples, and per-model capabilities. Public me
 
 ## Shared STT Options
 
-Asynchronous transcription jobs, and Happy Scribe native subtitle exports, wait at least 30 minutes and at most 2 hours, scaled with audio duration. A timeout leaves the remote job so `resume` can recover it.
+Asynchronous transcription jobs wait at least 30 minutes and at most 2 hours, scaled with audio duration. A timeout leaves the remote job so `resume` can recover it.
 
 | Flag                                   | Description                                                                                                                                                                                          |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -71,11 +70,11 @@ bun autoshow extract https://ajc.pics/autoshow/examples/2-video.mp4 --provider d
 
 ## Provider Controls
 
-`--diarization` and `--no-diarization` apply to AssemblyAI, Deepgram, Gemini, Gladia, Grok, Mistral, Soniox, Speechmatics, and Together. Together stays off unless `--diarization` or `--speaker-count` is set. `--speaker-count` applies to AssemblyAI, Gladia, and Together, and has no effect while diarization is off. Mistral diarization uses segment timing; turn it off when you need native word timestamps. Together Parakeet word timings can be incomplete. Gemini ignores `--speaker-count`, and its word timestamps can reduce accuracy. Providers that do not support the toggle, including Happy Scribe, report that it was ignored. Hide speaker labels in exported captions with `--no-caption-speakers`.
+`--diarization` and `--no-diarization` apply to AssemblyAI, Deepgram, Gemini, Gladia, Grok, Mistral, Soniox, Speechmatics, and Together. Together stays off unless `--diarization` or `--speaker-count` is set. `--speaker-count` applies to AssemblyAI, Gladia, and Together, and has no effect while diarization is off. Mistral diarization uses segment timing; turn it off when you need native word timestamps. Together Parakeet word timings can be incomplete. Gemini ignores `--speaker-count`, and its word timestamps can reduce accuracy. Providers that do not support the toggle report that it was ignored. Hide speaker labels in exported captions with `--no-caption-speakers`.
 
-With `--split`, speaker labels use the form `chunk-N/speaker-ID`. The same ID in two chunks is a different person. `resume` rejects a diarization, speaker-count, response-format, verbatim, or chunk-size change that would reuse incompatible results.
+With `--split`, speaker labels use the form `chunk-N/speaker-ID`. The same ID in two chunks is a different person. `resume` rejects a diarization, speaker-count, response-format, or verbatim change that would reuse incompatible results.
 
-`--native-subtitles` saves provider subtitle files from the same job: AssemblyAI SRT/VTT, Gladia SRT/VTT, Happy Scribe SRT/VTT, Speechmatics SRT, and whisperfile SRT/VTT/LRC. Files are named `transcription.native.srt`, `.vtt`, or `.lrc`, with segment suffixes on split jobs. Split files keep provider-relative timestamps. Export the combined `result.json` for a full-recording timeline. Hosted exports may draw on provider quota. A failed export leaves the transcript in place. Resuming a completed target keeps that transcript; export any missed subtitle files locally from the saved result.
+`--native-subtitles` saves provider subtitle files from the same job: AssemblyAI SRT/VTT, Gladia SRT/VTT, Speechmatics SRT, and whisperfile SRT/VTT/LRC. Files are named `transcription.native.srt`, `.vtt`, or `.lrc`, with segment suffixes on split jobs. Split files keep provider-relative timestamps. Export the combined `result.json` for a full-recording timeline. Hosted exports may draw on provider quota. A failed export leaves the transcript in place. Resuming a completed target keeps that transcript; export any missed subtitle files locally from the saved result.
 
 DeepInfra defaults to verbose JSON with words and segments. `--stt-response-format deepinfra=srt` or `deepinfra=vtt` selects that subtitle response instead of word evidence, from the same transcription. Prefer verbose JSON plus a local caption export when you need precise word timing.
 
@@ -94,7 +93,6 @@ Per-model hourly estimates are in each subgroup capability table. `--price` prin
 
 AssemblyAI Universal-3.5 Pro is $0.21/hour, plus $0.02/hour for diarization ($0.23/hour by default). `--no-diarization` removes that add-on. Deepgram Nova-3 is $0.258/hour, and diarization is included. Estimates use prerecorded rates. [AssemblyAI pricing](https://www.assemblyai.com/pricing), [Deepgram pricing](https://deepgram.com/pricing).
 
-- **Happy Scribe**: Estimated at `$0.01/min` from audio duration.
 - **Duration-priced hosted providers** (AssemblyAI, Cloudflare, Deepgram, DeepInfra, Gladia, Grok STT, Mistral, OpenAI STT, Soniox, Speechmatics, Together): Estimated from media duration and published per-hour rates.
 - **Token-priced providers** (Gemini STT): Estimated from media duration at about $0.30/hour.
 

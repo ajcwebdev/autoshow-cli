@@ -55,10 +55,12 @@ bun autoshow write <input> [flags]
 `write` accepts only local `.md` / `.txt` files or directories of those files. Empty files are rejected, as are files where at least half of the non-blank, non-comment lines are URLs, X Space ids, or existing paths. Every other `.md` / `.txt` file is read as source text. Use `bun autoshow write --help-topic providers` for selector details. Resume an existing write run with [`resume`](../00-setup-and-utilities/resume.md).
 
 ```bash
-bun autoshow extract video.mp4 --provider deepgram
-bun autoshow write output/<extract-run>/transcription.txt --provider openai --prompt shortSummary --rendered-text
+bun autoshow extract input/examples/video/01-two-speaker-speech.mp4 --provider deepgram --output-dir output/write-transcript
+bun autoshow write output/write-transcript/transcription.txt --provider openai --prompt shortSummary --rendered-text
 ```
-Project lyric draft mode engages when the input is a directory named `text` (for example `./output/<name>/text`) or a `.md` / `.txt` file under that directory, and `prompt.md` exists in the parent directory (or `--prompt-file` is supplied). Paths such as `write demo` or `write ./output/demo` do not enter this mode. In this mode, `write` reads that `prompt.md` by default, uses `tracks.md` in the same parent when present, and writes rendered markdown drafts to the sibling `lyrics` directory. Explicit `--prompt-file`, `--track-list`, and `--rendered-out-dir` override those defaults.
+The second command depends on the first command's `output/write-transcript/transcription.txt`. The video fixture and [its license and excerpt provenance](../../../input/examples/video/README.md) are separate from that generated transcript. Both commands above use hosted services; configure their credentials and review `--price` before execution.
+
+Project lyric draft mode requires your own prepared project: a directory named `text` (for example `./output/<name>/text`) or a `.md` / `.txt` file under it, plus `prompt.md` in the parent directory (or an explicit `--prompt-file`). Paths such as `write demo` or `write ./output/demo` do not enter this mode. In this mode, `write` reads that `prompt.md` by default, uses `tracks.md` in the same parent when present, and writes rendered markdown drafts to the sibling `lyrics` directory. Explicit `--prompt-file`, `--track-list`, and `--rendered-out-dir` override those defaults. The ordinary Harborlight directory examples below do not need a lyric project.
 
 ## Shared Write Options
 
@@ -85,12 +87,14 @@ Project lyric draft mode engages when the input is a directory named `text` (for
 See [Provider Capabilities](#provider-capabilities) for the per-model reasoning, context, structured-output, and input/output price matrix.
 
 ```bash
-bun autoshow write output/<extract-run>/transcription.txt --provider openai=gpt-5.6-sol --prompt shortSummary longSummary
-bun autoshow write notes.md --provider openai=gpt-5.6-sol --prompt blog
-bun autoshow write ./output/demo/text --prompt rockSong
-bun autoshow write ./output/demo/text --price
-bun autoshow write ./output/demo/text --all-providers --max-model-cents 50 --price
+bun autoshow write output/write-transcript/transcription.txt --provider openai=gpt-5.6-sol --prompt shortSummary longSummary
+bun autoshow write input/examples/document/harborlight-field-notes.md --provider openai=gpt-5.6-sol --prompt blog
+bun autoshow write input/examples/tts/harborlight-chapters --prompt rockSong
+bun autoshow write input/examples/tts/harborlight-chapters --prompt rockSong --price
+bun autoshow write input/examples/tts/harborlight-chapters --prompt rockSong --all-providers --max-model-cents 50 --price
 ```
+The original Harborlight field notes support a camping-story blog adaptation. The two chapter files are a standalone text batch; `rockSong` adapts each chapter's story into lyrics. These examples use maintained source files, while `output/write-transcript/transcription.txt` comes from the extraction command above.
+
 Write `--price` estimates use the selected prompt and source text. Use `--json` for structured token estimates and rates.
 
 `--max-model-cents` is a selection filter, not a total command budget. For directory and batch inputs, AutoShow sums each provider/model's estimates across the selected inputs before applying the ceiling. Without `--price`, only retained targets execute. Use the configured `maxCents` budget from `setup --max-cents` when the combined cost of all retained targets must stay below a command-wide limit.

@@ -23,8 +23,8 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'mistral-stt',
   'assemblyai-stt',
   'gladia-stt',
-  'happyscribe-stt',
-  'supadata-stt',
+
+
   'scrapecreators-stt',
   'gemini-stt',
   'together-stt',
@@ -77,8 +77,8 @@ const STT_SELECTION_PROBE = {
   mistralSttModels: undefined,
   assemblyaiSttModels: undefined,
   gladiaSttModels: undefined,
-  happyscribeSttModels: undefined,
-  supadataSttModels: undefined,
+
+
   scrapecreatorsSttModels: undefined,
   geminiSttModels: ['gemini-3-flash-preview'],
   togetherSttModels: ['openai/whisper-large-v3'],

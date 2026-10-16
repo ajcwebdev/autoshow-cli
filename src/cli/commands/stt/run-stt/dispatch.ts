@@ -7,12 +7,10 @@ import { runDeepinfraTranscribe } from '../diarization-off-by-default/deepinfra/
 import { runGeminiStt } from '../diarization/gemini-stt/run-gemini-stt'
 import { runGladiaStt } from '../diarization/gladia/run-gladia-stt'
 import { runGrokStt } from '../diarization/stt-grok/run-grok-stt'
-import { runHappyScribeStt } from '../diarization/happyscribe/run-happyscribe-stt'
 import { runMistralStt } from '../diarization/stt-mistral/run-mistral-stt'
 import { runScrapeCreatorsStt } from '~/cli/commands/text/url/url-services/scrapecreators/run-scrapecreators-stt'
 import { runSonioxStt } from '../diarization/soniox/run-soniox-stt'
 import { runSpeechmaticsStt } from '../diarization/speechmatics/run-speechmatics-stt'
-import { runSupadataStt } from '~/cli/commands/text/url/url-services/supadata-transcript/run-supadata-stt'
 import { runOpenAIStt } from '../diarization-off-by-default/openai-stt/run-openai-stt'
 import { runTogetherStt } from '../diarization-off-by-default/together/run-together-stt'
 import { runCloudflareStt } from '../diarization-off-by-default/cloudflare/run-cloudflare-stt'
@@ -22,7 +20,6 @@ const minimalOptions = (context: SttDispatchContext) => ({
   nativeSubtitles: context.target.nativeSubtitles,
   nativeResponseFormat: context.target.nativeResponseFormat,
   grokSttVerbatim: context.target.grokSttVerbatim,
-  supadataChunkSize: context.target.supadataChunkSize,
   model: context.target.model,
   segmentOffsetMinutes: context.segmentOffsetMinutes,
   segmentNumber: context.segmentNumber,
@@ -66,19 +63,8 @@ const sttDispatchers = {
   }),
   assemblyai: async context => await runAssemblyAiTranscribe(context.audioPath, context.outputDir, asyncJobOptions(context)),
   gladia: async context => await runGladiaStt(context.audioPath, context.outputDir, asyncJobOptions(context)),
-  happyscribe: async context => await runHappyScribeStt(context.audioPath, context.outputDir, {
-    ...basicOptions(context),
-    happyscribeOrganizationId: context.options.happyscribeOrganizationId,
-    runMode: context.options.runMode,
-    lifecycle: context.options.asyncLifecycle
-  }),
-  supadata: async context => await runSupadataStt(context.audioPath, context.outputDir, {
-    ...basicOptions(context),
-    sourceUrl: context.options.sourceUrl,
-    language: context.options.language,
-    runMode: context.options.runMode,
-    lifecycle: context.options.asyncLifecycle
-  }),
+  happyscribe: async () => { throw UsageError('Happy Scribe STT is excluded and cannot dispatch. Select an active STT provider explicitly.') },
+  supadata: async () => { throw UsageError('Supadata STT is excluded and cannot dispatch. Select an active STT provider explicitly.') },
   scrapecreators: async context => await runScrapeCreatorsStt(context.audioPath, context.outputDir, {
     ...minimalOptions(context),
     sourceUrl: context.options.sourceUrl,

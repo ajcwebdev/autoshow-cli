@@ -58,9 +58,11 @@ Passing media flags without `--mode` is rejected because the default mode is tex
 `--input-video` is the Gemini Omni source clip for `edit` and `extend`. `reference-to-video` uses `--reference-video`.
 
 ```bash
-bun autoshow video "animate product on a slow turntable" --provider gemini=gemini-omni-1.1-flash --mode image-to-video --input-image input/product.png --output-dir output/v-base
-bun autoshow video "transition between frames" --provider gemini=gemini-omni-1.1-flash --mode interpolate --input-image input/start.png --last-frame input/end.png
+bun autoshow video "animate the teal camping mug illustration with a gentle camera orbit; preserve its cream badge" --provider gemini=gemini-omni-1.1-flash --mode image-to-video --input-image input/examples/image/harborlight-mug.png --output-dir output/v-base
+bun autoshow video "transition the same Harborlight campsite from dusk to night; keep the tent and mug consistent" --provider gemini=gemini-omni-1.1-flash --mode interpolate --input-image input/examples/video/harborlight-start.png --last-frame input/examples/video/harborlight-end.png --aspect-ratio 9:16
 ```
+The bundled [Harborlight fixtures](../../../../input/examples/harborlight-README.md) supply the product, two distinct 1080 × 1920 campsite frames, and wardrobe references. Use `9:16` with both interpolation examples. The jacket and glasses are object references rather than a verified character identity. Local decoding and price checks do not establish motion, reference fidelity, or provider output quality.
+
 ## Shared Video Options
 
 The `video` and `resume` commands use the same short option names, including `--duration`. Saved configuration uses the matching namespaced key, such as `defaults.video.duration`.
@@ -111,12 +113,53 @@ bun autoshow video "a rainy neon city street, slow camera pan" --all-providers -
 
 ```bash
 bun autoshow video "a sweeping Grand Canyon drone shot" --provider gemini=gemini-omni-1.1-flash --duration 8 --aspect-ratio 16:9 --resolution 1080p
-bun autoshow video "make the violin invisible" --provider gemini=gemini-omni-1.1-flash --mode edit --previous-interaction-id v1_abc
-bun autoshow video "continue the scene" --provider gemini=gemini-omni-1.1-flash --mode extend --input-video input/examples/video/2-video.mp4
 ```
 - Native audio is always on. 1080p and 4K are upscaled. Unspecified duration is estimated at 10 seconds.
 - Uploaded edit/extend is not available in the EEA, Switzerland, or the United Kingdom. Audio references and voice editing are not supported.
 - [Omni docs](https://ai.google.dev/gemini-api/docs/omni), [pricing](https://ai.google.dev/gemini-api/docs/pricing)
+
+#### Generate a base, then edit it
+
+Use a paid-tier Gemini API project with Omni access and keep `GEMINI_API_KEY` in that same project for every turn. This workflow needs a completed generated base; a price-only run creates no interaction ID. AutoShow requests `store: true`, allowing a later turn to reference the provider's stored interaction. Deleted or expired interactions cannot be reused. [Stateful editing](https://ai.google.dev/gemini-api/docs/omni#stateful-video-editing), [interaction retention](https://ai.google.dev/gemini-api/docs/interactions-overview#data-storage-and-retention).
+
+Plan the whole sequence before generating the base. At the current CLI estimate of $0.10 per output second, the 3-second base plus one 3-second edit below total **$0.60 estimated output cost**. A separate 3-second extension adds $0.30. Input/context tokens and billable retries are additional and are not fully estimated here; Google's billing uses tokens. Review the complete budget and account eligibility before removing `--price`. [Official pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-omni-flash).
+
+First preview the base; after reviewing the combined budget, run the same command without `--price`. Choose a new output directory if `output/gemini-omni-base` already contains another run.
+
+```bash
+bun autoshow video "a teal camping mug beside a glowing lantern at a Harborlight campsite, slow camera orbit" --provider gemini=gemini-omni-1.1-flash --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-base --price
+```
+
+After that generation completes, read its real interaction ID from `items[0].metadata.video[]` in `manifest.json`. This local command requires one completed Gemini Omni target and its nonempty `providerRequestId`; it does not contact Google or verify that the current API key can still access the stored interaction. Stop if it fails.
+
+```bash
+GEMINI_INTERACTION_ID="$(bun --no-env-file -e '
+const manifest = await Bun.file(process.argv[1]).json();
+const item = manifest.items?.[0];
+const videos = Array.isArray(item?.metadata?.video) ? item.metadata.video : [];
+const matches = videos.filter(video => video.videoGenService === "gemini" && video.videoGenModel === "gemini-omni-1.1-flash");
+const video = matches[0];
+const succeeded = item?.providers?.some(provider => provider.service === "gemini" && provider.model === "gemini-omni-1.1-flash" && provider.status === "succeeded");
+if (manifest.command !== "video" || manifest.scope !== "single" || manifest.items?.length !== 1 || item?.status !== "full" || !succeeded || matches.length !== 1 || typeof video?.providerRequestId !== "string" || !video.providerRequestId.trim()) {
+  throw new Error("Expected one completed Gemini Omni base with a providerRequestId");
+}
+console.log(video.providerRequestId.trim());
+' output/gemini-omni-base/manifest.json)"
+```
+
+Preview the edit with that returned ID, then remove `--price` to execute it within the planned budget. The shell guard refuses an empty ID. Keep the same provider, model, project, and output settings; use a separate output directory for the edited result.
+
+```bash
+bun autoshow video "change the lantern glow to warm amber; preserve the teal mug and camera movement" --provider gemini=gemini-omni-1.1-flash --mode edit --previous-interaction-id "${GEMINI_INTERACTION_ID:?Read the completed base interaction first}" --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-edit --price
+```
+
+An optional extension can reference the same completed base ID; it is another purchase. To extend the edited result instead, read the new `providerRequestId` from `output/gemini-omni-edit/manifest.json` using the same checks. Reusing the base ID branches from the base, not the edit.
+
+```bash
+bun autoshow video "continue the campsite camera orbit beyond the end of the clip" --provider gemini=gemini-omni-1.1-flash --mode extend --previous-interaction-id "${GEMINI_INTERACTION_ID:?Read the completed base interaction first}" --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-extended --price
+```
+
+For uploaded edit/extend instead, supply your own compatible video of at most 10 seconds and check the regional restrictions above. The bundled 24-second dialogue fixture exceeds that upload limit. A local MP4 from another provider is not a Gemini interaction ID.
 
 ### Grok
 
@@ -128,7 +171,7 @@ bun autoshow video "continue the scene" --provider gemini=gemini-omni-1.1-flash 
 
 ```bash
 bun autoshow video "cinematic moonlit coastline" --provider grok=grok-imagine-video-1.5 --duration 8 --resolution 1080p
-bun autoshow video "character walking through lagoon" --provider grok=grok-imagine-video-1.5 --mode reference-to-video --reference-image input/jacket.png --reference-image input/glasses.png
+bun autoshow video "an adult explorer wearing the teal jacket and round gold glasses walks along a harbor path" --provider grok=grok-imagine-video-1.5 --mode reference-to-video --reference-image input/examples/video/harborlight-jacket.png --reference-image input/examples/video/harborlight-glasses.png
 ```
 - Text, image, and reference durations are 1–15 seconds (default 8). Reference generation is capped at 720p.
 
@@ -145,7 +188,7 @@ Default duration is `8`s. 2.5 Fast accepts even seconds `6`–`20` at 720p/1080p
 
 ```bash
 bun autoshow video "a lighthouse beam sweeps across calm water" --provider ltx=ltx-2-5-fast --duration 20 --resolution 720p --aspect-ratio 9:16
-bun autoshow video "transition between studio frames" --provider ltx=ltx-2-5-pro --mode interpolate --input-image input/start.png --last-frame input/end.png --resolution 1080p --aspect-ratio 9:16
+bun autoshow video "transition the same Harborlight campsite from dusk to night" --provider ltx=ltx-2-5-pro --mode interpolate --input-image input/examples/video/harborlight-start.png --last-frame input/examples/video/harborlight-end.png --resolution 1080p --aspect-ratio 9:16
 ```
 ### Replicate
 

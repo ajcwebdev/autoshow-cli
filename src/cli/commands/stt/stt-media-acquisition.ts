@@ -36,7 +36,6 @@ const getSourceMediaAcquireConcurrency = (): number => DEFAULT_STT_ACQUIRE_CONCU
 const isHostedSttTarget = (target: SttTarget): boolean =>
   !target.local
   && target.service !== 'youtube-captions'
-  && target.service !== 'supadata'
   && target.service !== 'scrapecreators'
 
 const resolveSourceMediaProfile = (targets: SttTarget[]): AudioNormalizationProfile => {

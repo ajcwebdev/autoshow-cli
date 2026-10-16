@@ -12,6 +12,7 @@ const projectionEnvelope = (
     : { ttsAudio: artifacts.projection }
 
 const terminalRenderFields = (renderArtifacts: CurrentTtsRenderArtifacts) => ({
+  ...(renderArtifacts.openaiTtsEstimate ? { openaiTtsEstimate: renderArtifacts.openaiTtsEstimate } : {}),
   ...(renderArtifacts.sonioxProviderAudioSeconds !== undefined ? { sonioxProviderAudioSeconds: renderArtifacts.sonioxProviderAudioSeconds, sonioxInputCharacters: renderArtifacts.sonioxInputCharacters } : {}),
   operation: renderArtifacts.operation,
   targetKey: renderArtifacts.targetKey,
@@ -28,6 +29,7 @@ const terminalRenderFields = (renderArtifacts: CurrentTtsRenderArtifacts) => ({
 export const buildWorkingTtsResult = (input: WorkingTtsResultInput): WorkingTtsResult => {
   if (input.mode === 'local-finalize') {
     return {
+      ...(input.target.service === 'openai' ? { openaiTtsRetainedOnly: true as const } : {}),
       ttsService: input.target.service,
       ttsModel: input.target.model,
       speaker: input.target.voice ?? 'retained-voice-binding',

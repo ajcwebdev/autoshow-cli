@@ -15,6 +15,7 @@ import { withIdentity } from './attempt-shared'
 import { contained, writeJson } from './attempt-io'
 import { resolveRetainedPath } from './recovery-evidence'
 import { requireJournalFile, writeNextJournal } from './attempt-journal'
+import { currentOpenAITtsSlotCost } from '../tts-services/tts-openai/openai-tts-pricing'
 
 export const buildBatchProgress = (
   ctx: AttemptContext,
@@ -141,7 +142,7 @@ export const promoteBatchResult = async (
           },
           warnings: [...(recordedOutputs[outputIndex]?.warnings ?? [])],
         })),
-        batchCost: { planned: slot.plannedCost, observed: [] },
+        batchCost: { planned: currentOpenAITtsSlotCost(ctx.options.target, slot, ctx.purePlan.planned.turns, slot === ctx.purePlan.planned.slots[0]), observed: [] },
         costEvidence: [],
         generatedAt: ctx.now(),
         source: 'provider-dispatch' as const,
@@ -156,7 +157,7 @@ export const promoteBatchResult = async (
       ...(localError ? { error: localError } : {}),
     })),
     createdResources: [],
-    cost: { planned: slot.plannedCost, observed: [] },
+    cost: { planned: currentOpenAITtsSlotCost(ctx.options.target, slot, ctx.purePlan.planned.turns, slot === ctx.purePlan.planned.slots[0]), observed: [] },
     ...(localError ? { error: localError } : {}),
     provenance: 'provider-dispatch' as const,
     invocationId: ctx.invocationId,

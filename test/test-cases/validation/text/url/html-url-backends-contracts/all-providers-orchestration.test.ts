@@ -63,9 +63,6 @@ test('--all-providers URL orchestrator writes provider artifacts and one canonic
     )
     expect(item?.providers.map((state) => state.status)).toEqual([
       'succeeded',
-      'succeeded',
-      'succeeded',
-      'succeeded',
       'succeeded'
     ])
     expect(item?.providers.map((provider) => provider.metadata)).toHaveLength(HOSTED_URL_ARTICLE_BACKENDS.length)
@@ -136,7 +133,7 @@ test('--all-providers URL manifest records one failed URL provider without an ac
     const output = await processUrlArticle('https://article.test/partial.html', tempRoot, opts)
 
     expect(await Bun.file(join(output.outputDir, 'providers', 'zyte', 'result.json')).exists()).toBe(false)
-    expect(await Bun.file(join(output.outputDir, 'providers', 'firecrawl', 'result.json')).exists()).toBe(true)
+    expect(await Bun.file(join(output.outputDir, 'providers', 'spider', 'result.json')).exists()).toBe(true)
 
     const item = (await readManifest(output.outputDir))?.items[0]
     expect(item?.status).toBe('incomplete')
@@ -321,10 +318,7 @@ test('--all-providers plus --all-local URL with local HTML runs defuddle and mar
     expect<unknown>(resolvedStep2.providers).toEqual(item?.providers.map(({ service, model }) => ({ service, model })))
     expect(item?.providers).toEqual([
       expect.objectContaining({ service: 'defuddle', model: 'defuddle', artifactDir: 'providers/defuddle', status: 'succeeded', attempts: 1 }),
-      expect.objectContaining({ service: 'firecrawl', status: 'skipped' }),
-      expect.objectContaining({ service: 'glm-reader', status: 'skipped' }),
       expect.objectContaining({ service: 'spider', status: 'skipped' }),
-      expect.objectContaining({ service: 'supadata', status: 'skipped' }),
       expect.objectContaining({ service: 'zyte', status: 'skipped' })
     ])
   } finally {
@@ -341,12 +335,12 @@ test('local HTML with a single hosted URL provider still runs and records defudd
 
     URL_ARTICLE_PROVIDER_ADAPTERS.defuddle.run = async (source, sourceUrl) =>
       buildMockArticle('defuddle', source, sourceUrl)
-    URL_ARTICLE_PROVIDER_ADAPTERS.firecrawl.run = async () => {
-      throw new Error('firecrawl should not run for local HTML')
+    URL_ARTICLE_PROVIDER_ADAPTERS.spider.run = async () => {
+      throw new Error('spider should not run for local HTML')
     }
 
     const opts = buildOptsFromFlags({
-      'url-provider': 'firecrawl'
+      'url-provider': 'spider'
     }, {}, new Set(['url-provider']))
     const output = await processUrlArticle(localHtml, tempRoot, opts)
 
@@ -354,7 +348,7 @@ test('local HTML with a single hosted URL provider still runs and records defudd
 
     expect(await Bun.file(join(output.outputDir, 'extraction.txt')).exists()).toBe(true)
     expect(await Bun.file(join(output.outputDir, 'providers', 'defuddle', 'result.json')).exists()).toBe(false)
-    expect(await Bun.file(join(output.outputDir, 'providers', 'firecrawl', 'result.json')).exists()).toBe(false)
+    expect(await Bun.file(join(output.outputDir, 'providers', 'spider', 'result.json')).exists()).toBe(false)
     expect(item?.status).toBe('full')
     expect(item?.providers.map(({ service, model }) => ({ service, model }))).toEqual([{ service: 'defuddle', model: 'defuddle' }])
     const resolvedStep2 = item?.metadata['resolvedStep2'] as {

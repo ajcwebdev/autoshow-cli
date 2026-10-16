@@ -153,12 +153,12 @@ describe('price mode contracts', () => {
   const OPENAI_GPT56_BAND_CASES = [
     {
       model: 'gpt-5.6-sol',
-      shortInput: 500,
-      shortCached: 50,
-      shortOutput: 3000,
-      longInput: 1000,
-      longCached: 100,
-      longOutput: 4500
+      shortInput: 400,
+      shortCached: 40,
+      shortOutput: 2000,
+      longInput: 800,
+      longCached: 80,
+      longOutput: 3000
     },
     {
       model: 'gpt-5.6-terra',
@@ -179,6 +179,15 @@ describe('price mode contracts', () => {
       longOutput: 180
     }
   ] as const
+
+  test('Sol LLM and OCR retain the dated official promotion provenance without inventing a later tariff', () => {
+    // Official model page retrieved 2026-10-15; promotion is guaranteed at least
+    // through November 21, not documented to end automatically on that date.
+    for (const entry of [getModelRegistry().llm['openai']?.models['gpt-5.6-sol'], getModelRegistry().extract['openai']?.models['gpt-5.6-sol']]) {
+      expect(entry).toMatchObject({ pricingCheckedAt: '2026-10-15', pricingSourceUrl: 'https://developers.openai.com/api/docs/models/gpt-5.6-sol' })
+      expect(entry?.pricingNotes).toContain('at least through November 21, 2026; no later rate is assumed')
+    }
+  })
 
   for (const testCase of OPENAI_GPT56_BAND_CASES) {
     test(`OpenAI ${testCase.model} LLM pricing uses published short and long context bands`, () => {

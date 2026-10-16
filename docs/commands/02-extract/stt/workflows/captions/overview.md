@@ -5,18 +5,29 @@ See the [STT overview](../../overview.md) for provider selection and shared opti
 Generate captions from an audio or video file with `--captions`. Transcription runs once at the provider's normal price; the caption files are written locally from that transcript and add no provider call. The export writes `captions.srt`, `captions.vtt`, and `captions.json` beside `result.json`. Each provider's captions stay in that provider's directory. The same export works for media URLs, media batches, split transcription, and [YouTube caption fallback](../../../url/overview.md#youtube-caption-fallback). `--price` estimates transcription without running it.
 
 ```bash
-bun autoshow extract audio.mp3 --provider deepinfra --captions
-bun autoshow extract video.mp4 --provider deepinfra --captions --caption-mode word --output-dir output/video-captions
-bun autoshow extract interview.mp4 --provider deepgram=nova-3 --diarization --captions --caption-format vtt
+bun autoshow extract input/examples/audio/1-audio.mp3 --provider deepinfra --captions
+bun autoshow extract input/examples/video/01-two-speaker-speech.mp4 --provider deepinfra --captions --caption-mode word --output-dir output/video-captions
+bun autoshow extract input/examples/video/01-two-speaker-speech.mp4 --provider deepgram=nova-3 --diarization --captions --caption-format vtt
 ```
+The maintained MP3 contains speech. The video is a licensed dialogue excerpt with two speakers; [its provenance and matching transcript](../../../../../../input/examples/video/README.md) accompany it. The commands above perform hosted transcription and require the selected provider's credentials. They do not reuse the bundled transcript.
+
 Invalid caption options fail before transcription. If caption generation fails, the transcript remains. Export again from the saved result to change the layout without paying for transcription again.
 
 Export from a saved `result.json`, or from a directory that contains that file. This path needs no audio, model, API credentials, or video rendering. Use a new `--output-dir` for each layout; existing caption files are not overwritten. Aligned and reconciled results from [local timing and speaker workflows](../timing/overview.md#local-timing-and-speaker-workflows) use this same export.
 
+The bundled transcript matches the excerpt and supplies a standalone local export example. Its coarse segments come from the published subtitles; they are not measured word boundaries:
+
 ```bash
-bun autoshow extract output/<run>/providers/<provider-model>/result.json --captions --output-dir output/captions-phrases
-bun autoshow extract --captions --transcript-result output/<run>/providers/<provider-model>/result.json --caption-mode word --caption-format vtt --no-caption-speakers --output-dir output/captions-words
+bun autoshow extract input/examples/video/01-two-speaker-speech.transcript.json --captions --output-dir output/captions-fixture
 ```
+
+The [review/apply chain](../transcript-review/overview.md) produces this matching saved result. Complete those prerequisites first, then export both layouts without another transcription:
+
+```bash
+bun autoshow extract runtime/examples/speech-workflows/reviewed/result.json --captions --output-dir runtime/examples/speech-workflows/captions-phrases
+bun autoshow extract --captions --transcript-result runtime/examples/speech-workflows/reviewed/result.json --caption-mode word --caption-format vtt --no-caption-speakers --output-dir runtime/examples/speech-workflows/captions-words
+```
+
 | Flag                                                   | Behavior                                                                                                                                                                                                 |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--caption-format srt\|vtt\|ass\|ttml\|lrc\|both\|all` | Defaults to SRT and VTT (`both`). `all` writes all five formats.                                                                                                                                         |
@@ -39,7 +50,7 @@ Use `--captions --embed-captions` with a local video to transcribe once, keep st
 To embed an existing transcript with no provider call:
 
 ```bash
-bun autoshow extract video.mp4 --captions --transcript-result consensus/result.json --embed-captions --caption-container both --no-caption-speakers --output-dir output/captioned-episode
+bun autoshow extract input/examples/video/01-two-speaker-speech.mp4 --captions --transcript-result input/examples/video/01-two-speaker-speech.transcript.json --embed-captions --caption-container both --no-caption-speakers --output-dir output/captioned-fixture
 ```
 The output is `captioned.mp4` (mov_text), `captioned.mkv` (SubRip), `captions.srt`, `captions.vtt`, `captions.json`, and `caption-embedding.json`. Embedding keeps standalone SRT and VTT, so omit `--caption-format` or select `both` or `all`.
 

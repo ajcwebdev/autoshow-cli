@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { runSpeechmaticsStt } from '~/cli/commands/stt/diarization/speechmatics/run-speechmatics-stt'
 import { runMistralStt } from '~/cli/commands/stt/diarization/stt-mistral/run-mistral-stt'
-import { createHappyScribeApiClient } from '~/cli/commands/stt/diarization/happyscribe/happyscribe-api'
 import { runAssemblyAiTranscribe } from '~/cli/commands/stt/diarization/assemblyai/run-assemblyai-stt'
 import { runDeepinfraTranscribe } from '~/cli/commands/stt/diarization-off-by-default/deepinfra/run-deepinfra-stt'
 import { runDeepgramTranscribe } from '~/cli/commands/stt/diarization/stt-deepgram/run-deepgram-stt'
@@ -95,19 +94,6 @@ describe('caption native provider contracts', () => {
       expect(calls[0]?.form?.get('filler_words')).toBe('true')
       expect(calls[0]?.form?.get('diarize')).toBe('false')
     })
-  })
-
-  test('Happy Scribe exports reuse the transcription ID and download subtitle text', async () => {
-    const calls = installFetch(call => call.url.includes('/download')
-      ? new Response('WEBVTT\n\n00:00:00.125 --> 00:00:00.875\nHello\n')
-      : jsonResponse({ id: 'export-id', state: 'ready', download_link: 'https://fixture.invalid/download' }))
-    const client = createHappyScribeApiClient({ apiKey: 'fixture', baseURL: 'https://fixture.invalid/api/v1' })
-    for (const format of ['json', 'srt', 'vtt'] as const) {
-      const exported = await client.createExport('existing-transcript', format)
-      expect(exported.id).toBe('export-id')
-    }
-    expect(calls.map(call => JSON.parse(call.bodyText).export)).toEqual(['json', 'srt', 'vtt'].map(format => ({ format, transcription_ids: ['existing-transcript'] })))
-    expect(await client.fetchDownloadPayload('https://fixture.invalid/download', 'text')).toContain('WEBVTT')
   })
 
   test('Speechmatics retrieves native SRT before deleting the completed job', async () => {

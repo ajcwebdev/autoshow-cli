@@ -163,7 +163,7 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('mistral-tts')).toBeUndefined()
       expect(resolveCheapestModelForFlag('gemini-stt')).toBe('gemini-3.5-transcribe')
       expect(resolveCheapestModelForFlag('gladia-stt')).toBe('solaria-3')
-      expect(resolveCheapestModelForFlag('supadata-stt')).toBe('auto')
+      expect(resolveCheapestModelForFlag('scrapecreators-stt')).toBe('youtube-transcript')
       expect(resolveCheapestModelForFlag('scrapecreators-stt')).toBe('youtube-transcript')
       expect(resolveCheapestModelForFlag('openai-ocr')).toBe('gpt-5.6-luna')
       expect(resolveCheapestModelForFlag('grok-ocr')).toBe('grok-4.5')

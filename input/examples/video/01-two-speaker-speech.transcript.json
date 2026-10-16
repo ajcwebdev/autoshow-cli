@@ -1,0 +1,32 @@
+{
+  "text": "You're a jerk, Thom. Look Celia, we have to follow our passions; you have your robotics, and I just want to be awesome in space. Why don't you just admit that you're freaked out by my robot hand? I'm not freaked out by— it's... Alright! Fine! I'm freaked out! I have nightmares that I'm being chased by these giant robotic claws of death... Whatever, Thom. We're done.",
+  "segments": [
+    { "start": "00:00:01.000", "end": "00:00:02.500", "speaker": "Celia", "text": "You're a jerk, Thom." },
+    { "start": "00:00:03.000", "end": "00:00:05.000", "speaker": "Thom", "text": "Look Celia, we have to follow our passions;" },
+    { "start": "00:00:05.000", "end": "00:00:08.500", "speaker": "Thom", "text": "you have your robotics, and I just want to be awesome in space." },
+    { "start": "00:00:08.800", "end": "00:00:12.000", "speaker": "Celia", "text": "Why don't you just admit that you're freaked out by my robot hand?" },
+    { "start": "00:00:12.500", "end": "00:00:14.000", "speaker": "Thom", "text": "I'm not freaked out by— it's..." },
+    { "start": "00:00:15.000", "end": "00:00:16.000", "speaker": "Thom", "text": "Alright! Fine!" },
+    { "start": "00:00:16.000", "end": "00:00:19.000", "speaker": "Thom", "text": "I'm freaked out! I have nightmares that I'm being chased" },
+    { "start": "00:00:19.000", "end": "00:00:20.000", "speaker": "Thom", "text": "by these giant robotic claws of death..." },
+    { "start": "00:00:20.200", "end": "00:00:23.000", "speaker": "Celia", "text": "Whatever, Thom. We're done." }
+  ],
+  "evidence": {
+    "source": "official-subtitles-adapted-for-local-fixture",
+    "timingQuality": "coarse",
+    "capabilities": { "hasNativeWordTiming": false, "hasConfidence": false, "hasSpeakerLabels": true }
+  },
+  "fixtureProvenance": {
+    "title": "Tears of Steel (2012), dialogue excerpt",
+    "attribution": "(CC) Blender Foundation | mango.blender.org",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "sourceMedia": "https://ftp.nluug.nl/pub/graphics/blender/demo/movies/ToS/tears_of_steel_720p.mov",
+    "sourceSubtitles": "https://ftp.nluug.nl/pub/graphics/blender/demo/movies/ToS/subtitles/TOS-en.srt",
+    "sourceStartSeconds": 22,
+    "sourceEndSeconds": 46,
+    "durationSeconds": 24,
+    "reviewMethod": "Official subtitle cues 1–9 adapted to the clipped timeline; dialogue identities checked against official cast credits and clip frames. On-screen text is omitted. No independent listening review or acoustic alignment is claimed.",
+    "timingNote": "Coarse subtitle intervals, not measured word boundaries. Word-mode caption export interpolates within segments.",
+    "speakers": { "Celia": "Denise Rebergen", "Thom": "Vanja Rukavina" }
+  }
+}

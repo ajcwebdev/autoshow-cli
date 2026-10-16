@@ -179,7 +179,7 @@ describe('option resolution contracts', () => {
     })
 
   test('buildOptsFromFlags accepts URL article backend names', () => {
-      for (const backend of ['defuddle', 'firecrawl', 'glm-reader', 'spider', 'supadata', 'zyte'] as const) {
+      for (const backend of ['defuddle', 'spider', 'zyte'] as const) {
         const opts = buildOptsFromFlags({ 'url-provider': backend })
         expect(opts.urlBackend).toBe(backend)
         expect(opts.urlBackendExplicit).toBe(true)
@@ -232,7 +232,7 @@ describe('option resolution contracts', () => {
   test('--all-url conflicts with single URL backend selection', () => {
       expect(() => buildOptsFromFlags({
         'all-url': true,
-        'url-provider': 'firecrawl'
+        'url-provider': 'spider'
       })).toThrow('Cannot use --all-providers or --all-local url with --url-provider')
       expect(() => buildOptsFromFlags({
         'all-local-url': true,

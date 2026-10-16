@@ -57,13 +57,13 @@ describe('provider selection contracts', () => {
     expect(localMixedOpts.urlBackends).toEqual(['defuddle'])
 
     const articleNormalized = normalizeExtractGenericSelectorFlags({
-      provider: ['firecrawl']
+      provider: ['spider']
     }, new Set(['provider']), { media: false, document: false, article: true })
-    expect(articleNormalized.flags['url-provider']).toBe('firecrawl')
+    expect(articleNormalized.flags['url-provider']).toBe('spider')
     expect(articleNormalized.explicitFlags.has('url-provider')).toBe(true)
-    expect(buildOptsFromFlags(articleNormalized.flags, {}, articleNormalized.explicitFlags).urlBackend).toBe('firecrawl')
+    expect(buildOptsFromFlags(articleNormalized.flags, {}, articleNormalized.explicitFlags).urlBackend).toBe('spider')
     expect(() => normalizeExtractGenericSelectorFlags({
-      provider: ['firecrawl=reader-v1']
+      provider: ['spider=reader-v1']
     }, new Set(['provider']), { media: false, document: false, article: true })).toThrow('does not accept a model')
 
     const routeAwareDocumentArgs = normalizeExtractGenericSelectorArgs([
@@ -130,10 +130,10 @@ describe('provider selection contracts', () => {
       'extract',
       'https://article.test/story.html',
       '--provider',
-      'firecrawl'
+      'spider'
     ], { media: false, document: false, article: true })).toEqual([
       '--url-provider',
-      'firecrawl'
+      'spider'
     ])
 
     const routeAwareDocumentOpts = buildOptsFromFlags(documentNormalized.flags, {}, documentNormalized.explicitFlags, { flagOccurrences: documentNormalized.flagOccurrences })

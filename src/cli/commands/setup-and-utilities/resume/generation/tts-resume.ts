@@ -2,6 +2,7 @@ import { restoreSharedTtsResumeOptions } from '~/cli/commands/audio/tts/tts-util
 import { buildPureCurrentTtsRenderPlan } from '~/cli/commands/audio/tts/script-to-audio/attempt-planning'
 import { restoreSonioxResumeOptions } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-resume-options'
 import { sonioxEstimateFromPlannedCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
+import { estimateOpenAITtsSlots } from '~/cli/commands/audio/tts/tts-services/tts-openai/openai-tts-pricing'
 import { restoreGeminiResumeOptions } from '~/cli/commands/audio/tts/tts-services/tts-gemini/gemini-resume-options'
 import { buildUpdatedGenerationCostTiming, collectGenerationTargetsForProviders } from '../generation-resume'
 import { readManifest, updateManifest, type ManifestUpdater } from '~/cli/commands/command-shared/pipeline-manifest'
@@ -284,10 +285,12 @@ const adoptRetainedTtsDeliveryOptions = (
   sourceContext: Awaited<ReturnType<typeof resolveTtsResumeSourceContext>>,
   currentByTargetKey: ReadonlyMap<string, unknown>
 ): void => {
-  if (opts.ttsDeliveryFallbackAllowed !== true) return
+  // Resume options can be reused across batch items. Identity replay belongs only
+  // to the current item and is never inherited by a later native/new plan.
+  delete opts.ttsOpenAIAccountingReplay
   const legacyChunking = { ...opts.ttsChunking, boundary: 'smart' as const, replay: 'legacy-v0' as const }
   const previousSmart = { ...opts.ttsChunking, boundary: 'smart' as const, replay: 'smart-v1' as const }
-  const candidates: Array<Pick<TtsOptions, 'ttsChunking' | 'ttsDelivery'>> = [
+  const deliveryCandidates: Array<Pick<TtsOptions, 'ttsChunking' | 'ttsDelivery'>> = [
     { ttsChunking: opts.ttsChunking, ttsDelivery: opts.ttsDelivery },
     { ttsChunking: opts.ttsChunking, ttsDelivery: undefined },
     { ttsChunking: previousSmart, ttsDelivery: opts.ttsDelivery },
@@ -295,6 +298,10 @@ const adoptRetainedTtsDeliveryOptions = (
     { ttsChunking: legacyChunking, ttsDelivery: opts.ttsDelivery },
     { ttsChunking: legacyChunking, ttsDelivery: undefined },
   ]
+  // An accounting-only replay is allowed with explicit unchanged delivery too.
+  // Every candidate must reproduce the full retained identity before adoption.
+  const eligible = opts.ttsDeliveryFallbackAllowed === true ? deliveryCandidates : deliveryCandidates.filter(candidate => candidate.ttsDelivery === opts.ttsDelivery)
+  const candidates = eligible.flatMap(candidate => [{ ...candidate, ttsOpenAIAccountingReplay: undefined }, { ...candidate, ttsOpenAIAccountingReplay: true as const }])
   const retainedTargets = targets.filter((target) => target.targetKey && currentByTargetKey.has(target.targetKey) && sourceContext.retainedPlanIdentities.has(target.targetKey))
   if (retainedTargets.length === 0) return
   const matches = (candidate: typeof candidates[number]): boolean => retainedTargets.every((target) => {
@@ -311,6 +318,7 @@ const adoptRetainedTtsDeliveryOptions = (
   const adopted = candidates.find(matches)
   if (!adopted || adopted === candidates[0]) return
   opts.ttsChunking = adopted.ttsChunking
+  opts.ttsOpenAIAccountingReplay = 'ttsOpenAIAccountingReplay' in adopted ? adopted.ttsOpenAIAccountingReplay : undefined
   if (adopted.ttsDelivery === undefined) {
     delete opts.ttsDelivery
     if (opts.ttsExport) {
@@ -503,11 +511,11 @@ export const ttsResumeConfig = {
       runtimeOptions,
       context
     )
-    const remaining: Array<{ target: TtsTarget, characterCount: number, plannedCents?: number }> = []
+    const remaining: Array<{ target: TtsTarget, characterCount: number, plannedCents?: number, openaiEstimate?: ReturnType<typeof estimateOpenAITtsSlots> }> = []
     const queueFullTarget = (target: TtsTarget): void => {
-      if (target.service !== 'soniox') { remaining.push({ target, characterCount: input.length }); return }
+      if (target.service !== 'soniox' && target.service !== 'openai') { remaining.push({ target, characterCount: input.length }); return }
       const plan = buildPureCurrentTtsRenderPlan({ target, sourceText: input, ttsOptions: runtimeOptions, sourceIdentity: sourceContext.sourceIdentity, dialoguePlan: sourceContext.dialoguePlan })
-      remaining.push({ target, characterCount: plan.planned.slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0), plannedCents: plan.plannedRenderCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0) })
+      remaining.push({ target, characterCount: plan.planned.slots.reduce((sum, slot) => sum + [...slot.providerText].length, 0), plannedCents: plan.plannedRenderCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0), ...(target.service === 'openai' ? { openaiEstimate: estimateOpenAITtsSlots(plan.planned.slots, plan.planned.turns) } : {}) })
     }
     for (const target of context.targets) {
       if (!target.targetKey) throw UsageError(`TTS resume target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
@@ -552,12 +560,13 @@ export const ttsResumeConfig = {
         )
       }
       if (price.unresolvedSlotCount === 0) continue
-      remaining.push({ target, characterCount: price.unresolvedCharacterCount, plannedCents: price.plannedCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0) })
+      remaining.push({ target, characterCount: price.unresolvedCharacterCount, plannedCents: price.plannedCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0), ...(price.openaiEstimate ? { openaiEstimate: price.openaiEstimate } : {}) })
     }
     const estimates = []
     for (const entry of remaining) {
-      const targetEstimates = await buildTtsTargetEstimates([entry.target], estimateOptions, entry.characterCount)
+      const targetEstimates = await buildTtsTargetEstimates([entry.target.service === 'openai' ? { ...entry.target, instructions: undefined, numericSpeed: 1 } : entry.target], estimateOptions, entry.characterCount)
       if (entry.target.service === 'soniox' && entry.plannedCents !== undefined) Object.assign(targetEstimates[0]!, sonioxEstimateFromPlannedCost(entry.characterCount, entry.plannedCents))
+      if (entry.target.service === 'openai') Object.assign(targetEstimates[0]!, entry.openaiEstimate ?? {}, { totalCost: entry.openaiEstimate?.totalCost ?? entry.plannedCents ?? targetEstimates[0]!.totalCost, estimateProvenance: entry.openaiEstimate?.estimateProvenance ?? 'Heuristic native-token quote for unresolved retained OpenAI slots, using each slot’s exact text, repeated instructions and effective speed; binary WAV provides no authoritative usage.' })
       estimates.push(...targetEstimates)
     }
     return estimates
@@ -571,9 +580,49 @@ export const ttsResumeConfig = {
     metadata: Step4Metadata[],
     currentManifestMetadata: Record<string, unknown>,
     input: string
-  ) => buildUpdatedGenerationCostTiming(
+  ) => rebuildTtsResumeRunMetadata(metadata, currentManifestMetadata, input)
+} satisfies GenerationResumeConfig<TtsTarget, Step4Metadata, TtsOptions>
+
+const rebuildTtsResumeRunMetadata = (
+  metadata: Step4Metadata[],
+  currentManifestMetadata: Record<string, unknown>,
+  input: string
+): Record<string, unknown> => {
+  const actual = computeActualCosts({ step4: metadata, ttsCharacterCount: input.length })
+  const record = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value)
+  const isOpenAiStep = (value: unknown): value is Record<string, unknown> => record(value) && value['step'] === 'tts' && value['provider'] === 'openai' && value['model'] === 'gpt-4o-mini-tts-2025-12-15'
+  const priorEntries = Array.isArray(currentManifestMetadata['tts'])
+    ? currentManifestMetadata['tts'].filter((entry): entry is Record<string, unknown> => record(entry) && entry['ttsService'] === 'openai' && entry['ttsModel'] === 'gpt-4o-mini-tts-2025-12-15')
+    : []
+  const currentEntries = metadata.filter(entry => entry.ttsService === 'openai' && entry.ttsModel === 'gpt-4o-mini-tts-2025-12-15')
+  const priorCost = currentManifestMetadata['cost']
+  const priorActual = record(priorCost) ? priorCost['actual'] : undefined
+  const priorSteps = record(priorActual) && Array.isArray(priorActual['steps'])
+    ? priorActual['steps'].filter(isOpenAiStep)
+    : []
+  const sameSelectedResult = (entry: Step4Metadata, prior: Record<string, unknown>): boolean =>
+    ['targetKey', 'renderIdentity', 'resultIdentity', 'audioRunId'].every(key =>
+      typeof prior[key] === 'string' && prior[key].length > 0 && Reflect.get(entry, key) === prior[key])
+  const priorTargetKeys = new Set(priorEntries.flatMap(entry => typeof entry['targetKey'] === 'string' && entry['targetKey'].length > 0 ? [entry['targetKey']] : []))
+  const retainedOnly = currentEntries.length > 0 && currentEntries.every(entry =>
+    priorEntries.some(prior => sameSelectedResult(entry, prior))
+    || entry.openaiTtsRetainedOnly === true && typeof entry.targetKey === 'string' && priorTargetKeys.has(entry.targetKey))
+  if (retainedOnly && priorSteps.length > 0 && priorSteps.every(step => typeof step['cost'] === 'number' && Number.isFinite(step['cost']) && step['cost'] >= 0)) {
+    // A completed recording's original estimate is historical evidence. Preserve
+    // its exact amount, units and provenance when no new OpenAI synthesis ran;
+    // native-unit quotes for unfinished slots are computed separately above.
+    let restored = false
+    actual.steps = actual.steps.flatMap(step => {
+      if (!isOpenAiStep(step)) return [step]
+      if (restored) return []
+      restored = true
+      return structuredClone(priorSteps) as unknown as typeof actual.steps
+    })
+    actual.totalCost = actual.steps.reduce((sum, step) => sum + step.cost, 0)
+  }
+  return buildUpdatedGenerationCostTiming(
     currentManifestMetadata,
-    computeActualCosts({ step4: metadata, ttsCharacterCount: input.length }),
+    actual,
     computeActualProcessingTimes({ step4: metadata, ttsCharacterCount: input.length })
   )
-} satisfies GenerationResumeConfig<TtsTarget, Step4Metadata, TtsOptions>
+}

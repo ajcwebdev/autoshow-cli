@@ -7,6 +7,7 @@ Generate images from a text prompt with hosted image providers.
 - [Setup](#setup)
   - [Environment](#environment)
 - [Usage](#usage)
+- [Generate then edit](#generate-then-edit)
 - [Shared Image Options](#shared-image-options)
 - [Image Services](#image-services)
   - [Gemini](#gemini)
@@ -43,6 +44,8 @@ bun autoshow image <prompt> [flags]
 
 Bare `--provider` flags without a model value resolve to the cheapest supported model. `--provider` is repeatable.
 
+Reference examples use the bundled original Harborlight mug illustration in PNG or JPEG. The matching edit mask has transparent mug body/handle paint and an opaque protected badge/background; it has the same 1024 × 1024 dimensions as the PNG source. See [fixture provenance and reproduction](../../../../input/examples/harborlight-README.md). These are usable input assets; hosted generation/editing still incurs provider charges and its quality is not established by local checks.
+
 ## Shared Image Options
 
 The `image` and `resume` commands use the same short option names, including `--size`. Saved configuration uses the matching namespaced key, such as `defaults.image.size`.
@@ -69,10 +72,47 @@ The `image` and `resume` commands use the same short option names, including `--
 See [Provider Capabilities](#provider-capabilities) for the per-model reference, resolution, aspect-ratio, count, format, and input/output price matrix.
 
 ```bash
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2.5-flare --size 1024x1024 --quality medium --format png --output-dir output/mug-base
-bun autoshow image "make only the mug matte black; preserve the logo, camera angle, lighting, and background" --provider openai=gpt-image-2.5-sunburst --input output/mug-base/generated-image.png --quality xhigh --format webp --compression 80 --output-dir output/mug-edit
 bun autoshow image "a serene mountain lake at dawn" --all-providers --price
 bun autoshow image "a serene mountain lake at dawn" --all-providers --max-model-cents 5 --price
+```
+
+## Generate then edit
+
+The edit depends on a successful base-image run. This single-provider, one-image, explicit-PNG generation writes `output/mug-base/generated-image.png`; other formats, counts, or provider combinations can produce different filenames. Check the run's manifest and reported image filenames before adapting the example. A successful HTTP response or a nonempty file alone does not establish that the picture decodes.
+
+Estimate both hosted stages before running either. The bundled 1024 × 1024 mug supplies a real reference for the edit estimate while the generated base does not exist yet. Add the two estimates and allow for any planned retries as one intended batch. An estimate is not an invoice or a spending cap. Recheck the edit estimate against the actual base after generation.
+
+```bash
+bun autoshow image "a studio photo of a teal enamel camping mug with a cream compass-and-mountain badge on white seamless" --provider openai=gpt-image-2.5-flare --count 1 --size 1024x1024 --quality medium --format png --price
+bun autoshow image "make only the mug matte black; preserve the logo, camera angle, lighting, and background" --provider openai=gpt-image-2.5-sunburst --input input/examples/image/harborlight-mug.png --size 1024x1024 --quality xhigh --format webp --compression 80 --price
+```
+
+After accepting the combined cost and configuring `OPENAI_API_KEY`, run the sequence below. Use unused output directories or resume compatible existing work. Install FFmpeg/ffprobe with `setup` if needed; `setup --doctor` only checks them. The local verifier resolves the installed tools, verifies the file's codec and expected dimensions, decodes its compressed frame, and prints a SHA-256 digest without contacting a provider. The subshell stops on a failed generation or verifier check.
+
+```bash
+(
+  set -e
+  bun autoshow image "a studio photo of a teal enamel camping mug with a cream compass-and-mountain badge on white seamless" --provider openai=gpt-image-2.5-flare --count 1 --size 1024x1024 --quality medium --format png --output-dir output/mug-base
+  bun --no-env-file src/tools/verify-image-artifact.ts output/mug-base/generated-image.png --size 1024x1024
+  bun autoshow image "make only the mug matte black; preserve the logo, camera angle, lighting, and background" --provider openai=gpt-image-2.5-sunburst --input output/mug-base/generated-image.png --size 1024x1024 --quality xhigh --format webp --compression 80 --price
+)
+```
+
+Review that revised quote before purchasing the edit: include the base cost already incurred, the edit, and any planned retries. Continue only after the base and combined budget are acceptable. Recheck the same base before dispatch, then verify the edited output:
+
+```bash
+(
+  set -e
+  bun --no-env-file src/tools/verify-image-artifact.ts output/mug-base/generated-image.png --size 1024x1024
+  bun autoshow image "make only the mug matte black; preserve the logo, camera angle, lighting, and background" --provider openai=gpt-image-2.5-sunburst --input output/mug-base/generated-image.png --size 1024x1024 --quality xhigh --format webp --compression 80 --output-dir output/mug-edit
+  bun --no-env-file src/tools/verify-image-artifact.ts output/mug-edit/generated-image.webp --size 1024x1024
+)
+```
+
+The edited output is `output/mug-edit/generated-image.webp`. Inspect the image to assess the requested edit. Local transport/filename checks do not establish that the model preserved the badge or produced the requested appearance. To reuse an existing original input, omit base generation and use `input/examples/image/harborlight-mug.png` in the edit command; the edit still uses a hosted provider. This optional fixture check is entirely local:
+
+```bash
+bun --no-env-file src/tools/verify-image-artifact.ts input/examples/image/harborlight-mug.png --size 1024x1024
 ```
 
 ## Image Services
@@ -90,7 +130,7 @@ bun autoshow image "a serene mountain lake at dawn" --all-providers --max-model-
 
 ```bash
 bun autoshow image "a serene mountain lake at dawn" --provider gemini=gemini-3.1-flash-lite-image --size 1K --aspect-ratio 16:9
-bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input input/reference.png --output-dir output/travel-poster
+bun autoshow image "restyle this teal camping mug illustration as a 1960s harbor travel poster; preserve its cream compass-and-mountain badge" --provider gemini=gemini-3.1-flash-lite-image --input input/examples/image/harborlight-mug.png --output-dir output/travel-poster
 ```
 
 ### OpenAI
@@ -106,8 +146,8 @@ bun autoshow image "restyle this product image as a 1960s travel poster" --provi
 | Edit/reference    | Up to 16 ordered `--input` references with optional `--mask`                         |
 
 ```bash
-bun autoshow image "Product concept: enamel travel mug. Composition: centered front view. Style: pencil sketch on white. Preserve: proportions from the reference." --provider openai=gpt-image-2.5-flare --input input/product.png --size 1024x1024 --quality low
-bun autoshow image "Change only the mug color to blue. Preserve the logo, lighting, camera angle, and background." --provider openai=gpt-image-2.5-sunburst --input input/product.png --mask input/mask.png --quality xhigh --format webp
+bun autoshow image "Product concept: enamel travel mug. Composition: centered front view. Style: pencil sketch on white. Preserve: proportions from the reference." --provider openai=gpt-image-2.5-flare --input input/examples/image/harborlight-mug.png --size 1024x1024 --quality low
+bun autoshow image "Change only the mug color to blue. Preserve the logo, lighting, camera angle, and background." --provider openai=gpt-image-2.5-sunburst --input input/examples/image/harborlight-mug.png --mask input/examples/image/harborlight-mug-mask.png --quality xhigh --format webp
 bun autoshow image "A clean cutout of a red camping mug with no background" --provider openai=gpt-image-2.5-flare --background transparent --format png --size 1024x1024 --quality medium --price
 ```
 
@@ -133,7 +173,7 @@ Omitted or `auto` quality means `low` for generation and `medium` for editing. O
 
 ```bash
 bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-2.0 --aspect-ratio 16:9 --size 1K --count 4
-bun autoshow image "turn the reference into a glossy magazine ad on a warm kitchen counter" --provider grok=grok-imagine-image-2.0 --input input/reference.jpg --size 1K
+bun autoshow image "turn the teal camping mug reference into a magazine ad on a warm kitchen counter; preserve its cream badge" --provider grok=grok-imagine-image-2.0 --input input/examples/image/harborlight-mug.jpg --size 1K
 bun autoshow image "a geometric lighthouse poster" --provider grok=grok-imagine-image-2.0 --quality medium --size 2K
 ```
 
@@ -151,7 +191,7 @@ bun autoshow image "a geometric lighthouse poster" --provider grok=grok-imagine-
 
 ```bash
 bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=bytedance/seedream-5-lite --size 2K --aspect-ratio 16:9
-bun autoshow image "place the subject on a rustic breakfast table" --provider replicate=bytedance/seedream-5-pro --input input/subject.jpg --aspect-ratio 1:1
+bun autoshow image "place the teal camping mug on a rustic breakfast table; preserve its cream badge" --provider replicate=bytedance/seedream-5-pro --input input/examples/image/harborlight-mug.jpg --aspect-ratio 1:1
 ```
 
 Bare `--provider replicate` selects Qwen Image 3. Replicate Qwen Image 3 and 3 Pro support generation and single-image editing with `--input`; editing retains the reference aspect ratio. Use `--aspect-ratio` for generation. Explicit size, count, and output-format controls are unsupported. The identically named fal Qwen 3 has separate pricing and reference limits.
@@ -168,7 +208,7 @@ Bare `--provider replicate` selects Qwen Image 3. Replicate Qwen Image 3 and 3 P
 
 ```bash
 bun autoshow image "a glass of iced coffee on a marble countertop in morning light" --provider lumalabs=uni-1 --aspect-ratio 16:9 --format png
-bun autoshow image "make the subject matte black and keep the same camera angle" --provider lumalabs=uni-1 --input input/subject.png
+bun autoshow image "make the mug paint matte black; preserve its cream badge and the same camera angle" --provider lumalabs=uni-1 --input input/examples/image/harborlight-mug.png
 ```
 
 ### fal.ai

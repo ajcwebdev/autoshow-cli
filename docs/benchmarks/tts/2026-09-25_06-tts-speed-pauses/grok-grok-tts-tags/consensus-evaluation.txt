@@ -1,1 +1,5 @@
-Transport completed and local audio integrity was verified. Spoken words, numeric-speed effects, qualitative pacing, and requested pauses have not been assessed. Successful synthesis is not a controls-quality pass.
+Offline ASR assessment (2026-10-16T01:08:44.227Z): speed-pauses--grok-grok-tts-tags--grok-grok-tts. See docs/benchmarks/tts/assessment.md#speed-pauses--grok-grok-tts-tags--grok-grok-tts and assessment.evidence.zip.
+
+Installed Whisper small.en screening: strict WER 7.14%, CER 6.91%, substitutions/deletions/insertions 0/3/0. Supplemental counting-number-fold WER 7.14% (normalized tokens 1–5 only; omissions preserved). Differences require adjudication and do not establish TTS errors. Full waveform decoding succeeded. Per-line timing attribution is unavailable; full-file signal intervals are recorded.
+
+Subjective pronunciation, speaker identity, emotional/control effect, seam/prosody, and perceptual ratings are excluded and unscored at the user’s instruction. No human listening or perceptual pass is claimed. No provider calls or synthesis reruns were made.

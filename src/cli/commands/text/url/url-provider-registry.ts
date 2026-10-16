@@ -1,27 +1,26 @@
-import type { HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleProviderRunWithStats, UrlArticleRunResult, UrlRequestOptions } from '~/types'
-import { AppError, isAppError } from '~/utils/error-handler'
+import type { ActiveHtmlArticleBackend, HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleProviderRunWithStats, UrlArticleRunResult, UrlRequestOptions } from '~/types'
+import { AppError, isAppError, UsageError } from '~/utils/error-handler'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { defuddleArticleAdapter } from './url-local/defuddle/run-defuddle-url'
-import { firecrawlArticleAdapter } from './url-services/firecrawl/run-firecrawl-url'
-import { glmReaderArticleAdapter } from './url-services/glm-reader/run-glm-reader-url'
 import { spiderArticleAdapter } from './url-services/spider/run-spider-url'
-import { supadataArticleAdapter } from './url-services/url-supadata/run-supadata-url'
 import { zyteArticleAdapter } from './url-services/zyte/run-zyte-url'
 import { isLocalUrlBackend } from './url-targets'
 import { getUrlRequestAttempts, getUrlRequestTimeoutMs } from './url-utils'
 
-export const URL_ARTICLE_PROVIDER_ADAPTERS: Record<HtmlArticleBackend, UrlArticleProviderAdapter> = {
+export const URL_ARTICLE_PROVIDER_ADAPTERS: Record<ActiveHtmlArticleBackend, UrlArticleProviderAdapter> = {
   defuddle: defuddleArticleAdapter,
-  firecrawl: firecrawlArticleAdapter,
-  'glm-reader': glmReaderArticleAdapter,
   spider: spiderArticleAdapter,
-  supadata: supadataArticleAdapter,
   zyte: zyteArticleAdapter
 }
 
 export const getUrlArticleProviderAdapter = (
   backend: HtmlArticleBackend
-): UrlArticleProviderAdapter => URL_ARTICLE_PROVIDER_ADAPTERS[backend]
+): UrlArticleProviderAdapter => {
+  if (!Object.hasOwn(URL_ARTICLE_PROVIDER_ADAPTERS, backend)) {
+    throw UsageError(`URL provider ${backend} is excluded or unsupported and cannot dispatch. Select an active URL provider explicitly.`)
+  }
+  return URL_ARTICLE_PROVIDER_ADAPTERS[backend as ActiveHtmlArticleBackend]
+}
 
 const enrichUrlRetryError = (
   error: unknown,

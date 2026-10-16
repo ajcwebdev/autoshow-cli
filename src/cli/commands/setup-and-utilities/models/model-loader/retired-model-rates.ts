@@ -6,6 +6,8 @@ export const modelRateKey = (service: string, model: string): string => `${servi
 
 export const RETIRED_MODEL_RATES: RetiredModelRates = {
   stt: {
+    'happyscribe:auto': { costPerHourCents: 60 },
+    'supadata:auto': { costPerHourCents: 0 },
     'whisper:tiny': { costPerHourCents: 0 },
     'whisper:base': { costPerHourCents: 0 },
     'whisper:small': { costPerHourCents: 0 },
@@ -28,6 +30,10 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'gemini-stt:gemini-3.8-flash': { costPerHourCents: 17.28 }
   },
   extract: {
+    'firecrawl:firecrawl': { costPer1kPagesCents: 83 },
+    'supadata:supadata': { costPer1kPagesCents: 1000 },
+    // Historical heuristic only: the REST Reader rate was never verified.
+    'glm-reader:glm-reader': { costPer1kPagesCents: 1000 },
     'anthropic:claude-opus-4-7': { costPerMInputTokensCents: 0, costPerMOutputTokensCents: 0 },
     'gemini:gemini-3.1-flash-lite': { costPerMInputTokensCents: 25, costPerMOutputTokensCents: 150 },
     'gemini:gemini-3.1-flash-lite-preview': { costPerMInputTokensCents: 25, costPerMOutputTokensCents: 150 },

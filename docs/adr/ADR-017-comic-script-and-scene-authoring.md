@@ -144,7 +144,7 @@ Positive outcomes:
 
 Negative outcomes:
 
-- A style seed image must be generated and copied before the first treatment run, and the location catalog's single `styleImage` is shared across projects.
+- A valid style seed image must be created or copied before the first treatment run, and the location catalog's single `styleImage` is shared across projects.
 - A scene needs a reviewed plan before its strongest checks mean anything, and a hand-authored plan for a long scene is substantial work.
 - The modeled judge input rose from 5,000 to 8,000 units per call and output from 1,200 to 1,400.
 - A wrong plan is a source of false hard failures, and the blocking-class restart lane spends a full generation whenever it fires.
@@ -177,11 +177,13 @@ Negative outcomes:
 
 ## Test Plan
 
+Prepare the demonstration characters root and copy the bundled style seed using the [treatment examples](../commands/05-visuals/comic/07-draft-treatment.md#examples) before running the price command below.
+
 ```bash
 bun run check
 bun test test/test-cases/validation/visuals/comic
 bun test test/test-cases/validation/cli/option-resolution-contracts/
-bun autoshow comic draft-treatment input/camp.md --episode 02 --speaker papa-bear --price
+bun --no-env-file autoshow comic draft-treatment input/examples/comic/harborlight-camp-treatment.md --episode 02 --scene 02 --slug harborlight-camp-treatment --speaker papa-bear --speaker mira --panel-count 20-25 --characters-root runtime/examples/harborlight-comic-treatment/characters --style-seed harborlight-camp--style-seed.png --config-path runtime/examples/harborlight-comic-treatment/empty-config.json --price
 ```
 
 1. The comic suite proves treatment rendering, idempotent catalog merges, the panel-count contract, plan validation, deterministic compilation, the blocking audit and restart lane, the continuity audit report, staging-directive parsing, and both review modes against local fixtures.

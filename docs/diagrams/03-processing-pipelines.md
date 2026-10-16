@@ -58,7 +58,7 @@ single audio STT provider:
   result.json
   manifest.json
 
-multi-provider, or one Supadata or ScrapeCreators target:
+multi-provider, or one ScrapeCreators target:
   providers/<service>-<model>/
     transcription.txt
     result.json
@@ -139,7 +139,7 @@ all URL backends:
     result.json
   manifest.json
 ```
-Local HTML uses Defuddle. Remote single-backend Defuddle automatically retries with Firecrawl when the Defuddle attempt fails.
+Local HTML and default remote articles use Defuddle. Select Spider or Zyte explicitly for hosted article extraction.
 
 ## Write Outputs
 

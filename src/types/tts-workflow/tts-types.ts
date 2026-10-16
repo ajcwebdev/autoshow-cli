@@ -29,6 +29,8 @@ export type TtsOptions = HostedConcurrencyRuntimeOptions & Partial<TtsRuntimeOpt
   ttsPronunciationLexicon?: TtsPronunciationLexicon | undefined
   ttsTextPreflight?: boolean | undefined
   ttsDeliveryFallbackAllowed?: boolean | undefined
+  /** Internal identity replay, adopted only after matching an entire retained OpenAI plan. */
+  ttsOpenAIAccountingReplay?: true | undefined
 }
 
 export type TtsPronunciationRule = {
@@ -349,6 +351,8 @@ export type TtsTarget = ProviderTargetBase<TtsProvider> & {
   voice?: string
   multiSpeakerStrategy?: MultiSpeakerStrategy
   numericSpeed?: number | undefined
+  instructions?: string | undefined
+  legacyOpenAIAccounting?: true | undefined
   chunkCharacterLimit?: number | undefined
   setupCostCents?: number | undefined
   setupTimeMs?: number | undefined

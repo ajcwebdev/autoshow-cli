@@ -8,8 +8,6 @@ import {
   SUPPORTED_MISTRAL_STT_MODELS,
   SUPPORTED_ASSEMBLYAI_STT_MODELS,
   SUPPORTED_GLADIA_STT_MODELS,
-  SUPPORTED_HAPPYSCRIBE_STT_MODELS,
-  SUPPORTED_SUPADATA_STT_MODELS,
   SUPPORTED_SCRAPECREATORS_STT_MODELS,
   SUPPORTED_GEMINI_STT_MODELS,
   SUPPORTED_TOGETHER_STT_MODELS,
@@ -24,8 +22,6 @@ import {
   validateMistralSttModel,
   validateAssemblyaiSttModel,
   validateGladiaSttModel,
-  validateHappyscribeSttModel,
-  validateSupadataSttModel,
   validateScrapeCreatorsSttModel,
   validateGeminiSttModel,
   validateTogetherSttModel,
@@ -76,16 +72,6 @@ export const STEP2_STT_PROVIDER_REGISTRY = [
     supportedModels: SUPPORTED_GLADIA_STT_MODELS,
     validateModel: validateGladiaSttModel,
     description: buildModelDescription('Gladia STT model', SUPPORTED_GLADIA_STT_MODELS)
-  }),
-  sttModelProvider('happyscribe', 'happyscribeStt', {
-    supportedModels: SUPPORTED_HAPPYSCRIBE_STT_MODELS,
-    validateModel: validateHappyscribeSttModel,
-    description: buildModelDescription('Happy Scribe automatic STT model (fixed en-US only)', SUPPORTED_HAPPYSCRIBE_STT_MODELS)
-  }),
-  sttModelProvider('supadata', 'supadataStt', {
-    supportedModels: SUPPORTED_SUPADATA_STT_MODELS,
-    validateModel: validateSupadataSttModel,
-    description: buildModelDescription('Supadata STT mode', SUPPORTED_SUPADATA_STT_MODELS)
   }),
   sttModelProvider('scrapecreators', 'scrapecreatorsStt', {
     allShortcut: false,

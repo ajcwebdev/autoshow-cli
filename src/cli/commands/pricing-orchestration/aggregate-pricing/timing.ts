@@ -13,8 +13,6 @@ const TIMED_EXTRACT_PROVIDERS = new Set<TimedExtractProvider>([
   'anthropic',
   'gemini',
   'deepinfra',
-  'firecrawl',
-  'glm-reader',
   'spider',
   'zyte'
 ])

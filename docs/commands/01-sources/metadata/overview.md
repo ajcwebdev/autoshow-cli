@@ -44,7 +44,7 @@ URL lists, RSS or podcast feeds, and YouTube channels or playlists honor `--batc
 --password           Password for encrypted PDFs
 --markdown           Print metadata as Markdown frontmatter YAML
 --save               With --markdown, write metadata.md and print a confirmation
---url-provider       Article or HTML backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
+--url-provider       Article or HTML backend: defuddle|spider|zyte (default defuddle; local .html/.htm always use defuddle)
 --batch-limit        Number of items to process, or "all" (default 5)
 --batch-order        Item order: newest|oldest (default newest)
 --batch-concurrency  Number of items to process at once (default 7)
@@ -103,27 +103,42 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
 
 ## Examples
 
+Choose an existing local file, feed, or URL list:
+
 ```bash
-bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU"
-
-bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --markdown
-
-bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --save --markdown
-
 bun autoshow metadata input/examples/audio/1-audio.mp3
 
 bun autoshow metadata input/examples/document/1-document.pdf
-
-bun autoshow metadata https://x.com/i/spaces/1DXxyRYNejbKM
 
 bun autoshow metadata input/examples/document/protected.pdf --password secret
 
 bun autoshow metadata https://example.com/feed --batch-limit 3
 
-bun autoshow metadata https://www.youtube.com/@channelname --batch-limit 5
-
 bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save --markdown
 ```
+
+YouTube examples require a public source you select. Replace these template values before running them; install `yt-dlp` with `setup`. For a channel or playlist, check one discovered item before choosing a larger batch limit.
+
+```bash
+YOUTUBE_URL='<your-public-youtube-watch-url>'
+YOUTUBE_BATCH_URL='<your-public-youtube-channel-or-playlist-url>'
+bun autoshow metadata "$YOUTUBE_URL"
+bun autoshow metadata "$YOUTUBE_URL" --markdown
+bun autoshow metadata "$YOUTUBE_URL" --save --markdown
+bun autoshow metadata "$YOUTUBE_BATCH_URL" --batch-limit 1
+```
+
+The three watch-URL commands demonstrate alternative output modes; choose the one you need. Successful metadata does not guarantee that a later media download or captions request will succeed.
+
+For X, set `X_BEARER_TOKEN` for a project with access to your selected Space or linked post. Replace the template and review your X API access and billing terms before requesting metadata. The metadata request itself uses the X API. AutoShow does not estimate X API read charges; `--price` does not establish that this request is free or that the account can read the source.
+
+```bash
+X_SPACE_URL='<your-accessible-x-space-url>'
+bun autoshow metadata "$X_SPACE_URL"
+```
+
+Inspect returned metadata and access errors before using the source in another command. See the [X extraction guide](../../02-extract/url/overview.md#x-space-path) for post-URL and raw Space-ID alternatives.
+
 ## Setup and Environment
 
 Setup details are in [`setup.md`](../../00-setup-and-utilities/setup.md).
@@ -132,4 +147,4 @@ YouTube inputs may be rate-limited or challenged. Follow the [YouTube cookies gu
 
 X Space URLs, raw Space IDs, and X post URLs require `X_BEARER_TOKEN`.
 
-Hosted article backends selected with `--url-provider` need the matching API key (`FIRECRAWL_API_KEY`, `GLM_API_KEY`, `SPIDER_API_KEY`, `SUPADATA_API_KEY`, or `ZYTE_API_KEY`). Local `defuddle` does not.
+Hosted article backends selected with `--url-provider` need the matching API key (`SPIDER_API_KEY` or `ZYTE_API_KEY`). Local `defuddle` does not.

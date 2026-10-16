@@ -186,6 +186,7 @@ export type CurrentTtsReconciliationBlocker = Readonly<{
 }>
 
 export type CurrentTtsResumePricePlan = Readonly<{
+  openaiEstimate?: import('~/types').Step4Metadata['openaiTtsEstimate'] | undefined
   readiness: PureCurrentTtsReadinessPlan
   plannedCost: PlannedCost
   plannedSlotCount: number

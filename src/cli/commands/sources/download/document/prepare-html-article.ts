@@ -7,8 +7,7 @@ import { getOutputRoot } from '~/cli/commands/command-shared/output-root'
 import { validateData } from '~/utils/validate/validation'
 import { DocumentMetadataSchema } from '~/types'
 import { getUrlArticleProviderAdapter, runUrlArticleProvider } from '~/cli/commands/text/url/url-provider-registry'
-import { fallbackTitleFromSource, formatErrorMessage, getLocalBaseName, isRemoteSource } from '~/cli/commands/text/url/url-utils'
-import { InfraError, serializeDiagnosticError } from '~/utils/error-handler'
+import { fallbackTitleFromSource, getLocalBaseName, isRemoteSource } from '~/cli/commands/text/url/url-utils'
 import type { BatchChildRunContext, HtmlArticleBackend, PreparedDocument, UrlArticleRunResult, UrlRequestOptions } from '~/types'
 
 export const buildArticleSlug = (
@@ -53,6 +52,7 @@ export async function prepareHtmlArticle(
   batchChildContext?: BatchChildRunContext,
   urlRunOptions?: UrlRequestOptions
 ): Promise<PreparedDocument> {
+  getUrlArticleProviderAdapter(backend)
   const remote = isRemoteSource(source)
   let resolvedBackend = backend
 
@@ -70,36 +70,7 @@ export async function prepareHtmlArticle(
   const articleStartedAt = Date.now()
   let article: UrlArticleRunResult
 
-  if (resolvedBackend === 'defuddle') {
-    if (remote) {
-      try {
-        article = await runUrlArticleProvider('defuddle', source, sourceUrl, urlRunOptions)
-      } catch (defuddleError) {
-        l.warn(`Defuddle article extraction failed; falling back to Firecrawl: ${formatErrorMessage(defuddleError)}`, {
-          category: 'pipeline',
-          metadata: { fallbackBackend: 'firecrawl' }, error: defuddleError
-        })
-        try {
-          article = await runUrlArticleProvider('firecrawl', source, sourceUrl, urlRunOptions)
-          resolvedBackend = 'firecrawl'
-        } catch (firecrawlError) {
-          throw InfraError(
-            `Defuddle article extraction failed and Firecrawl fallback failed. ` +
-            `Defuddle: ${formatErrorMessage(defuddleError)} Firecrawl: ${formatErrorMessage(firecrawlError)}`,
-            {
-              stage: 'download:html-article',
-              metadata: { defuddleError: serializeDiagnosticError(defuddleError) },
-              ...(firecrawlError instanceof Error ? { cause: firecrawlError } : {})
-            }
-          )
-        }
-      }
-    } else {
-      article = await runUrlArticleProvider('defuddle', source, undefined, urlRunOptions)
-    }
-  } else {
-    article = await runUrlArticleProvider(resolvedBackend, source, sourceUrl, urlRunOptions)
-  }
+  article = await runUrlArticleProvider(resolvedBackend, source, sourceUrl, urlRunOptions)
   const htmlArticleProcessingTimeMs = Date.now() - articleStartedAt
 
   const step1Title = article.title ?? fallbackTitleFromSource(source)

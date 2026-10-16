@@ -140,9 +140,9 @@ describe('config provider and concurrency default contracts', () => {
       'url-provider': 'zyte'
     })
     expect(mergeConfigIntoRawFlags({
-      'url-provider': 'firecrawl'
+      'url-provider': 'spider'
     }, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set(['url-provider']))).toMatchObject({
-      'url-provider': 'firecrawl'
+      'url-provider': 'spider'
     })
     expect(mergeConfigIntoRawFlags({
       'all-url': true

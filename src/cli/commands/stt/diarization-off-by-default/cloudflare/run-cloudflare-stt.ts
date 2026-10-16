@@ -4,7 +4,7 @@ import { parseCaptionCues } from '~/cli/commands/audio/music/lyrics-video/captio
 import { logSttSegmentLifecycle } from '~/cli/commands/stt/stt-logging'
 import { buildSegmentsFromWords, toTimestamp } from '~/cli/commands/stt/stt-utils/stt-utils'
 import { CLOUDFLARE_API_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { getErrorStatus, ProviderError } from '~/utils/error-handler'
+import { getErrorStatus, ProviderError, ValidationError } from '~/utils/error-handler'
 import { isRecord, parseJsonOrText, readRestDiagnosticText, trimTrailingSlashes } from '~/utils/rest-client'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { finalizeHostedSttResult } from '../../stt-shared/finalize-hosted-stt'
@@ -111,6 +111,10 @@ export const runCloudflareStt = async (
   options: SttSegmentRunOptions
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model, segmentOffsetMinutes = 0, segmentNumber, totalSegments, audioDurationSeconds } = options
+  const gatewayId = process.env['CLOUDFLARE_AI_GATEWAY_ID']?.trim()
+  if (gatewayId && (gatewayId.length > 64 || /[\r\n\0]/.test(gatewayId))) {
+    throw ValidationError('CLOUDFLARE_AI_GATEWAY_ID must be a gateway ID of at most 64 characters without line breaks or null bytes', { stage: 'stt:cloudflare' })
+  }
   const apiToken = resolveCredential('cloudflare', 'require', { stage: 'stt:cloudflare', description: 'Cloudflare Workers AI transcription' })
   const accountId = resolveCredential('cloudflare-account', 'require', { stage: 'stt:cloudflare', description: 'Cloudflare Workers AI transcription' })
 
@@ -144,7 +148,8 @@ export const runCloudflareStt = async (
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiToken}`,
-        'Content-Type': request.contentType
+        'Content-Type': request.contentType,
+        ...(gatewayId ? { 'cf-aig-gateway-id': gatewayId } : {})
       },
       body: request.body,
       signal: signal ?? null

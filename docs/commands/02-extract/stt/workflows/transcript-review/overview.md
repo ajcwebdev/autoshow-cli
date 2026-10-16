@@ -5,13 +5,34 @@ See the [STT overview](../../overview.md) for provider selection and shared opti
 Export a word-indexed review packet and an empty edit template from a saved `result.json`, then apply approved edits to that same source. Review and apply run offline and do not call a provider.
 
 ```bash
-bun autoshow extract output/episode/raw/result.json --transcript-review --output-dir output/episode/review --json
-
-bun autoshow extract output/episode/raw/result.json --transcript-edits output/episode/review/edits.json --output-dir output/episode/reviewed --json
+bun autoshow extract input/examples/video/01-two-speaker-speech.transcript.json --transcript-review --output-dir runtime/examples/speech-workflows/review --json
 ```
-`--transcript-review` writes `transcript-review.json`, `edits.json`, and `transcription.txt`. `--transcript-edits` writes a new `result.json`, `transcription.txt`, and `transcript-edits.json`. The source result is not modified.
 
-Each entry in the template's `edits` array has this shape (indices and text below are illustrative):
+`--transcript-review` writes `transcript-review.json`, `edits.json`, and `transcription.txt`. Use a fresh output directory; the command keeps existing files intact.
+
+The bundled transcript covers the exact 24-second recording with nine coarse subtitle segments and named characters. Review `runtime/examples/speech-workflows/review/transcript-review.json` alongside that recording. Keep its generated `schemaVersion` and `sourceSha256`; replace only `edits` in the template with this punctuation-only demonstration before the apply command:
+
+```json
+[
+  {
+    "startWord": 4,
+    "deleteCount": 1,
+    "expectedText": "Look",
+    "replacement": "Look,",
+    "reason": "Add direct-address punctuation without changing the supplied subtitle words."
+  }
+]
+```
+
+Apply the edited template to the original source:
+
+```bash
+bun autoshow extract input/examples/video/01-two-speaker-speech.transcript.json --transcript-edits runtime/examples/speech-workflows/review/edits.json --output-dir runtime/examples/speech-workflows/reviewed --json
+```
+
+This writes a new `result.json`, `transcription.txt`, and `transcript-edits.json`; the source result stays unchanged. The example changes punctuation only; it makes no new claim about spoken wording. All 67 words retain nonempty timing, derived from the nine coarse subtitle spans. Those interpolated ranges support export but are not measured acoustic boundaries. The edit receipt records the source hash and original boundaries. An empty edit list is valid when no changes are approved. Follow [caption export](../captions/overview.md) with the new saved result.
+
+Other edits have this shape (these indices/text are illustrative):
 
 ```json
 {

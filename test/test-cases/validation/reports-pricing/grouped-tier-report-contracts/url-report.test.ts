@@ -12,7 +12,7 @@ import { expectRankingSurfaces, runConsensusBuildReport, setupTempRoots } from '
 const makeTempRoot = setupTempRoots()
 
 describe('grouped report contracts', () => {
-  test('URL comparison report emits full ranking surfaces without tier output', async () => {
+  test('Historical URL comparison report emits full ranking surfaces without tier output', async () => {
       const runDir = await makeTempRoot('autoshow-url-full-surfaces-')
       await writeFile(join(runDir, 'consensus-extraction.txt'), 'alpha beta gamma delta epsilon zeta eta theta\n')
 

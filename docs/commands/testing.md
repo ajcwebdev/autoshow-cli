@@ -63,16 +63,24 @@ Per-command coverage, price examples, and live selections live on these pages:
 - `--parallel` isolates test files. Use `--no-isolate` only as a temporary diagnostic escape hatch for a confirmed isolation or preload regression; it is not a supported default because it weakens file-level state separation.
 - Interrupting a run terminates local test descendants.
 - Each run writes artifacts under `./output/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. By default, `bun t` removes that directory after a passing run. A failed run keeps its directory (`junit.xml`, `report.json`, `commands.log`, and per-test CLI outputs) until the next run's cleanup. Use `--no-cleanup` to keep every run directory.
-- Two files at `./output/test-output/` survive cleanup. `latest.log` starts with the run summary and the uncapped digest, followed by the failed and skipped `report.json` entries, the runner log, and the tail of the command log. `latest-model-calibration.json` holds the full model calibration report from the most recent test run. A normal `bun t` cleanup also keeps `.test-cache/` for file timings, the prebuilt CLI bundle, and the budget-preflight cache.
+- Two files at `./output/test-output/` survive cleanup. `latest.log` starts with the run summary and the uncapped digest, followed by the failed and skipped `report.json` entries, the runner log, and the tail of the command log. Each run regenerates `latest-model-calibration.json` from retained run metadata for model cost and timeout recommendations. It does not measure word boundaries. A normal `bun t` cleanup also keeps `.test-cache/` for file timings, the prebuilt CLI bundle, and the budget-preflight cache.
 - Use `--no-adaptive-concurrency` to disable adaptive per-provider lane limits.
 
 ```bash
-bun t --no-cleanup
+bun t test/test-cases/validation/stt/workflows/timing/documentation-speech-workflows.test.ts --no-cleanup
 
 cat output/test-output/latest.log
 
 cat output/test-output/latest-model-calibration.json
 ```
+
+This targeted local run calls no hosted provider and never downloads tools or models. Native cases require installed FFmpeg/FFprobe and reuse the optional installed tiny/ONNX prerequisites from [local timing workflows](02-extract/stt/workflows/timing/overview.md); absent optional model cases are skipped explicitly. It verifies review/edit lineage, real caption serialization, channel merge/reconciliation, and valid and rejected timing artifacts. A validation-only run can legitimately report zero scanned model metadata files and no recommendations. The separate word-timing command writes `runtime/examples/speech-workflows/calibration/calibration.json`, retaining reference confidence and provenance; complete that guide's alignment and calibration steps before inspecting it:
+
+```bash
+cat runtime/examples/speech-workflows/calibration/calibration.json
+```
+
+Neither calibration artifact establishes spoken-text correctness or perceptual quality.
 
 Common selection and diagnostic flags are forwarded unchanged after AutoShow resolves path filters:
 

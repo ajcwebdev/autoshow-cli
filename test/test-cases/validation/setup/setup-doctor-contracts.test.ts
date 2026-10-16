@@ -262,8 +262,6 @@ describe('setup doctor contracts', () => {
 
     expect(findDoctorCheck(report, 'TOGETHER_API_KEY (Together write/STT)').status).toBe('MISSING')
     expect(findDoctorCheck(report, 'TOGETHER_API_KEY (Together write/STT)').severity).toBe('info')
-    expect(findDoctorCheck(report, 'HAPPYSCRIBE_API_KEY (Happy Scribe STT)').severity).toBe('info')
-    expect(findDoctorCheck(report, 'SUPADATA_API_KEY (Supadata STT/URL)').severity).toBe('info')
     expect(report.hasWarnings).toBe(false)
   })
 
@@ -399,10 +397,10 @@ describe('setup doctor contracts', () => {
     expect(envVars).toEqual(expect.arrayContaining([
       'FAL_API_KEY',
       'TOGETHER_API_KEY',
-      'HAPPYSCRIBE_API_KEY',
-      'SUPADATA_API_KEY',
+
+
       'SCRAPECREATORS_API_KEY',
-      'FIRECRAWL_API_KEY',
+
       'SPIDER_API_KEY',
       'ZYTE_API_KEY',
       'LTXV_API_KEY',

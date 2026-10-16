@@ -30,16 +30,16 @@ Current model IDs are listed in command help.
 
 Selectors use `provider[=model]`. Repeat a flag to run more than one provider. Flags by command are in [System Overview](01-system-overview-cli.md#flag-system).
 
-| Step  | Providers                                                                                                                                                                                                |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| STT   | Local: `whisperfile`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`, `openai`. |
-| OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`.                                                       |
-| URL   | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`.                                                                                                                      |
-| LLM   | Hosted: `openai`, `gemini`, `anthropic`, `grok`, `glm`, `kimi`, `together`. Write has no local LLM.                                                                                                      |
-| TTS   | Hosted: `gemini`, `elevenlabs`, `soniox`, `grok`, `mistral`, `openai`, `inworld`.                                                                                                                        |
-| Image | `gemini`, `openai`, `grok`, `replicate`, `lumalabs`, `fal`.                                                                                                                                              |
-| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                                 |
-| Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                                       |
+| Step  | Providers                                                                                                                                                                                   |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| STT   | Local: `whisperfile`. Hosted: `cloudflare`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `grok`, `mistral`, `assemblyai`, `gladia`, `scrapecreators`, `gemini`, `together`, `openai`. |
+| OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`.                                          |
+| URL   | Local: `defuddle`. Hosted: `spider`, `zyte`.                                                                                                                                                |
+| LLM   | Hosted: `openai`, `gemini`, `anthropic`, `grok`, `glm`, `kimi`, `together`. Write has no local LLM.                                                                                         |
+| TTS   | Hosted: `gemini`, `elevenlabs`, `soniox`, `grok`, `openai`, `inworld`.                                                                                                                      |
+| Image | `gemini`, `openai`, `grok`, `replicate`, `lumalabs`, `fal`.                                                                                                                                 |
+| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                    |
+| Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                          |
 
 ## Setup Pipeline
 
@@ -74,11 +74,11 @@ Hosted commands require the matching environment variable:
 | `OPENAI_API_KEY`         | OpenAI write/STT/OCR/TTS/image         |
 | `XAI_API_KEY`            | Grok write/STT/OCR/TTS/image/video     |
 | `GEMINI_API_KEY`         | Gemini write/STT/OCR/image/video/music |
-| `GLM_API_KEY`            | GLM write/OCR/URL                      |
+| `GLM_API_KEY`            | GLM write/OCR                          |
 | `KIMI_API_KEY`           | Kimi write/OCR                         |
 | `LTXV_API_KEY`           | LTX video                              |
-| `MISTRAL_API_KEY`        | Mistral STT/OCR/TTS                    |
-| `LUMA_AGENTS_API_KEY`    | Luma Labs image/video                  |
+| `MISTRAL_API_KEY`        | Mistral STT/OCR                        |
+| `LUMA_AGENTS_API_KEY`    | Luma Agents API image/video            |
 | `FAL_API_KEY`            | fal.ai image/video                     |
 | `STABILITY_API_KEY`      | Stability AI sound effects             |
 | `REPLICATE_API_TOKEN`    | Replicate image/video                  |
@@ -95,10 +95,7 @@ Hosted commands require the matching environment variable:
 | `TOGETHER_API_KEY`       | Together write/STT                     |
 | `CLOUDFLARE_API_TOKEN`   | Cloudflare Workers AI STT              |
 | `CLOUDFLARE_ACCOUNT_ID`  | Cloudflare Workers AI account ID       |
-| `HAPPYSCRIBE_API_KEY`    | Happy Scribe STT                       |
-| `SUPADATA_API_KEY`       | Supadata STT/URL                       |
 | `SCRAPECREATORS_API_KEY` | ScrapeCreators STT                     |
-| `FIRECRAWL_API_KEY`      | Firecrawl URL                          |
 | `SPIDER_API_KEY`         | Spider URL                             |
 | `ZYTE_API_KEY`           | Zyte URL                               |
 | `X_BEARER_TOKEN`         | X Spaces metadata and download lookup  |

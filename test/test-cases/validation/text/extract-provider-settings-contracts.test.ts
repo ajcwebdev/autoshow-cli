@@ -27,22 +27,19 @@ const project = (dir: string, requested: Record<string, unknown>) =>
 describe('extract provider settings in run records', () => {
   test('STT records call-time language only for the provider that consumes it, and keeps flat resume options', async () => {
     await withDir((dir) => {
-      const runtime = { sttAudioProfile: 'lossless' as const, split: true, supadataLang: 'de', scrapecreatorsLang: 'fr', happyscribeOrganizationId: 'org-123' }
-      const supadata = { service: 'supadata', model: 'supadata', local: false, supadataChunkSize: 5 } as SttTarget
-      const provider = project(dir, toSttRequestedProvider(supadata, runtime))
-      expect(provider?.options).toEqual({ supadataChunkSize: 5 })
+      const runtime = { sttAudioProfile: 'lossless' as const, split: true, scrapecreatorsLang: 'fr' }
+      const target = { service: 'scrapecreators', model: 'youtube-transcript', local: false } as const
+      const provider = project(dir, toSttRequestedProvider(target, runtime))
+      expect(provider?.options).toEqual({})
       expect(provider?.settings).toEqual({
         schemaVersion: 1,
-        settingsSchema: 'supadata.stt.v1',
-        request: { model: 'supadata', language: 'de', chunkSize: 5 },
+        settingsSchema: 'scrapecreators.stt.v1',
+        request: { model: 'youtube-transcript', language: 'fr' },
         local: { local: false, audioProfile: 'lossless', split: true },
       })
       const deepgram = { service: 'deepgram', model: 'nova-3', local: false, diarizationOptions: { enabled: true, speakerCount: 2 } } as SttTarget
-      const deepgramSettings = toSttRequestedProvider(deepgram, runtime).settings
-      expect(deepgramSettings?.request).toEqual({ model: 'nova-3', diarization: { enabled: true, speakerCount: 2 } })
-      const happyscribe = { service: 'happyscribe', model: 'happyscribe', local: false } as SttTarget
-      expect(toSttRequestedProvider(happyscribe, runtime).settings?.request['organizationId']).toBe('REDACTED')
-      expect(parseStoredRequestedTargets({ requestedProviders: [toSttRequestedProvider(supadata, runtime)] })).toEqual([supadata])
+      expect(toSttRequestedProvider(deepgram, runtime).settings?.request).toEqual({ model: 'nova-3', diarization: { enabled: true, speakerCount: 2 } })
+      expect(parseStoredRequestedTargets({ requestedProviders: [toSttRequestedProvider(target, runtime)] })).toEqual([target])
     })
   })
 

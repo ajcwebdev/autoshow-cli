@@ -86,7 +86,7 @@ output/<write-run>/
   source.txt
   manifest.json
 ```
-With more than one STT selection, or a single Supadata or ScrapeCreators target, provider-specific files are written under `providers/<service>-<model>/`. With more than one LLM selection, write uses `text-<model>.json` / `text-<model>.md` names, and a shared model id includes the provider. The full layout and `manifest.json` shape are in [Types, Metadata & Output Layout](05-types-and-output.md).
+With more than one STT selection, or a single ScrapeCreators target, provider-specific files are written under `providers/<service>-<model>/`. With more than one LLM selection, write uses `text-<model>.json` / `text-<model>.md` names, and a shared model id includes the provider. The full layout and `manifest.json` shape are in [Types, Metadata & Output Layout](05-types-and-output.md).
 
 ## Credentials and Runtime
 

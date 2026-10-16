@@ -80,7 +80,6 @@ bun autoshow setup --show
 bun autoshow setup --reset
 bun autoshow setup --llm openai=gpt-5.6-terra
 bun autoshow setup --stt whisperfile=small.en
-bun autoshow setup --stt happyscribe=auto --stt-organization-id happyscribe=org_123
 bun autoshow setup --ocr tesseract
 bun autoshow setup --ocr mistral=mistral-ocr-4-0 --ocr-language eng --ocr-dpi 300
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice voice_123
@@ -172,7 +171,7 @@ Image, video, and music tuning defaults such as `duration` and `format` are edit
 
 ## Persisted Defaults and Precedence
 
-Set the URL article backend in `config/autoshow.json` as `defaults.extract.url.provider` (`defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte`). `setup` has no `--url-provider` flag. Once saved, `extract` inherits it like any other default. `metadata` and `download` still take `--url-provider` at runtime.
+Set the URL article backend in `config/autoshow.json` as `defaults.extract.url.provider` (`defuddle`, `spider`, or `zyte`). `setup` has no `--url-provider` flag. Once saved, `extract` inherits it like any other default. `metadata` and `download` still take `--url-provider` at runtime.
 
 Generic `--tts-*` options resolve to the selected provider, so they take a bare value when one provider is selected and `provider=value` when several are. Persist a provider voice ID with `--tts-voice`. Create or clone voices with [`voice`](../04-audio/voice/00-voice-overview.md).
 

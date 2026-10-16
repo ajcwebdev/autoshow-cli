@@ -192,8 +192,8 @@ describe('adaptive provider group parser', () => {
       'extract',
       'https://example.com/article',
       '--provider',
-      'firecrawl'
-    ])).toEqual(['url/firecrawl'])
+      'spider'
+    ])).toEqual(['url/spider'])
 
     expect(extractAdaptiveProviderGroups([
       'src/cli/create-cli.ts',

@@ -44,7 +44,7 @@ See [OCR Routing](#ocr-routing) for the full input-family matrix.
 | DPI      | `--ocr-dpi <n>` (default `300`)                    |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider tesseract --ocr-language eng+fra --ocr-dpi 300
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider tesseract --ocr-language eng --ocr-dpi 300
 ```
 Tesseract is the only engine that consumes `--ocr-language`. It decrypts password PDFs locally and has no upload or page cap.
 
@@ -105,13 +105,13 @@ WebP, GIF, and BMP convert to PNG when a provider does not accept them natively.
 | `--max-model-cents <n>`                | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price`                    |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf
 
-bun autoshow extract input/examples/document/1-document.pdf --format json
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --format json
 
-bun autoshow extract input/examples/document/1-document.pdf --all-providers --price
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --all-providers --price
 
-bun autoshow extract input/examples/document/1-document.pdf --all-providers --max-model-cents 10 --price
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --all-providers --max-model-cents 10 --price
 ```
 See [Provider Capabilities](#provider-capabilities) for the per-model native PDF, image, limit, structured-output, and input/output price matrix.
 
@@ -124,7 +124,7 @@ OCR estimates can use bundled, reasoning-specific token profiles for single-page
 `pool` creates one composite extraction. Faster targets can process more pages, and remaining pages can continue on another target after a failure. The assembled document is written as the top-level extraction in original page order. Provider directories hold per-page attempts, not complete independent documents, and `--primary-ocr` is rejected.
 
 ```bash
-bun autoshow extract document.pdf \
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf \
   --provider grok=grok-4.5 \
   --provider mistral=mistral-ocr-4-0 \
   --provider kimi=kimi-k3 \
@@ -148,11 +148,12 @@ Native extraction writes one cleaned file per kept section under `chapters/` (`c
 ## PDF Chapter Detection
 
 ```bash
-bun autoshow extract book.pdf
-bun autoshow extract input/examples/document/3-document.pdf --chapters
-bun autoshow extract input/examples/document/3-document.pdf --chapters --pdf-chapter-mode auto
-bun autoshow extract book.pdf --no-chapters
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --chapters --pdf-chapter-mode local
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --chapters --pdf-chapter-mode auto
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --no-chapters
 ```
+The original Harborlight PDF has four text-bearing pages and two chapter starts/bookmarks. The first example forces local detection below the automatic threshold; the final example keeps one combined extraction.
+
 PDFs with at least 40 extracted pages automatically attempt local chapter detection and write `chapters/<ordinal>-<pdf-start-page>-<slug>.txt`. `--chapters` forces autodetection at any page count; `--no-chapters` writes a single extracted file.
 
 Local detection uses PDF bookmarks, TOC pages, and headings. Automatic detection always stays on `local`, including when `--pdf-chapter-mode` is set without `--chapters`. With `--chapters`, `local` stays fully local, `auto` allows model-assisted resolution when local detection is weak and an LLM is configured, and `llm` always attempts model-assisted resolution.
@@ -167,7 +168,7 @@ Local detection uses PDF bookmarks, TOC pages, and headings. Automatic detection
 | Models   | `mistral-ocr-4-0`, `mistral-ocr-4-1` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider mistral=mistral-ocr-4-0
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider mistral=mistral-ocr-4-0
 ```
 Bare `--provider mistral` defaults to `mistral-ocr-4-0`.
 
@@ -179,7 +180,7 @@ Bare `--provider mistral` defaults to `mistral-ocr-4-0`.
 | Models   | `glm-5.3-flash`            |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider glm=glm-5.3-flash
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider glm=glm-5.3-flash
 ```
 Images are limited to 10 MB each. `glm-5.3-flash` requires reasoning (`--reasoning-effort low|high|max`; `disabled` is rejected). [pricing](https://docs.z.ai/guides/overview/pricing)
 
@@ -191,8 +192,8 @@ Images are limited to 10 MB each. `glm-5.3-flash` requires reasoning (`--reasoni
 | Models   | `kimi-k2.6`, `kimi-k3`      |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider kimi=kimi-k2.6
-bun autoshow extract input/examples/document/1-document.pdf --provider kimi=kimi-k3
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider kimi=kimi-k2.6
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider kimi=kimi-k3
 ```
 Bare `--provider kimi` defaults to `kimi-k2.6`. Image uploads are capped at 100 MB. Kimi K3 accepts `low`, `high`, and `max`, with omitted effort defaulting to `low`; `medium` is rejected.
 
@@ -203,8 +204,8 @@ Bare `--provider kimi` defaults to `kimi-k2.6`. Image uploads are capped at 100 
 | Selector | `--provider openai[=<model>]` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.6-sol
-bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.6-luna
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider openai=gpt-5.6-sol
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider openai=gpt-5.6-luna
 ```
 Bare `--provider openai` defaults to the cheapest OpenAI OCR model. Maximum PDF size is 50 MB. `gpt-6-astra` requires reasoning (`low`, `medium`, `high`, `xhigh`, `max`; disabled and minimal are rejected). Its estimates use $10/$50 per 1M tokens, and $20/$75 per 1M when the request exceeds 272K input tokens.
 
@@ -215,7 +216,7 @@ Bare `--provider openai` defaults to the cheapest OpenAI OCR model. Maximum PDF 
 | Selector | `--provider grok[=<model>]` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.5
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider grok=grok-4.5
 ```
 Bare `--provider grok` defaults to `grok-4.5`. Direct images and rendered pages are capped at 20 MiB each. Grok 4.6 accepts `low`, `medium`, `high`, and `xhigh`; Grok 4.5 rejects `xhigh`.
 
@@ -226,7 +227,7 @@ Bare `--provider grok` defaults to `grok-4.5`. Direct images and rendered pages 
 | Selector | `--provider anthropic[=<model>]` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-sonnet-5
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider anthropic=claude-sonnet-5
 ```
 Bare `--provider anthropic` defaults to `claude-sonnet-5`. Direct images are capped at 5 MB each. Encrypted PDFs are rejected. `claude-fable-5` requires 30-day data retention and is unavailable under ZDR. `claude-fable-5-1` requires reasoning (`low`, `medium`, `high`, `xhigh`, `max`; disabled and minimal are rejected). All registered Anthropic OCR models accept `xhigh`.
 
@@ -237,8 +238,8 @@ Bare `--provider anthropic` defaults to `claude-sonnet-5`. Direct images are cap
 | Selector | `--provider gemini[=<model>]` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash-lite
-bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.6-flash
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider gemini=gemini-3.5-flash-lite
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider gemini=gemini-3.6-flash
 ```
 Bare `--provider gemini` defaults to `gemini-3.5-flash-lite`. Caps include inline PDFs up to 50 MB, uploads up to 2 GB, and PDFs up to 1,000 pages. `gemini-3.8-flash` accepts `--reasoning-effort low|medium|high`; `minimal` and `disabled` are rejected. `--price` uses its standard `$1.50 / $7.50` rates, so estimates overstate cost during the introductory `$0.75 / $3.75` window through 2026-12-31. [pricing](https://ai.google.dev/gemini-api/docs/pricing)
 
@@ -250,9 +251,9 @@ Bare `--provider gemini` defaults to `gemini-3.5-flash-lite`. Caps include inlin
 | Models   | `google/gemma-4-31B-it`, `Qwen/Qwen3.8-27B`, `deepseek-ai/DeepSeek-V4.1-Flash` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=google/gemma-4-31B-it
-bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3.8-27B
-bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=deepseek-ai/DeepSeek-V4.1-Flash
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider deepinfra=google/gemma-4-31B-it
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider deepinfra=Qwen/Qwen3.8-27B
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider deepinfra=deepseek-ai/DeepSeek-V4.1-Flash
 ```
 Bare `--provider deepinfra` defaults to `google/gemma-4-31B-it`. All three models accept one image per request, at most 20 MB. Reasoning defaults to disabled; optional `low|medium|high` effort is supported on each.
 

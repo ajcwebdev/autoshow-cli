@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import type { AggregatedPriceEstimate, BatchChildRunContext, Step3Metadata, StepTimingCost, TranscriptionResult, VideoMetadata, WriteRuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, LLMOptions, LLMTarget, Step3Metadata, StepTimingCost, TranscriptionResult, VideoMetadata, WriteRuntimeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -8,11 +8,12 @@ import { reserveBatchChildOutputDir } from '~/cli/commands/command-shared/batch-
 import { resolveRunDirectory } from '~/cli/commands/command-shared/run-dir'
 import { sanitizeTitleSlug } from '~/cli/commands/sources/download/download-audio/metadata-utils'
 import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
-import { runLLM } from './run-llm'
+import { collectLlmTargets, runLLM } from './run-llm'
 import {
   buildTextInputPrompt,
   formatTextInputRenderedText,
   getTextInputTitle,
+  readPromptFile,
   resolveTextInputSongTitle,
 } from './text-input-utils'
 import { buildProviderStepSummaries } from '~/cli/commands/command-shared/generation-command-utils'
@@ -72,29 +73,37 @@ const withoutRequestSettings = ({ requestSettings: _requestSettings, ...entry }:
 
 const buildWriteProviderRecords = async (
   step3Results: readonly Step3Metadata[],
-  opts: WriteRuntimeOptions
+  opts: WriteRuntimeOptions,
+  requestedTargets: readonly LLMTarget[],
+  failures: ReadonlyMap<string, unknown>
 ): Promise<{ requestedProviders: Array<Record<string, unknown>>, providerStates: Array<Record<string, unknown>> }> => {
   const promptFile = await describeSettingsFile(opts.promptFile)
-  const entries = step3Results.map((entry) => {
-    const identity = { service: entry.llmService, model: entry.llmModel }
+  const promptFileKind = (await readPromptFile(opts.promptFile))?.kind
+  const entries = requestedTargets.map((target) => {
+    const identity = { service: target.service, model: target.model }
+    const entry = step3Results.find(result => result.llmService === target.service && result.llmModel === target.model)
+    const failure = failures.get(`${target.service}/${target.model}`)
+    const failed = failures.has(`${target.service}/${target.model}`)
     const settings = createProviderSettingsRecord({
-      service: entry.llmService,
+      service: target.service,
       operation: 'write',
       request: {
-        ...(entry.requestSettings ?? { model: entry.llmModel }),
-        requestedReasoningEffort: entry.requestedReasoningEffort,
-        effectiveReasoningEffort: entry.effectiveReasoningEffort,
+        ...(entry?.requestSettings ?? { model: target.model }),
+        requestedReasoningEffort: entry?.requestedReasoningEffort ?? opts.reasoningEffort,
+        effectiveReasoningEffort: entry?.effectiveReasoningEffort,
       },
       local: {
         prompts: opts.prompts,
         promptFile,
-        structuredMode: entry.structuredMode,
-        structuredPresetNames: entry.structuredPresetNames,
+        promptFileKind,
+        structuredMode: entry?.structuredMode,
+        structuredPresetNames: entry?.structuredPresetNames,
       },
     })
     return {
       requested: { ...identity, settings },
-      state: { ...identity, artifactDir: '.', status: 'succeeded', attempts: 1, options: {}, metadata: {}, settings },
+      state: { ...identity, artifactDir: '.', status: entry ? 'succeeded' : failed ? 'failed' : 'missing', attempts: entry || failed ? 1 : 0, options: {}, metadata: {}, settings,
+        ...(failed ? { error: { message: failure instanceof Error ? failure.message : String(failure) } } : {}) },
     }
   })
   return { requestedProviders: entries.map((entry) => entry.requested), providerStates: entries.map((entry) => entry.state) }
@@ -125,30 +134,40 @@ export const runTextWrite = async (
   const metadata = buildTextInputMetadata(inputPath)
   const transcriptionLike = buildTextTranscription(sourceText)
 
-  const step3RunResults = await runWithLogContext({ step: 'step-3-write' }, async () =>
-    await runLLM(metadata, transcriptionLike, {
-      outputDir,
-      prompts: opts.prompts,
-      promptFile: opts.promptFile,
-      ...buildLLMModelOptions(llmConfig),
-      llmProviderConcurrency: opts.llmProviderConcurrency,
-      llmLocalConcurrency: opts.llmLocalConcurrency,
-      reasoningEffort: opts.reasoningEffort,
-      modelCostFilterExcludedTargetKeys: opts.modelCostFilterExcludedTargetKeys,
-      structuredContext: {
-        songLyricsTitle
-      },
-      promptBuilder: (instruction: string) =>
-        buildTextInputPrompt(sourceText, {
-          title,
-          sourcePath: inputPath,
-          instruction
-        })
-    })
-  )
+  const failures = new Map<string, unknown>()
+  const llmOptions: LLMOptions = {
+    outputDir,
+    prompts: opts.prompts,
+    promptFile: opts.promptFile,
+    ...buildLLMModelOptions(llmConfig),
+    llmProviderConcurrency: opts.llmProviderConcurrency,
+    llmLocalConcurrency: opts.llmLocalConcurrency,
+    reasoningEffort: opts.reasoningEffort,
+    modelCostFilterExcludedTargetKeys: opts.modelCostFilterExcludedTargetKeys,
+    structuredContext: {
+      songLyricsTitle
+    },
+    onTargetFailure: (target, error) => { failures.set(`${target.service}/${target.model}`, error) },
+    promptBuilder: (instruction: string) =>
+      buildTextInputPrompt(sourceText, {
+        title,
+        sourcePath: inputPath,
+        instruction
+      })
+  }
+  const requestedTargets = collectLlmTargets(llmOptions)
+  let providerFailure: unknown
+  const step3RunResults = await runWithLogContext({ step: 'step-3-write' }, async () => {
+    try { return await runLLM(metadata, transcriptionLike, llmOptions) }
+    catch (error) {
+      if (requestedTargets.length === 0 || failures.size !== requestedTargets.length) throw error
+      providerFailure = error
+      return []
+    }
+  })
 
   const step3Results = step3RunResults.map((result) => result.metadata)
-  if (step3Results.length === 0) {
+  if (step3Results.length === 0 && providerFailure === undefined) {
     throw InfraError('No LLM outputs generated for text input write', { stage: 'write:text' })
   }
 
@@ -173,7 +192,7 @@ export const runTextWrite = async (
   })
 
   const step3Serialized = serializeStep3Results(step3Results)
-  const providerRecords = await buildWriteProviderRecords(step3Results, opts)
+  const providerRecords = await buildWriteProviderRecords(step3Results, opts, requestedTargets, failures)
 
   const llmTargets = step3Results.map((item) => ({
     service: item.llmService,
@@ -227,9 +246,11 @@ export const runTextWrite = async (
     ...(timing ? { timing } : {}),
   }
 
+  const completionStatus = step3Results.length === 0 ? 'failed' : failures.size > 0 ? 'incomplete' : 'full'
   await writeManifest(outputDir, createManifest('write', 'single', [
-    createPipelineItemFromRecord(outputDir, manifestMetadata, { status: 'full' })
+    createPipelineItemFromRecord(outputDir, manifestMetadata, { status: completionStatus })
   ]))
+  if (providerFailure !== undefined) throw providerFailure
   logWriteManifestSummary(outputDir, manifestMetadata, {
     promptArtifact: 'prompt.md',
     ...(step3Results.length === 1 && typeof renderedArtifacts.internalArtifacts['rendered'] === 'string'

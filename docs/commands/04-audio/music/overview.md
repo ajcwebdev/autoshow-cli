@@ -125,6 +125,8 @@ bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minim
 bun autoshow music "ambient piano instrumental with soft tape saturation" --provider minimax=music-3.0 --instrumental
 ```
 
+MiniMax Music and Lyrics API access has been closed to new users since August 20, 2026. Existing qualified paying users can continue on PAYG; retaining this model does not establish access for a new account. [MiniMax pricing and access notice](https://platform.minimax.io/docs/pricing/overview).
+
 MiniMax ignores `--duration`. When `--lyrics-file` is omitted, generated lyrics are included in the `--price` estimate. Prompts are capped at 2000 characters and lyrics at 3500 characters.
 
 ### Gemini

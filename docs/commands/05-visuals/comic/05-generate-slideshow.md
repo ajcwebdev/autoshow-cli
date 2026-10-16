@@ -24,12 +24,18 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 ### Examples
 
+Use the variables and fresh workspace from the [Harborlight setup](./00-comic-overview.md#setup). These examples share the same four-panel scene.
+
+Prerequisite: all four canonical panel PNGs with matching even dimensions and one complete selected dialogue/soundscape run from [generate-audio](./04-generate-audio.md). A loose WAV is insufficient. The default command works only with one eligible audio run; select the exact target if there are several. All commands below are local; price reports readiness and the $0 render cost.
+
 ```bash
-bun autoshow comic generate-slideshow 01-01
-bun autoshow comic generate-slideshow 01-01 --audio-target elevenlabs=eleven_v3
-bun autoshow comic generate-slideshow 01-01 --untimed-panel-ms 2500 --fps 24
-bun autoshow comic generate-slideshow 01-01 --price
+bun --no-env-file autoshow comic generate-slideshow "$SCRIPT" --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-slideshow "$SCRIPT" --audio-target elevenlabs=eleven_v3 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-slideshow "$SCRIPT" --audio-target elevenlabs=eleven_v3 --untimed-panel-ms 2500 --fps 24 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-slideshow "$SCRIPT" --audio-target elevenlabs=eleven_v3 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
+
+The four authored panels each contain speech, so `--untimed-panel-ms` affects only a deliberately authored silent-panel variant. Changing `--fps` changes local encoding and can require a fresh presentation. Preserve previous artifacts. Mocked synthetic-tone tests establish timing/decoding only; listen to approved real dialogue before publication.
 
 ### Behavior
 

@@ -1,5 +1,5 @@
 import type * as v from 'valibot'
-import type { JsonObject, NormalizedReasoningEffort, RateEstimateBase, ResolvedLLMModelOptions, Step3Metadata } from '~/types'
+import type { JsonObject, LLMTarget, NormalizedReasoningEffort, RateEstimateBase, ResolvedLLMModelOptions, Step3Metadata } from '~/types'
 export type LLMOptions = Partial<ResolvedLLMModelOptions> & {
   outputDir: string
   prompts?: string[] | undefined
@@ -12,6 +12,7 @@ export type LLMOptions = Partial<ResolvedLLMModelOptions> & {
   hostedConcurrencyCoordinator?: import('~/types').HostedConcurrencyCoordinator | undefined
   promptBuilder?: ((instruction: string) => string) | undefined
   modelCostFilterExcludedTargetKeys?: string[] | undefined
+  onTargetFailure?: ((target: LLMTarget, error: unknown) => void) | undefined
   structuredContext?: {
     songLyricsTitle?: string | undefined
   } | undefined

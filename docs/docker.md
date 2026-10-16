@@ -42,7 +42,7 @@ Arguments after the image name are AutoShow arguments:
 
 ```bash
 bun autoshow --version
-bun autoshow extract input/examples/document/1-epub.epub
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider tesseract --no-chapters
 
 docker run --rm autoshow-cli:local --version
 docker run --rm autoshow-cli:local help extract
@@ -56,7 +56,7 @@ For file-based commands, mount the current directory at `/workspace` and make it
 docker run --rm -i \
   --mount "type=bind,src=$(pwd),dst=/workspace" \
   --workdir /workspace \
-  autoshow-cli:local extract input/examples/document/1-epub.epub
+  autoshow-cli:local extract input/examples/document/harborlight-field-notes.pdf --provider tesseract --no-chapters
 ```
 
 Only the mounted directory is visible. If a source is outside it, run from a common ancestor or add another mount. Paths are interpreted inside the container; do not pass an unmounted host-absolute path.
@@ -71,10 +71,10 @@ You can instead mount input and output paths explicitly. Relative paths resolve 
 docker run --rm \
   -v "$(pwd)/input:/app/input:ro" \
   -v "$(pwd)/output:/app/output" \
-  autoshow-cli:local extract input/examples/document/1-epub.epub
+  autoshow-cli:local extract input/examples/document/harborlight-field-notes.pdf --provider tesseract --no-chapters
 ```
 
-The default output root is `/app/output`. Pass `--output-root` when you need a different root.
+The original Harborlight PDF comes from the checkout's mounted `input/` tree; the image does not bundle user inputs. The default output root is `/app/output`. Pass `--output-root` when you need a different root.
 
 ## Provider Credentials
 
@@ -85,7 +85,7 @@ docker run --rm \
   --env-file .env \
   -v "$(pwd)/input:/app/input:ro" \
   -v "$(pwd)/output:/app/output" \
-  autoshow-cli:local write input/example.md --provider openai=gpt-5.6-sol
+  autoshow-cli:local write input/examples/tts/harborlight-chapters/01-first-light.md --provider openai=gpt-5.6-sol --prompt shortSummary
 ```
 
 Docker reads the file on the host and exports its entries into the container environment; the file is not mounted into the image. A variable supplied with `-e` overrides the same variable from Docker's `--env-file`. Already-exported container environment variables remain supported.

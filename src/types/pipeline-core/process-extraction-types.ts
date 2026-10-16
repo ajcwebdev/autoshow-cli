@@ -7,7 +7,10 @@ import { COST_SOURCES } from '../costing/pricing-vocabularies'
 
 export type DetectResult = DocFormat | null
 
-export type HtmlArticleBackend = 'defuddle' | 'firecrawl' | 'glm-reader' | 'spider' | 'supadata' | 'zyte'
+export type ActiveHtmlArticleBackend = 'defuddle' | 'spider' | 'zyte'
+/** Includes historical identities for retained manifests; only ActiveHtmlArticleBackend can dispatch. */
+export type HtmlArticleBackend = ActiveHtmlArticleBackend | 'firecrawl' | 'glm-reader' | 'supadata'
+export type HistoricalHtmlArticleBackend = HtmlArticleBackend
 
 export type UrlArticleTarget = {
   service: HtmlArticleBackend
@@ -74,7 +77,7 @@ export const ExtractionOptionsSchema = v.object({
   ), undefined),
   preparedMarkdown: v.optional(v.string(), undefined),
   htmlArticleProcessingTimeMs: v.optional(v.number(), undefined),
-  htmlArticleBackend: v.optional(v.picklist(['defuddle', 'firecrawl', 'glm-reader', 'spider', 'supadata', 'zyte']), undefined),
+  htmlArticleBackend: v.optional(v.picklist(['defuddle', 'spider', 'zyte']), undefined),
   reasoningEffort: v.optional(v.picklist(NORMALIZED_REASONING_EFFORTS), undefined)
 })
 
