@@ -356,9 +356,9 @@ describe('exhaustion contract', () => {
 })
 
 describe('the retry policy table', () => {
-  test('the retriable-create tier is one policy shared by every hosted create', () => {
-    expect(getRetryPolicyForClass('runtime_http_create_retriable')).toEqual({
-      maxAttempts: 4,
+  test('the conservative paid-create tier has its explicit admission-retry budget', () => {
+    expect(getRetryPolicyForClass('runtime_http_create_conservative')).toEqual({
+      maxAttempts: 2,
       baseDelayMs: 2_000,
       maxDelayMs: 30_000,
       jitter: true,
@@ -366,13 +366,13 @@ describe('the retry policy table', () => {
     })
   })
 
-  test('the conservative tier keeps its own attempt budget but the same ceiling', () => {
-    const conservative = getRetryPolicyForClass('runtime_http_create_conservative')
-    const retriable = getRetryPolicyForClass('runtime_http_create_retriable')
+  test('already-paid result retrieval is more persistent than an ordinary HTTP read', () => {
+    const read = getRetryPolicyForClass('runtime_http_read')
+    const paidResult = getRetryPolicyForClass('runtime_http_paid_result')
 
-    expect(conservative.maxAttempts).toBe(2)
-    expect(conservative.maxDelayMs).toBe(retriable.maxDelayMs)
-    expect(conservative).not.toBe(retriable)
+    expect(read).toEqual({ maxAttempts: 4, baseDelayMs: 1_000, maxDelayMs: 15_000, jitter: true, exponential: true })
+    expect(paidResult).toEqual({ maxAttempts: 8, baseDelayMs: 1_000, maxDelayMs: 15_000, jitter: true, exponential: true })
+    expect(paidResult).not.toBe(read)
   })
 
   test('the returned policy is a copy, so a caller cannot mutate the table', () => {

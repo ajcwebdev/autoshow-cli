@@ -7,6 +7,8 @@ import { hashSourceSegmentText } from '~/cli/commands/visuals/comic/comic-utils/
 import { specificationHash } from '~/cli/commands/visuals/comic/comic-utils/location-reference'
 import { sha256Bytes } from '~/utils/value-helpers'
 import { toProjectRelativePath } from '~/utils/project-root'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { verifyImageArtifact } from './verify-image-artifact'
 
 export const HARBORLIGHT_COMIC_ROOT = 'runtime/examples/harborlight-comic'
@@ -42,7 +44,7 @@ export const prepareHarborlightComic = async (root = HARBORLIGHT_COMIC_ROOT): Pr
 /** Authored geometry; citations come from the actual local parser output. */
 export const buildHarborlightBlockingPlan = (script: StructuredScriptData, structuredBytes: string): BlockingPlan => {
   const first = script.sourceSegments[0]
-  if (!first || !script.characterKeys.includes('papa-bear') || !script.characterKeys.includes('mira')) throw new Error('Expected the original Harborlight two-speaker structured script')
+  if (!first || !script.characterKeys.includes('papa-bear') || !script.characterKeys.includes('mira')) throw ValidationError('Expected the original Harborlight two-speaker structured script')
   const citation = { sourceSegmentId: first.id, sourceSegmentSha256: hashSourceSegmentText(first.text) }
   return {
     schemaVersion: 1, sceneSlug: script.scriptSlug, structuredScriptSha256: sha256Bytes(structuredBytes), generatedBy: { mode: 'import', model: null },
@@ -65,25 +67,25 @@ export const writeHarborlightBlockingPlan = async (root = HARBORLIGHT_COMIC_ROOT
 
 /** Explicit local publication after human review; keep every generated candidate and never replace canonical files. */
 export const publishHarborlightPanels = async (root: string, imageRunId: string): Promise<void> => {
-  if (!/^[a-zA-Z0-9_-]+$/.test(imageRunId)) throw new Error('Expected a single image run ID, without path separators')
+  if (!/^[a-zA-Z0-9_-]+$/.test(imageRunId)) throw UsageError('Expected a single image run ID, without path separators')
   const run = join(root, 'run'), manifest = await readManifest(run), item = manifest?.items[0]
-  if (manifest?.command !== 'comic' || manifest.items.length !== 1 || !item) throw new Error('Expected the canonical Harborlight comic manifest')
+  if (manifest?.command !== 'comic' || manifest.items.length !== 1 || !item) throw ValidationError('Expected the canonical Harborlight comic manifest')
   const providers = item.providers.filter(provider => provider.operation === 'comic-image')
   const selected = providers[0], local = selected?.settings?.local
-  if (providers.length !== 1 || selected?.status !== 'succeeded' || selected.metadata?.['runId'] !== imageRunId || selected.options?.['panelsPerImage'] !== 1 || !['images', 'both'].includes(String(selected.options?.['target'])) || local?.['grid'] || local?.['variations'] || (local?.['panels'] !== undefined && local['panels'] !== 'all')) throw new Error('Select one completed single-model canonical individual-panel run covering all four panels, without grid or variations')
+  if (providers.length !== 1 || selected?.status !== 'succeeded' || selected.metadata?.['runId'] !== imageRunId || selected.options?.['panelsPerImage'] !== 1 || !['images', 'both'].includes(String(selected.options?.['target'])) || local?.['grid'] || local?.['variations'] || (local?.['panels'] !== undefined && local['panels'] !== 'all')) throw ValidationError('Select one completed single-model canonical individual-panel run covering all four panels, without grid or variations')
   const comic = item.metadata['comic'] as unknown as CanonicalComicItemMetadata
   const scene = JSON.parse(await readFile(join(run, 'metadata/scene.json'), 'utf8')) as { panels?: Array<{ number: number }> }
-  if (scene.panels?.length !== 4 || scene.panels.some((panel, index) => panel.number !== index + 1)) throw new Error('Expected the reviewed four-panel Harborlight scene')
+  if (scene.panels?.length !== 4 || scene.panels.some((panel, index) => panel.number !== index + 1)) throw ValidationError('Expected the reviewed four-panel Harborlight scene')
   const paths = await Promise.all(scene.panels.map(async panel => {
     const filename = `panel-${String(panel.number).padStart(2, '0')}.png`, source = `panels/${imageRunId}/${filename}`, destination = join(run, 'panels', filename)
     const artifact = comic.stages.image.artifactRefs?.find(ref => ref.path === source)
     const verified = await verifyImageArtifact(join(run, source))
-    if (!artifact || artifact.sha256 !== verified.sha256 || verified.width! % 2 || verified.height! % 2) throw new Error(`Selected panel is stale or has incompatible dimensions: ${source}`)
-    try { await lstat(destination); throw new Error(`Canonical panel already exists; preserve it: ${toProjectRelativePath(destination)}`) }
+    if (!artifact || artifact.sha256 !== verified.sha256 || verified.width! % 2 || verified.height! % 2) throw ValidationError(`Selected panel is stale or has incompatible dimensions: ${source}`)
+    try { await lstat(destination); throw ValidationError(`Canonical panel already exists; preserve it: ${toProjectRelativePath(destination)}`) }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
     return { source: join(run, source), destination, width: verified.width, height: verified.height }
   }))
-  if (paths.some(path => path.width !== paths[0]!.width || path.height !== paths[0]!.height)) throw new Error('All four selected panels must have matching dimensions')
+  if (paths.some(path => path.width !== paths[0]!.width || path.height !== paths[0]!.height)) throw ValidationError('All four selected panels must have matching dimensions')
   // Every source, hash, full decode, dimension and destination is checked before the first copy.
   for (const path of paths) await copyFile(path.source, path.destination, constants.COPYFILE_EXCL)
 }
@@ -95,13 +97,13 @@ if (import.meta.main) {
     if (args[index] === '--plan' && !plan) plan = true
     else if (args[index] === '--root' && !rootSet && args[index + 1] && !args[index + 1]!.startsWith('--')) { root = args[++index]!; rootSet = true }
     else if (args[index] === '--publish-panels' && imageRunId === undefined && args[index + 1] && !args[index + 1]!.startsWith('--')) imageRunId = args[++index]!
-    else throw new Error('Usage: bun src/tools/prepare-harborlight-comic.ts [--root runtime/examples/<name>] [--plan | --publish-panels <reviewed-image-run-id>]')
+    else throw UsageError('Usage: bun src/tools/prepare-harborlight-comic.ts [--root runtime/examples/<name>] [--plan | --publish-panels <reviewed-image-run-id>]')
   }
-  if (plan && imageRunId !== undefined) throw new Error('Choose either --plan or --publish-panels')
+  if (plan && imageRunId !== undefined) throw UsageError('Choose either --plan or --publish-panels')
   const rel = relative(resolve('runtime/examples'), resolve(root))
-  if (isAbsolute(root) || !rel || rel.startsWith('..') || isAbsolute(rel)) throw new Error('Choose an unused relative directory beneath runtime/examples')
+  if (isAbsolute(root) || !rel || rel.startsWith('..') || isAbsolute(rel)) throw UsageError('Choose an unused relative directory beneath runtime/examples')
   if (imageRunId !== undefined) await publishHarborlightPanels(root, imageRunId)
   else if (plan) await writeHarborlightBlockingPlan(root)
   else await prepareHarborlightComic(root)
-  console.log(imageRunId !== undefined ? `Reviewed panels published locally from ${imageRunId}; original candidates retained` : plan ? `Authored blocking plan written: ${root}/blocking-plan.json` : `Original inputs prepared: ${root}; no provider calls or approvals`)
+  writeCommandPayload((imageRunId !== undefined ? `Reviewed panels published locally from ${imageRunId}; original candidates retained` : plan ? `Authored blocking plan written: ${root}/blocking-plan.json` : `Original inputs prepared: ${root}; no provider calls or approvals`) + '\n')
 }

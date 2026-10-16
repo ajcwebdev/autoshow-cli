@@ -79,7 +79,7 @@ describe('Gemini REST contracts', () => {
       shouldRetry: false,
       reason: 'paid create status 500 is not safe to redispatch'
     })
-    expect(classifyGeminiRetry(bodyStatusError, 'runtime_http_create_retriable')).toMatchObject({
+    expect(classifyGeminiRetry(bodyStatusError, 'runtime_http_read')).toMatchObject({
       shouldRetry: true,
       reason: 'retryable status 500'
     })
@@ -92,7 +92,7 @@ describe('Gemini REST contracts', () => {
     })
 
     const deterministic = new Error('Gemini API request failed: {"error":{"code":400,"message":"bad request"}}')
-    expect(classifyGeminiRetry(deterministic, 'runtime_http_create_retriable')).toMatchObject({
+    expect(classifyGeminiRetry(deterministic, 'runtime_http_read')).toMatchObject({
       shouldRetry: false,
       reason: 'non-retryable status 400'
     })

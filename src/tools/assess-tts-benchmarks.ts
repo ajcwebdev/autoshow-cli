@@ -5,6 +5,8 @@ import { collectTtsDashboardSamples } from '../../.codex/skills/consensus/script
 import { writePortableFileSync } from '../../.codex/skills/consensus/scripts/shared/portable_paths'
 import { transcribeWhisperfile } from '~/cli/commands/stt/local/whisperfile/transcribe'
 import { toProjectRelativePath } from '~/utils/project-root'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
+import { InfraError, UsageError, ValidationError } from '~/utils/error-handler'
 
 const hash = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex')
 const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8')) as T
@@ -28,18 +30,18 @@ interface CachedTranscript { schemaVersion: number; cacheKey: string; engineSha2
 
 export function collectAssessmentSources(root: string, engineSha256: string): AssessmentSource[] {
   const sources = collectTtsDashboardSamples(root).filter(row => row.status === 'succeeded').map(row => {
-    if (!row.audioHref || row.durationSeconds === null) throw Error('Selected recording is unavailable')
+    if (!row.audioHref || row.durationSeconds === null) throw ValidationError('Selected recording is unavailable')
     const manifest = join(dirname(root), row.manifestHref)
     const m = readJson<Manifest>(manifest), item = m.items[0]!
     const provider = item.providers.find(p => p.service + '/' + p.model === row.providerKey)!
     const p = provider.result?.ttsAudio ?? provider.metadata.ttsAudio
-    if (!p?.archive || !p.selectedSuccess) throw Error('Assessment requires selected compact audio provenance')
+    if (!p?.archive || !p.selectedSuccess) throw ValidationError('Assessment requires selected compact audio provenance')
     const runRoot = dirname(manifest), audio = join(dirname(root), row.audioHref)
     const input = item.input, controlsPath = join(runRoot, 'controls.json')
     const controls = existsSync(controlsPath) ? readJson<Controls>(controlsPath) : null
     const inputBytes = readFileSync(input)
     const timelinePath = join(runRoot, p.archive.timelineRef.path), timelineBytes = readFileSync(timelinePath)
-    if (hash(timelineBytes) !== p.archive.timelineRef.sha256) throw Error('Assessment timeline hash mismatch')
+    if (hash(timelineBytes) !== p.archive.timelineRef.sha256) throw ValidationError('Assessment timeline hash mismatch')
     const timeline = JSON.parse(timelineBytes.toString()) as { timing: { turns?: Turn[] } }
     const bindings = [manifest, input, timelinePath, ...(controls ? [controlsPath] : [])].map(path => ({ path: toProjectRelativePath(path), sha256: hash(readFileSync(path)) }))
     const reference = controls ? controls.spokenLines.join('\n') : inputBytes.toString().trim()
@@ -51,7 +53,7 @@ export function collectAssessmentSources(root: string, engineSha256: string): As
       renderIdentity: p.selectedSuccess.renderIdentity, resultIdentity: p.selectedSuccess.resultIdentity, durationSeconds: row.durationSeconds,
       turns: timeline.timing.turns ?? [], controls, bindings, cacheKey }
   })
-  if (new Set(sources.map(source => source.id)).size !== sources.length) throw Error('Duplicate assessment case identifier')
+  if (new Set(sources.map(source => source.id)).size !== sources.length) throw ValidationError('Duplicate assessment case identifier')
   return sources
 }
 
@@ -64,7 +66,7 @@ export function normalizeAssessmentText(text: string): string {
 export interface WordComparison { referenceWords: number; hypothesisWords: number; substitutions: number; deletions: number; insertions: number; wer: number; differences: Array<{ kind: string; reference: string; hypothesis: string }> }
 export function compareWords(reference: string, hypothesis: string): WordComparison {
   const a = normalizeAssessmentText(reference).split(' ').filter(Boolean), b = normalizeAssessmentText(hypothesis).split(' ').filter(Boolean)
-  if (!a.length) throw Error('Empty assessment reference')
+  if (!a.length) throw ValidationError('Empty assessment reference')
   const width = b.length + 1, trace = new Uint8Array((a.length + 1) * width)
   let previous = Int32Array.from({ length: width }, (_, i) => i), current = new Int32Array(width)
   for (let j = 1; j < width; j++) trace[j] = 3
@@ -104,7 +106,7 @@ export function compareCountingWords(reference: string, hypothesis: string): Wor
 export function characterErrorRate(reference: string, hypothesis: string): number {
   let a = Array.from(normalizeAssessmentText(reference)), b = Array.from(normalizeAssessmentText(hypothesis))
   const denominator = a.length
-  if (!denominator) throw Error('Empty assessment reference')
+  if (!denominator) throw ValidationError('Empty assessment reference')
   let start = 0
   while (start < a.length && start < b.length && a[start] === b[start]) start++
   a = a.slice(start); b = b.slice(start)
@@ -128,7 +130,7 @@ export function characterErrorRate(reference: string, hypothesis: string): numbe
 async function command(args: string[]): Promise<string> {
   const process = Bun.spawn(args, { stdout: 'pipe', stderr: 'pipe' })
   const [stdout, stderr, status] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited])
-  if (status !== 0) throw Error(`${args[0]} failed (${status}): ${stderr.slice(-2000)}`)
+  if (status !== 0) throw InfraError(`${args[0]} failed (${status}): ${stderr.slice(-2000)}`)
   return stderr + stdout
 }
 
@@ -140,8 +142,8 @@ export async function transcribeAssessmentSource(source: AssessmentSource, cache
   const cache = join(cacheRoot, source.cacheKey), bindingPath = join(cache, 'binding.json'), transcriptPath = join(cache, 'transcript.txt')
   if (existsSync(bindingPath)) {
     const cached = readJson<CachedTranscript>(bindingPath)
-    if (cached.cacheKey !== source.cacheKey || cached.engineSha256 !== engineSha256 || hash(readFileSync(transcriptPath)) !== cached.transcriptSha256) throw Error('Invalid local transcript cache')
-    console.log(JSON.stringify({ case: source.id, status: 'reused', seconds: source.durationSeconds })); return
+    if (cached.cacheKey !== source.cacheKey || cached.engineSha256 !== engineSha256 || hash(readFileSync(transcriptPath)) !== cached.transcriptSha256) throw ValidationError('Invalid local transcript cache')
+    writeCommandPayload(JSON.stringify({ case: source.id, status: 'reused', seconds: source.durationSeconds }) + '\n'); return
   }
   mkdirSync(cache, { recursive: true })
   // Read/decode the entire waveform; ffprobe success alone is insufficient.
@@ -152,7 +154,7 @@ export async function transcribeAssessmentSource(source: AssessmentSource, cache
   writePortableFileSync(transcriptPath, result.text + '\n')
   const elapsedMs = Date.now() - started
   saveJson(bindingPath, { schemaVersion: 1, cacheKey: source.cacheKey, engineSha256, elapsedMs, transcriptSha256: hash(readFileSync(transcriptPath)) })
-  console.log(JSON.stringify({ case: source.id, status: 'transcribed', audioSeconds: source.durationSeconds, elapsedSeconds: elapsedMs / 1000, realtimeFactor: source.durationSeconds * 1000 / elapsedMs }))
+  writeCommandPayload(JSON.stringify({ case: source.id, status: 'transcribed', audioSeconds: source.durationSeconds, elapsedSeconds: elapsedMs / 1000, realtimeFactor: source.durationSeconds * 1000 / elapsedMs }) + '\n')
 }
 
 export async function runAssessmentQueue(sources: AssessmentSource[], cacheRoot: string, engineSha256: string, concurrency: number): Promise<void> {
@@ -171,13 +173,13 @@ export function parseSilences(log: string, duration: number): Silence[] {
     if (ends && start !== null) { result.push({ start, end: Math.min(duration, Number(ends[1])) }); start = null }
   }
   if (start !== null) result.push({ start, end: duration })
-  if (result.some(s => !Number.isFinite(s.start) || !Number.isFinite(s.end) || s.end < s.start)) throw Error('Invalid detected silence interval')
+  if (result.some(s => !Number.isFinite(s.start) || !Number.isFinite(s.end) || s.end < s.start)) throw ValidationError('Invalid detected silence interval')
   return result
 }
 
 export function turnSilenceMetrics(turn: Turn, silences: Silence[], reference: string) {
   const start = turn.startMs / 1000, end = turn.endMs / 1000
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) throw Error('Invalid assessment turn interval')
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) throw ValidationError('Invalid assessment turn interval')
   const clipped = silences.filter(s => s.end > start && s.start < end).map(s => ({ start: Math.max(start, s.start), end: Math.min(end, s.end) }))
   const entireTurnBelowThreshold = clipped.some(s => s.start === start && s.end === end)
   const leading = clipped[0]?.start === start ? clipped[0].end - start : 0
@@ -204,9 +206,9 @@ export async function publishAssessment(root: string, sources: AssessmentSource[
   for (const source of sources) {
     const cache = join(cacheRoot, source.cacheKey), transcriptBytes = readFileSync(join(cache, 'transcript.txt'))
     const binding = readJson<CachedTranscript>(join(cache, 'binding.json'))
-    if (binding.cacheKey !== source.cacheKey || binding.engineSha256 !== engineSha256 || hash(transcriptBytes) !== binding.transcriptSha256) throw Error('Stale assessment transcript')
+    if (binding.cacheKey !== source.cacheKey || binding.engineSha256 !== engineSha256 || hash(transcriptBytes) !== binding.transcriptSha256) throw ValidationError('Stale assessment transcript')
     const asr = readJson<Transcript>(join(cache, 'asr.json'))
-    if (asr.text.trim() !== transcriptBytes.toString().trim()) throw Error('ASR timing text does not match retained transcript')
+    if (asr.text.trim() !== transcriptBytes.toString().trim()) throw ValidationError('ASR timing text does not match retained transcript')
     const comparison = compareWords(source.reference, asr.text), cer = characterErrorRate(source.reference, asr.text)
     const countingNumberFoldComparison = source.suite === 'speed-pauses' ? compareCountingWords(source.reference, asr.text) : null
     const transcript = `transcripts/${source.id}.txt`, rawTranscript = `transcripts/${source.id}.whisper.json`, inputSnapshot = `inputs/${source.id}.txt`
@@ -235,7 +237,7 @@ export async function publishAssessment(root: string, sources: AssessmentSource[
       mechanism: source.controls?.mechanism ?? 'narration', silences, perTurn,
       perLineMeasurementLimitation: source.controls && !perTurn.length ? 'Five source lines share one assembled turn; per-line rate and exact pause attribution unavailable without acoustic alignment.' : null,
       speedOrder, exactPause, pauseMeasurement })
-    console.log(JSON.stringify({ assessed: source.id, wer: comparison.wer, cer }))
+    writeCommandPayload(JSON.stringify({ assessed: source.id, wer: comparison.wer, cer }) + '\n')
   }
   const sourcesBinding = [...new Map(sources.flatMap(s => [...s.bindings, { path: s.audio, sha256: s.audioSha256 }]).map(ref => [ref.path, ref])).values()].map(ref => {
     const within = relative(resolve(root), resolve(ref.path)).split('\\').join('/')
@@ -254,9 +256,9 @@ export async function publishAssessment(root: string, sources: AssessmentSource[
   writePortableFileSync(join(stage, 'SHA256SUMS'), checksums)
   const archiveTemp = resolve(stage, '..', basename(stage) + '.zip')
   const zip = Bun.spawnSync(['zip', '-q', '-r', archiveTemp, ...evidenceFiles, 'SHA256SUMS'], { cwd: stage })
-  if (zip.exitCode !== 0) throw Error('Could not archive TTS assessment evidence')
+  if (zip.exitCode !== 0) throw InfraError('Could not archive TTS assessment evidence')
   const integrity = Bun.spawnSync(['unzip', '-tq', archiveTemp])
-  if (integrity.exitCode !== 0) throw Error('Invalid TTS assessment evidence archive')
+  if (integrity.exitCode !== 0) throw ValidationError('Invalid TTS assessment evidence archive')
   renameSync(archiveTemp, join(root, 'assessment.evidence.zip'))
   const fmt = (n: number) => (100 * n).toFixed(2) + '%'
   const table = (headings: string[], values: string[][]) => {
@@ -294,20 +296,20 @@ export async function publishAssessment(root: string, sources: AssessmentSource[
 if (import.meta.main) {
   const args = Bun.argv.slice(2)
   if (args.includes('--help')) {
-    console.log('Usage: bun src/tools/assess-tts-benchmarks.ts [--run | --transcribe-only] [--concurrency 2] [--limit N]\nDefault: inspect selected recordings without writes. --run uses installed small.en/ffmpeg offline and updates fixed assessment.md/evidence.zip. Reuses hash-bound caches; never downloads models or calls providers.')
+    writeCommandPayload('Usage: bun src/tools/assess-tts-benchmarks.ts [--run | --transcribe-only] [--concurrency 2] [--limit N]\nDefault: inspect selected recordings without writes. --run uses installed small.en/ffmpeg offline and updates fixed assessment.md/evidence.zip. Reuses hash-bound caches; never downloads models or calls providers.\n')
   } else {
-    if (args.includes('--run') && args.includes('--limit')) throw Error('Partial queues cannot publish the benchmark assessment; use --transcribe-only --limit N')
+    if (args.includes('--run') && args.includes('--limit')) throw UsageError('Partial queues cannot publish the benchmark assessment; use --transcribe-only --limit N')
     const allowed = new Set(['--run', '--transcribe-only', '--concurrency', '--limit'])
-    for (let i = 0; i < args.length; i++) { if (!allowed.has(args[i]!)) throw Error('Unknown assessment option'); if (args[i] !== '--transcribe-only' && args[i] !== '--run') i++ }
-    const option = (name: string, fallback: number) => { const index = args.indexOf(name); const value = index < 0 ? fallback : Number(args[index + 1]); if (!Number.isInteger(value) || value < 1) throw Error('Expected positive integer ' + name); return value }
+    for (let i = 0; i < args.length; i++) { if (!allowed.has(args[i]!)) throw UsageError('Unknown assessment option'); if (args[i] !== '--transcribe-only' && args[i] !== '--run') i++ }
+    const option = (name: string, fallback: number) => { const index = args.indexOf(name); const value = index < 0 ? fallback : Number(args[index + 1]); if (!Number.isInteger(value) || value < 1) throw UsageError('Expected positive integer ' + name); return value }
     const engineSha256 = hash(readFileSync(MODEL)), root = 'docs/benchmarks/tts', cacheRoot = 'runtime/tts-benchmark-assessment/v1'
     let sources = collectAssessmentSources(root, engineSha256)
     if (args.includes('--limit')) sources = sources.sort((a, b) => b.durationSeconds - a.durationSeconds).slice(0, option('--limit', 42))
-    console.log(JSON.stringify({ selected: sources.length, audioSeconds: sources.reduce((n, s) => n + s.durationSeconds, 0), model: MODEL, engineSha256 }))
+    writeCommandPayload(JSON.stringify({ selected: sources.length, audioSeconds: sources.reduce((n, s) => n + s.durationSeconds, 0), model: MODEL, engineSha256 }) + '\n')
     if (args.includes('--run') || args.includes('--transcribe-only')) {
       await runAssessmentQueue(sources, cacheRoot, engineSha256, Math.min(option('--concurrency', 2), 4))
       if (args.includes('--run')) await publishAssessment(root, sources, cacheRoot, engineSha256)
-      console.log('Offline assessment complete.')
-    } else console.log(JSON.stringify(sources.map(s => ({ id: s.id, audio: s.audio, input: s.input, cacheKey: s.cacheKey })), null, 2))
+      writeCommandPayload('Offline assessment complete.\n')
+    } else writeCommandPayload(JSON.stringify(sources.map(s => ({ id: s.id, audio: s.audio, input: s.input, cacheKey: s.cacheKey })), null, 2) + '\n')
   }
 }

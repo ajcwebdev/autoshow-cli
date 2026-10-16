@@ -6,7 +6,6 @@ export type RetryClass =
   | 'runtime_http_paid_result'
   | 'runtime_http_poll'
   | 'runtime_http_create_conservative'
-  | 'runtime_http_create_retriable'
 
 export type RetryReasonCode =
   | 'retryable_status'

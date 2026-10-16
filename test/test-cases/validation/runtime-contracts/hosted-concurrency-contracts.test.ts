@@ -165,7 +165,7 @@ describe('hosted concurrency coordinator', () => {
     let token = await coordinator.acquire(requestAdmission)
     const attemptTimes: number[] = []
     const request = withRetry({
-      retryClass: 'runtime_http_create_retriable',
+      retryClass: 'runtime_http_create_conservative',
       operationName: 'shared hosted retry hook',
       policy: { maxAttempts: 1, baseDelayMs: 30_000, maxDelayMs: 30_000, jitter: false, exponential: false },
       retryHookCanExtendAttempts: true,
@@ -177,7 +177,7 @@ describe('hosted concurrency coordinator', () => {
       attemptTimes.push(clock.now())
       if (attemptTimes.length === 1) throw ProviderError('too many requests', { status: 429 })
       return 'ok'
-    }, (error) => classifyFetchRetry(error, 'runtime_http_create_retriable'))
+    }, (error) => classifyFetchRetry(error, 'runtime_http_create_conservative'))
     request.catch(() => undefined)
     await flushMicrotasks()
     await clock.advance(1_999)

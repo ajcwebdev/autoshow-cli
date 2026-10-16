@@ -6,6 +6,40 @@ import { characterErrorRate, compareCountingWords, compareWords, normalizeAssess
 import type { AssessmentSource } from '~/tools/assess-tts-benchmarks'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 import { createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
+import { childEnv } from '~/utils/child-env'
+
+test('assessment help remains plain stdout and invalid options fail before loading any local model', () => {
+  const help = Bun.spawnSync([process.execPath, '--no-env-file', 'src/tools/assess-tts-benchmarks.ts', '--help'], { env: childEnv() })
+  expect(help.exitCode).toBe(0)
+  expect(help.stderr.toString()).toBe('')
+  expect(help.stdout.toString()).toBe('Usage: bun src/tools/assess-tts-benchmarks.ts [--run | --transcribe-only] [--concurrency 2] [--limit N]\nDefault: inspect selected recordings without writes. --run uses installed small.en/ffmpeg offline and updates fixed assessment.md/evidence.zip. Reuses hash-bound caches; never downloads models or calls providers.\n')
+  const invalid = Bun.spawnSync([process.execPath, '--no-env-file', 'src/tools/assess-tts-benchmarks.ts', '--unsupported'], { env: childEnv() })
+  expect(invalid.exitCode).not.toBe(0)
+  expect(invalid.stdout.toString()).toBe('')
+  expect(invalid.stderr.toString()).toContain('Unknown assessment option')
+})
+
+test('two hash-bound cached transcripts emit separate undecorated JSON progress rows without ASR execution', async () => {
+  await withTempDir('tts-assessment-progress-', async cacheRoot => {
+    const engineSha256 = 'test-only-engine-hash', sources = []
+    for (const [index, seconds] of [2, 1].entries()) {
+      const cacheKey = `cache-${index}`, cache = join(cacheRoot, cacheKey), transcript = `Retained transcript ${index}.\n`
+      mkdirSync(cache)
+      writeFileSync(join(cache, 'transcript.txt'), transcript)
+      writeFileSync(join(cache, 'binding.json'), JSON.stringify({ schemaVersion: 1, cacheKey, engineSha256, elapsedMs: 1, transcriptSha256: createHash('sha256').update(transcript).digest('hex') }))
+      // Cache hits require only the bound transcript; there is deliberately no engine or audio to synthesize/transcribe.
+      sources.push({ id: `case-${index}`, cacheKey, durationSeconds: seconds })
+    }
+    const child = Bun.spawn([process.execPath, '--no-env-file', '--eval', `
+      import { runAssessmentQueue } from '~/tools/assess-tts-benchmarks'
+      await runAssessmentQueue(JSON.parse(process.argv[1]), process.argv[2], process.argv[3], 1)
+    `, JSON.stringify(sources), cacheRoot, engineSha256], { env: childEnv(), stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' })
+    const [exitCode, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()])
+    expect(exitCode).toBe(0)
+    expect(stderr).toBe('')
+    expect(stdout).toBe('{"case":"case-0","status":"reused","seconds":2}\n{"case":"case-1","status":"reused","seconds":1}\n')
+  })
+})
 
 test('ASR screening identifies explicit omissions, additions and substitutions without a perceptual score', () => {
   const comparison = compareWords('The red fox jumps over the gate.', 'The blue fox jumps the gate today.')

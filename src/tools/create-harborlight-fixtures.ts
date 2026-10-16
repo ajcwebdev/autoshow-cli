@@ -4,6 +4,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/project-root'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 
 type PdfPage = { content: string, chapter?: string | undefined }
 
@@ -30,9 +32,9 @@ const pageStream = (page: PdfPage, index: number, count: number): string => {
     const heading = /^(#{1,3})\s+/.exec(paragraph)
     const size = heading?.[1]?.length === 1 ? 22 : heading?.[1]?.length === 2 ? 17 : heading ? 13 : 11
     const text = paragraph.replace(/^#{1,3}\s+/, '').replaceAll('**', '').replace(/\s*\n\s*/g, ' ')
-    if (/[^\x20-\x7e]/.test(text)) throw new Error('Fixture PDF source must use printable ASCII for its embedded standard-font text layer.')
+    if (/[^\x20-\x7e]/.test(text)) throw ValidationError('Fixture PDF source must use printable ASCII for its embedded standard-font text layer.')
     for (const line of wrapParagraph(text, heading ? Math.floor(500 / (size * 0.57)) : 88)) {
-      if (y < 58) throw new Error(`PDF page ${index + 1} overflows; add a pagebreak to its source Markdown.`)
+      if (y < 58) throw ValidationError(`PDF page ${index + 1} overflows; add a pagebreak to its source Markdown.`)
       commands.push(`BT /${heading ? 'F2' : 'F1'} ${size} Tf 1 0 0 1 54 ${y} Tm (${escapePdf(line)}) Tj ET`)
       y -= size + 4
     }
@@ -91,7 +93,7 @@ const findBrowser = (): string => {
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'
   ].find((candidate): candidate is string => typeof candidate === 'string' && existsSync(candidate))
-  if (!browser) throw new Error('A local Chromium/Chrome/Edge browser is required for SVG rasterization. Set AUTOSHOW_FIXTURE_BROWSER to its executable; no browser is downloaded.')
+  if (!browser) throw InfraError('A local Chromium/Chrome/Edge browser is required for SVG rasterization. Set AUTOSHOW_FIXTURE_BROWSER to its executable; no browser is downloaded.')
   return browser
 }
 
@@ -99,7 +101,7 @@ const renderSvg = (browser: string, temporary: string, source: string, target: s
   const svg = readFileSync(sourcePath(source), 'utf8')
   const width = /\bwidth="(\d+)"/.exec(svg)?.[1]
   const height = /\bheight="(\d+)"/.exec(svg)?.[1]
-  if (!width || !height) throw new Error(`Missing fixed SVG dimensions: ${source}`)
+  if (!width || !height) throw ValidationError(`Missing fixed SVG dimensions: ${source}`)
   const screenshot = join(temporary, 'render.png')
   // Browser rendering preserves SVG gradients/strokes; minimal ImageMagick SVG builds may drop them.
   execFileSync(browser, [
@@ -112,7 +114,7 @@ const renderSvg = (browser: string, temporary: string, source: string, target: s
 }
 
 export const createHarborlightFixtures = (): void => {
-  try { execFileSync('magick', ['-version'], { stdio: 'pipe' }) } catch { throw new Error('ImageMagick 7 (magick) is required to reproduce the raster fixtures; install it separately. No model or asset downloads are performed.') }
+  try { execFileSync('magick', ['-version'], { stdio: 'pipe' }) } catch { throw InfraError('ImageMagick 7 (magick) is required to reproduce the raster fixtures; install it separately. No model or asset downloads are performed.') }
   const browser = findBrowser()
   const temporary = mkdtempSync(join(tmpdir(), 'autoshow-harborlight-raster-'))
   try {
@@ -121,7 +123,7 @@ export const createHarborlightFixtures = (): void => {
     // White source pixels become protected alpha=255; black pixels become editable alpha=0.
     renderSvg(browser, temporary, 'image/harborlight-mug-mask.svg', 'image/harborlight-mug-mask.png', true)
     const maskAlpha = execFileSync('magick', [sourcePath('image/harborlight-mug-mask.png'), '-format', '%[fx:p{370,500}.a] %[fx:p{480,535}.a] %[fx:p{20,20}.a] %[fx:p{840,515}.a] %[fx:p{735,515}.a]', 'info:'], { encoding: 'utf8' }).trim()
-    if (maskAlpha !== '0 1 1 0 1') throw new Error(`Invalid edit-mask alpha: ${maskAlpha}; expected editable body/handle and protected badge/background/hole.`)
+    if (maskAlpha !== '0 1 1 0 1') throw ValidationError(`Invalid edit-mask alpha: ${maskAlpha}; expected editable body/handle and protected badge/background/hole.`)
 
     for (const name of ['start', 'end', 'jacket', 'glasses']) renderSvg(browser, temporary, `video/harborlight-${name}.svg`, `video/harborlight-${name}.png`)
     renderSvg(browser, temporary, 'comic/harborlight-camp--style-seed.svg', 'comic/harborlight-camp--style-seed.png')
@@ -132,7 +134,7 @@ export const createHarborlightFixtures = (): void => {
     // Only this tool's disposable browser profile/raster staging is removed; input/output assets are retained.
     rmSync(temporary, { recursive: true, force: true })
   }
-  console.log('Reproduced 8 raster images and 2 text-bearing PDFs from the original Harborlight SVG/Markdown sources under input/examples/.')
+  writeCommandPayload('Reproduced 8 raster images and 2 text-bearing PDFs from the original Harborlight SVG/Markdown sources under input/examples/.\n')
 }
 
 if (import.meta.main) createHarborlightFixtures()
