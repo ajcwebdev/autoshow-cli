@@ -86,4 +86,3 @@ test('recorded completed cost rows remain authoritative when a current registry 
   const fresh: StepCostEntry = { step: 'extract', provider: 'anthropic', model: 'claude-haiku-5-5', cost: 0.5, costSource: 'registry_fallback' }
   expect(preserveRecordedOcrActualCosts({ totalCost: 0.5, steps: [fresh] }, [recorded])).toEqual({ totalCost: 3.25, steps: [fresh, recorded] })
 })
-

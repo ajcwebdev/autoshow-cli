@@ -191,7 +191,7 @@ Response 94
 
 Page 7
 Amazon Textract Developer Guide
- }, 
+ },
  "Polygon": [
  {
  "X": 0.8387037515640259,

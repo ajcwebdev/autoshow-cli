@@ -78,4 +78,3 @@ export const createOcrAdmittedUsage = (provider: 'anthropic' | 'openai', model: 
 
   return { record, markSchemaFailure, result, attachError }
 }
-

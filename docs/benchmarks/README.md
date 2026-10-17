@@ -26,6 +26,8 @@ The 2026-10-17 refresh adds GPT-6.1 Sol, GPT-6 Luna, Claude Opus/Sonnet/Haiku 5.
 
 The new models use their native default reasoning settings, provider concurrency 2 and page concurrency 1. Dashboard speed measures end-to-end provider processing, including credential-lane waiting and PDF preparation where recorded. Quality is the unweighted mean of per-input WER-derived scores; the ASCII word tokenizer does not measure Japanese glyph accuracy, so Unicode CER and source review remain necessary. Price uses recorded usage and registry tariffs rather than provider invoices; Gemini 4 Argon uses its conservative standard tariff. Failed requests without usage leave an unresolved billing amount and are excluded from successful-result rankings, with coverage reported separately.
 
+For this refresh, plaintext `extraction.txt` exports have trailing spaces and tabs removed. The `result.json` artifacts retain the recorded provider text used for scoring.
+
 ## Compaction and regeneration
 
 Compact a run only after trustworthy provider results exist. Preserve canonical result envelopes and historical identity, remove regenerable checkpoints, splits, and derived files only after validation, then regenerate the combined JSON and Markdown, then the dashboard, from those compacted artifacts. Finished artifacts keep the model identity they stored, and the cost recorded on a run remains the authority for that run.

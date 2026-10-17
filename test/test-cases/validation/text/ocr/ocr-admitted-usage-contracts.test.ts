@@ -299,4 +299,3 @@ describe('admitted OCR response usage and request-specific registry costs', () =
     expect(computeActualCosts({ step2: composite.metadata }).steps[0]).toMatchObject({ cost: 1, costSource: 'partial_provider_usage' })
   })
 })
-

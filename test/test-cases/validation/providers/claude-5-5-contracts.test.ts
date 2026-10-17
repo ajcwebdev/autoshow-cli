@@ -237,4 +237,3 @@ describe('Claude 5.5 Messages and native JSON contracts', () => {
     }
   })
 })
-
