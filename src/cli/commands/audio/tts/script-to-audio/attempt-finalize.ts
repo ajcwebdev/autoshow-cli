@@ -75,13 +75,12 @@ import {
   publishExpandedCompletion,
 } from './attempt-success-publication'
 import { ttsProviderSettings } from './tts-provider-settings'
-const closeLocalComposition = async (
-  ctx: AttemptContext
-): Promise<ClosedProviderAttempt> => {
-  const { purePlan, options, renderRoot, recoveredBatchFiles } = ctx
-  if (!ctx.localCompositionOnly || recoveredBatchFiles.length !== purePlan.planned.slots.length) {
-    throw InternalError('Local TTS composition requires one verified recovered result for every generation slot.', { stage: 'tts:recovery' })
-  }
+/** Orders recovered batch results by plan slot and builds the local-composition render result. */
+export const buildLocalCompositionRenderResult = (
+  purePlan: AttemptContext['purePlan'],
+  renderRoot: string,
+  recoveredBatchFiles: AttemptContext['recoveredBatchFiles']
+): { batchResultFiles: AttemptContext['recoveredBatchFiles'], compositionId: string, renderResult: ProviderRenderResult } => {
   const batchResultFiles = [...recoveredBatchFiles]
     .sort((left, right) => purePlan.planned.slots.findIndex((slot) => slot.generationSlotId === left.value.generationSlotId) - purePlan.planned.slots.findIndex((slot) => slot.generationSlotId === right.value.generationSlotId))
   const batchRefs: ProviderBatchResultRef[] = batchResultFiles.map((file) => ({
@@ -106,7 +105,7 @@ const closeLocalComposition = async (
     }
   })
   const compositionId = hashCanonicalTtsValue({ renderPlanId: purePlan.renderPlanId, renderIdentity: purePlan.renderIdentity, batchResults: batchRefs })
-  const renderResult = {
+  const renderResultBase = {
     schemaVersion: 1 as const,
     closedBy: { kind: 'local-composition' as const, compositionId },
     renderPlanId: purePlan.renderPlanId,
@@ -125,27 +124,22 @@ const closeLocalComposition = async (
       closingAttempt: { planned: { amounts: [] }, observed: [] },
       cumulativeRenderHistory: { planned: sumCosts(batchResultFiles.map((file) => file.value.cost.planned)), observed: [] },
     },
-    resultIdentity: hashCanonicalTtsValue({
-      schemaVersion: 1,
-      closedBy: { kind: 'local-composition', compositionId },
-      renderPlanId: purePlan.renderPlanId,
-      renderIdentity: purePlan.renderIdentity,
-      status: 'succeeded',
-      requestedTurnIds,
-      batchResults: batchRefs,
-      observedRequests,
-      outputs: batchResultFiles.flatMap((file) => file.value.outputs.map((output) => ({ ...output, batchResultId: file.value.batchResultId }))),
-      generatedBatches: batchResultFiles.flatMap((file) => file.value.generatedBatch ? [file.value.generatedBatch] : []),
-      turnOutcomes,
-      createdResources: batchResultFiles.flatMap((file) => file.value.createdResources),
-      retryAttempts: batchResultFiles.flatMap((file) => file.value.retryAttempts),
-      cost: {
-        currentComposition: { planned: purePlan.plannedRenderCost, observed: [] },
-        closingAttempt: { planned: { amounts: [] }, observed: [] },
-        cumulativeRenderHistory: { planned: sumCosts(batchResultFiles.map((file) => file.value.cost.planned)), observed: [] },
-      },
-    }),
+  }
+  const renderResult = {
+    ...renderResultBase,
+    resultIdentity: hashCanonicalTtsValue(renderResultBase),
   } as ProviderRenderResult
+  return { batchResultFiles, compositionId, renderResult }
+}
+
+const closeLocalComposition = async (
+  ctx: AttemptContext
+): Promise<ClosedProviderAttempt> => {
+  const { purePlan, options, renderRoot, recoveredBatchFiles } = ctx
+  if (!ctx.localCompositionOnly || recoveredBatchFiles.length !== purePlan.planned.slots.length) {
+    throw InternalError('Local TTS composition requires one verified recovered result for every generation slot.', { stage: 'tts:recovery' })
+  }
+  const { batchResultFiles, compositionId, renderResult } = buildLocalCompositionRenderResult(purePlan, renderRoot, recoveredBatchFiles)
   validateProviderRenderResult(renderResult)
   const resultFile = await writeJsonCreateOnly(options.outputDir, `${renderRoot}/compositions/${compositionId}/provider-render-result.json`, renderResult)
   return { resultFile, batchResultFiles }

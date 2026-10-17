@@ -15,16 +15,13 @@
           "solaria-3"
         ],
         "grokStt": [
-          "speech-to-text"
+          "grok-voice-transcribe-2.0"
         ],
         "mistralStt": [
           "voxtral-mini-2602"
         ],
         "deepgramStt": [
           "nova-3"
-        ],
-        "happyscribeStt": [
-          "auto"
         ]
       }
     }

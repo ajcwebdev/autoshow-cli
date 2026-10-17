@@ -39,7 +39,8 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
 
 export { pathExists as fileExists }
 
-export const ensurePageImageFixture = async (path = 'input/examples/document/1-document.png'): Promise<void> => {
+// Writes the generated page image to a caller-owned path; never point it at a shared checkout fixture.
+export const ensurePageImageFixture = async (path: string): Promise<void> => {
   await Bun.write(path, Buffer.from(PAGE_IMAGE_PNG_BASE64, 'base64'))
 }
 

@@ -1,7 +1,7 @@
 import type { BudgetPreflightSummary, HeadBudgetResult, PriceCommandResult, RunnerArgs, TestRunArtifacts } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { serializeDiagnosticError } from '~/utils/error-handler'
-import { isLiveCredentialMode, parseRunnerArgs } from './args'
+import { buildBunTestFlags, isLiveCredentialMode, parseRunnerArgs } from './args'
 import { UNBUDGETED_LIVE_RUN_ENV } from '../test-utils/budget-env'
 import {
   appendRunnerLog,
@@ -15,7 +15,7 @@ import {
   writeReportJson
 } from './artifacts'
 import { prepareBudgetPreflight } from './budget-preflight-orchestration'
-import { recordFileTimings } from './file-timings'
+import { buildFileTimingsRunContext, recordFileTimings } from './file-timings'
 import { buildModelCalibrationReport } from './model-calibration'
 import { readMetrics, parseJunit } from './parsers'
 import { resolveSelectedFiles } from './path-selection'
@@ -81,7 +81,15 @@ const runStandardTestMode = async (
   const endedAtIso = new Date().toISOString()
   const endedAtMs = Date.now()
   const reportData = await buildTestReportData(junitCases, metrics, artifacts, endedAtIso, endedAtMs, argv.slice(2), budgetHead.summary)
-  await recordFileTimings(junitCases)
+  await recordFileTimings(junitCases, buildFileTimingsRunContext({
+    runId: artifacts.runId,
+    recordedAt: endedAtIso,
+    selection: args.pathFilters,
+    bunFlags: buildBunTestFlags(filesToRun, args.passthroughArgs),
+    credentialMode: isLiveCredentialMode() ? 'live' : 'fixture',
+    exitCode,
+    discoveredFiles: allFiles,
+  }))
   await writeReportJson(artifacts, reportData)
   if (typeof reportData['e2e'] === 'object' && reportData['e2e'] !== null) {
     await writeJsonFile(artifacts.e2eReportJsonPath, reportData['e2e'] as Record<string, unknown>)

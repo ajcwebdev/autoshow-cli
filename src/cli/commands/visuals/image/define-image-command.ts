@@ -18,6 +18,8 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { CliFlagOccurrence, StandaloneImageCommandOptions } from '~/types'
 import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
+import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
+import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 
 const runImageCommand = async (
   prompt: string,
@@ -34,6 +36,9 @@ const runImageCommand = async (
     STANDALONE_IMAGE_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-image' }
   )
+  const configPath = await resolveConfigPath(typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined)
+  const config = await loadConfig(configPath)
+  providerNormalized.flags = mergeConfigIntoRawFlags(providerNormalized.flags, config, providerNormalized.explicitFlags, 'image')
   const imageOpts: StandaloneImageCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'image' })
   const unfilteredSteps = buildImageEstimates(imageOpts)
   const unfilteredEstimate = aggregateExplicitPriceEstimate(unfilteredSteps, imageOpts)
@@ -125,6 +130,11 @@ export const imageCommand = defineCliCommand({
   parameters: [{ key: '<prompt>', description: 'Text prompt for image generation' }],
   flags: imageCommandFlags,
   help: {
+    beforeFlags: ['Select --provider provider[=model], use --all-providers, or configure defaults.image. Without a saved selection, a provider is required.'],
+    notes: [
+      'OpenAI flexible WIDTHxHEIGHT sizes require multiples of 16, a maximum edge of 3840, an aspect ratio at most 3:1, and 655360-8294400 total pixels.',
+      'fal.ai Qwen custom sizes require 512-2048 pixels per edge (at most 1440 for edits). HiDream requires 256-2048 pixels per edge in multiples of 32.'
+    ],
     examples: [
       ['bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2.5-flare --size 1024x1024 --quality medium --format png --output-dir output/mug-base', 'Generate a base product image with Flare'],
       ['bun autoshow image "make only the mug matte black; preserve the logo, camera angle, lighting, and background" --provider openai=gpt-image-2.5-sunburst --input output/mug-base/generated-image.png --quality xhigh --format webp --compression 80 --output-dir output/mug-edit', 'Make a focused edit with Sunburst'],

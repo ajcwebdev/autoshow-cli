@@ -86,8 +86,8 @@ export const advancedProvider = (provider: VoiceCatalogProviderName, options: {
 }
 
 export const commonRegistrationFlags = {
-  provider: strFlag(`Voice provider: ${VOICE_PROVIDERS.join('|')}`),
-  model: strFlag('Provider TTS model used by this registration'),
+  provider: strFlag(`Required voice provider: ${VOICE_PROVIDERS.join('|')}; no default`),
+  model: strFlag(`Synthesis model; required for registration creation, no default. Values: ${VOICE_PROVIDERS.map(provider => `${provider}: ${VOICE_SYNTHESIS_MODELS[provider].join('|')}`).join('; ')}`),
   profile: strFlag('Casting profile key', PROFILE_DEFAULT),
   'provenance-ref': strFlag('Opaque non-secret provenance record reference'),
   'consent-ref': strFlag('Protected consent-record reference when consent is required'),

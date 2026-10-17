@@ -27,7 +27,10 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
       billing: { roundingIncrementSeconds: 1, minimumSeconds: 15 }
     },
     'gemini-stt:gemini-3.6-flash': { costPerHourCents: 17.28 },
-    'gemini-stt:gemini-3.8-flash': { costPerHourCents: 17.28 }
+    'gemini-stt:gemini-3.8-flash': { costPerHourCents: 17.28 },
+    'grok:speech-to-text': { costPerHourCents: 10 },
+    // Removed 2026-10-17 by decision (ADR-010 Excluded integrations); kept to reprice the finished benchmark runs.
+    'cloudflare:@cf/deepgram/nova-3': { costPerHourCents: 31.2 }
   },
   extract: {
     'firecrawl:firecrawl': { costPer1kPagesCents: 83 },
@@ -296,7 +299,8 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'gladia:solaria-1': 'solaria-3',
     'speechmatics:enhanced': 'melia-1',
     'gemini-stt:gemini-3.6-flash': 'gemini-3.5-transcribe',
-    'gemini-stt:gemini-3.8-flash': 'gemini-3.5-transcribe'
+    'gemini-stt:gemini-3.8-flash': 'gemini-3.5-transcribe',
+    'grok:speech-to-text': 'grok-voice-transcribe-2.0'
   },
   extract: {
     'gemini:gemini-3.1-flash-lite': 'gemini-3.5-flash-lite'

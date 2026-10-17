@@ -1,5 +1,5 @@
 import type { PriceSelectionEntry } from '~/types'
-import { command, exact } from '../helpers'
+import { command, exact, reportOnly } from '../helpers'
 
 export const ttsRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/audio/tts/openai-gpt-4o-mini-tts-2025-12-15.test.ts', [
@@ -12,6 +12,7 @@ export const ttsRegistry: PriceSelectionEntry[] = [
     command('tts-elevenlabs-eleven_v3', 'tts-elevenlabs-eleven_v3', ['src/cli/create-cli.ts', 'tts', 'test/test-cases/e2e/service/audio/tts/fixtures/natural-short.txt', '--provider', 'elevenlabs=eleven_v3', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/audio/tts/inworld-realtime-tts-2.test.ts', [
-    command('tts-inworld-realtime-tts-2', 'tts-inworld-realtime-tts-2', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/01-tts-short.md', '--provider', 'inworld=realtime-tts-2', '--price']),
+    // The test only checks target collection, so this estimate is reported but gates no budget.
+    reportOnly('tts-inworld-realtime-tts-2', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/01-tts-short.md', '--provider', 'inworld=realtime-tts-2', '--price']),
   ]),
 ]

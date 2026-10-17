@@ -95,19 +95,20 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(result.stdout).toContain('--transcript-text')
   })
 
-  test.concurrent('download help exposes media preservation flags', async () => {
+  test.concurrent('download help exposes one media quality selector and batch layout', async () => {
     const result = await loadHelp(['download', '--help'])
 
     expect(result.exitCode).toBe(0)
     expect(getFlagGroupSection(result.stdout, 'Document Options')).toContain('--password')
     const mediaSection = getFlagGroupSection(result.stdout, 'Media Download Options')
-    expect(mediaSection).toContain('--keep-original-media')
-    expect(mediaSection).toContain('--best-quality')
+    expect(mediaSection).toContain('--media-quality')
+    expect(mediaSection).toContain('audio|original|best')
+    expect(mediaSection).toContain('[default: "audio"]')
     expect(mediaSection).toContain('--flat-batch')
     expect(getFlagGroupSection(result.stdout, 'Article Extraction')).toContain('--url-provider')
     expect(getFlagGroupSection(result.stdout, 'Batch Processing')).toContain('--batch-limit')
-    expect(result.stdout).toContain('--keep-original-media')
-    expect(result.stdout).toContain('--best-quality')
+    expect(result.stdout).not.toContain('--keep-original-media')
+    expect(result.stdout).not.toContain('--best-quality')
     expect(result.stdout).toContain('--flat-batch')
   })
 
@@ -123,7 +124,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(pipelineSection).toContain('--concurrency-mode')
     expect(pipelineSection).toContain('--all-providers')
     expect(pipelineSection).toContain('--provider')
-    expect(pipelineSection).toContain('--llm')
+    expect(pipelineSection).not.toMatch(/^\s+--llm\s/m)
     expect(pipelineSection).not.toContain('--local-concurrency')
     expect(pipelineSection).not.toContain('--all-local')
     expect(getFlagGroupSection(writeResult.stdout, 'Batch Processing')).toContain('--batch-limit')

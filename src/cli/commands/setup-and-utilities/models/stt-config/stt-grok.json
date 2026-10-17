@@ -3,18 +3,18 @@
     "description": "xAI Grok REST speech-to-text",
     "type": "api",
     "models": {
-      "speech-to-text": {
-        "description": "xAI REST STT with word timestamps, formatting, and diarization",
+      "grok-voice-transcribe-2.0": {
+        "description": "xAI Grok Voice Transcribe 2.0 on the REST STT endpoint with word timestamps, formatting, and diarization",
         "pricingSourceUrl": "https://docs.x.ai/developers/pricing",
-        "pricingCheckedAt": "2026-05-31",
+        "pricingCheckedAt": "2026-10-17",
         "pricingCurrency": "USD",
         "pricingTier": "xAI public Voice API REST pricing",
-        "pricingNotes": "xAI lists Speech to Text at $0.10/hr for REST and $0.20/hr for Streaming. AutoShow uses the REST endpoint. Free credits, enterprise pricing, taxes, and provider credits are ignored.",
+        "pricingNotes": "xAI lists Speech to Text at $0.10/hr for REST and $0.20/hr for Streaming. AutoShow uses the REST endpoint. API prepaid credits are available without a subscription; the purchase minimum and credit expiry are not established by the public billing page. The timing estimate is carried over from the retired speech-to-text selector and is provisional. Free credits, enterprise pricing, taxes, and provider credits are ignored.",
         "costPerHourCents": 10,
         "limits": {
           "effectiveBytes": 524288000,
           "directUploadBytes": 524288000,
-          "notes": "xAI REST STT accepts multipart audio uploads up to 500 MB. AutoShow sends format=true, language=en, and diarize=true, with file last. Streaming STT is separately priced and not used by extract."
+          "notes": "xAI REST STT accepts multipart audio uploads up to 500 MB and returns 413 above that. AutoShow sends model=grok-voice-transcribe-2.0 explicitly, plus format, language=en, and diarize, with file last because fields after the file may be ignored. Streaming STT is separately priced and not used by extract. xAI made 2.0 the default for requests that omit model on 2026-09-17 and ended 1.0 on 2026-10-02."
         },
         "estimation": {
           "costMultiplier": 1,

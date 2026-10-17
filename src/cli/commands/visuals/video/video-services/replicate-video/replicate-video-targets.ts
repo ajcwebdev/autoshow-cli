@@ -66,7 +66,7 @@ const validateReplicateSeedanceReferences = (
 export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
   const models = options.replicateVideoModels ?? []
   if (hasReplicateSpecificOptions(options) && models.length === 0) {
-    throw UsageError('Replicate video flags require a Replicate video provider target.')
+    throw UsageError('--seed, --negative-prompt, and --multi-clip require a compatible Replicate video provider target.')
   }
 
   return models.flatMap((rawModel) => {
@@ -85,16 +85,16 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
         [options.videoGenerateAudio !== undefined, '--generate-audio'],
         [(options.videoReferenceVideos?.length ?? 0) > 0, '--reference-video'],
         [(options.videoReferenceAudios?.length ?? 0) > 0, '--reference-audio'],
-        [hasValue(options.replicateVideoNegativePrompt), '--replicate-video-negative-prompt'],
-        [options.replicateVideoMultiClip !== undefined, '--replicate-video-multi-clip']
+        [hasValue(options.replicateVideoNegativePrompt), '--negative-prompt'],
+        [options.replicateVideoMultiClip !== undefined, '--multi-clip']
       ])
       if ((options.videoReferenceImages?.length ?? 0) > 9) {
         throw UsageError(`--reference-image supports at most 9 images for Replicate/${model}.`)
       }
     } else if (isReplicateSeedanceVideoModel(model)) {
       rejectReplicateFlags(model, [
-        [hasValue(options.replicateVideoNegativePrompt), '--replicate-video-negative-prompt'],
-        [options.replicateVideoMultiClip !== undefined, '--replicate-video-multi-clip']
+        [hasValue(options.replicateVideoNegativePrompt), '--negative-prompt'],
+        [options.replicateVideoMultiClip !== undefined, '--multi-clip']
       ])
       validateReplicateSeedanceReferences(model, options)
     } else if (isReplicateWanVideoModel(model)) {
@@ -105,7 +105,7 @@ export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: Vid
         [(options.videoReferenceImages?.length ?? 0) > 0, '--reference-image'],
         [Boolean(options.videoLastFrame), '--last-frame'],
         [Boolean(options.videoInputVideo), '--input-video'],
-        [options.replicateVideoMultiClip !== undefined, '--replicate-video-multi-clip']
+        [options.replicateVideoMultiClip !== undefined, '--multi-clip']
       ])
     } else if (isReplicatePixVerseVideoModel(model)) {
       rejectReplicateFlags(model, [

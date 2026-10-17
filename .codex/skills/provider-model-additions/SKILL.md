@@ -41,6 +41,7 @@ Each report must stand alone for its workflows and link to sibling reports that 
 - Treat existing providers as the repository-wide provider set. A provider used in another workflow can be an integration candidate, but existing credentials do not establish support for the proposed workflow.
 - Separate stable releases, publicly callable previews, restricted announcements, and unverified candidates. Distinguish model releases from service updates, dated pins, and moving aliases.
 - Recommend candidates relevant to existing AutoShow workflows, including publicly callable previews and new families on existing hosts. Exclude unrelated catalog products.
+- Read the Excluded integrations section of ADR-010 before recommending anything. Its dated tables record excluded providers and excluded models on retained providers (for example, Cloudflare `@cf/deepgram/nova-3` and Together's WebSocket-only Nemotron streaming models). These are decisions, not pending additions: list a matching candidate as excluded by that decision, and raise it again only when new primary evidence directly addresses the recorded reason, as a reconsideration needing a user decision.
 - Keep public research dates, repository implementation dates, local verification, and live benchmarking separate. Reorganizing research does not revalidate its sources; local tests do not establish provider quality, latency, availability, or billed cost.
 
 ## Shared Conventions

@@ -2,7 +2,7 @@ import type { GeminiDurationSeconds, GeminiResolution, GrokVideoDurationSeconds,
 import { UsageError } from '~/utils/error-handler'
 
 export const REPLICATE_COMMON_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4'] as const
-export const REPLICATE_SEEDANCE_ASPECT_RATIOS = [...REPLICATE_COMMON_ASPECT_RATIOS, '21:9', '9:21', 'adaptive'] as const
+export const REPLICATE_SEEDANCE_ASPECT_RATIOS = [...REPLICATE_COMMON_ASPECT_RATIOS, '21:9', 'adaptive'] as const
 
 export const isReplicateSeedanceVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'bytedance/seedance-2.5'

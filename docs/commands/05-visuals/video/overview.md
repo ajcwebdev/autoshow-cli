@@ -40,7 +40,7 @@ FAL_API_KEY=...
 ```bash
 bun autoshow video <input> [flags]
 ```
-The positional input is a text prompt or an image path, URL, or data URL. A positional image input infers `--mode image-to-video` and cannot be combined with media-input flags. When no provider is specified, a text prompt runs the cheapest default text-to-video target and a positional image input runs every supported provider.
+The positional input is a text prompt or an image path, URL, or data URL. A positional image input infers `--mode image-to-video` and cannot be combined with media-input flags. Saved `defaults.video` settings apply when not overridden. When no provider is specified or saved, a text prompt runs the cheapest default text-to-video target and a positional image input runs every supported provider.
 
 ## Modes
 
@@ -67,30 +67,34 @@ The bundled [Harborlight fixtures](../../../../input/examples/harborlight-README
 
 The `video` and `resume` commands use the same short option names, including `--duration`. Saved configuration uses the matching namespaced key, such as `defaults.video.duration`.
 
-| Flag                                       | Description                                                                                                               |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `--provider provider[=model]`              | Hosted video provider/model selector; repeat to run multiple targets                                                      |
-| `--all-providers`                          | Run every supported video provider/model                                                                                  |
-| `--provider-concurrency <n>`               | Hosted video providers/models to run concurrently; default `7`                                                            |
-| `--concurrency-mode <ramp\|immediate>`     | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                                      |
-| `--duration <seconds>`                     | Requested video duration                                                                                                  |
-| `--aspect-ratio <ratio>`                   | Provider-dependent aspect ratio                                                                                           |
-| `--resolution <res>`                       | Provider-dependent resolution control                                                                                     |
-| `--mode <mode>`                            | `text`, `image-to-video`, `reference-to-video`, `interpolate`, `edit`, or `extend`; default `text`                        |
-| `--input-image <path-or-url>`              | Input image for `image-to-video`; first frame for `interpolate`                                                           |
-| `--last-frame <path-or-url>`               | Last-frame image for `interpolate`                                                                                        |
-| `--reference-image <path-or-url>`          | Reference image for `reference-to-video` or Gemini Omni `extend`; repeatable                                              |
-| `--reference-video <path-or-url>`          | Reference MP4 for Gemini Omni (up to 3, 3s each), Replicate Seedance, and fal.ai MiniMax H3/Seedance 2.5; repeatable      |
-| `--reference-audio <path-or-url>`          | Reference audio for Replicate Seedance and fal.ai MiniMax H3/Seedance 2.5; repeatable                                     |
-| `--input-video <path-or-url>`              | Gemini Omni `edit`/`extend` source MP4 (uploaded sources ≤10s)                                                            |
-| `--previous-interaction-id <id>`           | Gemini Omni prior interaction id from `providerRequestId`; use with `edit` or `extend` instead of re-uploading            |
-| `--generate-audio`                         | Native audio where supported (Replicate Seedance/PixVerse, fal.ai Seedance 2.5)                                           |
-| `--replicate-video-seed <n>`               | Replicate video seed (`0`–`2147483647`)                                                                                   |
-| `--replicate-video-negative-prompt <text>` | Replicate PixVerse V6 and Wan 3.0 negative prompt                                                                         |
-| `--replicate-video-multi-clip`             | Replicate PixVerse V6 multi-shot generation toggle                                                                        |
-| `--price`                                  | Show the estimate and exit                                                                                                |
-| `--max-model-cents <n>`                    | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price` |
-| `--output-dir <dir>`                       | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/`                                        |
+| Flag                                   | Description                                                                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `--provider provider[=model]`          | Hosted video provider/model selector; repeat to run multiple targets                                                      |
+| `--all-providers`                      | Run every supported video provider/model                                                                                  |
+| `--provider-concurrency <n>`           | Hosted video providers/models to run concurrently; default `7`                                                            |
+| `--concurrency-mode <ramp\|immediate>` | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                                      |
+| `--duration <seconds>`                 | Requested video duration                                                                                                  |
+| `--aspect-ratio <ratio>`               | Provider-dependent aspect ratio                                                                                           |
+| `--resolution <res>`                   | Provider-dependent resolution control                                                                                     |
+| `--mode <mode>`                        | `text`, `image-to-video`, `reference-to-video`, `interpolate`, `edit`, or `extend`; default `text`                        |
+| `--input-image <path-or-url>`          | Input image for `image-to-video`; first frame for `interpolate`                                                           |
+| `--last-frame <path-or-url>`           | Last-frame image for `interpolate`                                                                                        |
+| `--reference-image <path-or-url>`      | Reference image for `reference-to-video` or Gemini Omni `extend`; repeatable                                              |
+| `--reference-video <path-or-url>`      | Reference MP4 for Gemini Omni (up to 3, 3s each), Replicate Seedance, and fal.ai MiniMax H3/Seedance 2.5; repeatable      |
+| `--reference-audio <path-or-url>`      | Reference audio for Replicate Seedance and fal.ai MiniMax H3/Seedance 2.5; repeatable                                     |
+| `--input-video <path-or-url>`          | Gemini Omni `edit`/`extend` source MP4 (uploaded sources ≤10s)                                                            |
+| `--previous-interaction-id <id>`       | Gemini Omni prior interaction id from `providerRequestId`; use with `edit` or `extend` instead of re-uploading            |
+| `--generate-audio`                     | Native audio where supported (Replicate Seedance/PixVerse, fal.ai Seedance 2.5)                                           |
+| `--seed <n>`                           | Replicate video seed (`0`–`2147483647`)                                                                                   |
+| `--negative-prompt <text>`             | Replicate PixVerse V6 and Wan 3.0 negative prompt                                                                         |
+| `--multi-clip`                         | Replicate PixVerse V6 multi-shot generation toggle                                                                        |
+| `--price`                              | Show the estimate and exit                                                                                                |
+| `--max-model-cents <n>`                | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price` |
+| `--output-dir <dir>`                   | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/`                                        |
+
+The provider-neutral `--seed`, `--negative-prompt`, and `--multi-clip` names share the normal video option group and resume support. Their current adapters support Replicate only: seed on every active Replicate model, negative prompts on PixVerse V6 and Wan 3, and multi-clip on PixVerse V6. Unsupported selected targets fail before dispatch. The old `--replicate-video-*` spellings remain hidden compatibility aliases on `video`; do not combine an alias with its canonical spelling. Existing `defaults.video.replicateVideoSeed` and `replicateVideoNegativePrompt` configuration keys remain compatible.
+
+Use `--no-generate-audio` and `--no-multi-clip` to disable supported toggles explicitly. Other models have fixed provider audio behavior and reject an explicit `--generate-audio` control. Reference videos and audio are rejected for Grok, whose reference mode accepts images. Pass `--duration=-1` with the equals sign for automatic Seedance duration.
 
 See [Provider Capabilities](#provider-capabilities) for the per-model matrix.
 
@@ -201,7 +205,7 @@ bun autoshow video "transition the same Harborlight campsite from dusk to night"
 
 ```bash
 bun autoshow video "cinematic mountain sunrise" --provider replicate=bytedance/seedance-2.5
-bun autoshow video "multi-shot launch" --provider replicate=pixverse/pixverse-v6 --duration 8 --resolution 1080p --generate-audio --replicate-video-multi-clip
+bun autoshow video "multi-shot launch" --provider replicate=pixverse/pixverse-v6 --duration 8 --resolution 1080p --generate-audio --multi-clip
 ```
 - Wan 3.0 (`alibaba/wan-3`) supports text-to-video and image-to-video at 480p, 720p, and 1080p. Audio generation, interpolate, reference media, and multi-clip are not supported. [Wan 3.0](https://replicate.com/alibaba/wan-3)
 - `--duration -1` lets Seedance choose duration. `--price` estimates 30 seconds for Seedance 2.5.

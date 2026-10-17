@@ -30,7 +30,7 @@ describe('option resolution contracts', () => {
         kimi: 'kimi-k3',
         together: 'glm-5.3-flash',
         'mistral-stt': 'voxtral-mini-2602',
-        'grok-stt': 'speech-to-text',
+        'grok-stt': 'grok-voice-transcribe-2.0',
         'together-stt': 'openai/whisper-large-v3',
         'deepgram-stt': 'nova-3',
         'scrapecreators-stt': 'youtube-transcript',
@@ -72,7 +72,7 @@ describe('option resolution contracts', () => {
       expect(opts.kimiModels?.[0]).toBe('kimi-k3')
       expect(opts.togetherModels?.[0]).toBe('glm-5.3-flash')
       expect(opts.mistralSttModels?.[0]).toBe('voxtral-mini-2602')
-      expect(opts.grokSttModels?.[0]).toBe('speech-to-text')
+      expect(opts.grokSttModels?.[0]).toBe('grok-voice-transcribe-2.0')
       expect(opts.togetherSttModels?.[0]).toBe('openai/whisper-large-v3')
       expect(opts.deepgramSttModels?.[0]).toBe('nova-3')
       expect(opts.scrapecreatorsSttModels?.[0]).toBe('youtube-transcript')

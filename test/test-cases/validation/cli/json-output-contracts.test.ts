@@ -1,10 +1,11 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { preScanJsonMode, runCliInProcess } from '~/cli/create-cli'
 import { resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { flushStagedResult, isolateCommandResult, requireIsolatedResult, runWithResultInvocation, stageResult } from '~/utils/app-logger/result-emitter'
+import { resetLoggerForInvocation } from '~/utils/app-logger/app-logger'
 import { captureConsoleText, captureProcessOutput } from '../../../test-utils/console-capture'
 
 const parseLines = (text: string): Array<Record<string, unknown>> => text.trim()
@@ -12,6 +13,8 @@ const parseLines = (text: string): Array<Record<string, unknown>> => text.trim()
   : []
 
 describe('JSON CLI output protocol', () => {
+  afterEach(() => { resetLoggerForInvocation(false) })
+
   test('pre-scan uses the last effective JSON value', () => {
     expect(preScanJsonMode(['--json=false', '--json'])).toBe(true)
     expect(preScanJsonMode(['--json', '--no-json'])).toBe(false)

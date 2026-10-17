@@ -157,9 +157,18 @@ const buildJunitIndexes = (matchableCases: ParsedJunitCase[]): JunitIndexes => {
   const byName = new Map<string, ParsedJunitCase[]>()
   const byFileLine = new Map<string, ParsedJunitCase[]>()
 
+  // A name repeated within one file (for example under two describe blocks) cannot identify a
+  // single test, so its metrics stay unmatched rather than attaching to whichever case came last.
+  const ambiguousNames = new Set<string>()
   for (const tc of matchableCases) {
     const namesInFile = byFileAndName.get(tc.file) ?? new Map<string, ParsedJunitCase>()
-    namesInFile.set(tc.name, tc)
+    const nameKey = `${tc.file}::${tc.name}`
+    if (namesInFile.has(tc.name) || ambiguousNames.has(nameKey)) {
+      ambiguousNames.add(nameKey)
+      namesInFile.delete(tc.name)
+    } else {
+      namesInFile.set(tc.name, tc)
+    }
     byFileAndName.set(tc.file, namesInFile)
 
     const nameList = byName.get(tc.name) ?? []

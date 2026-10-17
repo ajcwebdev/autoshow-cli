@@ -8,7 +8,7 @@ export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
 ] as const satisfies readonly string[]
 
 export const ELEVENLABS_DEFAULT_VOICE_ID = 'hpp4J3VqNfWAUOO0d1Us'
-const SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS = [
+export const SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS = [
   'auto',
   'on',
   'off'
@@ -40,7 +40,7 @@ export const SUPPORTED_GROK_TTS_MODELS = [
 
 export const SUPPORTED_GROK_TTS_VOICES: readonly string[] = getModelRegistry().tts['grok']?.voices ?? []
 export const GROK_DEFAULT_TTS_VOICE = 'eve'
-const SUPPORTED_GROK_TTS_LANGUAGES = [
+export const SUPPORTED_GROK_TTS_LANGUAGES = [
   'auto',
   'en',
   'ar-EG',

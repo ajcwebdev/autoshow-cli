@@ -54,6 +54,8 @@ bun autoshow music --batch input/<dir>
 | Hosted generation     | `<prompt-or-text-file>` with `--provider` | Generates music with hosted ElevenLabs, MiniMax, or Gemini and writes MP3 outputs |
 | Lyric-video rendering | `--audio <file>` or `--batch <dir>`       | Uses local whisperfile captions and ffmpeg to write MP4/VTT/SRT outputs           |
 
+Hosted generation uses saved `defaults.music` settings unless explicitly overridden. Without a saved selection, choose `--provider` or `--all-providers`. Local lyric-video mode does not load hosted defaults.
+
 Do not mix a hosted prompt or `--provider`, `--all-providers`, `--duration`, `--lyrics-file`, or `--instrumental` with local `--audio`, `--captions`, `--batch`, `--model`, or `--font`. `--audio` and `--captions` cannot be combined with `--batch`.
 
 ## Shared Music Options

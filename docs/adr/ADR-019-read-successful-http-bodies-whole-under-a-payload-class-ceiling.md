@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-09-20
-- **Date Updated:** 2026-09-22
+- **Date Updated:** 2026-10-17
 - **Verification Status:** Passed
 
 ## Context
@@ -18,7 +18,7 @@ Why now: a billed chunk failed on every attempt at the capture limit, and a one-
 **Option 1 (selected)**
 
 - **Option:** Read every successful body whole under a memory ceiling sized by payload class, with one environment override, and keep bounded capture only for diagnostics
-- **Pros:** One policy for every body; a new provider inherits the ceiling; overflow names its size and is never retried; a file download streams to disk with no ceiling
+- **Pros:** One policy for every body; a new provider inherits the ceiling; overflow names its size and is never retried; a paid result streams to disk with no ceiling
 - **Cons:** A response up to the ceiling stays in memory while it is decoded
 - **Quantitative Notes:** The `result` ceiling is 512 MiB
 
@@ -42,8 +42,9 @@ A successful HTTP body is returned whole or rejected whole. The ceiling follows 
 
 This applies to:
 
-- `control` at 16 MiB for control-plane JSON such as status polls, catalogs, and metadata; `result` at 512 MiB, the default, for provider deliverables including media inlined as base64 or hex; `download` at 2 GiB for a download held in memory. A download written straight to disk is streamed and has no ceiling.
-- `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES`, a positive whole number of bytes that replaces every ceiling. A malformed value is a usage error at startup, before any provider request. Setup and network-probe child processes receive the variable.
+- `control` at 16 MiB for control-plane JSON such as status polls, catalogs, and metadata; `result` at 512 MiB, the default, for provider deliverables including media inlined as base64 or hex; `download` at 2 GiB for a download held in memory. A paid result written straight to disk is streamed and has no ceiling.
+- `source` at 16 GiB for a user-supplied source streamed to disk: a document, media, or reference URL fetched before any provider work. Its fetch also carries the 10-minute media download deadline, which ends the body read as well as the request. An oversized or endless source fails before it can fill the disk, and the failure carries no billing hint because nothing was purchased.
+- `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES`, a positive whole number of bytes that replaces every in-memory ceiling. For the disk-streamed `source` class it can only raise the ceiling, so a value sized for container memory never fails a large source download. A malformed value is a usage error at startup, before any provider request. Setup and network-probe child processes receive the variable.
 - A `Content-Length` over the ceiling is rejected before the body is read, and a body that exceeds the ceiling while it is read is cancelled. The error is `validation` with `retryable: false`, and it names the observed size, the ceiling, and the variable.
 - Hosted TTS chunks whose inlined byte rate is fixed by the request are estimated before the first dispatch, so a lowered ceiling can reject the run before it is billed. Inworld WAV responses and ElevenLabs native dialogue MP3 batches are estimated; duration in the estimate is a heuristic. Providers whose byte rate the request does not fix are not estimated.
 - Error bodies and subprocess output still use bounded capture. A subprocess stream is read to the end. An HTTP error body stops after 64 MiB and the capture reports that it was truncated.
@@ -67,7 +68,7 @@ Positive outcomes:
 
 - Any provider can inline media up to 512 MiB without a per-call limit.
 - A container can change the ceiling without a new release.
-- A large media download is written to disk as it arrives.
+- A large media download is written to disk as it arrives, and a runaway source download stops at its ceiling or deadline instead of exhausting temporary disk.
 - Subprocess logging cannot fail the subprocess.
 
 Negative outcomes:
@@ -75,6 +76,7 @@ Negative outcomes:
 - One response up to the ceiling is resident while it is decoded, so a container memory limit has to allow for it.
 - The Inworld estimate assumes mono and a slow-speech margin because the channel count is undocumented.
 - An inline-audio provider without a pre-dispatch size estimate can be billed before an oversize body is rejected.
+- A source larger than 16 GiB needs the override raised, and a source that cannot finish within 10 minutes fails and must be downloaded separately.
 
 ## Trade-offs
 

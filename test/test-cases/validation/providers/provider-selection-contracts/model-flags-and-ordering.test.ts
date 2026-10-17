@@ -229,6 +229,12 @@ describe('provider selection contracts', () => {
       'openai/whisper-large-v3',
       'nvidia/parakeet-tdt-0.6b-v3'
     ])
+    expect(collectSttTargets(opts).filter((target) => target.service === 'grok').map((target) => target.model)).toEqual(['grok-voice-transcribe-2.0'])
+    expect(collectSttTargets(opts).filter((target) => target.service === 'cloudflare').map((target) => target.model)).toEqual([
+      '@cf/openai/whisper-large-v3-turbo',
+      '@cf/openai/whisper',
+      '@cf/openai/whisper-tiny-en'
+    ])
 
     const explicitOpts = buildOptsFromFlags({
       'scrapecreators-stt': 'youtube-transcript'

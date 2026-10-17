@@ -2,9 +2,10 @@
  * What a successful HTTP body is for, which decides how much of it may be held in memory.
  * `control` is small control-plane JSON (status polls, catalogs, metadata). `result` is a provider
  * deliverable: generation output, transcripts and media inlined as base64 or hex. `download` is a
- * fetched media file.
+ * fetched media file. `source` is a user-supplied source streamed to disk, where the ceiling
+ * protects disk space rather than memory.
  */
-export type HttpPayloadClass = 'control' | 'result' | 'download'
+export type HttpPayloadClass = 'control' | 'result' | 'download' | 'source'
 
 export type HttpPayloadReadOptions = {
   /** Defaults to `result`, so an undeclared caller never inherits the small control ceiling. */

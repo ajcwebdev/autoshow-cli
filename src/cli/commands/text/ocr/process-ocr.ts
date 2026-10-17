@@ -13,6 +13,7 @@ import { createHostedOcrScheduler } from './ocr-utils/hosted-ocr-scheduler'
 import { readSinglePipelineItemRecord } from '../../command-shared/pipeline-manifest'
 import { isRecord } from '~/utils/rest-client'
 import { UsageError } from '~/utils/error-handler'
+import { settleCleanups } from '~/utils/settle-cleanups'
 
 export { writeProviderArtifacts } from './ocr-artifacts'
 
@@ -38,34 +39,36 @@ export const processOcr = async (
       await downloadDocument(filePath, opts.outputDir, opts.password, sourceRef)
     )
   const ocrPreparationCache = createOcrPreparationCache()
-  const rootHostedOcrScheduler = rawOpts.hostedOcrScheduler ?? createHostedOcrScheduler({
-    mode: opts.ocrConcurrencyMode,
-    fixedCap: opts.ocrConcurrency,
-    pageCount: prepared.step1Metadata.pageCount,
-    concurrencyMode: rawOpts.concurrencyMode,
-    hostedConcurrencyCoordinator: rawOpts.hostedConcurrencyCoordinator
-  })
-  const hostedOcrScheduler = rootHostedOcrScheduler.getLifetime() === 'run'
-    ? rootHostedOcrScheduler.createDocumentScope(prepared.step1Metadata.pageCount)
-    : rootHostedOcrScheduler
-  const optsWithPreparationCache: ExtractionOptions = {
-    ...opts,
-    ocrPreparationCache,
-    hostedOcrScheduler
-  }
-
   const { outputDir, step1Metadata, effectiveFilePath, tempCleanup, web } = prepared
-  const extractFilePath = effectiveFilePath ?? filePath
-  const effectiveOptsWithPreparationCache: ExtractionOptions = {
-    ...optsWithPreparationCache,
-    outputDir
-  }
-
-  const explicitTargets = effectiveOptsWithPreparationCache.preparedMarkdown ? [] : collectExplicitOcrTargets(effectiveOptsWithPreparationCache)
-  const documentSource = buildDocumentSource(filePath, sourceRef)
-  const ocrProviderMode = providerRunContext?.ocrProviderMode ?? opts.ocrProviderMode
+  let primaryFailed = false
 
   try {
+    const rootHostedOcrScheduler = rawOpts.hostedOcrScheduler ?? createHostedOcrScheduler({
+      mode: opts.ocrConcurrencyMode,
+      fixedCap: opts.ocrConcurrency,
+      pageCount: prepared.step1Metadata.pageCount,
+      concurrencyMode: rawOpts.concurrencyMode,
+      hostedConcurrencyCoordinator: rawOpts.hostedConcurrencyCoordinator
+    })
+    const hostedOcrScheduler = rootHostedOcrScheduler.getLifetime() === 'run'
+      ? rootHostedOcrScheduler.createDocumentScope(prepared.step1Metadata.pageCount)
+      : rootHostedOcrScheduler
+    const optsWithPreparationCache: ExtractionOptions = {
+      ...opts,
+      ocrPreparationCache,
+      hostedOcrScheduler
+    }
+
+    const extractFilePath = effectiveFilePath ?? filePath
+    const effectiveOptsWithPreparationCache: ExtractionOptions = {
+      ...optsWithPreparationCache,
+      outputDir
+    }
+
+    const explicitTargets = effectiveOptsWithPreparationCache.preparedMarkdown ? [] : collectExplicitOcrTargets(effectiveOptsWithPreparationCache)
+    const documentSource = buildDocumentSource(filePath, sourceRef)
+    const ocrProviderMode = providerRunContext?.ocrProviderMode ?? opts.ocrProviderMode
+
     const storedRecord = providerRunContext
       ? await readSinglePipelineItemRecord(outputDir, { command: 'extract', extractRoute: 'document' })
       : undefined
@@ -130,8 +133,13 @@ export const processOcr = async (
       preparedMarkdown: prepared.preparedMarkdown,
       preflightEstimate
     })
+  } catch (error) {
+    primaryFailed = true
+    throw error
   } finally {
-    await cleanupOcrPreparationCache(ocrPreparationCache)
-    if (tempCleanup) await tempCleanup()
+    await settleCleanups([
+      async () => await cleanupOcrPreparationCache(ocrPreparationCache),
+      async () => await tempCleanup?.()
+    ], { label: 'OCR', stage: 'ocr:cleanup', primaryFailed })
   }
 }

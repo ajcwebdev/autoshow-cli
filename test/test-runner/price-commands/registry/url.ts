@@ -1,5 +1,5 @@
 import type { PriceSelectionEntry } from '~/types'
-import { command, exact } from '../helpers'
+import { command, exact, reportOnly } from '../helpers'
 
 // Page pricing needs only an unambiguous article route. The explicit extension
 // avoids live header probes; .invalid exposes accidental network dependencies.
@@ -7,7 +7,8 @@ const PRICE_ARTICLE_URL = 'https://example.invalid/article.html'
 
 export const urlRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/local/text/url/defuddle.test.ts', [
-    command('extract-defuddle-url', 'extract-defuddle-url', ['src/cli/create-cli.ts', 'extract', PRICE_ARTICLE_URL, '--provider', 'defuddle', '--price']),
+    // A local backend with no budget key; the estimate is reported but gates no budget.
+    reportOnly('extract-defuddle-url', ['src/cli/create-cli.ts', 'extract', PRICE_ARTICLE_URL, '--provider', 'defuddle', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/text/url/url-spider.test.ts', [
     command('extract-spider-url', 'extract-spider-url', ['src/cli/create-cli.ts', 'extract', PRICE_ARTICLE_URL, '--provider', 'spider', '--price']),

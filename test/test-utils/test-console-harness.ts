@@ -2,6 +2,7 @@ import { mock } from 'bun:test'
 import * as bunTest from 'bun:test'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import type { ConsoleMethod, TestBuffer } from '~/types'
+import { TEST_BUFFER_STORE } from './test-identity'
 
 const harnessFlag = Symbol.for('autoshow.testConsoleHarness')
 const installed = globalThis as typeof globalThis & { [harnessFlag]?: true }
@@ -10,6 +11,8 @@ if (installed[harnessFlag] !== true) {
   installed[harnessFlag] = true
 
   const buffers = new AsyncLocalStorage<TestBuffer>()
+  // Helpers read the running test's registered name through this store (see test-identity.ts).
+  ;(globalThis as typeof globalThis & { [TEST_BUFFER_STORE]?: AsyncLocalStorage<TestBuffer> })[TEST_BUFFER_STORE] = buffers
   const originalConsole: Record<ConsoleMethod, (...args: unknown[]) => void> = {
     log: console.log.bind(console),
     warn: console.warn.bind(console),
@@ -75,10 +78,10 @@ if (installed[harnessFlag] !== true) {
     },
   })
 
-  const runWithBuffer = (fn: (...args: unknown[]) => unknown) =>
+  const runWithBuffer = (fn: (...args: unknown[]) => unknown, testName?: string) =>
     (...args: unknown[]) => {
       const incoming = buffers.getStore()
-      const store = incoming ?? { lines: [], failed: false }
+      const store = incoming ?? { lines: [], failed: false, testName }
       const run = (): unknown => {
         const finish = (threw: boolean): void => {
           if (store.failed || threw) {
@@ -114,7 +117,8 @@ if (installed[harnessFlag] !== true) {
       return original
     }
     const wrapped = (...args: unknown[]) => {
-      const next = args.map((arg) => typeof arg === 'function' ? runWithBuffer(arg as (...inner: unknown[]) => unknown) : arg)
+      const testName = typeof args[0] === 'string' ? args[0] : undefined
+      const next = args.map((arg) => typeof arg === 'function' ? runWithBuffer(arg as (...inner: unknown[]) => unknown, testName) : arg)
       return original(...next)
     }
     return new Proxy(wrapped, {

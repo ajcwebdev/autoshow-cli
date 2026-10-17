@@ -55,6 +55,7 @@ describe('test-runner contracts', () => {
       'write-open"ai-gpt-template',
       "write-open\"ai-gpt-escaped'quote",
       'extract-fallback-provider-ocr-model',
+      'extract-fallback-provider-ocr-model-image',
       'image-replicate-owner/model-a',
       'image-replicate-owner/model-b',
     ])

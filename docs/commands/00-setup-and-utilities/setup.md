@@ -169,6 +169,8 @@ Model-selecting fields are arrays of models, not single strings. Use `bun autosh
 
 Image, video, and music tuning defaults such as `duration` and `format` are edited in `config/autoshow.json`. The `setup` flags for image, video, and music persist the provider and model selectors.
 
+Save a TTS model with `--tts provider=model`. The standalone `tts --model`, `--gemini-tts-mode`, and `--gemini-tts-batch-wait-seconds` controls are not setup settings; pass transport and remote-job wait controls directly to `tts`. Setup rejects these unsupported flags before installation.
+
 ## Persisted Defaults and Precedence
 
 Set the URL article backend in `config/autoshow.json` as `defaults.extract.url.provider` (`defuddle`, `spider`, or `zyte`). `setup` has no `--url-provider` flag. Once saved, `extract` inherits it like any other default. `metadata` and `download` still take `--url-provider` at runtime.

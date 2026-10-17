@@ -8,6 +8,7 @@ import { hasErrorCode } from '~/utils/error-handler'
 import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from './contract-identity'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from './safe-artifact-store'
 import { childEnv } from '~/utils/child-env'
+import { parseWaveMetadata, wavePcmFormat } from '../tts-utils/wave-metadata'
 export { hasErrorCode }
 
 export const contained = (root: string, path: string): string => {
@@ -84,26 +85,11 @@ export const writeTextCreateOnly = async (rootDir: string, path: string, value: 
 
 export const readObservedAudio = async (rootDir: string, path: string): Promise<{ bytes: Buffer, format: ObservedAudioFormat, durationMs: number }> => {
   const bytes = (await readContainedArtifactFile(rootDir, contained(rootDir, path))).bytes
-  let sampleRate = 0
-  let channels = 0
-  let bitsPerSample = 16
-  let byteRate = 0
-  let dataBytes = 0
-  if (bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WAVE') {
-    for (let offset = 12; offset + 8 <= bytes.length;) {
-      const kind = bytes.toString('ascii', offset, offset + 4)
-      const size = bytes.readUInt32LE(offset + 4)
-      const content = offset + 8
-      if (kind === 'fmt ' && content + 16 <= bytes.length) {
-        channels = bytes.readUInt16LE(content + 2)
-        sampleRate = bytes.readUInt32LE(content + 4)
-        byteRate = bytes.readUInt32LE(content + 8)
-        bitsPerSample = bytes.readUInt16LE(content + 14)
-      } else if (kind === 'data') dataBytes += Math.min(size, Math.max(0, bytes.length - content))
-      offset = content + size + (size % 2)
-    }
-    if (sampleRate <= 0 || channels <= 0) throw UsageError(`Retained TTS WAV output has no valid audio format metadata: ${path}`)
-    return { bytes, format: { codec: bitsPerSample === 24 ? 'pcm_s24le' : 'pcm_s16le', container: 'wav', sampleRate, channels }, durationMs: byteRate > 0 ? Math.round(dataBytes / byteRate * 1000) : 0 }
+  const wave = parseWaveMetadata(bytes)
+  if (wave) {
+    // Retained audio needs only a usable format; a zero byte rate or empty data reports 0 ms.
+    if (wave.sampleRate <= 0 || wave.channels <= 0) throw UsageError(`Retained TTS WAV output has no valid audio format metadata: ${path}`)
+    return { bytes, format: wavePcmFormat(wave), durationMs: wave.byteRate > 0 ? Math.round(wave.dataBytes / wave.byteRate * 1000) : 0 }
   }
 
   let bundled = false
@@ -135,8 +121,8 @@ export const readObservedAudio = async (rootDir: string, path: string): Promise<
   const stream = parsed.streams?.find((entry) => Number(entry.sample_rate) > 0 && Number(entry.channels) > 0)
   const codec = stream?.codec_name?.trim()
   const container = parsed.format?.format_name?.split(',').map((entry) => entry.trim()).find(Boolean)
-  sampleRate = Number(stream?.sample_rate)
-  channels = Number(stream?.channels)
+  const sampleRate = Number(stream?.sample_rate)
+  const channels = Number(stream?.channels)
   if (!codec || !container || !Number.isFinite(sampleRate) || sampleRate <= 0 || !Number.isInteger(channels) || channels <= 0) {
     throw UsageError(`Retained TTS audio output has incomplete observed format metadata: ${path}`)
   }

@@ -54,9 +54,7 @@ const resumeTranscriptionOptionNames = [
   'stt-response-format',
   'stt-verbatim',
   'stt-language',
-  'split',
-  'stt-segment-concurrency',
-  'stt-preflight-concurrency'
+  'split'
 ] as const
 
 export const resumeFlags = composeFlags([

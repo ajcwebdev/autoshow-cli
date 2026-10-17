@@ -12,6 +12,28 @@ import {
 import { assertSttExtractRun } from './assert-stt-extract-run'
 import { expect } from 'bun:test'
 
+export type SttServiceTestCase = Readonly<{ model: string, budgetKey: string, name: string, args: readonly string[] }>
+
+/** The exact invocations a defineSTTServiceTest config registers; the price registry must match them. */
+export const sttServiceTestCases = ({
+  models,
+  provider,
+  sttService,
+  extraArgs,
+  inputPath = STABLE_EXAMPLE_AUDIO_URL,
+}: {
+  models: readonly string[]
+  provider: string
+  sttService: string
+  extraArgs?: readonly string[] | undefined
+  inputPath?: string | undefined
+}): SttServiceTestCase[] => models.map((model) => ({
+  model,
+  budgetKey: `transcribe-${sttService}-${model}`,
+  name: `${sttService} ${model} transcribes local audio`,
+  args: ['src/cli/create-cli.ts', 'extract', inputPath, '--provider', `${provider}=${model}`, ...(extraArgs ?? [])]
+}))
+
 export const defineSTTServiceTest = ({
   models,
   provider,
@@ -39,12 +61,10 @@ export const defineSTTServiceTest = ({
 }): void => {
   withOutputLifecycle(inputTitle)
 
-  for (const model of models) {
-    const budgetKey = `transcribe-${sttService}-${model}`
-
+  for (const { model, budgetKey, name, args } of sttServiceTestCases({ models, provider, sttService, extraArgs, inputPath })) {
     defineBudgetedLiveServiceTest(
       budgetKey,
-      `${sttService} ${model} transcribes local audio`,
+      name,
       [envVarKey, ...(extraEnvVarKeys ?? [])],
       async () => {
         await requireConfiguredEnvVar(envVarKey, `${envVarKey} is required for ${envVarDescription}`)
@@ -56,14 +76,7 @@ export const defineSTTServiceTest = ({
           throw new Error(`${sttService} ${model} readiness prerequisite failed`)
         }
 
-        const outputDir = await runCommandAndExpectOutputDir(inputTitle, [
-          'src/cli/create-cli.ts',
-          'extract',
-          inputPath,
-          '--provider',
-          `${provider}=${model}`,
-          ...(extraArgs ?? [])
-        ])
+        const outputDir = await runCommandAndExpectOutputDir(inputTitle, [...args])
 
         await assertSttExtractRun(outputDir, {
           transcriptMatch: /\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/,

@@ -1,8 +1,15 @@
 import type ts from 'typescript'
 
+export type BudgetSourceInvocation = {
+  key: string
+  args: readonly string[]
+}
+
 export type BudgetSourceInspection = {
   keys: string[]
   issues: string[]
+  /** CLI invocations of OCR and STT helper cases, for comparison with their price commands. */
+  invocations?: BudgetSourceInvocation[]
 }
 
 export type StringRead =

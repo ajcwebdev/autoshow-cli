@@ -12,13 +12,13 @@ export const sttRegistry: PriceSelectionEntry[] = [
     command('transcribe-assemblyai-universal-3-5-pro', 'transcribe-assemblyai-universal-3-5-pro', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'assemblyai=universal-3-5-pro', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization/gladia-current-models.test.ts', [
-    command('transcribe-gladia-solaria-3', 'transcribe-gladia-solaria-3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'gladia=solaria-3', '--price']),
+    command('transcribe-gladia-solaria-3', 'transcribe-gladia-solaria-3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'gladia=solaria-3', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization/deepgram-nova-3.test.ts', [
     command('transcribe-deepgram-nova-3', 'transcribe-deepgram-nova-3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'deepgram=nova-3', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-openai-whisper-large-v3.test.ts', [
-    command('transcribe-deepinfra-openai/whisper-large-v3', 'transcribe-deepinfra-openai/whisper-large-v3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'deepinfra=openai/whisper-large-v3', '--price']),
+    command('transcribe-deepinfra-openai/whisper-large-v3', 'transcribe-deepinfra-openai/whisper-large-v3', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'deepinfra=openai/whisper-large-v3', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization-off-by-default/deepinfra-openai-whisper-large-v3-turbo.test.ts', [
     command('transcribe-deepinfra-openai/whisper-large-v3-turbo', 'transcribe-deepinfra-openai/whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'deepinfra=openai/whisper-large-v3-turbo', '--price']),
@@ -50,10 +50,10 @@ export const sttRegistry: PriceSelectionEntry[] = [
     command('transcribe-soniox-stt-async-v5', 'transcribe-soniox-stt-async-v5', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'soniox=stt-async-v5', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization/speechmatics-current-models.test.ts', [
-    command('transcribe-speechmatics-melia-1', 'transcribe-speechmatics-melia-1', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'speechmatics=melia-1', '--price']),
+    command('transcribe-speechmatics-melia-1', 'transcribe-speechmatics-melia-1', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/0-audio-short.mp3', '--provider', 'speechmatics=melia-1', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/stt/diarization/grok-speech-to-text.test.ts', [
-    command('transcribe-grok-speech-to-text', 'transcribe-grok-speech-to-text', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'grok=speech-to-text', '--price']),
+  ...exact('test/test-cases/e2e/service/stt/diarization/grok-voice-transcribe-2.0.test.ts', [
+    command('transcribe-grok-grok-voice-transcribe-2.0', 'transcribe-grok-grok-voice-transcribe-2.0', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'grok=grok-voice-transcribe-2.0', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization/mistral-voxtral-mini-2602.test.ts', [
     command('transcribe-mistral-voxtral-mini-2602', 'transcribe-mistral-voxtral-mini-2602', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'mistral=voxtral-mini-2602', '--price']),

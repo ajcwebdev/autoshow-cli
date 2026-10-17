@@ -8,9 +8,9 @@ import { GEMINI_DEFAULT_DURATION_SECONDS } from '~/cli/commands/audio/music/musi
 import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/audio/music/music-utils/music-pricing'
 
 export const musicGenFlags = {
-  duration: strFlag(`Music duration in seconds: ElevenLabs configurable from ${formatRange([ELEVENLABS_MIN_DURATION_SECONDS, ELEVENLABS_MAX_DURATION_SECONDS])} (default: ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}); Gemini Lyria uses the requested duration as a prompt hint (default: ${GEMINI_DEFAULT_DURATION_SECONDS})`),
-  'lyrics-file': strFlag('Lyrics file path (.md or .txt) with section headers like Verse 1 or Chorus; MiniMax and Gemini receive the lyrics directly, ElevenLabs music_v2 converts them into a composition plan and uses the prompt as style descriptors'),
-  instrumental: boolFlag('Force instrumental generation for providers that support prompt/instrumental mode'),
+  duration: strFlag(`Music duration in seconds: ElevenLabs configurable from ${formatRange([ELEVENLABS_MIN_DURATION_SECONDS, ELEVENLABS_MAX_DURATION_SECONDS])} (default: provider-selected for prompt-only, ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS} with lyrics; price estimate: ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}); Gemini Lyria uses the requested duration as a prompt hint (default estimate: ${GEMINI_DEFAULT_DURATION_SECONDS}); MiniMax duration is provider-controlled and ignores --duration with a warning`),
+  'lyrics-file': strFlag('Lyrics file path (.md or .txt) with section headers like Verse 1 or Chorus; MiniMax and Gemini receive the lyrics directly, ElevenLabs converts them into a composition plan and uses the prompt as style descriptors; omitted by default for prompt-based lyrics'),
+  instrumental: boolFlag('Force instrumental generation (ElevenLabs, Gemini, MiniMax music-3.0; default: false); takes precedence over --lyrics-file'),
 } as const satisfies CliFlagsDefinition
 
 const musicLyricVideoFlags = {

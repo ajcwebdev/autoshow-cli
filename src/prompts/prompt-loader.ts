@@ -327,6 +327,18 @@ export const getAvailablePromptNames = async (): Promise<string[]> => {
   return Object.keys(registry)
 }
 
+// Help needs only the file-derived names, not validation/loading of every prompt body. Keep this
+// synchronous so rendering help never starts a command or depends on configuration or credentials.
+export const getAvailablePromptNamesForHelp = (): string[] => {
+  const embedded = Bun.isStandaloneExecutable
+    ? EMBEDDED_PROMPT_DIRECTORIES.flatMap((name) => listEmbeddedAssetPaths(resolve(IMMUTABLE_ASSET_ROOT, name), PROMPT_FILE_EXTENSION))
+    : []
+  const files = embedded.length > 0
+    ? embedded
+    : [...new Bun.Glob('**/*.json').scanSync({ cwd: PROMPTS_DIR, onlyFiles: true })]
+  return files.map(getPromptNameFromPath).sort((left, right) => left.localeCompare(right))
+}
+
 export const collectLeafPrompts = async (names: string[]): Promise<ResolvedLeafPrompt[]> => {
   const registry = await loadPrompts()
   return collectLeafPromptsFromRegistry(registry, names, true)

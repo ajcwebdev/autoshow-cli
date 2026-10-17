@@ -16,6 +16,32 @@ const expectConfigPatchRoundTrip = (
 }
 
 describe('config image and TTS default contracts', () => {
+  test('explicit all-provider shortcuts suppress saved provider selections while retaining shared controls', () => {
+    const config = { defaults: {
+      tts: { elevenlabsTts: ['eleven_v3'], speed: '1.2' },
+      image: { openaiImage: ['gpt-image-2.5-flare'], count: 2 },
+      video: { grokVideo: ['grok-imagine-video-1.5'], duration: 8 },
+      music: { geminiMusic: ['lyria-3.5'], duration: 20 }
+    } } as Parameters<typeof mergeConfigIntoRawFlags>[1]
+    for (const [scope, savedSelector, sharedControl, value] of [
+      ['tts', 'elevenlabs-tts', 'tts-speed', '1.2'],
+      ['image', 'openai-image', 'count', '2'],
+      ['video', 'grok-video', 'duration', '8'],
+      ['music', 'gemini-music', 'duration', '20']
+    ] as const) {
+      const allFlag = `all-${scope}`
+      const flags = mergeConfigIntoRawFlags({ [allFlag]: true }, config, new Set([allFlag]), scope)
+      expect(flags[savedSelector]).toBeUndefined()
+      expect(flags[sharedControl]).toBe(value)
+    }
+  })
+
+  test('generic video defaults persist under the existing config keys', () => {
+    expectConfigPatchRoundTrip({ seed: '0', 'negative-prompt': 'blur' }, 'video', {
+      replicateVideoSeed: 0, replicateVideoNegativePrompt: 'blur'
+    })
+  })
+
   test('buildConfigPatchFromFlags saves hosted image defaults', () => {
     expectConfigPatchRoundTrip({
       'replicate-image': ['alibaba/qwen-image-3'],

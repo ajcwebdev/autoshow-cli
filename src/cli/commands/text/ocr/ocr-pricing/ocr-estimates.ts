@@ -9,7 +9,7 @@ import type { EstimateOcrTokenUsageOptions, HostedOcrEstimateOptions, HostedOcrT
 import { resolveHostedOcrTokenUsageEstimate } from '../ocr-utils/hosted-ocr-token-profiles'
 import { computeOcrTokenCost } from '~/utils/pricing/ocr-token-pricing'
 import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
-import { writeHttpPayloadToFile } from '~/utils/http-payload'
+import { sourceDownloadSignal, writeHttpPayloadToFile } from '~/utils/http-payload'
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.gif', '.bmp'] as const
 const DEFAULT_EXTRACT_PAGE_COUNT = 1
@@ -85,9 +85,9 @@ const tokenEstimateMetadata = (
 
 const downloadToTemp = async (url: string): Promise<string> => {
   const tempPath = join(tmpdir(), `autoshow-price-${crypto.randomUUID()}.pdf`)
-  const response = await fetch(url)
+  const response = await fetch(url, { signal: sourceDownloadSignal() })
   if (!response.ok) throw InfraError(`Failed to fetch ${url}: ${response.status}`, { stage: 'ocr:extract-pricing', status: response.status })
-  await writeHttpPayloadToFile(response, tempPath)
+  await writeHttpPayloadToFile(response, tempPath, { payloadClass: 'source', stage: 'ocr:extract-pricing' })
   return tempPath
 }
 

@@ -109,6 +109,7 @@ const geminiBinaryRequest = async (
       'x-goog-api-key': apiKey
     }
   })
+  // Paid result: written without a size ceiling so an already-billed deliverable is never discarded.
   await writeHttpPayloadToFile(response, downloadPath)
 }
 

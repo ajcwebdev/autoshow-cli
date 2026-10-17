@@ -2,11 +2,12 @@ import type { ResourceGate, ResourceGateOptions } from '~/types'
 
 const DEFAULT_RESOURCE_GATE_CAPACITY = 1
 
+// Capacities below one slot would block every acquire, so they fall back to the default.
 const normalizeResourceGateCapacity = (
   value: unknown,
   fallback = DEFAULT_RESOURCE_GATE_CAPACITY
 ): number =>
-  typeof value === 'number' && Number.isFinite(value) && value > 0
+  typeof value === 'number' && Number.isFinite(value) && value >= 1
     ? Math.floor(value)
     : fallback
 
@@ -27,31 +28,30 @@ export const createResourceGate = (options: ResourceGateOptions = {}): ResourceG
   let active = 0
   const waiters: Array<() => void> = []
 
-  const wakeNext = (): void => {
-    if (active >= capacity) {
-      return
-    }
-    waiters.shift()?.()
-  }
-
   const gate: ResourceGate = {
     capacity,
     acquire: async (): Promise<() => void> => {
-      if (active >= capacity) {
+      if (active < capacity) {
+        active += 1
+      } else {
+        // A releasing holder hands its occupied slot straight to this waiter.
         await new Promise<void>((resolve) => {
           waiters.push(resolve)
         })
       }
 
-      active += 1
       let released = false
       return () => {
         if (released) {
           return
         }
         released = true
-        active = Math.max(0, active - 1)
-        wakeNext()
+        const next = waiters.shift()
+        if (next) {
+          next()
+        } else {
+          active -= 1
+        }
       }
     }
   }

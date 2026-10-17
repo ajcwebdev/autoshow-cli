@@ -1,4 +1,4 @@
-import { DEFAULT_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
+import { DEFAULT_CONCURRENCY_FLAG_VALUE, DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import {
   STEP_CONCURRENCY_FLAG,
   stepConcurrencyDefaults,
@@ -34,7 +34,7 @@ export const priceFlag = {
 } as const satisfies CliFlagsDefinition
 
 export const modelCostFilterFlag = {
-  'max-model-cents': strFlag('Run only provider/model targets whose estimated total cost for this invocation is at most this many cents')
+  'max-model-cents': strFlag('Run only provider/model targets whose estimated total cost for this invocation is at most this many cents; non-negative number (default: no per-model limit)')
 } as const satisfies CliFlagsDefinition
 
 export const reasoningEffortFlag = {
@@ -64,22 +64,22 @@ export const configPipelineSelectorFlags = {
 } as const satisfies CliFlagsDefinition
 
 export const configGenerationSelectorFlags = {
-  tts: strListFlag(`Default TTS provider[=model] persisted for the tts command: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}`),
-  image: strListFlag(`Default image provider[=model] persisted for the image command: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}`),
-  video: strListFlag(`Default video provider[=model] persisted for the video command: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}`),
-  music: strListFlag(`Default music provider[=model] persisted for the music command: ${formatProviderList(STANDALONE_MUSIC_PROVIDER_TARGETS)}`)
+  tts: strListFlag(`Default TTS provider[=model] persisted for the tts command: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)} (without a saved selection: cheapest hosted)`),
+  image: strListFlag(`Default image provider[=model] persisted for the image command: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)} (default: no provider saved)`),
+  video: strListFlag(`Default video provider[=model] persisted for the video command: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)} (without a saved selection: cheapest text-to-video, or all providers for an image input)`),
+  music: strListFlag(`Default music provider[=model] persisted for the music command: ${formatProviderList(STANDALONE_MUSIC_PROVIDER_TARGETS)} (default: no provider saved)`)
 } as const satisfies CliFlagsDefinition
 
 export const sharedConcurrencyFlags = {
   'concurrency-mode': strFlag(`Hosted concurrency startup policy: ${formatValueList(HOSTED_CONCURRENCY_MODES)}`, DEFAULT_HOSTED_CONCURRENCY_MODE),
-  'provider-concurrency': strFlag('Max hosted provider/model targets running in parallel for one item; internal request or chunk fan-out uses its own limit', DEFAULT_CONCURRENCY_FLAG_VALUE),
-  'local-concurrency': strFlag('Max local providers/models running in parallel for one item', DEFAULT_CONCURRENCY_FLAG_VALUE)
+  'provider-concurrency': strFlag(`Max hosted provider/model targets running in parallel for one item; positive integer; OCR defaults to ${DEFAULT_OCR_CONCURRENCY}; internal request or chunk fan-out uses its own limit`, DEFAULT_CONCURRENCY_FLAG_VALUE),
+  'local-concurrency': strFlag(`Max local providers/models running in parallel for one item; positive integer; OCR defaults to ${DEFAULT_OCR_CONCURRENCY}`, DEFAULT_CONCURRENCY_FLAG_VALUE)
 } as const satisfies CliFlagsDefinition
 
 export const batchFlags = {
-  'batch-limit': strFlag('Batch: number of items to process or "all"', '5'),
+  'batch-limit': strFlag('Batch: positive integer number of items to process or "all"', '5'),
   'batch-order': strFlag('Batch: item order newest|oldest', 'newest'),
-  'batch-concurrency': strFlag('Batch: number of items to process concurrently', DEFAULT_CONCURRENCY_FLAG_VALUE)
+  'batch-concurrency': strFlag('Batch: positive integer number of items to process concurrently', DEFAULT_CONCURRENCY_FLAG_VALUE)
 } as const satisfies CliFlagsDefinition
 
 export const transcriptionFlags = {
@@ -87,7 +87,7 @@ export const transcriptionFlags = {
   'stt-language': genericSttOptionFlag('stt-language', 'Preferred transcript language (ISO 639-1); used when a native transcript is available'),
   'stt-verbatim': genericSttOptionFlag('stt-verbatim', 'Retain filler words and disable numeric/currency formatting for verbatim captions'),
   'stt-response-format': genericSttOptionFlag('stt-response-format', 'Transcription response format; verbose_json retains words, and the text formats use one inference and retain cue timing only'),
-  'stt-audio-profile': strFlag('Audio preparation: default (provider compression) or lossless (verified float32 WAV, original channels/rate)'),
+  'stt-audio-profile': strFlag('Audio preparation: default (provider compression) or lossless (verified float32 WAV, original channels/rate); default: default'),
   'native-subtitles': boolFlag('Also save native subtitles where available, reusing the current inference/job; exports may consume provider quota'),
   diarization: { description: 'Enable or disable diarization on supported STT providers; default uses each provider’s normal mode', type: Boolean, negatable: true },
   'speaker-count': strFlag('Optional diarization speaker-count hint (positive integer); unsupported providers report one aggregated warning at runtime'),
@@ -107,7 +107,7 @@ export const stepConcurrencyFlag = (scopes: readonly StepConcurrencyScope[]): Cl
 
 export const promptFlag = {
   prompt: {
-    description: 'Named prompt(s) discovered under src/prompts/entries/ (default: "default")',
+    description: 'Named prompt(s) discovered under src/prompts/entries/; repeatable or adjacent values; use --help-topic prompts for available names (default: "default")',
     type: [String] as [StringConstructor],
     consumeAdjacentValues: true
   },
@@ -115,7 +115,7 @@ export const promptFlag = {
 } as const satisfies CliFlagsDefinition
 
 export const ocrInputFlags = {
-  'ocr-language': strFlag('Tesseract language(s) like eng+fra', 'eng'),
+  'ocr-language': strFlag('Tesseract language(s) from installed language packs, joined with + (e.g. eng+fra)', 'eng'),
   format: strFlag(`Output format: ${formatValueList(OUTPUT_FORMATS)}`, 'text'),
   password: strFlag('Password for encrypted PDFs'),
   chapters: {
@@ -123,7 +123,7 @@ export const ocrInputFlags = {
     type: Boolean,
     negatable: true
   },
-  length: strFlag('Hard export limit in thousands of characters (e.g. 50 = 50,000 chars); splits oversized EPUB or PDF chapter files'),
+  length: strFlag('Hard export limit as a positive integer in thousands of characters (e.g. 50 = 50,000 chars); splits oversized EPUB or PDF chapter files (default: no hard limit)'),
   'pdf-chapter-mode': strFlag(`PDF chapter detection mode: ${formatValueList(PDF_CHAPTER_MODES)}`, 'local')
 } as const satisfies CliFlagsDefinition
 
@@ -132,10 +132,10 @@ export const articleFlags = {
 } as const satisfies CliFlagsDefinition
 
 export const articleTuningFlags = {
-  'url-request-timeout-ms': strFlag('URL article extraction: per-provider request timeout in milliseconds', '60000'),
-  'url-request-attempts': strFlag('URL article extraction: total provider request attempts including retries', '3')
+  'url-request-timeout-ms': strFlag('URL article extraction: per-provider request timeout as a positive integer in milliseconds', '60000'),
+  'url-request-attempts': strFlag('URL article extraction: total provider request attempts including retries; positive integer', '3')
 } as const satisfies CliFlagsDefinition
 
 export const ocrTuningFlags = {
-  'ocr-dpi': strFlag('Render DPI for OCR pages', '300')
+  'ocr-dpi': strFlag('Render DPI for OCR pages; integer resolution (dots per inch)', '300')
 } as const satisfies CliFlagsDefinition
