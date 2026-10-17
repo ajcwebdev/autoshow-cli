@@ -169,6 +169,11 @@ export const linksCommand = defineCliCommand({
   parameters: [{ key: '[selection...]', description: `Documentation section(s) (${knownSections.join('|')}), one URL, or one .md/.txt URL list; sections after --provider <name> scope to that provider` }],
   flags: linksFlags,
   help: {
+    notes: [
+      'Omitting selections fetches every provider and section. A provider without sections selects all of its documentation.',
+      'A direct URL or local URL-list file cannot be combined with provider or section selectors.',
+      'Normal runs write a combined Markdown file under output/<timestamp>_<selection>/. --refresh reuses docs/links/<selection>/ for comparisons; --output-dir overrides either directory.'
+    ],
     topics: { providers: { description: 'Provider keys and positional section scoping', flags: ['provider'], notes: [`Known providers: ${knownProviders.join(', ')}.`, 'Sections before any provider selector apply globally. Each --provider selector scopes following sections until the next --provider.'] } },
     examples: [
       ['bun autoshow links', 'Fetch all provider documentation'],

@@ -158,7 +158,8 @@ describe('page repair eligibility and promotion', () => {
       expect(Buffer.from(await Bun.file(output).arrayBuffer())).toEqual(originalBytes)
       if (outcome === 'malformed') {
         const malformed = JSON.parse(await Bun.file(join(dirname(output), 'attempts', 'panel-01', 'attempt-1-comparison-pass-1-error.json')).text())
-        expect(malformed.usage).toEqual({ inputTokens: 2, outputTokens: 1, costUsd: 0.00004 })
+        // 2 input and 1 output token at the gpt-5.6-sol rates of $4/1M and $20/1M.
+        expect(malformed.usage).toEqual({ inputTokens: 2, outputTokens: 1, costUsd: 0.000028 })
       }
     })
   }

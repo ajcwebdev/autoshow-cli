@@ -14,6 +14,7 @@ import { UsageError } from '~/utils/error-handler'
 import { formatValueList, withHelpGroup } from '~/cli/flags/flag-utils'
 import { CAPTION_FORMAT_SELECTIONS, DEFAULT_CAPTION_FORMAT } from '../../stt/workflows/captions/caption-editor-formats'
 import type { CliFlagsDefinition } from '~/types'
+import { TRANSCRIPT_CUE_LIMITS } from '../../audio/music/lyrics-video/cue-builder'
 
 const inputParameter = [{ key: '[input]', description: 'URL, local file, directory, URL list (.md/.txt), or X Space link' }] as const
 
@@ -57,13 +58,13 @@ const captionFlags = {
   'caption-offset': { description: 'Caption time offset in seconds (saved results default 0; fresh embedding uses source audio start)', type: String },
   'caption-mode': { description: `Caption grouping: ${formatValueList(CAPTION_MODES)}`, type: String, default: DEFAULT_CAPTION_MODE },
   'caption-speakers': { description: 'Include speaker labels in exported captions', type: Boolean, negatable: true, default: true },
-  'caption-line-width': { description: 'Maximum characters per subtitle line, except indivisible words', type: String, default: String(DEFAULT_CAPTION_LINE_WIDTH) },
-  'caption-max-lines': { description: 'Maximum subtitle lines per cue', type: String, default: String(DEFAULT_CAPTION_MAX_LINES) },
-  'caption-max-cps': { description: 'Reading-speed threshold in characters/second; violations are recorded in captions.json', type: String, default: String(DEFAULT_CAPTION_MAX_CPS) },
-  'caption-max-words': { description: 'Maximum words per phrase cue', type: String },
-  'caption-max-characters': { description: 'Maximum characters per cue, except indivisible words', type: String },
-  'caption-max-duration': { description: 'Maximum cue duration in seconds, except indivisible words', type: String },
-  'caption-break-gap': { description: 'Silence gap in seconds that starts a new cue', type: String }
+  'caption-line-width': { description: 'Maximum characters per subtitle line, positive integer; indivisible words may exceed it', type: String, default: String(DEFAULT_CAPTION_LINE_WIDTH) },
+  'caption-max-lines': { description: 'Maximum subtitle lines per cue, positive integer', type: String, default: String(DEFAULT_CAPTION_MAX_LINES) },
+  'caption-max-cps': { description: 'Reading-speed threshold in characters/second, positive number; violations are recorded in captions.json', type: String, default: String(DEFAULT_CAPTION_MAX_CPS) },
+  'caption-max-words': { description: 'Maximum words per phrase cue, positive integer; word mode always uses one word', type: String, default: String(TRANSCRIPT_CUE_LIMITS.maxWordsPerCue) },
+  'caption-max-characters': { description: 'Maximum characters per cue, positive integer; capped by line width × max lines, except indivisible words', type: String, default: String(TRANSCRIPT_CUE_LIMITS.maxCharactersPerCue) },
+  'caption-max-duration': { description: 'Maximum cue duration in seconds, positive number; indivisible words may exceed it', type: String, default: String(TRANSCRIPT_CUE_LIMITS.maxCueDurationSeconds) },
+  'caption-break-gap': { description: 'Silence gap in seconds that starts a new cue, positive number', type: String, default: String(TRANSCRIPT_CUE_LIMITS.hardBreakGapSeconds) }
 } as const satisfies CliFlagsDefinition
 
 const extractFlags = {

@@ -44,17 +44,18 @@ export const ttsCommand = defineCliCommand({
   const configPathOverride = typeof rawFlags['config-path'] === 'string' ? rawFlags['config-path'] : undefined
   const configPath = await resolveConfigPath(configPathOverride)
   const config = await loadConfig(configPath)
-  const flags = mergeConfigIntoRawFlags(rawFlags, config, ctx.rawParsed.explicitFlags, 'tts')
-  const inputKind = await getTtsInputKind(inputPath)
-  const maxCents = await resolveMaxCentsFromFlags(flags)
-  const providerNormalized = normalizeStandaloneTtsModel(normalizeGenericProviderSelectorFlags(
-    flags,
+  let providerNormalized = normalizeGenericProviderSelectorFlags(
+    rawFlags,
     ctx.rawParsed.explicitFlags,
     ctx.rawParsed.flagOccurrences,
     'provider',
     STANDALONE_TTS_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-tts' }
-  ))
+  )
+  providerNormalized.flags = mergeConfigIntoRawFlags(providerNormalized.flags, config, providerNormalized.explicitFlags, 'tts')
+  providerNormalized = normalizeStandaloneTtsModel(providerNormalized)
+  const inputKind = await getTtsInputKind(inputPath)
+  const maxCents = await resolveMaxCentsFromFlags(providerNormalized.flags)
   if (
     providerNormalized.flags['all-tts'] !== true
     && !Object.values(STANDALONE_TTS_PROVIDER_TARGETS).some((flag) => {

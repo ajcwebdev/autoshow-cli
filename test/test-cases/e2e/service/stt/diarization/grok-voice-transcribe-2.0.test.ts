@@ -3,7 +3,7 @@ import { grokSpeechToText } from '../cases'
 
 defineSTTServiceTest({
   ...grokSpeechToText,
-  models: ['speech-to-text'],
+  models: ['grok-voice-transcribe-2.0'],
   sttService: 'grok',
 })
 

@@ -15,7 +15,7 @@ import { hasRuntimeTool } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
 import { getAudioDuration } from './stt-utils/audio-splitter'
 import { decodedAudioHash } from './workflows/captions/verify-caption-media'
-import { writeHttpPayloadToFile } from '~/utils/http-payload'
+import { sourceDownloadSignal, writeHttpPayloadToFile } from '~/utils/http-payload'
 
 const DEFAULT_STT_ACQUIRE_CONCURRENCY = 2
 
@@ -94,11 +94,11 @@ const ensureMediaTooling = async (needsYtDlp: boolean): Promise<void> => {
 }
 
 const fetchDirectMedia = async (url: string, outputPath: string): Promise<void> => {
-  const response = await fetch(url, { redirect: 'follow' })
+  const response = await fetch(url, { redirect: 'follow', signal: sourceDownloadSignal() })
   if (!response.ok) {
     throw InfraError(`Failed to download ${url}: HTTP ${response.status}`, { stage: 'stt:media-acquisition', status: response.status })
   }
-  await writeHttpPayloadToFile(response, outputPath)
+  await writeHttpPayloadToFile(response, outputPath, { payloadClass: 'source', stage: 'stt:media-acquisition' })
 }
 
 const stageSourceMediaArtifact = async (

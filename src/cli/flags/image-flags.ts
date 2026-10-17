@@ -23,20 +23,20 @@ const seedreamOnlyAspectRatios = REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES.filter(
 )
 
 export const imageGenFlags = {
-  'aspect-ratio': strFlag(`Image aspect ratio: ${formatUniqueValueList(...imageAspectRatioLists)} (provider-specific support; Replicate Seedream also supports ${formatValueList(seedreamOnlyAspectRatios)})`),
-  size: strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI GPT Image 2/2.5, ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok), Replicate Seedream 5 named sizes, or WIDTHxHEIGHT for fal.ai custom sizing`),
+  'aspect-ratio': strFlag(`Image aspect ratio: ${formatUniqueValueList(...imageAspectRatioLists)} (provider-specific support; Replicate Seedream also supports ${formatValueList(seedreamOnlyAspectRatios)}; omitted by default for provider sizing). OpenAI/fal.ai use --size instead`),
+  size: strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI GPT Image 2/2.5 (default: auto), ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok; default: 1K), 2K|3K (Replicate Seedream 5 Lite), 1K|2K (Seedream 5 Pro), or WIDTHxHEIGHT for fal.ai custom sizing. Other defaults use provider sizing`),
   quality: strFlag(`Image quality: ${formatValueList(IMAGE_GENERATION_QUALITIES)} (OpenAI, default: auto; xhigh/max require GPT Image 2.5); Grok Image 2.0: low|medium|auto (auto pins low for generation, medium for editing)`),
-  format: strFlag(`Image output format: ${formatValueList(OPENAI_IMAGE_FORMAT_VALUES)} (OpenAI/fal.ai default: png; Replicate Seedream 5 supports png|jpeg)`),
-  background: strFlag(`Image background: ${formatValueList(OPENAI_IMAGE_BACKGROUND_VALUES)} (OpenAI, default: auto)`),
+  format: strFlag(`Image output format: ${formatValueList(OPENAI_IMAGE_FORMAT_VALUES)} (OpenAI/fal.ai), png|jpeg (Luma Labs/Replicate Seedream 5). Default: png for OpenAI/Luma Labs; provider default for fal.ai/Replicate`),
+  background: strFlag(`Image background: ${formatValueList(OPENAI_IMAGE_BACKGROUND_VALUES)} (OpenAI, default: auto; transparent requires GPT Image 2.5 and png/webp)`),
   count: strFlag(`Number of images to generate in one provider request where supported: ${formatValuesByProvider([
     { provider: 'OpenAI', values: [formatRange(OPENAI_IMAGE_COUNT_RANGE)] },
     { provider: 'Grok', values: [formatRange(GROK_IMAGE_COUNT_RANGE)] },
     { provider: 'fal.ai', values: [formatRange(FAL_IMAGE_COUNT_RANGE)] }
   ])} (default: 1)`),
-  input: strListFlag(`Reference/source image path or URL for edit/reference workflows (repeatable; OpenAI, Grok, Gemini native, Replicate, Luma Labs, fal.ai; Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS})`),
+  input: strListFlag(`Reference/source image path or URL for edit/reference workflows (repeatable; OpenAI, Grok, Gemini native, Replicate, Luma Labs, fal.ai; Grok: 5; Replicate Seedream Lite: 14, Pro: 10, Qwen: 1; fal.ai Qwen: 3, HiDream: 9; Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS})`),
   mask: strFlag('Mask image path for inpainting/edit workflows (OpenAI only)'),
   'response-mode': strFlag(`Gemini native response mode: ${formatValueList(GEMINI_IMAGE_RESPONSE_MODES)} (default: image)`),
-  compression: strFlag(`OpenAI output compression for jpeg/webp images, ${formatRange(OPENAI_IMAGE_COMPRESSION_RANGE)}`),
+  compression: strFlag(`OpenAI output compression for jpeg/webp images, ${formatRange(OPENAI_IMAGE_COMPRESSION_RANGE)} (default: provider compression; requires --format jpeg or webp)`),
 } as const satisfies CliFlagsDefinition
 
 const imageProviderSelectionFlags = {

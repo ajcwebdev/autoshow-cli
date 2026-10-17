@@ -2,7 +2,7 @@
 
 Download media, documents, articles, or X Space audio and collect metadata only.
 
-Document and article inputs write metadata only. Media inputs write compressed audio unless `--best-quality` or `--keep-original-media` is set.
+Document and article inputs write metadata only. Media inputs use `--media-quality audio` to write compressed audio. Select `original` to preserve source media or `best` to select the best available video and audio.
 
 ## Outline
 
@@ -44,8 +44,7 @@ Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 
 ```text
 --password             Password for encrypted PDFs
---keep-original-media  Keep the downloaded file instead of converting it to compressed audio
---best-quality         Download the best available video and audio instead of compressed audio
+--media-quality        Media preparation: audio|original|best (default audio)
 --flat-batch           Place each item's media file directly in the batch output directory
 --url-provider         Article or HTML metadata backend: defuddle|spider|zyte (default defuddle; local .html/.htm always use defuddle)
 --batch-limit          Number of items to process, or "all" (default 5)
@@ -55,6 +54,8 @@ Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 ```
 
 Shared globals such as `--output-root`, `--output-dir`, `--json`, and logging flags are documented in [`usage.md`](../../00-setup-and-utilities/usage.md).
+
+The compatibility aliases `--keep-original-media` and `--best-quality` remain accepted for existing scripts. Use `--media-quality original` or `--media-quality best` for new commands. Do not combine `--media-quality` with either alias.
 
 ## yt-dlp Passthrough
 
@@ -81,7 +82,7 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
-With `--best-quality`, YouTube, Twitch, TikTok, and similar URLs keep video+audio instead of compressed audio. Those files may be `.mkv`, `.mp4`, or `.webm`. Direct media URLs and local media files keep the source file as-is.
+With `--media-quality best`, YouTube, Twitch, TikTok, and similar URLs keep video+audio instead of compressed audio. Those files may be `.mkv`, `.mp4`, or `.webm`. Direct media URLs and local media files keep the source file as-is.
 
 **Document and article inputs**
 
@@ -111,14 +112,14 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
   <episode-2>.mp3|.m4a|.ogg|.flac
 ```
 
-With `--keep-original-media --flat-batch`, downloaded media files keep their original extensions.
+With `--media-quality original --flat-batch`, downloaded media files keep their original extensions.
 
 ## Examples
 
 ```bash
 bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
 
-bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU" --best-quality
+bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU" --media-quality best
 
 bun autoshow download input/examples/document/1-document.pdf
 
@@ -126,7 +127,7 @@ bun autoshow download https://x.com/i/spaces/1DXxyRYNejbKM
 
 bun autoshow download https://example.com/feed --batch-limit 3
 
-bun autoshow download https://example.com/feed --batch-limit all --keep-original-media --flat-batch
+bun autoshow download https://example.com/feed --batch-limit all --media-quality original --flat-batch
 
 bun autoshow download input/examples/batch/2-urls.md --batch-limit all
 ```

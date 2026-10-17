@@ -1,3 +1,4 @@
+import { currentRegisteredTestName } from './test-identity'
 import { appendFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import type {
@@ -216,7 +217,8 @@ export const executeTestCommand = async (prepared: Awaited<ReturnType<typeof pre
       durationMs: duration,
       outputRoot,
       caller,
-      testName,
+      // The registered name identifies the running test; an explicit testName may only label the command.
+      testName: currentRegisteredTestName() ?? testName,
       runArtifacts,
       adaptiveConfig,
       adaptivePressureSignals: adaptiveRecords.length,

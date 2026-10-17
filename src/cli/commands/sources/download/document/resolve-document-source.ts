@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CONVERTIBLE_EBOOK_EXTENSIONS } from '~/cli/commands/sources/metadata/formats/metadata-convertible-ebooks'
 import { InfraError } from '~/utils/error-handler'
-import { writeHttpPayloadToFile } from '~/utils/http-payload'
+import { sourceDownloadSignal, writeHttpPayloadToFile } from '~/utils/http-payload'
+import { settleCleanups } from '~/utils/settle-cleanups'
 
 const extensionFromUrl = (
   url: string,
@@ -53,7 +54,7 @@ const extensionFromUrl = (
 export const downloadDocumentUrlToTempFile = async (
   url: string
 ): Promise<{ filePath: string, cleanup: () => Promise<void> }> => {
-  const response = await fetch(url)
+  const response = await fetch(url, { signal: sourceDownloadSignal() })
   if (!response.ok) {
     throw InfraError(`Failed to download document URL: ${url} (${response.status})`, { stage: 'download:document', status: response.status })
   }
@@ -66,9 +67,13 @@ export const downloadDocumentUrlToTempFile = async (
   )
   const filePath = join(tempDir, `document${ext}`)
   try {
-    await writeHttpPayloadToFile(response, filePath)
+    await writeHttpPayloadToFile(response, filePath, { payloadClass: 'source', stage: 'download:document' })
   } catch (error) {
-    await rm(tempDir, { recursive: true, force: true })
+    await settleCleanups([async () => await rm(tempDir, { recursive: true, force: true })], {
+      label: 'Document download',
+      stage: 'download:document',
+      primaryFailed: true
+    })
     throw error
   }
 

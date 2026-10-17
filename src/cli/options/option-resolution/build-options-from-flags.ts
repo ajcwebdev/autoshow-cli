@@ -123,7 +123,7 @@ export const buildOptsFromFlags = (
       explicitFlags,
       configuredFlags
     ),
-    ...buildBatchOptions(mergedFlags),
+    ...buildBatchOptions(mergedFlags, explicitFlags),
     ytDlpPassthroughArgs: emptyYtDlpPassthroughArgs(),
     prompts: readPromptFlags(mergedFlags),
     promptFile: readOptionalStringFlag(mergedFlags, 'prompt-file'),

@@ -23,6 +23,8 @@ import type { StandaloneVideoCommandOptions, VideoProvider, VideoRuntimeOptions,
 import { VIDEO_PRICING_PROVIDERS } from './video-utils/video-pricing'
 import { optionsForService } from '~/utils/pricing/model-selection'
 import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
+import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
+import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 
 const VIDEO_POSITIONAL_IMAGE_CONFLICT_FLAGS = [
   ['input-image', '--input-image'],
@@ -134,10 +136,10 @@ export const videoCommand = defineCliCommand({
   flags: videoCommandFlags,
   help: {
     beforeFlags: [
-      'Without --provider: text mode selects the cheapest target; positional image input infers image-to-video and selects all video providers. Use --provider to narrow the run.',
+      'Without --provider: reuse defaults.video when configured; otherwise text mode selects the cheapest target and positional image input selects all video providers. A positional image infers image-to-video. Use --provider to narrow the run.',
     ],
     notes: [
-      'Without --provider, a text prompt in text mode selects the cheapest target; a positional image selects all video providers.',
+      'Without --provider or a saved defaults.video selection, a text prompt in text mode selects the cheapest target; a positional image selects all video providers.',
       'A positional image infers --mode image-to-video and cannot be combined with other input-image, last-frame, reference-image, or input-video flags. Use --provider to limit targets and --price to preview cost.',
     ],
     examples: [
@@ -159,7 +161,6 @@ export const videoCommand = defineCliCommand({
   const flags = ctx.flags as Record<string, unknown>
 
   const videoMaxCents = await resolveMaxCentsFromFlags(flags)
-  const resolvedInput = resolveVideoInput(input, flags, ctx.rawParsed.explicitFlags)
   rejectRetiredVideoProviderSelectors(ctx.rawParsed.flagOccurrences)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     flags,
@@ -169,7 +170,10 @@ export const videoCommand = defineCliCommand({
     STANDALONE_VIDEO_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-video' }
   )
-
+  const configPath = await resolveConfigPath(typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined)
+  const config = await loadConfig(configPath)
+  providerNormalized.flags = mergeConfigIntoRawFlags(providerNormalized.flags, config, providerNormalized.explicitFlags, 'video')
+  const resolvedInput = resolveVideoInput(input, providerNormalized.flags, providerNormalized.explicitFlags)
   applyDefaultVideoSelection(providerNormalized.flags, resolvedInput.kind)
 
   const videoOpts: StandaloneVideoCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'video' })

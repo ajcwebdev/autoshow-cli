@@ -1,6 +1,6 @@
 import { test, expect, beforeAll, afterAll } from 'bun:test'
 import { readdir } from 'node:fs/promises'
-import { cleanupTestOutput, ensurePageImageFixture, fileExists, findLatestDirectory, runCommand } from '../../../../../test-utils/test-helpers'
+import { cleanupTestOutput, fileExists, findLatestDirectory, runCommand } from '../../../../../test-utils/test-helpers'
 import { readCanonicalManifest, readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import type { OcrE2eExtractMetadata } from '~/types'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/command-shared/pipeline-manifest'
@@ -9,6 +9,7 @@ import { expectArtifact } from '../../../../../test-utils/value-assertions'
 const pdfInput = 'input/examples/document/1-document.pdf'
 const multiPagePdfInput = 'input/examples/document/3-document.pdf'
 const epubInput = 'input/examples/document/1-epub.epub'
+// Tracked page image, read only: rewriting it would race other workers reading the same checkout file.
 const imageInput = 'input/examples/document/1-document.png'
 
 const requireOutputDir = (outputDir: string | null, title: string): string => {
@@ -19,7 +20,6 @@ const requireOutputDir = (outputDir: string | null, title: string): string => {
 }
 
 beforeAll(async () => {
-  await ensurePageImageFixture(imageInput)
   await cleanupTestOutput('1-document')
   await cleanupTestOutput('3-document')
   await cleanupTestOutput('1-epub')
@@ -112,7 +112,6 @@ test('extract EPUB with default options writes cleaned text and chapter metadata
 })
 
 test('extract image with explicit --tesseract matches the default local OCR path', async () => {
-  await ensurePageImageFixture(imageInput)
   await cleanupTestOutput('1-document')
 
   const defaultResult = await runCommand(['src/cli/create-cli.ts', 'extract', imageInput], {

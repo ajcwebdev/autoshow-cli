@@ -1,8 +1,69 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectVideoTargets, getVideoArtifactFileName } from '~/cli/commands/visuals/video/video-targets'
+import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 
 describe('option resolution contracts', () => {
+  test('generic video controls preserve compatibility aliases and explicit overrides of saved defaults', () => {
+    const canonical = { seed: '123', 'negative-prompt': 'blur', 'multi-clip': false }
+    const aliases = { 'replicate-video-seed': '123', 'replicate-video-negative-prompt': 'blur', 'replicate-video-multi-clip': false }
+    for (const controls of [canonical, aliases]) {
+      expect(buildOptsFromFlags(controls)).toMatchObject({
+        replicateVideoSeed: 123, replicateVideoNegativePrompt: 'blur', replicateVideoMultiClip: false
+      })
+    }
+    const config = { defaults: { video: { replicateVideoSeed: 99, replicateVideoNegativePrompt: 'noise' } } } as Parameters<typeof mergeConfigIntoRawFlags>[1]
+    const configured = mergeConfigIntoRawFlags({}, config, new Set(), 'video')
+    expect(buildOptsFromFlags(configured)).toMatchObject({ replicateVideoSeed: 99, replicateVideoNegativePrompt: 'noise' })
+    for (const [seed, negative] of [['seed', 'negative-prompt'], ['replicate-video-seed', 'replicate-video-negative-prompt']] as const) {
+      const explicit = new Set([seed, negative])
+      const overrides = mergeConfigIntoRawFlags({ [seed]: '0', [negative]: '' }, config, explicit, 'video')
+      expect(buildOptsFromFlags(overrides, {}, explicit)).toMatchObject({ replicateVideoSeed: 0, replicateVideoNegativePrompt: undefined })
+      const reset = mergeConfigIntoRawFlags({ [seed]: '', [negative]: '' }, config, explicit, 'video')
+      expect(buildOptsFromFlags(reset, {}, explicit).replicateVideoSeed).toBeUndefined()
+    }
+    expect(buildOptsFromFlags({})).toMatchObject({ replicateVideoSeed: undefined, replicateVideoNegativePrompt: undefined, replicateVideoMultiClip: undefined })
+  })
+
+  test('generic video controls reject conflicting spellings and invalid seeds before dispatch', () => {
+    for (const [name, alias, value] of [
+      ['seed', 'replicate-video-seed', '1'],
+      ['negative-prompt', 'replicate-video-negative-prompt', 'blur'],
+      ['multi-clip', 'replicate-video-multi-clip', false]
+    ] as const) {
+      expect(() => buildOptsFromFlags({ [name]: value, [alias]: value })).toThrow(`Do not combine --${name}`)
+    }
+    for (const value of ['-1', '2147483648', '1.5', 'invalid']) {
+      expect(() => buildOptsFromFlags({ seed: value })).toThrow('Invalid --seed')
+    }
+  })
+
+  test('generic video controls reject unsupported provider/model combinations before dispatch', () => {
+    for (const controls of [{ seed: '1' }, { 'negative-prompt': 'blur' }, { 'multi-clip': false }]) {
+      expect(() => collectVideoTargets(buildOptsFromFlags({ 'grok-video': 'grok-imagine-video-1.5', ...controls }))).toThrow('require a compatible Replicate video provider target')
+      expect(() => collectVideoTargets(buildOptsFromFlags({ 'replicate-video': 'pixverse/pixverse-v6', 'grok-video': 'grok-imagine-video-1.5', ...controls }))).toThrow('not supported by grok/grok-imagine-video-1.5')
+    }
+    expect(() => collectVideoTargets(buildOptsFromFlags({ 'replicate-video': 'bytedance/seedance-2.5', 'negative-prompt': 'blur' }))).toThrow('--negative-prompt is not supported')
+    expect(() => collectVideoTargets(buildOptsFromFlags({ 'replicate-video': 'alibaba/wan-3', 'multi-clip': false }))).toThrow('--multi-clip is not supported')
+    expect(collectVideoTargets(buildOptsFromFlags({ 'replicate-video': 'alibaba/wan-3', seed: '0', 'negative-prompt': 'blur' }))[0]?.requestSettings).toMatchObject({ seed: 0, negativePrompt: 'blur' })
+  })
+
+  test('video audio and reference controls reject targets that would ignore their values', () => {
+    for (const [selector, model] of [
+      ['gemini-video', 'gemini-omni-1.1-flash'], ['grok-video', 'grok-imagine-video-1.5'],
+      ['ltx-video', 'ltx-2-5-fast'], ['lumalabs-video', 'ray-3.2'], ['fal-video', 'minimax/h3']
+    ] as const) {
+      for (const value of [true, false]) {
+        expect(() => collectVideoTargets(buildOptsFromFlags({ [selector]: model, 'generate-audio': value }))).toThrow('--generate-audio is not configurable')
+      }
+      expect(collectVideoTargets(buildOptsFromFlags({ [selector]: model }))).toHaveLength(1)
+    }
+    const image = 'https://fixtures.example/reference.png'
+    for (const [flag, value] of [['reference-video', 'https://fixtures.example/reference.mp4'], ['reference-audio', 'https://fixtures.example/reference.mp3']] as const) {
+      expect(() => collectVideoTargets(buildOptsFromFlags({ 'grok-video': 'grok-imagine-video-1.5', mode: 'reference-to-video', 'reference-image': image, [flag]: value }))).toThrow(`--${flag} is not supported by grok`)
+    }
+  })
+
   test('Luma Labs video resolution follows the documented Ray 3.2 values', () => {
     expect(collectVideoTargets(buildOptsFromFlags({
       'lumalabs-video': 'ray-3.2',
@@ -140,7 +201,7 @@ describe('option resolution contracts', () => {
 
       expect(() => collectVideoTargets(buildOptsFromFlags({
         'replicate-video-seed': '123'
-      }))).toThrow('Replicate video flags require a Replicate video provider target')
+      }))).toThrow('require a compatible Replicate video provider target')
     })
 
   test('LTX video media modes enforce model capability and documented size limits', () => {

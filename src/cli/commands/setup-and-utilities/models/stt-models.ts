@@ -36,7 +36,7 @@ export const SUPPORTED_SPEECHMATICS_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GROK_STT_MODELS = [
-  'speech-to-text'
+  'grok-voice-transcribe-2.0'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_MISTRAL_STT_MODELS = [
@@ -79,12 +79,12 @@ export const validateDeepgramSttModel = createModelValidator(SUPPORTED_DEEPGRAM_
 export const validateDeepinfraSttModel = createModelValidator(SUPPORTED_DEEPINFRA_STT_MODELS, 'deepinfra-stt', 'This selector accepts DeepInfra batch speech-to-text deployments served on the OpenAI-compatible transcription route.')
 export const validateSonioxSttModel = createModelValidator(SUPPORTED_SONIOX_STT_MODELS, 'soniox-stt')
 export const validateSpeechmaticsSttModel = createRetiringModelValidator('stt', 'speechmatics', SUPPORTED_SPEECHMATICS_STT_MODELS, 'speechmatics-stt')
-export const validateGrokSttModel = createModelValidator(SUPPORTED_GROK_STT_MODELS, 'grok-stt')
+export const validateGrokSttModel = createRetiringModelValidator('stt', 'grok', SUPPORTED_GROK_STT_MODELS, 'grok-stt')
 export const validateMistralSttModel = createModelValidator(SUPPORTED_MISTRAL_STT_MODELS, 'mistral-stt')
 export const validateAssemblyaiSttModel = createRetiringModelValidator('stt', 'assemblyai', SUPPORTED_ASSEMBLYAI_STT_MODELS, 'assemblyai-stt')
 export const validateGladiaSttModel = createRetiringModelValidator('stt', 'gladia', SUPPORTED_GLADIA_STT_MODELS, 'gladia-stt')
 export const validateScrapeCreatorsSttModel = createModelValidator(SUPPORTED_SCRAPECREATORS_STT_MODELS, 'scrapecreators-stt')
 export const validateGeminiSttModel = createRetiringModelValidator('stt', 'gemini-stt', SUPPORTED_GEMINI_STT_MODELS, 'gemini-stt')
-export const validateTogetherSttModel = createModelValidator(SUPPORTED_TOGETHER_STT_MODELS, 'together-stt', 'This selector accepts concrete Together serverless batch transcription models.')
-export const validateCloudflareSttModel = createModelValidator(SUPPORTED_CLOUDFLARE_STT_MODELS, 'cloudflare-stt', 'This selector accepts the Whisper models Cloudflare Workers AI serves on its run-model REST route.')
+export const validateTogetherSttModel = createModelValidator(SUPPORTED_TOGETHER_STT_MODELS, 'together-stt', 'This selector accepts concrete Together serverless batch transcription models; the Nemotron ASR Streaming models accept only WebSocket streaming.')
+export const validateCloudflareSttModel = createModelValidator(SUPPORTED_CLOUDFLARE_STT_MODELS, 'cloudflare-stt', 'This selector accepts the Whisper models Cloudflare Workers AI serves on its run-model REST route. For Deepgram Nova-3, use --provider deepgram=nova-3.')
 export const validateOpenAISttModel = createModelValidator(SUPPORTED_OPENAI_STT_MODELS, 'openai-stt', 'This selector accepts OpenAI batch transcription models on /v1/audio/transcriptions; streaming-only and deprecated transcription identities are excluded.')

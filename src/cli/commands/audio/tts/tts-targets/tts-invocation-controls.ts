@@ -12,6 +12,9 @@ import {
   validateElevenLabsTtsTextNormalization,
   validateSonioxTtsLanguage,
   validateGrokTtsLanguage,
+  SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS,
+  SUPPORTED_GROK_TTS_LANGUAGES,
+  SUPPORTED_SONIOX_TTS_LANGUAGES,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
 import { ELEVENLABS_TTS_RESPONSE_FORMATS } from '../tts-services/tts-elevenlabs/elevenlabs-utils'
@@ -20,36 +23,36 @@ const trim = (value: string): string => value.trim()
 
 export const CONTROL_SPECS = {
   gemini: {
-    instructions: { kind: 'string', preserveWhitespace: true },
+    instructions: { kind: 'string', preserveWhitespace: true, helpNote: 'non-empty free-form text' },
     responseFormat: { kind: 'string', allowedValues: ['wav', 'pcm', 'mulaw', 'alaw'] },
   },
   openai: {
-    instructions: { kind: 'string', preserveWhitespace: true },
+    instructions: { kind: 'string', preserveWhitespace: true, helpNote: 'non-empty free-form text' },
     speed: { kind: 'number', min: 0.25, max: 4 },
   },
   elevenlabs: {
-    languageCode: { kind: 'string', normalize: trim },
+    languageCode: { kind: 'string', normalize: trim, helpNote: 'language code validated by the provider' },
     stability: { kind: 'number', min: 0, max: 1 },
     similarityBoost: { kind: 'number', min: 0, max: 1, helpNote: 'not eleven_v3' },
     style: { kind: 'number', min: 0, max: 1, helpNote: 'not eleven_v3' },
     useSpeakerBoost: { kind: 'boolean', helpNote: 'not eleven_v3' },
     speed: { kind: 'number', min: 0.7, max: 1.2, helpOmit: true, helpNote: 'eleven_v3 rejects numeric speed — use pacing audio tags' },
     seed: { kind: 'number', min: 0, max: 4_294_967_295, integer: true },
-    textNormalization: { kind: 'string', normalize: validateElevenLabsTtsTextNormalization },
+    textNormalization: { kind: 'string', normalize: validateElevenLabsTtsTextNormalization, allowedValues: SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS },
     pronunciationDictionaryLocators: { kind: 'string-array' },
     responseFormat: { kind: 'string', allowedValues: ELEVENLABS_TTS_RESPONSE_FORMATS },
   },
   soniox: {
     speed: { kind: 'number', min: 0.7, max: 1.3 },
-    language: { kind: 'string', normalize: validateSonioxTtsLanguage },
+    language: { kind: 'string', normalize: validateSonioxTtsLanguage, allowedValues: SUPPORTED_SONIOX_TTS_LANGUAGES },
   },
   grok: {
     speed: { kind: 'number', min: 0.7, max: 1.5 },
-    language: { kind: 'string', normalize: validateGrokTtsLanguage },
+    language: { kind: 'string', normalize: validateGrokTtsLanguage, allowedValues: SUPPORTED_GROK_TTS_LANGUAGES },
     textNormalization: { kind: 'boolean' },
   },
   inworld: {
-    steeringPrompt: { kind: 'string', normalize: trim },
+    steeringPrompt: { kind: 'string', normalize: trim, helpNote: 'non-empty free-form text' },
     speed: { kind: 'number', min: 0.5, max: 1.5 },
   },
 } as const satisfies Record<TtsProvider, ProviderControlSpecs>

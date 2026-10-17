@@ -109,7 +109,8 @@ describe('price mode contracts', () => {
       const extractTargets = collectEstimatedExtractTargets(metadata)
       const normalTiming = computeEstimatedProcessingTimes({
         extractTargets: [{ provider: 'gemini', model, pageCount }],
-        ocrConcurrency: 2
+        ocrConcurrency: 2,
+        hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
       const fallbackTiming = computeEstimatedProcessingTimes({
         extractTargets: extractTargets.map((target) => ({
@@ -118,7 +119,8 @@ describe('price mode contracts', () => {
           ...(typeof target.pageCount === 'number' ? { pageCount: target.pageCount } : {}),
           ...(typeof target.singlePagePdfFallbackPages === 'number' ? { singlePagePdfFallbackPages: target.singlePagePdfFallbackPages } : {})
         })),
-        ocrConcurrency: 2
+        ocrConcurrency: 2,
+        hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
 
       expect(fallbackMsPerPage).toBe(16700)

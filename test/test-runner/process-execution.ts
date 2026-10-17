@@ -9,7 +9,7 @@ import { normalizeCredentialValue } from '~/utils/validate/credential-value'
 import { stripAnsi } from '~/utils/terminal-colors'
 import { buildBunTestFlags, isE2EOnlyTestSelection } from './args'
 import { appendRunnerLog, TEST_OUTPUT_ROOT } from './artifacts'
-import { BUN_FILE_TIMINGS_CACHE_PATH, prepareBunFileTimings } from './file-timings'
+import { BUN_FILE_TIMINGS_CACHE_PATH } from './file-timings'
 import { createTerminalFilter, formatProgressLine, type TerminalFilter } from './terminal-filter'
 import { formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath } from './utils'
 
@@ -189,7 +189,6 @@ export const runBunTest = async (
   envOverrides: Record<string, string> = {},
   verbose = false
 ): Promise<number> => {
-  await prepareBunFileTimings()
   const args = buildBunTestArgs(files, artifacts, passthroughArgs, extraArgs)
   await appendRunnerLog(artifacts, `\n=== START bun ${args.join(' ')} ===\n`)
   const proc = Bun.spawn(['bun', '--no-env-file', ...args], {

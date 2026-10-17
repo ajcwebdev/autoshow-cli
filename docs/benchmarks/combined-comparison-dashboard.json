@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "AutoShow Benchmark Dashboard",
-  "generatedAt": "2026-10-17T18:11:23.419Z",
+  "generatedAt": "2026-10-17T20:34:56.135Z",
   "tabs": [
     {
       "key": "ocr",
@@ -10,7 +10,7 @@
       "model": {
         "title": "Combined OCR Provider Comparison",
         "category": "ocr",
-        "generatedAt": "2026-10-17T18:11:23.419Z",
+        "generatedAt": "2026-10-17T20:34:56.135Z",
         "rootDir": "docs/benchmarks/ocr",
         "summaryStats": [
           {
@@ -2567,7 +2567,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-10-17T18:11:23.419Z",
+        "generatedAt": "2026-10-17T20:34:56.135Z",
         "rootDir": "docs/benchmarks/stt-local",
         "summaryStats": [
           {
@@ -3009,7 +3009,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-10-17T18:11:23.419Z",
+        "generatedAt": "2026-10-17T20:34:56.135Z",
         "rootDir": "docs/benchmarks/stt-with-speakers",
         "summaryStats": [
           {
@@ -3018,7 +3018,7 @@
           },
           {
             "label": "Providers",
-            "value": "9"
+            "value": "11"
           },
           {
             "label": "Non-diarization",
@@ -3026,7 +3026,7 @@
           },
           {
             "label": "Diarization",
-            "value": "9"
+            "value": "11"
           },
           {
             "label": "Local",
@@ -3037,22 +3037,22 @@
           {
             "runName": "1-audio",
             "shortLabel": "R1",
-            "detail": "9 providers"
+            "detail": "11 providers"
           },
           {
             "runName": "2022-09-30-widgets-fsjam-40-minutes",
             "shortLabel": "R2",
-            "detail": "9 providers"
+            "detail": "11 providers"
           },
           {
             "runName": "2023-03-15-jsjam-qwik-misko-hevery",
             "shortLabel": "R3",
-            "detail": "9 providers"
+            "detail": "11 providers"
           },
           {
             "runName": "2023-04-05-jsjam-react-miami-2023-10-minutes",
             "shortLabel": "R4",
-            "detail": "9 providers"
+            "detail": "11 providers"
           }
         ],
         "groups": [
@@ -3132,7 +3132,7 @@
                 },
                 "cost": {
                   "display": "$0.1574",
-                  "rank": 5,
+                  "rank": 6,
                   "value": 15.740026530416667
                 },
                 "evidence": [
@@ -3160,13 +3160,57 @@
                 ]
               },
               {
+                "providerKey": "cloudflare/@cf/deepgram/nova-3",
+                "display": "cloudflare-@cf_deepgram_nova-3",
+                "model": "@cf/deepgram/nova-3",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "93.60",
+                  "rank": 8,
+                  "value": 93.60208939349695
+                },
+                "speed": {
+                  "display": "51.53s · 47.81×",
+                  "rank": 7,
+                  "value": 51530
+                },
+                "cost": {
+                  "display": "$0.2135",
+                  "rank": 9,
+                  "value": 21.351688163000002
+                },
+                "evidence": [
+                  "6.40%",
+                  "6.30%",
+                  "supported"
+                ],
+                "perRun": [
+                  {
+                    "display": "93.64",
+                    "heat": 60
+                  },
+                  {
+                    "display": "96.17",
+                    "heat": 79
+                  },
+                  {
+                    "display": "91.06",
+                    "heat": 41
+                  },
+                  {
+                    "display": "93.54",
+                    "heat": 59
+                  }
+                ]
+              },
+              {
                 "providerKey": "deepgram/nova-3",
                 "display": "deepgram-nova-3",
                 "model": "nova-3",
                 "coverage": "4/4",
                 "quality": {
                   "display": "92.82",
-                  "rank": 8,
+                  "rank": 10,
                   "value": 92.81554328911541
                 },
                 "speed": {
@@ -3176,7 +3220,7 @@
                 },
                 "cost": {
                   "display": "$0.1766",
-                  "rank": 6,
+                  "rank": 7,
                   "value": 17.65620367325
                 },
                 "evidence": [
@@ -3210,17 +3254,17 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "93.24",
-                  "rank": 7,
+                  "rank": 9,
                   "value": 93.23645504129661
                 },
                 "speed": {
                   "display": "98.88s · 24.92×",
-                  "rank": 9,
+                  "rank": 11,
                   "value": 98879.25
                 },
                 "cost": {
                   "display": "$0.2053",
-                  "rank": 7,
+                  "rank": 8,
                   "value": 20.530469387500002
                 },
                 "evidence": [
@@ -3254,7 +3298,7 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "95.49",
-                  "rank": 5,
+                  "rank": 6,
                   "value": 95.48998215298057
                 },
                 "speed": {
@@ -3264,7 +3308,7 @@
                 },
                 "cost": {
                   "display": "$0.4175",
-                  "rank": 9,
+                  "rank": 11,
                   "value": 41.74528775458334
                 },
                 "evidence": [
@@ -3292,13 +3336,57 @@
                 ]
               },
               {
+                "providerKey": "grok/grok-voice-transcribe-2.0",
+                "display": "grok-grok-voice-transcribe-2.0",
+                "model": "grok-voice-transcribe-2.0",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "95.71",
+                  "rank": 4,
+                  "value": 95.71247826159471
+                },
+                "speed": {
+                  "display": "69.08s · 35.66×",
+                  "rank": 9,
+                  "value": 69077.75
+                },
+                "cost": {
+                  "display": "$0.0684",
+                  "rank": 1,
+                  "value": 6.843489795833333
+                },
+                "evidence": [
+                  "4.29%",
+                  "4.18%",
+                  "supported"
+                ],
+                "perRun": [
+                  {
+                    "display": "97.27",
+                    "heat": 87
+                  },
+                  {
+                    "display": "96.89",
+                    "heat": 84
+                  },
+                  {
+                    "display": "93.19",
+                    "heat": 57
+                  },
+                  {
+                    "display": "95.49",
+                    "heat": 74
+                  }
+                ]
+              },
+              {
                 "providerKey": "grok/speech-to-text",
                 "display": "grok-speech-to-text",
                 "model": "speech-to-text",
                 "coverage": "4/4",
                 "quality": {
                   "display": "89.73",
-                  "rank": 9,
+                  "rank": 11,
                   "value": 89.72788076709874
                 },
                 "speed": {
@@ -3308,7 +3396,7 @@
                 },
                 "cost": {
                   "display": "$0.0684",
-                  "rank": 2,
+                  "rank": 3,
                   "value": 6.843489795833333
                 },
                 "evidence": [
@@ -3347,12 +3435,12 @@
                 },
                 "speed": {
                   "display": "93.53s · 26.34×",
-                  "rank": 8,
+                  "rank": 10,
                   "value": 93525.25
                 },
                 "cost": {
                   "display": "$0.4106",
-                  "rank": 8,
+                  "rank": 10,
                   "value": 41.060938775000004
                 },
                 "evidence": [
@@ -3396,7 +3484,7 @@
                 },
                 "cost": {
                   "display": "$0.1232",
-                  "rank": 4,
+                  "rank": 5,
                   "value": 12.3182816325
                 },
                 "evidence": [
@@ -3430,17 +3518,17 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "95.65",
-                  "rank": 4,
+                  "rank": 5,
                   "value": 95.65007939495693
                 },
                 "speed": {
                   "display": "67.32s · 36.60×",
-                  "rank": 7,
+                  "rank": 8,
                   "value": 67317.25
                 },
                 "cost": {
                   "display": "$0.0684",
-                  "rank": 1,
+                  "rank": 2,
                   "value": 6.843489795833333
                 },
                 "evidence": [
@@ -3474,7 +3562,7 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "95.40",
-                  "rank": 6,
+                  "rank": 7,
                   "value": 95.39543576560612
                 },
                 "speed": {
@@ -3484,7 +3572,7 @@
                 },
                 "cost": {
                   "display": "$0.0883",
-                  "rank": 3,
+                  "rank": 4,
                   "value": 8.828101836625
                 },
                 "evidence": [
@@ -3532,7 +3620,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-10-17T18:11:23.419Z",
+        "generatedAt": "2026-10-17T20:34:56.135Z",
         "rootDir": "docs/benchmarks/stt-without-speakers",
         "summaryStats": [
           {
@@ -3541,11 +3629,11 @@
           },
           {
             "label": "Providers",
-            "value": "13"
+            "value": "14"
           },
           {
             "label": "Non-diarization",
-            "value": "13"
+            "value": "14"
           },
           {
             "label": "Diarization",
@@ -3560,22 +3648,22 @@
           {
             "runName": "1-audio",
             "shortLabel": "R1",
-            "detail": "13 providers"
+            "detail": "14 providers"
           },
           {
             "runName": "2022-09-30-widgets-fsjam-40-minutes",
             "shortLabel": "R2",
-            "detail": "13 providers"
+            "detail": "14 providers"
           },
           {
             "runName": "2023-03-15-jsjam-qwik-misko-hevery",
             "shortLabel": "R3",
-            "detail": "13 providers"
+            "detail": "14 providers"
           },
           {
             "runName": "2023-04-05-jsjam-react-miami-2023-10-minutes",
             "shortLabel": "R4",
-            "detail": "13 providers"
+            "detail": "14 providers"
           }
         ],
         "groups": [
@@ -3619,18 +3707,62 @@
             ],
             "providers": [
               {
+                "providerKey": "cloudflare/@cf/deepgram/nova-3",
+                "display": "cloudflare-@cf_deepgram_nova-3",
+                "model": "@cf/deepgram/nova-3",
+                "coverage": "4/4",
+                "quality": {
+                  "display": "92.63",
+                  "rank": 8,
+                  "value": 92.63155047192004
+                },
+                "speed": {
+                  "display": "9.37s · 263.00×",
+                  "rank": 1,
+                  "value": 9367.5
+                },
+                "cost": {
+                  "display": "$0.2135",
+                  "rank": 14,
+                  "value": 21.351688163000002
+                },
+                "evidence": [
+                  "7.37%",
+                  "6.46%",
+                  "not-supported"
+                ],
+                "perRun": [
+                  {
+                    "display": "91.82",
+                    "heat": 86
+                  },
+                  {
+                    "display": "95.61",
+                    "heat": 97
+                  },
+                  {
+                    "display": "88.88",
+                    "heat": 78
+                  },
+                  {
+                    "display": "94.22",
+                    "heat": 93
+                  }
+                ]
+              },
+              {
                 "providerKey": "cloudflare/@cf/openai/whisper",
                 "display": "cloudflare-@cf_openai_whisper",
                 "model": "@cf/openai/whisper",
                 "coverage": "4/4",
                 "quality": {
                   "display": "87.06",
-                  "rank": 11,
+                  "rank": 12,
                   "value": 87.0593246466631
                 },
                 "speed": {
                   "display": "343.36s · 7.18×",
-                  "rank": 13,
+                  "rank": 14,
                   "value": 343358
                 },
                 "cost": {
@@ -3674,7 +3806,7 @@
                 },
                 "speed": {
                   "display": "191.75s · 12.85×",
-                  "rank": 11,
+                  "rank": 12,
                   "value": 191749.5
                 },
                 "cost": {
@@ -3713,12 +3845,12 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "81.78",
-                  "rank": 12,
+                  "rank": 13,
                   "value": 81.77973732831798
                 },
                 "speed": {
                   "display": "175.63s · 14.03×",
-                  "rank": 10,
+                  "rank": 11,
                   "value": 175632
                 },
                 "cost": {
@@ -3762,7 +3894,7 @@
                 },
                 "speed": {
                   "display": "78.37s · 31.44×",
-                  "rank": 8,
+                  "rank": 9,
                   "value": 78368
                 },
                 "cost": {
@@ -3801,12 +3933,12 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "78.04",
-                  "rank": 13,
+                  "rank": 14,
                   "value": 78.03698661857916
                 },
                 "speed": {
                   "display": "283.92s · 8.68×",
-                  "rank": 12,
+                  "rank": 13,
                   "value": 283917
                 },
                 "cost": {
@@ -3845,12 +3977,12 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "92.30",
-                  "rank": 8,
+                  "rank": 9,
                   "value": 92.3046350911546
                 },
                 "speed": {
                   "display": "149.05s · 16.53×",
-                  "rank": 9,
+                  "rank": 10,
                   "value": 149047.25
                 },
                 "cost": {
@@ -3889,12 +4021,12 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "89.40",
-                  "rank": 9,
+                  "rank": 10,
                   "value": 89.39729593741546
                 },
                 "speed": {
                   "display": "24.86s · 99.09×",
-                  "rank": 4,
+                  "rank": 5,
                   "value": 24862.5
                 },
                 "cost": {
@@ -3933,12 +4065,12 @@
                 "coverage": "4/4",
                 "quality": {
                   "display": "88.40",
-                  "rank": 10,
+                  "rank": 11,
                   "value": 88.39995953539949
                 },
                 "speed": {
                   "display": "13.08s · 188.41×",
-                  "rank": 2,
+                  "rank": 3,
                   "value": 13076
                 },
                 "cost": {
@@ -3982,7 +4114,7 @@
                 },
                 "speed": {
                   "display": "58.07s · 42.43×",
-                  "rank": 7,
+                  "rank": 8,
                   "value": 58070.25
                 },
                 "cost": {
@@ -4026,7 +4158,7 @@
                 },
                 "speed": {
                   "display": "51.84s · 47.52×",
-                  "rank": 5,
+                  "rank": 6,
                   "value": 51839.75
                 },
                 "cost": {
@@ -4070,7 +4202,7 @@
                 },
                 "speed": {
                   "display": "55.73s · 44.21×",
-                  "rank": 6,
+                  "rank": 7,
                   "value": 55731.5
                 },
                 "cost": {
@@ -4114,7 +4246,7 @@
                 },
                 "speed": {
                   "display": "14.21s · 173.32×",
-                  "rank": 3,
+                  "rank": 4,
                   "value": 14214.5
                 },
                 "cost": {
@@ -4158,7 +4290,7 @@
                 },
                 "speed": {
                   "display": "10.84s · 227.18×",
-                  "rank": 1,
+                  "rank": 2,
                   "value": 10844.5
                 },
                 "cost": {
@@ -4231,7 +4363,7 @@
       "model": {
         "title": "Combined URL Provider Comparison",
         "category": "url",
-        "generatedAt": "2026-10-17T18:11:23.419Z",
+        "generatedAt": "2026-10-17T20:34:56.135Z",
         "rootDir": "docs/benchmarks/url",
         "summaryStats": [
           {
@@ -4875,7 +5007,7 @@
       "model": {
         "title": "TTS benchmark results",
         "category": "tts",
-        "generatedAt": "2026-10-17T18:11:23.419Z",
+        "generatedAt": "2026-10-17T20:34:56.135Z",
         "rootDir": "docs/benchmarks/tts",
         "summaryStats": [
           {

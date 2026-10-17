@@ -67,7 +67,6 @@ Project lyric draft mode requires your own prepared project: a directory named `
 | Flag                                   | Description                                                                                                                                     |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--provider <provider[=model]>`        | Select an LLM provider as `provider[=model]`; repeat to run multiple providers/models                                                           |
-| `--llm <provider[=model]>`             | Compatibility alias for `--provider`; same repeatable values; do not combine the two spellings                                                  |
 | `--all-providers`                      | Run every hosted LLM provider/model                                                                                                             |
 | `--reasoning-effort <policy>`          | Set reasoning effort / thinking policy: `default`, `disabled`, `minimal`, `low`, `medium`, `high`, `xhigh`, or `max`                            |
 | `--batch-limit <n\|all>`               | Limit batch size or process all items (`all`); default `5`                                                                                      |
@@ -83,6 +82,8 @@ Project lyric draft mode requires your own prepared project: a directory named `
 | `--prompt-md`                          | Save a second prompt file (`prompt-md.md`) with markdown examples alongside the JSON prompt                                                     |
 | `--price`                              | Show the aggregated estimate and exit                                                                                                           |
 | `--max-model-cents <n>`                | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price` |
+
+The hidden `--llm` compatibility alias still accepts the same selectors as `--provider`; use one spelling per invocation. List current prompt presets with `bun autoshow write --help-topic prompts`.
 
 See [Provider Capabilities](#provider-capabilities) for the per-model reasoning, context, structured-output, and input/output price matrix.
 

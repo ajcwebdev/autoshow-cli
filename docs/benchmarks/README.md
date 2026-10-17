@@ -28,6 +28,12 @@ The new models use their native default reasoning settings, provider concurrency
 
 For this refresh, plaintext `extraction.txt` exports have trailing spaces and tabs removed. The `result.json` artifacts retain the recorded provider text used for scoring.
 
+## October 2026 STT refresh
+
+The 2026-10-17 refresh adds xAI `grok-voice-transcribe-2.0` and Cloudflare Workers AI `@cf/deepgram/nova-3` to the four established STT inputs. Grok 2.0 and Nova-3 with `--diarization` join `stt-with-speakers`; Nova-3 without diarization joins `stt-without-speakers`. Existing results remain, including the earlier Grok `speech-to-text` identity. Each model sent one request per input. The Neurons reported in each Cloudflare response matched the published $0.0052 per audio minute ($0.854 per suite); Grok is priced from billed duration at $0.10/hour. The [with-speakers](stt-with-speakers/combined-comparison-report.md) and [without-speakers](stt-without-speakers/combined-comparison-report.md) combined comparisons record the rankings.
+
+Together `nvidia/nemotron-3.5-asr-streaming-0.6b` was attempted on `stt-without-speakers/1-audio` and rejected with HTTP 400 "This model only supports WebSocket streaming." Its error artifact is retained, and the failed target was dropped from that run so the run stays resumable. After the refresh, Cloudflare Nova-3 was removed from the selectors because direct Deepgram `nova-3` was cheaper and faster with comparable quality. Its benchmark results and historical rate remain. Both decisions are recorded under [ADR-010 Excluded integrations](../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md#excluded-integrations).
+
 ## Compaction and regeneration
 
 Compact a run only after trustworthy provider results exist. Preserve canonical result envelopes and historical identity, remove regenerable checkpoints, splits, and derived files only after validation, then regenerate the combined JSON and Markdown, then the dashboard, from those compacted artifacts. Finished artifacts keep the model identity they stored, and the cost recorded on a run remains the authority for that run.

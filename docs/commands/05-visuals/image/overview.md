@@ -44,6 +44,8 @@ bun autoshow image <prompt> [flags]
 
 Bare `--provider` flags without a model value resolve to the cheapest supported model. `--provider` is repeatable.
 
+Saved `defaults.image` selections and controls apply unless explicitly overridden. Without a saved selection, choose `--provider` or `--all-providers`.
+
 Reference examples use the bundled original Harborlight mug illustration in PNG or JPEG. The matching edit mask has transparent mug body/handle paint and an opaque protected badge/background; it has the same 1024 × 1024 dimensions as the PNG source. See [fixture provenance and reproduction](../../../../input/examples/harborlight-README.md). These are usable input assets; hosted generation/editing still incurs provider charges and its quality is not established by local checks.
 
 ## Shared Image Options

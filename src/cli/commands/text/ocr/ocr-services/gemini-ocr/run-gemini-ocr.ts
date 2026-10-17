@@ -1,6 +1,6 @@
 import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
-import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult, RetryDecision } from '~/types'
+import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, OcrCloudStagingObject, PageResult, RetryDecision } from '~/types'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { classifyGeminiRetry, GEMINI_ARGON_MIN_OCR_OUTPUT_TOKENS, isGeminiArgonModel } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
@@ -57,6 +57,64 @@ const buildInlineContents = async (
       }
     }
   ])
+}
+
+const deleteGeminiOcrUpload = async (apiKey: string, uploadedFileName: string): Promise<void> => {
+  try {
+    await geminiDeleteFile(apiKey, uploadedFileName)
+  } catch (error) {
+    l.warn(`Failed to delete Gemini OCR upload ${uploadedFileName}: ${error instanceof Error ? error.message : String(error)}`, {
+      category: 'pipeline',
+      metadata: { provider: 'gemini', uploadedFileName },
+      error
+    })
+  }
+}
+
+/**
+ * The upload exists on the provider as soon as `geminiUploadFile` returns. Until the staged
+ * object is returned (handing deletion to its `cleanup`), a failure here deletes it.
+ */
+export const stageGeminiOcrUpload = async (
+  apiKey: string,
+  filePath: string,
+  mimeType: string,
+  signal?: AbortSignal | undefined
+): Promise<OcrCloudStagingObject> => {
+  const uploadedFile = await geminiUploadFile(apiKey, filePath, {
+    mimeType,
+    displayName: basename(filePath),
+    ...(signal ? { abortSignal: signal } : {})
+  })
+  const name = uploadedFile.name ?? undefined
+  let ownedName = name
+  try {
+    if (name) {
+      await waitForGeminiFileActive(apiKey, name, {
+        stage: 'ocr:gemini',
+        ...(signal ? { abortSignal: signal } : {})
+      })
+    }
+    if (typeof uploadedFile.uri !== 'string' || uploadedFile.uri.length === 0) {
+      throw InfraError('Gemini Files API upload did not return a file URI.', { stage: 'ocr:gemini' })
+    }
+    const staged: OcrCloudStagingObject = {
+      uri: uploadedFile.uri,
+      mimeType: uploadedFile.mimeType ?? mimeType,
+      name,
+      cleanup: async () => {
+        if (name) {
+          await geminiDeleteFile(apiKey, name)
+        }
+      }
+    }
+    ownedName = undefined
+    return staged
+  } finally {
+    if (ownedName) {
+      await deleteGeminiOcrUpload(apiKey, ownedName)
+    }
+  }
 }
 
 const shouldUploadFile = (fileSizeBytes: number, format: DocumentMetadata['format']): boolean => {
@@ -297,34 +355,7 @@ export const runGeminiOcr = async (
                     mimeType,
                     displayName: basename(filePath)
                   },
-                  async () => {
-                    const uploadedFile = await geminiUploadFile(apiKey, filePath, {
-                      mimeType,
-                      displayName: basename(filePath),
-                      ...(signal ? { abortSignal: signal } : {})
-                    })
-                    const name = uploadedFile.name ?? undefined
-                    if (name) {
-                      await waitForGeminiFileActive(apiKey, name, {
-                        stage: 'ocr:gemini',
-                        ...(signal ? { abortSignal: signal } : {})
-                      })
-                    }
-                    const fileMimeType = uploadedFile.mimeType ?? mimeType
-                    if (typeof uploadedFile.uri !== 'string' || uploadedFile.uri.length === 0) {
-                      throw InfraError('Gemini Files API upload did not return a file URI.', { stage: 'ocr:gemini' })
-                    }
-                    return {
-                      uri: uploadedFile.uri,
-                      mimeType: fileMimeType,
-                      name,
-                      cleanup: async () => {
-                        if (name) {
-                          await geminiDeleteFile(apiKey, name)
-                        }
-                      }
-                    }
-                  }
+                  async () => await stageGeminiOcrUpload(apiKey, filePath, mimeType, signal)
                 )
                 uploadedFileName = opts.ocrPreparationCache ? undefined : staged.name
                 return geminiUserContent([
@@ -342,14 +373,7 @@ export const runGeminiOcr = async (
           })
         } finally {
           if (uploadedFileName) {
-            try {
-              await geminiDeleteFile(apiKey, uploadedFileName)
-            } catch (error) {
-              l.warn(`Failed to delete Gemini OCR upload ${uploadedFileName}: ${error instanceof Error ? error.message : String(error)}`, {
-        category: 'pipeline',
-        metadata: { provider: 'gemini', uploadedFileName }, error: error
-      })
-            }
+            await deleteGeminiOcrUpload(apiKey, uploadedFileName)
           }
         }
         },

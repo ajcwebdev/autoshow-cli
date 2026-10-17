@@ -21,11 +21,14 @@ const RERENDER_SUFFIX = 'music-lyrics-0-audio-short-fixed'
 const EXAMPLE_SONG_AUDIO_PATH = 'input/examples/lyrics/01-example-song.mp3'
 const EXAMPLE_SONG_SUFFIX = 'music-lyrics-01-example-song'
 const BATCH_SUFFIX = 'music-lyrics-batch'
-const CAPTION_FIXTURE_DIR = `${OUTPUT_DIR}/music-lyrics-fixtures`
-const CAPTION_FIXTURE_PATH = `${CAPTION_FIXTURE_DIR}/0-audio-short-fixed.vtt`
-const MATCHING_IMAGE_PATH = 'input/examples/audio/0-audio-short.png'
-const BATCH_INPUT_ROOT = 'input/test-fixtures'
-const BATCH_INPUT_DIR = `${BATCH_INPUT_ROOT}/music-lyrics-batch`
+// Generated inputs live under this worker's private output root, and teardown removes only that directory.
+const FIXTURE_DIR = `${OUTPUT_DIR}/music-lyrics-fixtures`
+const CAPTION_FIXTURE_PATH = `${FIXTURE_DIR}/0-audio-short-fixed.vtt`
+// A copy of the real short audio beside its matching image, so the render finds an image background.
+const PRIVATE_AUDIO_DIR = `${FIXTURE_DIR}/audio`
+const PRIVATE_SHORT_AUDIO_PATH = `${PRIVATE_AUDIO_DIR}/0-audio-short.mp3`
+const MATCHING_IMAGE_PATH = `${PRIVATE_AUDIO_DIR}/0-audio-short.png`
+const BATCH_INPUT_DIR = `${FIXTURE_DIR}/music-lyrics-batch`
 
 const probeVideoStream = async (videoPath: string): Promise<{ codecName: string, width: number, height: number }> => {
   const stream = await createNativeScenarioAdapter().probe(videoPath)
@@ -41,8 +44,8 @@ beforeAll(async () => {
   await cleanupTestOutput(RERENDER_SUFFIX)
   await cleanupTestOutput(EXAMPLE_SONG_SUFFIX)
   await cleanupTestOutput(BATCH_SUFFIX)
-  await mkdir(CAPTION_FIXTURE_DIR, { recursive: true })
-  await rm(BATCH_INPUT_DIR, { recursive: true, force: true })
+  await rm(FIXTURE_DIR, { recursive: true, force: true })
+  await mkdir(PRIVATE_AUDIO_DIR, { recursive: true })
   await mkdir(BATCH_INPUT_DIR, { recursive: true })
   await writeFile(CAPTION_FIXTURE_PATH, [
     'WEBVTT',
@@ -54,6 +57,7 @@ beforeAll(async () => {
     'short line two',
     ''
   ].join('\n'))
+  await copyFile(SHORT_AUDIO_PATH, PRIVATE_SHORT_AUDIO_PATH)
   await ensurePageImageFixture(MATCHING_IMAGE_PATH)
   await copyFile(SHORT_AUDIO_PATH, `${BATCH_INPUT_DIR}/01-batch-one.mp3`)
   await copyFile(SHORT_AUDIO_PATH, `${BATCH_INPUT_DIR}/02-batch-two.mp3`)
@@ -64,9 +68,7 @@ afterAll(async () => {
   await cleanupTestOutput(RERENDER_SUFFIX)
   await cleanupTestOutput(EXAMPLE_SONG_SUFFIX)
   await cleanupTestOutput(BATCH_SUFFIX)
-  await rm(CAPTION_FIXTURE_DIR, { recursive: true, force: true })
-  await rm(BATCH_INPUT_ROOT, { recursive: true, force: true })
-  await rm(MATCHING_IMAGE_PATH, { force: true })
+  await rm(FIXTURE_DIR, { recursive: true, force: true })
 })
 
 test('music lyric-video rerender uses edited captions, cleans tmp on success, and writes fixed render outputs', async () => {
@@ -76,7 +78,7 @@ test('music lyric-video rerender uses edited captions, cleans tmp on success, an
     'src/cli/create-cli.ts',
     'music',
     '--audio',
-    SHORT_AUDIO_PATH,
+    PRIVATE_SHORT_AUDIO_PATH,
     '--captions',
     CAPTION_FIXTURE_PATH
   ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
@@ -114,7 +116,7 @@ localBudgetedTest('transcribe-whisperfile-tiny', 'music lyric-video transcribes 
     'src/cli/create-cli.ts',
     'music',
     '--audio',
-    SHORT_AUDIO_PATH,
+    PRIVATE_SHORT_AUDIO_PATH,
     '--model',
     'tiny'
   ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })

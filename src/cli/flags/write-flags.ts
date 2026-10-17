@@ -13,21 +13,21 @@ import type { CliFlagsDefinition } from '~/types'
 
 const writeProviderSelectionFlags = {
   provider: strListFlag(`LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted); repeatable; cannot combine with --llm`),
-  llm: strListFlag('Compatibility alias for --provider; accepts the same repeatable provider[=model] values; cannot combine with --provider'),
+  llm: { ...strListFlag('Compatibility alias for --provider; accepts the same repeatable provider[=model] values; cannot combine with --provider'), help: { hidden: true } },
   ...booleanAllProvidersFlag,
   ...pickFlags(sharedConcurrencyFlags, ['concurrency-mode', 'provider-concurrency'])
 } as const satisfies CliFlagsDefinition
 
 const writeTextInputFlags = {
-  'prompt-file': strFlag('Prepend prompt instructions from a local text file before named prompt presets'),
+  'prompt-file': strFlag('Prepend instructions from a local text file before named presets; project text/ inputs use the adjacent project prompt.md when present'),
   'rendered-text': {
-    description: 'Save rendered step-3 markdown output alongside JSON output',
+    description: 'Also save text.md containing rendered text alongside the standard text.json and show-note.md outputs',
     type: Boolean,
     default: false,
     negatable: false
   },
-  'rendered-out-dir': strFlag('Also write rendered step-3 markdown files to this directory using source-based filenames'),
-  'track-list': strFlag('Optional tracks.md file used to prepend track-number headers on saved rendered text')
+  'rendered-out-dir': strFlag('Also write rendered Markdown using source-based filenames; project text/ inputs use the adjacent lyrics/ directory when prompt.md is present'),
+  'track-list': strFlag('Optional tracks.md used for track-number headers; project text/ inputs use the adjacent project tracks.md when present')
 } as const satisfies CliFlagsDefinition
 
 export const writeFlags = {

@@ -1,0 +1,9 @@
+{
+  "id": "p5deNEb-3pDw3Z-a4c206bab982de75",
+  "error": {
+    "message": "This model only supports WebSocket streaming.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": null
+  }
+}

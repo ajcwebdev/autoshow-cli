@@ -56,6 +56,8 @@ export type ConsoleMethod = 'log' | 'warn' | 'error' | 'info' | 'debug'
 export type TestBuffer = {
   lines: string[]
   failed: boolean
+  /** Name the running test was registered with, so helpers can attribute their work to it. */
+  testName?: string | undefined
 }
 
 export type CallerLocation = { file: string | null, line: number | null, column: number | null }

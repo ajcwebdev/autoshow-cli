@@ -33,6 +33,7 @@ export const downloadGeneratedFile = async (options: {
       }
       options.inspectResponse?.(response)
       const outputPath = typeof options.outputPath === 'function' ? options.outputPath(response) : options.outputPath
+      // Paid result: written without a size ceiling so an already-billed deliverable is never discarded.
       const size = await writeHttpPayloadToFile(response, outputPath)
       try {
         options.validateSize?.(size)

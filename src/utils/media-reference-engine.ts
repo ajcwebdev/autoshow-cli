@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { basename, extname } from 'node:path'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import type { MediaKindSpec, MediaReferenceBytes, ReferenceValidationOptions } from '~/types'
-import { readHttpPayloadBytes, writeHttpPayloadToFile } from '~/utils/http-payload'
+import { readHttpPayloadBytes, sourceDownloadSignal, writeHttpPayloadToFile } from '~/utils/http-payload'
 
 const isHttpUrl = (value: string): boolean => {
   try {
@@ -102,7 +102,7 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
   }
 
   const fetchReference = async (url: string) => {
-    const response = await fetch(url, { headers: { accept: spec.accept } })
+    const response = await fetch(url, { headers: { accept: spec.accept }, signal: sourceDownloadSignal() })
     if (!response.ok) {
       throw InfraError(spec.errors.download(response.status, url), {
         stage: spec.downloadError.stage,
@@ -163,7 +163,7 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
     writeToFile: async (value: string, path: string): Promise<{ mimeType: string }> => {
       if (isHttpUrl(value)) {
         const { response, mimeType } = await fetchReference(value)
-        await writeHttpPayloadToFile(response, path)
+        await writeHttpPayloadToFile(response, path, { payloadClass: 'source', stage: spec.downloadError.stage })
         return { mimeType }
       }
       const { bytes, mimeType } = await resolveBytes(value)

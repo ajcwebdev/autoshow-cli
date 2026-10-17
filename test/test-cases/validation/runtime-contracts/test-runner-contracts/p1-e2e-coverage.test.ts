@@ -9,10 +9,11 @@ const expectedCoverage = [
   ['test/test-cases/e2e/service/text/write/together-kimi-k3.test.ts', 'write-together-kimi-k3'],
   ['test/test-cases/e2e/service/text/write/together-glm-5.3.test.ts', 'write-together-glm-5.3'],
   ['test/test-cases/e2e/service/text/write/together-glm-5.3-flash.test.ts', 'write-together-glm-5.3-flash'],
-  ['test/test-cases/e2e/service/text/ocr/gemini-3.8-flash.test.ts', 'extract-gemini-gemini-3.8-flash'],
-  ['test/test-cases/e2e/service/text/ocr/anthropic-claude-fable-5-1.test.ts', 'extract-anthropic-claude-fable-5-1'],
-  ['test/test-cases/e2e/service/text/ocr/openai-gpt-6-astra.test.ts', 'extract-openai-gpt-6-astra'],
-  ['test/test-cases/e2e/service/text/ocr/mistral-ocr-4-1.test.ts', 'extract-mistral-mistral-ocr-4-1'],
+  // OCR PDF and image cases are separate tests, each with its own budget key.
+  ['test/test-cases/e2e/service/text/ocr/gemini-3.8-flash.test.ts', 'extract-gemini-gemini-3.8-flash', 'extract-gemini-gemini-3.8-flash-image'],
+  ['test/test-cases/e2e/service/text/ocr/anthropic-claude-fable-5-1.test.ts', 'extract-anthropic-claude-fable-5-1', 'extract-anthropic-claude-fable-5-1-image'],
+  ['test/test-cases/e2e/service/text/ocr/openai-gpt-6-astra.test.ts', 'extract-openai-gpt-6-astra', 'extract-openai-gpt-6-astra-image'],
+  ['test/test-cases/e2e/service/text/ocr/mistral-ocr-4-1.test.ts', 'extract-mistral-mistral-ocr-4-1', 'extract-mistral-mistral-ocr-4-1-image'],
   ['test/test-cases/e2e/service/stt/diarization/gemini-3.5-transcribe.test.ts', 'transcribe-gemini-stt-gemini-3.5-transcribe'],
   ['test/test-cases/e2e/service/visuals/image/grok-imagine-image-2.0.test.ts', 'image-grok-grok-imagine-image-2.0'],
   ['test/test-cases/e2e/service/visuals/video/ltx-2-5-fast.test.ts', 'video-ltx-ltx-2-5-fast'],
@@ -20,14 +21,14 @@ const expectedCoverage = [
   ['test/test-cases/e2e/service/audio/music/gemini-lyria-3.5.test.ts', 'music-gemini-lyria-3.5'],
 ] as const
 
-for (const [file, key] of expectedCoverage) {
-  test(`P1 e2e and budget coverage: ${key}`, async () => {
+for (const [file, ...keys] of expectedCoverage) {
+  test(`P1 e2e and budget coverage: ${keys[0]}`, async () => {
     const source = await Bun.file(file).text()
     const inspection = inspectBudgetSource(file, source)
     expect(inspection.issues).toEqual([])
-    expect(inspection.keys).toEqual([key])
+    expect(inspection.keys).toEqual(keys)
     const commands = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands
-    expect(commands.map(command => command.key)).toEqual([key])
-    expect(commands[0]?.args).toContain('--price')
+    expect(commands.map(command => command.key)).toEqual(keys)
+    for (const command of commands) expect(command.args).toContain('--price')
   })
 }

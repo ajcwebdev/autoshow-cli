@@ -42,7 +42,7 @@ describe('provider selection contracts', () => {
     expect(mixedDefaultOpts.mistralSttModels).toEqual(['voxtral-mini-2602'])
     expect(mixedDefaultOpts.mistralOcrModels).toEqual(['mistral-ocr-4-0'])
     const grokMixedDefaultOpts = buildOptsFromFlags(grokMixedDefaultNormalized.flags, {}, grokMixedDefaultNormalized.explicitFlags)
-    expect(grokMixedDefaultOpts.grokSttModels).toEqual(['speech-to-text'])
+    expect(grokMixedDefaultOpts.grokSttModels).toEqual(['grok-voice-transcribe-2.0'])
     expect(grokMixedDefaultOpts.grokOcrModels).toEqual(['grok-4.5'])
     expect(localMixedNormalized.flags).toMatchObject({
       'all-local-stt': true,

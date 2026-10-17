@@ -6,8 +6,10 @@ import { geminiJsonRequest, geminiFetch, geminiUploadFile } from '~/utils/gemini
 import { hashCanonicalTtsValue, sha256Bytes } from '../../script-to-audio/contract-identity'
 import { decodeGeminiGenerateContent, geminiObject, validateGeminiWav } from './gemini-tts-audio'
 import { reconcileGeminiTtsUsage } from './gemini-tts-pricing'
-import { UsageError } from '~/utils/error-handler'
+import { InfraError, UsageError, hasErrorCode } from '~/utils/error-handler'
+import * as l from '~/utils/app-logger/app-logger'
 import { providerAccountScopeHash } from '../../script-to-audio/advanced-provider-contracts'
+import { sleepWithAbortSignal } from '~/utils/retries'
 
 export const GEMINI_JOB_FILE = 'gemini-provider-jobs.json'
 const INLINE_LIMIT = 20_000_000
@@ -78,10 +80,20 @@ export const submitGeminiJobs = async (root: string, run: GeminiProviderJobRun, 
     job.jobId = safeJobId(response['name']); job.state = 'pending'; await persistGeminiJobs(root, run)
   }
 }
+const storageError = (message: string, slot: GeminiBatchSlot, cause: unknown) =>
+  InfraError(message, { stage: 'tts:gemini-batch:storage', cause, metadata: { provider: 'gemini', slotKey: slot.key, generationSlotId: slot.generationSlotId } })
+
+// Missing or corrupt retained audio is recollected; any other read failure is a local storage fault.
 export const validateRetained = async (root: string, slot: GeminiBatchSlot): Promise<boolean> => {
   if (!slot.audioPath || !slot.audioSha256) return false
   if (!/^gemini-audio\/[a-f0-9]{64}\.wav$/.test(slot.audioPath)) throw UsageError('Gemini slot audio path escaped the retained-artifact directory.')
-  try { const bytes = Buffer.from(await Bun.file(join(root, slot.audioPath)).arrayBuffer()); validateGeminiWav(bytes); return sha256Bytes(bytes) === slot.audioSha256 } catch { return false }
+  let bytes: Buffer
+  try { bytes = Buffer.from(await Bun.file(join(root, slot.audioPath)).arrayBuffer()) } catch (error) {
+    if (hasErrorCode(error, 'ENOENT')) return false
+    throw storageError(`Could not read retained Gemini batch audio for ${slot.generationSlotId}.`, slot, error)
+  }
+  try { validateGeminiWav(bytes) } catch { return false }
+  return sha256Bytes(bytes) === slot.audioSha256
 }
 export const collectGeminiJobResults = async (root: string, run: GeminiProviderJobRun, job: GeminiProviderJob, rows: AsyncIterable<unknown> | Iterable<unknown>): Promise<void> => {
   const seen = new Set<string>()
@@ -94,13 +106,23 @@ export const collectGeminiJobResults = async (root: string, run: GeminiProviderJ
     const slot = run.slots.find(slot => slot.key === key)!
     if (await validateRetained(root, slot)) continue
     if (row['error']) { slot.error = 'provider-item-error'; await persistGeminiJobs(root, run); continue }
-    try {
-      const bytes = decodeGeminiGenerateContent(row['response'])
-      const path = `gemini-audio/${key}.wav`, temp = join(root, `${path}.download`)
-      await Bun.write(temp, bytes); await rename(temp, join(root, path))
-      slot.audioPath = path; slot.audioSha256 = sha256Bytes(bytes); delete slot.error
-      slot.usage = reconcileGeminiTtsUsage(slot.model, 'batch', geminiObject(row['response'])['usageMetadata'], new Date(run.createdAt))
-    } catch { slot.error = 'invalid-or-incomplete-audio' }
+    let bytes: Buffer
+    try { bytes = decodeGeminiGenerateContent(row['response']) } catch (error) {
+      slot.error = 'invalid-or-incomplete-audio'
+      l.warn(`Gemini Batch returned invalid audio for ${slot.generationSlotId}: ${error instanceof Error ? error.message : String(error)}`, { category: 'pipeline', metadata: { provider: 'gemini', slotKey: key }, error })
+      await persistGeminiJobs(root, run)
+      continue
+    }
+    const path = `gemini-audio/${key}.wav`, temp = join(root, `${path}.download`)
+    // The slot stays unmarked on a storage fault, so resume collects the paid result again instead of reporting it failed.
+    try { await Bun.write(temp, bytes); await rename(temp, join(root, path)) } catch (error) {
+      throw storageError(`Could not retain Gemini batch audio for ${slot.generationSlotId}.`, slot, error)
+    }
+    slot.audioPath = path; slot.audioSha256 = sha256Bytes(bytes); delete slot.error
+    try { slot.usage = reconcileGeminiTtsUsage(slot.model, 'batch', geminiObject(row['response'])['usageMetadata'], new Date(run.createdAt)) } catch (error) {
+      delete slot.usage
+      l.warn(`Could not price Gemini Batch usage for ${slot.generationSlotId}; its audio is retained without a cost record.`, { category: 'pipeline', metadata: { provider: 'gemini', slotKey: key }, error })
+    }
     await persistGeminiJobs(root, run)
   }
   for (const key of job.keys) {
@@ -155,48 +177,102 @@ export const recoverGeminiSubmissions = async (root: string, run: GeminiProvider
     job.state = 'prepared'; await persistGeminiJobs(root, run)
   }
 }
+const GEMINI_BATCH_STATES = {
+  BATCH_STATE_PENDING: 'pending',
+  BATCH_STATE_RUNNING: 'pending',
+  BATCH_STATE_SUCCEEDED: 'completed',
+  BATCH_STATE_CANCELLED: 'cancelled',
+  BATCH_STATE_EXPIRED: 'expired',
+  BATCH_STATE_FAILED: 'failed'
+} as const satisfies Record<string, GeminiProviderJob['state']>
+const UNSETTLED_JOB_STATES: ReadonlyArray<GeminiProviderJob['state']> = ['pending', 'prepared', 'submitting', 'uploading']
+
+/** Normalizes a polled batch operation's state. `JOB_STATE_*` names alias `BATCH_STATE_*`. */
+export const decodeGeminiJobState = (response: Record<string, unknown>): { providerState: string, state: GeminiProviderJob['state'] } => {
+  const metadata = response['metadata'] ? geminiObject(response['metadata']) : {}
+  const providerError = response['error'] ? geminiObject(response['error']) : undefined
+  // A finished operation without an explicit state reports cancellation as error code 1 (CANCELLED).
+  const finishedState = response['done'] !== true ? '' : !providerError ? 'BATCH_STATE_SUCCEEDED' : providerError['code'] === 1 ? 'BATCH_STATE_CANCELLED' : 'BATCH_STATE_FAILED'
+  const providerState = String(response['state'] ?? metadata['state'] ?? finishedState).replace(/^JOB_STATE_/, 'BATCH_STATE_')
+  if (!Object.hasOwn(GEMINI_BATCH_STATES, providerState)) throw UsageError('Gemini returned an unrecognized batch state; the job has been preserved.')
+  return { providerState, state: GEMINI_BATCH_STATES[providerState as keyof typeof GEMINI_BATCH_STATES] }
+}
+
+/** Finds batch results in the REST long-running operation envelope or the SDK-shaped destination. */
+export const decodeGeminiJobResults = (response: Record<string, unknown>): { inlined: unknown, responsesFile: unknown } => {
+  const metadata = response['metadata'] ? geminiObject(response['metadata']) : {}
+  const result = response['response'] ? geminiObject(response['response']) : response
+  const destination = [result['output'], metadata['output'], result['dest']].find(Boolean)
+  const dest = destination ? geminiObject(destination) : result
+  const inline = dest['inlinedResponses'] ?? dest['inlined_responses']
+  const inlined = Array.isArray(inline) ? inline : inline && typeof inline === 'object' ? geminiObject(inline)['inlinedResponses'] : undefined
+  return { inlined, responsesFile: dest['fileName'] ?? dest['responsesFile'] ?? dest['responses_file'] }
+}
+
+type GeminiReconcileContext = {
+  root: string
+  run: GeminiProviderJobRun
+  apiKey: string
+  action: 'status' | 'wait' | 'cancel'
+  signal?: AbortSignal | undefined
+}
+
+const jobSlots = (run: GeminiProviderJobRun, job: GeminiProviderJob): GeminiBatchSlot[] =>
+  job.keys.map(key => run.slots.find(slot => slot.key === key)!)
+
+const reconcileUnsubmittedJob = async ({ root, run, action }: GeminiReconcileContext, job: GeminiProviderJob): Promise<void> => {
+  if (action !== 'cancel' || job.state !== 'prepared') return
+  job.state = 'cancelled'
+  for (const slot of jobSlots(run, job)) slot.error = 'cancelled-before-submission'
+  await persistGeminiJobs(root, run)
+}
+
+// Cancellation intent is durable before the request, and rolled back if the request fails.
+const requestJobCancellation = async ({ root, run, apiKey, signal }: GeminiReconcileContext, job: GeminiProviderJob, jobId: string): Promise<void> => {
+  job.cancellationRequested = true; await persistGeminiJobs(root, run)
+  try { await geminiJsonRequest(apiKey, `${jobId}:cancel`, { method: 'POST', body: {}, abortSignal: signal }) } catch (error) { job.cancellationRequested = false; await persistGeminiJobs(root, run); throw error }
+}
+
+const collectObservedJobResults = async ({ root, run, apiKey, signal }: GeminiReconcileContext, job: GeminiProviderJob, response: Record<string, unknown>): Promise<void> => {
+  const { inlined, responsesFile } = decodeGeminiJobResults(response)
+  if (Array.isArray(inlined)) await collectGeminiJobResults(root, run, job, inlined)
+  if (responsesFile) {
+    job.resultFile = safeFileId(responsesFile); await persistGeminiJobs(root, run)
+    const download = await geminiFetch(`https://generativelanguage.googleapis.com/download/v1beta/${job.resultFile}:download?alt=media`, { method: 'GET', headers: { 'x-goog-api-key': apiKey }, ...(signal ? { signal } : {}) })
+    await collectGeminiJobResults(root, run, job, downloadRows(download))
+  }
+  if (job.state !== 'pending' && !inlined && !responsesFile) {
+    for (const slot of jobSlots(run, job)) if (!await validateRetained(root, slot)) slot.error = 'missing-result'
+  }
+}
+
+const reconcileGeminiJob = async (context: GeminiReconcileContext, job: GeminiProviderJob): Promise<void> => {
+  const { root, run, apiKey, action, signal } = context
+  if (!job.jobId) return await reconcileUnsubmittedJob(context, job)
+  const jobId = safeJobId(job.jobId)
+  if (job.state !== 'pending' && (await Promise.all(jobSlots(run, job).map(slot => validateRetained(root, slot)))).every(Boolean)) return
+  if (action === 'cancel' && !job.cancellationRequested && job.state === 'pending') await requestJobCancellation(context, job, jobId)
+  const response = geminiObject((await geminiJsonRequest(apiKey, jobId, { method: 'GET', abortSignal: signal })).json)
+  const observed = decodeGeminiJobState(response)
+  job.providerState = observed.providerState
+  job.state = observed.state
+  await persistGeminiJobs(root, run)
+  await collectObservedJobResults(context, job, response)
+  await persistGeminiJobs(root, run)
+}
+
 export const reconcileGeminiJobs = async (root: string, run: GeminiProviderJobRun, apiKey: string, action: 'status' | 'wait' | 'cancel', waitSeconds: number, signal?: AbortSignal): Promise<void> => {
   if (run.accountScopeHash !== providerAccountScopeHash('gemini', apiKey)) throw UsageError('Gemini batch credentials do not match the submitting account.')
+  const context: GeminiReconcileContext = { root, run, apiKey, action, signal }
   const deadline = Date.now() + waitSeconds * 1000
   let delay = 1000
   do {
     for (const job of run.jobs) {
       signal?.throwIfAborted()
-      if (!job.jobId) {
-        if (action === 'cancel' && job.state === 'prepared') { job.state = 'cancelled'; for (const key of job.keys) run.slots.find(slot => slot.key === key)!.error = 'cancelled-before-submission'; await persistGeminiJobs(root, run) }
-        continue
-      }
-      safeJobId(job.jobId)
-      if (job.state !== 'pending' && (await Promise.all(job.keys.map(key => validateRetained(root, run.slots.find(slot => slot.key === key)!)))).every(Boolean)) continue
-      if (action === 'cancel' && !job.cancellationRequested && job.state === 'pending') {
-        job.cancellationRequested = true; await persistGeminiJobs(root, run)
-        try { await geminiJsonRequest(apiKey, `${job.jobId}:cancel`, { method: 'POST', body: {}, abortSignal: signal }) } catch (error) { job.cancellationRequested = false; await persistGeminiJobs(root, run); throw error }
-      }
-      const response = geminiObject((await geminiJsonRequest(apiKey, job.jobId, { method: 'GET', abortSignal: signal })).json)
-      const metadata = response['metadata'] ? geminiObject(response['metadata']) : {}
-      const providerError = response['error'] ? geminiObject(response['error']) : undefined
-      const state = String(response['state'] ?? metadata['state'] ?? (response['done'] === true ? providerError ? providerError['code'] === 1 ? 'BATCH_STATE_CANCELLED' : 'BATCH_STATE_FAILED' : 'BATCH_STATE_SUCCEEDED' : '')).replace(/^JOB_STATE_/, 'BATCH_STATE_')
-      if (!['BATCH_STATE_PENDING', 'BATCH_STATE_RUNNING', 'BATCH_STATE_SUCCEEDED', 'BATCH_STATE_CANCELLED', 'BATCH_STATE_EXPIRED', 'BATCH_STATE_FAILED'].includes(state)) throw UsageError('Gemini returned an unrecognized batch state; the job has been preserved.')
-      job.providerState = state
-      job.state = state === 'BATCH_STATE_SUCCEEDED' ? 'completed' : state === 'BATCH_STATE_CANCELLED' ? 'cancelled' : state === 'BATCH_STATE_EXPIRED' ? 'expired' : state === 'BATCH_STATE_FAILED' ? 'failed' : 'pending'
-      await persistGeminiJobs(root, run)
-      // REST long-running operation response and SDK-shaped destinations are distinct envelopes.
-      const result = response['response'] ? geminiObject(response['response']) : response
-      const dest = result['output'] ? geminiObject(result['output']) : metadata['output'] ? geminiObject(metadata['output']) : result['dest'] ? geminiObject(result['dest']) : result
-      const inline = dest['inlinedResponses'] ?? dest['inlined_responses']
-      const inlined = Array.isArray(inline) ? inline : inline && typeof inline === 'object' ? geminiObject(inline)['inlinedResponses'] : undefined
-      if (Array.isArray(inlined)) await collectGeminiJobResults(root, run, job, inlined)
-      const file = dest['fileName'] ?? dest['responsesFile'] ?? dest['responses_file']
-      if (file) {
-        job.resultFile = safeFileId(file); await persistGeminiJobs(root, run)
-        const download = await geminiFetch(`https://generativelanguage.googleapis.com/download/v1beta/${job.resultFile}:download?alt=media`, { method: 'GET', headers: { 'x-goog-api-key': apiKey }, ...(signal ? { signal } : {}) })
-        await collectGeminiJobResults(root, run, job, downloadRows(download))
-      }
-      if (job.state !== 'pending' && !inlined && !file) for (const key of job.keys) { const slot = run.slots.find(s => s.key === key)!; if (!await validateRetained(root, slot)) slot.error = 'missing-result' }
-      await persistGeminiJobs(root, run)
+      await reconcileGeminiJob(context, job)
     }
-    if (action !== 'wait' || run.jobs.every(job => !['pending', 'prepared', 'submitting', 'uploading'].includes(job.state)) || Date.now() >= deadline) return
-    await new Promise<void>((resolve, reject) => { const finish = () => { signal?.removeEventListener('abort', abort); resolve() }; const timer = setTimeout(finish, Math.min(delay, Math.max(0, deadline - Date.now()))); const abort = () => { clearTimeout(timer); reject(signal?.reason) }; signal?.addEventListener('abort', abort, { once: true }) })
+    if (action !== 'wait' || run.jobs.every(job => !UNSETTLED_JOB_STATES.includes(job.state)) || Date.now() >= deadline) return
+    await sleepWithAbortSignal(Math.min(delay, Math.max(0, deadline - Date.now())), signal)
     delay = Math.min(delay * 2, 30000)
   } while (Date.now() < deadline)
 }

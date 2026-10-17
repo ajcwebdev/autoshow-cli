@@ -98,6 +98,7 @@ export const applyComicRevisionPolicy = (state: ComicImageOptionState) => {
     if (output.maxRepairs !== undefined && output.maxRepairs !== 0) throw UsageError('--revision-plan requires --max-repairs 0')
     if (output.imageModels !== undefined && (output.imageModels.length !== 1 || output.imageModels[0] !== 'gpt-image-2')) throw UsageError('--revision-plan supports only --provider openai=gpt-image-2')
     if (output.qaModel !== undefined && output.qaModel !== 'gpt-5.6-sol') throw UsageError('--revision-plan supports only --qa-provider openai=gpt-5.6-sol')
+    output.comparisonPasses ??= 2
     if (output.comparisonPasses !== 2) throw UsageError('--revision-plan requires --comparison-passes 2')
     if (output.promote !== 'clear-winners') throw UsageError('--revision-plan requires --promote clear-winners')
     output.imageModels = ['gpt-image-2']

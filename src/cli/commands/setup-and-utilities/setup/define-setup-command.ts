@@ -35,6 +35,7 @@ export const setupCommand = defineCliCommand({
   flags: setupFlags,
   help: {
     beforeFlags: SETUP_MODE_NOTES,
+    notes: ['Save TTS models with --tts provider=model. Transport mode and remote-job wait controls apply only to individual tts invocations.'],
     examples: [
       ['bun autoshow setup', 'Install all dependencies'],
       ['bun autoshow setup --show', 'Print current config'],

@@ -48,7 +48,7 @@ INWORLD_API_KEY=...
 ```bash
 bun autoshow tts <input> [flags]
 ```
-`<input>` must be a local `.md` or `.txt` file, or a directory containing text files that are batched through `--batch-concurrency`. If no `--provider` is given, `tts` defaults to the cheapest hosted TTS provider.
+`<input>` must be a local `.md` or `.txt` file, or a directory containing text files that are batched through `--batch-concurrency`. If no `--provider` is given, `tts` uses the saved provider selection or the cheapest hosted TTS provider. An explicit provider selection overrides the saved provider selection.
 
 ## Shared TTS Options
 
@@ -66,23 +66,22 @@ bun autoshow tts <input> [flags]
 | `--tts-text-normalization <provider=value\|value>`       | Generic text normalization                                                                                                                             |
 | `--tts-instructions <provider=value\|value>`             | Generic voice/style instructions                                                                                                                       |
 | `--tts-stability <provider=value\|value>`                | Generic TTS voice stability (ElevenLabs `0-1`)                                                                                                         |
-| `--tts-similarity <provider=value\|value>`               | Generic TTS voice similarity boost (ElevenLabs `0-1`; not `eleven_v3`)                                                                                 |
-| `--tts-style <provider=value\|value>`                    | Generic TTS voice style exaggeration (ElevenLabs `0-1`; not `eleven_v3`)                                                                               |
-| `--tts-speaker-boost <provider=value\|value>`            | Generic TTS speaker boost (ElevenLabs `true\|false`; not `eleven_v3`)                                                                                  |
 | `--tts-seed <provider=value\|value>`                     | Generic TTS deterministic generation seed (ElevenLabs `0-4294967295`)                                                                                  |
 | `--tts-pronunciation-dictionary <provider=value\|value>` | Generic TTS pronunciation dictionary locator as `dictionary_id` or `dictionary_id:version_id` (ElevenLabs; repeatable)                                 |
 | `--tts-response-format <provider=value\|value>`          | Provider source audio format (Gemini `wav\|pcm\|mulaw\|alaw`; ElevenLabs `mp3_44100_128\|mp3_44100_192\|wav_44100\|wav_48000`)                         |
 | `--step-concurrency tts-chunk=<n>`                       | Hosted TTS requests allowed in parallel per provider; default `30`, `2` under `--all-providers`, or `50` for Grok-only; Soniox is always capped at `3` |
 | `--allow-ambiguous-redispatch`                           | Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio                                                           |
 | `--tts-dialogue-format <screenplay\|labeled>`            | Dialogue input format for multi-speaker TTS; requires `--tts-speaker`                                                                                  |
-| `--tts-speaker SPEAKER=VOICE\|path`                      | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                                                                     |
+| `--tts-speaker SPEAKER=VOICE`                            | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS                                                                                     |
 | `--price`                                                | Show the aggregated estimate and exit                                                                                                                  |
 | `--max-model-cents <n>`                                  | Exclude each provider/model whose estimated total across the invocation exceeds the per-model ceiling in cents; works with or without `--price`        |
 | `--output-dir <dir>`                                     | Global flag: pin an exact run directory instead of a timestamped output directory                                                                      |
 
 See [Provider Capabilities](#provider-capabilities) for the per-model instructions, speed, pause, language, dialogue, stock, design, clone, and price matrix.
 
-Shared voice flags apply to every selected model for that provider.
+Shared voice flags apply to every selected model for that provider. Use `bun autoshow tts --help-topic provider:soniox` (or another provider name) for registered models, voice choices, default voices, and chunk ceilings. Help lists language values and normalization choices from the same capability tables used by validation.
+
+The old `--tts-similarity`, `--tts-style`, and `--tts-speaker-boost` spellings remain compatibility inputs but are hidden because the only active ElevenLabs model, `eleven_v3`, cannot use those controls. `--tts-chunk-boundary smart` remains accepted for existing scripts; smart is the only supported boundary policy and is always used for new runs.
 
 Multi-speaker mode requires `--tts-speaker` (repeatable) and `--tts-dialogue-format`, and exactly one active TTS provider. Speaker mappings use existing provider voice IDs; reference-audio paths are unsupported.
 
@@ -117,14 +116,13 @@ These flags apply to every provider. They run locally with ffmpeg after synthesi
 | `--tts-sentence-pause <ms>`                           | Added silence at sentence chunk joins, `0-10000`; default `0`; no clause or word padding                                                            |
 | `--tts-lead-in <ms>`                                  | Silence before the first audio, `0-10000`                                                                                                           |
 | `--tts-lead-out <ms>`                                 | Silence after the last audio, `0-10000`                                                                                                             |
-| `--tts-chunk-boundary <smart>`                        | How text is split into provider requests; default `smart`                                                                                           |
-| `--tts-chunk-size <chars>`                            | Maximum characters per request, `100` or more; clamped to the provider/model limit                                                                  |
+| `--tts-chunk-size <chars>`                            | Maximum characters per request, integer `100-100000`; clamped to provider/model and request budgets                                                 |
 | `--tts-pronunciations <file>`                         | Local JSON pronunciation lexicon applied to the text for every provider                                                                             |
 | `--tts-text-preflight <on\|off>`                      | Check the text for unsupported speech markup before dispatch; default `on`                                                                          |
 | `--tts-export-format <wav\|flac\|mp3\|m4a\|m4b>`      | Delivered container written beside the WAV master; default `wav`                                                                                    |
 | `--tts-bitrate <kbps>`                                | Bitrate for `mp3`, `m4a`, and `m4b`, `32-320`; default `192` for mp3 and `96` for m4a/m4b                                                           |
 | `--tts-metadata key=value`                            | Tag for non-WAV exports; repeatable. Keys: `title`, `artist`, `album`, `album_artist`, `composer`, `date`, `genre`, `comment`, `track`, `copyright` |
-| `--tts-cover <image>`                                 | `.jpg` or `.png` cover art embedded in `flac`, `mp3`, `m4a`, and `m4b` exports                                                                      |
+| `--tts-cover <image>`                                 | `.jpg`, `.jpeg`, or `.png` cover art embedded in `flac`, `mp3`, `m4a`, and `m4b` exports                                                            |
 | `--tts-book`                                          | Directory input only: also assemble one book file with a chapter marker per input file                                                              |
 
 Profiles:

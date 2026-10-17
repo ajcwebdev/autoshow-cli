@@ -89,7 +89,7 @@ describe('caption native provider contracts', () => {
     await withTempDir(async dir => {
       const audio = join(dir, 'fixture.wav')
       await Bun.write(audio, 'fixture')
-      await runGrokStt(audio, dir, { model: 'speech-to-text', segmentOffsetMinutes: 0, diarizationOptions: { enabled: false }, grokSttVerbatim: true })
+      await runGrokStt(audio, dir, { model: 'grok-voice-transcribe-2.0', segmentOffsetMinutes: 0, diarizationOptions: { enabled: false }, grokSttVerbatim: true })
       expect(calls[0]?.form?.get('format')).toBe('false')
       expect(calls[0]?.form?.get('filler_words')).toBe('true')
       expect(calls[0]?.form?.get('diarize')).toBe('false')

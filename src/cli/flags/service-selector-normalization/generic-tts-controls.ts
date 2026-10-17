@@ -92,5 +92,14 @@ export const genericTtsOptionDescription = (flagName: string, summary: string): 
   const providers = Object.values(ttsControlsForFlag(flagName))
     .filter((control) => !control.spec.helpOmit)
     .map((control) => control.provider)
-  return `${summary}: ${providers.join('/')}. Use value with one selected provider, or provider=value with multiple providers.${values ? ` Accepted values: ${values}.` : ''}`
+  const defaultNote = flagName === 'tts-language'
+    ? 'Default: soniox en; grok auto; elevenlabs provider language detection.'
+    : flagName === 'tts-speed'
+      ? 'Default: soniox 1; other providers omit the speed override.'
+      : flagName === 'tts-text-normalization'
+        ? 'Default: grok false; elevenlabs provider setting.'
+        : flagName === 'tts-response-format'
+          ? 'Default: gemini unary/batch wav, stream pcm; elevenlabs mp3_44100_128. Gemini batch accepts wav only.'
+          : 'Default: omitted; preserve the provider setting.'
+  return `${summary}: ${providers.join('/')}. Use value with one selected provider, or provider=value with multiple providers.${values ? ` Accepted values: ${values}.` : ''} ${defaultNote}`
 }
