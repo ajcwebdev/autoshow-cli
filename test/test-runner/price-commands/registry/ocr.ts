@@ -1,27 +1,27 @@
 import type { PriceSelectionEntry } from '~/types'
-import { command, exact, reportOnly } from '../helpers'
+import { command, exact } from '../helpers'
 
 export const ocrRegistry: PriceSelectionEntry[] = [
-  ...exact('test/test-cases/validation/providers/openai-sol-luna-contracts.test.ts', [
-    reportOnly('extract-openai-gpt-6.1-sol', ["src/cli/create-cli.ts","extract","input/examples/document/1-document.jpg","--provider","openai=gpt-6.1-sol","--price"]),
+  ...exact('test/test-cases/e2e/service/text/ocr/openai-gpt-6.1-sol.test.ts', [
+    command('extract-openai-gpt-6.1-sol', 'extract-openai-gpt-6.1-sol', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.jpg', '--provider', 'openai=gpt-6.1-sol', '--price']),
   ]),
-  ...exact('test/test-cases/validation/providers/openai-sol-luna-contracts.test.ts', [
-    reportOnly('extract-openai-gpt-6-luna', ["src/cli/create-cli.ts","extract","input/examples/document/1-document.jpg","--provider","openai=gpt-6-luna","--price"]),
+  ...exact('test/test-cases/e2e/service/text/ocr/openai-gpt-6-luna.test.ts', [
+    command('extract-openai-gpt-6-luna', 'extract-openai-gpt-6-luna', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.jpg', '--provider', 'openai=gpt-6-luna', '--price']),
   ]),
-  ...exact('test/test-cases/validation/providers/claude-5-5-contracts.test.ts', [
-    reportOnly('extract-anthropic-claude-opus-5-5', ["src/cli/create-cli.ts","extract","input/examples/document/1-document.jpg","--provider","anthropic=claude-opus-5-5","--price"]),
+  ...exact('test/test-cases/e2e/service/text/ocr/anthropic-claude-opus-5-5.test.ts', [
+    command('extract-anthropic-claude-opus-5-5', 'extract-anthropic-claude-opus-5-5', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.jpg', '--provider', 'anthropic=claude-opus-5-5', '--price']),
   ]),
-  ...exact('test/test-cases/validation/providers/claude-5-5-contracts.test.ts', [
-    reportOnly('extract-anthropic-claude-sonnet-5-5', ["src/cli/create-cli.ts","extract","input/examples/document/1-document.jpg","--provider","anthropic=claude-sonnet-5-5","--price"]),
+  ...exact('test/test-cases/e2e/service/text/ocr/anthropic-claude-sonnet-5-5.test.ts', [
+    command('extract-anthropic-claude-sonnet-5-5', 'extract-anthropic-claude-sonnet-5-5', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.jpg', '--provider', 'anthropic=claude-sonnet-5-5', '--price']),
   ]),
-  ...exact('test/test-cases/validation/providers/claude-5-5-contracts.test.ts', [
-    reportOnly('extract-anthropic-claude-haiku-5-5', ["src/cli/create-cli.ts","extract","input/examples/document/1-document.jpg","--provider","anthropic=claude-haiku-5-5","--price"]),
+  ...exact('test/test-cases/e2e/service/text/ocr/anthropic-claude-haiku-5-5.test.ts', [
+    command('extract-anthropic-claude-haiku-5-5', 'extract-anthropic-claude-haiku-5-5', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.jpg', '--provider', 'anthropic=claude-haiku-5-5', '--price']),
   ]),
-  ...exact('test/test-cases/validation/providers/gemini-argon-contracts.test.ts', [
-    reportOnly('extract-gemini-gemini-4-argon', ["src/cli/create-cli.ts","extract","input/examples/document/1-document.jpg","--provider","gemini=gemini-4-argon","--price"]),
+  ...exact('test/test-cases/e2e/service/text/ocr/gemini-4-argon.test.ts', [
+    command('extract-gemini-gemini-4-argon', 'extract-gemini-gemini-4-argon', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.jpg', '--provider', 'gemini=gemini-4-argon', '--price']),
   ]),
-  ...exact('test/test-cases/validation/text/write/grok-47-contracts.test.ts', [
-    reportOnly('extract-grok-grok-4.7', ["src/cli/create-cli.ts","extract","input/examples/document/1-document.jpg","--provider","grok=grok-4.7","--price"]),
+  ...exact('test/test-cases/e2e/service/text/ocr/grok-4.7.test.ts', [
+    command('extract-grok-grok-4.7', 'extract-grok-grok-4.7', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.jpg', '--provider', 'grok=grok-4.7', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/text/ocr/mistral-ocr-4-0.test.ts', [
     command('extract-mistral-mistral-ocr-4-0', 'extract-mistral-mistral-ocr-4-0', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'mistral=mistral-ocr-4-0', '--price']),
