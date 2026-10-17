@@ -17,7 +17,9 @@ export const runOpenAICompatibleChatModel = async ({
   providerLabel,
   operationName,
   customizeRequestBody,
-  buildStructuredResponseFormat
+  buildStructuredResponseFormat,
+  mapUsage,
+  checkResponse
 }: RunOpenAICompatibleChatModelOptions): Promise<{ result: string, metadata: Step3Metadata }> => {
   return await executeLlmRequest<OpenAIRestConfig>(prompt, model, structuredOpts, {
     service,
@@ -37,11 +39,12 @@ export const runOpenAICompatibleChatModel = async ({
         const response = await createOpenAIChatCompletion(resolvedConfig, body, {
           signal: createSignal()
         })
+        checkResponse?.(response)
 
         const text = extractOpenAIChatCompletionText(response) ?? ''
         return {
           text,
-          usage: response.usage,
+          usage: mapUsage ? mapUsage(response.usage) : response.usage,
           rawProviderUsage: response.usage,
           returnedModel: response.model,
           requestSettings: llmRequestSettings(body)
@@ -85,6 +88,8 @@ export const createOpenAICompatibleReasoningRunner = (descriptor: {
   providerLabel: string
   envPurpose: string
   baseURL: string
+  mapUsage?: RunOpenAICompatibleChatModelOptions['mapUsage']
+  checkResponse?: RunOpenAICompatibleChatModelOptions['checkResponse']
 }) => {
   const config = (): { apiKey: string, baseURL: string } => ({
     apiKey: resolveCredential(descriptor.service, 'require', { stage: `write:${descriptor.service}`, description: descriptor.envPurpose }),
@@ -106,6 +111,8 @@ export const createOpenAICompatibleReasoningRunner = (descriptor: {
       service: descriptor.service,
       providerLabel: descriptor.providerLabel,
       operationName: `${descriptor.service}-llm`,
+      mapUsage: descriptor.mapUsage,
+      checkResponse: descriptor.checkResponse,
       customizeRequestBody: (requestBody) => {
         if (policy.effective === 'low' || policy.effective === 'medium' || policy.effective === 'high' || policy.effective === 'xhigh') {
           requestBody['reasoning_effort'] = policy.effective

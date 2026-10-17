@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
 import type { PipelineProviderState } from "../shared/pipeline_manifest";
-import { runSyncCommand } from "../../../../../src/utils/sync-subprocess.ts";
+import { runSyncCommand } from "../../../../../src/utils/sync-subprocess";
 
 export interface OcrPage {
   pageNumber: number;
@@ -438,7 +438,16 @@ function gitDiffBreakdown(reference: string[], candidate: string[]): WerBreakdow
   }
 }
 
+function areIdenticalTokenSequences(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false;
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+  return true;
+}
+
 export function levenshteinDistance(left: string[], right: string[]): number {
+  if (areIdenticalTokenSequences(left, right)) return 0;
   if (left.length === 0) {
     return right.length;
   }
@@ -455,9 +464,9 @@ export function levenshteinDistance(left: string[], right: string[]): number {
   for (let leftIndex = 0; leftIndex < left.length; leftIndex += 1) {
     const current = [leftIndex + 1];
     for (let rightIndex = 0; rightIndex < right.length; rightIndex += 1) {
-      const insertion = current[rightIndex] + 1;
-      const deletion = previous[rightIndex + 1] + 1;
-      const substitution = previous[rightIndex] + Number(left[leftIndex] !== right[rightIndex]);
+      const insertion = current[rightIndex]! + 1;
+      const deletion = previous[rightIndex + 1]! + 1;
+      const substitution = previous[rightIndex]! + Number(left[leftIndex] !== right[rightIndex]);
       current.push(Math.min(insertion, deletion, substitution));
     }
     previous = current;
@@ -466,6 +475,9 @@ export function levenshteinDistance(left: string[], right: string[]): number {
 }
 
 export function levenshteinBreakdown(reference: string[], candidate: string[]): WerBreakdown {
+  if (areIdenticalTokenSequences(reference, candidate)) {
+    return { distance: 0, substitutions: 0, deletions: 0, insertions: 0 };
+  }
   const n = reference.length;
   const m = candidate.length;
 
@@ -479,37 +491,36 @@ export function levenshteinBreakdown(reference: string[], candidate: string[]): 
     return gitDiffBreakdown(reference, candidate);
   }
 
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
-  const ops: Array<Array<"none" | "sub" | "del" | "ins" | "match">> = Array.from(
-    { length: n + 1 },
-    () => new Array<"none" | "sub" | "del" | "ins" | "match">(m + 1).fill("none"),
-  );
-
-  for (let i = 0; i <= n; i++) {
-    dp[i][0] = i;
-    if (i > 0) ops[i][0] = "del";
-  }
+  let previous = new Uint32Array(m + 1);
+  let current = new Uint32Array(m + 1);
+  // Keep the exact traceback (match=0, sub=1, del=2, ins=3) in two bits per cell.
+  // The rolling distance rows avoid retaining two boxed quadratic matrices.
+  const operations = new Uint8Array(Math.ceil((n * m) / 4));
   for (let j = 0; j <= m; j++) {
-    dp[0][j] = j;
-    if (j > 0) ops[0][j] = "ins";
+    previous[j] = j;
   }
 
   for (let i = 1; i <= n; i++) {
+    current[0] = i;
+    const rowOffset = (i - 1) * m;
     for (let j = 1; j <= m; j++) {
       if (reference[i - 1] === candidate[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1];
-        ops[i][j] = "match";
+        current[j] = previous[j - 1]!;
       } else {
-        const sub = dp[i - 1][j - 1];
-        const del = dp[i - 1][j];
-        const ins = dp[i][j - 1];
+        const sub = previous[j - 1]!;
+        const del = previous[j]!;
+        const ins = current[j - 1]!;
         const min = Math.min(sub, del, ins);
-        dp[i][j] = min + 1;
-        if (min === sub) ops[i][j] = "sub";
-        else if (min === del) ops[i][j] = "del";
-        else ops[i][j] = "ins";
+        current[j] = min + 1;
+        const operation = min === sub ? 1 : min === del ? 2 : 3;
+        const cell = rowOffset + j - 1;
+        const byte = cell >>> 2;
+        operations[byte] = operations[byte]! | (operation << ((cell & 3) * 2));
       }
     }
+    const completed = previous;
+    previous = current;
+    current = completed;
   }
 
   let substitutions = 0;
@@ -517,16 +528,17 @@ export function levenshteinBreakdown(reference: string[], candidate: string[]): 
   let insertions = 0;
   let i = n;
   let j = m;
-  while (i > 0 || j > 0) {
-    const op = ops[i][j];
-    if (op === "match") {
+  while (i > 0 && j > 0) {
+    const cell = (i - 1) * m + j - 1;
+    const operation = (operations[cell >>> 2]! >>> ((cell & 3) * 2)) & 3;
+    if (operation === 0) {
       i--;
       j--;
-    } else if (op === "sub") {
+    } else if (operation === 1) {
       substitutions++;
       i--;
       j--;
-    } else if (op === "del") {
+    } else if (operation === 2) {
       deletions++;
       i--;
     } else {
@@ -534,11 +546,14 @@ export function levenshteinBreakdown(reference: string[], candidate: string[]): 
       j--;
     }
   }
+  deletions += i;
+  insertions += j;
 
-  return { distance: dp[n][m], substitutions, deletions, insertions };
+  return { distance: previous[m]!, substitutions, deletions, insertions };
 }
 
 export function charLevenshteinDistance(left: string, right: string): number {
+  if (left === right) return 0;
   const leftChars = [...left];
   const rightChars = [...right];
   if (leftChars.length === 0) {
@@ -554,9 +569,9 @@ export function charLevenshteinDistance(left: string, right: string): number {
   for (let leftIndex = 0; leftIndex < leftChars.length; leftIndex += 1) {
     const current = [leftIndex + 1];
     for (let rightIndex = 0; rightIndex < rightChars.length; rightIndex += 1) {
-      const insertion = current[rightIndex] + 1;
-      const deletion = previous[rightIndex + 1] + 1;
-      const substitution = previous[rightIndex] + Number(leftChars[leftIndex] !== rightChars[rightIndex]);
+      const insertion = current[rightIndex]! + 1;
+      const deletion = previous[rightIndex + 1]! + 1;
+      const substitution = previous[rightIndex]! + Number(leftChars[leftIndex] !== rightChars[rightIndex]);
       current.push(Math.min(insertion, deletion, substitution));
     }
     previous = current;
@@ -689,7 +704,7 @@ export function buildTimingLookup(manifestRecord: OcrManifestRecord): Map<string
 export function loadOcrManifestRecord(runDir: string): OcrManifestRecord {
   const record = loadCanonicalRunRecord(runDir, "extract", "document");
   const metadata = record.metadata;
-  const step2 = metadata.step2;
+  const step2 = metadata["step2"];
   const hasInlineProviderResult = record.item.providers.some((provider) =>
     provider.status === "succeeded" && provider.result !== undefined,
   );
@@ -714,7 +729,7 @@ function isContiguousPageNumberSequence(pageNumbers: number[], start: number): b
   return sorted.every((pageNumber, index) => pageNumber === start + index);
 }
 
-function normalizeProviderPages(pages: NonNullable<OcrProviderPayload["result"]["pages"]> = []): OcrPage[] {
+function normalizeProviderPages(pages: NonNullable<OcrProviderResult["pages"]> = []): OcrPage[] {
   const pageNumbers = pages.map((page) => page.pageNumber).filter(isFinitePageNumber);
   const shiftZeroBasedPages =
     pageNumbers.length === pages.length &&
@@ -839,7 +854,7 @@ export function loadOcrProviderRuns(runDir: string): { providers: OcrProviderRun
 
 export function meanPairwiseTextSimilarity(providers: OcrProviderRun[]): Record<string, number> {
   if (providers.length === 1) {
-    return { [providers[0].directoryName]: 1 };
+    return { [providers[0]!.directoryName]: 1 };
   }
 
   const scores = new Map<string, number[]>(
@@ -847,7 +862,7 @@ export function meanPairwiseTextSimilarity(providers: OcrProviderRun[]): Record<
   );
 
   for (let leftIndex = 0; leftIndex < providers.length; leftIndex += 1) {
-    const left = providers[leftIndex];
+    const left = providers[leftIndex]!;
     for (const right of providers.slice(leftIndex + 1)) {
       const similarity = textSimilarity(left.text, right.text);
       scores.get(left.directoryName)?.push(similarity);
@@ -996,7 +1011,7 @@ function artifactPenalty(flags: OcrPageArtifactFlags): number {
 
 function pageProviderMetric(
   provider: OcrProviderRun,
-  pageNumber: number,
+  _pageNumber: number,
   text: string,
   pageEntries: Array<{ provider: OcrProviderRun; text: string }>,
   medianTokenCount: number,

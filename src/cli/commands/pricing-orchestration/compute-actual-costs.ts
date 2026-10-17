@@ -294,7 +294,7 @@ const addExtractionCostEntry = (
         ...(promptTokens !== undefined ? { promptTokens } : {}),
         ...(completionTokens !== undefined ? { completionTokens } : {}),
         ...(providerCostCents !== undefined ? { providerCostCents } : {}),
-        ...(usage['providerCostSource'] === 'provider_usage' || usage['providerCostSource'] === 'provider_quote' || usage['providerCostSource'] === 'registry_fallback'
+        ...(usage['providerCostSource'] === 'provider_usage' || usage['providerCostSource'] === 'provider_quote' || usage['providerCostSource'] === 'registry_fallback' || usage['providerCostSource'] === 'partial_provider_usage'
           ? { providerCostSource: usage['providerCostSource'] }
           : {}),
         ...(Array.isArray(usage['providerUsage']) ? { ocrProviderUsage: usage['providerUsage'].filter(isRecord) } : {})

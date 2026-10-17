@@ -62,10 +62,11 @@ export const createChatImageOcrRunner = <TExtractionMethod extends string>(
         )
         const rawText = extractOpenAIChatCompletionText(response) ?? ''
         profile.checkResponse?.(response, rawText, pageLabel)
+        const usage = profile.mapUsage ? profile.mapUsage(response.usage) : response.usage
 
         return buildHostedOcrImageResult(pageNumber, rawText, {
-          ...(typeof response.usage?.prompt_tokens === 'number' ? { promptTokens: response.usage.prompt_tokens } : {}),
-          ...(typeof response.usage?.completion_tokens === 'number' ? { completionTokens: response.usage.completion_tokens } : {})
+          ...(typeof usage?.prompt_tokens === 'number' ? { promptTokens: usage.prompt_tokens } : {}),
+          ...(typeof usage?.completion_tokens === 'number' ? { completionTokens: usage.completion_tokens } : {})
         })
       },
       { onRetryable }

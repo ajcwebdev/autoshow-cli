@@ -23,9 +23,10 @@ describe('option resolution contracts', () => {
       expect(() => validateTogetherModel('zai-org/GLM-5.3-FLASH')).toThrow(`Invalid model "zai-org/GLM-5.3-FLASH" for --llm together[=model]. ${expectedAllowed}`)
     })
 
-  test('Grok write model validator accepts Grok 4.6 and rejects Grok 4.5 plus aliases', () => {
-      const expectedAllowed = 'Allowed values: grok-4.6'
+  test('Grok write model validator accepts Grok 4.7 and 4.6 and rejects Grok 4.5 plus aliases', () => {
+      const expectedAllowed = 'Allowed values: grok-4.7, grok-4.6'
 
+      expect(validateGrokModel('grok-4.7')).toBe('grok-4.7')
       expect(validateGrokModel('grok-4.6')).toBe('grok-4.6')
       expect(() => validateGrokModel('grok-4.5')).toThrow(`Invalid model "grok-4.5" for --llm grok[=model]. ${expectedAllowed}`)
       expect(() => validateGrokModel('grok-4.5-latest')).toThrow(`Invalid model "grok-4.5-latest" for --llm grok[=model]. ${expectedAllowed}`)
@@ -117,7 +118,7 @@ describe('option resolution contracts', () => {
       expect(speechmaticsDefault).toBe('melia-1')
       expect(togetherSttDefault).toBe('nvidia/parakeet-tdt-0.6b-v3')
       expect(scrapeCreatorsDefault).toBe('youtube-transcript')
-      expect(openaiOcrDefault).toBe('gpt-5.6-luna')
+      expect(openaiOcrDefault).toBe('gpt-6-luna')
       expect(geminiOcrDefault).toBe('gemini-3.5-flash-lite')
       expect(grokOcrDefault).toBe('grok-4.5')
       expect(deepinfraOcrDefault).toBe('google/gemma-4-31B-it')

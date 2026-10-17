@@ -12,14 +12,14 @@ const lifecycle = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ANT
 const pages = [{ pageNumber: 1, text: 'Synthetic document' }] as const
 
 describe('Flagship OCR additions', () => {
-  test('new and existing OCR selectors resolve without changing bare defaults', () => {
+  test('new and existing OCR selectors resolve with the current cheapest bare default', () => {
     for (const model of ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-sol']) {
       expect(buildOptsFromFlags({ 'openai-ocr': model }).openaiOcrModels).toEqual([model])
     }
     for (const model of ['claude-fable-5-1', 'claude-fable-5', 'claude-sonnet-5']) {
       expect(buildOptsFromFlags({ 'anthropic-ocr': model }).anthropicOcrModels).toEqual([model])
     }
-    expect(buildOptsFromFlags({ 'anthropic-ocr': true }).anthropicOcrModels).toEqual(['claude-sonnet-5'])
+    expect(buildOptsFromFlags({ 'anthropic-ocr': true }).anthropicOcrModels).toEqual(['claude-haiku-5-5'])
   })
 
   for (const format of ['png', 'pdf'] as const) {
@@ -42,8 +42,11 @@ describe('Flagship OCR additions', () => {
           expect(request?.bodyJson).not.toHaveProperty('thinking')
           expect(request?.bodyJson).not.toHaveProperty('tool_choice')
           expect(request?.bodyJson).not.toHaveProperty('cache_control')
-          if (effort === 'default') expect(request?.bodyJson).not.toHaveProperty('output_config')
-          else expect(request?.bodyJson?.['output_config']).toEqual({ effort })
+          expect(request?.bodyJson?.['output_config']).toMatchObject({
+            ...(effort === 'default' ? {} : { effort }),
+            format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['pages'] } }
+          })
+          if (effort === 'default') expect(request?.bodyJson?.['output_config']).not.toHaveProperty('effort')
           const messages = request?.bodyJson?.['messages'] as Array<{ content: Array<Record<string, unknown>> }>
           expect(messages[0]?.content[0]?.['text']).toContain('JSON')
           expect(messages[0]?.content[1]).toMatchObject(format === 'pdf'

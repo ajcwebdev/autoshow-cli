@@ -48,3 +48,8 @@ export const classifyGeminiRetry = (
 
 export const createGeminiRetryClassifier = (retryClass: RetryClass): RetryClassifier =>
   (error) => classifyGeminiRetry(error, retryClass)
+
+export const GEMINI_ARGON_MODEL = 'gemini-4-argon'
+export const GEMINI_ARGON_SYNC_OUTPUT_TOKENS = 65_536
+export const GEMINI_ARGON_MIN_OCR_OUTPUT_TOKENS = 32_768
+export const isGeminiArgonModel = (model: string): boolean => model.replace(/^models\//, '') === GEMINI_ARGON_MODEL

@@ -238,7 +238,9 @@ export const extractCbzFormat = async (
           if (run.pdfChunkPreparation !== undefined) pdfChunkPreparation = run.pdfChunkPreparation
           if (typeof run.providerCostCents === 'number') {
             providerCostCents = (providerCostCents ?? 0) + run.providerCostCents
-            providerCostSource = run.providerCostSource ?? providerCostSource
+            providerCostSource = providerCostSource === 'partial_provider_usage' || run.providerCostSource === 'partial_provider_usage'
+              ? 'partial_provider_usage'
+              : run.providerCostSource ?? providerCostSource
           }
           if (run.providerUsage && run.providerUsage.length > 0) {
             ocrProviderUsage = [...(ocrProviderUsage ?? []), ...run.providerUsage]

@@ -14,6 +14,8 @@
       "https://developers.openai.com/api/docs/changelog.md"
     ],
     "Models": [
+      "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "https://developers.openai.com/api/docs/models/gpt-6-luna",
       "https://developers.openai.com/api/reference/resources/models/methods/retrieve/index.md",
       "https://developers.openai.com/api/reference/resources/models/methods/list/index.md",
       "https://developers.openai.com/api/docs/deprecations.md",

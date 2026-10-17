@@ -4,6 +4,8 @@ import { createAnthropicMessage } from '~/utils/anthropic/anthropic-client'
 import { classifyFetchRetry } from '~/utils/retries'
 import { applyAnthropicReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
 import { llmRequestSettings } from '~/cli/commands/text/write/write-utils/llm-request-settings'
+import { ValidationError } from '~/utils/error-handler'
+import { transformAnthropicJsonSchema } from '~/utils/anthropic/anthropic-json-schema'
 
 const extractAnthropicText = (content: Array<{ type: string, text?: string | undefined }>): string =>
   content
@@ -44,7 +46,7 @@ export const runAnthropicCompatibleModel = async ({
           ...(requestBody['output_config'] as Record<string, unknown> | undefined),
           format: {
             type: 'json_schema',
-            schema: structuredOpts.schema
+            schema: transformAnthropicJsonSchema(structuredOpts.schema)
           }
         }
       }
@@ -52,6 +54,13 @@ export const runAnthropicCompatibleModel = async ({
       const message = await createAnthropicMessage(resolvedConfig, requestBody, {
         signal: createSignal()
       })
+
+      if (message['stop_reason'] === 'refusal' || message['stop_reason'] === 'max_tokens' || message['stop_reason'] === 'pause_turn') {
+        throw ValidationError(`${providerLabel} returned an incomplete response (${message['stop_reason']}).`, {
+          stage: 'write:anthropic',
+          metadata: { rawResponse: message, rawProviderUsage: message.usage, returnedModel: message.model }
+        })
+      }
 
       const text = extractAnthropicText(message.content ?? [])
       return {

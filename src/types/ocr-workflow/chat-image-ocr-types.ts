@@ -24,6 +24,7 @@ export type ChatImageOcrProfile<TExtractionMethod extends string> = {
   getConfig: (baseUrl?: string) => OpenAIRestConfig
   buildBody: (input: ChatImageOcrBodyInput) => Record<string, unknown>
   checkResponse?: ((response: OpenAIChatCompletionResponse, rawText: string, pageLabel: string) => void) | undefined
+  mapUsage?: ((usage: OpenAIChatCompletionResponse['usage']) => OpenAIChatCompletionResponse['usage']) | undefined
 }
 
 export type ChatImageOcrOptions = Pick<ExtractionOptions, 'dpi' | 'password' | 'outputDir' | 'ocrPreparationCache' | 'ocrConcurrency' | 'ocrConcurrencyMode' | 'hostedOcrScheduler'> & {

@@ -22,6 +22,8 @@ export const SUPPORTED_KIMI_OCR_MODELS = [
 export const validateKimiOcrModel = createModelValidator(SUPPORTED_KIMI_OCR_MODELS, 'kimi-ocr')
 
 export const SUPPORTED_OPENAI_OCR_MODELS = [
+  'gpt-6.1-sol',
+  'gpt-6-luna',
   'gpt-6-astra',
   'gpt-5.6-sol',
   'gpt-5.6-terra',
@@ -31,6 +33,7 @@ export const SUPPORTED_OPENAI_OCR_MODELS = [
 export const validateOpenAIOcrModel = createModelValidator(SUPPORTED_OPENAI_OCR_MODELS, 'openai-ocr')
 
 export const SUPPORTED_GROK_OCR_MODELS = [
+  'grok-4.7',
   'grok-4.5',
   'grok-4.6'
 ] as const satisfies readonly string[]
@@ -38,6 +41,9 @@ export const SUPPORTED_GROK_OCR_MODELS = [
 export const validateGrokOcrModel = createModelValidator(SUPPORTED_GROK_OCR_MODELS, 'grok-ocr')
 
 export const SUPPORTED_ANTHROPIC_OCR_MODELS = [
+  'claude-opus-5-5',
+  'claude-sonnet-5-5',
+  'claude-haiku-5-5',
   'claude-fable-5-1',
   'claude-fable-5',
   'claude-sonnet-5',
@@ -47,6 +53,7 @@ export const SUPPORTED_ANTHROPIC_OCR_MODELS = [
 export const validateAnthropicOcrModel = createModelValidator(SUPPORTED_ANTHROPIC_OCR_MODELS, 'anthropic-ocr')
 
 export const SUPPORTED_GEMINI_OCR_MODELS = [
+  'gemini-4-argon',
   'gemini-3.8-flash',
   'gemini-3.7-flash',
   'gemini-3.5-flash',

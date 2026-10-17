@@ -1,0 +1,15 @@
+{
+  "message": "The operation timed out.: The operation timed out.",
+  "category": "timeout",
+  "failureKind": "timeout",
+  "retryable": true,
+  "error": {
+    "name": "AbortError",
+    "message": "The operation timed out.",
+    "stack": "AbortError: The operation timed out.\n    at normalizeFetchAbortError (src/utils/rest-client.ts:92:28)\n    at <anonymous> (src/utils/rest-client.ts:142:13)\n    at unknown\n    at unknown\n    at unknown\n    at async <anonymous> (src/utils/retries.ts:35:20)\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown\n    at unknown",
+    "cause": {
+      "name": "TimeoutError",
+      "message": "The operation timed out."
+    }
+  }
+}

@@ -47,7 +47,7 @@ describe('September reasoning documentation contracts', () => {
     expect(result.metadata.outputTokenCount).toBe(12)
     expect(result.metadata.providerUsage).toMatchObject({ inputTokenCount: 12, outputTokenCount: 12, totalTokenCount: 24 })
   })
-  test('other providers completion totals already include reasoning and are counted once', async () => {
+  test('unmapped provider completion totals include reasoning; Grok maps its documented split in its adapter', async () => {
     const result = await runWithLLMInstrumentation('Prompt', async () => ({ text: 'ok', usage: { prompt_tokens: 12, completion_tokens: 10, completion_tokens_details: { reasoning_tokens: 7 } } }))
     expect(result.outputTokenCount).toBe(10)
   })

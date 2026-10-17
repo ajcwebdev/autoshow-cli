@@ -4,6 +4,7 @@ import type {
   HostedOcrAdapterRequest,
   HostedOcrFallbackOptions,
   HostedExtractOcrEngine,
+  HostedOcrRun,
   HostedOcrService
 } from '~/types'
 import { hasAnthropicOcr, hasDeepinfraOcr, hasGeminiOcr, hasGlmOcr, hasGrokOcr, hasKimiOcr, hasMistralOcr, hasOpenAIOcr } from './ocr-engine-selection'
@@ -42,9 +43,14 @@ const pageRenderingProviderOptions = (request: HostedOcrAdapterRequest) => ({
   reasoningEffort: request.opts.reasoningEffort
 })
 
-const tokenUsage = (run: { promptTokens?: number | undefined, completionTokens?: number | undefined }) => ({
+const tokenUsage = (run: {
+  [Key in 'promptTokens' | 'completionTokens' | 'providerCostCents' | 'providerCostSource' | 'providerUsage']?: HostedOcrRun[Key] | undefined
+}) => ({
   ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-  ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
+  ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {}),
+  ...(typeof run.providerCostCents === 'number' ? { providerCostCents: run.providerCostCents } : {}),
+  ...(run.providerCostSource ? { providerCostSource: run.providerCostSource } : {}),
+  ...(run.providerUsage ? { providerUsage: run.providerUsage } : {})
 })
 
 export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
@@ -185,8 +191,8 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
     engine: 'gemini-ocr',
     label: 'Gemini OCR',
     limitSource: GEMINI_OCR_LIMIT_SOURCE,
-    directImageFormats: ['png', 'jpg', 'webp', 'bmp'],
-    directImageSupportError: 'The Gemini OCR provider supports PDF and PNG/JPG/WEBP/BMP images directly. AutoShow normalizes GIF images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
+    directImageFormats: ['png', 'jpg', 'webp'],
+    directImageSupportError: 'The Gemini OCR provider supports PDF and PNG/JPG/WEBP images directly. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
     selectModel: (opts) => hasGeminiOcr(opts) ? opts.geminiOcrModel as string : undefined,
     request: async ({ inputPath, inputMetadata, ocrModel, opts, onRetryable, pageNumber }) => {
       const run = await runGeminiOcr(inputPath, inputMetadata, ocrModel, {
@@ -201,8 +207,7 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
         ocrService: 'gemini',
         ocrModel,
         totalPages: run.totalPages,
-        ...tokenUsage(run),
-        ...(run.providerUsage && run.providerUsage.length > 0 ? { providerUsage: run.providerUsage } : {})
+        ...tokenUsage(run)
       }
     },
     fallbackOptions: (opts) => ({

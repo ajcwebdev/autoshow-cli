@@ -1,5 +1,7 @@
 import type { DocumentMetadata } from '~/types'
 import { createChatImageOcrRunner } from '~/cli/commands/text/ocr/ocr-utils/chat-image-ocr'
+import { OcrOutputLimitError, OcrStructuredResponseError } from '~/cli/commands/text/ocr/ocr-structured-response-error'
+import { normalizeGrokChatUsage } from '~/utils/openai/grok-chat-usage'
 import {
   getGrokOcrClientConfig,
   GROK_OCR_IMAGE_BYTES
@@ -30,6 +32,7 @@ export const runGrokOcr = createChatImageOcrRunner({
   prompt: buildOcrPrompt(),
   errorMessagePrefix: 'Grok OCR request failed',
   getConfig: getGrokOcrClientConfig,
+  mapUsage: normalizeGrokChatUsage,
   buildBody: ({ model, messages, reasoningPolicy }) => ({
     model,
     max_completion_tokens: GROK_OCR_MAX_COMPLETION_TOKENS,
@@ -37,5 +40,22 @@ export const runGrokOcr = createChatImageOcrRunner({
       ? { reasoning_effort: reasoningPolicy.effective }
       : {}),
     messages
-  })
+  }),
+  checkResponse: (response, text, page) => {
+    const choice = response.choices?.[0]
+    let error: OcrStructuredResponseError | undefined
+    if (choice?.finish_reason === 'length' || choice?.finish_reason === 'max_tokens') {
+      error = new OcrOutputLimitError(`Grok OCR ${page} reached its visible output token limit.`, text)
+    } else if (typeof choice?.message?.['refusal'] === 'string' && choice.message['refusal'].length > 0) {
+      error = new OcrStructuredResponseError(`Grok OCR refused ${page}.`, JSON.stringify(response))
+    } else if (choice?.finish_reason !== undefined && choice.finish_reason !== 'stop') {
+      error = new OcrStructuredResponseError(`Grok OCR ${page} returned an incomplete response (${choice.finish_reason}).`, JSON.stringify(response))
+    } else if (typeof choice?.message?.content !== 'string') {
+      error = new OcrStructuredResponseError(`Grok OCR ${page} returned no text content.`, JSON.stringify(response))
+    }
+    if (error) {
+      Object.assign(error.metadata, { rawResponse: response, rawProviderUsage: response.usage, returnedModel: response.model })
+      throw error
+    }
+  }
 })

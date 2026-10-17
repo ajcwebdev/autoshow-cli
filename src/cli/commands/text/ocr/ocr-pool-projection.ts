@@ -65,7 +65,9 @@ const aggregateTargetUsage = (ledger: OcrPoolLedger): Array<Record<string, unkno
       promptTokens,
       completionTokens,
       ...(hasProviderCost ? { providerCostCents } : {}),
-      ...(providerCostSources.length === 1 ? { providerCostSource: providerCostSources[0] } : {}),
+      ...(providerCostSources.includes('partial_provider_usage')
+        ? { providerCostSource: 'partial_provider_usage' }
+        : providerCostSources.length === 1 ? { providerCostSource: providerCostSources[0] } : {}),
       ...(providerUsage.length > 0 ? { providerUsage } : {}),
       ...(effectivePolicies.length === 1 ? { effectiveReasoningEffort: effectivePolicies[0] } : {}),
       ocrMode: 'pool'
@@ -110,7 +112,9 @@ export const buildCompositeOutput = (
     promptTokens: attempts.length > 0 ? promptTokens : undefined,
     completionTokens: attempts.length > 0 ? completionTokens : undefined,
     providerCostCents: hasProviderCost ? providerCostCents : undefined,
-    providerCostSource: hasProviderCost ? 'provider_usage' : undefined,
+    providerCostSource: hasProviderCost
+      ? attempts.some(attempt => attempt.providerCostSource === 'partial_provider_usage') ? 'partial_provider_usage' : 'provider_usage'
+      : undefined,
     ocrProviderUsage: providerUsage.length > 0 ? providerUsage : undefined,
     pdfChunkPreparation: undefined,
     chapterExportSummary: undefined,

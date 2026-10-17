@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "AutoShow Benchmark Dashboard",
-  "generatedAt": "2026-10-16T12:57:30.385Z",
+  "generatedAt": "2026-10-17T18:11:23.419Z",
   "tabs": [
     {
       "key": "ocr",
@@ -10,7 +10,7 @@
       "model": {
         "title": "Combined OCR Provider Comparison",
         "category": "ocr",
-        "generatedAt": "2026-10-16T12:57:30.385Z",
+        "generatedAt": "2026-10-17T18:11:23.419Z",
         "rootDir": "docs/benchmarks/ocr",
         "summaryStats": [
           {
@@ -23,11 +23,11 @@
           },
           {
             "label": "Providers",
-            "value": "23"
+            "value": "30"
           },
           {
             "label": "Third-party service",
-            "value": "23"
+            "value": "30"
           },
           {
             "label": "Local",
@@ -38,67 +38,67 @@
           {
             "runName": "01-ad-copy",
             "shortLabel": "R1",
-            "detail": "23 providers, 1 page"
+            "detail": "30 providers, 1 page"
           },
           {
             "runName": "01-ancient",
             "shortLabel": "R2",
-            "detail": "23 providers, 1 page"
+            "detail": "30 providers, 1 page"
           },
           {
             "runName": "01-book",
             "shortLabel": "R3",
-            "detail": "23 providers, 1 page"
+            "detail": "30 providers, 1 page"
           },
           {
             "runName": "01-financial-data",
             "shortLabel": "R4",
-            "detail": "23 providers, 1 page"
+            "detail": "30 providers, 1 page"
           },
           {
             "runName": "01-handwriting",
             "shortLabel": "R5",
-            "detail": "23 providers, 1 page"
+            "detail": "30 providers, 1 page"
           },
           {
             "runName": "01-medieval",
             "shortLabel": "R6",
-            "detail": "23 providers, 1 page"
+            "detail": "30 providers, 1 page"
           },
           {
             "runName": "01-non-english",
             "shortLabel": "R7",
-            "detail": "22 providers, 1 page"
+            "detail": "28 providers, 1 page"
           },
           {
             "runName": "01-test-picture",
             "shortLabel": "R8",
-            "detail": "23 providers, 1 page"
+            "detail": "30 providers, 1 page"
           },
           {
             "runName": "04-pages-don-quixote",
             "shortLabel": "R9",
-            "detail": "23 providers, 4 pages"
+            "detail": "30 providers, 4 pages"
           },
           {
             "runName": "05-pages-the-odyssey",
             "shortLabel": "R10",
-            "detail": "23 providers, 5 pages"
+            "detail": "30 providers, 5 pages"
           },
           {
             "runName": "1-page-declaration",
             "shortLabel": "R11",
-            "detail": "23 providers, 1 page"
+            "detail": "30 providers, 1 page"
           },
           {
             "runName": "1-page-newspaper",
             "shortLabel": "R12",
-            "detail": "21 providers, 1 page"
+            "detail": "27 providers, 1 page"
           },
           {
             "runName": "10-document",
             "shortLabel": "R13",
-            "detail": "23 providers, 10 pages"
+            "detail": "30 providers, 10 pages"
           }
         ],
         "groups": [
@@ -147,23 +147,23 @@
                 "model": "claude-fable-5",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "95.52",
-                  "rank": 3,
-                  "value": 95.51524229546499
+                  "display": "95.57",
+                  "rank": 4,
+                  "value": 95.56667823203935
                 },
                 "speed": {
                   "display": "4.7",
-                  "rank": 17,
+                  "rank": 23,
                   "value": 4.65034236141178
                 },
                 "cost": {
                   "display": "$6.652",
-                  "rank": 22,
+                  "rank": 29,
                   "value": 6.652379310344828
                 },
                 "evidence": [
-                  "3.83%",
-                  "1.14%",
+                  "3.79%",
+                  "1.12%",
                   "28.78s"
                 ],
                 "perRun": [
@@ -184,7 +184,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "89.66",
+                    "display": "90.15",
                     "heat": 90
                   },
                   {
@@ -204,7 +204,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "80.81",
+                    "display": "80.99",
                     "heat": 81
                   },
                   {
@@ -227,23 +227,23 @@
                 "model": "claude-fable-5-1",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "96.70",
-                  "rank": 1,
-                  "value": 96.70332864289331
+                  "display": "96.76",
+                  "rank": 2,
+                  "value": 96.76153597708414
                 },
                 "speed": {
                   "display": "4.1",
-                  "rank": 19,
+                  "rank": 25,
                   "value": 4.0847467574388165
                 },
                 "cost": {
                   "display": "$7.678",
-                  "rank": 23,
+                  "rank": 30,
                   "value": 7.678379310344828
                 },
                 "evidence": [
-                  "3.58%",
-                  "0.78%",
+                  "3.53%",
+                  "0.77%",
                   "32.77s"
                 ],
                 "perRun": [
@@ -264,7 +264,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "85.71",
+                    "display": "86.21",
                     "heat": 86
                   },
                   {
@@ -284,7 +284,7 @@
                     "heat": 98
                   },
                   {
-                    "display": "80.81",
+                    "display": "81.07",
                     "heat": 81
                   },
                   {
@@ -302,28 +302,108 @@
                 ]
               },
               {
+                "providerKey": "anthropic/claude-haiku-5-5",
+                "display": "anthropic/claude-haiku-5-5",
+                "model": "claude-haiku-5-5",
+                "coverage": "13/13",
+                "quality": {
+                  "display": "86.39",
+                  "rank": 27,
+                  "value": 86.38844268793504
+                },
+                "speed": {
+                  "display": "5.9",
+                  "rank": 17,
+                  "value": 5.930591627640647
+                },
+                "cost": {
+                  "display": "$0.071",
+                  "rank": 3,
+                  "value": 0.07125344827586207
+                },
+                "evidence": [
+                  "21.18%",
+                  "24.18%",
+                  "22.57s"
+                ],
+                "perRun": [
+                  {
+                    "display": "92.06",
+                    "heat": 92
+                  },
+                  {
+                    "display": "78.69",
+                    "heat": 79
+                  },
+                  {
+                    "display": "94.37",
+                    "heat": 94
+                  },
+                  {
+                    "display": "97.38",
+                    "heat": 97
+                  },
+                  {
+                    "display": "71.43",
+                    "heat": 71
+                  },
+                  {
+                    "display": "97.71",
+                    "heat": 98
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "33.58",
+                    "heat": 34
+                  },
+                  {
+                    "display": "98.42",
+                    "heat": 98
+                  },
+                  {
+                    "display": "97.75",
+                    "heat": 98
+                  },
+                  {
+                    "display": "61.67",
+                    "heat": 62
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  }
+                ]
+              },
+              {
                 "providerKey": "anthropic/claude-opus-5",
                 "display": "anthropic/claude-opus-5",
                 "model": "claude-opus-5",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "92.77",
-                  "rank": 9,
-                  "value": 92.7686651799643
+                  "display": "92.82",
+                  "rank": 15,
+                  "value": 92.82010111653867
                 },
                 "speed": {
                   "display": "4.5",
-                  "rank": 18,
+                  "rank": 24,
                   "value": 4.543377505059077
                 },
                 "cost": {
                   "display": "$3.219",
-                  "rank": 18,
+                  "rank": 25,
                   "value": 3.2186034482758625
                 },
                 "evidence": [
-                  "4.01%",
-                  "2.07%",
+                  "3.98%",
+                  "2.06%",
                   "29.46s"
                 ],
                 "perRun": [
@@ -344,8 +424,8 @@
                     "heat": 97
                   },
                   {
-                    "display": "85.22",
-                    "heat": 85
+                    "display": "85.71",
+                    "heat": 86
                   },
                   {
                     "display": "99.54",
@@ -364,7 +444,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "81.07",
+                    "display": "81.25",
                     "heat": 81
                   },
                   {
@@ -382,28 +462,108 @@
                 ]
               },
               {
+                "providerKey": "anthropic/claude-opus-5-5",
+                "display": "anthropic/claude-opus-5-5",
+                "model": "claude-opus-5-5",
+                "coverage": "13/13",
+                "quality": {
+                  "display": "94.37",
+                  "rank": 9,
+                  "value": 94.3670577806087
+                },
+                "speed": {
+                  "display": "6.8",
+                  "rank": 13,
+                  "value": 6.834303490208093
+                },
+                "cost": {
+                  "display": "$2.546",
+                  "rank": 23,
+                  "value": 2.545793103448276
+                },
+                "evidence": [
+                  "4.37%",
+                  "0.71%",
+                  "19.58s"
+                ],
+                "perRun": [
+                  {
+                    "display": "98.41",
+                    "heat": 98
+                  },
+                  {
+                    "display": "73.77",
+                    "heat": 74
+                  },
+                  {
+                    "display": "94.37",
+                    "heat": 94
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "88.18",
+                    "heat": 88
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "99.78",
+                    "heat": 100
+                  },
+                  {
+                    "display": "73.86",
+                    "heat": 74
+                  },
+                  {
+                    "display": "99.73",
+                    "heat": 100
+                  },
+                  {
+                    "display": "98.69",
+                    "heat": 99
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  }
+                ]
+              },
+              {
                 "providerKey": "anthropic/claude-sonnet-5",
                 "display": "anthropic/claude-sonnet-5",
                 "model": "claude-sonnet-5",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "93.09",
-                  "rank": 7,
-                  "value": 93.08583270920653
+                  "display": "93.14",
+                  "rank": 13,
+                  "value": 93.13726864578088
                 },
                 "speed": {
                   "display": "5.5",
-                  "rank": 13,
+                  "rank": 19,
                   "value": 5.477520131460483
                 },
                 "cost": {
                   "display": "$1.268",
-                  "rank": 16,
+                  "rank": 18,
                   "value": 1.267958620689655
                 },
                 "evidence": [
-                  "5.06%",
-                  "2.35%",
+                  "5.03%",
+                  "2.34%",
                   "24.44s"
                 ],
                 "perRun": [
@@ -424,8 +584,8 @@
                     "heat": 98
                   },
                   {
-                    "display": "83.25",
-                    "heat": 83
+                    "display": "83.74",
+                    "heat": 84
                   },
                   {
                     "display": "96.33",
@@ -444,8 +604,8 @@
                     "heat": 100
                   },
                   {
-                    "display": "81.34",
-                    "heat": 81
+                    "display": "81.51",
+                    "heat": 82
                   },
                   {
                     "display": "99.18",
@@ -462,18 +622,98 @@
                 ]
               },
               {
+                "providerKey": "anthropic/claude-sonnet-5-5",
+                "display": "anthropic/claude-sonnet-5-5",
+                "model": "claude-sonnet-5-5",
+                "coverage": "13/13",
+                "quality": {
+                  "display": "95.33",
+                  "rank": 5,
+                  "value": 95.33382767118039
+                },
+                "speed": {
+                  "display": "6.3",
+                  "rank": 16,
+                  "value": 6.257889796402792
+                },
+                "cost": {
+                  "display": "$1.342",
+                  "rank": 20,
+                  "value": 1.3415172413793102
+                },
+                "evidence": [
+                  "2.39%",
+                  "0.68%",
+                  "21.39s"
+                ],
+                "perRun": [
+                  {
+                    "display": "98.41",
+                    "heat": 98
+                  },
+                  {
+                    "display": "72.13",
+                    "heat": 72
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "99.13",
+                    "heat": 99
+                  },
+                  {
+                    "display": "81.77",
+                    "heat": 82
+                  },
+                  {
+                    "display": "96.33",
+                    "heat": 96
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "98.28",
+                    "heat": 98
+                  },
+                  {
+                    "display": "97.10",
+                    "heat": 97
+                  },
+                  {
+                    "display": "99.11",
+                    "heat": 99
+                  },
+                  {
+                    "display": "97.08",
+                    "heat": 97
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  }
+                ]
+              },
+              {
                 "providerKey": "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash",
                 "display": "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash",
                 "model": "deepseek-ai/DeepSeek-V4.1-Flash",
                 "coverage": "12/13",
                 "quality": {
-                  "display": "82.81",
-                  "rank": 22,
-                  "value": 82.8051785774326
+                  "display": "82.83",
+                  "rank": 29,
+                  "value": 82.82718561968612
                 },
                 "speed": {
                   "display": "3.3",
-                  "rank": 21,
+                  "rank": 27,
                   "value": 3.2607366547559202
                 },
                 "cost": {
@@ -482,8 +722,8 @@
                   "value": 0.045522857142857136
                 },
                 "evidence": [
-                  "7.37%",
-                  "6.30%",
+                  "7.33%",
+                  "6.28%",
                   "42.94s"
                 ],
                 "perRun": [
@@ -524,7 +764,7 @@
                     "heat": 99
                   },
                   {
-                    "display": "86.09",
+                    "display": "86.36",
                     "heat": 86
                   },
                   {
@@ -547,13 +787,13 @@
                 "model": "google/gemma-4-31B-it",
                 "coverage": "12/13",
                 "quality": {
-                  "display": "87.61",
-                  "rank": 19,
-                  "value": 87.60503910371392
+                  "display": "87.58",
+                  "rank": 25,
+                  "value": 87.57865956209639
                 },
                 "speed": {
                   "display": "5.4",
-                  "rank": 14,
+                  "rank": 20,
                   "value": 5.44302321060612
                 },
                 "cost": {
@@ -562,8 +802,8 @@
                   "value": 0.020918357142857145
                 },
                 "evidence": [
-                  "12.54%",
-                  "10.81%",
+                  "12.53%",
+                  "10.80%",
                   "25.72s"
                 ],
                 "perRun": [
@@ -584,7 +824,7 @@
                     "heat": 99
                   },
                   {
-                    "display": "85.22",
+                    "display": "84.73",
                     "heat": 85
                   },
                   {
@@ -604,7 +844,7 @@
                     "heat": 99
                   },
                   {
-                    "display": "95.25",
+                    "display": "95.42",
                     "heat": 95
                   },
                   {
@@ -627,23 +867,23 @@
                 "model": "Qwen/Qwen3.8-27B",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "85.39",
-                  "rank": 21,
-                  "value": 85.39441802579641
+                  "display": "85.41",
+                  "rank": 28,
+                  "value": 85.41473221864582
                 },
                 "speed": {
                   "display": "6.8",
-                  "rank": 11,
+                  "rank": 14,
                   "value": 6.808204277430412
                 },
                 "cost": {
                   "display": "$0.267",
-                  "rank": 6,
+                  "rank": 8,
                   "value": 0.2674120689655172
                 },
                 "evidence": [
-                  "10.19%",
-                  "6.40%",
+                  "10.16%",
+                  "6.38%",
                   "19.66s"
                 ],
                 "perRun": [
@@ -684,7 +924,7 @@
                     "heat": 99
                   },
                   {
-                    "display": "80.63",
+                    "display": "80.90",
                     "heat": 81
                   },
                   {
@@ -707,9 +947,9 @@
                 "model": "gemini-3.5-flash",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "90.57",
-                  "rank": 13,
-                  "value": 90.56847091846213
+                  "display": "90.55",
+                  "rank": 19,
+                  "value": 90.55089196997012
                 },
                 "speed": {
                   "display": "17.6",
@@ -718,12 +958,12 @@
                 },
                 "cost": {
                   "display": "$0.734",
-                  "rank": 13,
+                  "rank": 15,
                   "value": 0.7338155172413794
                 },
                 "evidence": [
-                  "48.19%",
-                  "22.27%",
+                  "48.17%",
+                  "22.26%",
                   "7.61s"
                 ],
                 "perRun": [
@@ -744,7 +984,7 @@
                     "heat": 99
                   },
                   {
-                    "display": "88.18",
+                    "display": "87.68",
                     "heat": 88
                   },
                   {
@@ -764,7 +1004,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "98.59",
+                    "display": "98.86",
                     "heat": 99
                   },
                   {
@@ -787,9 +1027,9 @@
                 "model": "gemini-3.5-flash-lite",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "81.31",
-                  "rank": 23,
-                  "value": 81.31170968910335
+                  "display": "81.38",
+                  "rank": 30,
+                  "value": 81.37668842091063
                 },
                 "speed": {
                   "display": "33.3",
@@ -798,12 +1038,12 @@
                 },
                 "cost": {
                   "display": "$0.147",
-                  "rank": 3,
+                  "rank": 5,
                   "value": 0.14674275862068964
                 },
                 "evidence": [
-                  "29.67%",
-                  "24.85%",
+                  "29.62%",
+                  "24.83%",
                   "4.02s"
                 ],
                 "perRun": [
@@ -824,8 +1064,8 @@
                     "heat": 15
                   },
                   {
-                    "display": "92.12",
-                    "heat": 92
+                    "display": "92.61",
+                    "heat": 93
                   },
                   {
                     "display": "96.33",
@@ -844,7 +1084,7 @@
                     "heat": 98
                   },
                   {
-                    "display": "97.54",
+                    "display": "97.89",
                     "heat": 98
                   },
                   {
@@ -867,9 +1107,9 @@
                 "model": "gemini-3.6-flash",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "94.41",
-                  "rank": 5,
-                  "value": 94.41046233303622
+                  "display": "94.46",
+                  "rank": 8,
+                  "value": 94.46189826961057
                 },
                 "speed": {
                   "display": "18.6",
@@ -878,12 +1118,12 @@
                 },
                 "cost": {
                   "display": "$0.542",
-                  "rank": 9,
+                  "rank": 11,
                   "value": 0.5422655172413793
                 },
                 "evidence": [
-                  "6.66%",
-                  "4.65%",
+                  "6.63%",
+                  "4.63%",
                   "7.18s"
                 ],
                 "perRun": [
@@ -904,7 +1144,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "88.67",
+                    "display": "89.16",
                     "heat": 89
                   },
                   {
@@ -924,7 +1164,7 @@
                     "heat": 99
                   },
                   {
-                    "display": "96.30",
+                    "display": "96.48",
                     "heat": 96
                   },
                   {
@@ -947,9 +1187,9 @@
                 "model": "gemini-3.7-flash",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "92.81",
-                  "rank": 8,
-                  "value": 92.80935981947916
+                  "display": "92.87",
+                  "rank": 14,
+                  "value": 92.87433855128644
                 },
                 "speed": {
                   "display": "27.1",
@@ -958,12 +1198,12 @@
                 },
                 "cost": {
                   "display": "$0.605",
-                  "rank": 12,
+                  "rank": 14,
                   "value": 0.6048258620689654
                 },
                 "evidence": [
-                  "6.69%",
-                  "1.58%",
+                  "6.64%",
+                  "1.56%",
                   "4.94s"
                 ],
                 "perRun": [
@@ -984,8 +1224,8 @@
                     "heat": 97
                   },
                   {
-                    "display": "77.34",
-                    "heat": 77
+                    "display": "77.83",
+                    "heat": 78
                   },
                   {
                     "display": "96.33",
@@ -1004,7 +1244,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "73.59",
+                    "display": "73.94",
                     "heat": 74
                   },
                   {
@@ -1027,9 +1267,9 @@
                 "model": "gemini-3.8-flash",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "94.08",
-                  "rank": 6,
-                  "value": 94.07942685587591
+                  "display": "94.14",
+                  "rank": 10,
+                  "value": 94.1444055876832
                 },
                 "speed": {
                   "display": "21.4",
@@ -1038,12 +1278,12 @@
                 },
                 "cost": {
                   "display": "$0.585",
-                  "rank": 11,
+                  "rank": 13,
                   "value": 0.5854034482758621
                 },
                 "evidence": [
-                  "5.18%",
-                  "1.91%",
+                  "5.12%",
+                  "1.89%",
                   "6.24s"
                 ],
                 "perRun": [
@@ -1064,7 +1304,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "81.77",
+                    "display": "82.27",
                     "heat": 82
                   },
                   {
@@ -1084,7 +1324,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "80.81",
+                    "display": "81.16",
                     "heat": 81
                   },
                   {
@@ -1102,28 +1342,108 @@
                 ]
               },
               {
+                "providerKey": "gemini/gemini-4-argon",
+                "display": "gemini/gemini-4-argon",
+                "model": "gemini-4-argon",
+                "coverage": "13/13",
+                "quality": {
+                  "display": "94.59",
+                  "rank": 7,
+                  "value": 94.59359435500602
+                },
+                "speed": {
+                  "display": "7.5",
+                  "rank": 11,
+                  "value": 7.485706173126315
+                },
+                "cost": {
+                  "display": "$1.669",
+                  "rank": 22,
+                  "value": 1.6690344827586208
+                },
+                "evidence": [
+                  "6.82%",
+                  "2.09%",
+                  "17.88s"
+                ],
+                "perRun": [
+                  {
+                    "display": "96.83",
+                    "heat": 97
+                  },
+                  {
+                    "display": "82.79",
+                    "heat": 83
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "89.66",
+                    "heat": 90
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "98.43",
+                    "heat": 98
+                  },
+                  {
+                    "display": "73.50",
+                    "heat": 74
+                  },
+                  {
+                    "display": "99.32",
+                    "heat": 99
+                  },
+                  {
+                    "display": "89.20",
+                    "heat": 89
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  }
+                ]
+              },
+              {
                 "providerKey": "glm/glm-5.3-flash",
                 "display": "glm/glm-5.3-flash",
                 "model": "glm-5.3-flash",
                 "coverage": "12/13",
                 "quality": {
-                  "display": "91.85",
-                  "rank": 10,
-                  "value": 91.84997746516139
+                  "display": "91.84",
+                  "rank": 16,
+                  "value": 91.83826928504622
                 },
                 "speed": {
                   "display": "2.0",
-                  "rank": 22,
+                  "rank": 28,
                   "value": 2.02451836346612
                 },
                 "cost": {
                   "display": "$0.196",
-                  "rank": 5,
+                  "rank": 7,
                   "value": 0.19552625000000004
                 },
                 "evidence": [
-                  "5.12%",
-                  "1.18%",
+                  "5.08%",
+                  "1.17%",
                   "69.15s"
                 ],
                 "perRun": [
@@ -1144,8 +1464,8 @@
                     "heat": 91
                   },
                   {
-                    "display": "83.74",
-                    "heat": 84
+                    "display": "83.25",
+                    "heat": 83
                   },
                   {
                     "display": "98.62",
@@ -1164,7 +1484,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "73.86",
+                    "display": "74.21",
                     "heat": 74
                   },
                   {
@@ -1187,22 +1507,22 @@
                 "model": "grok-4.5",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "88.50",
-                  "rank": 17,
-                  "value": 88.50195633913799
+                  "display": "88.48",
+                  "rank": 23,
+                  "value": 88.4776059930295
                 },
                 "speed": {
                   "display": "5.1",
-                  "rank": 16,
+                  "rank": 22,
                   "value": 5.05335060378827
                 },
                 "cost": {
                   "display": "$0.828",
-                  "rank": 14,
+                  "rank": 16,
                   "value": 0.8276827586206896
                 },
                 "evidence": [
-                  "8.10%",
+                  "8.09%",
                   "3.26%",
                   "26.49s"
                 ],
@@ -1224,8 +1544,8 @@
                     "heat": 31
                   },
                   {
-                    "display": "86.70",
-                    "heat": 87
+                    "display": "86.21",
+                    "heat": 86
                   },
                   {
                     "display": "95.87",
@@ -1244,7 +1564,7 @@
                     "heat": 98
                   },
                   {
-                    "display": "79.05",
+                    "display": "79.23",
                     "heat": 79
                   },
                   {
@@ -1267,23 +1587,23 @@
                 "model": "grok-4.6",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "87.92",
-                  "rank": 18,
-                  "value": 87.92466799037916
+                  "display": "87.91",
+                  "rank": 24,
+                  "value": 87.90708904188715
                 },
                 "speed": {
                   "display": "3.4",
-                  "rank": 20,
+                  "rank": 26,
                   "value": 3.443437579777918
                 },
                 "cost": {
                   "display": "$0.857",
-                  "rank": 15,
+                  "rank": 17,
                   "value": 0.8573862068965519
                 },
                 "evidence": [
-                  "6.43%",
-                  "2.40%",
+                  "6.41%",
+                  "2.39%",
                   "38.87s"
                 ],
                 "perRun": [
@@ -1304,7 +1624,7 @@
                     "heat": 31
                   },
                   {
-                    "display": "83.25",
+                    "display": "82.76",
                     "heat": 83
                   },
                   {
@@ -1324,7 +1644,7 @@
                     "heat": 98
                   },
                   {
-                    "display": "87.15",
+                    "display": "87.41",
                     "heat": 87
                   },
                   {
@@ -1342,28 +1662,108 @@
                 ]
               },
               {
+                "providerKey": "grok/grok-4.7",
+                "display": "grok/grok-4.7",
+                "model": "grok-4.7",
+                "coverage": "11/13",
+                "quality": {
+                  "display": "97.07",
+                  "rank": 1,
+                  "value": 97.07316446528966
+                },
+                "speed": {
+                  "display": "1.2",
+                  "rank": 29,
+                  "value": 1.1797236096920847
+                },
+                "cost": {
+                  "display": "$3.210",
+                  "rank": 24,
+                  "value": 3.2099333333333333
+                },
+                "evidence": [
+                  "2.27%",
+                  "0.62%",
+                  "124.84s"
+                ],
+                "perRun": [
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "99.18",
+                    "heat": 99
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "94.77",
+                    "heat": 95
+                  },
+                  {
+                    "display": "86.21",
+                    "heat": 86
+                  },
+                  {
+                    "display": "96.33",
+                    "heat": 96
+                  },
+                  {
+                    "display": "—",
+                    "heat": null
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "99.70",
+                    "heat": 100
+                  },
+                  {
+                    "display": "92.17",
+                    "heat": 92
+                  },
+                  {
+                    "display": "99.45",
+                    "heat": 99
+                  },
+                  {
+                    "display": "—",
+                    "heat": null
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  }
+                ]
+              },
+              {
                 "providerKey": "kimi/kimi-k2.6",
                 "display": "kimi/kimi-k2.6",
                 "model": "kimi-k2.6",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "87.43",
-                  "rank": 20,
-                  "value": 87.43346878493304
+                  "display": "87.42",
+                  "rank": 26,
+                  "value": 87.42266123405751
                 },
                 "speed": {
                   "display": "5.6",
-                  "rank": 12,
+                  "rank": 18,
                   "value": 5.6142252853091215
                 },
                 "cost": {
                   "display": "$0.545",
-                  "rank": 10,
+                  "rank": 12,
                   "value": 0.5452351724137932
                 },
                 "evidence": [
-                  "6.51%",
-                  "2.13%",
+                  "6.47%",
+                  "2.11%",
                   "23.84s"
                 ],
                 "perRun": [
@@ -1384,8 +1784,8 @@
                     "heat": 23
                   },
                   {
-                    "display": "83.74",
-                    "heat": 84
+                    "display": "83.25",
+                    "heat": 83
                   },
                   {
                     "display": "95.41",
@@ -1404,8 +1804,8 @@
                     "heat": 99
                   },
                   {
-                    "display": "92.17",
-                    "heat": 92
+                    "display": "92.52",
+                    "heat": 93
                   },
                   {
                     "display": "99.45",
@@ -1427,23 +1827,23 @@
                 "model": "kimi-k3",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "91.18",
-                  "rank": 11,
-                  "value": 91.17899701275687
+                  "display": "91.16",
+                  "rank": 17,
+                  "value": 91.16141806426486
                 },
                 "speed": {
                   "display": "0.9",
-                  "rank": 23,
+                  "rank": 30,
                   "value": 0.908353405855434
                 },
                 "cost": {
                   "display": "$5.166",
-                  "rank": 20,
+                  "rank": 27,
                   "value": 5.166289655172414
                 },
                 "evidence": [
-                  "4.23%",
-                  "1.49%",
+                  "4.20%",
+                  "1.48%",
                   "147.35s"
                 ],
                 "perRun": [
@@ -1464,8 +1864,8 @@
                     "heat": 31
                   },
                   {
-                    "display": "82.76",
-                    "heat": 83
+                    "display": "82.27",
+                    "heat": 82
                   },
                   {
                     "display": "95.87",
@@ -1484,7 +1884,7 @@
                     "heat": 99
                   },
                   {
-                    "display": "96.74",
+                    "display": "97.01",
                     "heat": 97
                   },
                   {
@@ -1507,9 +1907,9 @@
                 "model": "mistral-ocr-4-0",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "89.94",
-                  "rank": 14,
-                  "value": 89.93629119609515
+                  "display": "89.91",
+                  "rank": 20,
+                  "value": 89.90516945237019
                 },
                 "speed": {
                   "display": "44.8",
@@ -1518,12 +1918,12 @@
                 },
                 "cost": {
                   "display": "$0.400",
-                  "rank": 7,
+                  "rank": 9,
                   "value": 0.4
                 },
                 "evidence": [
                   "10.91%",
-                  "5.43%",
+                  "5.42%",
                   "2.99s"
                 ],
                 "perRun": [
@@ -1544,7 +1944,7 @@
                     "heat": 92
                   },
                   {
-                    "display": "92.12",
+                    "display": "91.63",
                     "heat": 92
                   },
                   {
@@ -1564,7 +1964,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "89.79",
+                    "display": "89.88",
                     "heat": 90
                   },
                   {
@@ -1587,9 +1987,9 @@
                 "model": "mistral-ocr-4-1",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "89.79",
-                  "rank": 15,
-                  "value": 89.78691131089059
+                  "display": "89.76",
+                  "rank": 21,
+                  "value": 89.7625609647821
                 },
                 "speed": {
                   "display": "41.1",
@@ -1598,12 +1998,12 @@
                 },
                 "cost": {
                   "display": "$0.400",
-                  "rank": 8,
+                  "rank": 10,
                   "value": 0.4
                 },
                 "evidence": [
-                  "11.44%",
-                  "6.64%",
+                  "11.43%",
+                  "6.63%",
                   "3.25s"
                 ],
                 "perRun": [
@@ -1624,7 +2024,7 @@
                     "heat": 92
                   },
                   {
-                    "display": "90.15",
+                    "display": "89.66",
                     "heat": 90
                   },
                   {
@@ -1644,7 +2044,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "92.25",
+                    "display": "92.43",
                     "heat": 92
                   },
                   {
@@ -1667,9 +2067,9 @@
                 "model": "gpt-5.6-luna",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "88.72",
-                  "rank": 16,
-                  "value": 88.72277488763665
+                  "display": "88.74",
+                  "rank": 22,
+                  "value": 88.73631768286958
                 },
                 "speed": {
                   "display": "12.6",
@@ -1678,12 +2078,12 @@
                 },
                 "cost": {
                   "display": "$0.155",
-                  "rank": 4,
+                  "rank": 6,
                   "value": 0.15467310344827587
                 },
                 "evidence": [
-                  "12.40%",
-                  "12.23%",
+                  "12.38%",
+                  "12.22%",
                   "10.61s"
                 ],
                 "perRun": [
@@ -1724,7 +2124,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "92.17",
+                    "display": "92.34",
                     "heat": 92
                   },
                   {
@@ -1747,23 +2147,23 @@
                 "model": "gpt-5.6-sol",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "94.88",
-                  "rank": 4,
-                  "value": 94.8841086309429
+                  "display": "94.95",
+                  "rank": 6,
+                  "value": 94.94908736275018
                 },
                 "speed": {
                   "display": "5.3",
-                  "rank": 15,
+                  "rank": 21,
                   "value": 5.335541143461662
                 },
                 "cost": {
                   "display": "$4.533",
-                  "rank": 19,
+                  "rank": 26,
                   "value": 4.533448275862069
                 },
                 "evidence": [
-                  "2.56%",
-                  "1.31%",
+                  "2.51%",
+                  "1.29%",
                   "25.09s"
                 ],
                 "perRun": [
@@ -1784,7 +2184,7 @@
                     "heat": 98
                   },
                   {
-                    "display": "67.98",
+                    "display": "68.47",
                     "heat": 68
                   },
                   {
@@ -1804,7 +2204,7 @@
                     "heat": 100
                   },
                   {
-                    "display": "96.74",
+                    "display": "97.10",
                     "heat": 97
                   },
                   {
@@ -1827,9 +2227,9 @@
                 "model": "gpt-5.6-terra",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "91.06",
-                  "rank": 12,
-                  "value": 91.05598248608696
+                  "display": "91.08",
+                  "rank": 18,
+                  "value": 91.08306807655283
                 },
                 "speed": {
                   "display": "10.8",
@@ -1838,12 +2238,12 @@
                 },
                 "cost": {
                   "display": "$1.343",
-                  "rank": 17,
+                  "rank": 21,
                   "value": 1.3431034482758621
                 },
                 "evidence": [
-                  "4.45%",
-                  "2.54%",
+                  "4.41%",
+                  "2.52%",
                   "12.37s"
                 ],
                 "perRun": [
@@ -1884,8 +2284,8 @@
                     "heat": 98
                   },
                   {
-                    "display": "96.48",
-                    "heat": 96
+                    "display": "96.83",
+                    "heat": 97
                   },
                   {
                     "display": "98.43",
@@ -1907,23 +2307,23 @@
                 "model": "gpt-6-astra",
                 "coverage": "13/13",
                 "quality": {
-                  "display": "95.64",
-                  "rank": 2,
-                  "value": 95.64238274797714
+                  "display": "95.69",
+                  "rank": 3,
+                  "value": 95.69381868455147
                 },
                 "speed": {
                   "display": "7.4",
-                  "rank": 10,
+                  "rank": 12,
                   "value": 7.44047619047619
                 },
                 "cost": {
                   "display": "$5.551",
-                  "rank": 21,
+                  "rank": 28,
                   "value": 5.551068965517241
                 },
                 "evidence": [
-                  "1.96%",
-                  "0.38%",
+                  "1.92%",
+                  "0.36%",
                   "17.99s"
                 ],
                 "perRun": [
@@ -1944,7 +2344,7 @@
                     "heat": 99
                   },
                   {
-                    "display": "83.74",
+                    "display": "84.24",
                     "heat": 84
                   },
                   {
@@ -1964,8 +2364,8 @@
                     "heat": 98
                   },
                   {
-                    "display": "96.48",
-                    "heat": 96
+                    "display": "96.65",
+                    "heat": 97
                   },
                   {
                     "display": "99.18",
@@ -1980,18 +2380,181 @@
                     "heat": 100
                   }
                 ]
+              },
+              {
+                "providerKey": "openai/gpt-6-luna",
+                "display": "openai/gpt-6-luna",
+                "model": "gpt-6-luna",
+                "coverage": "13/13",
+                "quality": {
+                  "display": "93.16",
+                  "rank": 12,
+                  "value": 93.15835974416336
+                },
+                "speed": {
+                  "display": "6.4",
+                  "rank": 15,
+                  "value": 6.3866804677692866
+                },
+                "cost": {
+                  "display": "$0.084",
+                  "rank": 4,
+                  "value": 0.08389689655172414
+                },
+                "evidence": [
+                  "9.12%",
+                  "7.17%",
+                  "20.96s"
+                ],
+                "perRun": [
+                  {
+                    "display": "92.06",
+                    "heat": 92
+                  },
+                  {
+                    "display": "95.90",
+                    "heat": 96
+                  },
+                  {
+                    "display": "99.06",
+                    "heat": 99
+                  },
+                  {
+                    "display": "93.02",
+                    "heat": 93
+                  },
+                  {
+                    "display": "74.88",
+                    "heat": 75
+                  },
+                  {
+                    "display": "95.87",
+                    "heat": 96
+                  },
+                  {
+                    "display": "96.15",
+                    "heat": 96
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "99.40",
+                    "heat": 99
+                  },
+                  {
+                    "display": "94.10",
+                    "heat": 94
+                  },
+                  {
+                    "display": "97.54",
+                    "heat": 98
+                  },
+                  {
+                    "display": "73.06",
+                    "heat": 73
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  }
+                ]
+              },
+              {
+                "providerKey": "openai/gpt-6.1-sol",
+                "display": "openai/gpt-6.1-sol",
+                "model": "gpt-6.1-sol",
+                "coverage": "13/13",
+                "quality": {
+                  "display": "93.23",
+                  "rank": 11,
+                  "value": 93.22943355088991
+                },
+                "speed": {
+                  "display": "8.2",
+                  "rank": 10,
+                  "value": 8.20777946545657
+                },
+                "cost": {
+                  "display": "$1.301",
+                  "rank": 19,
+                  "value": 1.3006965517241378
+                },
+                "evidence": [
+                  "4.76%",
+                  "0.76%",
+                  "16.31s"
+                ],
+                "perRun": [
+                  {
+                    "display": "92.06",
+                    "heat": 92
+                  },
+                  {
+                    "display": "73.77",
+                    "heat": 74
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "98.84",
+                    "heat": 99
+                  },
+                  {
+                    "display": "80.30",
+                    "heat": 80
+                  },
+                  {
+                    "display": "96.33",
+                    "heat": 96
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  },
+                  {
+                    "display": "98.35",
+                    "heat": 98
+                  },
+                  {
+                    "display": "73.68",
+                    "heat": 74
+                  },
+                  {
+                    "display": "99.80",
+                    "heat": 100
+                  },
+                  {
+                    "display": "98.86",
+                    "heat": 99
+                  },
+                  {
+                    "display": "100.00",
+                    "heat": 100
+                  }
+                ]
               }
             ]
           }
         ],
         "methodParagraphs": [
           "Providers are matched by `providerKey` and aggregated across the runs they appear in; sums and means cover present values only.",
-          "Quality ranks the unweighted mean `metrics.score` descending. Speed ranks aggregate pages per minute (`sum(pageCount) / sum(processingTimeMs / 60000)`) descending. Cost ranks USD per 100 pages (`sum(costCents) / sum(pageCount)`) ascending with local providers at zero. Weighted WER/CER are evidence: summed breakdown errors over summed reference counts. Missing values sort last; ties break deterministically."
+          "Quality ranks the unweighted mean `metrics.score` descending. Speed ranks aggregate pages per minute (`sum(pageCount) / sum(processingTimeMs / 60000)`) descending. Cost ranks USD per 100 pages (`sum(costCents) / sum(pageCount)`) ascending with local providers at zero. Weighted WER/CER are evidence: summed breakdown errors over summed reference counts. Missing values sort last; ties break deterministically.",
+          "Per-run WER uses ASCII [a-z0-9] tokens after normalization and excludes non-ASCII glyphs, including Japanese. Headline quality is WER-derived; assess Japanese and other non-Latin extraction with supporting Unicode CER and source-image review."
         ],
         "notes": [
           "Each provider is aggregated by providerKey across the runs it appears in; sums and means cover present values only.",
           "Groups follow the single-run OCR contract: local, thirdPartyService; local and service providers are never ranked against each other.",
           "Weighted WER and weighted CER are evidence columns: summed breakdown errors divided by summed reference counts, so longer runs count proportionally more.",
+          "Per-run WER tokenizes normalized text as ASCII [a-z0-9] runs and excludes non-ASCII glyphs, including Japanese. The WER-derived headline quality score does not measure complete Japanese or other non-Latin OCR accuracy.",
+          "CER retains normalized Unicode letters and numbers as supporting evidence. Review CER and the source images when assessing non-Latin extraction quality.",
           "Each group ranks price, speed, and quality score independently. No weighted composite or model-tier ranking is emitted.",
           "Supersedes the hand-authored 2026-06-14 combined report, which is preserved as a historical record."
         ]
@@ -2004,7 +2567,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-10-16T12:57:30.385Z",
+        "generatedAt": "2026-10-17T18:11:23.419Z",
         "rootDir": "docs/benchmarks/stt-local",
         "summaryStats": [
           {
@@ -2446,7 +3009,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-10-16T12:57:30.385Z",
+        "generatedAt": "2026-10-17T18:11:23.419Z",
         "rootDir": "docs/benchmarks/stt-with-speakers",
         "summaryStats": [
           {
@@ -2969,7 +3532,7 @@
       "model": {
         "title": "Combined STT Provider Comparison",
         "category": "stt",
-        "generatedAt": "2026-10-16T12:57:30.385Z",
+        "generatedAt": "2026-10-17T18:11:23.419Z",
         "rootDir": "docs/benchmarks/stt-without-speakers",
         "summaryStats": [
           {
@@ -3668,7 +4231,7 @@
       "model": {
         "title": "Combined URL Provider Comparison",
         "category": "url",
-        "generatedAt": "2026-10-16T12:57:30.385Z",
+        "generatedAt": "2026-10-17T18:11:23.419Z",
         "rootDir": "docs/benchmarks/url",
         "summaryStats": [
           {
@@ -4312,7 +4875,7 @@
       "model": {
         "title": "TTS benchmark results",
         "category": "tts",
-        "generatedAt": "2026-10-16T12:57:30.385Z",
+        "generatedAt": "2026-10-17T18:11:23.419Z",
         "rootDir": "docs/benchmarks/tts",
         "summaryStats": [
           {

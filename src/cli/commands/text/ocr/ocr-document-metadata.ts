@@ -5,7 +5,7 @@ import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { serializeOneOrMany } from '../../command-shared/target-runner'
 import { resolveOcrStep2ExecutionFromFormat } from '../../command-shared/extract-routing/resolved-step2'
-import { buildOcrCostDiagnostics, collectEstimatedExtractTargets, resolveExtractEstimatedCosts, resolveExtractObservedEstimateCosts } from './ocr-costs'
+import { buildOcrCostDiagnostics, collectEstimatedExtractTargets, preserveRecordedOcrActualCosts, resolveExtractEstimatedCosts, resolveExtractObservedEstimateCosts } from './ocr-costs'
 
 export const buildDocumentSource = (
   filePath: string,
@@ -100,7 +100,10 @@ export const buildDocumentMetadataPayload = (
   const extractTargets = collectEstimatedExtractTargets(costStep2)
   const estimated = resolveExtractEstimatedCosts(options.preflightEstimate, costStep2)
   const observedEstimate = resolveExtractObservedEstimateCosts(costStep2)
-  const actual = computeActualCosts({ step2: normalizedStep2, partialStep2 })
+  const actual = preserveRecordedOcrActualCosts(
+    computeActualCosts({ step2: normalizedStep2, partialStep2 }),
+    options.recordedActualCostSteps
+  )
   const ocrDiagnostics = buildOcrCostDiagnostics(costStep2, estimated, actual)
   const cost = {
     estimated,

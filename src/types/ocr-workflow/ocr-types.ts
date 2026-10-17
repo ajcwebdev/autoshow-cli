@@ -146,7 +146,7 @@ export type HostedOcrRun = {
   promptTokens?: number
   completionTokens?: number
   providerCostCents?: number
-  providerCostSource?: 'provider_usage' | 'provider_quote' | 'registry_fallback'
+  providerCostSource?: 'provider_usage' | 'provider_quote' | 'registry_fallback' | 'partial_provider_usage'
   providerUsage?: Array<Record<string, unknown>>
   pdfChunkPreparation?: PdfChunkPreparationSummary
   hostedOcrScheduler?: HostedOcrSchedulerTelemetry
@@ -351,6 +351,7 @@ export type PdfChapterDetectionSummary = {
 
 
 export type OcrMetadataOptions = {
+  recordedActualCostSteps?: import('~/types').StepCostEntry[] | undefined
   failures?: Array<{
     service: string
     model: string

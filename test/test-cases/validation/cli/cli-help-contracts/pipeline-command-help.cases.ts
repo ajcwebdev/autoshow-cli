@@ -164,7 +164,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(writeResult.stdout).not.toContain('--stt')
     expect(writeResult.stdout).not.toContain('--ocr')
     expect(writeResult.stdout).toContain('--llm')
-    expect(writeResult.stdout).toContain('grok=grok-4.6')
+    expect(writeResult.stdout).toContain('grok=grok-4.7')
     expect(writeResult.stdout).not.toContain('--tts')
     expect(writeResult.stdout).not.toContain('--image')
     expect(writeResult.stdout).not.toContain('--video')

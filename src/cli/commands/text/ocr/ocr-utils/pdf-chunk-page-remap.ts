@@ -101,7 +101,9 @@ export const stitchHostedOcrChunkRuns = (
     ...(hasCompletionTokens ? { completionTokens } : {}),
     ...(hasProviderCost ? { providerCostCents } : {}),
     ...(providerCostSources.length > 0
-      ? { providerCostSource: providerCostSources.includes('registry_fallback') ? 'registry_fallback' as const : 'provider_quote' as const }
+      ? { providerCostSource: providerCostSources.includes('partial_provider_usage')
+          ? 'partial_provider_usage' as const
+          : providerCostSources.includes('registry_fallback') ? 'registry_fallback' as const : 'provider_quote' as const }
       : {}),
     ...(providerUsage.length > 0 ? { providerUsage } : {}),
     ...(pdfChunkPreparation !== undefined ? { pdfChunkPreparation } : {})

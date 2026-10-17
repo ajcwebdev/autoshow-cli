@@ -2,7 +2,7 @@ import { assertRequiredImageModel } from '~/utils/required-image-model'
 import type { OpenAIChatCompletionResponse, OpenAIErrorFields, OpenAIFetchOptions, OpenAIImageResponse, OpenAIRequestOptions, OpenAIResponsesResponse, OpenAIRestConfig } from '~/types'
 import { OPENAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { redactPayloadPreview } from '~/utils/bounded-capture'
-import { AppProviderError } from '~/utils/error-handler'
+import { AppProviderError, ValidationError } from '~/utils/error-handler'
 import { createProviderRestClient, isRecord, joinRestUrl, readJsonResponse } from '~/utils/rest-client'
 import { readHttpPayloadBytes } from '~/utils/http-payload'
 
@@ -219,6 +219,16 @@ export const createOpenAIImageEdit = async (
 }
 
 export const extractOpenAIResponseText = (response: OpenAIResponsesResponse): string | undefined => {
+  const refused = response.output?.some(item => isRecord(item)
+    && Array.isArray(item['content'])
+    && item['content'].some(part => isRecord(part) && part['type'] === 'refusal'))
+  if ((response.status !== undefined && response.status !== 'completed') || response.error != null || refused) {
+    throw ValidationError(`OpenAI Responses returned ${refused ? 'a refusal' : response.status ?? 'an error'} instead of completed text.`, {
+      stage: 'openai:response',
+      retryable: false,
+      metadata: { rawResponse: response, usage: response.usage }
+    })
+  }
   if (typeof response.output_text === 'string') {
     return response.output_text
   }
