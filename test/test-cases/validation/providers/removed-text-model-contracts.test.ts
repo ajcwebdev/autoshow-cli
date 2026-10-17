@@ -66,7 +66,7 @@ describe('removed text selections reject before dispatch', () => {
   })
 
   test('remaining defaults, saved overrides and reset resolve through cheapest eligible selection', async () => await withLocalTestDir('retained-defaults', async root => {
-    for (const [provider, expected] of [['openai', 'gpt-5.6-luna'], ['anthropic', 'claude-sonnet-5'], ['gemini', 'gemini-3.7-flash'], ['grok', 'grok-4.6'], ['glm', 'glm-5.3-flash'], ['together', 'glm-5.3-flash'], ['kimi', 'kimi-k3']] as const) {
+    for (const [provider, expected] of [['openai', 'gpt-6-luna'], ['anthropic', 'claude-haiku-5-5'], ['gemini', 'gemini-3.7-flash'], ['grok', 'grok-4.6'], ['glm', 'glm-5.3-flash'], ['together', 'glm-5.3-flash'], ['kimi', 'kimi-k3']] as const) {
       expect(resolveCheapestModelForFlag(provider)).toBe(expected)
       expect(Reflect.get(buildOptsFromFlags({ [provider]: true }), `${provider}Models`)).toEqual([expected])
     }
@@ -79,16 +79,16 @@ describe('removed text selections reject before dispatch', () => {
     expect(buildOptsFromFlags(mergeConfigIntoRawFlags({ openai: 'gpt-5.6-terra' }, saved, new Set(['openai']))).openaiModels).toEqual(['gpt-5.6-terra'])
     await Bun.write(path, '{}')
     expect(await loadConfig(path)).toEqual({})
-    expect(buildOptsFromFlags({ openai: true }).openaiModels).toEqual(['gpt-5.6-luna'])
+    expect(buildOptsFromFlags({ openai: true }).openaiModels).toEqual(['gpt-6-luna'])
   }))
 })
 
 const writeRemoved = [
-  ['gemini', 'gemini-3.5-flash-lite', 'gemini-3.8-flash, gemini-3.7-flash'],
-  ['gemini', 'gemini-3.6-flash', 'gemini-3.8-flash, gemini-3.7-flash'],
-  ['gemini', 'gemini-3.5-flash', 'gemini-3.8-flash, gemini-3.7-flash'],
-  ['grok', 'grok-4.5', 'grok-4.6'],
-  ['anthropic', 'claude-fable-5', 'claude-fable-5-1, claude-sonnet-5, claude-opus-5'],
+  ['gemini', 'gemini-3.5-flash-lite', 'gemini-4-argon, gemini-3.8-flash, gemini-3.7-flash'],
+  ['gemini', 'gemini-3.6-flash', 'gemini-4-argon, gemini-3.8-flash, gemini-3.7-flash'],
+  ['gemini', 'gemini-3.5-flash', 'gemini-4-argon, gemini-3.8-flash, gemini-3.7-flash'],
+  ['grok', 'grok-4.5', 'grok-4.7, grok-4.6'],
+  ['anthropic', 'claude-fable-5', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-1, claude-sonnet-5, claude-opus-5'],
   ['kimi', 'kimi-k2.6', 'kimi-k3'],
 ] as const
 
@@ -123,7 +123,7 @@ describe('write-only catalog removals stay valid for OCR and Gemini 3.6 Flash ST
 
   test('Gemini 3.6 Flash is rejected for write and STT while OCR keeps it', () => {
     expect(() => parseWrite('gemini', 'gemini-3.6-flash')).toThrow(
-      'Invalid model "gemini-3.6-flash" for --llm gemini[=model]. Allowed values: gemini-3.8-flash, gemini-3.7-flash'
+      'Invalid model "gemini-3.6-flash" for --llm gemini[=model]. Allowed values: gemini-4-argon, gemini-3.8-flash, gemini-3.7-flash'
     )
     expect(() => buildOptsFromFlags({ 'gemini-stt': 'gemini-3.6-flash' })).toThrow(
       'Model "gemini-3.6-flash" is retired for --provider/--stt gemini[=model]. Use "gemini-3.5-transcribe" instead.'
@@ -137,9 +137,9 @@ describe('write-only catalog removals stay valid for OCR and Gemini 3.6 Flash ST
       expect(Reflect.get(llmOpts, `${provider}Models`) ?? []).not.toContain(model)
       expect(Reflect.get(ocrOpts, `${provider}OcrModels`) ?? []).toContain(model)
     }
-    expect(llmOpts.geminiModels).toEqual(['gemini-3.8-flash', 'gemini-3.7-flash'])
-    expect(llmOpts.grokModels).toEqual(['grok-4.6'])
+    expect(llmOpts.geminiModels).toEqual(['gemini-4-argon', 'gemini-3.8-flash', 'gemini-3.7-flash'])
+    expect(llmOpts.grokModels).toEqual(['grok-4.7', 'grok-4.6'])
     expect(llmOpts.kimiModels).toEqual(['kimi-k3'])
-    expect(llmOpts.anthropicModels).toEqual(['claude-fable-5-1', 'claude-sonnet-5', 'claude-opus-5'])
+    expect(llmOpts.anthropicModels).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1', 'claude-sonnet-5', 'claude-opus-5'])
   })
 })

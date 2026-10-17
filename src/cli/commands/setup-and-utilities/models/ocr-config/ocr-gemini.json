@@ -3,6 +3,39 @@
     "description": "Google Gemini OCR via GenerateContent",
     "type": "api",
     "models": {
+      "gemini-4-argon": {
+        "description": "Gemini 4 Argon OCR — flagship reasoning model",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "Gemini API paid Standard",
+        "pricingNotes": "Google lists Gemini 4 Argon Standard introductory pricing of $2/1M input and $10/1M output tokens through 2026-11-30, then $4/1M input and $20/1M output from 2026-12-01. Output includes thinking tokens. AutoShow conservatively records the standard rates, so estimates overstate cost during the introductory window. Implicit cache reads cost $0.10/1M then $0.20/1M; explicit caching and free tier are unsupported. No context price tier is published. OCR costs use observed input and candidate-plus-thinking output usage; page/timing heuristics inherited from Flash are provisional, not a per-page tariff or measured Argon performance. Batch/flex/priority/Contributor rates, cache discounts, search grounding, taxes and provider credits are excluded. Automatic date transitions are unsupported; recheck the tariff by 2026-12-01.",
+        "costPerMInputTokensCents": 400,
+        "costPerMOutputTokensCents": 2000,
+        "limits": {
+          "pdfBytes": 52428800,
+          "imageBytes": 2147483648,
+          "pageCount": 1000,
+          "contextTokens": 1048576,
+          "maxOutputTokens": 65536,
+          "notes": "https://ai.google.dev/gemini-api/docs/models/gemini-4-argon documents a unified 1,048,576-token input, thinking and output window and 65,536 synchronous output tokens. https://ai.google.dev/gemini-api/docs/document-processing limits PDFs to 50 MB or 1000 pages, including uploads. https://ai.google.dev/gemini-api/docs/file-input-methods permits 100 MB inline non-PDF payloads and 2 GB Files uploads; actual image/context capacity still applies. Long decode and continuation are not implemented."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 2921,
+          "promptTokensPerPage": 1157,
+          "completionTokensPerPage": 1626
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      },
       "gemini-3.8-flash": {
         "description": "Gemini 3.8 Flash OCR",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",

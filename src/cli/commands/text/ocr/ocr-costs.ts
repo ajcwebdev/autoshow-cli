@@ -3,7 +3,7 @@ import { FIRECRAWL_PRICE_NOTE } from '~/cli/commands/text/url/url-pricing/url-es
 import { isRecord } from '~/utils/rest-client'
 import { getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { isTokenPricedOcrProvider } from '~/types'
-import type { ActualCostBreakdown, AggregatedPriceEstimate, CollectEstimatedExtractTargetsOptions, EstimatedCostBreakdown, EstimatedStepEntry, ExtractEstimateProvider, ExtractEstimateTarget, ExtractionMetadata, OcrModelFallbackOptions, PartialExtractionMetadata } from '~/types'
+import type { ActualCostBreakdown, AggregatedPriceEstimate, CollectEstimatedExtractTargetsOptions, EstimatedCostBreakdown, EstimatedStepEntry, ExtractEstimateProvider, ExtractEstimateTarget, ExtractionMetadata, OcrModelFallbackOptions, PartialExtractionMetadata, StepCostEntry } from '~/types'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { toArray } from '~/utils/text-utils'
 import { computeObservedEstimateCosts, computePriceAlignedEstimatedCosts, preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
@@ -30,6 +30,28 @@ const tokenProfileCostInput = (
 })
 
 export { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
+
+export const preserveRecordedOcrActualCosts = (
+  actual: ActualCostBreakdown,
+  recordedSteps: StepCostEntry[] = []
+): ActualCostBreakdown => {
+  if (recordedSteps.length === 0) return actual
+  const key = (row: StepCostEntry): string => `${row.step}:${row.provider}:${row.model}`
+  const recorded = groupRowsByKey(recordedSteps, key)
+  const restored = new Set<string>()
+  const steps = actual.steps.flatMap(row => {
+    const identity = key(row)
+    const original = recorded.get(identity)
+    if (!original) return [row]
+    if (restored.has(identity)) return []
+    restored.add(identity)
+    return original
+  })
+  for (const [identity, rows] of recorded) {
+    if (!restored.has(identity)) steps.push(...rows)
+  }
+  return { ...actual, steps, totalCost: steps.reduce((sum, row) => sum + row.cost, 0) }
+}
 
 
 const isPartialExtractionMetadata = (

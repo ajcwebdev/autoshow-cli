@@ -61,6 +61,8 @@ export const getExtractLimits = (
         : undefined)
 
   return {
+    ...(limits?.contextTokens !== undefined ? { contextTokens: limits.contextTokens } : {}),
+    ...(limits?.maxOutputTokens !== undefined ? { maxOutputTokens: limits.maxOutputTokens } : {}),
     ...(effectiveBytes !== undefined ? { effectiveBytes } : {}),
     ...(limits?.imageBytes !== undefined ? { imageBytes: limits.imageBytes } : {}),
     ...(limits?.pdfBytes !== undefined ? { pdfBytes: limits.pdfBytes } : {}),

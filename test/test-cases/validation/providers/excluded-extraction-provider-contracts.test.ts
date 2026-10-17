@@ -30,9 +30,9 @@ const opts = () => buildOptsFromFlags({})
 const sttTarget = (service: typeof excludedStt[number]): SttTarget => ({ service, model: 'auto', local: false })
 const urlState = (service: HtmlArticleBackend, status: 'succeeded' | 'missing' | 'failed' | 'running') => ({ service, model: service, status, attempts: 1, artifactDir: `providers/${service}`, metadata: { originalReceipt: 'retained' } })
 
-test('five excluded tuples leave the active 114-model inventory, credentials and expansion together', () => {
+test('five excluded tuples stay outside the active 128-model inventory, credentials and expansion', () => {
   const registry = getModelRegistry()
-  expect(Object.fromEntries(Object.entries(registry).map(([category, services]) => [category, Object.values(services).reduce((n, service) => n + Object.keys(service.models).length, 0)]))).toEqual({ stt: 31, extract: 26, llm: 16, tts: 7, image: 13, music: 4, video: 17 })
+  expect(Object.fromEntries(Object.entries(registry).map(([category, services]) => [category, Object.values(services).reduce((n, service) => n + Object.keys(service.models).length, 0)]))).toEqual({ stt: 31, extract: 33, llm: 23, tts: 7, image: 13, music: 4, video: 17 })
   expect(URL_ARTICLE_BACKENDS).toEqual(['defuddle', 'spider', 'zyte'])
   expect(Object.keys(URL_ARTICLE_PROVIDER_ADAPTERS)).toEqual(['defuddle', 'spider', 'zyte'])
   for (const provider of excludedStt) expect(registry.stt[provider]).toBeUndefined()

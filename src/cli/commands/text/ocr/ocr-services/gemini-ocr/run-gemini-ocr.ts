@@ -2,8 +2,8 @@ import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult, RetryDecision } from '~/types'
 import { resolveCredential } from '~/utils/validate/env-utils'
-import { InfraError, InternalError } from '~/utils/error-handler'
-import { classifyGeminiRetry } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
+import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { classifyGeminiRetry, GEMINI_ARGON_MIN_OCR_OUTPUT_TOKENS, isGeminiArgonModel } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
 import { classifyOcrCreateRetry, OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry, withOcrSchemaRetry } from '~/cli/commands/text/ocr/ocr-utils/ocr-retry'
 import { getCachedCloudStagingObject } from '~/cli/commands/text/ocr/ocr-utils/preparation-cache'
 import { buildHostedOcrJsonPrompt, createHostedOcrResponseParser, HOSTED_OCR_PAGES_JSON_SCHEMA } from '../../ocr-utils/hosted-ocr-json'
@@ -13,7 +13,8 @@ import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/model
 import {
   GEMINI_FILE_UPLOAD_BYTES,
   GEMINI_INLINE_NON_PDF_BYTES,
-  GEMINI_INLINE_PDF_BYTES
+  GEMINI_INLINE_PDF_BYTES,
+  GEMINI_PDF_PAGE_COUNT_LIMIT
 } from './gemini-ocr'
 import { OcrStructuredResponseError } from '~/cli/commands/text/ocr/ocr-structured-response-error'
 
@@ -107,15 +108,19 @@ const buildGeminiThinkingLevel = (effective: string): string | undefined => {
 const buildGeminiOcrGenerationConfig = (
   expectedPageCount: number,
   format: DocumentMetadata['format'],
-  effectiveReasoningEffort: string
+  effectiveReasoningEffort: string,
+  model: string
 ): Record<string, unknown> => {
   const thinkingLevel = buildGeminiThinkingLevel(effectiveReasoningEffort)
+  const maxOutputTokens = expectedPageCount === 1 && format !== 'pdf'
+    ? GEMINI_OCR_SINGLE_PAGE_IMAGE_MAX_OUTPUT_TOKENS
+    : buildGeminiOcrMaxOutputTokens(expectedPageCount)
   return {
     responseMimeType: 'application/json',
     responseJsonSchema: HOSTED_OCR_PAGES_JSON_SCHEMA,
-    maxOutputTokens: expectedPageCount === 1 && format !== 'pdf'
-      ? GEMINI_OCR_SINGLE_PAGE_IMAGE_MAX_OUTPUT_TOKENS
-      : buildGeminiOcrMaxOutputTokens(expectedPageCount),
+    maxOutputTokens: isGeminiArgonModel(model)
+      ? Math.max(GEMINI_ARGON_MIN_OCR_OUTPUT_TOKENS, maxOutputTokens)
+      : maxOutputTokens,
     ...(thinkingLevel ? { thinkingConfig: { thinkingLevel } } : {})
   }
 }
@@ -246,6 +251,9 @@ export const runGeminiOcr = async (
     model,
     requestedReasoningEffort: opts.reasoningEffort
   })
+  if (isGeminiArgonModel(model) && step1Metadata.format === 'bmp') {
+    throw ValidationError('Gemini 4 Argon requires BMP images to be normalized to PNG before OCR dispatch.', { stage: 'ocr:gemini' })
+  }
   const apiKey = resolveCredential('gemini', 'require', { stage: 'ocr:gemini', description: 'Gemini OCR' })
 
   const expectedPageCount = Math.max(1, step1Metadata.pageCount)
@@ -255,6 +263,11 @@ export const runGeminiOcr = async (
   const mimeType = getGeminiMimeType(step1Metadata.format)
   const initialPrompt = buildHostedOcrJsonPrompt(expectedPageCount)
   const fileSizeBytes = Bun.file(filePath).size
+  if (isGeminiArgonModel(model) && step1Metadata.format === 'pdf' && (
+    fileSizeBytes > GEMINI_INLINE_PDF_BYTES || expectedPageCount > GEMINI_PDF_PAGE_COUNT_LIMIT
+  )) {
+    throw InfraError(`Gemini 4 Argon PDF input exceeds the 50 MB or 1000 page document limit for ${basename(filePath)}.`, { stage: 'ocr:gemini', retryable: false })
+  }
   if (fileSizeBytes > GEMINI_FILE_UPLOAD_BYTES) {
     throw InfraError(`Gemini OCR input exceeds the 2 GB file upload limit for ${basename(filePath)}.`, { stage: 'ocr:gemini' })
   }
@@ -324,7 +337,7 @@ export const runGeminiOcr = async (
           return await geminiGenerateContent(apiKey, {
             model,
             contents,
-            generationConfig: buildGeminiOcrGenerationConfig(expectedPageCount, step1Metadata.format, policy.effective),
+            generationConfig: buildGeminiOcrGenerationConfig(expectedPageCount, step1Metadata.format, policy.effective, model),
             ...(signal ? { abortSignal: signal } : {})
           })
         } finally {

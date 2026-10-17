@@ -3,16 +3,18 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import * as v from 'valibot'
 import * as l from '~/utils/app-logger/app-logger'
-import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult } from '~/types'
+import type { DocumentMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult } from '~/types'
 import { parseAndValidateStructured } from '~/cli/commands/text/write/structured-output/validator'
 import { splitPdfPages } from '~/cli/commands/sources/download/document/mutool-utils'
 import { getAnthropicClientConfig } from '~/cli/commands/text/write/write-services/write-anthropic/anthropic-utils'
 import { withOcrCreateRetry, withOcrSchemaRetry } from '~/cli/commands/text/ocr/ocr-utils/ocr-retry'
-import { OcrStructuredResponseError } from '~/cli/commands/text/ocr/ocr-structured-response-error'
+import { OcrOutputLimitError, OcrStructuredResponseError } from '~/cli/commands/text/ocr/ocr-structured-response-error'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { applyAnthropicReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { transformAnthropicJsonSchema } from '~/utils/anthropic/anthropic-json-schema'
+import { createOcrAdmittedUsage } from '../../ocr-utils/ocr-admitted-usage'
 import { buildHostedOcrJsonPrompt, HOSTED_OCR_PAGES_JSON_SCHEMA, HostedOcrEnvelopeSchema, normalizeHostedOcrPages } from '../../ocr-utils/hosted-ocr-json'
 import {
   createAnthropicMessage,
@@ -45,6 +47,10 @@ const buildOcrPrompt = (expectedPageCount: number): string => [
   buildHostedOcrJsonPrompt(expectedPageCount),
   `Use this exact JSON schema: ${JSON.stringify(HOSTED_OCR_PAGES_JSON_SCHEMA)}`
 ].join(' ')
+
+// The wire schema keeps unsupported bounds as description guidance. The local
+// envelope validator still enforces positive, contiguous page numbers.
+const ANTHROPIC_OCR_JSON_SCHEMA = transformAnthropicJsonSchema(HOSTED_OCR_PAGES_JSON_SCHEMA)
 
 const extractAnthropicText = (content: Array<{ type: string, text?: string | undefined }>): string =>
   content
@@ -110,28 +116,41 @@ const runMessageWithSchemaRetry = async (
   operationName: string,
   beta?: string | string[] | undefined,
   onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
-): Promise<{ pages: PageResult[], promptTokens?: number, completionTokens?: number }> =>
-  await withOcrSchemaRetry({
-    operationName,
-    request: async () => await callAnthropicMessage(requestBody, operationName, beta, onRetryable),
-    parse: (message) => {
-      const rawText = extractAnthropicText(message.content ?? [])
-      const usage = {
-        ...(typeof message.usage?.input_tokens === 'number' ? { promptTokens: message.usage.input_tokens } : {}),
-        ...(typeof message.usage?.output_tokens === 'number' ? { completionTokens: message.usage.output_tokens } : {})
-      }
-
-      if (!rawText.trim()) {
-        if (expectedPageCount === 1) {
-          return { pages: [{ pageNumber: 1, method: 'ocr', text: '' }], ...usage }
+): Promise<{ pages: PageResult[] } & Pick<HostedOcrRun, 'promptTokens' | 'completionTokens' | 'providerCostCents' | 'providerCostSource' | 'providerUsage'>> => {
+  const usage = createOcrAdmittedUsage('anthropic', requestBody['model'] as string)
+  try {
+    return await withOcrSchemaRetry({
+      operationName,
+      request: async () => {
+        const message = await callAnthropicMessage(requestBody, operationName, beta, onRetryable)
+        usage.record(message.usage)
+        const rawText = extractAnthropicText(message.content ?? [])
+        const stopReason = message['stop_reason']
+        if (stopReason === 'refusal' || stopReason === 'max_tokens' || stopReason === 'pause_turn') {
+          const error = stopReason === 'max_tokens'
+            ? new OcrOutputLimitError(`Anthropic OCR exhausted its output token budget for ${pageLabel}. Split the document into smaller chunks and retry.`, rawText)
+            : new OcrStructuredResponseError(`Anthropic OCR returned an incomplete response (${stopReason}) for ${pageLabel}.`, rawText || JSON.stringify(message))
+          Object.assign(error.metadata, { rawProviderUsage: message.usage, returnedModel: message.model, stopReason })
+          throw error
         }
-        throw new OcrStructuredResponseError(`Anthropic OCR returned no text output for ${pageLabel}.`, rawText)
-      }
+        return message
+      },
+      parse: (message) => {
+        const rawText = extractAnthropicText(message.content ?? [])
+        if (!rawText.trim()) {
+          throw new OcrStructuredResponseError(`Anthropic OCR returned no text output for ${pageLabel}.`, rawText)
+        }
 
-      return { pages: parseOcrResponse(rawText, expectedPageCount, pageLabel), ...usage }
-    },
-    retryLogMetadata: () => ({ provider: 'anthropic', pageLabel })
-  })
+        return { pages: parseOcrResponse(rawText, expectedPageCount, pageLabel), ...usage.result() }
+      },
+      onSchemaFailure: ({ error }) => usage.markSchemaFailure(error),
+      retryLogMetadata: () => ({ provider: 'anthropic', pageLabel })
+    })
+  } catch (error) {
+    usage.attachError(error)
+    throw error
+  }
+}
 
 const createImageRequestBody = async (
   filePath: string,
@@ -147,6 +166,7 @@ const createImageRequestBody = async (
   return {
     model,
     max_tokens: ANTHROPIC_OCR_MAX_TOKENS,
+    output_config: { format: { type: 'json_schema', schema: ANTHROPIC_OCR_JSON_SCHEMA } },
     messages: [{
       role: 'user',
       content: [
@@ -188,7 +208,7 @@ const runPdfChunk = async (
     onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
     effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
   } = {}
-): Promise<{ pages: PageResult[], promptTokens: number, completionTokens: number }> => {
+): Promise<{ pages: PageResult[], promptTokens: number, completionTokens: number } & Pick<HostedOcrRun, 'providerCostCents' | 'providerCostSource' | 'providerUsage'>> => {
   const pageLabel = `pages ${startPage}-${endPage}`
   const useInputAsChunk = options.inputAlreadySinglePageChunk === true
     && startPage === 1
@@ -226,6 +246,7 @@ const runPdfChunk = async (
     const requestBody: Record<string, unknown> = {
       model,
       max_tokens: ANTHROPIC_OCR_MAX_TOKENS,
+      output_config: { format: { type: 'json_schema', schema: ANTHROPIC_OCR_JSON_SCHEMA } },
       messages: [{
         role: 'user',
         content: [
@@ -259,6 +280,7 @@ const runPdfChunk = async (
     )
 
     return {
+      ...result,
       pages: result.pages.map((page) => ({
         ...page,
         pageNumber: page.pageNumber + startPage - 1
@@ -303,6 +325,9 @@ export const runAnthropicOcr = async (
   totalPages: number
   promptTokens?: number
   completionTokens?: number
+  providerCostCents?: HostedOcrRun['providerCostCents']
+  providerCostSource?: HostedOcrRun['providerCostSource']
+  providerUsage?: HostedOcrRun['providerUsage']
   requestedReasoningEffort?: NormalizedReasoningEffort | undefined
   effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }> => {
@@ -318,6 +343,7 @@ export const runAnthropicOcr = async (
     applyAnthropicThinkingToBody(requestBody, policy.effective)
     const result = await runMessageWithSchemaRetry(requestBody, 1, 'page 1', 'anthropic-ocr', undefined, options.onRetryable)
     return {
+      ...result,
       pages: result.pages,
       extractionMethod: 'anthropic-ocr',
       totalPages: 1,
@@ -336,6 +362,7 @@ export const runAnthropicOcr = async (
   })
 
   return {
+    ...chunk,
     pages: chunk.pages,
     extractionMethod: 'anthropic-ocr',
     totalPages,

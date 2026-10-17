@@ -1,4 +1,4 @@
-import type { ExtractionMetadata, OcrProviderState, OcrProviderSuccess } from '~/types'
+import type { ExtractionMetadata, OcrProviderState, OcrProviderSuccess, StepCostEntry } from '~/types'
 
 export type OcrProviderErrorLike = Error & {
   cause?: unknown
@@ -12,4 +12,5 @@ export type ExistingOcrRun = {
   successes: Array<OcrProviderSuccess | undefined>
   successMetadata: Array<ExtractionMetadata | undefined>
   providerStates: Map<string, OcrProviderState>
+  recordedActualCostSteps: StepCostEntry[]
 }

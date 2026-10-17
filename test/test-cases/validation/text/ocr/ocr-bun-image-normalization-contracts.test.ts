@@ -152,6 +152,7 @@ describe('OCR Bun.Image normalization contracts', () => {
       { engine: 'grok-ocr', format: 'bmp' },
       { engine: 'kimi-ocr', format: 'bmp' },
       { engine: 'gemini-ocr', format: 'gif' },
+      { engine: 'gemini-ocr', format: 'bmp' },
       { engine: 'deepinfra-ocr', format: 'bmp' },
       { engine: 'deepinfra-ocr', format: 'gif' },
     ]
@@ -172,7 +173,7 @@ describe('OCR Bun.Image normalization contracts', () => {
       { engine: 'grok-ocr', format: 'jpg' },
       { engine: 'grok-ocr', format: 'jpeg' },
       { engine: 'grok-ocr', format: 'png' },
-      { engine: 'gemini-ocr', format: 'bmp' },
+      { engine: 'gemini-ocr', format: 'png' },
       { engine: 'kimi-ocr', format: 'webp' },
     ]
 
@@ -195,6 +196,7 @@ describe('OCR Bun.Image normalization contracts', () => {
       { engine: 'anthropic-ocr', name: 'anthropic.bmp', bytes: whiteBmp },
       { engine: 'grok-ocr', name: 'grok.webp', bytes: await new Image(redDotPng).webp().bytes() },
       { engine: 'gemini-ocr', name: 'gemini.gif', bytes: transparentGif },
+      { engine: 'gemini-ocr', name: 'gemini.bmp', bytes: whiteBmp },
     ]
 
     try {

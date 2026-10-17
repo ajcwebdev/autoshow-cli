@@ -484,6 +484,8 @@ export function buildOcrCombinedReport(rootDirRaw: string, generatedAt = new Dat
       "Each provider is aggregated by providerKey across the runs it appears in; sums and means cover present values only.",
       "Groups follow the single-run OCR contract: local, thirdPartyService; local and service providers are never ranked against each other.",
       "Weighted WER and weighted CER are evidence columns: summed breakdown errors divided by summed reference counts, so longer runs count proportionally more.",
+      "Per-run WER tokenizes normalized text as ASCII [a-z0-9] runs and excludes non-ASCII glyphs, including Japanese. The WER-derived headline quality score does not measure complete Japanese or other non-Latin OCR accuracy.",
+      "CER retains normalized Unicode letters and numbers as supporting evidence. Review CER and the source images when assessing non-Latin extraction quality.",
       "Each group ranks price, speed, and quality score independently. No weighted composite or model-tier ranking is emitted.",
       "Supersedes the hand-authored 2026-06-14 combined report, which is preserved as a historical record.",
     ],
@@ -508,6 +510,8 @@ export function buildOcrCombinedReport(rootDirRaw: string, generatedAt = new Dat
   md.push("");
   md.push("- Providers are matched by `providerKey` and aggregated across the runs they appear in; sums and means cover present values only.");
   md.push("- Quality Score rankings use the unweighted mean `metrics.score` descending.");
+  md.push("- Per-run WER uses ASCII `[a-z0-9]` token streams after normalization and excludes non-ASCII glyphs, including Japanese. The WER-derived headline quality score does not measure complete Japanese or other non-Latin OCR accuracy.");
+  md.push("- CER retains normalized Unicode letters and numbers as supporting evidence; review it together with the source images for non-Latin cases.");
   md.push(
     "- Weighted WER and Weighted CER are evidence columns: summed errors from the corresponding breakdowns divided by summed reference counts, so longer runs count proportionally more.",
   );
@@ -580,6 +584,7 @@ export function buildOcrCombinedReport(rootDirRaw: string, generatedAt = new Dat
     methodParagraphs: [
       "Providers are matched by `providerKey` and aggregated across the runs they appear in; sums and means cover present values only.",
       "Quality ranks the unweighted mean `metrics.score` descending. Speed ranks aggregate pages per minute (`sum(pageCount) / sum(processingTimeMs / 60000)`) descending. Cost ranks USD per 100 pages (`sum(costCents) / sum(pageCount)`) ascending with local providers at zero. Weighted WER/CER are evidence: summed breakdown errors over summed reference counts. Missing values sort last; ties break deterministically.",
+      "Per-run WER uses ASCII [a-z0-9] tokens after normalization and excludes non-ASCII glyphs, including Japanese. Headline quality is WER-derived; assess Japanese and other non-Latin extraction with supporting Unicode CER and source-image review.",
     ],
     notes: jsonReport.notes,
   };

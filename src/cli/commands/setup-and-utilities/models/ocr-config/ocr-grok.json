@@ -3,6 +3,54 @@
     "description": "xAI Grok OCR via vision chat",
     "type": "api",
     "models": {
+      "grok-4.7": {
+        "description": "Grok 4.7 OCR via multimodal Chat Completions",
+        "pricingSourceUrl": "https://docs.x.ai/developers/pricing",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "xAI global standard Chat API token pricing",
+        "pricingNotes": "The exact Grok 4.7 pricing row lists $2.00/1M input, $0.50/1M cached input, and $6.00/1M output below 200,000 prompt tokens; at 200,000 or more prompt tokens all request tokens use $4.00/$1.00/$12.00 per million respectively. OCR estimates and observed usage use uncached rates. Reasoning tokens are billable output. US regional pricing adds 10%; this adapter uses the global endpoint. Priority, subscription-only Fast, cache discounts, enterprise pricing, taxes and credits are excluded. Per-page tokens and latency are uncalibrated planning heuristics.",
+        "costPerMInputTokensCents": 200,
+        "costPerMCachedInputTokensCents": 50,
+        "costPerMOutputTokensCents": 600,
+        "tokenPricingBands": [
+          {
+            "label": "standard-below-200k",
+            "maxInputTokens": 199999,
+            "inputCostPer1MCents": 200,
+            "cachedInputCostPer1MCents": 50,
+            "outputCostPer1MCents": 600
+          },
+          {
+            "label": "standard-at-least-200k",
+            "minInputTokens": 200000,
+            "inputCostPer1MCents": 400,
+            "cachedInputCostPer1MCents": 100,
+            "outputCostPer1MCents": 1200
+          }
+        ],
+        "limits": {
+          "contextTokens": 500000,
+          "imageBytes": 20971520,
+          "notes": "https://docs.x.ai/developers/models and /developers/model-capabilities/images/understanding document PNG/JPG/JPEG and a 20 MiB image limit. AutoShow renders PDF pages to PNG and caps visible OCR output at 4,096 tokens per page; this is an application cap, not the model output limit. Grok 4.7 has no model text output limit. Required reasoning defaults to high; Batch is unsupported."
+        },
+        "estimation": {
+          "promptTokensPerPage": 4000,
+          "completionTokensPerPage": 1000,
+          "costMultiplier": 1,
+          "msPerPage": 18000
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh"
+          ]
+        }
+      },
       "grok-4.5": {
         "description": "Grok 4.5 OCR via multimodal Chat Completions",
         "pricingSourceUrl": "https://docs.x.ai/developers/pricing",

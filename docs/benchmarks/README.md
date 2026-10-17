@@ -20,6 +20,14 @@ Reports rank price, speed, and quality within each provider group. Local, non-di
 
 Earlier combined reports also assigned three contiguous quality-cost terciles per provider group under the method `quality-cost-terciles-v1`. That contract is retired: terciles were cohort-relative categories, not absolute quality labels, and live reports no longer emit tier membership or weighted composites.
 
+## October 2026 OCR refresh
+
+The 2026-10-17 refresh adds GPT-6.1 Sol, GPT-6 Luna, Claude Opus/Sonnet/Haiku 5.5, Gemini 4 Argon and Grok 4.7 to all thirteen established OCR inputs, covering 29 pages per model. Existing provider artifacts and recorded costs remain authoritative. The [combined comparison](ocr/combined-comparison-report.md) records the updated quality, speed and cost rankings.
+
+The new models use their native default reasoning settings, provider concurrency 2 and page concurrency 1. Dashboard speed measures end-to-end provider processing, including credential-lane waiting and PDF preparation where recorded. Quality is the unweighted mean of per-input WER-derived scores; the ASCII word tokenizer does not measure Japanese glyph accuracy, so Unicode CER and source review remain necessary. Price uses recorded usage and registry tariffs rather than provider invoices; Gemini 4 Argon uses its conservative standard tariff. Failed requests without usage leave an unresolved billing amount and are excluded from successful-result rankings, with coverage reported separately.
+
+For this refresh, plaintext `extraction.txt` exports have trailing spaces and tabs removed. The `result.json` artifacts retain the recorded provider text used for scoring.
+
 ## Compaction and regeneration
 
 Compact a run only after trustworthy provider results exist. Preserve canonical result envelopes and historical identity, remove regenerable checkpoints, splits, and derived files only after validation, then regenerate the combined JSON and Markdown, then the dashboard, from those compacted artifacts. Finished artifacts keep the model identity they stored, and the cost recorded on a run remains the authority for that run.

@@ -7,6 +7,7 @@ import { writeHttpPayloadToFile, readHttpPayloadText } from '~/utils/http-payloa
 import { createProviderRestClient, parseJsonOrText, readJsonResponse } from '~/utils/rest-client'
 import { pollUntil } from '~/utils/retries'
 import { isObjectLike } from '~/utils/value-helpers'
+import { GEMINI_ARGON_SYNC_OUTPUT_TOKENS, isGeminiArgonModel } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
 
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
@@ -213,18 +214,25 @@ export const geminiGenerateContent = async (
     abortSignal?: AbortSignal | undefined
   }
 ): Promise<GeminiGenerateContentResponse> => {
-  if (params.model.replace(/^models\//, '') === 'gemini-3.8-flash' && params.generationConfig) {
+  if ((params.model.replace(/^models\//, '') === 'gemini-3.8-flash' || isGeminiArgonModel(params.model)) && params.generationConfig) {
     const config = params.generationConfig
-    for (const key of ['temperature', 'topP', 'topK', 'top_p', 'top_k', 'candidateCount', 'candidate_count']) {
+    const unsupportedOptions = ['temperature', 'topP', 'topK', 'top_p', 'top_k', ...(!isGeminiArgonModel(params.model) ? ['candidateCount', 'candidate_count'] : [])]
+    for (const key of unsupportedOptions) {
       if (config[key] !== undefined) {
-        throw ValidationError(`gemini-3.8-flash does not support ${key}; omit this generation option.`, { stage: 'gemini:rest' })
+        throw ValidationError(`${params.model} does not support ${key}; omit this generation option.`, { stage: 'gemini:rest' })
       }
     }
     const thinking = config['thinkingConfig'] as Record<string, unknown> | undefined
     if (thinking && (thinking['thinkingBudget'] !== undefined || (
       thinking['thinkingLevel'] !== undefined && !['LOW', 'MEDIUM', 'HIGH'].includes(String(thinking['thinkingLevel']).toUpperCase())
     ))) {
-      throw ValidationError('gemini-3.8-flash requires thinkingLevel LOW, MEDIUM or HIGH; omit thinkingBudget.', { stage: 'gemini:rest' })
+      throw ValidationError(`${params.model} requires thinkingLevel LOW, MEDIUM or HIGH; omit thinkingBudget.`, { stage: 'gemini:rest' })
+    }
+    if (isGeminiArgonModel(params.model) && config['maxOutputTokens'] !== undefined) {
+      const limit = config['maxOutputTokens']
+      if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > GEMINI_ARGON_SYNC_OUTPUT_TOKENS) {
+        throw ValidationError(`${params.model} synchronous maxOutputTokens must be an integer from 1 to ${GEMINI_ARGON_SYNC_OUTPUT_TOKENS}; long decode requires a separate continuation workflow.`, { stage: 'gemini:rest' })
+      }
     }
   }
   const body: Record<string, unknown> = {
@@ -249,6 +257,15 @@ export const geminiGenerateContent = async (
   })
   const response = isObjectLike(json) ? json as GeminiGenerateContentResponse : {}
   response.text = extractGeminiResponseText(response)
+  if (isGeminiArgonModel(params.model)) {
+    const finishReason = response.candidates?.[0]?.finishReason
+    if ((finishReason !== undefined && finishReason !== 'STOP') || !response.text?.trim()) {
+      throw ValidationError(`${params.model} returned an incomplete or unusable synchronous response${finishReason ? ` (${finishReason})` : ''}; no automatic continuation was dispatched.`, {
+        stage: 'gemini:rest',
+        metadata: { provider: 'gemini', model: params.model, finishReason, rawProviderUsage: response.usageMetadata, rawResponse: response }
+      })
+    }
+  }
   response.sdkHttpResponse = { headers, status }
   return response
 }

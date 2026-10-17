@@ -34,7 +34,7 @@ const structuredOpts: StructuredRequestOptions = {
 describe('Anthropic REST contracts', () => {
   test('Fable 5.1 resolves alongside Fable 5 with documented pricing', () => {
     expect(buildOptsFromFlags({ anthropic: 'claude-fable-5-1' }).anthropicModels).toEqual(['claude-fable-5-1'])
-    expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5' })).toThrow('Invalid model "claude-fable-5" for --llm anthropic[=model]. Allowed values: claude-fable-5-1, claude-sonnet-5, claude-opus-5')
+    expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5' })).toThrow('Invalid model "claude-fable-5" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-1, claude-sonnet-5, claude-opus-5')
     expect(getModelRegistry().llm['anthropic']?.models['claude-fable-5-1']).toMatchObject({
       inputCostPer1MCents: 1000,
       outputCostPer1MCents: 5000,
@@ -57,10 +57,19 @@ describe('Anthropic REST contracts', () => {
         ...(effort === 'default' ? {} : { requestedReasoningEffort: effort })
       })
       expect(calls).toHaveLength(1)
+      const lyricFields = ['title', 'intro', 'verse1', 'chorus1', 'verse2', 'chorus2', 'verse3', 'bridge', 'chorus3']
+      const textField = { type: 'string', description: 'Constraints checked locally: minLength=1.' }
+      const expectedNativeSchema = {
+        type: 'object',
+        additionalProperties: false,
+        required: lyricFields,
+        properties: Object.fromEntries(lyricFields.map(name => [name, name === 'title' ? textField : { type: 'array', minItems: 1, items: textField }]))
+      }
       expect(calls[0]?.bodyJson?.['output_config']).toEqual({
         ...(effort === 'default' ? {} : { effort }),
-        format: { type: 'json_schema', schema: schema.jsonSchema }
+        format: { type: 'json_schema', schema: expectedNativeSchema }
       })
+      expect((schema.jsonSchema['properties'] as Record<string, unknown>)['title']).toEqual({ type: 'string', minLength: 1 })
       expect(calls[0]?.bodyJson).not.toHaveProperty('tools')
       expect(calls[0]?.bodyJson).not.toHaveProperty('tool_choice')
       expect(calls[0]?.bodyJson).not.toHaveProperty('thinking')

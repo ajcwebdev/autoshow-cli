@@ -3,6 +3,106 @@
     "description": "OpenAI GPT OCR via Responses API",
     "type": "api",
     "models": {
+      "gpt-6.1-sol": {
+        "description": "GPT-6.1 Sol OCR via Responses",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "OpenAI API standard token pricing",
+        "pricingNotes": "Standard USD per million input/cached-input/output tokens: $2/$0.1/$10. Cache writes cost $2.5/M. Above 272,000 input tokens the entire request uses 2x input/cache and 1.5x output rates. Estimates use uncached Standard rates; cache writes, Batch/Flex discounts, Fast/Ultrafast tiers, regional uplifts, taxes and credits are excluded. Provider native reasoning default is medium. Page token shapes and latency are inherited from GPT-5.6 Sol and are uncalibrated for this model.",
+        "costPerMInputTokensCents": 200,
+        "costPerMCachedInputTokensCents": 10,
+        "costPerMOutputTokensCents": 1000,
+        "tokenPricingBands": [
+          {
+            "label": "standard-short-context",
+            "maxInputTokens": 272000,
+            "inputCostPer1MCents": 200,
+            "cachedInputCostPer1MCents": 10,
+            "outputCostPer1MCents": 1000
+          },
+          {
+            "label": "standard-long-context",
+            "minInputTokens": 272001,
+            "inputCostPer1MCents": 400,
+            "cachedInputCostPer1MCents": 20,
+            "outputCostPer1MCents": 1500
+          }
+        ],
+        "limits": {
+          "contextTokens": 1050000,
+          "maxOutputTokens": 128000,
+          "pdfBytes": 52428800,
+          "notes": "Responses API text/image input, native JSON schema output; 1,050,000 context and 128,000 maximum output tokens. PDF inputs allow 50 MB per file and total request."
+        },
+        "estimation": {
+          "promptTokensPerPage": 1625,
+          "completionTokensPerPage": 940,
+          "costMultiplier": 1,
+          "msPerPage": 9497
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      },
+      "gpt-6-luna": {
+        "description": "GPT-6 Luna OCR via Responses",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "OpenAI API standard token pricing",
+        "pricingNotes": "Standard USD per million input/cached-input/output tokens: $0.1/$0.01/$0.5. Cache writes cost $0.125/M. Above 272,000 input tokens the entire request uses 2x input/cache and 1.5x output rates. Estimates use uncached Standard rates; cache writes, Batch/Flex discounts, Fast/Ultrafast tiers, regional uplifts, taxes and credits are excluded. Provider native reasoning default is medium. Page token shapes and latency are inherited from GPT-5.6 Luna and are uncalibrated for this model.",
+        "costPerMInputTokensCents": 10,
+        "costPerMCachedInputTokensCents": 1,
+        "costPerMOutputTokensCents": 50,
+        "tokenPricingBands": [
+          {
+            "label": "standard-short-context",
+            "maxInputTokens": 272000,
+            "inputCostPer1MCents": 10,
+            "cachedInputCostPer1MCents": 1,
+            "outputCostPer1MCents": 50
+          },
+          {
+            "label": "standard-long-context",
+            "minInputTokens": 272001,
+            "inputCostPer1MCents": 20,
+            "cachedInputCostPer1MCents": 2,
+            "outputCostPer1MCents": 75
+          }
+        ],
+        "limits": {
+          "contextTokens": 1050000,
+          "maxOutputTokens": 128000,
+          "pdfBytes": 52428800,
+          "notes": "Responses API text/image input, native JSON schema output; 1,050,000 context and 128,000 maximum output tokens. PDF inputs allow 50 MB per file and total request."
+        },
+        "estimation": {
+          "promptTokensPerPage": 1625,
+          "completionTokensPerPage": 858,
+          "costMultiplier": 1,
+          "msPerPage": 3919
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      },
       "gpt-6-astra": {
         "description": "GPT-6 Astra OCR",
         "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-6-astra",

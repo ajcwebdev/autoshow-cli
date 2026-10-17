@@ -1,14 +1,17 @@
 import { withOcrCreateRetry, withOcrSchemaRetry } from '~/cli/commands/text/ocr/ocr-utils/ocr-retry'
 import { getOpenAIClientConfig } from '~/cli/commands/text/write/write-services/write-openai/openai-utils'
-import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, OpenAIOcrInputContent, PageResult } from '~/types'
+import type { DocumentMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, OpenAIOcrInputContent, PageResult } from '~/types'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { buildHostedOcrJsonPrompt, createHostedOcrResponseParser, HOSTED_OCR_PAGES_JSON_SCHEMA } from '../../ocr-utils/hosted-ocr-json'
 import { InternalError } from '~/utils/error-handler'
 import { applyOpenAIResponsesReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { OcrStructuredResponseError } from '~/cli/commands/text/ocr/ocr-structured-response-error'
+import { createOcrAdmittedUsage } from '../../ocr-utils/ocr-admitted-usage'
 
 const OPENAI_NATIVE_STRUCTURED_MODELS = new Set([
+  'gpt-6.1-sol',
+  'gpt-6-luna',
   'gpt-6-astra',
   'gpt-5.6-sol',
   'gpt-5.6-terra',
@@ -150,6 +153,9 @@ export const runOpenAIOcr = async (
   totalPages: number
   promptTokens?: number
   completionTokens?: number
+  providerCostCents?: HostedOcrRun['providerCostCents']
+  providerCostSource?: HostedOcrRun['providerCostSource']
+  providerUsage?: HostedOcrRun['providerUsage']
   requestedReasoningEffort?: NormalizedReasoningEffort | undefined
   effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
 }> => {
@@ -162,50 +168,64 @@ export const runOpenAIOcr = async (
   const expectedPageCount = Math.max(1, step1Metadata.pageCount)
   const { baseUrl, onRetryable } = options
   const config = getOpenAIClientConfig(baseUrl)
+  const admittedUsage = createOcrAdmittedUsage('openai', model)
 
-  return await withOcrSchemaRetry({
-    operationName: 'openai-ocr',
-    request: async () => {
-      const requestBody = await createRequestBody(filePath, step1Metadata, model, expectedPageCount)
-      applyOpenAIResponsesReasoning(requestBody, policy.effective)
-      return await withOcrCreateRetry(
-        'openai-ocr',
-        async (signal) => await createOpenAIResponse(config, requestBody, { signal }),
-        { onRetryable }
-      )
-    },
-    parse: (response) => {
-      const rawText = extractOpenAIResponseText(response) ?? ''
-      const usage = {
-        ...(typeof response.usage?.input_tokens === 'number' ? { promptTokens: response.usage.input_tokens } : {}),
-        ...(typeof response.usage?.output_tokens === 'number' ? { completionTokens: response.usage.output_tokens } : {}),
-        ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
-        effectiveReasoningEffort: policy.effective
-      }
-
-      if (!rawText.trim()) {
-        if (expectedPageCount === 1) {
-          return {
-            pages: [{ pageNumber: 1, method: 'ocr' as const, text: '' }],
-            extractionMethod: 'openai-ocr' as const,
-            totalPages: 1,
-            ...usage
-          }
+  try {
+    return await withOcrSchemaRetry({
+      operationName: 'openai-ocr',
+      request: async () => {
+        const requestBody = await createRequestBody(filePath, step1Metadata, model, expectedPageCount)
+        applyOpenAIResponsesReasoning(requestBody, policy.effective)
+        const response = await withOcrCreateRetry(
+          'openai-ocr',
+          async (signal) => await createOpenAIResponse(config, requestBody, { signal }),
+          { onRetryable }
+        )
+        admittedUsage.record(response.usage)
+        // A refusal or incomplete response cannot be repaired by re-asking the same OCR request.
+        extractOpenAIResponseText(response)
+        return response
+      },
+      parse: (response) => {
+        const responseText = extractOpenAIResponseText(response)
+        if (responseText === undefined) {
+          throw new OcrStructuredResponseError('OpenAI OCR returned no text output.', JSON.stringify(response))
         }
-        throw new OcrStructuredResponseError('OpenAI OCR returned no text output.', rawText)
-      }
+        const rawText = responseText
+        const usage = {
+          ...admittedUsage.result(),
+          ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
+          effectiveReasoningEffort: policy.effective
+        }
 
-      const pages = expectedPageCount === 1
-        ? parseSinglePageOcrResponse(rawText)
-        : parseOcrResponse(rawText, expectedPageCount)
+        if (!rawText.trim()) {
+          if (expectedPageCount === 1) {
+            return {
+              pages: [{ pageNumber: 1, method: 'ocr' as const, text: '' }],
+              extractionMethod: 'openai-ocr' as const,
+              totalPages: 1,
+              ...usage
+            }
+          }
+          throw new OcrStructuredResponseError('OpenAI OCR returned no text output.', rawText)
+        }
 
-      return {
-        pages,
-        extractionMethod: 'openai-ocr' as const,
-        totalPages: pages.length,
-        ...usage
-      }
-    },
-    retryLogMetadata: () => ({ provider: 'openai', pageCount: expectedPageCount })
-  })
+        const pages = expectedPageCount === 1
+          ? parseSinglePageOcrResponse(rawText)
+          : parseOcrResponse(rawText, expectedPageCount)
+
+        return {
+          pages,
+          extractionMethod: 'openai-ocr' as const,
+          totalPages: pages.length,
+          ...usage
+        }
+      },
+      onSchemaFailure: ({ error }) => admittedUsage.markSchemaFailure(error),
+      retryLogMetadata: () => ({ provider: 'openai', pageCount: expectedPageCount })
+    })
+  } catch (error) {
+    admittedUsage.attachError(error)
+    throw error
+  }
 }

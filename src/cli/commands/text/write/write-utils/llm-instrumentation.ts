@@ -34,7 +34,8 @@ const normalizeLlmProviderUsage = (usage: unknown): NormalizedLlmUsage | undefin
     'output_tokens_count'
   ])
   // Gemini reports visible candidates and billed thinking separately. Other
-  // providers already include reasoning in their completion/output total.
+  // totals include reasoning, either natively or through a provider mapper
+  // (xAI Chat Completions maps its separate reasoning usage before this step).
   const outputTokenCount = reportedOutputTokenCount === undefined ? undefined
     : reportedOutputTokenCount + (typeof usage['candidatesTokenCount'] === 'number'
       ? finiteNumber(usage['thoughtsTokenCount']) ?? 0 : 0)

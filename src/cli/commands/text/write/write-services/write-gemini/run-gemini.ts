@@ -1,7 +1,7 @@
 import type { LlmApiCallResult, Step3Metadata, StructuredRequestOptions } from '~/types'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { executeLlmRequest } from '~/cli/commands/text/write/write-utils/llm-request-scaffold'
-import { classifyGeminiRetry } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
+import { classifyGeminiRetry, GEMINI_ARGON_SYNC_OUTPUT_TOKENS, isGeminiArgonModel } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 import { llmRequestSettings } from '~/cli/commands/text/write/write-utils/llm-request-settings'
@@ -33,6 +33,7 @@ export const runGeminiModel = async (
     execute: async (createSignal, apiKey): Promise<LlmApiCallResult> => {
       const thinkingLevel = buildGeminiThinkingLevel(policy.effective)
       const generationConfig: Record<string, unknown> = {
+        ...(isGeminiArgonModel(model) ? { maxOutputTokens: GEMINI_ARGON_SYNC_OUTPUT_TOKENS } : {}),
         ...(structuredOpts ? {
           responseMimeType: 'application/json',
           responseJsonSchema: structuredOpts.schema

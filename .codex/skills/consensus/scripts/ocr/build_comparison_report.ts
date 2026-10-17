@@ -847,7 +847,10 @@ export function buildReport(runDir: string, consensusPath: string, previousRepor
   const metricRankings = buildMetricRankings(providerData);
   const providerGroups = buildProviderGroups(providerData);
 
-  const notes: string[] = [];
+  const notes: string[] = [
+    "WER tokenizes normalized text as ASCII [a-z0-9] runs and excludes non-ASCII glyphs, including Japanese. The WER-derived headline quality score does not measure complete Japanese or other non-Latin OCR accuracy.",
+    "CER retains normalized Unicode letters and numbers as supporting evidence. Review CER and the source images when assessing non-Latin extraction quality.",
+  ];
 
   if (rankedLocal.length > 0 && rankedLocal[0]) {
     notes.push(
@@ -908,6 +911,8 @@ export function buildReport(runDir: string, consensusPath: string, previousRepor
 	      abbreviationsExpanded: true,
 	      currencySymbolsExpanded: true,
 	      punctuationStripped: true,
+	      wordTokenization: "ASCII [a-z0-9] runs after normalization; non-ASCII glyphs, including Japanese, are excluded from WER.",
+	      characterComparison: "CER compares normalized Unicode text, retaining non-Latin letters and numbers as supporting evidence.",
 	    },
 	    providerCount: providerData.length,
 	    providerGroups,
@@ -1007,8 +1012,9 @@ ${providerList}
 
 - The consolidated extraction in \`${consensusFileName}\` was treated as the gold reference.
 - Text normalization applied before comparison: lowercasing, curly quote/dash normalization, contraction expansion (it's -> it is), abbreviation expansion (mr. -> mister), currency symbol conversion ($50 -> 50 dollars), and remaining punctuation stripping.
-- WER compares the provider's full word stream against the gold extraction word stream.
-- CER compares normalized character sequences for finer-grained accuracy.
+- WER compares ASCII \`[a-z0-9]\` token streams after normalization. Non-ASCII glyphs, including Japanese, are excluded from WER.
+- The headline quality score is WER-derived and does not measure complete Japanese or other non-Latin OCR accuracy.
+- CER compares normalized Unicode character sequences, retaining non-Latin letters and numbers as supporting evidence. Review CER together with the source images for those cases.
 - Metric rankings keep local and third-party service providers separate.
 - Price rankings sort lower monetary cost first; local providers use zero monetary cost, and missing service price stays at the end.
 - Speed rankings sort lower processing time first, with missing timing retained at the end.

@@ -3,6 +3,100 @@
     "description": "OpenAI language models",
     "type": "api",
     "models": {
+      "gpt-6.1-sol": {
+        "description": "GPT-6.1 Sol — reasoning and vision via Responses",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "OpenAI API standard token pricing",
+        "pricingNotes": "Standard USD per million input/cached-input/output tokens: $2/$0.1/$10. Cache writes cost $2.5/M. Above 272,000 input tokens the entire request uses 2x input/cache and 1.5x output rates. Estimates use uncached Standard rates; cache writes, Batch/Flex discounts, Fast/Ultrafast tiers, regional uplifts, taxes and credits are excluded. Provider native reasoning default is medium. Output-token and latency heuristics are inherited from GPT-5.6 Sol and are uncalibrated for this model.",
+        "inputCostPer1MCents": 200,
+        "cachedInputCostPer1MCents": 10,
+        "outputCostPer1MCents": 1000,
+        "tokenPricingBands": [
+          {
+            "label": "standard-short-context",
+            "maxInputTokens": 272000,
+            "inputCostPer1MCents": 200,
+            "cachedInputCostPer1MCents": 10,
+            "outputCostPer1MCents": 1000
+          },
+          {
+            "label": "standard-long-context",
+            "minInputTokens": 272001,
+            "inputCostPer1MCents": 400,
+            "cachedInputCostPer1MCents": 20,
+            "outputCostPer1MCents": 1500
+          }
+        ],
+        "limits": {
+          "contextTokens": 1050000,
+          "maxOutputTokens": 128000,
+          "notes": "Responses API text/image input, native JSON schema output; 1,050,000 context and 128,000 maximum output tokens. PDF inputs allow 50 MB per file and total request."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 4125
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      },
+      "gpt-6-luna": {
+        "description": "GPT-6 Luna — reasoning and vision via Responses",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "OpenAI API standard token pricing",
+        "pricingNotes": "Standard USD per million input/cached-input/output tokens: $0.1/$0.01/$0.5. Cache writes cost $0.125/M. Above 272,000 input tokens the entire request uses 2x input/cache and 1.5x output rates. Estimates use uncached Standard rates; cache writes, Batch/Flex discounts, Fast/Ultrafast tiers, regional uplifts, taxes and credits are excluded. Provider native reasoning default is medium. Output-token and latency heuristics are inherited from GPT-5.6 Luna and are uncalibrated for this model.",
+        "inputCostPer1MCents": 10,
+        "cachedInputCostPer1MCents": 1,
+        "outputCostPer1MCents": 50,
+        "tokenPricingBands": [
+          {
+            "label": "standard-short-context",
+            "maxInputTokens": 272000,
+            "inputCostPer1MCents": 10,
+            "cachedInputCostPer1MCents": 1,
+            "outputCostPer1MCents": 50
+          },
+          {
+            "label": "standard-long-context",
+            "minInputTokens": 272001,
+            "inputCostPer1MCents": 20,
+            "cachedInputCostPer1MCents": 2,
+            "outputCostPer1MCents": 75
+          }
+        ],
+        "limits": {
+          "contextTokens": 1050000,
+          "maxOutputTokens": 128000,
+          "notes": "Responses API text/image input, native JSON schema output; 1,050,000 context and 128,000 maximum output tokens. PDF inputs allow 50 MB per file and total request."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 3484
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      },
       "gpt-6-astra": {
         "description": "GPT-6 Astra — flagship reasoning model",
         "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-6-astra",
@@ -174,6 +268,35 @@
     "description": "Google Gemini language models",
     "type": "api",
     "models": {
+      "gemini-4-argon": {
+        "description": "Gemini 4 Argon — flagship reasoning model",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "Gemini API paid Standard",
+        "pricingNotes": "Google lists Gemini 4 Argon Standard introductory pricing of $2/1M input and $10/1M output tokens through 2026-11-30, then $4/1M input and $20/1M output from 2026-12-01. Output includes thinking tokens. AutoShow conservatively records the standard rates, so estimates overstate cost during the introductory window. Implicit cache reads cost $0.10/1M then $0.20/1M; explicit caching and free tier are unsupported. No context price tier is published. Batch/flex/priority/Contributor rates, cache discounts, search grounding, taxes and provider credits are excluded. Automatic date transitions are unsupported; recheck the tariff by 2026-12-01. Timing is an uncalibrated heuristic inherited from Flash.",
+        "inputCostPer1MCents": 400,
+        "cachedInputCostPer1MCents": 20,
+        "outputCostPer1MCents": 2000,
+        "limits": {
+          "contextTokens": 1048576,
+          "maxOutputTokens": 65536,
+          "notes": "https://ai.google.dev/gemini-api/docs/models/gemini-4-argon documents a unified 1,048,576-token input, thinking and output window. Synchronous GenerateContent is capped at 65,536 thinking/output tokens. Long decode and continuation are not implemented."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 2537
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      },
       "gemini-3.8-flash": {
         "description": "Gemini 3.8 Flash writing",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -224,6 +347,115 @@
     "description": "Anthropic Claude language models",
     "type": "api",
     "models": {
+      "claude-opus-5-5": {
+        "description": "Claude Opus 5.5 — text and image input with native JSON output",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/models/opus-5-5/overview",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Standard rates are $4/$20 per million input/output tokens across the 1M context window. Cache reads cost $0.20/M; 5m writes $5/M and 1h writes $8/M. Adaptive thinking is always on; disabled thinking and manual budgets are rejected. Native default effort is medium; omitted/reset effort delegates to that provider default. AutoShow sends native output_config.format without forced tools or non-default sampling. Cache rates are metadata only; prompt caching is not requested. Batch, fast mode, regional premiums, enterprise pricing, taxes and credits are excluded. Token and latency estimates are uncalibrated heuristics inherited from the previous tier.",
+        "inputCostPer1MCents": 400,
+        "cachedInputCostPer1MCents": 20,
+        "outputCostPer1MCents": 2000,
+        "limits": {
+          "contextTokens": 1000000,
+          "maxOutputTokens": 128000,
+          "notes": "1M context and 128K ordinary output tokens. AutoShow write limits each response to 16000 total thinking plus text tokens. Batch 300K output beta is excluded."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 4524
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      },
+      "claude-sonnet-5-5": {
+        "description": "Claude Sonnet 5.5 — text and image input with native JSON output",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Standard rates are $2/$10 per million input/output tokens across the 1M context window. Cache reads cost $0.10/M; 5m writes $2.50/M and 1h writes $4/M. Adaptive thinking is on by default. Its native between_tools mode is distinct from disabled and is not exposed as disabled by AutoShow. Native default effort is high; omitted/reset effort delegates to that provider default. AutoShow sends native output_config.format without forced tools or non-default sampling. Cache rates are metadata only; prompt caching is not requested. Batch, fast mode, regional premiums, enterprise pricing, taxes and credits are excluded. Token and latency estimates are uncalibrated heuristics inherited from the previous tier.",
+        "inputCostPer1MCents": 200,
+        "cachedInputCostPer1MCents": 10,
+        "outputCostPer1MCents": 1000,
+        "limits": {
+          "contextTokens": 1000000,
+          "maxOutputTokens": 128000,
+          "notes": "1M context and 128K ordinary output tokens. AutoShow write limits each response to 16000 total thinking plus text tokens. Batch 300K output beta is excluded."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 5119
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      },
+      "claude-haiku-5-5": {
+        "description": "Claude Haiku 5.5 — text and image input with native JSON output",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Standard rates are $0.10/$0.50 per million input/output tokens through 100000 prompt tokens and $0.50/$2.50 above that threshold, applied to the whole request including its output. Cache reads are $0.01/$0.05; 5m writes $0.125/$0.625 and 1h writes $0.20/$1 for the respective prompt bands. Adaptive thinking is on by default; disabled thinking is supported at the native medium effort default. Native default effort is medium; omitted/reset effort delegates to that provider default. AutoShow sends native output_config.format without forced tools or non-default sampling. Cache rates are metadata only; prompt caching is not requested. Batch, fast mode, regional premiums, enterprise pricing, taxes and credits are excluded. Token and latency estimates are uncalibrated heuristics inherited from the previous tier.",
+        "inputCostPer1MCents": 10,
+        "cachedInputCostPer1MCents": 1,
+        "outputCostPer1MCents": 50,
+        "tokenPricingBands": [
+          {
+            "label": "standard-up-to-100k",
+            "maxInputTokens": 100000,
+            "inputCostPer1MCents": 10,
+            "cachedInputCostPer1MCents": 1,
+            "outputCostPer1MCents": 50
+          },
+          {
+            "label": "standard-over-100k",
+            "minInputTokens": 100001,
+            "inputCostPer1MCents": 50,
+            "cachedInputCostPer1MCents": 5,
+            "outputCostPer1MCents": 250
+          }
+        ],
+        "limits": {
+          "contextTokens": 1000000,
+          "maxOutputTokens": 128000,
+          "notes": "1M context and 128K ordinary output tokens. AutoShow write limits each response to 16000 total thinking plus text tokens. Batch 300K output beta is excluded."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KTokens": 5119
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      },
       "claude-fable-5-1": {
         "description": "Claude Fable 5.1 — always-on adaptive reasoning",
         "pricingSourceUrl": "https://platform.claude.com/docs/en/models/fable-5-1/overview",
@@ -305,6 +537,51 @@
     "description": "xAI Grok language models",
     "type": "api",
     "models": {
+      "grok-4.7": {
+        "description": "Grok 4.7 — flagship text/image model with a 500K context window",
+        "pricingSourceUrl": "https://docs.x.ai/developers/pricing",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "xAI global standard Chat API token pricing",
+        "pricingNotes": "The exact Grok 4.7 pricing row lists $2.00/1M input, $0.50/1M cached input, and $6.00/1M output below 200,000 prompt tokens; at 200,000 or more prompt tokens all request tokens use $4.00/$1.00/$12.00 per million respectively. Estimates and observed usage use uncached rates. Reasoning tokens are billable output. US regional pricing adds 10%; this adapter uses the global endpoint. Priority, subscription-only Fast, cache discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated.",
+        "inputCostPer1MCents": 200,
+        "cachedInputCostPer1MCents": 50,
+        "outputCostPer1MCents": 600,
+        "tokenPricingBands": [
+          {
+            "label": "standard-below-200k",
+            "maxInputTokens": 199999,
+            "inputCostPer1MCents": 200,
+            "cachedInputCostPer1MCents": 50,
+            "outputCostPer1MCents": 600
+          },
+          {
+            "label": "standard-at-least-200k",
+            "minInputTokens": 200000,
+            "inputCostPer1MCents": 400,
+            "cachedInputCostPer1MCents": 100,
+            "outputCostPer1MCents": 1200
+          }
+        ],
+        "limits": {
+          "contextTokens": 500000,
+          "notes": "https://docs.x.ai/developers/grok-4-7 documents no text output limit. Chat Completions remains supported; its unset max_completion_tokens defaults to 128,000 visible output tokens, separate from reasoning tokens. Provider-native reasoning defaults to high and cannot be disabled. Batch is unsupported."
+        },
+        "estimation": {
+          "msPer1KTokens": 11318,
+          "costMultiplier": 1
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh"
+          ]
+        }
+      },
       "grok-4.6": {
         "description": "Grok 4.6 — flagship model with a 500K context window",
         "pricingSourceUrl": "https://docs.x.ai/developers/pricing",

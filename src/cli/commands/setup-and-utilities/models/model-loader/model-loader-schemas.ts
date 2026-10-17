@@ -111,6 +111,8 @@ const SttServiceSchema = v.object({
 })
 
 export const ExtractLimitsSchema = v.object({
+  contextTokens: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
+  maxOutputTokens: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   effectiveBytes: v.optional(v.pipe(v.number(), v.minValue(1)), undefined),
   imageBytes: v.optional(v.pipe(v.number(), v.minValue(1)), undefined),
   pdfBytes: v.optional(v.pipe(v.number(), v.minValue(1)), undefined),
@@ -186,6 +188,11 @@ const ExtractServiceSchema = v.pipe(
 const LlmModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
+  limits: v.optional(v.object({
+    contextTokens: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
+    maxOutputTokens: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
+    notes: v.optional(v.string(), undefined)
+  }), undefined),
   inputCostPer1MCents: v.number(),
   cachedInputCostPer1MCents: v.optional(v.number(), undefined),
   outputCostPer1MCents: v.number(),

@@ -63,7 +63,7 @@ describe('OpenAI REST response and chat contracts', () => {
         type: 'message',
         content: [
           { type: 'output_text', text: 'Hello ' },
-          { type: 'refusal', text: 'hidden' },
+          { type: 'reasoning_text', text: 'hidden' },
           { type: 'output_text', text: 'from REST.' }
         ]
       }],
@@ -84,6 +84,16 @@ describe('OpenAI REST response and chat contracts', () => {
     })
     expect(calls[0]?.headers.get('authorization')).toBe('Bearer openai-key')
     expect(calls[0]?.headers.get('content-type')).toBe('application/json')
+  })
+
+  test('Responses refusal blocks are rejected even when accompanied by output text', () => {
+    expect(() => extractOpenAIResponseText({
+      status: 'completed',
+      output: [{ type: 'message', content: [
+        { type: 'output_text', text: 'Partial response' },
+        { type: 'refusal', refusal: 'Declined' }
+      ] }]
+    })).toThrow('a refusal')
   })
 
   test('REST errors preserve status, headers, body, and parsed OpenAI error fields', async () => {

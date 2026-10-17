@@ -93,7 +93,8 @@ const createOcrCheckpointWriter = (params: {
         concurrencyMode: opts.concurrencyMode,
         ocrProviderConcurrency: opts.ocrProviderConcurrency,
         ocrLocalConcurrency: opts.ocrLocalConcurrency,
-        hostedOcrScheduler: hostedOcrScheduler.snapshot()
+        hostedOcrScheduler: hostedOcrScheduler.snapshot(),
+        recordedActualCostSteps: existingRun.recordedActualCostSteps
       })
       await writePipelineItemRecords(outputDir, 'extract', 'single', [checkpointMetadata], { extractRoute: 'document' })
     })
@@ -255,7 +256,8 @@ const finalizeOcrProviderBatch = async (params: {
     concurrencyMode: opts.concurrencyMode,
     ocrProviderConcurrency: opts.ocrProviderConcurrency,
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
-    hostedOcrScheduler: hostedOcrScheduler.snapshot()
+    hostedOcrScheduler: hostedOcrScheduler.snapshot(),
+    recordedActualCostSteps: existingRun.recordedActualCostSteps
   })
   await writePipelineItemRecords(outputDir, 'extract', 'single', [writtenMetadata], { extractRoute: 'document' })
   await persistHostedOcrThroughputProfiles(hostedOcrScheduler.snapshot(), {
@@ -313,6 +315,10 @@ export const runOcrMultiProviderBatch = async (ctx: OcrBatchRunContext): Promise
   await mkdir(providersDir, { recursive: true })
 
   const existingRun = await readExistingOcrRun(outputDir, requestedTargets)
+  const executedKeys = new Set(targetsToRun.map(target => `${target.service}:${target.model}`))
+  existingRun.recordedActualCostSteps = existingRun.recordedActualCostSteps.filter(row =>
+    !executedKeys.has(`${row.provider}:${row.model}`)
+  )
   const successes: Array<OcrProviderSuccess | undefined> = [...existingRun.successes]
   const failuresByIndex = new Map<number, OcrProviderFailureSummary>()
   const failures: NonNullable<OcrMetadataOptions['failures']> = []

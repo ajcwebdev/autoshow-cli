@@ -3,6 +3,124 @@
     "description": "Anthropic Claude OCR via Messages API",
     "type": "api",
     "models": {
+      "claude-opus-5-5": {
+        "description": "Claude Opus 5.5 OCR",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/models/opus-5-5/overview",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Standard rates are $4/$20 per million input/output tokens across the 1M context window. Cache reads cost $0.20/M; 5m writes $5/M and 1h writes $8/M. Adaptive thinking is always on; disabled thinking and manual budgets are rejected. Native default effort is medium; omitted/reset effort delegates to that provider default. AutoShow sends native output_config.format without forced tools or non-default sampling. Cache rates are metadata only; prompt caching is not requested. Batch, fast mode, regional premiums, enterprise pricing, taxes and credits are excluded. Page token and latency estimates are conservative uncalibrated heuristics; high-resolution image inputs can consume up to 4784 visual tokens each, separately from extracted PDF text and prompt/output tokens.",
+        "costPerMInputTokensCents": 400,
+        "costPerMCachedInputTokensCents": 20,
+        "costPerMOutputTokensCents": 2000,
+        "limits": {
+          "contextTokens": 1000000,
+          "maxOutputTokens": 128000,
+          "imageBytes": 5242880,
+          "notes": "https://platform.claude.com/docs/en/build-with-claude/vision documents JPEG/PNG/GIF/WebP, direct Claude API 10 MB base64 images, 2576 px long-edge and 4784 visual-token limits with server downscaling. AutoShow conservatively caps raw direct images at 5 MiB (base64 below 10 MB). PDF chunks use Files API uploads up to 500 MB; token/context limits still apply. Ordinary output is 128000 tokens; Batch 300K beta is excluded."
+        },
+        "estimation": {
+          "promptTokensPerPage": 6000,
+          "completionTokensPerPage": 1000,
+          "costMultiplier": 1,
+          "msPerPage": 7914
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      },
+      "claude-sonnet-5-5": {
+        "description": "Claude Sonnet 5.5 OCR",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Standard rates are $2/$10 per million input/output tokens across the 1M context window. Cache reads cost $0.10/M; 5m writes $2.50/M and 1h writes $4/M. Adaptive thinking is on by default. Its native between_tools mode is distinct from disabled and is not exposed as disabled by AutoShow. Native default effort is high; omitted/reset effort delegates to that provider default. AutoShow sends native output_config.format without forced tools or non-default sampling. Cache rates are metadata only; prompt caching is not requested. Batch, fast mode, regional premiums, enterprise pricing, taxes and credits are excluded. Page token and latency estimates are conservative uncalibrated heuristics; high-resolution image inputs can consume up to 4784 visual tokens each, separately from extracted PDF text and prompt/output tokens.",
+        "costPerMInputTokensCents": 200,
+        "costPerMCachedInputTokensCents": 10,
+        "costPerMOutputTokensCents": 1000,
+        "limits": {
+          "contextTokens": 1000000,
+          "maxOutputTokens": 128000,
+          "imageBytes": 5242880,
+          "notes": "https://platform.claude.com/docs/en/build-with-claude/vision documents JPEG/PNG/GIF/WebP, direct Claude API 10 MB base64 images, 2576 px long-edge and 4784 visual-token limits with server downscaling. AutoShow conservatively caps raw direct images at 5 MiB (base64 below 10 MB). PDF chunks use Files API uploads up to 500 MB; token/context limits still apply. Ordinary output is 128000 tokens; Batch 300K beta is excluded."
+        },
+        "estimation": {
+          "promptTokensPerPage": 6000,
+          "completionTokensPerPage": 1000,
+          "costMultiplier": 1,
+          "msPerPage": 8679
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": false,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      },
+      "claude-haiku-5-5": {
+        "description": "Claude Haiku 5.5 OCR",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+        "pricingCheckedAt": "2026-10-17",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Standard rates are $0.10/$0.50 per million input/output tokens through 100000 prompt tokens and $0.50/$2.50 above that threshold, applied to the whole request including its output. Cache reads are $0.01/$0.05; 5m writes $0.125/$0.625 and 1h writes $0.20/$1 for the respective prompt bands. Adaptive thinking is on by default; disabled thinking is supported at the native medium effort default. Native default effort is medium; omitted/reset effort delegates to that provider default. AutoShow sends native output_config.format without forced tools or non-default sampling. Cache rates are metadata only; prompt caching is not requested. Batch, fast mode, regional premiums, enterprise pricing, taxes and credits are excluded. Page token and latency estimates are conservative uncalibrated heuristics; high-resolution image inputs can consume up to 4784 visual tokens each, separately from extracted PDF text and prompt/output tokens.",
+        "costPerMInputTokensCents": 10,
+        "costPerMCachedInputTokensCents": 1,
+        "costPerMOutputTokensCents": 50,
+        "tokenPricingBands": [
+          {
+            "label": "standard-up-to-100k",
+            "maxInputTokens": 100000,
+            "inputCostPer1MCents": 10,
+            "cachedInputCostPer1MCents": 1,
+            "outputCostPer1MCents": 50
+          },
+          {
+            "label": "standard-over-100k",
+            "minInputTokens": 100001,
+            "inputCostPer1MCents": 50,
+            "cachedInputCostPer1MCents": 5,
+            "outputCostPer1MCents": 250
+          }
+        ],
+        "limits": {
+          "contextTokens": 1000000,
+          "maxOutputTokens": 128000,
+          "imageBytes": 5242880,
+          "notes": "https://platform.claude.com/docs/en/build-with-claude/vision documents JPEG/PNG/GIF/WebP, direct Claude API 10 MB base64 images, 2576 px long-edge and 4784 visual-token limits with server downscaling. AutoShow conservatively caps raw direct images at 5 MiB (base64 below 10 MB). PDF chunks use Files API uploads up to 500 MB; token/context limits still apply. Ordinary output is 128000 tokens; Batch 300K beta is excluded."
+        },
+        "estimation": {
+          "promptTokensPerPage": 6000,
+          "completionTokensPerPage": 1000,
+          "costMultiplier": 1,
+          "msPerPage": 8679
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        }
+      },
       "claude-fable-5-1": {
         "description": "Claude Fable 5.1 OCR",
         "pricingSourceUrl": "https://platform.claude.com/docs/en/models/fable-5-1/overview",

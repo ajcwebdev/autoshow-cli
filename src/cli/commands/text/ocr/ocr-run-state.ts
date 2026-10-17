@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import { isRecord } from '~/utils/rest-client'
 import type { ExistingOcrRun, ExtractionMetadata, ExtractionResult, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderErrorLike, OcrProviderFailureCategory, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderState, OcrProviderSuccess, OcrRecordedProviderError, OcrRequestedProvider, OcrRuntimeOptions, OcrTarget, ProviderSettingsRecord } from '~/types'
-import { ExtractionMetadataSchema, ExtractionResultSchema } from '~/types'
+import { ExtractionMetadataSchema, ExtractionResultSchema, isCostSource } from '~/types'
 import { UsageError, collectErrorChain, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { isContainedPath } from '~/utils/filesystem'
@@ -398,7 +398,7 @@ export const readExistingOcrRun = async (
   const successMetadata: Array<ExtractionMetadata | undefined> = new Array(requestedTargets.length)
   const raw = await readSinglePipelineItemRecord(outputDir, { command: 'extract', extractRoute: 'document' })
   if (!isRecord(raw)) {
-    return { successes, successMetadata, providerStates }
+    return { successes, successMetadata, providerStates, recordedActualCostSteps: [] }
   }
 
   const storedProviderStates = parseStoredProviderStateMap(raw)
@@ -434,7 +434,23 @@ export const readExistingOcrRun = async (
   return {
     successes,
     successMetadata,
-    providerStates
+    providerStates,
+    recordedActualCostSteps: (() => {
+      const completedKeys = new Set(successes.flatMap(success => success ? [getOcrTargetKey(success.target)] : []))
+      const cost = isRecord(raw['cost']) ? raw['cost'] : undefined
+      const actual = cost && isRecord(cost['actual']) ? cost['actual'] : undefined
+      return Array.isArray(actual?.['steps']) ? actual['steps'].filter((row): row is import('~/types').StepCostEntry =>
+        isRecord(row)
+        && row['step'] === 'extract'
+        && typeof row['provider'] === 'string'
+        && typeof row['model'] === 'string'
+        && typeof row['cost'] === 'number'
+        && Number.isFinite(row['cost'])
+        && row['cost'] >= 0
+        && isCostSource(row['costSource'])
+        && completedKeys.has(`${row['provider']}:${row['model']}`)
+      ) : []
+    })()
   }
 }
 
