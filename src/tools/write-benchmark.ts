@@ -17,7 +17,8 @@ import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestrati
 import { createManifest, createPipelineItemFromRecord, readManifest, writeManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { sha256Bytes } from '~/utils/value-helpers'
 import { stripProjectRoot, toProjectRelativePath } from '~/utils/project-root'
-import { extractErrorMetadata, getErrorStatus } from '~/utils/error-handler'
+import { extractErrorMetadata, getErrorStatus, UsageError, ValidationError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { sanitizeArtifactMetadata, sanitizeArtifactText } from '~/utils/app-logger/redaction'
 import { buildStep3Metadata, runWithLLMInstrumentation } from '~/cli/commands/text/write/write-utils/llm-instrumentation'
 import { normalizeGrokChatUsage } from '~/utils/openai/grok-chat-usage'
@@ -104,7 +105,7 @@ const selectedOptions = (): LLMOptions => {
 
 export const prepareWriteBenchmarkCase = async (entry: { prompt: string; input: string }): Promise<PreparedCase> => {
   const source = await Bun.file(entry.input).text()
-  if (!source.trim()) throw new Error(`Empty benchmark input: ${entry.input}`)
+  if (!source.trim()) throw ValidationError(`Empty benchmark input: ${entry.input}`)
   const schema = await resolveStructuredSchema([entry.prompt])
   const instruction = [await resolvePromptNames([entry.prompt], { exampleFormat: 'json' }), buildStructuredInstructionSuffix(schema.leafPromptNames)].join('\n\n')
   const title = getTextInputTitle(entry.input)
@@ -119,7 +120,7 @@ export const buildWriteBenchmarkPlan = async (approval: WriteBenchmarkPlan['appr
   const options = selectedOptions()
   const providers = collectLlmTargets(options).map(target => {
     const rates = getLlmCost(target.service, target.model)
-    if (!rates) throw new Error(`Unknown model price: ${target.service}/${target.model}`)
+    if (!rates) throw ValidationError(`Unknown model price: ${target.service}/${target.model}`)
     return { provider: target.service, model: target.model, inputCostPer1MCents: rates.inputCostPer1MCents, outputCostPer1MCents: rates.outputCostPer1MCents }
   })
   const cases = []
@@ -150,7 +151,7 @@ export const installWriteBenchmarkFetchGuard = (): (() => void) => {
   const guarded = (async (...args: Parameters<typeof fetch>): Promise<Response> => {
     const budget = requestBudget.getStore()
     if (!budget) return await original(...args)
-    if (budget.requests > 0 && !budget.retryAdmitted) throw new Error('Benchmark inference redispatch blocked: a request was already sent for this slot.')
+    if (budget.requests > 0 && !budget.retryAdmitted) throw ValidationError('Benchmark inference redispatch blocked: a request was already sent for this slot.')
     budget.requests++
     budget.retryAdmitted = false
     const response = await original(...args)
@@ -164,21 +165,21 @@ export const installWriteBenchmarkFetchGuard = (): (() => void) => {
 
 export const runWriteBenchmarkSlot = async (plan: WriteBenchmarkPlan, entry: WriteBenchmarkCase, prepared: PreparedCase, target: BenchmarkTarget): Promise<BenchmarkSlot> => {
   if (sha256Bytes(prepared.source) !== entry.sourceSha256 || sha256Bytes(prepared.prompt) !== entry.promptSha256 || sha256Bytes(JSON.stringify(prepared.schema.jsonSchema)) !== entry.schemaSha256) {
-    throw new Error(`Benchmark case inputs changed before dispatch: ${entry.id}`)
+    throw ValidationError(`Benchmark case inputs changed before dispatch: ${entry.id}`)
   }
   const stem = safeStem(target.service, target.model)
   const slotPath = join(entry.runDir, `slot-${stem}.json`)
   if (await Bun.file(slotPath).exists()) {
     const existing = await Bun.file(slotPath).json() as BenchmarkSlot
-    if (existing.planFingerprint !== plan.fingerprint || existing.caseId !== entry.id || existing.provider !== target.service || existing.model !== target.model) throw new Error(`Cached slot identity changed: ${toProjectRelativePath(slotPath)}`)
+    if (existing.planFingerprint !== plan.fingerprint || existing.caseId !== entry.id || existing.provider !== target.service || existing.model !== target.model) throw ValidationError(`Cached slot identity changed: ${toProjectRelativePath(slotPath)}`)
     for (const [name, expected] of Object.entries(existing.artifactHashes ?? {})) {
-      if (name !== name.split(/[/\\]/).pop()) throw new Error('Cached artifact must be a file within its run directory.')
-      if (!await Bun.file(join(entry.runDir, name)).exists() || sha256Bytes(await Bun.file(join(entry.runDir, name)).text()) !== expected) throw new Error(`Cached artifact missing or changed: ${toProjectRelativePath(join(entry.runDir, name))}; redispatch is blocked.`)
+      if (name !== name.split(/[/\\]/).pop()) throw ValidationError('Cached artifact must be a file within its run directory.')
+      if (!await Bun.file(join(entry.runDir, name)).exists() || sha256Bytes(await Bun.file(join(entry.runDir, name)).text()) !== expected) throw ValidationError(`Cached artifact missing or changed: ${toProjectRelativePath(join(entry.runDir, name))}; redispatch is blocked.`)
     }
     return existing
   }
   const registeredModels = getModelRegistry().llm[target.service]?.models
-  if (!['openai', 'gemini', 'anthropic', 'grok'].includes(target.service) || !registeredModels || !Object.hasOwn(registeredModels, target.model)) throw new Error(`Retired or unsupported benchmark model ${target.service}/${target.model}; new dispatch is blocked. Existing receipts remain available for cache verification.`)
+  if (!['openai', 'gemini', 'anthropic', 'grok'].includes(target.service) || !registeredModels || !Object.hasOwn(registeredModels, target.model)) throw ValidationError(`Retired or unsupported benchmark model ${target.service}/${target.model}; new dispatch is blocked. Existing receipts remain available for cache verification.`)
   const activeService = target.service as LLMService
   await mkdir(entry.runDir, { recursive: true })
   const slot: BenchmarkSlot = { schemaVersion: 1, planFingerprint: plan.fingerprint, caseId: entry.id, provider: target.service, model: target.model, status: 'dispatch-started', startedAt: new Date().toISOString() }
@@ -261,8 +262,8 @@ export const finalizeWriteBenchmarkCase = async (plan: WriteBenchmarkPlan, entry
 
 export const executeWriteBenchmark = async (plan: WriteBenchmarkPlan): Promise<void> => {
   const current = await buildWriteBenchmarkPlan(plan.approval)
-  if (JSON.stringify(current) !== JSON.stringify(plan)) throw new Error('Benchmark inputs, prompts, schema, models, prices or plan contents changed; refusing to dispatch against the saved approval plan.')
-  if (!plan.approval || !Number.isFinite(plan.approval.estimatedCostCents) || plan.approval.estimatedCostCents < 0 || !plan.approval.scope.trim() || !plan.approval.evidence.trim()) throw new Error('The active benchmark plan requires its own explicit cost-specific approval; historical approval does not authorize a changed batch.')
+  if (JSON.stringify(current) !== JSON.stringify(plan)) throw ValidationError('Benchmark inputs, prompts, schema, models, prices or plan contents changed; refusing to dispatch against the saved approval plan.')
+  if (!plan.approval || !Number.isFinite(plan.approval.estimatedCostCents) || plan.approval.estimatedCostCents < 0 || !plan.approval.scope.trim() || !plan.approval.evidence.trim()) throw UsageError('The active benchmark plan requires its own explicit cost-specific approval; historical approval does not authorize a changed batch.')
   const restoreFetch = installWriteBenchmarkFetchGuard()
   try {
     const available = collectLlmTargets(selectedOptions())
@@ -279,7 +280,7 @@ export const executeWriteBenchmark = async (plan: WriteBenchmarkPlan): Promise<v
           for (let target = queue.shift(); target; target = queue.shift()) {
             const slot = await runWriteBenchmarkSlot(plan, entry, prepared, target)
             slots.push(slot)
-            console.log(JSON.stringify({ case: entry.id, provider: slot.provider, model: slot.model, status: slot.status, elapsedMs: slot.wallTimeMs, ...(slot.error ? { error: slot.error } : {}) }))
+            writeCommandPayload(JSON.stringify({ case: entry.id, provider: slot.provider, model: slot.model, status: slot.status, elapsedMs: slot.wallTimeMs, ...(slot.error ? { error: slot.error } : {}) }) + '\n')
           }
         }))
       }))
@@ -292,18 +293,18 @@ export const executeWriteBenchmark = async (plan: WriteBenchmarkPlan): Promise<v
 /** Historical evidence is checked against its pinned plan without consulting the active model inventory or writing manifests. */
 export const verifyWriteBenchmarkCache = async (plan: WriteBenchmarkPlan): Promise<BenchmarkSlot[]> => {
   const { fingerprint, ...content } = plan
-  if (sha256Bytes(JSON.stringify(content)) !== fingerprint || plan.schemaVersion !== 1 || !plan.cases.length || !plan.providers.length) throw new Error('Saved benchmark plan contents changed or are unsupported.')
+  if (sha256Bytes(JSON.stringify(content)) !== fingerprint || plan.schemaVersion !== 1 || !plan.cases.length || !plan.providers.length) throw ValidationError('Saved benchmark plan contents changed or are unsupported.')
   const slots: BenchmarkSlot[] = []
   for (const entry of plan.cases) {
     const prepared = await prepareWriteBenchmarkCase(entry)
     for (const [name, expected] of [['source.txt', entry.sourceSha256], ['prompt.md', entry.promptSha256]]) {
       const path = join(entry.runDir, name!)
-      if (!await Bun.file(path).exists() || sha256Bytes(await Bun.file(path).text()) !== expected) throw new Error(`Cached benchmark snapshot missing or changed: ${toProjectRelativePath(path)}`)
+      if (!await Bun.file(path).exists() || sha256Bytes(await Bun.file(path).text()) !== expected) throw ValidationError(`Cached benchmark snapshot missing or changed: ${toProjectRelativePath(path)}`)
     }
     for (const provider of plan.providers) {
       const path = join(entry.runDir, `slot-${safeStem(provider.provider, provider.model)}.json`)
-      if (!await Bun.file(path).exists()) throw new Error(`Missing benchmark cache receipt: ${entry.id}/${provider.provider}/${provider.model}; verification cannot dispatch.`)
-      slots.push(await runWriteBenchmarkSlot(plan, entry, prepared, { service: provider.provider, model: provider.model, label: provider.provider, run: async () => { throw new Error('Provider dispatch is blocked during benchmark cache verification.') } }))
+      if (!await Bun.file(path).exists()) throw ValidationError(`Missing benchmark cache receipt: ${entry.id}/${provider.provider}/${provider.model}; verification cannot dispatch.`)
+      slots.push(await runWriteBenchmarkSlot(plan, entry, prepared, { service: provider.provider, model: provider.model, label: provider.provider, run: async () => { throw ValidationError('Provider dispatch is blocked during benchmark cache verification.') } }))
     }
   }
   return slots
@@ -312,14 +313,14 @@ export const verifyWriteBenchmarkCache = async (plan: WriteBenchmarkPlan): Promi
 const main = async (): Promise<void> => {
   const args = process.argv.slice(2)
   if (args.includes('--help')) {
-    console.log('Usage: bun src/tools/write-benchmark.ts [--price | --prepare | --run | --resume | --verify-cache]\nDefault: price-only JSON for the current active model inventory, without inferred approval. --prepare pins this five-case plan without replacing historical plans. --run and --resume require approval for that exact plan and attempt only slots without a durable attempt record. --verify-cache reads existing historical receipts and artifacts without provider dispatch or manifest changes.')
+    writeCommandPayload('Usage: bun src/tools/write-benchmark.ts [--price | --prepare | --run | --resume | --verify-cache]\nDefault: price-only JSON for the current active model inventory, without inferred approval. --prepare pins this five-case plan without replacing historical plans. --run and --resume require approval for that exact plan and attempt only slots without a durable attempt record. --verify-cache reads existing historical receipts and artifacts without provider dispatch or manifest changes.' + '\n')
     return
   }
-  if (args.some(arg => !['--price', '--prepare', '--run', '--resume', '--verify-cache'].includes(arg)) || args.length > 1) throw new Error('Choose one of --price, --prepare, --run, --resume or --verify-cache.')
+  if (args.some(arg => !['--price', '--prepare', '--run', '--resume', '--verify-cache'].includes(arg)) || args.length > 1) throw UsageError('Choose one of --price, --prepare, --run, --resume or --verify-cache.')
   if (args.includes('--run') || args.includes('--resume') || args.includes('--verify-cache')) {
-    if (!await Bun.file(WRITE_BENCHMARK_PLAN).exists()) throw new Error('Run --prepare before dispatch.')
+    if (!await Bun.file(WRITE_BENCHMARK_PLAN).exists()) throw UsageError('Run --prepare before dispatch.')
     const plan = await Bun.file(WRITE_BENCHMARK_PLAN).json() as WriteBenchmarkPlan
-    if (args.includes('--verify-cache')) console.log(json({ verifiedSlots: (await verifyWriteBenchmarkCache(plan)).length, networkRequests: 0 }))
+    if (args.includes('--verify-cache')) writeCommandPayload(json({ verifiedSlots: (await verifyWriteBenchmarkCache(plan)).length, networkRequests: 0 }) + '\n')
     else await executeWriteBenchmark(plan)
     return
   }
@@ -327,12 +328,12 @@ const main = async (): Promise<void> => {
   if (args.includes('--prepare')) {
     if (await Bun.file(WRITE_BENCHMARK_PLAN).exists()) {
       const existing = await Bun.file(WRITE_BENCHMARK_PLAN).json() as WriteBenchmarkPlan
-      if (JSON.stringify(existing) !== JSON.stringify(plan)) throw new Error('Saved benchmark plan differs; preserve it and reconcile approval before changing the batch.')
+      if (JSON.stringify(existing) !== JSON.stringify(plan)) throw ValidationError('Saved benchmark plan differs; preserve it and reconcile approval before changing the batch.')
     } else {
       await atomicJson(WRITE_BENCHMARK_PLAN, plan)
     }
   }
-  console.log(json(plan))
+  writeCommandPayload(json(plan) + '\n')
 }
 
 if (import.meta.main) await main()

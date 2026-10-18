@@ -67,8 +67,8 @@ RUN set -eux; \
 FROM ${BUN_BASE_IMAGE} AS runtime-base
 
 ARG DEBIAN_FRONTEND=noninteractive
-# Includes the PCRE2, OpenSSL, libheif, and librsvg security fixes required by the image audits.
-ARG DEBIAN_SNAPSHOT=20261015T205142Z
+# Includes the PCRE2, OpenSSL, libheif, librsvg, and Expat security fixes required by the image audits.
+ARG DEBIAN_SNAPSHOT=20261016T082316Z
 
 LABEL org.opencontainers.image.title="autoshow-cli"
 LABEL org.opencontainers.image.description="Bun-native AutoShow CLI with Debian slim local-lite tools"

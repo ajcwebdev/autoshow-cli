@@ -3,6 +3,8 @@ import { copyFile, mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promise
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
+import { InfraError, UsageError, ValidationError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { buildTextDashboard, WRITE_BENCHMARK_CASES, type WriteDashboardSample } from '../../.codex/skills/consensus/scripts/text/build_text_dashboard'
 import { writePortableFileSync } from '../../.codex/skills/consensus/scripts/shared/portable_paths'
 
@@ -14,7 +16,7 @@ const evidenceName = '2026-10-18-write.evidence.zip'
 
 export async function archiveWriteBenchmarkEvidence(rootDir: string): Promise<void> {
   const zip = Bun.which('zip')
-  if (!zip) throw Error('zip is required to package Write benchmark evidence.')
+  if (!zip) throw InfraError('zip is required to package Write benchmark evidence.')
   const files = ['benchmark-plan.json', ...(existsSync(join(rootDir, 'rerun-plan.json')) ? ['rerun-plan.json'] : [])]
   for (const benchmark of WRITE_BENCHMARK_CASES) {
     const dir = join(rootDir, benchmark.directory)
@@ -27,7 +29,7 @@ export async function archiveWriteBenchmarkEvidence(rootDir: string): Promise<vo
         || /^(slot-|raw-response-|failure-).*\.json$/.test(name))) {
         if (name.startsWith('slot-')) {
           const slot = JSON.parse(readFileSync(join(runDir, name), 'utf8')) as { status: string }
-          if (slot.status === 'dispatch-started') throw Error(`Cannot archive an in-flight slot: ${relative(rootDir, join(runDir, name))}`)
+          if (slot.status === 'dispatch-started') throw ValidationError(`Cannot archive an in-flight slot: ${relative(rootDir, join(runDir, name))}`)
         }
         files.push(relative(rootDir, join(runDir, name)).split('\\').join('/'))
       }
@@ -49,10 +51,10 @@ export async function archiveWriteBenchmarkEvidence(rootDir: string): Promise<vo
     try {
       const child = Bun.spawn([zip, '-q', '-r', temporaryArchive, '.'], { cwd: stage, stdout: 'pipe', stderr: 'pipe' })
       const [stdout, stderr, exitCode] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
-      if (exitCode !== 0) throw Error(`Evidence archive failed: ${stderr || stdout}`)
+      if (exitCode !== 0) throw InfraError(`Evidence archive failed: ${stderr || stdout}`)
       await rename(temporaryArchive, archive)
     } finally { await rm(temporaryArchive, { force: true }) }
-    console.log(`Updated ${relative(process.cwd(), archive)} (${files.length} evidence files and SHA256SUMS)`)
+    writeCommandPayload(`Updated ${relative(process.cwd(), archive)} (${files.length} evidence files and SHA256SUMS)` + '\n')
   } finally {
     await rm(stage, { recursive: true, force: true })
   }
@@ -176,14 +178,14 @@ export function buildWriteBenchmarkMarkdown(rootDir: string): string {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
-  if (args.some(arg => !['--write', '--archive'].includes(arg))) throw Error('Usage: bun src/tools/write-benchmark-report.ts [--write] [--archive]')
+  if (args.some(arg => !['--write', '--archive'].includes(arg))) throw UsageError('Usage: bun src/tools/write-benchmark-report.ts [--write] [--archive]')
   const root = resolve('docs/benchmarks/write')
   if (args.includes('--archive')) await archiveWriteBenchmarkEvidence(root)
   const markdown = buildWriteBenchmarkMarkdown(root)
   if (args.includes('--write')) {
     writePortableFileSync(join(root, 'benchmark-report.md'), markdown)
-    console.log('Updated docs/benchmarks/write/benchmark-report.md')
-  } else process.stdout.write(markdown)
+    writeCommandPayload('Updated docs/benchmarks/write/benchmark-report.md' + '\n')
+  } else writeCommandPayload(markdown)
 }
 
 if (import.meta.main) await main()

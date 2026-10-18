@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-24
-- **Date Updated:** 2026-09-23
+- **Date Updated:** 2026-10-18
 - **Verification Status:** Passed
 
 Native AMD64 and ARM64 production validation passed on the published image. Both native compiled-entrypoint experiments were reviewed and rejected because their images grew; production retains the source entrypoint.
@@ -146,6 +146,10 @@ Negative outcomes:
 ## Implementation Note
 
 The image recipe, entrypoint, and publishing workflow ship with the repository, and user-facing usage is documented in the [Docker guide](../docker.md).
+
+### Security snapshot refresh (2026-10-18)
+
+The runtime APT snapshot is pinned to `20261016T082316Z`, which includes `libexpat1` version `2.9.0-1~deb13u1` for both AMD64 and ARM64. [Debian DSA-6566-1](https://lists.debian.org/debian-security-announce/2026/msg00480.html) identifies that version as the trixie fix for the Expat vulnerabilities reported by the image audits. The previous October 15 snapshot preceded the October 16 security release. Both architectures' compressed package indexes were checked against the [signed security InRelease](https://snapshot.debian.org/archive/debian-security/20261016T082316Z/dists/trixie-security/InRelease), whose signatures were verified with Debian's published security archive keys, and the downloaded `.deb` files matched the indexes' SHA-256 values. Native CI image builds, smoke tests, and the existing fixable high-severity audit gate remain the acceptance checks; no advisory exceptions were added.
 
 ### Bun 1.4 Migration Evidence
 
