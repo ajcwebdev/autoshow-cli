@@ -1,0 +1,45 @@
+{
+  "result": "{\n  \"episodeDescription\": \"James Berkins shares how being laid off during a recession turned into landing a new developer job within 12 hours thanks to his professional network.\"\n}",
+  "metadata": {
+    "llmService": "glm",
+    "llmModel": "glm-5.3-flash",
+    "providerReturnedModel": "glm-5.3-flash",
+    "processingTime": 8387,
+    "inputTokenCount": 429,
+    "outputTokenCount": 517,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 429,
+      "outputTokenCount": 517,
+      "totalTokenCount": 946
+    },
+    "rawProviderUsage": {
+      "completion_tokens": 517,
+      "completion_tokens_details": {
+        "reasoning_tokens": 479
+      },
+      "prompt_tokens": 429,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 946
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "glm-5.3-flash",
+      "stream": false,
+      "max_tokens": 16000,
+      "thinking": {
+        "type": "enabled"
+      },
+      "response_format": {
+        "type": "json_object"
+      }
+    }
+  }
+}

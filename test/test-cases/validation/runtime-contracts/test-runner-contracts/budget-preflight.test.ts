@@ -118,10 +118,10 @@ describe('test-runner contracts', () => {
   })
 
   test('budget-skip entries are emitted from skipped entry keys', () => {
-      const evaluation = evaluatePriceObservations('Selected paths: text/write/openai-gpt-5.6-sol.test.ts', [
+      const evaluation = evaluatePriceObservations('Selected paths: text/write/openai-gpt-6.1-sol.test.ts', [
         {
-          name: 'write-openai-gpt-5.6-sol',
-          key: 'write-openai-gpt-5.6-sol',
+          name: 'write-openai-gpt-6.1-sol',
+          key: 'write-openai-gpt-6.1-sol',
           args: ['cmd-a'],
           exitCode: 0,
           durationMs: 10,
@@ -141,10 +141,10 @@ describe('test-runner contracts', () => {
         }
       ], 200)
 
-      expect(evaluation.budgetSummary?.skipKeys).toEqual(['write-openai-gpt-5.6-sol'])
+      expect(evaluation.budgetSummary?.skipKeys).toEqual(['write-openai-gpt-6.1-sol'])
       expect(evaluation.budgetSummary?.budgetHundredthCents).toBe(200)
       expect(evaluation.budgetSummary?.skippedEntries).toEqual([
-        { key: 'write-openai-gpt-5.6-sol', selectedCostCents: 3 }
+        { key: 'write-openai-gpt-6.1-sol', selectedCostCents: 3 }
       ])
       expect(evaluation.commandResults.map((result) => result.status)).toEqual(['skipped', 'passed'])
     })

@@ -1,34 +1,30 @@
 import type { ResolvedLLMConfig, ResolvedLLMModelOptions } from '~/types'
 import { selectCheapestDefaultLlmSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
+import { assertNoRemovedLlmSelections } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
-export const buildLLMModelOptions = (config: ResolvedLLMConfig): ResolvedLLMModelOptions => ({
-  openaiModels: config.openaiModels,
-  geminiModels: config.geminiModels,
-  anthropicModels: config.anthropicModels,
-  grokModels: config.grokModels,
-  glmModels: config.glmModels,
-  kimiModels: config.kimiModels,
-  togetherModels: config.togetherModels,
-})
+export const buildLLMModelOptions = (config: ResolvedLLMConfig): ResolvedLLMModelOptions => {
+  assertNoRemovedLlmSelections(config)
+  return {
+    openaiModels: config.openaiModels,
+    geminiModels: config.geminiModels,
+    anthropicModels: config.anthropicModels,
+    grokModels: config.grokModels,
+  }
+}
 
 const first = (models: string[] | undefined): string | undefined => models?.[0]
 
 export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): ResolvedLLMConfig => {
+  assertNoRemovedLlmSelections(opts)
   const openaiModels = opts.openaiModels
   const geminiModels = opts.geminiModels
   const anthropicModels = opts.anthropicModels
   const grokModels = opts.grokModels
-  const glmModels = opts.glmModels
-  const kimiModels = opts.kimiModels
-  const togetherModels = opts.togetherModels
   const anySelected = [
     openaiModels?.length,
     geminiModels?.length,
     anthropicModels?.length,
     grokModels?.length,
-    glmModels?.length,
-    kimiModels?.length,
-    togetherModels?.length,
   ].some((value) => typeof value === 'number' && value > 0)
 
   const cheapest = anySelected ? undefined : selectCheapestDefaultLlmSelection()
@@ -43,33 +39,21 @@ export const resolveLLMDefaults = (opts: Partial<ResolvedLLMModelOptions>): Reso
   const resolvedGemini = withDefault(geminiModels, 'gemini')
   const resolvedAnthropic = withDefault(anthropicModels, 'anthropic')
   const resolvedGrok = withDefault(grokModels, 'grok')
-  const resolvedGlm = withDefault(glmModels, 'glm')
-  const resolvedKimi = withDefault(kimiModels, 'kimi')
-  const resolvedTogether = withDefault(togetherModels, 'together')
 
   return {
     openaiModels: resolvedOpenai,
     geminiModels: resolvedGemini,
     anthropicModels: resolvedAnthropic,
     grokModels: resolvedGrok,
-    glmModels: resolvedGlm,
-    kimiModels: resolvedKimi,
-    togetherModels: resolvedTogether,
     llmService: resolvedOpenai?.length ? 'openai'
       : resolvedGemini?.length ? 'gemini'
         : resolvedAnthropic?.length ? 'anthropic'
           : resolvedGrok?.length ? 'grok'
-            : resolvedGlm?.length ? 'glm'
-              : resolvedKimi?.length ? 'kimi'
-                : resolvedTogether?.length ? 'together'
-                  : cheapest?.provider,
+            : cheapest?.provider,
     llmModel: first(resolvedOpenai)
       ?? first(resolvedGemini)
       ?? first(resolvedAnthropic)
       ?? first(resolvedGrok)
-      ?? first(resolvedGlm)
-      ?? first(resolvedKimi)
-      ?? first(resolvedTogether)
       ?? cheapest?.model
       ?? '',
   }

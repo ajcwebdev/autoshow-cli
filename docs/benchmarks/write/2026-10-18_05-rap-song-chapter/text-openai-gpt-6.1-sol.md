@@ -1,0 +1,89 @@
+# Room on the Page
+
+Intro
+
+Teal enamel holds the map against the breeze;
+Cream compass badge toward the window, toward the sea.
+Mist rims the ridge. I trace where we'll arrive—
+Harborlight Camp, with the telescope by night.
+
+Verse 1
+
+I'm Mira. Papa Bear checks rain and trail reports;
+A human guide, rust coat, patience in his voice.
+I check the torch, spare layer, water for the climb;
+We each pack a route. Changed weather? Turn in time.
+The mug pins the paper; my finger finds the bridge.
+I name a fresh page for the camp along the ridge.
+We clear the table, take each thing we carried in;
+At the entrance, I photograph the route we're following.
+Board against the print—same path, no revision;
+A shortcut looks tempting. We keep our decision.
+Above the harbor, that short bridge stretches long;
+I label both positions. Neither view is wrong.
+At camp: level ground, clear path, tripod feet checked;
+Mug back from the edge, loose pages firmly clipped.
+Cloud crosses the first star. I wanted the whole sight;
+Papa suggests I write the cloud beside the light.
+
+Chorus
+
+Leave a little room on the page.
+One bright point; let the cloud remain.
+Set the mug down. Let the paper stay.
+We don't need more than the view can say.
+
+Verse 2
+
+I lower the lantern, turn its shield to the table;
+Less light in our circle makes the far ridge readable.
+The telescope stays clear of the sun's last glow;
+We wait for full dark. There's no need to go.
+We trade the eyepiece. Bright point—not a distance.
+Papa asks what's changed. I look for the difference:
+Cloud shifted; harbor lights cut sharper below;
+That pale band over the ridge has let go.
+Then—one streak. Both looking. Gone before a sketch.
+No time to catch the whole path, much less the rest.
+Direction, time—approximate. A moment, then it passed;
+I won't make a grand discovery out of something fast.
+Hands around warm enamel; neither needs to speak.
+Waiting gave a view that haste could never keep.
+
+Chorus
+
+Leave a little room on the page.
+One brief streak doesn't need a name.
+Set the mug down. Let the paper stay.
+We don't need more than the view can say.
+
+Verse 3
+
+Before bed, route beside the record: we compare.
+Place, weather, time, observer—all entered there.
+A sketch is marked a sketch, not polished into proof;
+An uncertain name stays uncertain. That's useful.
+Someone who wasn't here should know what we could see;
+The page can't borrow certainty from standing next to me.
+Morning: mug, notebook, clip; lantern, case—counted.
+Papa checks for scraps, for loose equipment round us.
+We leave the level campsite clear as when we came;
+Return along the markers, keep the route the same.
+At the overlook, morning changes that bridge again;
+A third small drawing joins the earlier two in pen.
+Nothing needs erasing. Place and light explain
+How honest observations differ—and remain.
+
+Bridge
+
+Back at the window: teal mug, folded chart.
+Four pages. Three bridge sketches, set apart.
+That first page holds the cloud I wished away;
+Now I wouldn't cut it out to clear the way.
+
+Chorus
+
+Leave a little room on the page.
+Three bridge views; not one to erase.
+Set the mug down. The next walk can wait.
+First, what we saw. Then, what we can say.

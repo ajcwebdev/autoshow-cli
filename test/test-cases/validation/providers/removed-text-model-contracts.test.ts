@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, spyOn, test } from 'bun:test'
 import { join } from 'node:path'
 import { loadConfig } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
 import { buildConfigPatchFromFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
@@ -11,14 +11,17 @@ import { resolveLlmReasoningOptions } from '~/cli/commands/text/write/write-serv
 import { normalizeGenericProviderSelectorFlags } from './provider-selection-contracts/generic-selector-test-adapters'
 import { WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { withLocalTestDir } from '../../../test-utils/temp-dirs'
-import type { PipelineManifest, ResumeTarget } from '~/types'
+import type { LLMTarget, PipelineManifest, ResumeTarget } from '~/types'
+import { collectLlmTargets, runLlmTargetsForStructuredPrompt } from '~/cli/commands/text/write/run-llm'
 
-// These IDs are rejection fixtures only; native Kimi remains supported.
+// These IDs are rejection fixtures only; removed providers never become active selections.
 const removed = [
   ['anthropic', 'claude-opus-4-8'], ['anthropic', 'claude-sonnet-4-6'], ['anthropic', 'claude-haiku-4-5'],
   ['grok', 'grok-4.3'], ['openai', 'gpt-5.5'], ['openai', 'gpt-5.4-mini'], ['openai', 'gpt-5.4-nano'],
   ['together', 'kimi-k2.6'], ['minimax', 'MiniMax-M3'], ['glm', 'glm-5.1'], ['together', 'glm-5.1'],
   ['gemini', 'gemini-3.1-pro-preview'],
+  ['glm', 'glm-5.3'], ['glm', 'glm-5.3-flash'], ['kimi', 'kimi-k3'],
+  ['together', 'kimi-k3'], ['together', 'glm-5.3'], ['together', 'glm-5.3-flash'],
 ] as const
 
 const parseWrite = (provider: string, model: string) => {
@@ -36,9 +39,9 @@ describe('removed text selections reject before dispatch', () => {
   for (const [provider, model] of removed) {
     test(`${provider}/${model}: CLI, setup, saved configuration, adapter policy and stored write resume reject`, async () => await withLocalTestDir('removed-text-selection', async root => {
       expect(() => parseWrite(provider, model)).toThrow()
-      expect(getLlmCost(provider, model)).toBeUndefined()
+      if (!['glm', 'kimi', 'together'].includes(provider)) expect(getLlmCost(provider, model)).toBeUndefined()
       expect(() => resolveLlmReasoningOptions(provider, model, undefined)).toThrow('Unsupported write model')
-      if (provider !== 'minimax') expect(() => buildConfigPatchFromFlags({ [provider]: model }, new Set([provider]))).toThrow('Unsupported configured model')
+      if (!['minimax', 'glm', 'kimi', 'together'].includes(provider)) expect(() => buildConfigPatchFromFlags({ [provider]: model }, new Set([provider]))).toThrow('Unsupported configured model')
       const configPath = join(root, 'config.json')
       await Bun.write(configPath, JSON.stringify({ defaults: { llm: { [provider]: [model] } } }))
       await expect(loadConfig(configPath)).rejects.toThrow()
@@ -54,28 +57,24 @@ describe('removed text selections reject before dispatch', () => {
     }))
   }
 
-  test('all-provider expansion and native Kimi retain only supported provider/model pairs', () => {
+  test('all-provider expansion retains only supported provider/model pairs', () => {
     const options = buildOptsFromFlags({ 'all-llm': true, 'all-ocr': true })
     for (const [provider, model] of removed) expect(Reflect.get(options, `${provider}Models`) ?? []).not.toContain(model)
-    expect(options.kimiModels).toContain('kimi-k3')
-    expect(options.kimiModels).not.toContain('kimi-k2.6')
-    expect(options.kimiOcrModels).toContain('kimi-k2.6')
-    expect(parseWrite('kimi', 'kimi-k3').kimiModels).toEqual(['kimi-k3'])
     expect(getModelRegistry().llm['minimax']).toBeUndefined()
     expect(getModelRegistry().music['minimax']).toBeDefined()
   })
 
   test('remaining defaults, saved overrides and reset resolve through cheapest eligible selection', async () => await withLocalTestDir('retained-defaults', async root => {
-    for (const [provider, expected] of [['openai', 'gpt-6-luna'], ['anthropic', 'claude-haiku-5-5'], ['gemini', 'gemini-3.7-flash'], ['grok', 'grok-4.6'], ['glm', 'glm-5.3-flash'], ['together', 'glm-5.3-flash'], ['kimi', 'kimi-k3']] as const) {
+    for (const [provider, expected] of [['openai', 'gpt-6-luna'], ['anthropic', 'claude-haiku-5-5'], ['gemini', 'gemini-3.8-flash'], ['grok', 'grok-4.7']] as const) {
       expect(resolveCheapestModelForFlag(provider)).toBe(expected)
       expect(Reflect.get(buildOptsFromFlags({ [provider]: true }), `${provider}Models`)).toEqual([expected])
     }
     const path = join(root, 'config.json')
-    const patch = buildConfigPatchFromFlags({ openai: 'gpt-5.6-sol' }, new Set(['openai']))
+    const patch = buildConfigPatchFromFlags({ openai: 'gpt-6.1-sol' }, new Set(['openai']))
     await Bun.write(path, JSON.stringify(patch))
     const saved = await loadConfig(path)
     const merged = mergeConfigIntoRawFlags({}, saved, new Set())
-    expect(buildOptsFromFlags(merged).openaiModels).toEqual(['gpt-5.6-sol'])
+    expect(buildOptsFromFlags(merged).openaiModels).toEqual(['gpt-6.1-sol'])
     expect(buildOptsFromFlags(mergeConfigIntoRawFlags({ openai: 'gpt-5.6-terra' }, saved, new Set(['openai']))).openaiModels).toEqual(['gpt-5.6-terra'])
     await Bun.write(path, '{}')
     expect(await loadConfig(path)).toEqual({})
@@ -84,12 +83,11 @@ describe('removed text selections reject before dispatch', () => {
 })
 
 const writeRemoved = [
-  ['gemini', 'gemini-3.5-flash-lite', 'gemini-4-argon, gemini-3.8-flash, gemini-3.7-flash'],
-  ['gemini', 'gemini-3.6-flash', 'gemini-4-argon, gemini-3.8-flash, gemini-3.7-flash'],
-  ['gemini', 'gemini-3.5-flash', 'gemini-4-argon, gemini-3.8-flash, gemini-3.7-flash'],
-  ['grok', 'grok-4.5', 'grok-4.7, grok-4.6'],
-  ['anthropic', 'claude-fable-5', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-1, claude-sonnet-5, claude-opus-5'],
-  ['kimi', 'kimi-k2.6', 'kimi-k3'],
+  ['gemini', 'gemini-3.5-flash-lite', 'gemini-4-argon, gemini-3.8-flash'],
+  ['gemini', 'gemini-3.6-flash', 'gemini-4-argon, gemini-3.8-flash'],
+  ['gemini', 'gemini-3.5-flash', 'gemini-4-argon, gemini-3.8-flash'],
+  ['grok', 'grok-4.5', 'grok-4.7'],
+  ['anthropic', 'claude-fable-5', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-1'],
 ] as const
 
 const ocrFlag = (provider: string) => `${provider}-ocr`
@@ -123,7 +121,7 @@ describe('write-only catalog removals stay valid for OCR and Gemini 3.6 Flash ST
 
   test('Gemini 3.6 Flash is rejected for write and STT while OCR keeps it', () => {
     expect(() => parseWrite('gemini', 'gemini-3.6-flash')).toThrow(
-      'Invalid model "gemini-3.6-flash" for --llm gemini[=model]. Allowed values: gemini-4-argon, gemini-3.8-flash, gemini-3.7-flash'
+      'Invalid model "gemini-3.6-flash" for --llm gemini[=model]. Allowed values: gemini-4-argon, gemini-3.8-flash'
     )
     expect(() => buildOptsFromFlags({ 'gemini-stt': 'gemini-3.6-flash' })).toThrow(
       'Model "gemini-3.6-flash" is retired for --provider/--stt gemini[=model]. Use "gemini-3.5-transcribe" instead.'
@@ -137,9 +135,34 @@ describe('write-only catalog removals stay valid for OCR and Gemini 3.6 Flash ST
       expect(Reflect.get(llmOpts, `${provider}Models`) ?? []).not.toContain(model)
       expect(Reflect.get(ocrOpts, `${provider}OcrModels`) ?? []).toContain(model)
     }
-    expect(llmOpts.geminiModels).toEqual(['gemini-4-argon', 'gemini-3.8-flash', 'gemini-3.7-flash'])
-    expect(llmOpts.grokModels).toEqual(['grok-4.7', 'grok-4.6'])
-    expect(llmOpts.kimiModels).toEqual(['kimi-k3'])
-    expect(llmOpts.anthropicModels).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1', 'claude-sonnet-5', 'claude-opus-5'])
+    expect(llmOpts.geminiModels).toEqual(['gemini-4-argon', 'gemini-3.8-flash'])
+    expect(llmOpts.grokModels).toEqual(['grok-4.7'])
+    expect(llmOpts.anthropicModels).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1'])
   })
 })
+
+
+test('removed writing providers reject stale options, empty saved keys and forged targets before dispatch', async () => await withLocalTestDir('removed-writing-runtime', async root => {
+  const blockedFetch = Object.assign(() => { throw Error('Removed provider must never reach network') }, { preconnect: () => {} })
+  const fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(blockedFetch)
+  let dispatches = 0
+  try {
+    for (const [provider, model] of [['glm', 'glm-5.3'], ['glm', 'glm-5.3-flash'], ['kimi', 'kimi-k3'], ['together', 'kimi-k3'], ['together', 'glm-5.3'], ['together', 'glm-5.3-flash']] as const) {
+      for (const value of [true, model, []]) {
+        expect(() => buildOptsFromFlags({ [provider]: value })).toThrow(/no longer supported/i)
+        expect(() => buildConfigPatchFromFlags({ [provider]: value }, new Set([provider]))).toThrow(/no longer supported/i)
+      }
+      for (const value of [[], [model]]) {
+        expect(() => collectLlmTargets({ [provider + 'Models']: value } as never)).toThrow(/no longer supported/i)
+        const configPath = join(root, 'config.json')
+        await Bun.write(configPath, JSON.stringify({ defaults: { llm: { [provider]: value } } }))
+        await expect(loadConfig(configPath)).rejects.toThrow(/no longer supported/i)
+      }
+      expect(() => collectLlmTargets({ llmService: provider } as never)).toThrow(/no longer supported/i)
+      const target = { service: provider, model, label: provider, run: async () => { dispatches++; throw Error('Unexpected adapter dispatch') } } as unknown as LLMTarget
+      await expect(runLlmTargetsForStructuredPrompt({ prompt: 'Synthetic input', outputDir: root, targets: [target] } as never)).rejects.toThrow('Unsupported write model')
+    }
+    expect(dispatches).toBe(0)
+    expect(fetchSpy).not.toHaveBeenCalled()
+  } finally { fetchSpy.mockRestore() }
+}))

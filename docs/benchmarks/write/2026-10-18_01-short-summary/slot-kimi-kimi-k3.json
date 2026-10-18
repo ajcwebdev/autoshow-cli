@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "01-short-summary",
+  "provider": "kimi",
+  "model": "kimi-k3",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:30:40.019Z",
+  "artifactHashes": {
+    "raw-response-kimi-kimi-k3-attempt-1.json": "34c25f178ce8157210d668fa9a113f0fcfb6208609e2b3f810d943835c98eab2",
+    "text-kimi-kimi-k3.json": "27860f2dffe935d4c4f2776bbc65e1937dfed43fca1c1e479573c81bdfb6acd3",
+    "text-kimi-kimi-k3.md": "f409897c54ccb8b3ee759522c2139d126ef52054dc81ecf70705b399b8c275da"
+  },
+  "metadata": {
+    "llmService": "kimi",
+    "llmModel": "kimi-k3",
+    "providerReturnedModel": "kimi-k3",
+    "processingTime": 5571,
+    "inputTokenCount": 542,
+    "outputTokenCount": 158,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 542,
+      "outputTokenCount": 158,
+      "totalTokenCount": 700
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 542,
+      "completion_tokens": 158,
+      "total_tokens": 700,
+      "completion_tokens_details": {
+        "reasoning_tokens": 110
+      },
+      "prompt_tokens_details": {
+        "cache_write_tokens": 512
+      }
+    },
+    "outputFileName": "text-kimi-kimi-k3.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "shortSummary"
+    ],
+    "effectiveReasoningEffort": "low",
+    "requestSettings": {
+      "model": "kimi-k3",
+      "stream": false,
+      "max_completion_tokens": 32768,
+      "reasoning_effort": "low",
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.39959999999999996
+  },
+  "completedAt": "2026-10-18T18:30:45.596Z",
+  "wallTimeMs": 5572,
+  "networkAttempts": 1
+}

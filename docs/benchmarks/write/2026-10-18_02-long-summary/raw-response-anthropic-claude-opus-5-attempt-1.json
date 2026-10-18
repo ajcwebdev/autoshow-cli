@@ -1,0 +1,47 @@
+{
+  "result": "{\"episodeSummary\":\"In this guest-free FS Jam episode, the hosts dig into the murky craft of building embeddable third-party scripts and widgets, drawing on one host's experience shipping Everfund's donation widget and SDKs. They walk through the practical pipeline: writing in TypeScript or vanilla JS, bundling, and confronting the alphabet soup of module formats—CommonJS, AMD, ESM, and especially UMD, which remains the de facto format for scripts loaded via a tag even though it produces larger files and feels dated. They note tooling quirks (Microbundle couldn't emit valid UMD, so Rollup was added), debate when it's safe to drop legacy support given ESM's roughly 93% browser coverage, and weigh hosting on a private S3/CDN versus npm CDNs like unpkg or esm.sh. Other trade-offs covered include iframes versus injecting markup into the host DOM (CORS, CSS customization, encapsulation, and the promise of portals), framework-specific SDKs where React's bundle balloons compared to plain JS, and a baffling WordPress bug solved by bundling the script locally. The conversation then widens to documentation philosophy (Divio's tutorials/how-tos/reference/explanation split, ReadMe, Stripe as the gold standard), an upcoming Remix Conf trip, and candid talk about the show's future—planned sponsorships, merch, responsible developer advocacy, vetting guests, parasocial listener relationships, and favorite recent episodes on Hydrogen, Blitz, Qwik, and Kent C. Dodds.\"}",
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-opus-5",
+    "providerReturnedModel": "claude-opus-5",
+    "processingTime": 8766,
+    "inputTokenCount": 14150,
+    "outputTokenCount": 540,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 14150,
+      "outputTokenCount": 540
+    },
+    "rawProviderUsage": {
+      "input_tokens": 14150,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 540,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-opus-5",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "ca37e90a9657fd83a99636394f8cb2b7c900e3838c706b22389d5bb5eca98424"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "04-blog",
+  "provider": "grok",
+  "model": "grok-4.7",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:34:56.574Z",
+  "artifactHashes": {
+    "raw-response-grok-grok-4.7-attempt-1.json": "53a56745f3ea636a31548daacbcf274b727964620e96d7e71c04ff208e86a1e0",
+    "text-grok-grok-4.7.json": "eaddc1836375202743be1ef27f6b44baa8e253d5423fe3c38d94d661dd9f0523",
+    "text-grok-grok-4.7.md": "22161c9dac72d5cb36261aca87b2715d6cb745058958fe69401c12f0e3b5e4ef"
+  },
+  "metadata": {
+    "llmService": "grok",
+    "llmModel": "grok-4.7",
+    "providerReturnedModel": "grok-4.7",
+    "processingTime": 132759,
+    "inputTokenCount": 3713,
+    "outputTokenCount": 12837,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 1152,
+      "inputTokenCount": 3713,
+      "outputTokenCount": 12837,
+      "totalTokenCount": 16550
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 3713,
+      "completion_tokens": 1867,
+      "total_tokens": 16550,
+      "prompt_tokens_details": {
+        "text_tokens": 3713,
+        "audio_tokens": 0,
+        "image_tokens": 0,
+        "cached_tokens": 1152
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 10970,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "num_sources_used": 0,
+      "cost_in_usd_ticks": 827200000
+    },
+    "outputFileName": "text-grok-grok-4.7.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "blog"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "grok-4.7",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_blog",
+          "schemaSha256": "6a7be88f6d1e36488bb5e1c39765f78161fadbb922b259a752e33273ca2ecc60",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 8.444799999999999
+  },
+  "completedAt": "2026-10-18T18:37:09.336Z",
+  "wallTimeMs": 132761,
+  "networkAttempts": 1
+}

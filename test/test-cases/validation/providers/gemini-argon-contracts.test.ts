@@ -54,7 +54,7 @@ describe('Gemini 4 Argon synchronous write and OCR contracts', () => {
   test('selectable addition retains existing defaults and documents the unified synchronous limits', () => {
     expect(() => validateGeminiModel(model)).not.toThrow()
     expect(() => validateGeminiOcrModel(model)).not.toThrow()
-    expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.7-flash')
+    expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.8-flash')
     expect(selectCheapestExtractModel('gemini')).toBe('gemini-3.5-flash-lite')
     const registry = getModelRegistry()
     for (const entry of [registry.llm['gemini']?.models[model], registry.extract['gemini']?.models[model]]) {

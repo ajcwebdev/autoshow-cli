@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "04-blog",
+  "provider": "gemini",
+  "model": "gemini-3.8-flash",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:34:56.574Z",
+  "artifactHashes": {
+    "raw-response-gemini-gemini-3.8-flash-attempt-1.json": "56241df72e5cefa10c24c6e14b67fc5e244e0884be64d8984ffb1818dc70fb53",
+    "text-gemini-gemini-3.8-flash.json": "a9731eb16b953d5616fa62f379d548e0a4f2eeb58c0702ea71cb72b142fb4d8d",
+    "text-gemini-gemini-3.8-flash.md": "a8b74feffbaeda09fe19165a6783f077b5286ff2d22f8b96ea41831a0e236d43"
+  },
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-3.8-flash",
+    "providerReturnedModel": "gemini-3.8-flash",
+    "processingTime": 27687,
+    "inputTokenCount": 2620,
+    "outputTokenCount": 3540,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 2620,
+      "outputTokenCount": 3540,
+      "totalTokenCount": 6160
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 2620,
+      "candidatesTokenCount": 1028,
+      "totalTokenCount": 6160,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 2620
+        }
+      ],
+      "thoughtsTokenCount": 2512,
+      "serviceTier": "standard"
+    },
+    "outputFileName": "text-gemini-gemini-3.8-flash.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "blog"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-3.8-flash",
+      "generationConfig": {
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "6a7be88f6d1e36488bb5e1c39765f78161fadbb922b259a752e33273ca2ecc60"
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 3.048
+  },
+  "completedAt": "2026-10-18T18:35:24.264Z",
+  "wallTimeMs": 27688,
+  "networkAttempts": 1
+}

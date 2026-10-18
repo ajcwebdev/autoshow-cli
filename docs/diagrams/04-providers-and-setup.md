@@ -33,9 +33,9 @@ Selectors use `provider[=model]`. Repeat a flag to run more than one provider. F
 | Step  | Providers                                                                                                                                                                                   |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | STT   | Local: `whisperfile`. Hosted: `cloudflare`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `grok`, `mistral`, `assemblyai`, `gladia`, `scrapecreators`, `gemini`, `together`, `openai`. |
-| OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`.                                          |
+| OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`.                                                         |
 | URL   | Local: `defuddle`. Hosted: `spider`, `zyte`.                                                                                                                                                |
-| LLM   | Hosted: `openai`, `gemini`, `anthropic`, `grok`, `glm`, `kimi`, `together`. Write has no local LLM.                                                                                         |
+| LLM   | Hosted: `openai`, `gemini`, `anthropic`, `grok`. Write has no local LLM.                                                                                                                    |
 | TTS   | Hosted: `gemini`, `elevenlabs`, `soniox`, `grok`, `openai`, `inworld`.                                                                                                                      |
 | Image | `gemini`, `openai`, `grok`, `replicate`, `lumalabs`, `fal`.                                                                                                                                 |
 | Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                    |
@@ -74,8 +74,6 @@ Hosted commands require the matching environment variable:
 | `OPENAI_API_KEY`         | OpenAI write/STT/OCR/TTS/image         |
 | `XAI_API_KEY`            | Grok write/STT/OCR/TTS/image/video     |
 | `GEMINI_API_KEY`         | Gemini write/STT/OCR/image/video/music |
-| `GLM_API_KEY`            | GLM write/OCR                          |
-| `KIMI_API_KEY`           | Kimi write/OCR                         |
 | `LTXV_API_KEY`           | LTX video                              |
 | `MISTRAL_API_KEY`        | Mistral STT/OCR                        |
 | `LUMA_AGENTS_API_KEY`    | Luma Agents API image/video            |
@@ -92,7 +90,7 @@ Hosted commands require the matching environment variable:
 | `INWORLD_API_KEY`        | Inworld AI TTS                         |
 | `SONIOX_API_KEY`         | Soniox STT and TTS                     |
 | `SPEECHMATICS_API_KEY`   | Speechmatics STT                       |
-| `TOGETHER_API_KEY`       | Together write/STT                     |
+| `TOGETHER_API_KEY`       | Together STT                           |
 | `CLOUDFLARE_API_TOKEN`   | Cloudflare Workers AI STT              |
 | `CLOUDFLARE_ACCOUNT_ID`  | Cloudflare Workers AI account ID       |
 | `SCRAPECREATORS_API_KEY` | ScrapeCreators STT                     |

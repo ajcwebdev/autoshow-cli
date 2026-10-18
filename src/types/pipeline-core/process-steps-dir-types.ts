@@ -1,10 +1,10 @@
-import type { ProviderIdentityBase, Step3Metadata, StructuredRequestOptions } from '~/types'
+import type { LLMService, ProviderIdentityBase, Step3Metadata, StructuredRequestOptions } from '~/types'
 
 export type TranscribeEngine = 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'openai-stt' | 'cloudflare' | 'whisperfile' | 'youtube-captions'
 
 export type ProviderTargetBase<TService extends string> = ProviderIdentityBase<TService>
 
-export type LLMTarget = ProviderTargetBase<Step3Metadata['llmService']> & {
+export type LLMTarget = ProviderTargetBase<LLMService> & {
   label: string
   run: (prompt: string, model: string, structuredOpts?: StructuredRequestOptions) => Promise<{ result: string; metadata: Step3Metadata }>
 }

@@ -1,0 +1,47 @@
+{
+  "result": "{\n  \"title\": \"Harborlight Field Notes\",\n  \"intro\": [\n    \"Teal enamel mug on the folded map, pinning down the breeze,\",\n    \"Cream compass badge facing out the open window toward the trees.\",\n    \"A thin stripe of morning mist still hanging on the harbor ridge,\",\n    \"I trace the paper from the marker to the wooden footbridge.\"\n  ],\n  \"verse1\": [\n    \"Top of a fresh page, I write the destination: Harborlight Camp,\",\n    \"Before the dusk settles in, before the evening air gets damp.\",\n    \"Papa Bear is our human field guide in a rust-colored coat,\",\n    \"Patient with the plan, checking every trail notice and note.\",\n    \"He checks the weather and the return time before he packs his gear,\",\n    \"I check the torch, the water, and a spare layer to wear.\",\n    \"We each carry a copy of the route, and the rule is plain:\",\n    \"We turn right back around if the weather starts to change.\",\n    \"Leave the table clear, pack out everything we brought inside,\",\n    \"At the trail entrance, I photograph the route board as a guide.\",\n    \"Check the picture against the printed map where the wooden marker points,\",\n    \"No tempting shortcut on a brighter hillside breaks what we appoint.\",\n    \"Up at the harbor overlook, we pause and look back down,\",\n    \"Papa Bear shows how a landmark shifts when you move to higher ground.\",\n    \"That footbridge looked so short from shore, now it stretches long below,\",\n    \"I draw both views and label where I stood so a reader knows—\",\n    \"You do not call the first sketch wrong just because the angle bent.\"\n  ],\n  \"chorus1\": [\n    \"Hold the page with a small clip, weight the map with a teal mug,\",\n    \"Write what you can actually see, not what you were dreaming of.\",\n    \"A careful arrival, a useful question, time enough to wait,\",\n    \"Describe the evidence before you try to call the meaning great.\"\n  ],\n  \"verse2\": [\n    \"Designated level ground, we pitch the tent and keep the path clear,\",\n    \"Check the tripod feet before the telescope comes out of its gear.\",\n    \"I set the mug on the low table, well away from the edge,\",\n    \"Clip the notebook pages tight against the breeze upon the ledge.\",\n    \"Then the first evening star comes out, and a thin cloud crosses through,\",\n    \"I wanted everything at once, a completely open view.\",\n    \"Papa Bear says record the cloud—it is part of what is there,\",\n    \"So I write: a pale sky, one bright point, and water in the air.\",\n    \"As darkness settles, I lower the lantern and turn the metal shield,\",\n    \"Just a small warm circle on the mug and notebook is revealed.\",\n    \"Beyond that little ring of light, the ridge and sky grow sharp and wide,\",\n    \"He points the tube away from sunset's glow until the last light died.\",\n    \"We take turns at the eyepiece; I describe a bright point in the black,\",\n    \"Without guessing at the distance or inventing what I lack.\",\n    \"He asks me what has changed since the last time that I took a look:\",\n    \"The cloud has moved, the pale band faded, harbor lights sharpen in the book.\"\n  ],\n  \"chorus2\": [\n    \"Hold the page with a small clip, weight the map with a teal mug,\",\n    \"Write what you can actually see, including the passing cloud above.\",\n    \"A careful arrival, a useful question, time enough to wait,\",\n    \"Describe the evidence before you try to call the meaning great.\"\n  ],\n  \"verse3\": [\n    \"Then both of us are looking up—a brief streak cuts the open sky,\",\n    \"Too quick to draw the entire path before the flash goes flying by.\",\n    \"Neither of us saw the whole thing, so we write the direction down,\",\n    \"The approximate time, and the fact it lasted just a moment round.\",\n    \"The notebook leaves a space for doubt; we do not force a grand claim\",\n    \"Out of a quick glimpse in the dark or give an uncertain sight a name.\",\n    \"For a while we say nothing at all, just quiet shared attention there,\",\n    \"Hands warmed around the enamel mug in the middle of the night air.\",\n    \"I add one final line before we close the cover for the night:\",\n    \"Waiting gave us a view that hurrying would have pushed out of sight.\",\n    \"Before bed, we compare the notebook with the route plan we brought,\",\n    \"Place, weather, time, observer—every sketch labeled as it ought.\",\n    \"Morning comes, I count the table: mug, notebook, clip, lantern, case,\",\n    \"Papa Bear checks for loose equipment, leaving nothing out of place.\",\n    \"Down the same marked path, we stop at the overlook once more,\",\n    \"Morning light changes the footbridge from the way it looked before.\"\n  ],\n  \"bridge\": [\n    \"Entry one: shore level, footbridge short.\",\n    \"Entry two: ridge overlook, evening, footbridge long.\",\n    \"Entry three: same overlook, morning light, third small drawing on page one.\",\n    \"Nothing in the old sketches needs to be erased.\",\n    \"Position and light change an honest observation.\"\n  ],\n  \"chorus3\": [\n    \"Back by the open window, set the teal mug by the folded map,\",\n    \"Four pages of notes, three small bridge sketches in the trip we wrap.\",\n    \"An uncertain identification stays uncertain on the page,\",\n    \"Describe the evidence first—that habit is the only stage.\"\n  ]\n}",
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-4-argon",
+    "providerReturnedModel": "gemini-4-argon",
+    "processingTime": 22100,
+    "inputTokenCount": 4155,
+    "outputTokenCount": 1290,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 4155,
+      "outputTokenCount": 1290,
+      "totalTokenCount": 5445
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 4155,
+      "candidatesTokenCount": 1290,
+      "totalTokenCount": 5445,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 4155
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 1290
+        }
+      ]
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-4-argon",
+      "generationConfig": {
+        "maxOutputTokens": 65536,
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6"
+      }
+    }
+  }
+}

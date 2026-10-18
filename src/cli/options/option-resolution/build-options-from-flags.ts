@@ -48,9 +48,6 @@ export const buildOptsFromFlags = (
     geminiModels,
     anthropicModels,
     grokModels,
-    glmModels,
-    kimiModels,
-    togetherModels,
   } = modelOptions
   const allUrlSelected = allShortcutFlags['all-url']
   const allLocalUrlSelected = allShortcutFlags['all-local-url']
@@ -96,9 +93,6 @@ export const buildOptsFromFlags = (
     geminiModels,
     anthropicModels,
     grokModels,
-    glmModels,
-    kimiModels,
-    togetherModels,
     ...buildSttOptions(scopeIncludes('extract', 'download', 'metadata') ? ctx : inactiveCtx),
     ...buildOcrOptions(scopeIncludes('extract', 'download', 'metadata') ? ctx : inactiveCtx),
     llmProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'llm-provider-concurrency', allShortcutFlags['all-llm'], explicitFlags, configuredFlags),

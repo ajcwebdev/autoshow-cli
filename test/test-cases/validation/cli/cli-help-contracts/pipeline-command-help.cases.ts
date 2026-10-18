@@ -262,7 +262,7 @@ export const registerPipelineCommandHelpCases = (): void => {
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('bun autoshow setup --show')
-    expect(result.stdout).toContain('bun autoshow setup --llm openai=gpt-5.6-luna --stt whisperfile=small')
+    expect(result.stdout).toContain('bun autoshow setup --llm openai=gpt-6-luna --stt whisperfile=small')
     expect(result.stdout).toContain('bun autoshow setup --reset')
     expect(result.stdout).not.toContain('bun as setup')
   })

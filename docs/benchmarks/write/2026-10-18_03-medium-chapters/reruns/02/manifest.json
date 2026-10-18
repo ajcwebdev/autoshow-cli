@@ -1,0 +1,165 @@
+{
+  "command": "write",
+  "scope": "single",
+  "createdAt": "2026-10-18T19:14:33.690Z",
+  "updatedAt": "2026-10-18T19:14:33.690Z",
+  "items": [
+    {
+      "status": "full",
+      "metadata": {
+        "title": "03-medium-chapters",
+        "source": {
+          "kind": "text-input",
+          "inputPath": "docs/benchmarks/stt-with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt",
+          "slug": "03-medium-chapters",
+          "snapshot": {
+            "path": "source.txt",
+            "sha256": "75833a586501e8bb5c01a5dd0899668d9fad7434c6dd763c7313a0f80e3be453"
+          }
+        },
+        "benchmark": {
+          "plan": "docs/benchmarks/write/benchmark-plan.json",
+          "fingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+          "caseId": "03-medium-chapters",
+          "prompt": "mediumChapters",
+          "repetitions": 1,
+          "qualityProxy": {
+            "method": "model-output-unit-price",
+            "label": "Price proxy ($ / 1M output tokens)",
+            "higherIsBetter": true
+          },
+          "priceNote": "Usage-derived registry cost; provider invoice is authoritative. Cached inputs and generated reasoning are retained in raw usage."
+        },
+        "step3": [
+          {
+            "llmService": "glm",
+            "llmModel": "glm-5.3",
+            "providerReturnedModel": "glm-5.3",
+            "processingTime": 7991,
+            "inputTokenCount": 2554,
+            "outputTokenCount": 530,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "cachedInputTokenCount": 0,
+              "inputTokenCount": 2554,
+              "outputTokenCount": 530,
+              "totalTokenCount": 3084
+            },
+            "rawProviderUsage": {
+              "completion_tokens": 530,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0
+              },
+              "prompt_tokens": 2554,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 3084
+            },
+            "outputFileName": "text-glm-glm-5.3.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "mediumChapters"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "glm-5.3",
+              "stream": false,
+              "max_tokens": 16000,
+              "thinking": {
+                "type": "enabled"
+              },
+              "response_format": {
+                "type": "json_object"
+              }
+            },
+            "validationFailed": false
+          }
+        ],
+        "cost": {
+          "estimated": {
+            "totalCost": 0.7520199999999999,
+            "steps": [
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3",
+                "inputCostPer1MCents": 140,
+                "outputCostPer1MCents": 440,
+                "estimatedInputTokens": 2543,
+                "estimatedOutputTokens": 900,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 0.7520199999999999
+              }
+            ]
+          },
+          "observedEstimate": {
+            "totalCost": 0.59076,
+            "steps": [
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3",
+                "cost": 0.59076,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 140,
+                "outputCostPer1MCents": 440,
+                "estimatedInputTokens": 2554,
+                "estimatedOutputTokens": 530
+              }
+            ]
+          },
+          "actual": {
+            "totalCost": 0.59076,
+            "steps": [
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3",
+                "cost": 0.59076,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 3084,
+                "promptTokens": 2554,
+                "completionTokens": 530
+              }
+            ]
+          }
+        },
+        "timing": {
+          "actual": {
+            "totalProcessingTimeMs": 7991,
+            "steps": [
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3",
+                "processingTimeMs": 7991,
+                "inputMetric": "tokens",
+                "inputValue": 3084,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 2591.115,
+                "throughputValue": 385.934,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "glm",
+          "model": "glm-5.3",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        }
+      ]
+    }
+  ]
+}

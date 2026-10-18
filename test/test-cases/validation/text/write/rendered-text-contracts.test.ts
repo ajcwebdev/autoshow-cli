@@ -25,8 +25,9 @@ test('rendered text track headers use model display names', () => {
 
   expect(formatRenderedLlmLabel({
     llmService: 'grok',
-    llmModel: 'grok-4.6'
-  })).toBe('Grok 4.6')
+    llmModel: 'grok-4.7'
+  })).toBe('Grok 4.7')
+  expect(formatRenderedLlmLabel({ llmService: 'grok', llmModel: 'grok-4.6' })).toBe('grok-4.6')
 })
 
 test('text input song titles use tracks.md before falling back to the filename stem', async () => {

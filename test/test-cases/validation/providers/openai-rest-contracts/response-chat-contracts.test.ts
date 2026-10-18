@@ -1,8 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { runOpenAICompatibleChatModel } from '~/cli/commands/text/write/write-services/openai-compatible-chat'
-import { runTogetherModel } from '~/cli/commands/text/write/write-services/write-together/run-together'
 import { runOpenAIModel } from '~/cli/commands/text/write/write-services/write-openai/run-openai'
-import { TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { OpenAIRestError, createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, structuredOpts } from './shared'
 import { expectProviderHttpError } from '../../../../test-utils/rest-contract-helpers'
@@ -16,7 +14,7 @@ describe('OpenAI REST response and chat contracts', () => {
     const opts = buildOptsFromFlags({ openai: 'gpt-6-astra', 'reasoning-effort': 'xhigh' })
     expect(opts.openaiModels).toEqual(['gpt-6-astra'])
     expect(opts.reasoningEffort).toBe('xhigh')
-    expect(buildOptsFromFlags({ openai: 'gpt-5.6-sol' }).openaiModels).toEqual(['gpt-5.6-sol'])
+    expect(buildOptsFromFlags({ openai: 'gpt-6.1-sol' }).openaiModels).toEqual(['gpt-6.1-sol'])
   })
 
   for (const effort of [undefined, 'default', 'low', 'medium', 'high', 'xhigh', 'max'] as const) {
@@ -44,16 +42,18 @@ describe('OpenAI REST response and chat contracts', () => {
     })
   }
 
-  test('Astra rejects disabled/minimal reasoning and Sol rejects xhigh before HTTP', async () => {
+  test('Astra and Sol reject disabled/minimal reasoning before HTTP', async () => {
     const calls = installFetch(() => { throw new Error('Unexpected provider call') })
     for (const effort of ['disabled', 'minimal'] as const) {
       await expect(runOpenAIModel('Adapt.', 'gpt-6-astra', {
         ...structuredOpts, requestedReasoningEffort: effort
       })).rejects.toThrow('does not support')
     }
-    await expect(runOpenAIModel('Adapt.', 'gpt-5.6-sol', {
-      ...structuredOpts, requestedReasoningEffort: 'xhigh'
-    })).rejects.toThrow('does not support')
+    for (const effort of ['disabled', 'minimal'] as const) {
+      await expect(runOpenAIModel('Adapt.', 'gpt-6.1-sol', {
+        ...structuredOpts, requestedReasoningEffort: effort
+      })).rejects.toThrow('does not support')
+    }
     expect(calls).toHaveLength(0)
   })
 
@@ -72,7 +72,7 @@ describe('OpenAI REST response and chat contracts', () => {
 
     const response = await createOpenAIResponse(
       { apiKey: 'openai-key', baseURL: 'https://mock.openai.local/v1/' },
-      { model: 'gpt-5.6-sol', input: 'Hello', stream: false }
+      { model: 'gpt-6.1-sol', input: 'Hello', stream: false }
     )
 
     expect(extractOpenAIResponseText(response)).toBe('Hello from REST.')
@@ -80,7 +80,7 @@ describe('OpenAI REST response and chat contracts', () => {
     expect(calls[0]).toMatchObject({
       url: 'https://mock.openai.local/v1/responses',
       method: 'POST',
-      bodyJson: { model: 'gpt-5.6-sol', input: 'Hello', stream: false }
+      bodyJson: { model: 'gpt-6.1-sol', input: 'Hello', stream: false }
     })
     expect(calls[0]?.headers.get('authorization')).toBe('Bearer openai-key')
     expect(calls[0]?.headers.get('content-type')).toBe('application/json')
@@ -111,13 +111,13 @@ describe('OpenAI REST response and chat contracts', () => {
 
     await expect(createOpenAIResponse(
       { apiKey: 'openai-key', baseURL: 'https://mock.openai.local' },
-      { model: 'gpt-5.6-sol', input: 'retry?' }
+      { model: 'gpt-6.1-sol', input: 'retry?' }
     )).rejects.toThrow('OpenAI Responses request failed (429): try later')
 
     const error = await expectProviderHttpError(
       () => createOpenAIResponse(
         { apiKey: 'openai-key', baseURL: 'https://mock.openai.local' },
-        { model: 'gpt-5.6-sol', input: 'retry?' }
+        { model: 'gpt-6.1-sol', input: 'retry?' }
       ),
       { instanceOf: OpenAIRestError, status: 429, headers: { 'retry-after': '2' } }
     ) as OpenAIRestError
@@ -130,17 +130,17 @@ describe('OpenAI REST response and chat contracts', () => {
   test('OpenAI write routes Responses output and metadata through the shared request scaffold', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
     const calls = installFetch(() => jsonResponse({
-      model: 'gpt-5.6-sol',
+      model: 'gpt-6.1-sol',
       output: [{ type: 'message', content: [{ type: 'output_text', text: '{"summary":"done"}' }] }],
       usage: { input_tokens: 7, output_tokens: 3, total_tokens: 10 }
     }))
 
-    const result = await runOpenAIModel('Summarize this.', 'gpt-5.6-sol', structuredOpts)
+    const result = await runOpenAIModel('Summarize this.', 'gpt-6.1-sol', structuredOpts)
 
     expect(result.result).toBe('{"summary":"done"}')
     expect(calls).toHaveLength(1)
     expect(calls[0]?.bodyJson).toEqual({
-      model: 'gpt-5.6-sol',
+      model: 'gpt-6.1-sol',
       input: 'Summarize this.',
       stream: false,
       text: {
@@ -154,21 +154,21 @@ describe('OpenAI REST response and chat contracts', () => {
     })
     expect(result.metadata).toMatchObject({
       llmService: 'openai',
-      llmModel: 'gpt-5.6-sol',
-      providerReturnedModel: 'gpt-5.6-sol',
+      llmModel: 'gpt-6.1-sol',
+      providerReturnedModel: 'gpt-6.1-sol',
       tokenCountSource: 'provider_usage'
     })
   })
 
   test('OpenAI write maps normalized effort to the nested Responses reasoning object', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
-    const calls = installFetch(() => jsonResponse({
-      model: 'gpt-5.6-sol',
+    const calls = installFetch(call => jsonResponse({
+      model: call.bodyJson?.['model'],
       output_text: '{"summary":"done"}',
       usage: { input_tokens: 7, output_tokens: 3, total_tokens: 10 }
     }))
 
-    const result = await runOpenAIModel('Summarize this.', 'gpt-5.6-sol', {
+    const result = await runOpenAIModel('Summarize this.', 'gpt-6.1-sol', {
       ...structuredOpts,
       requestedReasoningEffort: 'high'
     })
@@ -180,7 +180,7 @@ describe('OpenAI REST response and chat contracts', () => {
       effectiveReasoningEffort: 'high'
     })
 
-    const disabled = await runOpenAIModel('Summarize this.', 'gpt-5.6-sol', {
+    const disabled = await runOpenAIModel('Summarize this.', 'gpt-6-luna', {
       ...structuredOpts,
       requestedReasoningEffort: 'disabled'
     })
@@ -236,63 +236,5 @@ describe('OpenAI REST response and chat contracts', () => {
     expect(requestSignals[0]).toBeInstanceOf(AbortSignal)
     expect(requestSignals[1]).toBeInstanceOf(AbortSignal)
     expect(requestSignals[0]).not.toBe(requestSignals[1])
-  })
-
-  test('Together write maps selectors to provider model IDs with bearer auth', async () => {
-    process.env['TOGETHER_API_KEY'] = 'together-key'
-
-    const calls = installFetch((call) => jsonResponse({
-      model: call.bodyJson?.['model'],
-      choices: [{ message: { content: calls.length === 1 ? '{"summary":"kimi"}' : '{"summary":"glm"}' } }],
-      usage: { prompt_tokens: 6, completion_tokens: 2, total_tokens: 8 }
-    }))
-
-    const kimiResult = await runTogetherModel('Draft Kimi.', 'kimi-k3', structuredOpts)
-    const glmResult = await runTogetherModel('Draft GLM.', 'glm-5.3-flash')
-
-    expect(kimiResult.result).toBe('{"summary":"kimi"}')
-    expect(glmResult.result).toBe('{"summary":"glm"}')
-    expect(calls).toHaveLength(2)
-    expect(calls.map((call) => call.url)).toEqual([
-      `${TOGETHER_DEFAULT_BASE_URL}/chat/completions`,
-      `${TOGETHER_DEFAULT_BASE_URL}/chat/completions`
-    ])
-    expect(calls[0]).toMatchObject({
-      method: 'POST',
-      bodyJson: {
-        model: 'moonshotai/Kimi-K3',
-        messages: [{ role: 'user', content: 'Draft Kimi.' }],
-        max_tokens: 131072,
-        stream: false,
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'summary',
-            strict: true
-          }
-        }
-      }
-    })
-    expect(calls[1]).toMatchObject({
-      method: 'POST',
-      bodyJson: {
-        model: 'zai-org/GLM-5.3-Flash',
-        messages: [{ role: 'user', content: 'Draft GLM.' }],
-        max_tokens: 32768,
-        stream: false
-      }
-    })
-    expect(calls[0]?.headers.get('authorization')).toBe('Bearer together-key')
-    expect(calls[1]?.headers.get('authorization')).toBe('Bearer together-key')
-    expect(kimiResult.metadata).toMatchObject({
-      llmService: 'together',
-      llmModel: 'kimi-k3',
-      providerReturnedModel: 'moonshotai/Kimi-K3'
-    })
-    expect(glmResult.metadata).toMatchObject({
-      llmService: 'together',
-      llmModel: 'glm-5.3-flash',
-      providerReturnedModel: 'zai-org/GLM-5.3-Flash'
-    })
   })
 })

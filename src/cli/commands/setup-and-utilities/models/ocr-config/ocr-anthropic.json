@@ -183,68 +183,6 @@
             "max"
           ]
         }
-      },
-      "claude-sonnet-5": {
-        "description": "Claude Sonnet 5 OCR",
-        "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",
-        "pricingCheckedAt": "2026-09-23",
-        "pricingCurrency": "USD",
-        "pricingTier": "Claude API standard token pricing",
-        "pricingNotes": "Anthropic confirms $2/1M input and $10/1M output are now standard Sonnet 5 rates; the previously announced September 1 increase was canceled. Cache reads $0.20/M and cache writes $2.50/M (5m) or $4/M (1h) are not requested or automatically discounted. Published rates are separate from empirical token and latency estimates. Batch, regional premiums, taxes and credits are excluded.",
-        "costPerMInputTokensCents": 200,
-        "costPerMOutputTokensCents": 1000,
-        "limits": {
-          "imageBytes": 5242880,
-          "notes": "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerPage": 8679,
-          "promptTokensPerPage": 1657.5,
-          "completionTokensPerPage": 474.5
-        },
-        "reasoning": {
-          "support": "optional",
-          "allowDisabled": true,
-          "supportedEfforts": [
-            "low",
-            "medium",
-            "high",
-            "xhigh",
-            "max"
-          ]
-        }
-      },
-      "claude-opus-5": {
-        "description": "Claude Opus 5 OCR",
-        "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",
-        "pricingCheckedAt": "2026-07-24",
-        "pricingCurrency": "USD",
-        "pricingTier": "Claude API standard token pricing",
-        "pricingNotes": "Anthropic lists Claude Opus 5 at $5/1M input tokens and $25/1M output tokens. OCR estimates multiply observed token usage by these published rates. Claude Opus 5 runs with thinking on by default, so the inherited page heuristics are provisional until a separately approved paid calibration is available. Prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMInputTokensCents": 500,
-        "costPerMOutputTokensCents": 2500,
-        "limits": {
-          "imageBytes": 5242880,
-          "notes": "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerPage": 7914,
-          "promptTokensPerPage": 1657.5,
-          "completionTokensPerPage": 474.5
-        },
-        "reasoning": {
-          "support": "optional",
-          "allowDisabled": true,
-          "supportedEfforts": [
-            "low",
-            "medium",
-            "high",
-            "xhigh",
-            "max"
-          ]
-        }
       }
     }
   }

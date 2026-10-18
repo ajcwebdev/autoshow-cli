@@ -52,9 +52,6 @@ const LlmDefaultsSchema = v.strictObject({
   gemini: ModelArraySchema,
   anthropic: ModelArraySchema,
   grok: ModelArraySchema,
-  glm: ModelArraySchema,
-  kimi: ModelArraySchema,
-  together: ModelArraySchema,
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
@@ -161,8 +158,6 @@ const ExtractOcrDefaultsSchema = v.strictObject({
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   mistralOcr: ModelArraySchema,
-  glmOcr: ModelArraySchema,
-  kimiOcr: ModelArraySchema,
   openaiOcr: ModelArraySchema,
   grokOcr: ModelArraySchema,
   anthropicOcr: ModelArraySchema,

@@ -1,22 +1,5 @@
 export const hostedOcrImageInput = 'https://ajc.pics/autoshow/benchmarks/ocr/1-document.png'
 
-export const glmOcr = {
-  provider: 'glm',
-  extractionMethod: 'glm-ocr',
-  imageExtractionMethod: 'image+glm-ocr',
-  envVarKey: 'GLM_API_KEY',
-  imageInput: 'input/examples/document/1-document.jpg',
-} as const
-
-export const kimiOcr = {
-  provider: 'kimi',
-  extractionMethod: 'kimi-ocr',
-  imageExtractionMethod: 'image+kimi-ocr',
-  envVarKey: 'KIMI_API_KEY',
-  imageInput: 'input/examples/document/1-document.jpg',
-  assertUsageMetadata: true,
-} as const
-
 export const mistralOcr = {
   provider: 'mistral',
   extractionMethod: 'mistral-ocr',

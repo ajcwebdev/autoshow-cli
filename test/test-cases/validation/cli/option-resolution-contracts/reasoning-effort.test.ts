@@ -64,37 +64,13 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       })
       expect(geminiOcrPolicy.requested).toBe('default')
       expect(geminiOcrPolicy.effective).toBe('default')
-
-      const kimiK26Policy = resolveReasoningPolicy({
-        step: 'extract',
-        service: 'kimi',
-        model: 'kimi-k2.6',
-        requestedReasoningEffort: undefined
-      })
-      expect(kimiK26Policy.effective).toBe('disabled')
-
-      const kimiK3Policy = resolveReasoningPolicy({
-        step: 'llm',
-        service: 'kimi',
-        model: 'kimi-k3',
-        requestedReasoningEffort: undefined
-      })
-      expect(kimiK3Policy.effective).toBe('low')
-
-      const kimiK3OcrPolicy = resolveReasoningPolicy({
-        step: 'extract',
-        service: 'kimi',
-        model: 'kimi-k3',
-        requestedReasoningEffort: undefined
-      })
-      expect(kimiK3OcrPolicy.effective).toBe('low')
     })
 
     it('accepts valid supported explicit effort overrides', () => {
       const openaiPolicy = resolveReasoningPolicy({
         step: 'llm',
         service: 'openai',
-        model: 'gpt-5.6-sol',
+        model: 'gpt-6.1-sol',
         requestedReasoningEffort: 'medium'
       })
       expect(openaiPolicy.requested).toBe('medium')
@@ -112,14 +88,14 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       expect(resolveReasoningPolicy({
         step: 'llm',
         service: 'openai',
-        model: 'gpt-5.6-luna',
+        model: 'gpt-6-luna',
         requestedReasoningEffort: 'disabled'
       }).effective).toBe('disabled')
 
       expect(resolveReasoningPolicy({
         step: 'llm',
         service: 'openai',
-        model: 'gpt-5.6-sol',
+        model: 'gpt-6.1-sol',
         requestedReasoningEffort: 'max'
       }).effective).toBe('max')
     })
@@ -129,7 +105,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
         resolveReasoningPolicy({
           step: 'llm',
           service: 'anthropic',
-          model: 'claude-sonnet-5',
+          model: 'claude-sonnet-5-5',
           requestedReasoningEffort: 'minimal'
         })
       ).toThrow()
@@ -137,14 +113,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
     })
 
     it('rejects disabled effort when model requires reasoning', () => {
-      expect(() =>
-        resolveReasoningPolicy({
-          step: 'llm',
-          service: 'kimi',
-          model: 'kimi-k3',
-          requestedReasoningEffort: 'disabled'
-        })
-      ).toThrow()
 
       expect(() =>
         resolveReasoningPolicy({
@@ -155,12 +123,12 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
         })
       ).toThrow()
 
-      expect(resolveReasoningPolicy({
+      expect(() => resolveReasoningPolicy({
         step: 'llm',
         service: 'anthropic',
-        model: 'claude-opus-5',
+        model: 'claude-opus-5-5',
         requestedReasoningEffort: 'disabled'
-      }).effective).toBe('disabled')
+      })).toThrow('does not support disabling reasoning')
     })
 
     it('rejects disabled effort unless the model explicitly allows it', () => {
@@ -175,21 +143,6 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
     })
 
     it('rejects named effort levels for binary reasoning controls', () => {
-      expect(() =>
-        resolveReasoningPolicy({
-          step: 'extract',
-          service: 'kimi',
-          model: 'kimi-k2.6',
-          requestedReasoningEffort: 'medium'
-        })
-      ).toThrow('exposes no named effort levels')
-
-      expect(resolveReasoningPolicy({
-        step: 'extract',
-        service: 'kimi',
-        model: 'kimi-k2.6',
-        requestedReasoningEffort: 'disabled'
-      }).effective).toBe('disabled')
     })
   })
 
@@ -234,7 +187,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       const target: LLMTarget = {
         service: 'openai',
         label: 'OpenAI stub',
-        model: 'gpt-5.6-sol',
+        model: 'gpt-6.1-sol',
         run: async (_prompt, model, options) => {
           receivedOptions = options
           const metadata: Step3Metadata = {
@@ -283,8 +236,8 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
         prompt: 'Test prompt',
         outputDir: '/tmp/autoshow-reasoning-preflight-not-used',
         targets: [
-          target('openai', 'gpt-5.6-sol'),
-          target('anthropic', 'claude-sonnet-5')
+          target('openai', 'gpt-6.1-sol'),
+          target('anthropic', 'claude-sonnet-5-5')
         ],
         structuredSchema,
         structuredValidationContext: { leafPromptNames: ['content'], presetNames: [] },
@@ -295,7 +248,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
 
     it('validates and reports requested and effective effort during price planning', async () => {
       const estimates = await buildLlmEstimates({
-        openaiModels: ['gpt-5.6-sol'],
+        openaiModels: ['gpt-6.1-sol'],
         reasoningEffort: 'high'
       })
       expect(estimates).toHaveLength(1)
@@ -303,7 +256,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       expect(estimates[0]?.effectiveReasoningEffort).toBe('high')
 
       await expect(buildLlmEstimates({
-        anthropicModels: ['claude-sonnet-5'],
+        anthropicModels: ['claude-sonnet-5-5'],
         reasoningEffort: 'minimal'
       })).rejects.toThrow('reasoning')
     })
@@ -326,7 +279,7 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
     it('rejects an explicit write-resume policy that differs from stored effective effort', () => {
       const entry: Step3Metadata = {
         llmService: 'openai',
-        llmModel: 'gpt-5.6-sol',
+        llmModel: 'gpt-6.1-sol',
         processingTime: 1,
         inputTokenCount: 1,
         outputTokenCount: 1,
@@ -342,12 +295,12 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
 
       expect(validateResume?.(item, [entry], {
         reasoningEffort: 'high',
-        openaiModels: ['gpt-5.6-sol']
+        openaiModels: ['gpt-6.1-sol']
       } as WriteRuntimeOptions))
         .toContain('reasoning policy mismatch')
       expect(validateResume?.(item, [entry], {
         reasoningEffort: 'low',
-        openaiModels: ['gpt-5.6-sol']
+        openaiModels: ['gpt-6.1-sol']
       } as WriteRuntimeOptions))
         .toBeUndefined()
     })

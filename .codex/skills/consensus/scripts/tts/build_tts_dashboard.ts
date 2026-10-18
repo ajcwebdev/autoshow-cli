@@ -247,7 +247,7 @@ export function buildTtsDashboard(rootDir: string, generatedAt = new Date().toIS
       metricDirections: { quality: 'higher', speed: 'higher', cost: 'lower' }, evidenceColumns: ['Total audio', 'Total cost', 'Generation timing coverage', 'Human quality'],
       showPerRun: false, providers };
   });
-  const table = (suite: TtsDashboardSample['suite'], title: string) => ({ title,
+  const table = (suite: TtsDashboardSample['suite'], title: string) => ({ title, providerKeyColumn: 1,
     notes: suiteReviewNotes(rootDir, samples.filter(row => row.suite === suite)),
     columns: ['Run / case', 'Provider / model', 'Execution', 'Recorded time', 'Time basis', 'Audio duration', 'Cost USD', 'Cost basis', 'Format', 'Audio', 'Evidence', 'Controls', 'ASR WER', 'Assessment'],
     rows: samples.filter(row => row.suite === suite).map(row => [

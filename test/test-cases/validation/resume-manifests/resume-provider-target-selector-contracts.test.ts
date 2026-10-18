@@ -56,14 +56,14 @@ describe('resume target-aware provider selectors', () => {
   test('normalizes --provider for generation resume targets', () => {
     const write = normalizeResumeSelectorFlagsForTarget(
       target('write'),
-      { provider: ['together=kimi-k3', 'glm=glm-5.3-flash'] },
+      { provider: ['grok=grok-4.7', 'openai=gpt-6-luna'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'together=kimi-k3', '--provider', 'glm=glm-5.3-flash']
+      ['resume', 'out', '--provider', 'grok=grok-4.7', '--provider', 'openai=gpt-6-luna']
     )
-    expect(write.flags['together']).toBe('kimi-k3')
-    expect(write.flags['glm']).toBe('glm-5.3-flash')
-    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).togetherModels).toEqual(['kimi-k3'])
-    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).glmModels).toEqual(['glm-5.3-flash'])
+    expect(write.flags['grok']).toBe('grok-4.7')
+    expect(write.flags['openai']).toBe('gpt-6-luna')
+    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).grokModels).toEqual(['grok-4.7'])
+    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).openaiModels).toEqual(['gpt-6-luna'])
 
     const image = normalizeResumeSelectorFlagsForTarget(
       target('image'),

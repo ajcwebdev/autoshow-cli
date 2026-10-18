@@ -1,0 +1,46 @@
+{
+  "result": "{\n  \"chapters\": [\n    {\n      \"timestamp\": \"00:00:01\",\n      \"title\": \"JavaScript Jam Introductions and React Miami Collaboration\",\n      \"description\": \"After resolving Twitter Spaces startup problems, Ishan Anand, Anthony Campolo, and Scott Steinlage introduce JavaScript Jam Live and its React Miami collaboration. They preview upcoming speaker appearances and special activities while emphasizing the show’s open-mic format, welcoming questions and contributions from web developers at every experience level.\"\n    },\n    {\n      \"timestamp\": \"00:04:45\",\n      \"title\": \"Miami Jam: Turning Speaker Interviews into a Game Show\",\n      \"description\": \"Dev introduces himself, and React Miami organizer Michelle joins as the group previews Miami Jam. The proposed game show uses React, JavaScript, and TypeScript trivia to spark speaker discussions, shared experiences, and audience participation, including scoring answers. The transcript ends mid-explanation; its final timestamp is 00:08:42, marking the available duration.\"\n    }\n  ]\n}",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6.1-sol",
+    "providerReturnedModel": "gpt-6.1-sol",
+    "processingTime": 6263,
+    "inputTokenCount": 2540,
+    "outputTokenCount": 391,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 2540,
+      "outputTokenCount": 391,
+      "totalTokenCount": 2931
+    },
+    "rawProviderUsage": {
+      "input_tokens": 2540,
+      "input_tokens_details": {
+        "cache_write_tokens": 2537,
+        "cached_tokens": 0
+      },
+      "output_tokens": 391,
+      "output_tokens_details": {
+        "reasoning_tokens": 168
+      },
+      "total_tokens": 2931
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-6.1-sol",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_mediumChapters",
+          "schemaSha256": "21fdcdb40e118404ed84283dc2e2153afca07f6360aea5c77a5d2b38632c29af",
+          "strict": true
+        }
+      }
+    }
+  }
+}

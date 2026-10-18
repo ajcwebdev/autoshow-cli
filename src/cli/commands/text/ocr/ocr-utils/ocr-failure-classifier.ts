@@ -31,9 +31,6 @@ const inferService = (
   if (service) {
     return service
   }
-  if (/\bkimi(?:[-\s]?ocr)?\b/i.test(text)) {
-    return 'kimi'
-  }
   if (/\banthropic(?:[-\s]?ocr)?\b|\bclaude\b/i.test(text)) {
     return 'anthropic'
   }
@@ -53,7 +50,7 @@ const hasNoRetryHeader = (headers: Headers | undefined): boolean => {
   return false
 }
 
-const KIMI_QUOTA_BLOCKER_PATTERN = /insufficient\s+(?:account\s+)?balance|balance\s+(?:is\s+)?(?:not\s+enough|insufficient)|not\s+enough\s+balance|quota(?:[_\s-]?exceeded|[_\s-]?insufficient)?|billing\s+(?:required|details|quota|limit)|payment\s+required|top\s*up|recharge|credits?\s+(?:exhausted|depleted|insufficient)|account\s+suspended|suspended\s+account/i
+const QUOTA_BLOCKER_PATTERN = /insufficient\s+(?:account\s+)?balance|balance\s+(?:is\s+)?(?:not\s+enough|insufficient)|not\s+enough\s+balance|quota(?:[_\s-]?exceeded|[_\s-]?insufficient)?|billing\s+(?:required|details|quota|limit)|payment\s+required|top\s*up|recharge|credits?\s+(?:exhausted|depleted|insufficient)|account\s+suspended|suspended\s+account/i
 const ACCOUNT_SUSPENDED_PATTERN = /account\s+suspended|suspended\s+account/i
 const BILLING_REQUIRED_PATTERN = /billing\s+(?:required|details|quota|limit)|payment\s+required|top\s*up|recharge/i
 const INSUFFICIENT_BALANCE_PATTERN = /insufficient\s+(?:account\s+)?balance|balance\s+(?:is\s+)?(?:not\s+enough|insufficient)|not\s+enough\s+balance|credits?\s+(?:exhausted|depleted|insufficient)/i
@@ -100,7 +97,7 @@ const categorize = (
   return 'unknown'
 }
 
-const blockedReasonForKimiQuota = (text: string): string => {
+const blockedReasonForQuota = (text: string): string => {
   if (ACCOUNT_SUSPENDED_PATTERN.test(text)) {
     return 'account_suspended'
   }
@@ -132,9 +129,8 @@ export const classifyOcrFailureSummary = (
   const category = categorize(input, combinedText)
 
   if (
-    service === 'kimi'
-    && (input.status === 429 || input.status === 402)
-    && KIMI_QUOTA_BLOCKER_PATTERN.test(combinedText)
+    (input.status === 429 || input.status === 402)
+    && QUOTA_BLOCKER_PATTERN.test(combinedText)
   ) {
     return {
       category,
@@ -142,7 +138,7 @@ export const classifyOcrFailureSummary = (
       retryable: false,
       quota: true,
       providerWide: true,
-      blockedReason: blockedReasonForKimiQuota(combinedText)
+      blockedReason: blockedReasonForQuota(combinedText)
     }
   }
 

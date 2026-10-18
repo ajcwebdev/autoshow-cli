@@ -1,6 +1,8 @@
 import type { MappedReasoningPolicy, NormalizedReasoningEffort, ReasoningCapabilities, ReasoningSupport } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { getModelRegistry } from './model-loader/registry'
+import { getRetiredModelReplacement } from './model-loader/retired-model-rates'
+import { formatModelSelector } from './model-validation'
 import { formatQuotedChoiceList } from '~/utils/value-helpers'
 
 import { NORMALIZED_REASONING_EFFORTS } from './reasoning-efforts'
@@ -44,22 +46,10 @@ const getAdapterDefaultReasoningEffort = (
   service: string,
   model: string
 ): NormalizedReasoningEffort => {
-  if (step === 'llm') {
-    if (service === 'kimi') {
-      return model === 'kimi-k3' ? 'low' : 'disabled'
-    }
-    if (service === 'glm') {
-      return model === 'glm-5.3' || model === 'glm-5.3-flash' ? 'default' : 'disabled'
-    }
-  }
-
   if (step === 'extract') {
     if (service === 'deepinfra' && model.startsWith('google/gemma-4-')) return 'disabled'
     if (service === 'gemini' && /^gemini-3(?:[.-]|$)/i.test(model)) {
       return 'low'
-    }
-    if (service === 'kimi') {
-      return model === 'kimi-k3' ? 'low' : 'disabled'
     }
   }
 
@@ -73,6 +63,16 @@ export const resolveReasoningPolicy = (options: {
   requestedReasoningEffort: NormalizedReasoningEffort | undefined
 }): MappedReasoningPolicy => {
   const { step, service, model, requestedReasoningEffort } = options
+  if (['glm', 'kimi'].includes(service) || (step === 'llm' && service === 'together')) {
+    throw UsageError(`Provider "${service}" is no longer supported for ${step === 'llm' ? 'writing' : 'OCR'}. Select an active provider explicitly. AutoShow will not silently substitute a different model identity.`)
+  }
+  const replacement = getRetiredModelReplacement(step, service, model)
+  if (replacement !== undefined && getModelRegistry()[step][service]?.models[model] === undefined) {
+    const selector = formatModelSelector(step === 'extract' ? `${service}-ocr` : service)
+    throw UsageError(
+      `Model "${model}" is retired for ${selector}. Use "${replacement}" instead. AutoShow will not silently substitute a different model identity.`
+    )
+  }
   const capabilities = getReasoningCapabilities(step, service, model)
   const adapterDefault = getAdapterDefaultReasoningEffort(step, service, model)
 

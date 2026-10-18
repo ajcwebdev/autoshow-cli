@@ -33,6 +33,142 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'cloudflare:@cf/deepgram/nova-3': { costPerHourCents: 31.2 }
   },
   extract: {
+    // Removed 2026-10-18; frozen prices keep purchased benchmark evidence readable.
+    "glm:glm-5.3-flash": {
+      "pricingSourceUrl": "https://docs.z.ai/guides/overview/pricing",
+      "pricingCheckedAt": "2026-09-11",
+      "pricingCurrency": "USD",
+      "pricingTier": "Z.AI standard API, uncached",
+      "pricingNotes": "$0.15/M input and $0.50/M completion tokens, including reasoning once. Cached input $0.03/M; estimates conservatively ignore discounts. Page-token and latency heuristics are uncalibrated; not a spending bound.",
+      "costPerMInputTokensCents": 15,
+      "costPerMOutputTokensCents": 50
+    },
+    "kimi:kimi-k2.6": {
+      "pricingSourceUrl": "https://platform.kimi.ai/docs/pricing/chat",
+      "pricingCheckedAt": "2026-05-31",
+      "pricingCurrency": "USD",
+      "pricingTier": "Moonshot AI public API token pricing",
+      "pricingNotes": "Moonshot AI public pricing lists Kimi K2.6 at $0.95/1M input tokens and $4/1M output tokens. OCR estimates use cache-miss input pricing conservatively; cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
+      "costPerMInputTokensCents": 95,
+      "costPerMCachedInputTokensCents": 16,
+      "costPerMOutputTokensCents": 400
+    },
+    "kimi:kimi-k3": {
+      "pricingSourceUrl": "https://platform.kimi.ai/docs/pricing/chat",
+      "pricingCheckedAt": "2026-07-24",
+      "pricingCurrency": "USD",
+      "pricingTier": "Moonshot AI public API token pricing",
+      "pricingNotes": "Moonshot AI public pricing lists Kimi K3 at $3/1M cache-miss input tokens, $0.30/1M cache-hit input tokens, and $15/1M output tokens with flat pay-as-you-go rates and no context tiers. OCR estimates use cache-miss input pricing conservatively. Kimi K3 requires thinking; AutoShow defaults omitted --reasoning-effort to low rather than the provider max. The reused Kimi K2.6 page heuristics are provisional until a separately approved paid calibration is available. Cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
+      "costPerMInputTokensCents": 300,
+      "costPerMCachedInputTokensCents": 30,
+      "costPerMOutputTokensCents": 1500
+    },
+    // Removed from active selection by project decision on 2026-10-18; preserve finished-run pricing.
+    'openai:gpt-5.6-sol': {
+      pricingSourceUrl: 'https://developers.openai.com/api/docs/models/gpt-5.6-sol',
+      pricingCheckedAt: '2026-10-15',
+      pricingCurrency: 'USD',
+      pricingTier: 'OpenAI API standard token pricing',
+      pricingNotes: 'Checked October 15, 2026: GPT-5.6 Sol promotional standard rates are $4/1M input, $0.40/1M cached input and $20/1M output tokens, available at least through November 21, 2026; no later rate is assumed. Above 272K input tokens, the full request uses $8/1M input, $0.80/1M cached input and $30/1M output. Cache writes cost 1.25x uncached input. OCR estimates and observed-usage calculations use uncached standard rates; cache writes, batch/flex discounts, fast mode, regional uplifts, enterprise pricing, taxes and credits are excluded. The gpt-5.6 alias is not registered separately.',
+      costPerMInputTokensCents: 400,
+      costPerMCachedInputTokensCents: 40,
+      costPerMOutputTokensCents: 2000,
+      tokenPricingBands: [
+        {
+          label: 'standard-short-context',
+          maxInputTokens: 272000,
+          inputCostPer1MCents: 400,
+          cachedInputCostPer1MCents: 40,
+          outputCostPer1MCents: 2000
+        },
+        {
+          label: 'standard-long-context',
+          minInputTokens: 272001,
+          inputCostPer1MCents: 800,
+          cachedInputCostPer1MCents: 80,
+          outputCostPer1MCents: 3000
+        }
+      ]
+    },
+    'openai:gpt-5.6-luna': {
+      pricingSourceUrl: 'https://developers.openai.com/api/docs/models/gpt-5.6-luna',
+      pricingCheckedAt: '2026-08-12',
+      pricingCurrency: 'USD',
+      pricingTier: 'OpenAI API standard token pricing',
+      pricingNotes: 'OpenAI lists GPT-5.6 Luna Standard pricing at $0.20/1M input tokens, $0.02/1M cached input tokens, $0.25/1M cache write tokens, and $1.20/1M output tokens. OCR estimates multiply observed or heuristic token usage by uncached standard input/output rates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.',
+      costPerMInputTokensCents: 20,
+      costPerMCachedInputTokensCents: 2,
+      costPerMOutputTokensCents: 120,
+      tokenPricingBands: [
+        {
+          label: 'standard-short-context',
+          maxInputTokens: 272000,
+          inputCostPer1MCents: 20,
+          cachedInputCostPer1MCents: 2,
+          outputCostPer1MCents: 120
+        },
+        {
+          label: 'standard-long-context',
+          minInputTokens: 272001,
+          inputCostPer1MCents: 40,
+          cachedInputCostPer1MCents: 4,
+          outputCostPer1MCents: 180
+        }
+      ]
+    },
+    'gemini:gemini-3.7-flash': {
+      pricingSourceUrl: 'https://ai.google.dev/gemini-api/docs/pricing',
+      pricingCheckedAt: '2026-08-18',
+      pricingCurrency: 'USD',
+      pricingTier: 'Gemini API paid Standard',
+      pricingNotes: 'Gemini 3.7 Flash Standard pricing is $1.50/1M input tokens and $7.50/1M output tokens effective 2027-01-01, with introductory pricing of $0.75/1M input tokens and $3.75/1M output tokens through 2026-12-31 and no published context tiers. AutoShow conservatively records the standard rates, so estimates overstate cost during the introductory window. OCR estimates multiply observed token usage by these published rates. The page heuristics are reused from Gemini 3.6 Flash and are provisional until a separately approved paid calibration is available; free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.',
+      costPerMInputTokensCents: 150,
+      costPerMOutputTokensCents: 750
+    },
+    'anthropic:claude-sonnet-5': {
+      pricingSourceUrl: 'https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en',
+      pricingCheckedAt: '2026-09-23',
+      pricingCurrency: 'USD',
+      pricingTier: 'Claude API standard token pricing',
+      pricingNotes: 'Anthropic confirms $2/1M input and $10/1M output are now standard Sonnet 5 rates; the previously announced September 1 increase was canceled. Cache reads $0.20/M and cache writes $2.50/M (5m) or $4/M (1h) are not requested or automatically discounted. Published rates are separate from empirical token and latency estimates. Batch, regional premiums, taxes and credits are excluded.',
+      costPerMInputTokensCents: 200,
+      costPerMOutputTokensCents: 1000
+    },
+    'anthropic:claude-opus-5': {
+      pricingSourceUrl: 'https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en',
+      pricingCheckedAt: '2026-07-24',
+      pricingCurrency: 'USD',
+      pricingTier: 'Claude API standard token pricing',
+      pricingNotes: 'Anthropic lists Claude Opus 5 at $5/1M input tokens and $25/1M output tokens. OCR estimates multiply observed token usage by these published rates. Claude Opus 5 runs with thinking on by default, so the inherited page heuristics are provisional until a separately approved paid calibration is available. Prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.',
+      costPerMInputTokensCents: 500,
+      costPerMOutputTokensCents: 2500
+    },
+    'grok:grok-4.6': {
+      pricingSourceUrl: 'https://docs.x.ai/developers/pricing',
+      pricingCheckedAt: '2026-08-18',
+      pricingCurrency: 'USD',
+      pricingTier: 'xAI public Chat API token pricing',
+      pricingNotes: 'xAI lists Grok 4.6 standard pricing at $2.00/1M input tokens, $0.50/1M cached input tokens, and $6.00/1M output tokens for requests with up to 200K input tokens. Requests above 200K input tokens cost $4.00/1M input tokens, $1.00/1M cached input tokens, and $12.00/1M output tokens. OCR estimates use uncached rates and switch bands from estimated or observed input tokens. Batch discounts, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.',
+      costPerMInputTokensCents: 200,
+      costPerMCachedInputTokensCents: 50,
+      costPerMOutputTokensCents: 600,
+      tokenPricingBands: [
+        {
+          label: 'standard-up-to-200k',
+          maxInputTokens: 200000,
+          inputCostPer1MCents: 200,
+          cachedInputCostPer1MCents: 50,
+          outputCostPer1MCents: 600
+        },
+        {
+          label: 'standard-over-200k',
+          minInputTokens: 200001,
+          inputCostPer1MCents: 400,
+          cachedInputCostPer1MCents: 100,
+          outputCostPer1MCents: 1200
+        }
+      ]
+    },
     'firecrawl:firecrawl': { costPer1kPagesCents: 83 },
     'supadata:supadata': { costPer1kPagesCents: 1000 },
     // Historical heuristic only: the REST Reader rate was never verified.
@@ -47,6 +183,173 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'fal:fal-ai/florence-2-large/ocr': { costPer1kPagesCents: 755 }
   },
   llm: {
+    // Removed 2026-10-18; frozen prices keep purchased benchmark evidence readable.
+    "glm:glm-5.3": {
+      "pricingSourceUrl": "https://docs.z.ai/guides/overview/pricing",
+      "pricingCheckedAt": "2026-09-08",
+      "pricingCurrency": "USD",
+      "pricingTier": "Z.AI standard API token pricing",
+      "pricingNotes": "Standard direct Z.ai rates per million tokens: $1.4 input, $0.26 cached input, $4.4 output. Estimates and observed-token costs use uncached standard rates; cached usage is retained as metadata, not an automatic discount. Cache storage is currently limited-time free; future storage charges, batch discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated.",
+      "inputCostPer1MCents": 140,
+      "outputCostPer1MCents": 440,
+      "cachedInputCostPer1MCents": 26
+    },
+    "glm:glm-5.3-flash": {
+      "pricingSourceUrl": "https://docs.z.ai/guides/overview/pricing",
+      "pricingCheckedAt": "2026-09-08",
+      "pricingCurrency": "USD",
+      "pricingTier": "Z.AI standard API token pricing",
+      "pricingNotes": "Standard direct Z.ai rates per million tokens: $0.15 input, $0.03 cached input, $0.5 output. Estimates and observed-token costs use uncached standard rates; cached usage is retained as metadata, not an automatic discount. Cache storage is currently limited-time free; future storage charges, batch discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated. Separate temporary promotion: $0.075 input, $0.015 cached input and $0.25 output per million tokens until 2026-09-09T16:00:00Z (September 9 at 24:00 UTC+8). Conservative standard rates apply before and after expiry; no automatic date transition or promotional discount is applied.",
+      "inputCostPer1MCents": 15,
+      "outputCostPer1MCents": 50,
+      "cachedInputCostPer1MCents": 3
+    },
+    "kimi:kimi-k3": {
+      "pricingSourceUrl": "https://platform.kimi.ai/docs/pricing/chat",
+      "pricingCheckedAt": "2026-07-24",
+      "pricingCurrency": "USD",
+      "pricingTier": "Moonshot AI public API token pricing",
+      "pricingNotes": "Moonshot AI public pricing lists Kimi K3 at $3/1M cache-miss input tokens, $0.30/1M cache-hit input tokens, and $15/1M output tokens with flat pay-as-you-go rates and no context tiers. AutoShow uses uncached input pricing for estimates. Kimi K3 requires thinking; AutoShow defaults omitted --reasoning-effort to low rather than the provider max, so reused Kimi K2.6 output-token and latency heuristics remain provisional until calibrated. Cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
+      "inputCostPer1MCents": 300,
+      "cachedInputCostPer1MCents": 30,
+      "outputCostPer1MCents": 1500
+    },
+    "together:kimi-k3": {
+      "pricingSourceUrl": "https://docs.together.ai/docs/serverless/models",
+      "pricingCheckedAt": "2026-09-08",
+      "pricingCurrency": "USD",
+      "pricingTier": "Together AI serverless token pricing",
+      "pricingNotes": "Together AI lists moonshotai/Kimi-K3 at $3.00/1M input, $0.30/1M cached input and $15.00/1M output tokens. Estimates and observed-token costs use uncached input rates; cached usage is metadata only. Reasoning is included in completion usage, not charged twice. Direct-provider promotions do not apply. Batch discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated.",
+      "inputCostPer1MCents": 300,
+      "cachedInputCostPer1MCents": 30,
+      "outputCostPer1MCents": 1500
+    },
+    "together:glm-5.3": {
+      "pricingSourceUrl": "https://docs.together.ai/docs/serverless/models",
+      "pricingCheckedAt": "2026-09-08",
+      "pricingCurrency": "USD",
+      "pricingTier": "Together AI serverless token pricing",
+      "pricingNotes": "Together AI lists zai-org/GLM-5.3 at $1.40/1M input, $0.26/1M cached input and $4.40/1M output tokens. Estimates and observed-token costs use uncached input rates; cached usage is metadata only. Reasoning is included in completion usage, not charged twice. Direct-provider promotions do not apply. Batch discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated.",
+      "inputCostPer1MCents": 140,
+      "cachedInputCostPer1MCents": 26,
+      "outputCostPer1MCents": 440
+    },
+    "together:glm-5.3-flash": {
+      "pricingSourceUrl": "https://docs.together.ai/docs/serverless/models",
+      "pricingCheckedAt": "2026-09-08",
+      "pricingCurrency": "USD",
+      "pricingTier": "Together AI serverless token pricing",
+      "pricingNotes": "Together AI lists zai-org/GLM-5.3-Flash at $0.15/1M input, $0.03/1M cached input and $0.50/1M output tokens. Estimates and observed-token costs use uncached input rates; cached usage is metadata only. Reasoning is included in completion usage, not charged twice. Direct-provider promotions do not apply. Batch discounts, enterprise pricing, taxes and credits are excluded. The inherited latency heuristic is uncalibrated.",
+      "inputCostPer1MCents": 15,
+      "cachedInputCostPer1MCents": 3,
+      "outputCostPer1MCents": 50
+    },
+    // Removed from active selection by project decision on 2026-10-18; preserve finished-run pricing.
+    'openai:gpt-5.6-sol': {
+      pricingSourceUrl: 'https://developers.openai.com/api/docs/models/gpt-5.6-sol',
+      pricingCheckedAt: '2026-10-15',
+      pricingCurrency: 'USD',
+      pricingTier: 'OpenAI API standard token pricing',
+      pricingNotes: 'Checked October 15, 2026: GPT-5.6 Sol promotional standard rates are $4/1M input, $0.40/1M cached input and $20/1M output tokens, available at least through November 21, 2026; no later rate is assumed. Above 272K input tokens, the full request uses $8/1M input, $0.80/1M cached input and $30/1M output. Cache writes cost 1.25x uncached input. Estimates use uncached standard rates; cache writes, batch/flex discounts, fast mode, regional uplifts, enterprise pricing, taxes and credits are excluded. The gpt-5.6 alias is not registered separately.',
+      inputCostPer1MCents: 400,
+      cachedInputCostPer1MCents: 40,
+      outputCostPer1MCents: 2000,
+      tokenPricingBands: [
+        {
+          label: 'standard-short-context',
+          maxInputTokens: 272000,
+          inputCostPer1MCents: 400,
+          cachedInputCostPer1MCents: 40,
+          outputCostPer1MCents: 2000
+        },
+        {
+          label: 'standard-long-context',
+          minInputTokens: 272001,
+          inputCostPer1MCents: 800,
+          cachedInputCostPer1MCents: 80,
+          outputCostPer1MCents: 3000
+        }
+      ]
+    },
+    'openai:gpt-5.6-luna': {
+      pricingSourceUrl: 'https://developers.openai.com/api/docs/models/gpt-5.6-luna',
+      pricingCheckedAt: '2026-08-12',
+      pricingCurrency: 'USD',
+      pricingTier: 'OpenAI API standard token pricing',
+      pricingNotes: 'OpenAI lists GPT-5.6 Luna Standard pricing at $0.20/1M input tokens, $0.02/1M cached input tokens, $0.25/1M cache write tokens, and $1.20/1M output tokens. AutoShow uses uncached standard input/output rates for estimates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.',
+      inputCostPer1MCents: 20,
+      cachedInputCostPer1MCents: 2,
+      outputCostPer1MCents: 120,
+      tokenPricingBands: [
+        {
+          label: 'standard-short-context',
+          maxInputTokens: 272000,
+          inputCostPer1MCents: 20,
+          cachedInputCostPer1MCents: 2,
+          outputCostPer1MCents: 120
+        },
+        {
+          label: 'standard-long-context',
+          minInputTokens: 272001,
+          inputCostPer1MCents: 40,
+          cachedInputCostPer1MCents: 4,
+          outputCostPer1MCents: 180
+        }
+      ]
+    },
+    'gemini:gemini-3.7-flash': {
+      pricingSourceUrl: 'https://ai.google.dev/gemini-api/docs/pricing',
+      pricingCheckedAt: '2026-08-18',
+      pricingCurrency: 'USD',
+      pricingTier: 'Gemini API paid Standard',
+      pricingNotes: 'Google lists Gemini 3.7 Flash Standard pricing at $1.50/1M input tokens and $7.50/1M output tokens effective 2027-01-01, with introductory pricing of $0.75/1M input tokens and $3.75/1M output tokens through 2026-12-31 and no published context tiers. AutoShow conservatively records the standard rates, so estimates overstate cost during the introductory window. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.',
+      inputCostPer1MCents: 150,
+      outputCostPer1MCents: 750
+    },
+    'anthropic:claude-sonnet-5': {
+      pricingSourceUrl: 'https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en',
+      pricingCheckedAt: '2026-09-23',
+      pricingCurrency: 'USD',
+      pricingTier: 'Claude API standard token pricing',
+      pricingNotes: 'Anthropic confirms $2/1M input and $10/1M output are now standard Sonnet 5 rates; the previously announced September 1 increase was canceled. Cache reads $0.20/M and cache writes $2.50/M (5m) or $4/M (1h) are not requested or automatically discounted. Published rates are separate from empirical token and latency estimates. Batch, regional premiums, taxes and credits are excluded.',
+      inputCostPer1MCents: 200,
+      outputCostPer1MCents: 1000
+    },
+    'anthropic:claude-opus-5': {
+      pricingSourceUrl: 'https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en',
+      pricingCheckedAt: '2026-07-24',
+      pricingCurrency: 'USD',
+      pricingTier: 'Claude API standard token pricing',
+      pricingNotes: 'Anthropic lists Claude Opus 5 standard token pricing at $5/1M input tokens and $25/1M output tokens. Claude Opus 5 runs with thinking on by default at the default high effort level, so inherited output-token and latency heuristics are provisional. Prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.',
+      inputCostPer1MCents: 500,
+      outputCostPer1MCents: 2500
+    },
+    'grok:grok-4.6': {
+      pricingSourceUrl: 'https://docs.x.ai/developers/pricing',
+      pricingCheckedAt: '2026-08-18',
+      pricingCurrency: 'USD',
+      pricingTier: 'xAI public Chat API token pricing',
+      pricingNotes: 'xAI lists Grok 4.6 standard pricing at $2.00/1M input tokens, $0.50/1M cached input tokens, and $6.00/1M output tokens for requests with up to 200K input tokens. Requests above 200K input tokens cost $4.00/1M input tokens, $1.00/1M cached input tokens, and $12.00/1M output tokens. AutoShow uses uncached standard rates for estimates and switches bands from estimated or observed input tokens. Batch discounts, cached-input discounts, regional differences, enterprise pricing, taxes, and provider credits are ignored.',
+      inputCostPer1MCents: 200,
+      cachedInputCostPer1MCents: 50,
+      outputCostPer1MCents: 600,
+      tokenPricingBands: [
+        {
+          label: 'standard-up-to-200k',
+          maxInputTokens: 200000,
+          inputCostPer1MCents: 200,
+          cachedInputCostPer1MCents: 50,
+          outputCostPer1MCents: 600
+        },
+        {
+          label: 'standard-over-200k',
+          minInputTokens: 200001,
+          inputCostPer1MCents: 400,
+          cachedInputCostPer1MCents: 100,
+          outputCostPer1MCents: 1200
+        }
+      ]
+    },
     'gemini:gemini-3.1-flash-lite': { inputCostPer1MCents: 25, outputCostPer1MCents: 150 },
     'gemini:gemini-3.1-flash-lite-preview': { inputCostPer1MCents: 25, outputCostPer1MCents: 150 },
     'gemini:gemini-3.5-flash-lite': { inputCostPer1MCents: 30, outputCostPer1MCents: 250 },
@@ -303,10 +606,22 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'grok:speech-to-text': 'grok-voice-transcribe-2.0'
   },
   extract: {
+    'openai:gpt-5.6-sol': 'gpt-6.1-sol',
+    'openai:gpt-5.6-luna': 'gpt-6-luna',
+    'gemini:gemini-3.7-flash': 'gemini-3.8-flash',
+    'anthropic:claude-sonnet-5': 'claude-sonnet-5-5',
+    'anthropic:claude-opus-5': 'claude-opus-5-5',
+    'grok:grok-4.6': 'grok-4.7',
     'gemini:gemini-3.1-flash-lite': 'gemini-3.5-flash-lite'
   },
   llm: {
-    'gemini:gemini-3.1-flash-lite': 'gemini-3.7-flash'
+    'openai:gpt-5.6-sol': 'gpt-6.1-sol',
+    'openai:gpt-5.6-luna': 'gpt-6-luna',
+    'gemini:gemini-3.7-flash': 'gemini-3.8-flash',
+    'anthropic:claude-sonnet-5': 'claude-sonnet-5-5',
+    'anthropic:claude-opus-5': 'claude-opus-5-5',
+    'grok:grok-4.6': 'grok-4.7',
+    'gemini:gemini-3.1-flash-lite': 'gemini-3.8-flash'
   },
   tts: {
     'elevenlabs:eleven_flash_v2_5': 'eleven_v3',

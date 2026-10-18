@@ -1,0 +1,46 @@
+{
+  "result": "{\"episodeSummary\":\"The hosts explore the challenges of building third-party JavaScript scripts for Everfund, including choosing between vanilla JavaScript and frameworks, bundling to formats such as UMD and ESM, and balancing modern browser support against compatibility with older browsers and WordPress. They compare CDN-hosted scripts with npm packages, and discuss how widgets can be rendered directly in a page or inside an iframe: iframes offer control and simpler updates, while page-rendered content allows more customization but brings added complexity. Everfund is evolving from an iframe-based donation widget toward a headless SDK that lets developers build their own interfaces. The conversation then turns to documentation, podcast plans, sponsorship, and trust: the hosts favor educating listeners, vetting guests and sponsors, and making the show sustainable. They reflect on favorite episodes and the value of preserving a historical record of web development, noting that tools change but the concepts and reasons behind them remain useful.\"}",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6-luna",
+    "providerReturnedModel": "gpt-6-luna",
+    "processingTime": 2292,
+    "inputTokenCount": 10205,
+    "outputTokenCount": 249,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 10205,
+      "outputTokenCount": 249,
+      "totalTokenCount": 10454
+    },
+    "rawProviderUsage": {
+      "input_tokens": 10205,
+      "input_tokens_details": {
+        "cache_write_tokens": 10202,
+        "cached_tokens": 0
+      },
+      "output_tokens": 249,
+      "output_tokens_details": {
+        "reasoning_tokens": 47
+      },
+      "total_tokens": 10454
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-6-luna",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_longSummary",
+          "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+          "strict": true
+        }
+      }
+    }
+  }
+}

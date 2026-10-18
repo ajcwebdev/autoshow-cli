@@ -1,0 +1,3 @@
+## Episode Description
+
+James Berkins shares how his professional connections helped him land a new developer relations job just 12 hours after being laid off from TinaCMS.

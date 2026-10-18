@@ -1,0 +1,46 @@
+{
+  "result": "{\"chapters\":[{\"timestamp\":\"00:00:01\",\"title\":\"Welcome Back and React Miami Collaboration\",\"description\":\"The hosts resolve a Twitter Spaces hiccup, welcome listeners back, and introduce JavaScript Jam Live as an open mic for web development and JavaScript. They explain the collaboration with React Miami, introduce the Edgio team and media partners, and encourage developers of every experience level to join the conversation. This section runs from 00:00:01 to 00:04:59.\"},{\"timestamp\":\"00:04:59\",\"title\":\"Introducing Miami Jam, the Interactive Game Show\",\"description\":\"Dev and React Miami organizer Michelle join the discussion before Dev outlines Miami Jam, a game-show-style alternative to a standard panel or interview. Trivia about React, JavaScript, TypeScript, and related topics will lead into deeper conversations with speakers, while audience participation adds an interactive element. The recording ends at 00:08:42, for a total duration of 00:08:42.\"}]}",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6-luna",
+    "providerReturnedModel": "gpt-6-luna",
+    "processingTime": 2813,
+    "inputTokenCount": 2540,
+    "outputTokenCount": 368,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 2540,
+      "outputTokenCount": 368,
+      "totalTokenCount": 2908
+    },
+    "rawProviderUsage": {
+      "input_tokens": 2540,
+      "input_tokens_details": {
+        "cache_write_tokens": 2537,
+        "cached_tokens": 0
+      },
+      "output_tokens": 368,
+      "output_tokens_details": {
+        "reasoning_tokens": 152
+      },
+      "total_tokens": 2908
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-6-luna",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_mediumChapters",
+          "schemaSha256": "21fdcdb40e118404ed84283dc2e2153afca07f6360aea5c77a5d2b38632c29af",
+          "strict": true
+        }
+      }
+    }
+  }
+}

@@ -16,6 +16,7 @@ const COST_SOURCE_SET = new Set<string>(COST_SOURCES)
 export const isCostSource = (value: unknown): value is CostSource =>
   typeof value === 'string' && COST_SOURCE_SET.has(value)
 
+// Historical provider identities remain valid when reading completed usage and calibration evidence.
 export const TOKEN_PRICED_OCR_PROVIDERS = [
   'glm',
   'kimi',

@@ -1,0 +1,43 @@
+## Chapters
+
+#### Item 1
+
+### Timestamp
+
+00:00:01
+
+### Title
+
+Twitter Space Troubles and Show Kickoff
+
+### Description
+
+After a rocky start, the hosts explain the Twitter Space glitch where a Space appears live on the host's phone but not to listeners, joke about being a lesson for others, and Ishan Anand welcomes everyone to JavaScript Jam Live, an open mic for JavaScript and web development topics.
+
+#### Item 2
+
+### Timestamp
+
+00:01:54
+
+### Title
+
+Host Introductions and the React Miami Collaboration
+
+### Description
+
+Anthony Campolo introduces himself and teases Dev Agrawal's arrival, then Scott Steinlage dubs it React Miami Month, explaining that upcoming episodes will feature React Miami speakers while keeping the familiar JavaScript Jam vibe, and encourages beginners and experts alike to request the mic and join the conversation.
+
+#### Item 3
+
+### Timestamp
+
+00:04:45
+
+### Title
+
+Dev, Michelle, and the Miami Jam Game Show
+
+### Description
+
+Dev introduces himself as a fellow React Miami media partner, Dan explains why he cannot attend, and organizer Michelle joins after connection issues to welcome the partners. Dev then outlines Miami Jam, a trivia-style game show using React and JavaScript questions to spark deeper speaker discussions and audience participation, running through 00:09:40.

@@ -3,15 +3,15 @@ import { basePdfMetadata, captureLogEvents, createOcrPreparationCache, createRen
 import type { HostedOcrRun } from '~/types'
 import { makeTempDir } from '../../../../../test-utils/temp-dirs'
 
-const kimiIdentity = {
-  extractionMethod: 'kimi-ocr' as const,
-  ocrService: 'kimi' as const,
-  ocrModel: 'kimi-k2.6'
+const deepinfraIdentity = {
+  extractionMethod: 'deepinfra-ocr' as const,
+  ocrService: 'deepinfra' as const,
+  ocrModel: 'google/gemma-4-31B-it'
 }
 
-const kimiPageRun = (pageNumber: number, text = `page ${pageNumber}`): HostedOcrRun => ({
+const deepinfraPageRun = (pageNumber: number, text = `page ${pageNumber}`): HostedOcrRun => ({
   pages: [{ pageNumber: 1, method: 'ocr', text }],
-  ...kimiIdentity,
+  ...deepinfraIdentity,
   totalPages: 1,
   promptTokens: pageNumber,
   completionTokens: pageNumber * 10,
@@ -38,7 +38,7 @@ const writeStoredPageCache = async (
     totalPages,
     pageNumber,
     run: {
-      ...kimiPageRun(pageNumber, text),
+      ...deepinfraPageRun(pageNumber, text),
       pages: [{ pageNumber, method: 'ocr', text }],
       providerUsage: [{
         unit: 'chunk',
@@ -89,14 +89,14 @@ describe('OCR resilience contracts', () => {
         await runHostedOcrWithPdfChunkFallback({
           filePath: inputPath,
           step1Metadata: { ...basePdfMetadata, pageCount: 4 },
-          serviceLabel: 'Kimi OCR',
+          serviceLabel: 'DeepInfra OCR',
           totalPages: 4,
           dpi: 300,
           fallbackDir: tempDir,
           pageConcurrency: 2,
           keepPageInputs: true,
           forcePageMode: true,
-          cacheIdentity: kimiIdentity,
+          cacheIdentity: deepinfraIdentity,
           chunkFormat: 'png',
           chunkExtension: 'png',
           createChunk: createRenderedPngPageChunk(300, cache),
@@ -110,7 +110,7 @@ describe('OCR resilience contracts', () => {
             await Bun.sleep(range.startPage === 1 ? 20 : 2)
             completionOrder.push(range.startPage)
             active -= 1
-            return kimiPageRun(range.startPage)
+            return deepinfraPageRun(range.startPage)
           }
         })
       )
@@ -124,7 +124,7 @@ describe('OCR resilience contracts', () => {
       expect(result.completionTokens).toBe(100)
       expect(result.providerUsage?.map((entry) => entry['pageNumber'])).toEqual([1, 2, 3, 4])
       expect(result.providerUsage?.every((entry) => entry['unit'] === 'chunk')).toBe(true)
-      expect(events.some((event) => event.level === 'info' && event.message === 'Kimi OCR: using resumable rendered-page OCR')).toBe(true)
+      expect(events.some((event) => event.level === 'info' && event.message === 'DeepInfra OCR: using resumable rendered-page OCR')).toBe(true)
       expect(await Bun.file(pageTextPath(tempDir, 4)).text()).toBe('page 4\n')
       expect(await Bun.file(join(tempDir, 'partial-extraction.txt')).text()).toBe('Page 1\npage 1\n\nPage 2\npage 2\n\nPage 3\npage 3\n\nPage 4\npage 4\n')
       expect(await Bun.file(pageInputPath(tempDir, 1).replace(/\.pdf$/, '.png')).text()).toBe('rendered page 1')
@@ -137,7 +137,7 @@ describe('OCR resilience contracts', () => {
         totalPages: 4,
         pageNumber: 3
       })
-      expect(cached['run']).toMatchObject(kimiIdentity)
+      expect(cached['run']).toMatchObject(deepinfraIdentity)
     } finally {
       await rm(tempDir, { recursive: true, force: true })
     }
@@ -157,11 +157,11 @@ describe('OCR resilience contracts', () => {
         await runHostedOcrWithPdfChunkFallback({
           filePath: inputPath,
           step1Metadata: { ...basePdfMetadata, pageCount: 2 },
-          serviceLabel: 'Kimi OCR',
+          serviceLabel: 'DeepInfra OCR',
           totalPages: 2,
           fallbackDir: tempDir,
           forcePageMode: true,
-          cacheIdentity: kimiIdentity,
+          cacheIdentity: deepinfraIdentity,
           chunkFormat: 'png',
           chunkExtension: 'png',
           createChunk: async () => {
@@ -200,7 +200,7 @@ describe('OCR resilience contracts', () => {
         pageNumber: 1
       })
       expect(stored['result']).toBeUndefined()
-      expect(stored['run']).toMatchObject(kimiIdentity)
+      expect(stored['run']).toMatchObject(deepinfraIdentity)
     } finally {
       await rm(tempDir, { recursive: true, force: true })
     }
@@ -220,7 +220,7 @@ describe('OCR resilience contracts', () => {
         totalPages: 3,
         pageNumber: 1,
         run: {
-          ...kimiPageRun(1, 'wrong model'),
+          ...deepinfraPageRun(1, 'wrong model'),
           ocrModel: 'other-model'
         }
       }, null, 2) + '\n')
@@ -231,7 +231,7 @@ describe('OCR resilience contracts', () => {
         totalPages: 3,
         pageNumber: 2,
         run: {
-          ...kimiPageRun(2, 'wrong source'),
+          ...deepinfraPageRun(2, 'wrong source'),
           pages: [{ pageNumber: 2, method: 'ocr', text: 'wrong source' }]
         }
       }, null, 2) + '\n')
@@ -240,12 +240,12 @@ describe('OCR resilience contracts', () => {
       const result = await runHostedOcrWithPdfChunkFallback({
         filePath: inputPath,
         step1Metadata: { ...basePdfMetadata, pageCount: 3 },
-        serviceLabel: 'Kimi OCR',
+        serviceLabel: 'DeepInfra OCR',
         totalPages: 3,
         fallbackDir: tempDir,
         pageConcurrency: 1,
         forcePageMode: true,
-        cacheIdentity: kimiIdentity,
+        cacheIdentity: deepinfraIdentity,
         createChunk: async (_source, outputPath, range) => {
           await Bun.write(outputPath, `page ${range.startPage}`)
         },
@@ -254,7 +254,7 @@ describe('OCR resilience contracts', () => {
         },
         runChunk: async (_chunkPath, _chunkMetadata, range) => {
           attemptedPages.push(range.startPage)
-          return kimiPageRun(range.startPage, `fresh ${range.startPage}`)
+          return deepinfraPageRun(range.startPage, `fresh ${range.startPage}`)
         }
       })
 
@@ -279,7 +279,7 @@ describe('OCR resilience contracts', () => {
         totalPages: 3,
         pageNumber: 1,
         run: {
-          ...kimiPageRun(1, 'v1 page'),
+          ...deepinfraPageRun(1, 'v1 page'),
           pages: [{ pageNumber: 1, method: 'ocr', text: 'v1 page' }]
         }
       }, null, 2) + '\n')
@@ -289,15 +289,15 @@ describe('OCR resilience contracts', () => {
         totalPages: 3,
         pageNumber: 2,
         run: {
-          ...kimiPageRun(2, 'source-less page'),
+          ...deepinfraPageRun(2, 'source-less page'),
           pages: [{ pageNumber: 2, method: 'ocr', text: 'source-less page' }]
         }
       }, null, 2) + '\n')
       await Bun.write(pageCachePath(tempDir, 3), JSON.stringify({
         version: 1,
         mode: 'rendered-page',
-        extractionMethod: kimiIdentity.extractionMethod,
-        model: kimiIdentity.ocrModel,
+        extractionMethod: deepinfraIdentity.extractionMethod,
+        model: deepinfraIdentity.ocrModel,
         sourceFile: 'input.pdf',
         totalPages: 3,
         pageNumber: 3,
@@ -309,12 +309,12 @@ describe('OCR resilience contracts', () => {
       const result = await runHostedOcrWithPdfChunkFallback({
         filePath: inputPath,
         step1Metadata: { ...basePdfMetadata, pageCount: 3 },
-        serviceLabel: 'Kimi OCR',
+        serviceLabel: 'DeepInfra OCR',
         totalPages: 3,
         fallbackDir: tempDir,
         pageConcurrency: 1,
         forcePageMode: true,
-        cacheIdentity: kimiIdentity,
+        cacheIdentity: deepinfraIdentity,
         createChunk: async (_source, outputPath, range) => {
           await Bun.write(outputPath, `page ${range.startPage}`)
         },
@@ -323,7 +323,7 @@ describe('OCR resilience contracts', () => {
         },
         runChunk: async (_chunkPath, _chunkMetadata, range) => {
           attemptedPages.push(range.startPage)
-          return kimiPageRun(range.startPage, `fresh ${range.startPage}`)
+          return deepinfraPageRun(range.startPage, `fresh ${range.startPage}`)
         }
       })
 
@@ -340,22 +340,22 @@ describe('OCR resilience contracts', () => {
     }
   })
 
-  test('forced page mode does not salvage Kimi provider-limit truncation as page text', async () => {
+  test('forced page mode does not salvage DeepInfra provider-limit truncation as page text', async () => {
     const tempDir = await makeTempDir('autoshow-rendered-page-truncation-')
     const inputPath = join(tempDir, 'input.pdf')
 
     try {
-      const truncated = new OcrStructuredResponseError('Kimi response reached its completion limit.', 'partial page')
+      const truncated = new OcrStructuredResponseError('DeepInfra response reached its completion limit.', 'partial page')
       ;(truncated as OcrStructuredResponseError & { category: 'provider_limit' }).category = 'provider_limit'
 
       await expect(runHostedOcrWithPdfChunkFallback({
         filePath: inputPath,
         step1Metadata: { ...basePdfMetadata, pageCount: 1 },
-        serviceLabel: 'Kimi OCR',
+        serviceLabel: 'DeepInfra OCR',
         totalPages: 1,
         fallbackDir: tempDir,
         forcePageMode: true,
-        cacheIdentity: kimiIdentity,
+        cacheIdentity: deepinfraIdentity,
         createChunk: async (_source, outputPath) => {
           await Bun.write(outputPath, 'page 1')
         },
@@ -365,7 +365,7 @@ describe('OCR resilience contracts', () => {
         runChunk: async () => {
           throw truncated
         },
-        buildMalformedPageRun: rawText => kimiPageRun(1, rawText)
+        buildMalformedPageRun: rawText => deepinfraPageRun(1, rawText)
       })).rejects.toThrow('completion limit')
 
       expect(await Bun.file(pageCachePath(tempDir, 1)).exists()).toBe(false)

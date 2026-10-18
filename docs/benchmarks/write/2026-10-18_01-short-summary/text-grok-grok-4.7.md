@@ -1,0 +1,3 @@
+## Episode Description
+
+James Berkins recounts being laid off during company downsizing and landing a developer job within 12 hours through prior connections.

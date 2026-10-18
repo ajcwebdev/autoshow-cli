@@ -14,15 +14,15 @@ import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
 describe('price mode contracts', () => {
   test('OCR token heuristics feed registry pricing consistently', () => {
-      const calibratedCases = [
+      const heuristicCases = [
         {
           provider: 'openai' as const,
-          model: 'gpt-5.6-sol',
+          model: 'gpt-6.1-sol',
           promptTokensPerPage: 1625,
           completionTokensPerPage: 940,
           costMultiplier: 1,
           msPerPage: 9497,
-          expectedOnePageCost: 2.53
+          expectedOnePageCost: 1.265
         },
         {
           provider: 'openai' as const,
@@ -35,12 +35,12 @@ describe('price mode contracts', () => {
         },
         {
           provider: 'openai' as const,
-          model: 'gpt-5.6-luna',
+          model: 'gpt-6-luna',
           promptTokensPerPage: 1625,
           completionTokensPerPage: 858,
           costMultiplier: 1,
           msPerPage: 3919,
-          expectedOnePageCost: 0.13546
+          expectedOnePageCost: 0.05915
         },
         {
           provider: 'anthropic' as const,
@@ -53,7 +53,7 @@ describe('price mode contracts', () => {
         }
       ]
 
-      for (const expected of calibratedCases) {
+      for (const expected of heuristicCases) {
         const estimation = getExtractEstimation(expected.provider, expected.model)
         expect(estimation).toMatchObject({
           promptTokensPerPage: expected.promptTokensPerPage,
@@ -101,20 +101,20 @@ describe('price mode contracts', () => {
       }
 
       for (const target of [
-        { provider: 'kimi' as const, model: 'kimi-k2.6', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'deepinfra' as const, model: 'google/gemma-4-31B-it', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'grok' as const, model: 'grok-4.5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'grok' as const, model: 'grok-4.5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'grok' as const, model: 'grok-4.5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'anthropic' as const, model: 'claude-fable-5', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'anthropic' as const, model: 'claude-opus-5', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'anthropic' as const, model: 'claude-sonnet-5', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'anthropic' as const, model: 'claude-sonnet-5', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'openai' as const, model: 'gpt-5.6-sol', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'anthropic' as const, model: 'claude-opus-5-5', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'anthropic' as const, model: 'claude-sonnet-5-5', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'anthropic' as const, model: 'claude-sonnet-5-5', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'openai' as const, model: 'gpt-6.1-sol', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'openai' as const, model: 'gpt-5.6-terra', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'openai' as const, model: 'gpt-5.6-luna', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'openai' as const, model: 'gpt-5.6-sol', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'openai' as const, model: 'gpt-6-luna', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'openai' as const, model: 'gpt-6.1-sol', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'openai' as const, model: 'gpt-5.6-terra', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'openai' as const, model: 'gpt-5.6-luna', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'openai' as const, model: 'gpt-6-luna', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'gemini' as const, model: 'gemini-3.8-flash', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'gemini' as const, model: 'gemini-3.5-flash', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'gemini' as const, model: 'gemini-3.5-flash-lite', pageCount: 1, estimateType: 'heuristic' as const },
@@ -239,7 +239,7 @@ describe('price mode contracts', () => {
       const profilePath = join(tempDir, 'token-profiles.json')
       const pageCount = 312
       const metadata = [
-        ['kimi', 'kimi-k2.6', 1_332_939, 114_292],
+        ['deepinfra', 'Qwen/Qwen3.8-27B', 1_332_939, 114_292],
         ['grok', 'grok-4.5', 828_252, 112_209],
         ['gemini', 'gemini-3.5-flash', 359_877, 134_602],
         ['gemini', 'gemini-3.8-flash', 363_333, 163_959],
@@ -291,7 +291,7 @@ describe('price mode contracts', () => {
         )).toHaveLength(5)
 
         const deepinfra = store.profiles.find((profile) =>
-          profile.provider === 'deepinfra' && profile.pageCountBand === '300-499'
+          profile.provider === 'deepinfra' && profile.model === 'google/gemma-4-31B-it' && profile.pageCountBand === '300-499'
         )
         expect(deepinfra).toMatchObject({
           promptTokensPerPage: 10206.054,

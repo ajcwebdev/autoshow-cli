@@ -85,7 +85,7 @@ docker run --rm \
   --env-file .env \
   -v "$(pwd)/input:/app/input:ro" \
   -v "$(pwd)/output:/app/output" \
-  autoshow-cli:local write input/examples/tts/harborlight-chapters/01-first-light.md --provider openai=gpt-5.6-sol --prompt shortSummary
+  autoshow-cli:local write input/examples/tts/harborlight-chapters/01-first-light.md --provider openai=gpt-6.1-sol --prompt shortSummary
 ```
 
 Docker reads the file on the host and exports its entries into the container environment; the file is not mounted into the image. A variable supplied with `-e` overrides the same variable from Docker's `--env-file`. Already-exported container environment variables remain supported.

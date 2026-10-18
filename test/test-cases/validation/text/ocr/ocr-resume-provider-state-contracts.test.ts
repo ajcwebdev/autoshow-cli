@@ -59,7 +59,7 @@ describe('OCR resume contracts', () => {
         languages: 'eng',
         tokenEstimate: 34,
         ocrService: 'anthropic',
-        ocrModel: 'claude-sonnet-5',
+        ocrModel: 'claude-sonnet-5-5',
         inputFamily: 'pdf'
       }
       const tesseractResult = {

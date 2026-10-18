@@ -7,7 +7,7 @@ import type { ActualCostBreakdown, AggregatedPriceEstimate, CollectEstimatedExtr
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { toArray } from '~/utils/text-utils'
 import { computeObservedEstimateCosts, computePriceAlignedEstimatedCosts, preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
-import { ANTHROPIC_OCR_PRICE_NOTE, DEEPINFRA_OCR_PRICE_NOTE, GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, GROK_OCR_PRICE_NOTE, KIMI_OCR_PRICE_NOTE, OPENAI_OCR_PRICE_NOTE } from './ocr-pricing/ocr-estimates'
+import { ANTHROPIC_OCR_PRICE_NOTE, DEEPINFRA_OCR_PRICE_NOTE, GEMINI_OCR_PRICE_NOTE, GROK_OCR_PRICE_NOTE, OPENAI_OCR_PRICE_NOTE } from './ocr-pricing/ocr-estimates'
 import { resolveHostedOcrModeFromExtractionMethod } from './ocr-utils/hosted-ocr-token-profiles'
 import { getUsageNumber } from './ocr-utils/hosted-ocr-utils'
 import { groupRowsByKey } from '~/utils/pricing/group-rows-by-key'
@@ -148,9 +148,10 @@ type TokenOcrEstimateDescriptor = Readonly<{
   note: string
 }>
 
+// Recorded metadata keeps retired providers for historical cost reconciliation only.
 const TOKEN_OCR_ESTIMATE_DESCRIPTORS = {
-  glm: { fallbackModel: opts => opts.glmOcrModels?.[0] || 'glm-5.3-flash', note: GLM_OCR_PRICE_NOTE },
-  kimi: { fallbackModel: opts => opts.kimiOcrModels?.[0] || 'kimi-ocr', note: KIMI_OCR_PRICE_NOTE },
+  glm: { fallbackModel: () => 'glm-5.3-flash', note: 'Archived GLM OCR token usage; this provider is no longer implemented.' },
+  kimi: { fallbackModel: () => 'kimi-ocr', note: 'Archived Kimi OCR token usage; this provider is no longer implemented.' },
   openai: { fallbackModel: opts => opts.openaiOcrModels?.[0] || 'openai-ocr', note: OPENAI_OCR_PRICE_NOTE },
   grok: { fallbackModel: opts => opts.grokOcrModels?.[0] || resolveCheapestModelForFlag('grok-ocr')!, note: GROK_OCR_PRICE_NOTE },
   anthropic: { fallbackModel: opts => opts.anthropicOcrModels?.[0] || 'anthropic-ocr', note: ANTHROPIC_OCR_PRICE_NOTE },

@@ -1,0 +1,45 @@
+{
+  "result": "{\n  \"chapters\": [\n    {\n      \"timestamp\": \"00:00:00\",\n      \"title\": \"Twitter Space Technical Difficulties\",\n      \"description\": \"The episode opens with the hosts explaining the startup glitch that delayed the Twitter Space. Anthony describes how Spaces sometimes appear live on the host's phone before broadcasting publicly, resolving after a couple of minutes. The team thanks the audience for rejoining and credits Scott for troubleshooting.\"\n    },\n    {\n      \"timestamp\": \"00:01:15\",\n      \"title\": \"Welcome to JavaScript Jam Live\",\n      \"description\": \"Ishan Anand, VP of Product at Edgio, welcomes everyone back and explains the show's format as an open mic for JavaScript and web development topics. He previews the special collaboration with React Miami, noting that upcoming weeks will feature related speakers, events, and content.\"\n    },\n    {\n      \"timestamp\": \"00:01:54\",\n      \"title\": \"Introducing the Hosts and React Miami Month\",\n      \"description\": \"Anthony Campolo introduces himself as a developer advocate at Edgio and brings Dev Agrawal onstage. Scott Steinlage shares his role as technical community manager, humorously renames the collaboration React Miami Month, and emphasizes that audience participation from beginners and experts alike makes the show valuable.\"\n    },\n    {\n      \"timestamp\": \"00:04:45\",\n      \"title\": \"Guest Introductions and Media Partners\",\n      \"description\": \"Dev Agrawal introduces himself as a React Miami media partner alongside Anthony and Scott. Michelle, one of the React Miami organizers, joins after connection troubles and expresses excitement about the partnership, noting the team has been given free rein to create whatever content they like.\"\n    },\n    {\n      \"timestamp\": \"00:07:02\",\n      \"title\": \"Miami Jam Game Show Concept\",\n      \"description\": \"Dev explains Miami Jam, a game show departing from typical interview formats. Speakers will answer trivia-style questions about React, JavaScript, TypeScript quirks, and each other's topics, creating springboards for deeper discussions about their talks, motivations, and industry experience.\"\n    },\n    {\n      \"timestamp\": \"00:08:42\",\n      \"title\": \"Engagement and Interactive Format\",\n      \"description\": \"Dev details how the show's game format makes conversations more fun, collaborative, and interactive, encouraging speakers to share experiences with one another. Audience members can participate directly, asking questions and even scoring speakers' answers, making everyone part of the conversation at 00:09:41 total duration.\"\n    }\n  ]\n}",
+  "metadata": {
+    "llmService": "glm",
+    "llmModel": "glm-5.3",
+    "providerReturnedModel": "glm-5.3",
+    "processingTime": 7991,
+    "inputTokenCount": 2554,
+    "outputTokenCount": 530,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 2554,
+      "outputTokenCount": 530,
+      "totalTokenCount": 3084
+    },
+    "rawProviderUsage": {
+      "completion_tokens": 530,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens": 2554,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 3084
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "glm-5.3",
+      "stream": false,
+      "max_tokens": 16000,
+      "thinking": {
+        "type": "enabled"
+      },
+      "response_format": {
+        "type": "json_object"
+      }
+    }
+  }
+}

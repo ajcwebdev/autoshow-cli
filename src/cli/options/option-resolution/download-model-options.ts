@@ -1,12 +1,9 @@
-import { rethrowAsUsage } from '~/utils/error-handler'
+import { rethrowAsUsage, UsageError } from '~/utils/error-handler'
 import {
   validateOpenAIModel,
   validateGeminiModel,
   validateAnthropicModel,
   validateGrokModel,
-  validateGlmModel,
-  validateKimiModel,
-  validateTogetherModel,
   validateWhisperfileModel,
   validateDeepinfraSttModel,
   validateDeepgramSttModel,
@@ -21,8 +18,6 @@ import {
   validateTogetherSttModel,
   validateOpenAISttModel,
   validateCloudflareSttModel,
-  validateGlmOcrModel,
-  validateKimiOcrModel,
   validateAnthropicOcrModel,
   validateGeminiOcrModel,
   validateDeepinfraOcrModel,
@@ -63,6 +58,11 @@ export const readRuntimeModelOptions = (
   allShortcutFlags: Record<AllShortcutFlag, boolean>,
   _defaults: BuildOptsDefaults
 ) => {
+  const removedFlags = ['glm', 'kimi', 'together', 'glm-ocr', 'kimi-ocr']
+    .filter(key => flags[key] !== undefined && flags[key] !== null)
+  if (removedFlags.length > 0) {
+    throw UsageError(`Provider selections ${removedFlags.join(', ')} are no longer supported. Remove them and select an active provider explicitly. AutoShow will not silently substitute a different model identity.`)
+  }
   const mergedFlags = flags
   const readValidatedMany = <T extends string>(
     key: RepeatableModelFlag,
@@ -96,8 +96,6 @@ export const readRuntimeModelOptions = (
     openaiSttModels: readValidatedMany('openai-stt', validateOpenAISttModel),
     cloudflareSttModels: readValidatedMany('cloudflare-stt', validateCloudflareSttModel),
     mistralOcrModels: readValidatedMany('mistral-ocr', validateMistralOcrModel),
-    glmOcrModels: readValidatedMany('glm-ocr', validateGlmOcrModel),
-    kimiOcrModels: readValidatedMany('kimi-ocr', validateKimiOcrModel),
     openaiOcrModels: readValidatedMany('openai-ocr', validateOpenAIOcrModel),
     grokOcrModels: readValidatedMany('grok-ocr', validateGrokOcrModel),
     anthropicOcrModels: readValidatedMany('anthropic-ocr', validateAnthropicOcrModel),
@@ -107,9 +105,6 @@ export const readRuntimeModelOptions = (
     geminiModels: readValidatedMany('gemini', validateGeminiModel),
     anthropicModels: readValidatedMany('anthropic', validateAnthropicModel),
     grokModels: readValidatedMany('grok', validateGrokModel),
-    glmModels: readValidatedMany('glm', validateGlmModel),
-    kimiModels: readValidatedMany('kimi', validateKimiModel),
-    togetherModels: readValidatedMany('together', validateTogetherModel),
     elevenlabsTtsModels: readValidatedMany('elevenlabs-tts', validateElevenlabsTtsModel),
     geminiTtsModels: readValidatedMany('gemini-tts', validateGeminiTtsModel),
     sonioxTtsModels: readValidatedMany('soniox-tts', validateSonioxTtsModel),

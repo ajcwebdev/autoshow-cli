@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "05-rap-song-chapter",
+  "provider": "kimi",
+  "model": "kimi-k3",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:37:09.340Z",
+  "artifactHashes": {
+    "raw-response-kimi-kimi-k3-attempt-1.json": "17349eca0c2bd19b886108c15cd92c3f3ddff8396b620b957eced8e889cb9dba",
+    "text-kimi-kimi-k3.json": "c8bb418aad317f4a7777968107d605537c6c1bea1759366cdc141538e3ede720",
+    "text-kimi-kimi-k3.md": "653e775070875d313fed5904eee3a2069a8450bf2623bca065105191105091f0"
+  },
+  "metadata": {
+    "llmService": "kimi",
+    "llmModel": "kimi-k3",
+    "providerReturnedModel": "kimi-k3",
+    "processingTime": 54330,
+    "inputTokenCount": 3543,
+    "outputTokenCount": 1682,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3543,
+      "outputTokenCount": 1682,
+      "totalTokenCount": 5225
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 3543,
+      "completion_tokens": 1682,
+      "total_tokens": 5225,
+      "completion_tokens_details": {
+        "reasoning_tokens": 507
+      },
+      "prompt_tokens_details": {
+        "cache_write_tokens": 3328
+      }
+    },
+    "outputFileName": "text-kimi-kimi-k3.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "rapSongChapterLyrics"
+    ],
+    "effectiveReasoningEffort": "low",
+    "requestSettings": {
+      "model": "kimi-k3",
+      "stream": false,
+      "max_completion_tokens": 32768,
+      "reasoning_effort": "low",
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 3.5858999999999996
+  },
+  "completedAt": "2026-10-18T18:38:03.673Z",
+  "wallTimeMs": 54331,
+  "networkAttempts": 1
+}

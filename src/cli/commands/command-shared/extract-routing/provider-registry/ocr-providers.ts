@@ -1,15 +1,11 @@
 import {
   SUPPORTED_MISTRAL_OCR_MODELS,
-  SUPPORTED_GLM_OCR_MODELS,
-  SUPPORTED_KIMI_OCR_MODELS,
   SUPPORTED_OPENAI_OCR_MODELS,
   SUPPORTED_GROK_OCR_MODELS,
   SUPPORTED_ANTHROPIC_OCR_MODELS,
   SUPPORTED_GEMINI_OCR_MODELS,
   SUPPORTED_DEEPINFRA_OCR_MODELS,
   validateMistralOcrModel,
-  validateGlmOcrModel,
-  validateKimiOcrModel,
   validateOpenAIOcrModel,
   validateGrokOcrModel,
   validateAnthropicOcrModel,
@@ -38,16 +34,6 @@ export const STEP2_OCR_PROVIDER_REGISTRY = [
     supportedModels: SUPPORTED_MISTRAL_OCR_MODELS,
     validateModel: validateMistralOcrModel,
     description: buildModelDescription('Mistral OCR model', SUPPORTED_MISTRAL_OCR_MODELS)
-  }),
-  ocrModelProvider('glm', 'glmOcr', {
-    supportedModels: SUPPORTED_GLM_OCR_MODELS,
-    validateModel: validateGlmOcrModel,
-    description: buildModelDescription('GLM OCR model', SUPPORTED_GLM_OCR_MODELS)
-  }),
-  ocrModelProvider('kimi', 'kimiOcr', {
-    supportedModels: SUPPORTED_KIMI_OCR_MODELS,
-    validateModel: validateKimiOcrModel,
-    description: buildModelDescription('Kimi OCR model', SUPPORTED_KIMI_OCR_MODELS)
   }),
   ocrModelProvider('openai', 'openaiOcr', {
     supportedModels: SUPPORTED_OPENAI_OCR_MODELS,

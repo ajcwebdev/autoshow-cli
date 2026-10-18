@@ -19,9 +19,6 @@
       "https://www.together.ai/models/openai-whisper-large-v3",
       "https://www.together.ai/models/parakeet-tdt-0-6b-v3",
       "https://raw.githubusercontent.com/togethercomputer/skills/refs/heads/main/skills/together-audio/references/stt-models.md",
-      "https://docs.together.ai/docs/kimi-k3-quickstart.md",
-      "https://www.together.ai/models/glm-5-3",
-      "https://www.together.ai/models/glm-5-3-flash",
       "https://docs.together.ai/reference/models.md",
       "https://docs.together.ai/docs/deprecations.md"
     ],
@@ -31,14 +28,6 @@
       "https://docs.together.ai/reference/audio-transcriptions.md",
       "https://docs.together.ai/docs/inference/transcription/overview.md",
       "https://docs.together.ai/docs/inference/transcription/features.md"
-    ],
-    "Text": [
-      "https://docs.together.ai/docs/inference/chat/overview.md",
-      "https://docs.together.ai/docs/inference/chat/parameters.md",
-      "https://docs.together.ai/docs/inference/chat/structured-outputs.md",
-      "https://docs.together.ai/reference/chat-completions.md",
-      "https://docs.together.ai/docs/inference/chat/reasoning.md",
-      "https://docs.together.ai/docs/inference/openai-compatibility.md"
     ]
   }
 }

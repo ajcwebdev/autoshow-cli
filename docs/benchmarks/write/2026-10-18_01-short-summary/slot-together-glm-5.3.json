@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "01-short-summary",
+  "provider": "together",
+  "model": "glm-5.3",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:30:40.019Z",
+  "artifactHashes": {
+    "raw-response-together-glm-5.3-attempt-1.json": "7fa05786bb4e7d490ba83b3ce673b9f9c7fb2604ee4ab29b0e5d1a24897d2c35",
+    "text-together-glm-5.3.json": "0f7ba55f4d8ab06ece56612369c2b2b2a23d5e46238d23650a3ee4c4f80641cf",
+    "text-together-glm-5.3.md": "f65de1c83ef0fcf347dd2fd7dc01bbd6aca4c3fcf75dc3edd91e0863c46c3a59"
+  },
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "glm-5.3",
+    "providerReturnedModel": "zai-org/GLM-5.3",
+    "processingTime": 2780,
+    "inputTokenCount": 429,
+    "outputTokenCount": 39,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 429,
+      "outputTokenCount": 39,
+      "totalTokenCount": 468
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 429,
+      "completion_tokens": 39,
+      "total_tokens": 468,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "outputFileName": "text-together-glm-5.3.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "shortSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "zai-org/GLM-5.3",
+      "stream": false,
+      "max_tokens": 32768,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_shortSummary",
+          "schemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.07722
+  },
+  "completedAt": "2026-10-18T18:30:42.806Z",
+  "wallTimeMs": 2781,
+  "networkAttempts": 1
+}

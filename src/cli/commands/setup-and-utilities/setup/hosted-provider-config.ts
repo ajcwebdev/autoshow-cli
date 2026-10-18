@@ -53,25 +53,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     ]
   },
   {
-    providerId: 'glm',
-    envVar: 'GLM_API_KEY',
-    label: 'GLM write/OCR',
-    hintUrl: 'https://docs.z.ai/',
-    stages: ['write', 'ocr'],
-    configPaths: [
-      'defaults.llm.glm',
-      'defaults.extract.ocr.glmOcr'
-    ]
-  },
-  {
-    providerId: 'kimi',
-    envVar: 'KIMI_API_KEY',
-    label: 'Kimi write/OCR',
-    hintUrl: 'https://platform.moonshot.ai/',
-    stages: ['write', 'ocr'],
-    configPaths: ['defaults.llm.kimi', 'defaults.extract.ocr.kimiOcr']
-  },
-  {
     providerId: 'ltx',
     envVar: 'LTXV_API_KEY',
     label: 'LTX video',
@@ -224,10 +205,10 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'together',
     envVar: 'TOGETHER_API_KEY',
-    label: 'Together write/STT',
+    label: 'Together STT',
     hintUrl: 'https://api.together.ai/',
-    stages: ['write', 'stt'],
-    configPaths: ['defaults.llm.together', 'defaults.extract.stt.togetherStt']
+    stages: ['stt'],
+    configPaths: ['defaults.extract.stt.togetherStt']
   },
   {
     providerId: 'cloudflare',

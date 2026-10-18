@@ -9,8 +9,8 @@ for (const effort of [undefined, 'low', 'xhigh', 'default'] as const) {
   test(`document input carries ${effort ?? 'omitted'} reasoning through Grok dispatch and saved identity`, async () => {
     await lifecycle.withDir(async dir => {
       process.env['XAI_API_KEY'] = 'test'
-      const calls = installMockFetch(() => Response.json({ model: 'grok-4.6', choices: [{ message: { content: 'A workshop repairs bicycles.' } }], usage: { prompt_tokens: 100, completion_tokens: 10 } }))
-      const flags = { 'grok-ocr': 'grok-4.6', ...(effort ? { 'reasoning-effort': effort } : {}) }
+      const calls = installMockFetch(() => Response.json({ model: 'grok-4.7', choices: [{ message: { content: 'A workshop repairs bicycles.' } }], usage: { prompt_tokens: 100, completion_tokens: 10 } }))
+      const flags = { 'grok-ocr': 'grok-4.7', ...(effort ? { 'reasoning-effort': effort } : {}) }
       const opts = buildOptsFromFlags(flags, {}, new Set(Object.keys(flags)), { scope: 'extract' })
       const { outputDir } = await processOcrSingle('input/examples/document/1-document.png', dir, opts)
       expect(calls).toHaveLength(1)

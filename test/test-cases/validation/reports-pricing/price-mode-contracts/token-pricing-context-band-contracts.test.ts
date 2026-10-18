@@ -1,7 +1,7 @@
 import { describe,expect,test } from 'bun:test'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
-import { getExtractPricing,getLlmCost,getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getExtractPricing,getLlmCost,getModelRegistry,getRetiredModelRate } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { Step3Metadata } from '~/types'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import { requireDefined } from '../../../../test-utils/value-assertions'
@@ -39,7 +39,7 @@ describe('price mode contracts', () => {
   for (const testCase of GROK_LLM_BAND_CASES) {
     test(`Grok ${testCase.model.replace('grok-', '')} LLM pricing uses published short and long context bands`, () => {
       const rates = getLlmCost('grok', testCase.model)
-      const entry = getModelRegistry().llm['grok']?.models[testCase.model]
+      const entry = getRetiredModelRate('llm', 'grok', testCase.model)
       if (!rates || !entry) {
         throw new Error(`Missing ${testCase.model} LLM pricing`)
       }
@@ -60,12 +60,9 @@ describe('price mode contracts', () => {
         pricingCheckedAt: testCase.pricingCheckedAt,
         inputCostPer1MCents: 200,
         cachedInputCostPer1MCents: testCase.cachedInputCostPer1MCents,
-        outputCostPer1MCents: 600,
-        estimation: {
-          msPer1KTokens: 11318,
-          costMultiplier: 1
-        }
+        outputCostPer1MCents: 600
       })
+      expect(getModelRegistry().llm['grok']?.models[testCase.model]).toBeUndefined()
       expect(entry.tokenPricingBands?.[1]).toMatchObject({
         cachedInputCostPer1MCents: testCase.longBandCachedInputCostPer1MCents
       })
@@ -80,7 +77,7 @@ describe('price mode contracts', () => {
   for (const testCase of GROK_OCR_BAND_CASES) {
     test(`Grok ${testCase.model.replace('grok-', '')} OCR pricing uses published short and long context bands`, () => {
       const rates = getExtractPricing('grok', testCase.model)
-      const entry = getModelRegistry().extract['grok']?.models[testCase.model]
+      const entry = getModelRegistry().extract['grok']?.models[testCase.model] ?? getRetiredModelRate('extract', 'grok', testCase.model)
       if (!entry || rates.inputCostPer1MCents === undefined || rates.outputCostPer1MCents === undefined) {
         throw new Error(`Missing ${testCase.model} OCR pricing`)
       }
@@ -112,7 +109,7 @@ describe('price mode contracts', () => {
       expect(entry.tokenPricingBands?.[1]).toMatchObject({
         cachedInputCostPer1MCents: testCase.longBandCachedInputCostPer1MCents
       })
-      expect(entry.higherContextPricing).toBeUndefined()
+      expect(rates).not.toHaveProperty('higherContextPricing')
     })
   }
 
@@ -183,7 +180,7 @@ describe('price mode contracts', () => {
   test('Sol LLM and OCR retain the dated official promotion provenance without inventing a later tariff', () => {
     // Official model page retrieved 2026-10-15; promotion is guaranteed at least
     // through November 21, not documented to end automatically on that date.
-    for (const entry of [getModelRegistry().llm['openai']?.models['gpt-5.6-sol'], getModelRegistry().extract['openai']?.models['gpt-5.6-sol']]) {
+    for (const entry of [getRetiredModelRate('llm', 'openai', 'gpt-5.6-sol'), getRetiredModelRate('extract', 'openai', 'gpt-5.6-sol')]) {
       expect(entry).toMatchObject({ pricingCheckedAt: '2026-10-15', pricingSourceUrl: 'https://developers.openai.com/api/docs/models/gpt-5.6-sol' })
       expect(entry?.pricingNotes).toContain('at least through November 21, 2026; no later rate is assumed')
     }
@@ -206,7 +203,7 @@ describe('price mode contracts', () => {
         outputCostPer1MCents: testCase.longOutput
       })
 
-      const entry = requireDefined(getModelRegistry().llm['openai']?.models[testCase.model], `${testCase.model} LLM registry entry`)
+      const entry = requireDefined(getModelRegistry().llm['openai']?.models[testCase.model] ?? getRetiredModelRate('llm', 'openai', testCase.model), `${testCase.model} active or historical LLM pricing`)
       expect(entry.tokenPricingBands?.map((band) => band.cachedInputCostPer1MCents)).toEqual([
         testCase.shortCached,
         testCase.longCached
@@ -215,7 +212,7 @@ describe('price mode contracts', () => {
 
     test(`OpenAI ${testCase.model} OCR pricing uses published short and long context bands`, () => {
       const rates = getExtractPricing('openai', testCase.model)
-      const entry = requireDefined(getModelRegistry().extract['openai']?.models[testCase.model], `${testCase.model} OCR registry entry`)
+      const entry = requireDefined(getModelRegistry().extract['openai']?.models[testCase.model] ?? getRetiredModelRate('extract', 'openai', testCase.model), `${testCase.model} active or historical OCR pricing`)
 
       if (rates.inputCostPer1MCents === undefined || rates.outputCostPer1MCents === undefined) {
         throw new Error(`Missing ${testCase.model} OCR rates`)

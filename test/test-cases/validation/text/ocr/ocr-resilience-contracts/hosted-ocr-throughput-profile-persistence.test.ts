@@ -135,8 +135,8 @@ describe('hosted OCR throughput profile persistence contracts', () => {
             })]
           }),
           buildLaneTelemetry({
-            laneKey: 'kimi:env-api-key',
-            service: 'kimi',
+            laneKey: 'deepinfra:env-api-key',
+            service: 'deepinfra',
             status: 'failed',
             currentCap: 1,
             maxCap: 16,
@@ -147,9 +147,9 @@ describe('hosted OCR throughput profile persistence contracts', () => {
             failedPages: 1,
             pagesPerMinute: 22.7,
             targets: [buildTargetTelemetry({
-              targetKey: 'kimi:kimi-latest',
-              service: 'kimi',
-              model: 'kimi-latest',
+              targetKey: 'deepinfra:google/gemma-4-31B-it',
+              service: 'deepinfra',
+              model: 'google/gemma-4-31B-it',
               status: 'failed',
               submittedPages: 228,
               completedPages: 227,
@@ -172,7 +172,7 @@ describe('hosted OCR throughput profile persistence contracts', () => {
       expect(byModel.get('gemini-3.5-flash')?.['completionStatus']).toBe('full')
       expect(byModel.get('gemini-3.5-flash-lite')?.['completionStatus']).toBe('full')
       expect(byModel.get('mistral-small-ocr')?.['completionStatus']).toBe('full')
-      expect(byModel.get('kimi-latest')?.['completionStatus']).toBe('incomplete')
+      expect(byModel.get('google/gemma-4-31B-it')?.['completionStatus']).toBe('incomplete')
     })
   })
 })

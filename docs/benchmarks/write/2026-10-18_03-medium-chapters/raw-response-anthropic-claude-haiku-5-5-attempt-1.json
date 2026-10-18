@@ -1,0 +1,47 @@
+{
+  "result": "{\"chapters\":[{\"timestamp\":\"00:00:00\",\"title\":\"Opening, Technical Hiccups, and Introductions\",\"description\":\"The hosts address a Twitter Space glitch where the broadcast appeared to start before going live, then welcome the audience back. Ishan Anand introduces JavaScript Jam Live and the React Miami collaboration, while Anthony and Scott explain their roles at Edgio and invite listeners to join the conversation.\"},{\"timestamp\":\"00:04:59\",\"title\":\"Media Partners and the Miami Jam Game Show\",\"description\":\"Dev introduces himself as a media partner for React Miami and previews Miami Jam, a trivia-style game show. He explains that questions will spark deeper conversations about speakers' topics, motivations, and experiences, while audience members can help decide how many points each answer earns.\"}]}",
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-haiku-5-5",
+    "providerReturnedModel": "claude-haiku-5-5",
+    "processingTime": 7853,
+    "inputTokenCount": 3932,
+    "outputTokenCount": 1528,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3932,
+      "outputTokenCount": 1528
+    },
+    "rawProviderUsage": {
+      "input_tokens": 3932,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1528,
+      "output_tokens_details": {
+        "thinking_tokens": 1250
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-haiku-5-5",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "f30e58a52bbd25fa0ed561ed82c88edbd7b319518345a354c043503dc05d1e0b"
+        }
+      }
+    }
+  }
+}

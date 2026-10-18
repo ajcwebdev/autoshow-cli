@@ -11,7 +11,7 @@ import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~
 import type { ExtractionMetadata } from '~/types'
 import {
   HOSTED_OCR_PROVIDER_CASES,
-  KIMI_OCR_PROVIDER_CASE,
+  DEEPINFRA_OCR_PROVIDER_CASE,
   MULTI_PAGE_PDF,
   buildHostedOcrPricingOptions,
   expectedOcrProcessingMs,
@@ -19,7 +19,7 @@ import {
 } from './shared'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
-const expectTokenPricedOcrEstimate = (target: { provider: 'deepinfra' | 'kimi', model: string }): void => {
+const expectTokenPricedOcrEstimate = (target: { provider: 'deepinfra', model: string }): void => {
   const extractTargets = [{
     provider: target.provider,
     model: target.model,
@@ -90,7 +90,7 @@ describe('price mode contracts', () => {
 
   test('pooled OCR pricing allocates the document once across shared provider lanes', async () => {
     const targets = [
-      { service: 'openai' as const, model: 'gpt-5.6-sol' },
+      { service: 'openai' as const, model: 'gpt-6.1-sol' },
       { service: 'openai' as const, model: 'gpt-5.6-terra' },
       { service: 'gemini' as const, model: 'gemini-3.6-flash' }
     ]
@@ -159,15 +159,15 @@ describe('price mode contracts', () => {
       await writeFile(invalidPdf, 'not a real PDF\n')
 
       try {
-        await expect(buildAggregatedPriceEstimate('extract', invalidPdf, buildHostedOcrPricingOptions([KIMI_OCR_PROVIDER_CASE])))
+        await expect(buildAggregatedPriceEstimate('extract', invalidPdf, buildHostedOcrPricingOptions([DEEPINFRA_OCR_PROVIDER_CASE])))
           .rejects.toThrow(/could not determine PDF page count/i)
       } finally {
         await rm(tempDir, { recursive: true, force: true })
       }
     })
 
-  test('DeepInfra OCR estimates include token cost and page timing', () => {
-      expectTokenPricedOcrEstimate({ provider: 'deepinfra', model: 'google/gemma-4-31B-it' })
+  test('DeepInfra Qwen OCR estimates include token cost and page timing', () => {
+      expectTokenPricedOcrEstimate({ provider: 'deepinfra', model: 'Qwen/Qwen3.8-27B' })
 
       const actualMetadata: ExtractionMetadata = {
         extractionMethod: 'pdf+deepinfra-ocr',
@@ -201,8 +201,8 @@ describe('price mode contracts', () => {
       })
     })
 
-  test('Kimi OCR estimates include token cost and page timing', () => {
-      expectTokenPricedOcrEstimate({ provider: 'kimi', model: 'kimi-k2.6' })
+  test('DeepInfra OCR estimates include token cost and page timing', () => {
+      expectTokenPricedOcrEstimate({ provider: 'deepinfra', model: 'google/gemma-4-31B-it' })
     })
 
   test('Grok OCR estimates and actuals use registered token pricing', () => {
@@ -325,7 +325,7 @@ describe('price mode contracts', () => {
         hostedOcrTokenProfilePath: missingHostedOcrProfilePath(),
         extractTargets: [{
           provider: 'openai',
-          model: 'gpt-5.6-luna',
+          model: 'gpt-6-luna',
           pageCount: 2,
           estimateType: 'heuristic'
         }]
@@ -335,7 +335,7 @@ describe('price mode contracts', () => {
       expect(step).toMatchObject({
         step: 'extract',
         provider: 'openai',
-        model: 'gpt-5.6-luna',
+        model: 'gpt-6-luna',
         pageCount: 2,
         promptTokens: 3250,
         completionTokens: 1716,

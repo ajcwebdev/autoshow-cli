@@ -1,0 +1,47 @@
+{
+  "result": "{\"episodeSummary\":\"In this unscripted, guest-free episode of FS Jam, the two hosts explore the murky world of building third-party scripts and widgets for websites, drawing on speaker-1's hands-on experience building Everfund's donation widget. They unpack the technical maze of module formats—CommonJS, AMD, ESM, and especially UMD—explaining why UMD remains necessary for broad browser and WordPress compatibility despite its larger bundle size, and debate when it's acceptable to drop support for older browsers. The conversation covers bundler struggles (Microbundle vs. Rollup), the tradeoffs between npm packages and CDN-hosted scripts, and the architectural choice between iframes and DOM-injected content for embeddable widgets, including CORS implications and CSS customization challenges. They also recount a tricky WordPress bug where identical-looking sites behaved differently until the script was hosted inside the WordPress instance itself. Beyond the technical deep dive, the hosts pivot to meta-discussion about the podcast's future: documentation best practices (citing Divio's framework), upcoming sponsorships and merchandise, trust and vetting when choosing guests or advertisers, and reflections on favorite past episodes like Hydrogen, Flight Control, and conversations with Kent C. Dodds, Orta, and Miško Hevery. The episode closes with gratitude toward listeners and a commitment to creating lasting, educational content despite inconsistent release schedules.\"}",
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-sonnet-5",
+    "providerReturnedModel": "claude-sonnet-5",
+    "processingTime": 5856,
+    "inputTokenCount": 14150,
+    "outputTokenCount": 497,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 14150,
+      "outputTokenCount": 497
+    },
+    "rawProviderUsage": {
+      "input_tokens": 14150,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 497,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-sonnet-5",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "ca37e90a9657fd83a99636394f8cb2b7c900e3838c706b22389d5bb5eca98424"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+## Title
+
+JavaScript Jam Goes to Miami: Inside the React Miami Collaboration and the Birth of 'Miami Jam'
+
+## Outline
+
+- Introduction: A rocky but charming start — Twitter Space hiccups and why live audio is still worth it
+- Meet the crew: Introductions from the JavaScript Jam hosts and React Miami partners
+- The big announcement: JavaScript Jam's collaboration with React Miami
+- What won't change: Keeping the open-mic, community-first spirit alive
+- Introducing 'Miami Jam': A game-show twist on speaker interviews
+- How the trivia format works and why it makes conversations more engaging
+- Audience participation: How listeners get to shape the show
+- Looking ahead: What to expect from React Miami Month and future episodes
+- Conclusion: Why this collaboration matters for the JS/React community
+
+## Draft
+
+Live audio has a charm that polished podcasts can never quite replicate — and the latest episode of JavaScript Jam Live proved it from the very first minute. The show kicked off with a classic Twitter Space hiccup: host Scott's Space appeared to be live on his end, but nobody else could actually join. As co-host Anthony Campolo explained with good humor, this is apparently a known quirk — sometimes a Space shows as 'started' on the host's phone well before it's actually visible to the audience. The fix? Patience. Wait a minute or two, and it sorts itself out. It's the kind of small, relatable glitch that reminds you there's a real human behind the mic, fumbling through the same tech hiccups the rest of us deal with every day.
+
+Once the audience trickled back in, the show moved into introductions, and this week's lineup was bigger than usual. JavaScript Jam Live, as co-host Ishan Anand described it, is an open-mic style show for anything JavaScript and web development related — audience participation encouraged, no topic too niche. Ishan, VP of Product at Edgio, was joined by Anthony Campolo (Developer Advocate at Edgio) and Scott Steinlage (Technical Community Manager at Edgio), the regular hosting crew. But this episode had a special guest list: Dev Agrawal and Michelle, both connected to React Miami, joined to talk about something new.
+
+The headline news of the episode: JavaScript Jam Live is teaming up with React Miami for a multi-week collaboration. Scott, in his characteristically enthusiastic style, initially called it 'React Miami Week' before correcting himself mid-sentence — it's really more like React Miami Month. Over the coming weeks, speakers from React Miami will be joining JavaScript Jam Live to talk about topics relevant to their work and talks. Importantly, the hosts were quick to reassure longtime listeners that the core vibe of the show isn't changing. This is still the same open, casual, community-driven format fans are used to — just with some extra value and some 'goodies' sprinkled in, which the team teased but didn't fully reveal yet.
+
+Dev Agrawal, one of the media partners helping put together React Miami content, took time to properly introduce himself (or 'Dave,' either works) before diving into the most exciting part of the announcement: a brand-new show called Miami Jam. Dev explained that he'd managed to convince Anthony and Scott to co-host it with him, and it's launching the following week as part of the React Miami festivities.
+
+What makes Miami Jam different from a typical conference-adjacent interview show is the format. Rather than the standard approach of bringing a speaker on stage and walking through a Q&A about their talk, Miami Jam is structured like a game show. Instead of directly asking speakers about their motivations or their topic, the hosts will pose trivia-style questions — these might cover quirky JavaScript or TypeScript behavior, React ecosystem trivia, guessing which library is being described, or questions tied to a specific speaker's upcoming talk. The speaker being quizzed has to answer, and from there, the hosts pivot into a deeper conversation about their topic, their background, and what brought them to React Miami in the first place.
+
+It's a clever structural trick: the trivia becomes a springboard into the substance, rather than the show simply front-loading a list of standard interview questions. Dev was clear that the goal isn't to turn it into pure entertainment at the expense of insight — the show still aims to surface real depth about each speaker's experience and expertise. It's just wrapped in a format that's more fun, more interactive, and more collaborative, encouraging speakers to riff off each other's answers rather than simply taking turns in a panel.
+
+Audience involvement is also baked into the format in a way that goes beyond the usual 'raise your hand to ask a question' model. Dev described a scoring mechanic where audience members who pose questions get to decide how many points a speaker earns for their answer — turning passive listening into an actual stake in the show's outcome. It's a small design choice, but it reflects the same philosophy that's defined JavaScript Jam Live from the start: get the audience genuinely involved, not just tuning in.
+
+The episode also had its share of community warmth that's easy to overlook but worth mentioning. Michelle, one of the organizers of React Miami, popped in despite her own mic issues to express excitement about handing the reins over to Dev, Anthony, and Scott — joking that she and the React Miami team basically gave them 'the green light to do whatever they like.' Meanwhile, another listener, Dan, jumped on briefly just to lament that a company offsite is going to keep him from attending React Miami in person, a small reminder that live shows like this double as a meeting point for a community that doesn't always get to be in the same room.
+
+Taken together, the episode functioned less like a typical show and more like a kickoff event — equal parts tech hiccup, community reunion, and sneak peek at what's coming. For regular JavaScript Jam Live listeners, the message was clear: expect more guests, more React-flavored content, and a brand-new game-show format in Miami Jam, all while the show's core identity as a welcoming, low-barrier space for JavaScript and web developers of every skill level stays exactly the same.
+
+If you're part of the JavaScript or React community, this collaboration is worth keeping an eye on. Beyond the novelty of Miami Jam's trivia-driven format, it represents something a little bigger: two community-first platforms deciding to pool their audiences and their energy rather than compete for attention. In an ecosystem that can sometimes feel fragmented across dozens of niche meetups, livestreams, and conferences, this kind of partnership is a reminder that collaboration, not competition, tends to produce the most interesting content — and the most fun.

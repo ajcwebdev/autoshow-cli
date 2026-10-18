@@ -251,9 +251,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'gemini':            ['defaults', 'llm', 'gemini'],
   'anthropic':         ['defaults', 'llm', 'anthropic'],
   'grok':              ['defaults', 'llm', 'grok'],
-  'glm':               ['defaults', 'llm', 'glm'],
-  'kimi':              ['defaults', 'llm', 'kimi'],
-  'together':          ['defaults', 'llm', 'together'],
   'llm-provider-concurrency': ['defaults', 'llm', 'providerConcurrency'],
   'llm-local-concurrency': ['defaults', 'llm', 'localConcurrency'],
   'elevenlabs-tts':    ['defaults', 'tts', 'elevenlabsTts'],
@@ -429,6 +426,10 @@ export const buildConfigPatchFromFlags = (
   explicitFlags: Set<string>,
   flagOccurrences: readonly CliFlagOccurrence[] = []
 ): Record<string, unknown> => {
+  const removedFlags = ['glm', 'kimi', 'together', 'glm-ocr', 'kimi-ocr'].filter(flag => explicitFlags.has(flag))
+  if (removedFlags.length > 0) {
+    throw UsageError(`Provider selections ${removedFlags.join(', ')} are no longer supported. Remove them and select an active provider explicitly.`)
+  }
   const patch: Record<string, unknown> = {}
   const rawOccurrences = collectRepeatableModelFlagOccurrences(flagOccurrences)
   const discardedFlags: string[] = []

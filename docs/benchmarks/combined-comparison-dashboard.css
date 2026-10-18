@@ -25,6 +25,10 @@ h3 { font-size: 13px; margin: 20px 0 8px; color: var(--ink-2); text-transform: u
 .meta { color: var(--muted); font-size: 12px; margin: 0 0 20px; }
 .meta code { font-size: 11px; }
 .status { color: var(--muted); font-size: 13px; }
+.model-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 12px; }
+.model-filter label { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 13px; color: var(--ink); }
+.model-filter input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.model-filter input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 .tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; }
 .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 110px; }

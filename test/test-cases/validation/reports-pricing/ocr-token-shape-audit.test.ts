@@ -5,7 +5,7 @@ import { createManifest, createManifestItem, writeManifest } from '~/cli/command
 import { auditOcrTokenShapes } from '~/cli/commands/text/ocr/ocr-pricing/ocr-token-shape-audit'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 
-const writeKimiRun = async (
+const writeTokenRun = async (
   directory: string,
   promptTokens: number,
   completionTokens: number,
@@ -39,10 +39,35 @@ const writeKimiRun = async (
 }
 
 describe('OCR token-shape evidence audit', () => {
+  test('default audit includes exact live OCR targets and leaves archived or unknown targets to explicit history mode', async () => {
+    await withTempDir('autoshow-ocr-token-audit-active-', async dir => {
+      const targets = [
+        { service: 'gemini', model: 'gemini-3.8-flash' },
+        { service: 'openai', model: 'gpt-6.1-sol' },
+        { service: 'kimi', model: 'kimi-k2.6' },
+        { service: 'glm', model: 'glm-5.3-flash' },
+        { service: 'gemini', model: 'gemini-3.7-flash' },
+        { service: 'gemini', model: 'unimplemented-pro-model' }
+      ]
+      const runs = targets.map((_target, index) => join(dir, String(index)))
+      for (const [index, target] of targets.entries()) {
+        await writeTokenRun(runs[index] as string, 1000, 500, 'disabled', 'full', target)
+      }
+      const current = await auditOcrTokenShapes({ runDirectories: runs })
+      expect(current.buckets.map(row => [row.provider, row.model])).toEqual([
+        ['gemini', 'gemini-3.8-flash'],
+        ['openai', 'gpt-6.1-sol']
+      ])
+      const historical = await auditOcrTokenShapes({ runDirectories: runs, includeAllTokenProviders: true })
+      expect(historical.buckets).toHaveLength(targets.length)
+      expect(historical.buckets.find(row => row.provider === 'kimi')?.usageBasis).toBe('reported-prompt-completion')
+    })
+  })
+
   test('preserves xhigh policy in historical evidence rather than collapsing it to unspecified', async () => {
     await withTempDir('autoshow-ocr-token-audit-xhigh-', async dir => {
       const runs = [join(dir, 'a'), join(dir, 'b'), join(dir, 'c')]
-      for (const run of runs) await writeKimiRun(run, 1000, 500, 'xhigh', 'full', { service: 'grok', model: 'grok-4.6' })
+      for (const run of runs) await writeTokenRun(run, 1000, 500, 'xhigh', 'full', { service: 'grok', model: 'grok-4.6' })
       const report = await auditOcrTokenShapes({ runDirectories: runs, includeAllTokenProviders: true })
       expect(report.buckets).toHaveLength(1)
       expect(report.buckets[0]?.effectiveReasoningEffort).toBe('xhigh')
@@ -53,13 +78,14 @@ describe('OCR token-shape evidence audit', () => {
   test('promotes only a matching three-sample component with explicit reasoning policy', async () => {
     await withTempDir('autoshow-ocr-token-audit-', async (dir) => {
       const runs = [join(dir, 'run-a'), join(dir, 'run-b'), join(dir, 'run-c'), join(dir, 'run-incomplete')]
-      await writeKimiRun(runs[0] as string, 1000, 500, 'disabled')
-      await writeKimiRun(runs[1] as string, 1100, 510, 'disabled')
-      await writeKimiRun(runs[2] as string, 1200, 520, 'disabled')
-      await writeKimiRun(runs[3] as string, 900, 400, 'disabled', 'incomplete')
+      await writeTokenRun(runs[0] as string, 1000, 990, 'disabled')
+      await writeTokenRun(runs[1] as string, 1100, 1000, 'disabled')
+      await writeTokenRun(runs[2] as string, 1200, 1010, 'disabled')
+      await writeTokenRun(runs[3] as string, 900, 400, 'disabled', 'incomplete')
 
       const report = await auditOcrTokenShapes({
         runDirectories: runs,
+        includeAllTokenProviders: true,
         now: new Date('2026-08-13T12:00:00.000Z')
       })
       expect(report.sources).toEqual({
@@ -120,7 +146,7 @@ describe('OCR token-shape evidence audit', () => {
         }]
       }))
 
-      const report = await auditOcrTokenShapes({ profilePath })
+      const report = await auditOcrTokenShapes({ profilePath, includeAllTokenProviders: true })
       expect(report.sources).toEqual({
         explicitRunDirectoryCount: 0,
         canonicalManifestCount: 0,

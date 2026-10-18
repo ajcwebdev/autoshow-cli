@@ -7,7 +7,7 @@ import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import type { CommandPricingOptions, ExtractionMetadata } from '~/types'
 import {
-  KIMI_OCR_PROVIDER_CASE,
+  DEEPINFRA_OCR_PROVIDER_CASE,
   MULTI_PAGE_PDF,
   buildHostedOcrPricingOptions,
   findPricingNoteKeys,
@@ -21,7 +21,7 @@ describe('price mode contracts', () => {
         hostedOcrTokenProfilePath: missingHostedOcrProfilePath(),
         extractTargets: [{
           provider: 'openai',
-          model: 'gpt-5.6-luna',
+          model: 'gpt-6-luna',
           pageCount: 2,
           estimateType: 'heuristic'
         }]
@@ -36,7 +36,7 @@ describe('price mode contracts', () => {
         languages: 'eng',
         tokenEstimate: 10_000,
         ocrService: 'openai',
-        ocrModel: 'gpt-5.6-luna',
+        ocrModel: 'gpt-6-luna',
         promptTokens: 6000,
         completionTokens: 1500,
         ocrProviderUsage: [{
@@ -56,7 +56,7 @@ describe('price mode contracts', () => {
       expect(diagnostics).toHaveLength(1)
       expect(diagnostic).toMatchObject({
         provider: 'openai',
-        model: 'gpt-5.6-luna',
+        model: 'gpt-6-luna',
         pages: 2
       })
       expect(predicted).toMatchObject({
@@ -158,7 +158,7 @@ describe('price mode contracts', () => {
         languages: 'eng',
         tokenEstimate: 10_000,
         ocrService: 'openai',
-        ocrModel: 'gpt-5.6-luna',
+        ocrModel: 'gpt-6-luna',
         promptTokens: 6000,
         completionTokens: 1500,
         providerCostCents: 0.42,
@@ -170,7 +170,7 @@ describe('price mode contracts', () => {
       expect(actual.steps[0]).toMatchObject({
         step: 'extract',
         provider: 'openai',
-        model: 'gpt-5.6-luna',
+        model: 'gpt-6-luna',
         cost: 0.42,
         costSource: 'provider_usage',
         inputMetric: 'tokens',
@@ -195,7 +195,7 @@ describe('price mode contracts', () => {
             ...base,
             extractionMethod: 'pdf+openai-ocr',
             ocrService: 'openai',
-            ocrModel: 'gpt-5.6-luna',
+            ocrModel: 'gpt-6-luna',
             promptTokens: 6000,
             completionTokens: 1500,
             providerCostCents: 0.42,
@@ -225,7 +225,7 @@ describe('price mode contracts', () => {
         languages: 'eng',
         tokenEstimate: 10_000,
         ocrService: 'openai',
-        ocrModel: 'gpt-5.6-luna',
+        ocrModel: 'gpt-6-luna',
         promptTokens: 1,
         completionTokens: 1
       }
@@ -234,7 +234,7 @@ describe('price mode contracts', () => {
         steps: [{
           step: 'extract',
           provider: 'openai',
-          model: 'gpt-5.6-luna',
+          model: 'gpt-6-luna',
           pageCount: 2,
           promptTokens: 8000,
           completionTokens: 2000,
@@ -254,7 +254,7 @@ describe('price mode contracts', () => {
       expect(preflightEstimated.totalCost).toBe(9)
       expect(preflightEstimated.steps[0]).toMatchObject({
         provider: 'openai',
-        model: 'gpt-5.6-luna',
+        model: 'gpt-6-luna',
         promptTokens: 8000,
         completionTokens: 2000,
         cost: 9
@@ -262,13 +262,13 @@ describe('price mode contracts', () => {
       expect(findPricingNoteKeys(preflightEstimated)).toEqual([])
       expect(fallbackEstimated.steps[0]).toMatchObject({
         provider: 'openai',
-        model: 'gpt-5.6-luna',
+        model: 'gpt-6-luna',
         promptTokens: 3250,
         completionTokens: 1716
       })
       expect(observedEstimate.steps[0]).toMatchObject({
         provider: 'openai',
-        model: 'gpt-5.6-luna',
+        model: 'gpt-6-luna',
         promptTokens: 1,
         completionTokens: 1,
         estimateType: 'exact'
@@ -280,7 +280,7 @@ describe('price mode contracts', () => {
   test('OCR manifest fallback estimates apply the same calibrated multiplier as price mode', async () => {
       const profilePath = missingHostedOcrProfilePath()
       const actualMetadata: ExtractionMetadata = {
-        extractionMethod: 'pdf+kimi-ocr',
+        extractionMethod: 'pdf+deepinfra-ocr',
         totalPages: 3,
         ocrPages: 3,
         textPages: 0,
@@ -288,32 +288,32 @@ describe('price mode contracts', () => {
         dpi: 300,
         languages: 'eng',
         tokenEstimate: 10_000,
-        ocrService: 'kimi',
-        ocrModel: 'kimi-k2.6',
+        ocrService: 'deepinfra',
+        ocrModel: 'google/gemma-4-31B-it',
         promptTokens: 1,
         completionTokens: 1
       }
       const priceEstimate = await buildAggregatedPriceEstimate('extract', MULTI_PAGE_PDF, {
-        ...buildHostedOcrPricingOptions([KIMI_OCR_PROVIDER_CASE]),
+        ...buildHostedOcrPricingOptions([DEEPINFRA_OCR_PROVIDER_CASE]),
         hostedOcrTokenProfilePath: profilePath
       } as CommandPricingOptions & { hostedOcrTokenProfilePath: string })
       const fallbackEstimated = resolveExtractEstimatedCosts(undefined, actualMetadata, { hostedOcrTokenProfilePath: profilePath })
       const observedEstimate = resolveExtractObservedEstimateCosts(actualMetadata)
-      const multiplier = getExtractEstimation('kimi', 'kimi-k2.6').costMultiplier
+      const multiplier = getExtractEstimation('deepinfra', 'google/gemma-4-31B-it').costMultiplier
 
       expect(multiplier).toBe(1)
       expect(fallbackEstimated.totalCost).toBeCloseTo(priceEstimate.totalEstimatedCost)
       expect(fallbackEstimated.steps[0]).toMatchObject({
-        provider: 'kimi',
-        model: 'kimi-k2.6',
+        provider: 'deepinfra',
+        model: 'google/gemma-4-31B-it',
         pageCount: 3,
         costMultiplier: multiplier,
         tokenEstimateSource: 'registry',
         tokenEstimateConfidence: 'none'
       })
       expect(observedEstimate.steps[0]).toMatchObject({
-        provider: 'kimi',
-        model: 'kimi-k2.6',
+        provider: 'deepinfra',
+        model: 'google/gemma-4-31B-it',
         promptTokens: 1,
         completionTokens: 1,
         costMultiplier: 1,

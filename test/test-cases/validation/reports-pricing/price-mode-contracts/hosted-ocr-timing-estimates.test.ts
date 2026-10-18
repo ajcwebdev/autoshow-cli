@@ -63,7 +63,7 @@ describe('hosted OCR timing estimate contracts', () => {
       const differentProviderTiming = computeEstimatedProcessingTimes({
         extractTargets: [
           { provider: 'gemini', model: 'gemini-3.5-flash', pageCount: 20 },
-          { provider: 'openai', model: 'gpt-5.6-luna', pageCount: 20 }
+          { provider: 'openai', model: 'gpt-6-luna', pageCount: 20 }
         ],
         ocrConcurrency: 1,
         ocrConcurrencyMode: 'fixed',

@@ -1,5 +1,5 @@
 import type { ExtractStepEstimate, HostedOcrEstimateHandler, HostedOcrPricingService, LocalOcrService, MappedReasoningPolicy, NormalizedReasoningEffort, OcrCostEstimate, OcrProviderMode, ResolvedStep2Execution } from '~/types'
-import { GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateGeminiOcrCost, estimateGlmOcrCost, estimateGrokOcrCost, estimateKimiOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/text/ocr/ocr-pricing/ocr-estimates'
+import { GEMINI_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateGeminiOcrCost, estimateGrokOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/text/ocr/ocr-pricing/ocr-estimates'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { applyCostMultiplier } from '~/cli/commands/pricing-orchestration/cost-helpers'
@@ -11,14 +11,6 @@ const HOSTED_OCR_HANDLERS = {
   mistral: {
     estimate: estimateMistralOcrCost,
     estimateType: 'exact'
-  },
-  glm: {
-    estimate: estimateGlmOcrCost,
-    note: GLM_OCR_PRICE_NOTE
-  },
-  kimi: {
-    estimate: estimateKimiOcrCost,
-    note: (estimate) => estimate.note
   },
   openai: {
     estimate: estimateOpenAIOcrCost,

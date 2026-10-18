@@ -164,7 +164,7 @@ describe('OCR resilience contracts', () => {
         ...basePdfMetadata,
         pageCount: 1,
         fileSize: 32
-      }, 'claude-sonnet-5')
+      }, 'claude-sonnet-5-5')
 
       expect(calls).toEqual(['upload', 'message', 'delete'])
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'page 1 text' }])

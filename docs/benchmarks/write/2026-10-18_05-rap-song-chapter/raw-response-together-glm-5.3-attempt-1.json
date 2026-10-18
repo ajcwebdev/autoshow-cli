@@ -1,0 +1,44 @@
+{
+  "result": "{\"title\": \"Harborlight Field Notes\", \"intro\": [\"Lantern low, shield turned, a small warm ring on the table by the sea,\", \"A teal mug, a notebook clipped shut, one star left to see.\", \"The night camp hums with wind off the water and waiting,\", \"And waiting is the work — that is what this record is stating.\"], \"verse1\": [\"Two of us mapped the route and read the posted board twice,\", \"The trail marked to the sheltered ridge, no shortcuts, no bright\", \"patch of hillside worth the gamble — we walked the line we agreed,\", \"Then I inked 'Harborlight Camp' at the top of the page, guaranteed.\", \"At the overlook Papa Bear said, 'Watch: a landmark will lie.'\", \"The footbridge looked short from the shore, long when viewed from high.\", \"I drew two views, labeled where I stood — neither drawing was wrong,\", \"Just two honest witnesses from two different spots all along.\", \"Made camp on level ground, kept the path clear, checked the tripod feet,\", \"Telescope safe in its case until we knew our beat.\", \"Then a thin cloud crossed the first star, and I caught my breath —\", \"He said, 'Write the cloud down too.' So my first entry read:\", \"Pale sky, one bright point, one breeze from the water's edge,\", \"The page was already good because it showed the view a pledge.\"], \"chorus1\": [\"Under harborlight, keep the record clean,\", \"Describe what you see before you say what it means,\", \"Let the uncertain stay uncertain in the lines between,\", \"Under harborlight, the honest view is all we need.\"], \"verse2\": [\"Dark settled in, I shielded the lantern low,\", \"One small ring of warmth where the mug and the notebook glow,\", \"Beyond it, ridge and sky grew easier to divide,\", \"The eyepiece turned away from the day's last dying light.\", \"We traded turns at the scope; I called a bright point out loud\", \"Without pinning a distance I couldn't back with proof, not proud.\", \"He asked me what changed since the last look — sharper harbor lights below,\", \"The pale band above the ridge had faded slow.\", \"Then a brief streak split the sky while both of us looked up,\", \"Too fast to trace its whole arc — quick as a dropped cup.\", \"We logged the direction, the rough hour, the moment it was gone,\", \"Left room for not-knowing instead of spinning a grand discovery on.\", \"For a long while, nothing said — the silence held our gaze,\", \"Then one last line on the page: 'The view was worth the wait.'\"], \"chorus2\": [\"Under harborlight, keep the record clean,\", \"Describe what you see before you say what it means,\", \"Let the uncertain stay uncertain, keep the sketches what they've been,\", \"Under harborlight, the honest view is all we need.\"], \"verse3\": [\"Before sleep we matched the notebook against the route plan,\", \"Each entry named place, weather, time, and whose own hand,\", \"Sketches marked as sketches — that discipline alone\", \"Made the notes useful to someone who never walked this stone.\", \"Morning: I counted every item on the table, one by one,\", \"Mug, notebook, clip, lantern, case — carried out all we'd brung,\", \"He swept the site for scraps while I folded the tent flat,\", \"We left the ground as clear as we found it — that's the pact.\", \"The footbridge looked different again in the morning sun,\", \"So I added a third drawing to page one.\", \"And this is the part that turned me quiet on the walk back down:\", \"Nothing needed erasing — three truthful views of one small town\", \"Footbridge, each drawn from where one person stood that day,\", \"Position and light can reshape the honest way.\", \"Back at the open window, the mug settled by the map,\", \"Four pages, three sketches, one habit to keep on track.\"], \"bridge\": [\"'Nothing in the old sketches needed to be erased.' — underlined twice,\", \"Three views of the same footbridge, each honest in its light,\", \"Describe the evidence first; let the verdict go unsigned,\", \"The next walk starts with the habit — no dramatic story required.\"], \"chorus3\": [\"Under harborlight, the record stayed clean,\", \"We described what we saw before we said what it means,\", \"The uncertain stayed uncertain, and the truth came through the sheen,\", \"Under harborlight, an honest view is all we need.\"]}",
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "glm-5.3",
+    "providerReturnedModel": "zai-org/GLM-5.3",
+    "processingTime": 9919,
+    "inputTokenCount": 3407,
+    "outputTokenCount": 970,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 3407,
+      "outputTokenCount": 970,
+      "totalTokenCount": 4377
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 3407,
+      "completion_tokens": 970,
+      "total_tokens": 4377,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "zai-org/GLM-5.3",
+      "stream": false,
+      "max_tokens": 32768,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_rapSongChapter",
+          "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6",
+          "strict": true
+        }
+      }
+    }
+  }
+}

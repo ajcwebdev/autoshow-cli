@@ -9,9 +9,6 @@ const hasConfiguredLlmProvider = (opts: ResolvedLLMModelOptions): boolean =>
     ...(opts.geminiModels ?? []),
     ...(opts.anthropicModels ?? []),
     ...(opts.grokModels ?? []),
-    ...(opts.glmModels ?? []),
-    ...(opts.kimiModels ?? []),
-    ...(opts.togetherModels ?? []),
   ].some((value) => typeof value === 'string' && value.length > 0)
 
 export const buildExtractionCallOpts = (target: string, baseDir: string, opts: DocumentExtractionOptions): Partial<ExtractionOptions> => {
@@ -57,12 +54,6 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: D
   }
   if (opts.mistralOcrModels) {
     extractionOpts.mistralOcrModels = opts.mistralOcrModels
-  }
-  if (opts.glmOcrModels) {
-    extractionOpts.glmOcrModels = opts.glmOcrModels
-  }
-  if (opts.kimiOcrModels) {
-    extractionOpts.kimiOcrModels = opts.kimiOcrModels
   }
   if (opts.openaiOcrModels) {
     extractionOpts.openaiOcrModels = opts.openaiOcrModels

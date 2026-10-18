@@ -7,10 +7,8 @@ import elevenlabsLinks from './model-links/elevenlabs.json'
 import falLinks from './model-links/fal.json'
 import geminiLinks from './model-links/gemini.json'
 import gladiaLinks from './model-links/gladia.json'
-import glmLinks from './model-links/glm.json'
 import grokLinks from './model-links/grok.json'
 import inworldLinks from './model-links/inworld.json'
-import kimiLinks from './model-links/kimi.json'
 import whisperfileLinks from './model-links/whisperfile.json'
 import ltxLinks from './model-links/ltx.json'
 import lumalabsLinks from './model-links/lumalabs.json'
@@ -33,10 +31,8 @@ const providerLinks = [
   openaiLinks,
   geminiLinks,
   gladiaLinks,
-  glmLinks,
   grokLinks,
   xLinks,
-  kimiLinks,
   whisperfileLinks,
   ltxLinks,
   lumalabsLinks,

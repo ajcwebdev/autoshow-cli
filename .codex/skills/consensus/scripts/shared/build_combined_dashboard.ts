@@ -7,6 +7,9 @@ import { buildOcrCombinedReport } from "../ocr/build_combined_report";
 import { buildSttCombinedReport } from "../stt/build_combined_report";
 import { buildUrlCombinedReport } from "../url/build_combined_report";
 import { buildTtsDashboard } from "../tts/build_tts_dashboard";
+import { buildTextDashboard } from "../text/build_text_dashboard";
+import { supportedDashboardProviderKeys } from "./dashboard_model_support";
+import { buildSupportedDashboardModel } from "./dashboard_supported_view";
 import {
   DEFAULT_DASHBOARD_ASSETS,
   renderBenchmarkDashboard,
@@ -29,12 +32,13 @@ export const DASHBOARD_TABS: DashboardTabSource[] = [
   { key: "stt-without-speakers", label: "STT without speakers", build: buildSttCombinedReport },
   { key: "url", label: "URL", build: buildUrlCombinedReport },
   { key: "tts", label: "TTS", build: buildTtsDashboard },
+  { key: "write", label: "Write", build: buildTextDashboard },
 ];
 
-export const DASHBOARD_TAB_DIRS = DASHBOARD_TABS.filter(tab => tab.key !== "tts").map(tab => tab.key);
+export const DASHBOARD_TAB_DIRS = DASHBOARD_TABS.filter(tab => tab.key !== "tts" && tab.key !== "write").map(tab => tab.key);
 
 export function hasAllDashboardTabs(benchmarksRoot: string): boolean {
-  // TTS can render an empty tab before its first benchmark run.
+  // TTS and Write can render empty tabs before their first benchmark runs.
   return DASHBOARD_TAB_DIRS.every(tab => existsSync(join(benchmarksRoot, tab, "combined-comparison-report.json")));
 }
 
@@ -70,6 +74,7 @@ export function buildCombinedDashboard(
       label: tab.label,
       rootLabel: `docs/benchmarks/${tab.key}`,
       model: dashboardModel,
+      supportedModel: buildSupportedDashboardModel(dashboardModel, supportedDashboardProviderKeys(tab.key, dashboardModel)),
     };
   });
 

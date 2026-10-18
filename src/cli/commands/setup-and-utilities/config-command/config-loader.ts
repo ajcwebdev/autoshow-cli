@@ -24,6 +24,19 @@ const RENAMED_STT_CONFIG_KEYS: readonly (readonly [string, string])[] = [
   ['grokVerbatim', 'verbatim']
 ]
 
+const validateRemovedLlmOcrConfigAuthority = (parsed: unknown): void => {
+  const defaults = asRecord(asRecord(parsed)?.['defaults'])
+  const llm = asRecord(defaults?.['llm'])
+  const ocr = asRecord(asRecord(defaults?.['extract'])?.['ocr'])
+  const removedPaths = [
+    ...['glm', 'kimi', 'together'].filter(key => llm && key in llm).map(key => `defaults.llm.${key}`),
+    ...['glmOcr', 'kimiOcr'].filter(key => ocr && key in ocr).map(key => `defaults.extract.ocr.${key}`)
+  ]
+  if (removedPaths.length > 0) {
+    throw ValidationError(`Provider configuration ${removedPaths.join(', ')} is no longer supported. Remove it and select an active provider explicitly. AutoShow will not silently substitute a different model identity.`, { stage: 'config:load' })
+  }
+}
+
 const validateSttConfigAuthority = (parsed: unknown): void => {
   const stt = asRecord(asRecord(asRecord(asRecord(parsed)?.['defaults'])?.['extract'])?.['stt'])
   if (!stt) return
@@ -107,6 +120,7 @@ export const loadConfig = async (configPath: string): Promise<AutoshowConfig> =>
   }
 
   const defaults = asRecord(asRecord(parsed)?.['defaults'])
+  validateRemovedLlmOcrConfigAuthority(parsed)
   const registry = getModelRegistry()
   for (const [section, category] of [['llm', 'llm'], ['ocr', 'extract']] as const) {
     for (const [key, models] of Object.entries(asRecord(section === 'ocr' ? asRecord(defaults?.['extract'])?.['ocr'] : defaults?.[section]) ?? {})) {

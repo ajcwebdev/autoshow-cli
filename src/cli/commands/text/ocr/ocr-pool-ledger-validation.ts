@@ -3,6 +3,7 @@ import type { OcrPoolLedger, OcrTarget } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { getOcrTargetKey } from './ocr-run-state'
 
+// Historical ledgers retain retired services and paid attempts without enabling dispatch.
 const OCR_POOL_SERVICES = new Set<OcrTarget['service']>(['tesseract', 'mistral', 'glm', 'kimi', 'openai', 'grok', 'anthropic', 'gemini', 'deepinfra'])
 
 const isOcrPoolService = (value: unknown): value is OcrTarget['service'] =>

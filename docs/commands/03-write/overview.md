@@ -13,9 +13,6 @@ Generate structured LLM output from local markdown or plaintext. With no `--prov
   - [Anthropic](#anthropic)
   - [Gemini](#gemini)
   - [Grok](#grok)
-  - [Z.AI GLM](#zai-glm)
-  - [Kimi](#kimi)
-  - [Together](#together)
 - [Prompts](#prompts)
   - [Summary and Overview](#summary-and-overview)
   - [Chapters](#chapters)
@@ -43,9 +40,6 @@ OPENAI_API_KEY=...
 ANTHROPIC_API_KEY=...
 GEMINI_API_KEY=...
 XAI_API_KEY=...
-GLM_API_KEY=...
-KIMI_API_KEY=...
-TOGETHER_API_KEY=...
 ```
 ## Usage
 
@@ -88,8 +82,8 @@ The hidden `--llm` compatibility alias still accepts the same selectors as `--pr
 See [Provider Capabilities](#provider-capabilities) for the per-model reasoning, context, structured-output, and input/output price matrix.
 
 ```bash
-bun autoshow write output/write-transcript/transcription.txt --provider openai=gpt-5.6-sol --prompt shortSummary longSummary
-bun autoshow write input/examples/document/harborlight-field-notes.md --provider openai=gpt-5.6-sol --prompt blog
+bun autoshow write output/write-transcript/transcription.txt --provider openai=gpt-6.1-sol --prompt shortSummary longSummary
+bun autoshow write input/examples/document/harborlight-field-notes.md --provider openai=gpt-6.1-sol --prompt blog
 bun autoshow write input/examples/tts/harborlight-chapters --prompt rockSong
 bun autoshow write input/examples/tts/harborlight-chapters --prompt rockSong --price
 bun autoshow write input/examples/tts/harborlight-chapters --prompt rockSong --all-providers --max-model-cents 50 --price
@@ -104,17 +98,14 @@ Write `--price` estimates use the selected prompt and source text. Use `--json` 
 
 `--provider` accepts `provider[=model]`. Omitting the model uses the cheapest supported model for that provider. Headline per-1M rates are in [Provider Capabilities](#provider-capabilities).
 
-All 23 registered write models remain selectable; `--all-providers` includes the new models alongside their older siblings. Claude Haiku 5.5 and GPT-6 Luna tie at the lowest headline rates; the provider-name tie break selects Anthropic when the provider is omitted.
+All 11 active write models remain selectable through `--all-providers`. Explicit retired model names fail locally with their replacement; finished runs retain their original identities and rates. Claude Haiku 5.5 and GPT-6 Luna tie at the lowest headline rates; the provider-name tie break selects Anthropic when the provider is omitted.
 
 | Provider  | Selector                         | Default model      |
 | --------- | -------------------------------- | ------------------ |
 | OpenAI    | `--provider openai[=<model>]`    | `gpt-6-luna`       |
 | Anthropic | `--provider anthropic[=<model>]` | `claude-haiku-5-5` |
-| Gemini    | `--provider gemini[=<model>]`    | `gemini-3.7-flash` |
-| Grok      | `--provider grok[=<model>]`      | `grok-4.6`         |
-| Z.AI GLM  | `--provider glm[=<model>]`       | `glm-5.3-flash`    |
-| Kimi      | `--provider kimi[=<model>]`      | `kimi-k3`          |
-| Together  | `--provider together[=<model>]`  | `glm-5.3-flash`    |
+| Gemini    | `--provider gemini[=<model>]`    | `gemini-3.8-flash` |
+| Grok      | `--provider grok[=<model>]`      | `grok-4.7`         |
 
 ### OpenAI
 
@@ -124,11 +115,11 @@ bun autoshow write input/examples/document/harborlight-field-notes.md --provider
 ```
 GPT-6.1 Sol and GPT-6 Luna use Responses with native JSON schema output, a 1,050,000-token context and 128,000-token maximum output. Both accept `low`, `medium`, `high`, `xhigh`, and `max`; omitted effort or `default` delegates to the native `medium` default. Sol requires reasoning; Luna also accepts `disabled` (native `none`). Both reject `minimal`. [Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna).
 
-Above 272,000 input tokens, the entire request reprices: GPT-6.1 Sol `$4.00 / $15.00` and GPT-6 Luna `$0.20 / $0.75` per 1M input/output tokens. Existing models retain their bands: Astra `$20.00 / $75.00`, GPT-5.6 Sol `$8.00 / $30.00`, Terra `$4.00 / $18.00`, and GPT-5.6 Luna `$0.40 / $1.80`. Astra requires reasoning and accepts `low`, `medium`, `high`, `xhigh`, and `max`. The GPT-5.6 models accept `disabled`, `low`, `medium`, `high`, and `max`; `minimal` and `xhigh` are rejected.
+Above 272,000 input tokens, the entire request reprices: GPT-6.1 Sol `$4.00 / $15.00` and GPT-6 Luna `$0.20 / $0.75` per 1M input/output tokens. Astra retains `$20.00 / $75.00` and GPT-5.6 Terra `$4.00 / $18.00`. Astra requires reasoning and accepts `low`, `medium`, `high`, `xhigh`, and `max`. Terra accepts `disabled`, `low`, `medium`, `high`, and `max`; `minimal` and `xhigh` are rejected.
 
 ### Anthropic
 
-Claude Fable 5.1 uses always-on adaptive thinking and accepts `--reasoning-effort low`, `medium`, `high`, `xhigh`, or `max`. `disabled` and `minimal` are rejected. Sonnet 5 and Opus 5 also accept `xhigh`.
+Claude Fable 5.1 uses always-on adaptive thinking and accepts `--reasoning-effort low`, `medium`, `high`, `xhigh`, or `max`. `disabled` and `minimal` are rejected.
 
 ```bash
 bun autoshow write input/examples/document/harborlight-field-notes.md --provider anthropic=claude-opus-5-5 --prompt shortSummary --reasoning-effort medium
@@ -137,11 +128,11 @@ bun autoshow write input/examples/document/harborlight-field-notes.md --provider
 ```
 Claude Opus, Sonnet and Haiku 5.5 accept `low`, `medium`, `high`, `xhigh`, and `max`; all reject `minimal`. Opus requires adaptive thinking. Sonnet's `between_tools` mode is distinct from disabled and is not exposed by this CLI; `disabled` is rejected. Haiku accepts `disabled`. Omitted effort or `default` delegates to native effort: `medium` for Opus/Haiku, `high` for Sonnet. Their ordinary provider limits are 1M context and 128K output; AutoShow write requests cap thinking plus text at 16,000 tokens. The Batch-only 300K output beta is outside this command. [Opus](https://platform.claude.com/docs/en/models/opus-5-5/overview), [Sonnet](https://platform.claude.com/docs/en/models/sonnet-5-5/overview), [Haiku](https://platform.claude.com/docs/en/models/haiku-5-5/overview).
 
-Haiku 5.5 uses `$0.10 / $0.50` per 1M input/output tokens through 100,000 prompt tokens. Above that threshold, its entire request, including output, uses `$0.50 / $2.50`. Opus 5.5 uses `$4.00 / $20.00`; Sonnet 5.5 and retained Sonnet 5 use `$2.00 / $10.00`. [Pricing](https://platform.claude.com/docs/en/about-claude/pricing).
+Haiku 5.5 uses `$0.10 / $0.50` per 1M input/output tokens through 100,000 prompt tokens. Above that threshold, its entire request, including output, uses `$0.50 / $2.50`. Opus 5.5 uses `$4.00 / $20.00`; Sonnet 5.5 uses `$2.00 / $10.00`. [Pricing](https://platform.claude.com/docs/en/about-claude/pricing).
 
 ### Gemini
 
-Gemini 3.7 Flash and Gemini 3.8 Flash accept `--reasoning-effort low`, `medium`, or `high`; `minimal` and `disabled` are rejected. `--price` estimates for those models use the standard `$1.50 / $7.50` rates that take effect 2027-01-01, so they overstate cost during the introductory `$0.75 / $3.75` window through 2026-12-31.
+Gemini 3.8 Flash accepts `--reasoning-effort low`, `medium`, or `high`; `minimal` and `disabled` are rejected. Its `--price` estimates use the standard `$1.50 / $7.50` rates that take effect 2027-01-01, so they overstate cost during the introductory `$0.75 / $3.75` window through 2026-12-31.
 
 ```bash
 bun autoshow write input/examples/document/harborlight-field-notes.md --provider gemini=gemini-4-argon --prompt shortSummary --reasoning-effort medium
@@ -155,23 +146,7 @@ bun autoshow write input/examples/document/harborlight-field-notes.md --provider
 ```
 Grok 4.7 uses Chat Completions with native JSON schema and a 500,000-token context. It accepts `low`, `medium`, `high`, and `xhigh`; omitted effort or `default` delegates to native `high`. Reasoning cannot be disabled; `minimal` and `max` are rejected. The provider publishes no model text-output ceiling; the retained Chat Completions route defaults to 128,000 visible output tokens when no request cap is set, separately from reasoning. Batch is unsupported. [Model](https://docs.x.ai/developers/models/grok-4.7), [Chat Completions](https://docs.x.ai/developers/model-capabilities/legacy/chat-completions).
 
-Grok 4.7 costs `$2 / $6` per 1M input/output tokens below 200,000 input tokens. At 200,000 or more, its entire request uses `$4 / $12`. Retained Grok 4.6 switches to `$4 / $12` above 200,000 input tokens. [Pricing](https://docs.x.ai/developers/pricing).
-
-Grok 4.6 accepts `low`, `medium`, `high`, and `xhigh`. Reasoning cannot be disabled.
-
-### Z.AI GLM
-
-GLM 5.3 and GLM 5.3 Flash require reasoning and accept `--reasoning-effort low`, `high`, or `max`; omitted effort uses `default` (delegates to the provider). `disabled`, `minimal`, `medium`, and `xhigh` are rejected.
-
-### Kimi
-
-Kimi K3 requires reasoning and accepts `--reasoning-effort low`, `high`, or `max`; omitted effort defaults to `low`. `disabled`, `minimal`, `medium`, and `xhigh` are rejected.
-
-The [September 23 reasoning calibration](../../adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md#reasoning-calibration-and-provider-vocabulary-review-2026-09-23) records default, low and high/max usage and latency across the current reasoning models. General write token and latency estimates remain provisional outside that short-summary corpus. Gemini write usage includes its separately billed thought tokens once.
-
-### Together
-
-Together K3, GLM 5.3, and GLM 5.3 Flash accept `--reasoning-effort low`, `high`, or `max`. Together K3 also accepts `disabled`. Together GLM 5.3 and Flash reject `disabled`.
+Grok 4.7 costs `$2 / $6` per 1M input/output tokens below 200,000 input tokens. At 200,000 or more, its entire request uses `$4 / $12`. [Pricing](https://docs.x.ai/developers/pricing).
 
 ## Prompts
 
@@ -253,32 +228,20 @@ Lyric drafts pair with `music --lyrics-file`.
 
 ## Provider Capabilities
 
-Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or model-origin dates. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Rows are newest first. All 23 registered write models are listed; none were removed by the October additions.
+Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Released dates are provider announcement or model-origin dates. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Rows are newest first. All 11 active write models are listed.
 
 Reasoning: ✅ required or optional effort control, ⚠️ optional thinking without a full effort ladder. Context: ✅ 1M+, ⚠️ 500K, ❌ under 500K. Structured: ✅ native JSON schema, ⚠️ JSON object without schema constraint, ❌ not exposed. `write` uses structured outputs and does not send web-search tools. Pricing is per 1M tokens. Input pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first on input $/1M (1 = cheapest); ties share a rank.
 
-| Provider                      | Released  | Reasoning                    | Context | Structured     | Inputs          | Outputs       | Cost rank |
-| ----------------------------- | --------- | ---------------------------- | ------- | -------------- | --------------- | ------------- | --------- |
-| Gemini `gemini-4-argon`       | ✅ 2026-10 | ✅ Required through high      | ✅ 1.05M | ✅ JSON schema  | ❌ $4.00 per 1M  | $20.00 per 1M | 18/23     |
-| Anthropic `claude-haiku-5-5`  | ✅ 2026-10 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema  | ✅ $0.10 per 1M  | $0.50 per 1M  | 1/23      |
-| OpenAI `gpt-6.1-sol`          | ✅ 2026-09 | ✅ Required through max       | ✅ 1.05M | ✅ JSON schema  | ⚠️ $2.00 per 1M | $10.00 per 1M | 10/23     |
-| Anthropic `claude-sonnet-5-5` | ✅ 2026-09 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema  | ⚠️ $2.00 per 1M | $10.00 per 1M | 10/23     |
-| OpenAI `gpt-6-luna`           | ✅ 2026-09 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema  | ✅ $0.10 per 1M  | $0.50 per 1M  | 1/23      |
-| Anthropic `claude-opus-5-5`   | ✅ 2026-09 | ✅ Required through max       | ✅ 1M    | ✅ JSON schema  | ❌ $4.00 per 1M  | $20.00 per 1M | 18/23     |
-| Grok `grok-4.7`               | ✅ 2026-09 | ✅ Required through xhigh     | ⚠️ 500K | ✅ JSON schema  | ⚠️ $2.00 per 1M | $6.00 per 1M  | 10/23     |
-| GLM `glm-5.3-flash`           | ✅ 2026-09 | ✅ Required                   | ✅ 1M    | ⚠️ JSON object | ✅ $0.15 per 1M  | $0.50 per 1M  | 3/23      |
-| Together `glm-5.3-flash`      | ✅ 2026-09 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema  | ✅ $0.15 per 1M  | $0.50 per 1M  | 3/23      |
-| Gemini `gemini-3.8-flash`     | ✅ 2026-09 | ✅ Optional through high      | ✅ 1M    | ✅ JSON schema  | ⚠️ $1.50 per 1M | $7.50 per 1M  | 8/23      |
-| OpenAI `gpt-6-astra`          | ✅ 2026-09 | ✅ Required                   | ✅ 1.05M | ✅ JSON schema  | ❌ $10.00 per 1M | $50.00 per 1M | 22/23     |
-| Anthropic `claude-fable-5-1`  | ✅ 2026-09 | ✅ Required adaptive thinking | ✅ 1M    | ✅ JSON schema  | ❌ $10.00 per 1M | $50.00 per 1M | 22/23     |
-| GLM `glm-5.3`                 | ✅ 2026-09 | ✅ Required                   | ✅ 1M    | ⚠️ JSON object | ✅ $1.40 per 1M  | $4.40 per 1M  | 6/23      |
-| Together `glm-5.3`            | ✅ 2026-09 | ✅ Required                   | ✅ 1M    | ✅ JSON schema  | ✅ $1.40 per 1M  | $4.40 per 1M  | 6/23      |
-| Together `kimi-k3`            | ✅ 2026-09 | ⚠️ Optional thinking         | ✅ 1M    | ✅ JSON schema  | ❌ $3.00 per 1M  | $15.00 per 1M | 16/23     |
-| Grok `grok-4.6`               | ✅ 2026-08 | ✅ Required                   | ⚠️ 500K | ✅ JSON schema  | ⚠️ $2.00 per 1M | $6.00 per 1M  | 10/23     |
-| Gemini `gemini-3.7-flash`     | ✅ 2026-08 | ✅ Optional through high      | ✅ 1M    | ✅ JSON schema  | ⚠️ $1.50 per 1M | $7.50 per 1M  | 8/23      |
-| OpenAI `gpt-5.6-terra`        | ✅ 2026-08 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema  | ⚠️ $2.00 per 1M | $12.00 per 1M | 10/23     |
-| OpenAI `gpt-5.6-luna`         | ✅ 2026-08 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema  | ✅ $0.20 per 1M  | $1.20 per 1M  | 5/23      |
-| OpenAI `gpt-5.6-sol`          | ✅ 2026-07 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema  | ❌ $4.00 per 1M  | $20.00 per 1M | 18/23     |
-| Anthropic `claude-sonnet-5`   | ✅ 2026-07 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema  | ⚠️ $2.00 per 1M | $10.00 per 1M | 10/23     |
-| Anthropic `claude-opus-5`     | ✅ 2026-07 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema  | ❌ $5.00 per 1M  | $25.00 per 1M | 21/23     |
-| Kimi `kimi-k3`                | ✅ 2026-07 | ✅ Required effort            | ✅ 1M    | ⚠️ JSON object | ❌ $3.00 per 1M  | $15.00 per 1M | 16/23     |
+| Provider                      | Released   | Reasoning                     | Context  | Structured     | Inputs           | Outputs       | Cost rank |
+| ----------------------------- | ---------- | ----------------------------- | -------- | -------------- | ---------------- | ------------- | --------- |
+| Gemini `gemini-4-argon`       | ✅ 2026-10 | ✅ Required through high      | ✅ 1.05M | ✅ JSON schema | ❌ $4.00 per 1M  | $20.00 per 1M | 8/11      |
+| Anthropic `claude-haiku-5-5`  | ✅ 2026-10 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema | ✅ $0.10 per 1M  | $0.50 per 1M  | 1/11      |
+| OpenAI `gpt-6.1-sol`          | ✅ 2026-09 | ✅ Required through max       | ✅ 1.05M | ✅ JSON schema | ⚠️ $2.00 per 1M  | $10.00 per 1M | 4/11      |
+| Anthropic `claude-sonnet-5-5` | ✅ 2026-09 | ✅ Optional through max       | ✅ 1M    | ✅ JSON schema | ⚠️ $2.00 per 1M  | $10.00 per 1M | 4/11      |
+| OpenAI `gpt-6-luna`           | ✅ 2026-09 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema | ✅ $0.10 per 1M  | $0.50 per 1M  | 1/11      |
+| Anthropic `claude-opus-5-5`   | ✅ 2026-09 | ✅ Required through max       | ✅ 1M    | ✅ JSON schema | ❌ $4.00 per 1M  | $20.00 per 1M | 8/11      |
+| Grok `grok-4.7`               | ✅ 2026-09 | ✅ Required through xhigh     | ⚠️ 500K  | ✅ JSON schema | ⚠️ $2.00 per 1M  | $6.00 per 1M  | 4/11      |
+| Gemini `gemini-3.8-flash`     | ✅ 2026-09 | ✅ Optional through high      | ✅ 1M    | ✅ JSON schema | ✅ $1.50 per 1M  | $7.50 per 1M  | 3/11      |
+| OpenAI `gpt-6-astra`          | ✅ 2026-09 | ✅ Required                   | ✅ 1.05M | ✅ JSON schema | ❌ $10.00 per 1M | $50.00 per 1M | 10/11     |
+| Anthropic `claude-fable-5-1`  | ✅ 2026-09 | ✅ Required adaptive thinking | ✅ 1M    | ✅ JSON schema | ❌ $10.00 per 1M | $50.00 per 1M | 10/11     |
+| OpenAI `gpt-5.6-terra`        | ✅ 2026-08 | ✅ Optional through max       | ✅ 1.05M | ✅ JSON schema | ⚠️ $2.00 per 1M  | $12.00 per 1M | 4/11      |

@@ -1,15 +1,15 @@
 import { describe, expect, test } from 'bun:test'
 import { runOcrProviderTargetPools, isLocalOcrTarget } from '~/cli/commands/text/ocr/ocr-provider-pool'
 import { runLlmProviderTargetPools } from '~/cli/commands/text/write/llm-provider-pool'
-import type { LLMTarget, OcrTarget, Step3Metadata } from '~/types'
+import type { LLMService, LLMTarget, OcrTarget, Step3Metadata } from '~/types'
 
 describe('option resolution contracts', () => {
   test('OCR provider pools enforce hosted and local limits independently', async () => {
       const targets: OcrTarget[] = [
         { service: 'tesseract', model: 'tesseract' },
         { service: 'mistral', model: 'mistral-ocr-4-0' },
-        { service: 'openai', model: 'gpt-5.6-luna' },
-        { service: 'anthropic', model: 'claude-sonnet-5' },
+        { service: 'openai', model: 'gpt-6-luna' },
+        { service: 'anthropic', model: 'claude-sonnet-5-5' },
         { service: 'gemini', model: 'gemini-3.5-flash-lite' }
       ]
       const active = { local: 0, hosted: 0, total: 0 }
@@ -37,7 +37,7 @@ describe('option resolution contracts', () => {
     })
 
   test('LLM provider pools enforce hosted limits and preserve target indexes', async () => {
-      const metadata = (service: Step3Metadata['llmService'], model: string): Step3Metadata => ({
+      const metadata = (service: LLMService, model: string): Step3Metadata => ({
         llmService: service,
         llmModel: model,
         processingTime: 0,
@@ -48,7 +48,7 @@ describe('option resolution contracts', () => {
         structuredMode: 'native',
         structuredPresetNames: []
       })
-      const target = (service: Step3Metadata['llmService'], model: string): LLMTarget => ({
+      const target = (service: LLMService, model: string): LLMTarget => ({
         service,
         model,
         label: service,
@@ -57,9 +57,9 @@ describe('option resolution contracts', () => {
       const targets: LLMTarget[] = [
         target('openai', 'hosted-a'),
         target('anthropic', 'hosted-b'),
-        target('glm', 'hosted-glm'),
-        target('together', 'hosted-together'),
-        target('kimi', 'hosted-kimi'),
+        target('grok', 'hosted-d'),
+        target('openai', 'hosted-e'),
+        target('anthropic', 'hosted-f'),
         target('gemini', 'hosted-c')
       ]
       const active = { hosted: 0, total: 0 }

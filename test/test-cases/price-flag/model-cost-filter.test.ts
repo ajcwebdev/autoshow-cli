@@ -118,10 +118,10 @@ describe('--max-model-cents', () => {
     const estimateOutput = result.stdout
 
     expect(result.exitCode).toBe(0)
-    expect(estimateOutput).toContain('gpt-5.6-luna')
-    expect(estimateOutput).toContain('glm-5.3-flash')
+    expect(estimateOutput).toContain('gpt-6-luna')
+    expect(estimateOutput).toContain('claude-haiku-5-5')
     expect(estimateOutput).not.toContain('claude-opus')
-    expect(estimateOutput).not.toContain('gpt-5.6-sol')
+    expect(estimateOutput).not.toContain('gpt-6.1-sol')
   })
 
   test('filters STT rows in extract price mode', async () => {

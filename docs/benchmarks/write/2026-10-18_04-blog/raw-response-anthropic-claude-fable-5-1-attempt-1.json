@@ -1,0 +1,47 @@
+{
+  "result": "{\"title\": \"Miami Jam: How JavaScript Jam Live Is Turning Conference Interviews Into a Game Show\", \"outline\": [\"Introduction: a Twitter Space false start and a lesson in patience\", \"What JavaScript Jam Live is and why audience participation matters\", \"The React Miami partnership and the start of 'React Miami Month'\", \"Meet the hosts and media partners: Ishan, Anthony, Scott, Dev, and organizer Michelle\", \"Miami Jam: why a game show beats a standard speaker panel\", \"How the format works: trivia, segues, and speaker-to-speaker collaboration\", \"Putting the audience in charge of the scoreboard\", \"Takeaways for community builders and what to watch for next\"], \"draft\": \"Every live community show eventually has that moment when the technology refuses to cooperate. For the latest episode of JavaScript Jam Live, it arrived right at the top. The Twitter Space appeared to be running on the host's phone, but nobody else could see it or join. As Anthony Campolo explained once things settled down, this is a known quirk: a Space can show as live for the host while it has not actually started for everyone else. Wait a minute or two and it usually sorts itself out. Patience, as he put it, was a virtue. Ishan Anand summed up the mood with a nod to the old Demotivators poster featuring the Titanic: maybe your role is to be a lesson for others.\\n\\nIt was a fitting, slightly chaotic start to an episode about something new. Once the audience rejoined, the team got down to the real business of the day: announcing a collaboration with React Miami and previewing a show that aims to rethink how conference speakers get interviewed.\\n\\n## What JavaScript Jam Live Is\\n\\nIf you have not tuned in before, JavaScript Jam Live describes itself as an open mic. Anything related to JavaScript or web development is fair game. The hosts, Ishan Anand (VP of Product at Edgio), Anthony Campolo (developer advocate at Edgio), and Scott Steinlage (technical community manager at Edgio), make a point of inviting listeners to request the mic. Scott was emphatic about this: whether you are a beginner who started last month or a developer who has been shipping for decades, the show wants to hear from you. Questions, comments, facts, opinions, all of it is welcome.\\n\\nThat is not just politeness. Scott's argument is that audience participation is what makes the show valuable in the first place. When listeners come up and talk, the conversation tends to go somewhere more interesting than a scripted segment ever could. The hosts are on stage, but the point is the room.\\n\\n## React Miami Month\\n\\nThe big news of the episode is a partnership with React Miami. Scott initially called it React Miami Week before correcting himself on air and renaming it React Miami Month. Over the coming weeks, JavaScript Jam Live will feature speakers from the conference discussing topics that fit the show's existing vibe. Scott was careful to reassure regular listeners that nothing fundamental is changing. The format stays the same; there will simply be more speakers, more conversations, and what he described as some extra goodies to be revealed later.\\n\\nMichelle, one of the organizers of React Miami, dropped into the Space after fighting her own connection problems. She described herself as crashing the party, but her presence underlined how the collaboration is set up. The conference has given its media partners the green light to do whatever they like. Anthony joked that they would find out whether she ends up regretting that decision.\\n\\n## Meet the Media Partners\\n\\nAlongside Anthony and Scott, the third media partner is Dev Agrawal, who also answers to Dave. Dev joined the Space to talk about an idea he has been building with the other two: a show scheduled for the following week that he has managed, in his words, to rope them into co-hosting. Dan, another familiar voice in the community, also hopped up briefly to say he would miss the conference because of a company offsite, and then modestly declined to introduce himself since he was not an official partner. These small moments give a sense of the informal, friendly culture the show is trying to preserve as it grows.\\n\\n## Miami Jam: Why a Game Show?\\n\\nThe centerpiece of the episode was Dev's pitch for Miami Jam. The premise is simple. Most conference preview content follows the same pattern: bring on a few speakers, ask them about their talk, ask about their motivation, thank them, move on. It works, but it is predictable, and it rarely gets speakers interacting with each other.\\n\\nMiami Jam replaces the interview with a game show. Instead of asking a speaker directly about their topic, the hosts will pose trivia-style questions. These might be about React, about odd corners of JavaScript or TypeScript, or about anything adjacent to the React ecosystem. Some questions might ask a speaker to guess which library is being used in a given snippet. Others might ask one speaker a question about another speaker's talk, forcing them to engage with material outside their own session.\\n\\n## From Trivia to Real Conversation\\n\\nThe trivia is not the end goal. Dev was clear that each question is designed as a segue. Once a speaker answers, the hosts use that opening to move into a more in-depth discussion of their actual topic: what the talk covers, why they chose it, what their experience in the industry has been, and what work brought them to React Miami in the first place. The audience still gets the insight they would get from a traditional interview. It is just wrapped in a structure that is more fun, more interactive, and more collaborative.\\n\\nThat collaborative angle is important. By directing questions across speakers rather than only at them, Miami Jam encourages the people on stage to share experiences with one another instead of delivering parallel monologues. That is a subtle but meaningful design choice, and it reflects the same philosophy that drives JavaScript Jam Live: conversation beats presentation.\\n\\n## The Audience Runs the Scoreboard\\n\\nPerhaps the most interesting twist is how the audience fits in. Listeners will be able to ask questions, as they always can on the show. But Dev also described a mechanic in which the audience decides how many points a speaker earns for a given answer. Whether a host asks the question or a listener does, the crowd gets a say in the scoring. That turns passive listening into judging, and it gives the audience a stake in how the game plays out. The transcript cuts off just as Dev begins to explain more of the details, so there is clearly more to come.\\n\\n## Takeaways\\n\\nA few lessons stand out from this episode. First, live community events will break, and a little patience and honesty go a long way; the hosts turned a Twitter Space hiccup into a shared learning moment rather than an embarrassment. Second, partnerships with conferences work best when the conference trusts its partners to experiment, which React Miami appears to be doing. Third, and most importantly, format matters. The same speakers and the same topics can produce very different content depending on how you structure the conversation. Miami Jam bets that trivia, cross-speaker questions, and audience-controlled scoring will surface more personality and more insight than a standard panel.\\n\\nIf you are involved in React Miami, or just curious about how community shows can evolve, Miami Jam is worth watching. And if you have ever hosted a Twitter Space that refused to go live, now you know: wait two minutes.\"}",
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-fable-5-1",
+    "providerReturnedModel": "claude-fable-5-1",
+    "processingTime": 40455,
+    "inputTokenCount": 3660,
+    "outputTokenCount": 2558,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3660,
+      "outputTokenCount": 2558
+    },
+    "rawProviderUsage": {
+      "input_tokens": 3660,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2558,
+      "output_tokens_details": {
+        "thinking_tokens": 138
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-fable-5-1",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "9b4269f300a26357a404a2bb0e5180f38dc0bef1d551f375208170336361b72e"
+        }
+      }
+    }
+  }
+}

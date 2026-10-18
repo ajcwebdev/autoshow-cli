@@ -100,7 +100,7 @@ Model selector flags are repeatable. Repeating a provider selector saves all sel
 
 ```bash
 bun autoshow setup --stt deepinfra=openai/whisper-large-v3 --stt deepinfra=openai/whisper-large-v3-turbo
-bun autoshow setup --llm openai=gpt-5.6-sol --llm openai=gpt-5.6-terra
+bun autoshow setup --llm openai=gpt-6.1-sol --llm openai=gpt-5.6-terra
 ```
 ## Config Schema
 

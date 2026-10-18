@@ -147,7 +147,7 @@ describe('hosted OCR lane identity and cross-document contracts', () => {
         })
       ),
       ...Array.from({ length: 3 }, (_, index) =>
-        scheduler.run(admission('openai', 'gpt-5.6-luna', 'openai'), async () => {
+        scheduler.run(admission('openai', 'gpt-6-luna', 'openai'), async () => {
           starts.push(`openai-${index}`)
           await gate.promise
           return index
@@ -170,21 +170,21 @@ describe('hosted OCR lane identity and cross-document contracts', () => {
 describe('hosted OCR fairness and partial gating contracts', () => {
   test('likely gating target includes failed partial targets by projected observed duration', async () => {
     const scheduler = createHostedOcrScheduler({ mode: 'fixed', fixedCap: 16, pageCount: 228 })
-    const kimiFailure = new Error('Kimi OCR page 9 timed out after 10m')
+    const deepinfraFailure = new Error('DeepInfra OCR page 9 timed out after 10m')
     const results = await Promise.allSettled([
-      scheduler.run(admission('kimi', 'kimi-latest', 'kimi:kimi-latest', 227), async () => {
+      scheduler.run(admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it', 227), async () => {
         await sleep(5)
-        return 'kimi-success-pages'
+        return 'deepinfra-success-pages'
       }),
-      scheduler.run(admission('kimi', 'kimi-latest', 'kimi:kimi-latest', 1), async () => {
+      scheduler.run(admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it', 1), async () => {
         await sleep(30)
-        throw kimiFailure
+        throw deepinfraFailure
       }),
       scheduler.run(
-        admission('deepinfra', 'mistral-small-ocr', 'deepinfra:mistral-small-ocr', 228),
+        admission('mistral', 'mistral-ocr', 'mistral:mistral-ocr', 228),
         async () => {
           await sleep(10)
-          return 'deepinfra'
+          return 'mistral'
         }
       )
     ])
@@ -192,19 +192,19 @@ describe('hosted OCR fairness and partial gating contracts', () => {
 
     const snapshot = scheduler.snapshot()
     expect(snapshot.likelyGatingTarget).toMatchObject({
-      service: 'kimi',
-      model: 'kimi-latest',
+      service: 'deepinfra',
+      model: 'google/gemma-4-31B-it',
       status: 'failed',
       submittedPages: 228,
       completedPages: 227,
       failedPages: 1
     })
-    const kimiLane = snapshot.lanes.find((lane) => lane.service === 'kimi')
     const deepinfraLane = snapshot.lanes.find((lane) => lane.service === 'deepinfra')
-    expect(kimiLane?.status).toBe('failed')
-    expect(deepinfraLane?.status).toBe('succeeded')
-    expect(kimiLane?.targets[0]?.projectedObservedDurationMs ?? 0)
-      .toBeGreaterThan(deepinfraLane?.targets[0]?.projectedObservedDurationMs ?? 0)
+    const mistralLane = snapshot.lanes.find((lane) => lane.service === 'mistral')
+    expect(deepinfraLane?.status).toBe('failed')
+    expect(mistralLane?.status).toBe('succeeded')
+    expect(deepinfraLane?.targets[0]?.projectedObservedDurationMs ?? 0)
+      .toBeGreaterThan(mistralLane?.targets[0]?.projectedObservedDurationMs ?? 0)
   })
 
   test('Retry-After pauses only the affected lane', async () => {
@@ -233,7 +233,7 @@ describe('hosted OCR fairness and partial gating contracts', () => {
       starts.push('gemini')
       return 'gemini'
     })
-    const openaiRun = scheduler.run(admission('openai', 'gpt-5.6-luna'), async () => {
+    const openaiRun = scheduler.run(admission('openai', 'gpt-6-luna'), async () => {
       starts.push('openai')
       return 'openai'
     })

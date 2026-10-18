@@ -38,7 +38,7 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 | `--trusted-anchor-panel <n>`           | Panel number the continuity audit anchors on instead of the labels file value or panel 1; requires `--continuity-qa`                                                                                                                                                          | none                                  |
 | `--revision-plan <path>`               | Run the bounded per-panel revision-evaluation workflow described below                                                                                                                                                                                                        | none                                  |
 | `--promote <policy>`                   | Revision promotion policy; revision mode requires `clear-winners`                                                                                                                                                                                                             | none                                  |
-| `--qa-provider <provider[=model]>`     | Vision judge model; QA supports OpenAI and Gemini vision-capable LLMs                                                                                                                                                                                                         | `openai=gpt-5.6-sol`                  |
+| `--qa-provider <provider[=model]>`     | Vision judge model; QA supports OpenAI and Gemini vision-capable LLMs                                                                                                                                                                                                         | `openai=gpt-6.1-sol`                  |
 | `--max-repairs <n>`                    | Non-negative integer limit of eligible repair attempts after the initial image                                                                                                                                                                                                | generation `2`; audit/revision `0`    |
 | `--bloopers`                           | Copy every non-promoted panel attempt into `output/bloopers/` with a provenance sidecar for the blooper reel                                                                                                                                                                  | `false`                               |
 | `--stop-on-provider-error`             | Abort the remaining panels on the first provider error instead of continuing; already written attempts are preserved and the run exits non-zero                                                                                                                               | `false`                               |
@@ -81,7 +81,7 @@ After generation, inspect the selected `panels/<image-run-id>/` candidate files 
 These examples deliberately require artifacts produced and reviewed **after** canonical images exist. There is no fabricated labels file or revision plan in the source bundle. QA-only can be priced once those images exist:
 
 ```bash
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --qa-only --max-repairs 0 --panels 1-4 --qa-provider openai=gpt-5.6-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --qa-only --max-repairs 0 --panels 1-4 --qa-provider openai=gpt-6.1-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 For continuity evaluation, a reviewer must first author `$RUN/qa/continuity-labels.json` in the [validated labels schema](../../../../src/cli/commands/visuals/comic/comic-utils/continuity-labels.ts) against these actual panels. Confirm a real trusted anchor (panel 1 below), not an assumed correct image. The labels evaluate an audit; they are not a generation input or proof of quality.
@@ -93,7 +93,7 @@ bun --no-env-file autoshow comic generate-images "$SCRIPT" --qa-only --max-repai
 Revision evaluation additionally needs `$RUN/qa/revision-plan.json` with this scene's fingerprint and actual script, panel, contract, references and prior-QA hashes, frozen issues and correction notes for panels 2 and 4. See [revision evaluation mode](#revision-evaluation-mode) and its [validated plan schema/fingerprint helper](../../../../src/cli/commands/visuals/comic/comic-commands/generate-images/revision-plan-validation.ts). An empty template or another scene's plan is rejected. This bounded experiment reserves an edit and two comparisons per pending panel, and belongs in the cumulative estimate.
 
 ```bash
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 2,4 --provider openai=gpt-image-2 --qa-provider openai=gpt-5.6-sol --revision-plan "$RUN/qa/revision-plan.json" --max-repairs 0 --promote clear-winners --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 2,4 --provider openai=gpt-image-2 --qa-provider openai=gpt-6.1-sol --revision-plan "$RUN/qa/revision-plan.json" --max-repairs 0 --promote clear-winners --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 `--force` is a separate deliberate regeneration policy. Preserve the reviewed run and choose a copied compatible workspace before using it; it does not update the script or prompt bundle.
@@ -132,7 +132,7 @@ Grouped page repairs retry up to `--max-repairs` without that confidence gate. I
 
 `--revision-plan` tests whether one targeted edit should replace an existing canonical panel. The plan fingerprint must match the selected scene and panels. It freezes the panels, the issue, the correction note, and the hashes of the script, prior QA, original panel, reviewed contract, and canonical references.
 
-Revision mode requires `--target images`, `--panels-per-image 1`, `--provider openai=gpt-image-2`, `--qa-provider openai=gpt-5.6-sol`, and `--max-repairs 0`; these values are inferred when omitted. Promotion requires explicit `--promote clear-winners` authorization. Revision mode rejects `--force`, `--qa-only`, `--no-qa`, sketches, grouped pages, grids, variations, multiple image models, and the normal repair loop.
+Revision mode requires `--target images`, `--panels-per-image 1`, `--provider openai=gpt-image-2`, `--qa-provider openai=gpt-6.1-sol`, and `--max-repairs 0`; these values are inferred when omitted. Promotion requires explicit `--promote clear-winners` authorization. Revision mode rejects `--force`, `--qa-only`, `--no-qa`, sketches, grouped pages, grids, variations, multiple image models, and the normal repair loop.
 
 Revision comparisons always use two order-swapped judgments, inferred without a flag. The hidden `--comparison-passes 2` compatibility setting remains accepted; other values are rejected.
 

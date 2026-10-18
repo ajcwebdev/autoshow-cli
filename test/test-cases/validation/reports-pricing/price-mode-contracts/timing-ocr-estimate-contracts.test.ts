@@ -9,26 +9,26 @@ import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-
 describe('price mode contracts', () => {
   test('OCR timing estimates use default page concurrency and explicit serial overrides', () => {
       const pageCount = 21
-      const model = 'kimi-k2.6'
-      const msPerPage = getExtractEstimation('kimi', model).msPerPage
+      const model = 'google/gemma-4-31B-it'
+      const msPerPage = getExtractEstimation('deepinfra', model).msPerPage
       const defaultTiming = computeEstimatedProcessingTimes({
-        extractTargets: [{ provider: 'kimi', model, pageCount }],
+        extractTargets: [{ provider: 'deepinfra', model, pageCount }],
         hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
       const serialTiming = computeEstimatedProcessingTimes({
-        extractTargets: [{ provider: 'kimi', model, pageCount }],
+        extractTargets: [{ provider: 'deepinfra', model, pageCount }],
         ocrConcurrency: 1,
         hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
 
       expect(defaultTiming.steps[0]).toMatchObject({
-        provider: 'kimi',
+        provider: 'deepinfra',
         model,
         inputValue: pageCount,
         processingTimeMs: estimateHostedConcurrencyWallTimeMs(Array.from({ length: pageCount }, () => msPerPage), DEFAULT_OCR_CONCURRENCY)
       })
       expect(serialTiming.steps[0]).toMatchObject({
-        provider: 'kimi',
+        provider: 'deepinfra',
         model,
         inputValue: pageCount,
         processingTimeMs: Math.round(pageCount * msPerPage)
@@ -39,10 +39,10 @@ describe('price mode contracts', () => {
   test('OCR timing estimates adjust rasterized single-page PDF fallback pages', () => {
       const pageCount = 4
       const rasterizedPages = 2
-      const model = 'kimi-k2.6'
-      const msPerPage = getExtractEstimation('kimi', model).msPerPage
+      const model = 'google/gemma-4-31B-it'
+      const msPerPage = getExtractEstimation('deepinfra', model).msPerPage
       const metadata = buildOcrTimingMetadata({
-        service: 'kimi',
+        service: 'deepinfra',
         model,
         pageCount,
         preparation: {
@@ -57,7 +57,7 @@ describe('price mode contracts', () => {
       })
       const extractTargets = collectEstimatedExtractTargets(metadata)
       const normalTiming = computeEstimatedProcessingTimes({
-        extractTargets: [{ provider: 'kimi', model, pageCount }],
+        extractTargets: [{ provider: 'deepinfra', model, pageCount }],
         ocrConcurrency: 2
       })
       const rasterTiming = computeEstimatedProcessingTimes({
@@ -72,7 +72,7 @@ describe('price mode contracts', () => {
 
       expect(extractTargets[0]?.rasterizedPages).toBe(rasterizedPages)
       expect(rasterTiming.steps[0]).toMatchObject({
-        provider: 'kimi',
+        provider: 'deepinfra',
         model,
         inputValue: pageCount,
         processingTimeMs: estimateHostedConcurrencyWallTimeMs([msPerPage, msPerPage, msPerPage * 2, msPerPage * 2], 2),
@@ -144,8 +144,8 @@ describe('price mode contracts', () => {
 
   test('OCR timing estimates use hosted provider-pool concurrency for total time', () => {
       const extractTargets = [
-        { provider: 'kimi' as const, model: 'kimi-k2.6', pageCount: 4 },
-        { provider: 'openai' as const, model: 'gpt-5.6-luna', pageCount: 4 }
+        { provider: 'deepinfra' as const, model: 'google/gemma-4-31B-it', pageCount: 4 },
+        { provider: 'openai' as const, model: 'gpt-6-luna', pageCount: 4 }
       ]
       const serialPool = computeEstimatedProcessingTimes({
         extractTargets,

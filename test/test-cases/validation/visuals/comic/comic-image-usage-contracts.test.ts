@@ -65,13 +65,13 @@ const writeImage = async (outputPath: string): Promise<void> => {
 }
 
 const passingJudge = async (): Promise<PageQaEntry> => ({
-  pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: false,
+  pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: false,
   result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '' }], summary: 'Pass.' },
   usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
 })
 
 const passingPageJudge = async (): Promise<PageQaEntry> => ({
-  pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: false,
+  pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: false,
   result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '' })), summary: 'Pass.' },
   usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
 })

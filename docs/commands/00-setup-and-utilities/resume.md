@@ -105,18 +105,18 @@ When substituting your own runs, use actual manifest directories. Timestamped pa
 
 ### Write output and a real incomplete provider
 
-Write uses hosted LLMs. Configure Together and GLM credentials and review the upstream estimate before running it. The price command does not create the subsequent write manifest.
+Write uses hosted LLMs. Configure Grok and OpenAI credentials and review the upstream estimate before running it. The price command does not create the subsequent write manifest.
 
 ```bash
-bun autoshow write input/examples/document/harborlight-field-notes.md --provider together=kimi-k3 --provider glm=glm-5.3-flash --prompt shortSummary --price --config-path output/resume-example/empty-config.json
-bun autoshow write input/examples/document/harborlight-field-notes.md --provider together=kimi-k3 --provider glm=glm-5.3-flash --prompt shortSummary --output-dir output/resume-example/write --config-path output/resume-example/empty-config.json
+bun autoshow write input/examples/document/harborlight-field-notes.md --provider grok=grok-4.7 --provider openai=gpt-6-luna --prompt shortSummary --price --config-path output/resume-example/empty-config.json
+bun autoshow write input/examples/document/harborlight-field-notes.md --provider grok=grok-4.7 --provider openai=gpt-6-luna --prompt shortSummary --output-dir output/resume-example/write --config-path output/resume-example/empty-config.json
 ```
 
 The upstream run creates `output/resume-example/write/manifest.json`, a source snapshot, `prompt.md`, and successful provider JSON outputs. If one provider actually fails after another succeeds, the run retains the successful output and records the incomplete target. Initial write can exit successfully with a partial-failure warning, so inspect the manifest's item and provider statuses instead of relying on its exit code. Fix the reported provider cause, preserve the source snapshot and prompt, then inspect and retry that existing run:
 
 ```bash
-bun autoshow resume output/resume-example/write --provider together=kimi-k3 --provider glm=glm-5.3-flash --price
-bun autoshow resume output/resume-example/write --provider together=kimi-k3 --provider glm=glm-5.3-flash
+bun autoshow resume output/resume-example/write --provider grok=grok-4.7 --provider openai=gpt-6-luna --price
+bun autoshow resume output/resume-example/write --provider grok=grok-4.7 --provider openai=gpt-6-luna
 ```
 
 The selected successful provider is reused; only the missing selected output is requested. If both already succeeded, this is a no-op. Do not delete outputs, edit manifest status, or make an empty directory to manufacture a backfill. Write resume only runs explicit provider selections; omitting them leaves incomplete write targets untouched.
@@ -167,7 +167,7 @@ See the [comic overview](../05-visuals/comic/00-comic-overview.md), [image gener
 
 ## Write Options
 
-Write resumes reuse the stored `prompt.md` and run only the selected LLM providers that do not already have matching output. When the new file would reuse an existing output name, resume adds the provider name, such as `text-together-glm-5.3-flash.json` beside `text-glm-5.3-flash.json`.
+Write resumes reuse the stored `prompt.md` and run only the selected LLM providers that do not already have matching output. When the new file would reuse an existing output name, resume adds the provider name, such as `text-openai-gpt-6-luna.json` when the shorter `text-gpt-6-luna.json` is already reserved.
 
 | Flag                 | Description                                                                                              |
 | -------------------- | -------------------------------------------------------------------------------------------------------- |

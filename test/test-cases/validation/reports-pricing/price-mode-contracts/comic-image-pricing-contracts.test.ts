@@ -17,7 +17,7 @@ describe('price mode contracts', () => {
         selectionSpecified: false,
         variations: ['canonical'],
         variationsSpecified: false,
-        qa: { enabled: true, judgeModel: 'gpt-5.6-sol', maxRepairs: 2 }
+        qa: { enabled: true, judgeModel: 'gpt-6.1-sol', maxRepairs: 2 }
       })
       expect(normalizeFinalImageEstimateRequest({ ...base, panelsPerImage: 3 })).toMatchObject({
         mode: 'page',

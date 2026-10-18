@@ -33,11 +33,7 @@
       "https://platform.claude.com/docs/en/models/fable-5-1/overview.md",
       "https://platform.claude.com/docs/en/models/fable-5-1/whats-new-fable-5-1.md",
       "https://platform.claude.com/docs/en/models/fable-5-1/migration-guide.md",
-      "https://platform.claude.com/docs/en/models/fable-5/introducing-claude-fable-5-and-claude-mythos-5.md",
-      "https://platform.claude.com/docs/en/models/opus-5/overview.md",
-      "https://platform.claude.com/docs/en/models/opus-5/whats-new-opus-5.md",
-      "https://platform.claude.com/docs/en/models/sonnet-5/overview.md",
-      "https://platform.claude.com/docs/en/models/sonnet-5/whats-new-sonnet-5.md"
+      "https://platform.claude.com/docs/en/models/fable-5/introducing-claude-fable-5-and-claude-mythos-5.md"
     ],
     "Text": [
       "https://platform.claude.com/docs/en/build-with-claude/working-with-messages.md",
@@ -51,9 +47,7 @@
       "https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost.md",
       "https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons.md",
       "https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback.md",
-      "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1.md",
-      "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5.md",
-      "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5.md"
+      "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1.md"
     ],
     "OCR": [
       "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md",

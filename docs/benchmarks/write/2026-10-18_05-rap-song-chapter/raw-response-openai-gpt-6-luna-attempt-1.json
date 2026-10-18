@@ -1,0 +1,46 @@
+{
+  "result": "{\n  \"title\": \"Leave Room in the Page\",\n  \"intro\": [\n    \"Teal mug by the map, dawn mist on the ridge,\",\n    \"cream compass turned to the window, harbor bridge;\",\n    \"Mira writes “Harborlight Camp” above the line—\",\n    \"the sky won’t promise clear, so they leave it time.\"\n  ],\n  \"verse1\": [\n    \"Papa Bear checks the weather, trail notice, return;\",\n    \"Mira packs the torch, water, notebook, warm layer.\",\n    \"Two maps, same route; if the weather shifts, turn back.\",\n    \"No shortcut gets a vote, no bright hillside distracts.\",\n    \"At the board, she snaps the marked path for her file,\",\n    \"checks wood against paper, then follows it a while.\",\n    \"From shore, the footbridge looks short; from up high, long—\",\n    \"she draws both views, marks where she stood; neither’s wrong.\",\n    \"At camp, level ground; keep the footpath clear.\",\n    \"Tripod feet checked, telescope cased till night is here.\",\n    \"Mug weighs down the map; clip keeps the pages in place.\",\n    \"One cloud veils the first star; she writes what she can trace.\"\n  ],\n  \"chorus1\": [\n    \"Write what the light allows, leave room in the page;\",\n    \"name what you see, don’t pretend you know the range.\",\n    \"The mug holds the map; the notes hold their ground.\",\n    \"Wait for the sky—let the evidence come round.\"\n  ],\n  \"verse2\": [\n    \"Night settles in; she shields the lantern’s little flame,\",\n    \"just enough glow for the mug, not enough to wash the frame.\",\n    \"They wait till the sun’s last glow has gone from the view;\",\n    \"then trade the eyepiece, look again, see what moved through.\",\n    \"“Bright point,” says Mira—no distance guessed or claimed.\",\n    \"Cloud shifts; harbor lights sharpen; ridge-band fades.\",\n    \"A brief streak cuts the open sky, gone in a breath;\",\n    \"no time to draw the whole arc, no grand tale left.\",\n    \"They note its direction, rough time, momentary span;\",\n    \"the page leaves a question where a guess might have began.\",\n    \"For a while, no words; hands warm on the mug.\",\n    \"“Waiting gave us this,” her last line, quiet and snug.\"\n  ],\n  \"chorus2\": [\n    \"Write what the light allows, leave room in the page;\",\n    \"name what you saw, let the unknown keep its space.\",\n    \"The mug holds the map; the notes hold their ground.\",\n    \"Wait for the sky—now the streak’s in the account.\"\n  ],\n  \"verse3\": [\n    \"Before bed, they check each entry against the plan:\",\n    \"place, weather, time, observer—clear to another hand.\",\n    \"A sketch stays a sketch; an unsure name stays unsure;\",\n    \"that’s how a stranger can read what the night made obscure.\",\n    \"Morning: mug, clip, notebook, lantern, telescope case;\",\n    \"Papa checks the campsite, leaves no scrap in its place.\",\n    \"Same marked path to the harbor, no trace left behind;\",\n    \"at the overlook, dawn gives the bridge a new line.\",\n    \"Mira adds a third small drawing beside the first two;\",\n    \"no erasure needed—the light changed the view.\",\n    \"Back at the window, the teal mug rests by the map;\",\n    \"four pages, three sketches: evidence first, then the gap.\"\n  ],\n  \"bridge\": [\n    \"Place: ridge. Time: night. Observer: Mira. Cloud moving.\",\n    \"Streak: brief. Direction recorded. Distance—nothing.\",\n    \"Morning: bridge, new angle. Old sketches still stand.\",\n    \"The page doesn’t settle the sky; it shows where they’ve been.\"\n  ],\n  \"chorus3\": [\n    \"Write what the light allows, leave room in the page;\",\n    \"three views, one bridge—each honest to its place.\",\n    \"The mug holds the map; the notes show what changed.\",\n    \"Describe what you know; let the rest stay unnamed.\"\n  ]\n}",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6-luna",
+    "providerReturnedModel": "gpt-6-luna",
+    "processingTime": 7844,
+    "inputTokenCount": 3518,
+    "outputTokenCount": 1348,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3518,
+      "outputTokenCount": 1348,
+      "totalTokenCount": 4866
+    },
+    "rawProviderUsage": {
+      "input_tokens": 3518,
+      "input_tokens_details": {
+        "cache_write_tokens": 3515,
+        "cached_tokens": 0
+      },
+      "output_tokens": 1348,
+      "output_tokens_details": {
+        "reasoning_tokens": 434
+      },
+      "total_tokens": 4866
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-6-luna",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_rapSongChapter",
+          "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6",
+          "strict": true
+        }
+      }
+    }
+  }
+}

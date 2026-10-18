@@ -12,9 +12,6 @@ const SERVICE_TO_LLM_OPTION_FIELD: Record<string, keyof LLMOptions> = {
   gemini: 'geminiModels',
   anthropic: 'anthropicModels',
   grok: 'grokModels',
-  glm: 'glmModels',
-  kimi: 'kimiModels',
-  together: 'togetherModels',
 }
 
 const resolveComicLlmTarget = (modelId: string): LLMTarget => {

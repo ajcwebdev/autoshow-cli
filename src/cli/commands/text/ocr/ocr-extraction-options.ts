@@ -1,6 +1,7 @@
 import type { ExtractionOptions, PreparedDocument } from '~/types'
 import { ExtractionOptionsSchema } from '~/types'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { assertNoRemovedOcrSelections } from './ocr-engine-selection'
 import { validateData } from '~/utils/validate/validation'
 
 export const resolveOcrExtractionOptions = (
@@ -9,54 +10,53 @@ export const resolveOcrExtractionOptions = (
   outputDir: string,
   ocrConcurrencyMode: 'auto' | 'fixed',
   preparedDocument?: PreparedDocument
-): ExtractionOptions & { ocrConcurrencyMode: 'auto' | 'fixed' } => ({
-  ...validateData(ExtractionOptionsSchema, {
-    filePath,
-    outputDir,
-    dpi: rawOpts.dpi ?? 300,
-    languages: rawOpts.languages ?? 'eng',
-    outputFormat: rawOpts.outputFormat ?? 'text',
-    password: rawOpts.password,
-    docxMarkdown: rawOpts.docxMarkdown,
-    renderConcurrency: rawOpts.renderConcurrency,
-    ocrConcurrency: rawOpts.ocrConcurrency,
+): ExtractionOptions & { ocrConcurrencyMode: 'auto' | 'fixed' } => {
+  assertNoRemovedOcrSelections(rawOpts)
+  return {
+    ...validateData(ExtractionOptionsSchema, {
+      filePath,
+      outputDir,
+      dpi: rawOpts.dpi ?? 300,
+      languages: rawOpts.languages ?? 'eng',
+      outputFormat: rawOpts.outputFormat ?? 'text',
+      password: rawOpts.password,
+      docxMarkdown: rawOpts.docxMarkdown,
+      renderConcurrency: rawOpts.renderConcurrency,
+      ocrConcurrency: rawOpts.ocrConcurrency,
+      ocrConcurrencyMode,
+      ocrProviderMode: rawOpts.ocrProviderMode ?? 'fanout',
+      ocrProviderModeExplicit: rawOpts.ocrProviderModeExplicit ?? false,
+      ...(typeof rawOpts.ocrPoolDocumentPageNumber === 'number' ? { ocrPoolDocumentPageNumber: rawOpts.ocrPoolDocumentPageNumber } : {}),
+      ocrProviderConcurrency: rawOpts.ocrProviderConcurrency ?? DEFAULT_OCR_CONCURRENCY,
+      ocrLocalConcurrency: rawOpts.ocrLocalConcurrency ?? DEFAULT_OCR_CONCURRENCY,
+      ...(rawOpts.useTesseract ? { useTesseract: true } : {}),
+      ...(rawOpts.mistralOcrModel ? { mistralOcrModel: rawOpts.mistralOcrModel } : {}),
+      ...(rawOpts.mistralOcrModels ? { mistralOcrModels: rawOpts.mistralOcrModels } : {}),
+      ...(rawOpts.openaiOcrModel ? { openaiOcrModel: rawOpts.openaiOcrModel } : {}),
+      ...(rawOpts.openaiOcrModels ? { openaiOcrModels: rawOpts.openaiOcrModels } : {}),
+      ...(rawOpts.grokOcrModel ? { grokOcrModel: rawOpts.grokOcrModel } : {}),
+      ...(rawOpts.grokOcrModels ? { grokOcrModels: rawOpts.grokOcrModels } : {}),
+      ...(rawOpts.anthropicOcrModel ? { anthropicOcrModel: rawOpts.anthropicOcrModel } : {}),
+      ...(rawOpts.anthropicOcrModels ? { anthropicOcrModels: rawOpts.anthropicOcrModels } : {}),
+      ...(rawOpts.geminiOcrModel ? { geminiOcrModel: rawOpts.geminiOcrModel } : {}),
+      ...(rawOpts.geminiOcrModels ? { geminiOcrModels: rawOpts.geminiOcrModels } : {}),
+      ...(rawOpts.deepinfraOcrModel ? { deepinfraOcrModel: rawOpts.deepinfraOcrModel } : {}),
+      ...(rawOpts.deepinfraOcrModels ? { deepinfraOcrModels: rawOpts.deepinfraOcrModels } : {}),
+      ...(rawOpts.configPath ? { configPath: rawOpts.configPath } : {}),
+      ...(rawOpts.primaryOcr ? { primaryOcr: rawOpts.primaryOcr } : {}),
+      ...(typeof rawOpts.chapterFiles === 'boolean' ? { chapterFiles: rawOpts.chapterFiles } : {}),
+      ...(typeof rawOpts.chapterChunkLimitChars === 'number' ? { chapterChunkLimitChars: rawOpts.chapterChunkLimitChars } : {}),
+      pdfChapterMode: rawOpts.pdfChapterMode ?? 'local',
+      ...(rawOpts.pdfChapterLlmService ? { pdfChapterLlmService: rawOpts.pdfChapterLlmService } : {}),
+      ...(rawOpts.pdfChapterLlmModel ? { pdfChapterLlmModel: rawOpts.pdfChapterLlmModel } : {}),
+      ...(rawOpts.step2SelectionOrigins ? { step2SelectionOrigins: rawOpts.step2SelectionOrigins } : {}),
+      ...(preparedDocument?.preparedMarkdown ? { preparedMarkdown: preparedDocument.preparedMarkdown } : {}),
+      ...(typeof preparedDocument?.htmlArticleProcessingTimeMs === 'number' ? { htmlArticleProcessingTimeMs: preparedDocument.htmlArticleProcessingTimeMs } : {}),
+      ...(preparedDocument?.htmlArticleBackend ? { htmlArticleBackend: preparedDocument.htmlArticleBackend } : {}),
+      ...(rawOpts.reasoningEffort ? { reasoningEffort: rawOpts.reasoningEffort } : {})
+    }, 'document extraction options'),
     ocrConcurrencyMode,
-    ocrProviderMode: rawOpts.ocrProviderMode ?? 'fanout',
-    ocrProviderModeExplicit: rawOpts.ocrProviderModeExplicit ?? false,
-    ...(typeof rawOpts.ocrPoolDocumentPageNumber === 'number' ? { ocrPoolDocumentPageNumber: rawOpts.ocrPoolDocumentPageNumber } : {}),
-    ocrProviderConcurrency: rawOpts.ocrProviderConcurrency ?? DEFAULT_OCR_CONCURRENCY,
-    ocrLocalConcurrency: rawOpts.ocrLocalConcurrency ?? DEFAULT_OCR_CONCURRENCY,
-    ...(rawOpts.useTesseract ? { useTesseract: true } : {}),
-    ...(rawOpts.mistralOcrModel ? { mistralOcrModel: rawOpts.mistralOcrModel } : {}),
-    ...(rawOpts.mistralOcrModels ? { mistralOcrModels: rawOpts.mistralOcrModels } : {}),
-    ...(rawOpts.glmOcrModel ? { glmOcrModel: rawOpts.glmOcrModel } : {}),
-    ...(rawOpts.glmOcrModels ? { glmOcrModels: rawOpts.glmOcrModels } : {}),
-    ...(rawOpts.kimiOcrModel ? { kimiOcrModel: rawOpts.kimiOcrModel } : {}),
-    ...(rawOpts.kimiOcrModels ? { kimiOcrModels: rawOpts.kimiOcrModels } : {}),
-    ...(rawOpts.openaiOcrModel ? { openaiOcrModel: rawOpts.openaiOcrModel } : {}),
-    ...(rawOpts.openaiOcrModels ? { openaiOcrModels: rawOpts.openaiOcrModels } : {}),
-    ...(rawOpts.grokOcrModel ? { grokOcrModel: rawOpts.grokOcrModel } : {}),
-    ...(rawOpts.grokOcrModels ? { grokOcrModels: rawOpts.grokOcrModels } : {}),
-    ...(rawOpts.anthropicOcrModel ? { anthropicOcrModel: rawOpts.anthropicOcrModel } : {}),
-    ...(rawOpts.anthropicOcrModels ? { anthropicOcrModels: rawOpts.anthropicOcrModels } : {}),
-    ...(rawOpts.geminiOcrModel ? { geminiOcrModel: rawOpts.geminiOcrModel } : {}),
-    ...(rawOpts.geminiOcrModels ? { geminiOcrModels: rawOpts.geminiOcrModels } : {}),
-    ...(rawOpts.deepinfraOcrModel ? { deepinfraOcrModel: rawOpts.deepinfraOcrModel } : {}),
-    ...(rawOpts.deepinfraOcrModels ? { deepinfraOcrModels: rawOpts.deepinfraOcrModels } : {}),
-    ...(rawOpts.configPath ? { configPath: rawOpts.configPath } : {}),
-    ...(rawOpts.primaryOcr ? { primaryOcr: rawOpts.primaryOcr } : {}),
-    ...(typeof rawOpts.chapterFiles === 'boolean' ? { chapterFiles: rawOpts.chapterFiles } : {}),
-    ...(typeof rawOpts.chapterChunkLimitChars === 'number' ? { chapterChunkLimitChars: rawOpts.chapterChunkLimitChars } : {}),
-    pdfChapterMode: rawOpts.pdfChapterMode ?? 'local',
-    ...(rawOpts.pdfChapterLlmService ? { pdfChapterLlmService: rawOpts.pdfChapterLlmService } : {}),
-    ...(rawOpts.pdfChapterLlmModel ? { pdfChapterLlmModel: rawOpts.pdfChapterLlmModel } : {}),
-    ...(rawOpts.step2SelectionOrigins ? { step2SelectionOrigins: rawOpts.step2SelectionOrigins } : {}),
-    ...(preparedDocument?.preparedMarkdown ? { preparedMarkdown: preparedDocument.preparedMarkdown } : {}),
-    ...(typeof preparedDocument?.htmlArticleProcessingTimeMs === 'number' ? { htmlArticleProcessingTimeMs: preparedDocument.htmlArticleProcessingTimeMs } : {}),
-    ...(preparedDocument?.htmlArticleBackend ? { htmlArticleBackend: preparedDocument.htmlArticleBackend } : {}),
-    ...(rawOpts.reasoningEffort ? { reasoningEffort: rawOpts.reasoningEffort } : {})
-  }, 'document extraction options'),
-  ocrConcurrencyMode,
-  ...(rawOpts.concurrencyMode ? { concurrencyMode: rawOpts.concurrencyMode } : {}),
-  ...(rawOpts.hostedConcurrencyCoordinator ? { hostedConcurrencyCoordinator: rawOpts.hostedConcurrencyCoordinator } : {})
-})
+    ...(rawOpts.concurrencyMode ? { concurrencyMode: rawOpts.concurrencyMode } : {}),
+    ...(rawOpts.hostedConcurrencyCoordinator ? { hostedConcurrencyCoordinator: rawOpts.hostedConcurrencyCoordinator } : {})
+  }
+}

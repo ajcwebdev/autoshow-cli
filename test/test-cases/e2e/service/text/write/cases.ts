@@ -27,21 +27,3 @@ export const grokWrite = {
   llmService: 'grok',
   requiresEnvVar: { key: 'XAI_API_KEY', description: 'Grok models' },
 } as const
-
-export const glmWrite = {
-  provider: 'glm',
-  llmService: 'glm',
-  requiresEnvVar: { key: 'GLM_API_KEY', description: 'Z.AI GLM models' },
-} as const
-
-export const kimiWrite = {
-  provider: 'kimi',
-  llmService: 'kimi',
-  requiresEnvVar: { key: 'KIMI_API_KEY', description: 'Kimi models' },
-} as const
-
-export const togetherWrite = {
-  provider: 'together',
-  llmService: 'together',
-  requiresEnvVar: { key: 'TOGETHER_API_KEY', description: 'Together writing models' },
-} as const

@@ -144,9 +144,9 @@ describe('price mode contracts', () => {
 
   test('cheapest-model helpers return stable model selections', () => {
       expect(resolveCheapestModelForFlag('openai')).toBe('gpt-6-luna')
-      expect(resolveCheapestModelForFlag('grok')).toBe('grok-4.6')
-      expect(resolveCheapestModelForFlag('glm')).toBe('glm-5.3-flash')
-      expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k3')
+      expect(resolveCheapestModelForFlag('grok')).toBe('grok-4.7')
+      expect(resolveCheapestModelForFlag('glm')).toBeUndefined()
+      expect(resolveCheapestModelForFlag('kimi')).toBeUndefined()
       expect(resolveCheapestModelForFlag('openai-image')).toBe('gpt-image-2.5-flare')
       expect(resolveCheapestModelForFlag('gemini-image')).toBe('gemini-3.1-flash-lite-image')
       expect(resolveCheapestModelForFlag('bfl-image')).toBeUndefined()
@@ -169,7 +169,7 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('grok-ocr')).toBe('grok-4.5')
       expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-haiku-5-5')
       expect(resolveCheapestModelForFlag('deepinfra-ocr')).toBe('google/gemma-4-31B-it')
-      expect(resolveCheapestModelForFlag('kimi-ocr')).toBe('kimi-k2.6')
+      expect(resolveCheapestModelForFlag('kimi-ocr')).toBeUndefined()
       expect(resolveCheapestModelForFlag('gemini-video')).toBe('gemini-omni-1.1-flash')
       expect(resolveCheapestModelForFlag('glm-video')).toBeUndefined()
       expect(resolveCheapestModelForFlag('ltx-video')).toBe('ltx-2-5-fast')

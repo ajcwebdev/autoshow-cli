@@ -1,0 +1,46 @@
+{
+  "result": "{\"episodeDescription\":\"James Berkins recounts being laid off during a recession and landing a new developer job through a former connection within 12 hours.\"}",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-5.6-sol",
+    "providerReturnedModel": "gpt-5.6-sol",
+    "processingTime": 1740,
+    "inputTokenCount": 438,
+    "outputTokenCount": 40,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 438,
+      "outputTokenCount": 40,
+      "totalTokenCount": 478
+    },
+    "rawProviderUsage": {
+      "input_tokens": 438,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 40,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 478
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-5.6-sol",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_shortSummary",
+          "schemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c",
+          "strict": true
+        }
+      }
+    }
+  }
+}

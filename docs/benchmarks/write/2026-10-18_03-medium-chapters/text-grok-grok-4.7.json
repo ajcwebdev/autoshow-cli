@@ -1,0 +1,14 @@
+{
+  "chapters": [
+    {
+      "timestamp": "00:00:01",
+      "title": "Space Glitch and Host Introductions",
+      "description": "After a Twitter Space startup glitch, the hosts explain that waiting briefly can make a Space go live. Ishan, Anthony, and Scott welcome everyone to JavaScript Jam Live, introduce their Edgio roles, and preview a React Miami collaboration that preserves the open-mic format while inviting beginners and experienced developers to participate."
+    },
+    {
+      "timestamp": "00:04:45",
+      "title": "Guests and the Miami Jam Game Show",
+      "description": "Dev introduces himself as a React Miami media partner, Michelle joins despite connection trouble, and a few listeners briefly appear. Dev then describes Miami Jam, a trivia-style show where React and JavaScript questions lead into speaker motivations and shared experiences, with audience scoring and participation. The discussion runs through 00:08:42."
+    }
+  ]
+}

@@ -59,7 +59,7 @@ afterEach(async () => {
 
 describe('canonical location reference registration', () => {
   test('routes supported location QA models to their registered vision providers', () => {
-    expect(resolveLocationQaProvider('gpt-5.6-sol')).toBe('openai')
+    expect(resolveLocationQaProvider('gpt-6.1-sol')).toBe('openai')
     expect(resolveLocationQaProvider('gemini-3.8-flash')).toBe('gemini')
     expect(() => resolveLocationQaProvider('claude-opus-4-6')).toThrow('supports OpenAI and Gemini')
   })
@@ -148,7 +148,7 @@ describe('canonical location reference registration', () => {
       location: 'cargo-bay',
       view: 'establishing',
       initialImageCalls: 1,
-      judgeModel: 'gpt-5.6-sol',
+      judgeModel: 'gpt-6.1-sol',
       initialJudgeCalls: 1,
       maximumAdditionalImageRepairs: 1,
       maximumAdditionalJudgeCalls: 1

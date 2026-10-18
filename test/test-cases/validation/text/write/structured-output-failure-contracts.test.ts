@@ -35,12 +35,12 @@ test('a failed native validation retry preserves the paid response and its usage
   const tempDir = await makeTempDir('autoshow-paid-response-preservation-')
   try {
     let attempts = 0
-    const metadata = buildMetadata('anthropic', 'anthropic-credit-test')
+    const metadata = buildMetadata('anthropic', 'claude-sonnet-5-5')
     const results = await runLlmTargetsForStructuredPrompt({
       prompt: 'Summarize this input.',
       outputDir: tempDir,
       targets: [{
-        service: 'anthropic', model: 'anthropic-credit-test', label: 'Anthropic',
+        service: 'anthropic', model: 'claude-sonnet-5-5', label: 'Anthropic',
         run: async () => {
           attempts++
           if (attempts > 1) throw new Error('Your credit balance is too low')
@@ -55,7 +55,7 @@ test('a failed native validation retry preserves the paid response and its usage
     expect(results[0]?.parsedJson).toMatchObject({ _raw: '{"unexpected":"paid content"}' })
     expect(results[0]?.metadata).toMatchObject({ inputTokenCount: 1, outputTokenCount: 1, validationFailed: true })
     expect(await Bun.file(join(tempDir, 'text.json')).json()).toMatchObject({ _raw: '{"unexpected":"paid content"}' })
-    expect(await Bun.file(join(tempDir, 'raw-response-anthropic-credit-test-attempt-1.json')).json()).toEqual({
+    expect(await Bun.file(join(tempDir, 'raw-response-claude-sonnet-5-5-attempt-1.json')).json()).toEqual({
       result: '{"unexpected":"paid content"}', metadata
     })
   } finally {
@@ -83,9 +83,9 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
       prompt: 'Summarize this input.',
       outputDir: tempDir,
       targets: [
-        target('openai', 'openai-zero', 'not json'),
-        target('anthropic', 'anthropic-one', 'not json'),
-        target('grok', 'grok-success', '{"content":"valid output"}')
+        target('openai', 'gpt-6-luna', 'not json'),
+        target('anthropic', 'claude-sonnet-5-5', 'not json'),
+        target('grok', 'grok-4.7', '{"content":"valid output"}')
       ],
       structuredSchema,
       structuredValidationContext: { leafPromptNames: ['content'], presetNames: [] }

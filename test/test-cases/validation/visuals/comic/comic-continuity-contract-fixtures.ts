@@ -12,7 +12,7 @@ export const setupContinuityContractFixtures = () => {
   const temporaryDirectories: string[] = []
   const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
   const sha = new Bun.CryptoHasher('sha256').update(tinyPng).digest('hex')
-  const JUDGE_MODEL = 'gpt-5.6-sol'
+  const JUDGE_MODEL = 'gpt-6.1-sol'
 
   const locationOf = (key: string) => ({ key, raw: key })
 

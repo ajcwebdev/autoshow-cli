@@ -2,8 +2,6 @@ import type { OcrResultBuilderInput } from '~/types'
 
 const OCR_MODEL_FIELDS = [
   { method: 'mistral-ocr', field: 'mistralOcrModel' },
-  { method: 'glm-ocr', field: 'glmOcrModel' },
-  { method: 'kimi-ocr', field: 'kimiOcrModel' },
   { method: 'openai-ocr', field: 'openaiOcrModel' },
   { method: 'grok-ocr', field: 'grokOcrModel' },
   { method: 'anthropic-ocr', field: 'anthropicOcrModel' },

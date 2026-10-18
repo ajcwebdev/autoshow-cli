@@ -1,0 +1,46 @@
+{
+  "result": "{\"episodeSummary\":\"In this conversational episode, the hosts unpack the practical challenges of building third-party JavaScript widgets, using Everfund’s donation tool as a case study. They discuss choosing between vanilla JavaScript and framework-heavy bundles, the confusing history and compatibility trade-offs among CommonJS, ESM, and UMD, and why UMD remains useful for broad support despite its larger size. They also compare CDN-hosted scripts, npm packages, React-specific SDKs, WordPress integrations, iframes, and DOM injection, emphasizing that each approach affects bundle size, styling control, CORS behavior, updates, and developer experience. Everfund’s move from an iframe widget toward a headless donation SDK illustrates the need for flexible APIs and documentation. The conversation then broadens to documentation strategy, upcoming Remix Conference plans, and the podcast’s future: balancing guest interviews with host-led technical discussions, responsibly vetting guests and sponsors, considering merchandise, and making the show financially sustainable while preserving listener trust and long-term educational value.\"}",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-5.6-terra",
+    "providerReturnedModel": "gpt-5.6-terra",
+    "processingTime": 3866,
+    "inputTokenCount": 10205,
+    "outputTokenCount": 253,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 10205,
+      "outputTokenCount": 253,
+      "totalTokenCount": 10458
+    },
+    "rawProviderUsage": {
+      "input_tokens": 10205,
+      "input_tokens_details": {
+        "cache_write_tokens": 10202,
+        "cached_tokens": 0
+      },
+      "output_tokens": 253,
+      "output_tokens_details": {
+        "reasoning_tokens": 36
+      },
+      "total_tokens": 10458
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-5.6-terra",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_longSummary",
+          "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+          "strict": true
+        }
+      }
+    }
+  }
+}

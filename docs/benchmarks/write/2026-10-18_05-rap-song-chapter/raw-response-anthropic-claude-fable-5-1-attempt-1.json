@@ -1,0 +1,47 @@
+{
+  "result": "{\"title\":\"Describe It Before You Decide\",\"intro\":[\"Teal mug set down, compass badge facing the window,\",\"Its weight holds the folded map still so the breeze can't lift it.\",\"Past the harbor the ridge still wears its stripe of morning mist—\",\"Scope's in the case. Campsite's marked. We move before dusk.\"],\"verse1\":[\"Papa Bear's human, for the record—rust coat, patient manner, hence the name.\",\"Weather, trail notice, return time—he checks all three before he packs a thing.\",\"Me: torch, water, notebook, spare layer. We each carry the route.\",\"And the deal's in ink: if the weather turns, we turn around too.\",\"Fresh page, top line, I write it clean—Harborlight Camp.\",\"Table left clear. What we carried in, we carry out.\",\"Trail board: I photograph the route, hold it against the print,\",\"Wooden marker aims at the sheltered ridge—\",\"A shortcut tempts, a brighter slope winks, neither one moves us an inch.\",\"Then the overlook. He points: 'Same landmark. New angle.'\",\"From the shore the footbridge ran short. From up here it runs long.\",\"I draw both, label where I stood, and refuse to call either one wrong.\",\"Camp: tent on the level ground, the path kept clear,\",\"Telescope stays in its case till the tripod feet sit true,\",\"Mug on the low table, off the edge; clip bites the pages so they can't blow loose.\",\"First evening star—then a thin cloud slides across it.\",\"I wanted everything at once. He says, 'Record the cloud. It's part of the view.'\",\"Entry one: pale sky, one bright point, breeze off the water. Useful already—it's what we could actually see.\"],\"chorus1\":[\"Short from the shore, long from the ridge,\",\"Two honest pages, one footbridge.\",\"Write where you stood. Write what you've seen.\",\"Describe the evidence—then decide what it means.\"],\"verse2\":[\"Dark settles. I lower the lantern, turn its shield toward the table—\",\"One warm circle, just enough to find the mug and the page.\",\"Past the circle, ridge and sky pull apart, easier to tell.\",\"He keeps the scope off the sun's last glow. 'Full dark. Then we start.'\",\"We trade the eyepiece. I describe a bright point—no guessing how far.\",\"He asks, 'What changed since the last look?' I look hard:\",\"Cloud's drifted. Harbor lights sharper. The pale band above the ridge, faded out.\",\"Then—a streak. Both of us looking up. Gone before a pencil's out.\",\"Neither caught its whole path. So we write what we can swear to:\",\"Direction. Rough time. And the fact that it lasted a moment.\",\"Room on the page for uncertain. A glimpse stays a glimpse—\",\"Not a quick look turned into a grand discovery.\",\"Then nothing. For a while, no words. The quiet is the attention we share.\",\"I warm my hands around the mug and add one more line:\",\"Waiting gave us a view that hurrying would've missed.\"],\"chorus2\":[\"Short from the shore, long from the ridge,\",\"Two honest pages, one footbridge.\",\"A streak, a direction, a moment—'not sure' stays clean.\",\"Describe the evidence—then decide what it means.\"],\"verse3\":[\"Before bed, notebook open beside the route plan, line for line.\",\"Every entry names it: place, weather, time, observer.\",\"Sketches labeled sketches. The uncertain stays uncertain—\",\"So someone who never stood by the scope could still use it later.\",\"Morning. I count the table before I pack it: mug, notebook, clip, lantern, case.\",\"He walks the site for scraps and loose gear. Nothing left.\",\"Clear as we found it. Same marked path back to the harbor.\",\"Overlook again—and the bridge has changed again in the morning light.\",\"Third small drawing, same first page. I don't erase a line.\",\"Nothing in the old sketches needed erasing. Nothing was wrong.\",\"Three views side by side: position and light moving an honest eye.\",\"Open window. Teal mug back beside the folded map.\",\"Four pages of notes. Three bridges that are one bridge. One habit worth the walk:\",\"Describe the evidence before deciding what it means.\",\"Next trip starts there—no bigger story required.\"],\"bridge\":[\"Say you open this notebook and you were never on that ridge—\",\"Harborlight Camp. Breeze off the water. One bright point. Observer: Mira.\",\"A streak—direction, rough time, 'lasted a moment,' question left standing.\",\"You wouldn't need us beside you. The page tells you where we stood.\"],\"chorus3\":[\"Short from the shore, long from the ridge, changed again at dawn—\",\"Three honest pages, one footbridge, nothing in them gone.\",\"Mug back on the map. Window open. One routine:\",\"Describe the evidence—then decide what it means.\"]}",
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-fable-5-1",
+    "providerReturnedModel": "claude-fable-5-1",
+    "processingTime": 73186,
+    "inputTokenCount": 6350,
+    "outputTokenCount": 6033,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 6350,
+      "outputTokenCount": 6033
+    },
+    "rawProviderUsage": {
+      "input_tokens": 6350,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 6033,
+      "output_tokens_details": {
+        "thinking_tokens": 4453
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-fable-5-1",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "680eedc7eb5aa95aa176da75864b42099305422ba0907cbc92f2c247eca65682"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "result": "{\"title\":\"Describe Before Meaning\",\"intro\":[\"Teal mug by the map, cream compass to the breeze,\",\"Harbor mist on the ridge, dawn thinning through the trees.\",\"Mira writes Harborlight Camp; Papa Bear checks the way—\",\"A clear view starts with care before the falling day.\"],\"verse1\":[\"Weather, trail notice, return time—each checked before the pack,\",\"Torch, water, spare layer, route copies stacked.\",\"Turn back if the weather shifts; no bravado in the plan,\",\"The mug pins down the map while they compare the land.\",\"Footbridge, first marker—finger follows every bend,\",\"Nothing left upon the table, nothing borrowed from the end.\",\"At the board, Mira takes a route photograph for recall,\",\"Printed map agrees with wood; the marked path rules them all.\",\"A shortcut glows tempting, but they keep the agreed line,\",\"From the overlook, one landmark splits by angle and time.\",\"Short from the shore, long from above—the sketches both stay true,\",\"She labels where she stood instead of forcing one view.\",\"Level ground for the tent, clear path, tripod checked with care,\",\"A cloud crosses the first star; they record what was there.\"],\"chorus1\":[\"Hold the page to the wind, let the evidence speak,\",\"Name what you saw, not the answer you seek.\",\"Hold the page to the wind, keep the record clean—\",\"The view begins with what the eyes have seen.\"],\"verse2\":[\"Night settles; Mira shields the lantern, lowers down the flame,\",\"Warm light finds the mug and notes, the ridge steps out of frame.\",\"Papa Bear waits till sunlight's last glow leaves the sky,\",\"Then turns the telescope upward, takes his turn, asks why.\",\"Bright point—she names the sight, but will not guess its range,\",\"What moved since the last look? The cloud, the lights, the change.\",\"Harbor lamps sharpen; pale band above the ridge grows thin,\",\"A brief streak cuts the dark—then vanishes again.\",\"No grand claim, no perfect arc they never had time to draw,\",\"Direction, rough time, one moment—that was all they saw.\",\"The blank space in the notebook keeps uncertainty alive,\",\"A fact can stay incomplete and still arrive.\",\"Silence joins the watching; warm hands circle the cup,\",\"Waiting made the view possible—hurrying would have cut it up.\"],\"chorus2\":[\"Hold the page to the wind, let the evidence speak,\",\"Name what you saw, leave the uncertain part weak.\",\"Hold the page to the wind; one flash is not a scheme—\",\"The record stays honest when it pauses at maybe.\"],\"verse3\":[\"Before sleep, they match the notes against the route they made,\",\"Place, weather, time, observer—every entry named.\",\"Sketches marked as sketches, guesses kept in doubt,\",\"Useful to a stranger who was never there to scout.\",\"Morning: mug, notebook, clip, lantern, telescope case—\",\"Count the table clean, then clear the campsite space.\",\"Papa Bear finds no scraps, no loose gear in the grass,\",\"They take the marked trail home, retrace the route they passed.\",\"At the overlook, the bridge shifts shape in morning light,\",\"Mira draws a third small view beside the other two in sight.\",\"No old line gets erased; each angle earns its place,\",\"Position and the light had altered what she faced.\",\"Back beside the window, teal enamel meets the map,\",\"Four pages, three bridge views: evidence first, meaning after that.\"],\"bridge\":[\"One voice says, The bridge is short; another says, It grew.\",\"Same wood, changed distance—both records can be true.\",\"No louder story needed, no sharper claim to make.\",\"Leave room around the answer for the next view to take.\"],\"chorus3\":[\"Hold the page to the wind, let the evidence speak,\",\"Name what you saw before deciding what it means.\",\"Hold the page to the wind—the habit lights the way:\",\"A clear record makes tomorrow clearer than today.\"]}",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-5.6-luna",
+    "providerReturnedModel": "gpt-5.6-luna",
+    "processingTime": 6692,
+    "inputTokenCount": 3518,
+    "outputTokenCount": 1053,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3518,
+      "outputTokenCount": 1053,
+      "totalTokenCount": 4571
+    },
+    "rawProviderUsage": {
+      "input_tokens": 3518,
+      "input_tokens_details": {
+        "cache_write_tokens": 3515,
+        "cached_tokens": 0
+      },
+      "output_tokens": 1053,
+      "output_tokens_details": {
+        "reasoning_tokens": 206
+      },
+      "total_tokens": 4571
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-5.6-luna",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_rapSongChapter",
+          "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6",
+          "strict": true
+        }
+      }
+    }
+  }
+}

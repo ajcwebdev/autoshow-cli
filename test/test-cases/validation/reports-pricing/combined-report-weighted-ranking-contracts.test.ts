@@ -20,6 +20,7 @@ import {
 } from '../../../../.codex/skills/consensus/scripts/shared/dashboard_client.js'
 import { dashboardAssetNames } from '../../../../.codex/skills/consensus/scripts/shared/build_combined_dashboard'
 import { buildTtsDashboard } from '../../../../.codex/skills/consensus/scripts/tts/build_tts_dashboard'
+import { buildTextDashboard } from '../../../../.codex/skills/consensus/scripts/text/build_text_dashboard'
 import type { ArtifactReport } from '~/types'
 
 const projectRoot = resolve(import.meta.dir, '../../../../')
@@ -411,7 +412,7 @@ describe('committed benchmark dashboard', () => {
 
     expect(data.schemaVersion).toBe(1)
     expect(data.title).toBe('AutoShow Benchmark Dashboard')
-    expect(data.tabs.map((tab) => tab.key)).toEqual([...DASHBOARD_TABS.map(([key]) => key), 'tts'])
+    expect(data.tabs.map((tab) => tab.key)).toEqual([...DASHBOARD_TABS.map(([key]) => key), 'tts', 'write'])
     expect(raw).not.toContain('/Users/')
     expect(raw).not.toContain('Quality-cost terciles')
     expect(raw).not.toContain('quality-cost-terciles-v1')
@@ -435,6 +436,10 @@ describe('committed benchmark dashboard', () => {
     const tts = data.tabs.find((candidate) => candidate.key === 'tts')
     expect(tts?.rootLabel).toBe('docs/benchmarks/tts')
     expect(tts?.model).toEqual(buildTtsDashboard(join(benchmarksRoot, 'tts'), data.generatedAt).dashboardModel)
+
+    const write = data.tabs.find((candidate) => candidate.key === 'write')
+    expect(write?.rootLabel).toBe('docs/benchmarks/write')
+    expect(write?.model).toEqual(buildTextDashboard(join(benchmarksRoot, 'write'), data.generatedAt).dashboardModel)
   })
 
   test('renders its data into tabbed panels with sortable metric tables', () => {

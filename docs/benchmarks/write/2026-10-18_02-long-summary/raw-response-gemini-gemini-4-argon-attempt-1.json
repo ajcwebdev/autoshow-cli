@@ -1,0 +1,47 @@
+{
+  "result": "{\n  \"episodeSummary\": \"In this episode of FSJam, the hosts explore the technical challenges of building and distributing third-party JavaScript scripts and widgets, drawing from recent experiences developing a donation SDK at Everfund. They examine the complexities of JavaScript module bundling—comparing CommonJS, ESM, and UMD—and explain why UMD remains necessary for universal browser compatibility and platforms like WordPress. The discussion also covers architectural trade-offs, such as rendering UI directly into the DOM versus using iframes to avoid CORS issues, and the necessity of maintaining separate SDKs for vanilla JavaScript and React. Transitioning to broader topics, the hosts discuss effective developer documentation strategies using the Divio framework and tools like ReadMe. Finally, they reflect on the future of the podcast, sharing their plans to attend the Remix Conference and their philosophy on introducing vetted sponsorships and merchandise to make the show sustainable while maintaining listener trust and educational value.\"\n}",
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-4-argon",
+    "providerReturnedModel": "gemini-4-argon",
+    "processingTime": 5440,
+    "inputTokenCount": 11336,
+    "outputTokenCount": 207,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 11336,
+      "outputTokenCount": 207,
+      "totalTokenCount": 11543
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 11336,
+      "candidatesTokenCount": 207,
+      "totalTokenCount": 11543,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 11336
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 207
+        }
+      ]
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-4-argon",
+      "generationConfig": {
+        "maxOutputTokens": 65536,
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599"
+      }
+    }
+  }
+}

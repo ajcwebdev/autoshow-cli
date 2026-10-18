@@ -1,6 +1,9 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
+import { UsageError } from '~/utils/error-handler'
 import { runLLM } from '~/cli/commands/text/write/run-llm'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import type { PageResult, PdfPageMapSpan, PdfTocEntry, ResolvedPdfChapter, TranscriptionResult, VideoMetadata } from '~/types'
@@ -61,8 +64,6 @@ const buildLlmOptions = (
   ...(service === 'gemini' ? { geminiModels: [model] } : {}),
   ...(service === 'anthropic' ? { anthropicModels: [model] } : {}),
   ...(service === 'grok' ? { grokModels: [model] } : {}),
-  ...(service === 'glm' ? { glmModels: [model] } : {}),
-  ...(service === 'together' ? { togetherModels: [model] } : {}),
 })
 
 export const resolveLlmCandidates = async (input: {
@@ -76,6 +77,13 @@ export const resolveLlmCandidates = async (input: {
   llmService: string
   llmModel: string
 }): Promise<ResolvedPdfChapter[] | undefined> => {
+  if (!Object.hasOwn(WRITE_LLM_PROVIDER_TARGETS, input.llmService)) {
+    throw UsageError(`Unsupported PDF chapter LLM provider ${input.llmService}. Select an active writing provider explicitly.`)
+  }
+  const configuredModels = getModelRegistry().llm[input.llmService]?.models
+  if (!configuredModels || !Object.hasOwn(configuredModels, input.llmModel)) {
+    throw UsageError(`Unsupported PDF chapter LLM model ${input.llmService}/${input.llmModel}. Select an active writing model explicitly.`)
+  }
   const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-pdf-chapters-llm-'))
   try {
     const metadata: VideoMetadata = {

@@ -138,8 +138,8 @@ describe('hosted OCR cap and profile policy contracts', () => {
 
   test('unpromoted throughput profiles expose why the lane cap stayed unprofiled', async () => {
     const profile = buildThroughputProfile({
-      provider: 'kimi',
-      model: 'kimi-k2.6',
+      provider: 'deepinfra',
+      model: 'google/gemma-4-31B-it',
       throughputPagesPerMinute: 50,
       activePeak: 16,
       sampleCount: 3,
@@ -150,7 +150,7 @@ describe('hosted OCR cap and profile policy contracts', () => {
     })
     await withThroughputProfile(profile, async (profilePath) => {
       const scheduler = createHostedOcrScheduler({ mode: 'auto', pageCount: 228, profilePath })
-      await scheduler.run(admission('kimi', 'kimi-k2.6', 'kimi:kimi-k2.6'), async () => 'ok')
+      await scheduler.run(admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it'), async () => 'ok')
 
       expect(scheduler.snapshot().lanes[0]).toMatchObject({
         capSource: 'unprofiled',
@@ -162,11 +162,11 @@ describe('hosted OCR cap and profile policy contracts', () => {
   })
 })
 
-describe('hosted OCR Kimi profile safeguard contracts', () => {
-  test('Kimi profiles with historical retry pressure stay healthy but do not promote high caps', async () => {
+describe('hosted OCR profile confidence and pressure telemetry contracts', () => {
+  test('mixed-history profiles with a clean sample retain healthy confidence', async () => {
     const profile = buildThroughputProfile({
-      provider: 'kimi',
-      model: 'kimi-k2.6',
+      provider: 'deepinfra',
+      model: 'google/gemma-4-31B-it',
       laneTargetCount: 1,
       throughputPagesPerMinute: 44,
       activePeak: 20,
@@ -180,8 +180,8 @@ describe('hosted OCR Kimi profile safeguard contracts', () => {
     })
     await withThroughputProfile(profile, async (profilePath) => {
       const estimate = findHostedOcrThroughputProfile({
-        provider: 'kimi',
-        model: 'kimi-k2.6',
+        provider: 'deepinfra',
+        model: 'google/gemma-4-31B-it',
         pageCount: 312,
         ocrConcurrencyMode: 'auto',
         laneTargetCount: 1,
@@ -190,21 +190,21 @@ describe('hosted OCR Kimi profile safeguard contracts', () => {
       expect(estimate?.confidence).toBe('healthy')
 
       const scheduler = createHostedOcrScheduler({ mode: 'auto', pageCount: 312, profilePath })
-      await scheduler.run(admission('kimi', 'kimi-k2.6', 'kimi:kimi-k2.6'), async () => 'ok')
+      await scheduler.run(admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it'), async () => 'ok')
       expect(scheduler.snapshot().lanes[0]).toMatchObject({
-        maxCap: 18,
-        capSource: 'unprofiled',
+        maxCap: 22,
+        capSource: 'profile',
         sourceConfidence: 'healthy',
         profileSampleCount: 4,
-        profileDisqualificationReason: 'kimi-profile-retry-pressure'
+        profileRaisedMaxCap: 22
       })
     })
   })
 
-  test('Kimi high profile caps require repeated clean samples', async () => {
+  test('healthy profiles can raise caps from one clean sample', async () => {
     const profile = buildThroughputProfile({
-      provider: 'kimi',
-      model: 'kimi-k2.6',
+      provider: 'deepinfra',
+      model: 'google/gemma-4-31B-it',
       pageCountBand: '51-200',
       laneTargetCount: 1,
       throughputPagesPerMinute: 52,
@@ -215,21 +215,21 @@ describe('hosted OCR Kimi profile safeguard contracts', () => {
     })
     await withThroughputProfile(profile, async (profilePath) => {
       const scheduler = createHostedOcrScheduler({ mode: 'auto', pageCount: 121, profilePath })
-      await scheduler.run(admission('kimi', 'kimi-k2.6', 'kimi:kimi-k2.6'), async () => 'ok')
+      await scheduler.run(admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it'), async () => 'ok')
       expect(scheduler.snapshot().lanes[0]).toMatchObject({
-        maxCap: 11,
-        capSource: 'unprofiled',
+        maxCap: 13,
+        capSource: 'profile',
         sourceConfidence: 'healthy',
         profileSampleCount: 1,
-        profileDisqualificationReason: 'kimi-profile-needs-clean-samples'
+        profileRaisedMaxCap: 13
       })
     })
   })
 
-  test('Kimi current retry pressure demotes profile caps and records page-level timeout telemetry', async () => {
+  test('current retry pressure backs off active concurrency and records page-level timeout telemetry', async () => {
     const profile = buildThroughputProfile({
-      provider: 'kimi',
-      model: 'kimi-k2.6',
+      provider: 'deepinfra',
+      model: 'google/gemma-4-31B-it',
       laneTargetCount: 1,
       throughputPagesPerMinute: 54,
       activePeak: 20,
@@ -242,7 +242,7 @@ describe('hosted OCR Kimi profile safeguard contracts', () => {
     await withThroughputProfile(profile, async (profilePath) => {
       const scheduler = createHostedOcrScheduler({ mode: 'auto', pageCount: 312, profilePath })
       await scheduler.run({
-        ...admission('kimi', 'kimi-k2.6', 'kimi:kimi-k2.6'),
+        ...admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it'),
         pageNumber: 9
       }, async ({ onRetryable }) => {
         onRetryable({ reason: 'timeout', delayMs: 125 })
@@ -250,13 +250,13 @@ describe('hosted OCR Kimi profile safeguard contracts', () => {
       })
 
       expect(scheduler.snapshot().lanes[0]).toMatchObject({
-        maxCap: 18,
-        capSource: 'unprofiled',
-        profileDisqualificationReason: 'kimi-current-retry-pressure',
+        maxCap: 22,
+        capSource: 'profile',
+        currentCap: 9,
         retryPressureCount: 1,
         retryEvents: [{
           reason: 'timeout',
-          targetKey: 'kimi:kimi-k2.6',
+          targetKey: 'deepinfra:google/gemma-4-31B-it',
           pageNumber: 9,
           delayMs: 125,
           effectiveCap: 9

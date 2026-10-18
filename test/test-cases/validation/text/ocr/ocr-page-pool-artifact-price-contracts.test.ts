@@ -56,7 +56,7 @@ describe('pooled OCR page scheduler contracts', () => {
 
   test('pooled resume price preserves stored mode, estimates only unfinished pages, and does not mutate the manifest', async () => {
     await withTempDir('autoshow-pool-resume-price-', async (dir) => {
-      const target: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
+      const target: OcrTarget = { service: 'openai', model: 'gpt-6.1-sol' }
       let checkpoint: OcrPoolLedger | undefined
       await runPool({
         totalPages: 1,
@@ -76,7 +76,7 @@ describe('pooled OCR page scheduler contracts', () => {
         ocrProviderMode: 'pool',
         ocrPool: checkpoint,
         requestedProviders: [target],
-        providerStates: [{ ...target, artifactDir: 'providers/openai-gpt-5.6-sol', status: 'running', attempts: 1, metadata: {} }]
+        providerStates: [{ ...target, artifactDir: 'providers/openai-gpt-6.1-sol', status: 'running', attempts: 1, metadata: {} }]
       }, { extractRoute: 'document' })
       const resumeTarget: ResumeTarget = {
         kind: 'extract',
@@ -91,7 +91,7 @@ describe('pooled OCR page scheduler contracts', () => {
       const after = await readFile(manifestPath)
 
       expect(estimate.steps).toHaveLength(1)
-      expect(estimate.steps[0]).toMatchObject({ provider: 'openai', model: 'gpt-5.6-sol', pageCount: 1, ocrProviderMode: 'pool' })
+      expect(estimate.steps[0]).toMatchObject({ provider: 'openai', model: 'gpt-6.1-sol', pageCount: 1, ocrProviderMode: 'pool' })
       expect(after.equals(before)).toBe(true)
 
       const explicitFanout = buildOptsFromFlags({ 'ocr-provider-mode': 'fanout' }, {}, new Set(['ocr-provider-mode']))

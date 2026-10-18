@@ -34,7 +34,7 @@ const transitionState = (targets: OcrTarget[], totalPages = 2) => {
 
 describe('pooled OCR page scheduler contracts', () => {
   test('rejects incompatible normalized inputs and primary selection locally', () => {
-    const target: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
+    const target: OcrTarget = { service: 'openai', model: 'gpt-6.1-sol' }
     expect(() => assertOcrPoolCompatible({
       step1Metadata: { format: 'docx' },
       opts: {},
@@ -53,17 +53,17 @@ describe('pooled OCR page scheduler contracts', () => {
   })
 
   test('claim, target retirement, stale rejection, and accepted commit are explicit transitions', () => {
-    const retired: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
+    const retired: OcrTarget = { service: 'openai', model: 'gpt-6.1-sol' }
     const survivor: OcrTarget = { service: 'mistral', model: 'mistral-ocr-4-0' }
     const state = transitionState([retired, survivor])
-    const admitted = new Set(['openai:gpt-5.6-sol'])
+    const admitted = new Set(['openai:gpt-6.1-sol'])
     const firstRetiredClaim = claimOcrPoolPage(state, retired, admitted)
     const secondRetiredClaim = claimOcrPoolPage(state, retired, admitted)
     expect(firstRetiredClaim).toBeDefined()
     expect(secondRetiredClaim).toBeDefined()
 
     const retirement = { scope: 'target' as const, ambiguous: false, failure: { message: 'target unavailable' } }
-    retireOcrPoolTarget(state, 'openai:gpt-5.6-sol', retirement, 2_010)
+    retireOcrPoolTarget(state, 'openai:gpt-6.1-sol', retirement, 2_010)
     admitted.add('mistral:mistral-ocr-4-0')
     const firstSurvivorClaim = claimOcrPoolPage(state, survivor, admitted)
     expect(firstSurvivorClaim).toBeDefined()
@@ -78,11 +78,11 @@ describe('pooled OCR page scheduler contracts', () => {
       page.status === 'accepted' && page.attempts.filter((attempt) => attempt.status === 'accepted').length === 1
     )).toBe(true)
     expect(state.ledger.telemetry.duplicateCommitsPrevented).toBe(2)
-    expect(state.targetStates.get('openai:gpt-5.6-sol')?.status).toBe('retired')
+    expect(state.targetStates.get('openai:gpt-6.1-sol')?.status).toBe('retired')
   })
 
   test('lane retirement and selective re-enablement do not revive sibling targets', () => {
-    const selected: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
+    const selected: OcrTarget = { service: 'openai', model: 'gpt-6.1-sol' }
     const sibling: OcrTarget = { service: 'openai', model: 'gpt-5.6-terra' }
     const state = transitionState([selected, sibling])
     const admitted = new Set(state.targetStates.keys())
@@ -99,10 +99,10 @@ describe('pooled OCR page scheduler contracts', () => {
       ambiguous: false,
       failure: { message: 'interrupted request also failed' }
     }, 2_012)
-    expect(reenableOcrPoolTarget(state, 'openai:gpt-5.6-sol')).toBe(true)
+    expect(reenableOcrPoolTarget(state, 'openai:gpt-6.1-sol')).toBe(true)
 
     expect(state.laneStates.get('openai:env-api-key')?.status).toBe('eligible')
-    expect(state.targetStates.get('openai:gpt-5.6-sol')?.status).toBe('eligible')
+    expect(state.targetStates.get('openai:gpt-6.1-sol')?.status).toBe('eligible')
     expect(state.targetStates.get('openai:gpt-5.6-terra')?.status).toBe('retired')
     expect(claimOcrPoolPage(state, selected, admitted)).toBeDefined()
     expect(claimOcrPoolPage(state, sibling, admitted)).toBeUndefined()

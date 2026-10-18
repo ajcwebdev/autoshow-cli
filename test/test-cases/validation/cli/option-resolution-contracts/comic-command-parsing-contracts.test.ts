@@ -47,8 +47,8 @@ describe('option resolution contracts', () => {
       expect(parseReferenceSketchArgs(['--character', 'engineer', '--provider', `openai=${model}`, '--quality', 'max']).quality).toBe('max')
     }
   })
-  test('comic scene drafting defaults to gpt-5.6-sol', () => {
-    expect(DEFAULT_LLM_MODEL).toBe('gpt-5.6-sol')
+  test('comic scene drafting defaults to gpt-6.1-sol', () => {
+    expect(DEFAULT_LLM_MODEL).toBe('gpt-6.1-sol')
   })
 
   test('comic draft-treatment resolves defaults, repeatable speakers, and explicit overrides', () => {
@@ -59,9 +59,9 @@ describe('option resolution contracts', () => {
     expect(defaults.styleSeed).toBeUndefined()
     expect(defaults.force).toBeUndefined()
     expect(defaults.price).toBeUndefined()
-    const explicit = parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '8', '--episode', '02', '--scene', '03', '--slug', 'camp-manzanita', '--speaker', 'papa-bear', '--speaker', 'nick,papa-bear', '--style-seed', 'camp-manzanita--style-seed.png', '--catalog-policy', 'fail', '--force', '--provider', 'openai=gpt-5.6-sol', '--price'])
+    const explicit = parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '8', '--episode', '02', '--scene', '03', '--slug', 'camp-manzanita', '--speaker', 'papa-bear', '--speaker', 'nick,papa-bear', '--style-seed', 'camp-manzanita--style-seed.png', '--catalog-policy', 'fail', '--force', '--provider', 'openai=gpt-6.1-sol', '--price'])
     expect(parseDraftTreatmentArgs(['input/camp.md', '--panel-count', '20-25', '--voice-pacing', 'mixed'])).toMatchObject({ panelRange: { minimum: 20, maximum: 25 }, voicePacing: 'mixed' })
-    expect(explicit).toMatchObject({ panelRange: { minimum: 8, maximum: 8 }, episode: '02', scene: '03', slug: 'camp-manzanita', speakers: ['papa-bear', 'nick'], styleSeed: 'camp-manzanita--style-seed.png', catalogPolicy: 'fail', force: true, llmModel: 'gpt-5.6-sol', price: true })
+    expect(explicit).toMatchObject({ panelRange: { minimum: 8, maximum: 8 }, episode: '02', scene: '03', slug: 'camp-manzanita', speakers: ['papa-bear', 'nick'], styleSeed: 'camp-manzanita--style-seed.png', catalogPolicy: 'fail', force: true, llmModel: 'gpt-6.1-sol', price: true })
   })
 
   test('comic draft-scenes accepts --panel-count for the scene stage only', () => {
@@ -88,8 +88,8 @@ describe('option resolution contracts', () => {
     expect(chunks.at(-1)?.panelNumbers).toEqual([29])
     const qa = parseGenerateImagesArgs(['script.md', '--qa'])
     expect(qa.qa).toBe(true)
-    expect(qa.qaModel).toBe('gpt-5.6-sol')
-    expect(parseGenerateImagesArgs(['script.md', '--qa-provider', 'openai=gpt-5.6-sol']).qaModel).toBe('gpt-5.6-sol')
+    expect(qa.qaModel).toBe('gpt-6.1-sol')
+    expect(parseGenerateImagesArgs(['script.md', '--qa-provider', 'openai=gpt-6.1-sol']).qaModel).toBe('gpt-6.1-sol')
     expect(parseGenerateImagesArgs(['script.md', '--qa-provider', 'gemini=gemini-3.8-flash']).qaModel).toBe('gemini-3.8-flash')
   })
   test('comic generate-images QA-only mode cannot enter image generation or repair combinations', () => {
@@ -130,7 +130,7 @@ describe('option resolution contracts', () => {
     const opts = parseGenerateImagesArgs(['script.md', '--revision-plan', 'output/plan.json', '--comparison-passes', '2', '--promote', 'clear-winners', '--max-repairs', '0'])
     expect(opts.revisionPlan).toBe('output/plan.json')
     expect(opts.imageModels).toEqual(['gpt-image-2'])
-    expect(opts.qaModel).toBe('gpt-5.6-sol')
+    expect(opts.qaModel).toBe('gpt-6.1-sol')
     expect(opts.comparisonPasses).toBe(2)
     expect(opts.promote).toBe('clear-winners')
     expect(opts.maxRepairs).toBe(0)
@@ -186,7 +186,7 @@ describe('option resolution contracts', () => {
     })
 
   test('comic generate-images rejects removed option spellings as unknown arguments', () => {
-      expect(() => parseGenerateImagesArgs(['script.md', '--llm-provider', 'openai=gpt-5.6-sol'])).toThrow('Unexpected flag: --llm-provider')
+      expect(() => parseGenerateImagesArgs(['script.md', '--llm-provider', 'openai=gpt-6.1-sol'])).toThrow('Unexpected flag: --llm-provider')
       expect(() => parseGenerateImagesArgs(['script.md', '--panel-limit', '3'])).toThrow('Unexpected flag: --panel-limit')
       expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('Unexpected flag: --chunk')
       expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('Unexpected flag: --sketch-group-size')
@@ -201,20 +201,20 @@ describe('option resolution contracts', () => {
   test('comic draft-scenes args parse llm model and panel prompt stage', () => {
       const opts = parseDraftScenesArgs([
         'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
-        '--provider', 'openai=gpt-5.6-sol',
+        '--provider', 'openai=gpt-6.1-sol',
         '--only', 'panel-prompts',
       ])
       const grokOpts = parseDraftScenesArgs([
         'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
-        '--provider', 'grok=grok-4.6'
+        '--provider', 'grok=grok-4.7'
       ])
 
-      expect(findRegistryServiceForModel('llm', 'gpt-5.6-sol')).toBe('openai')
-      expect(findRegistryServiceForModel('llm', 'grok-4.6')).toBe('grok')
+      expect(findRegistryServiceForModel('llm', 'gpt-6.1-sol')).toBe('openai')
+      expect(findRegistryServiceForModel('llm', 'grok-4.7')).toBe('grok')
       expect(opts.scriptPath).toBe('input/scripts/05-script/01-mechanic-goes-on-vacation.md')
-      expect(opts.llmModel).toBe('gpt-5.6-sol')
+      expect(opts.llmModel).toBe('gpt-6.1-sol')
       expect(opts.only).toBe('panel-prompts')
-      expect(grokOpts.llmModel).toBe('grok-4.6')
+      expect(grokOpts.llmModel).toBe('grok-4.7')
     })
 
   test('comic generate-images args parse target', () => {

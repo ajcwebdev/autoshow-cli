@@ -134,6 +134,7 @@ export type ZipXmlFormat = 'docx' | 'pptx' | 'xlsx' | 'odf'
 export type OcrFn = (imagePath: string) => Promise<{ text: string, confidence?: number }>
 export type OcrFnProvider = OcrFn | { getOcrFn: () => Promise<OcrFn> }
 
+// Completed runs and pool ledgers retain removed provider identities; live selection comes from the adapter registry.
 export type HostedExtractOcrEngine = 'mistral-ocr' | 'glm-ocr' | 'kimi-ocr' | 'openai-ocr' | 'grok-ocr' | 'anthropic-ocr' | 'gemini-ocr' | 'deepinfra-ocr' | 'replicate-ocr' | 'fal-ocr'
 
 export type HostedOcrRun = {

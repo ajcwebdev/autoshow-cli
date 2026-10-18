@@ -13,8 +13,6 @@ export type OcrRuntimeOptions = {
   password: string | undefined
   useTesseract: boolean
   mistralOcrModels: string[] | undefined
-  glmOcrModels: string[] | undefined
-  kimiOcrModels: string[] | undefined
   openaiOcrModels: string[] | undefined
   grokOcrModels: string[] | undefined
   anthropicOcrModels: string[] | undefined

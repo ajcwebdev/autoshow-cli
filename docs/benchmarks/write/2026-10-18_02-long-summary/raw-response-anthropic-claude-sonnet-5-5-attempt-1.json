@@ -1,0 +1,47 @@
+{
+  "result": "{\"episodeSummary\":\"In this guest-free episode of FS Jam, the hosts discuss how to build an embeddable third-party script, drawing on the Everfund donation widget. Speaker 1 explains the pain of bundling plain JavaScript, why UMD is still needed for loaders and WordPress even though CommonJS and ESM exist, the trade-offs of browser support and polyfills, and the choice between npm CDNs and privately hosted files. They compare injecting UI directly into the DOM with using an iframe, weighing CORS, CSS customization, and update control, and describe moving toward a headless SDK plus a React SDK. A stubborn WordPress failure was fixed by hosting the script inside the site. The conversation then turns to documentation approaches like Divio's four types and tools like ReadMe, the upcoming Remix Conference in Utah, plans for sponsorships, trust and vetting of guests, responsible developer advocacy, merchandise ideas, favorite recent episodes, and creating a lasting historical record of web development.\"}",
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-sonnet-5-5",
+    "providerReturnedModel": "claude-sonnet-5-5",
+    "processingTime": 4570,
+    "inputTokenCount": 14152,
+    "outputTokenCount": 345,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 14152,
+      "outputTokenCount": 345
+    },
+    "rawProviderUsage": {
+      "input_tokens": 14152,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 345,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-sonnet-5-5",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "ca37e90a9657fd83a99636394f8cb2b7c900e3838c706b22389d5bb5eca98424"
+        }
+      }
+    }
+  }
+}

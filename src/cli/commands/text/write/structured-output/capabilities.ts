@@ -21,21 +21,6 @@ const CAPABILITIES: Record<LLMService, ProviderStructuredCapability> = {
     strictMode: true,
     validationRetryBudget: 0
   },
-  'glm': {
-    nativeStructuredOutput: true,
-    strictMode: false,
-    validationRetryBudget: 1
-  },
-  'kimi': {
-    nativeStructuredOutput: true,
-    strictMode: false,
-    validationRetryBudget: 1
-  },
-  'together': {
-    nativeStructuredOutput: true,
-    strictMode: true,
-    validationRetryBudget: 1
-  },
 }
 
 export const resolveStructuredStrategy = (service: LLMService): StructuredStrategy => {

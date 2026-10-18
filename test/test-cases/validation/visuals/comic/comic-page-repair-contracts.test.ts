@@ -28,7 +28,7 @@ describe('page repair eligibility and promotion', () => {
     const judgePage = async (): Promise<PageQaEntry> => {
       judges++
       const failed = judges === 1
-      return { pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['framing'] : [], editInstructions: failed ? 'Correct the framing.' : '' })), summary: failed ? 'Repair framing.' : 'Pass.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+      return { pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['framing'] : [], editInstructions: failed ? 'Correct the framing.' : '' })), summary: failed ? 'Repair framing.' : 'Pass.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     }
     await generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 2 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
@@ -51,7 +51,7 @@ describe('page repair eligibility and promotion', () => {
     const judgePage = async (): Promise<PageQaEntry> => {
       judges++
       const failed = judges === 1
-      return { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['angle'] : [], editInstructions: failed ? 'Use the specified angle.' : '', ...(failed ? { repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', recommendation: 'targeted-edit', rationale: 'The angle is wrong and a bounded edit fixes it.' }) } : {}) }], summary: failed ? 'Repair.' : 'Pass.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+      return { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['angle'] : [], editInstructions: failed ? 'Use the specified angle.' : '', ...(failed ? { repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', recommendation: 'targeted-edit', rationale: 'The angle is wrong and a bounded edit fixes it.' }) } : {}) }], summary: failed ? 'Repair.' : 'Pass.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     }
     await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 2 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
@@ -87,7 +87,7 @@ describe('page repair eligibility and promotion', () => {
     await mkdir(dirname(output), { recursive: true })
     await Bun.write(output, originalBytes)
     const failedEntry: PageQaEntry = {
-      pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-6.1-sol', hardFailure: true,
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['A tiny background fixture differs.'], editInstructions: 'Adjust the tiny fixture.', repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'marginal', recommendation: 'retain-current', rationale: 'The change would not affect the panel reading.' }) }], summary: 'A marginal strict finding remains.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     }
@@ -142,7 +142,7 @@ describe('page repair eligibility and promotion', () => {
         judgePage: async (): Promise<PageQaEntry> => {
           judges++
           const failed = true
-          return { pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.6-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['The required wall display is missing.'] : [], editInstructions: failed ? 'Restore the wall display only.' : '', repairAssessment: failed ? repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', editScope: 'bounded', collateralRisk: 'low', confidence: 'high', recommendation: 'targeted-edit', preservationRequirements: ['Preserve all cast and staging.'], rationale: 'This is a specific visible omission.' }) : repairAssessment() }], summary: failed ? 'Repairable omission.' : 'Candidate passes QA.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+          return { pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-6.1-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['The required wall display is missing.'] : [], editInstructions: failed ? 'Restore the wall display only.' : '', repairAssessment: failed ? repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', editScope: 'bounded', collateralRisk: 'low', confidence: 'high', recommendation: 'targeted-edit', preservationRequirements: ['Preserve all cast and staging.'], rationale: 'This is a specific visible omission.' }) : repairAssessment() }], summary: failed ? 'Repairable omission.' : 'Candidate passes QA.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
         },
         requestRepairComparison: async request => {
           comparisonOrders.push(request.imagePaths.slice(0, 2))
@@ -158,8 +158,8 @@ describe('page repair eligibility and promotion', () => {
       expect(Buffer.from(await Bun.file(output).arrayBuffer())).toEqual(originalBytes)
       if (outcome === 'malformed') {
         const malformed = JSON.parse(await Bun.file(join(dirname(output), 'attempts', 'panel-01', 'attempt-1-comparison-pass-1-error.json')).text())
-        // 2 input and 1 output token at the gpt-5.6-sol rates of $4/1M and $20/1M.
-        expect(malformed.usage).toEqual({ inputTokens: 2, outputTokens: 1, costUsd: 0.000028 })
+        // 2 input and 1 output token at the gpt-6.1-sol rates of $2/1M and $10/1M.
+        expect(malformed.usage).toEqual({ inputTokens: 2, outputTokens: 1, costUsd: 0.000014 })
       }
     })
   }
@@ -183,7 +183,7 @@ describe('page repair eligibility and promotion', () => {
       judgePage: async (): Promise<PageQaEntry> => {
         judges++
         const failed = judges < 3
-        return { pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.6-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['The required wall display is missing.'] : [], editInstructions: failed ? 'Restore the wall display only.' : '', repairAssessment: failed ? repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', editScope: 'bounded', collateralRisk: 'low', confidence: 'high', recommendation: 'targeted-edit', preservationRequirements: ['Preserve all cast and staging.'], rationale: 'This is a specific visible omission.' }) : repairAssessment() }], summary: failed ? 'Repairable omission.' : 'Fresh restart passes QA.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+        return { pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-6.1-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['The required wall display is missing.'] : [], editInstructions: failed ? 'Restore the wall display only.' : '', repairAssessment: failed ? repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', editScope: 'bounded', collateralRisk: 'low', confidence: 'high', recommendation: 'targeted-edit', preservationRequirements: ['Preserve all cast and staging.'], rationale: 'This is a specific visible omission.' }) : repairAssessment() }], summary: failed ? 'Repairable omission.' : 'Fresh restart passes QA.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
       },
       requestRepairComparison: async request => { comparisons++; return { text: repairComparisonResponse(request.pass, 'tie'), inputTokens: 2, outputTokens: 1 } },
     })
@@ -212,7 +212,7 @@ describe('page repair eligibility and promotion', () => {
       judgePage: async (): Promise<PageQaEntry> => {
         judges++
         const failed = judges === 1
-        return { pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-5.6-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['The required wall display is missing.'] : [], editInstructions: failed ? 'Restore the wall display only.' : '', repairAssessment: failed ? repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', editScope: 'bounded', collateralRisk: 'low', confidence: 'high', recommendation: 'targeted-edit', preservationRequirements: ['Preserve all cast and staging.'], rationale: 'This is a specific visible omission.' }) : repairAssessment() }], summary: failed ? 'Repairable omission.' : 'Candidate passes QA.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+        return { pageNumber: 1, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: 'gpt-6.1-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['The required wall display is missing.'] : [], editInstructions: failed ? 'Restore the wall display only.' : '', repairAssessment: failed ? repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', editScope: 'bounded', collateralRisk: 'low', confidence: 'high', recommendation: 'targeted-edit', preservationRequirements: ['Preserve all cast and staging.'], rationale: 'This is a specific visible omission.' }) : repairAssessment() }], summary: failed ? 'Repairable omission.' : 'Candidate passes QA.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
       },
       requestRepairComparison: async request => { comparisons++; return { text: repairComparisonResponse(request.pass, 'winner'), inputTokens: 2, outputTokens: 1 } },
     })
@@ -227,7 +227,7 @@ describe('page repair eligibility and promotion', () => {
     const { runDirectory } = await createSceneFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
     const judgePage = async (): Promise<PageQaEntry> => ({
-      pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: true,
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['depth staging'], editInstructions: 'Move the hero deeper.', repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', recommendation: 'targeted-edit', rationale: 'The staging contradicts the shot plan.' }) }], summary: 'Shot-plan staging remains unresolved.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
@@ -250,7 +250,7 @@ describe('page repair eligibility and promotion', () => {
     const { runDirectory } = await createSceneFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
     const judgePage = async (): Promise<PageQaEntry> => ({
-      pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: true,
       result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['framing'], editInstructions: 'Correct framing.' })), summary: 'Grouped framing remains unresolved.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
@@ -268,7 +268,7 @@ describe('page repair eligibility and promotion', () => {
 
   test('never waives strict identity failures', () => {
     const entry: PageQaEntry = {
-      pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: true,
+      pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: true,
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: false, identityIssueKind: 'unmistakable-mismatch' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['identity and framing'], editInstructions: 'Fix identity and framing.' }], summary: 'Strict identity failure.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     }
@@ -323,7 +323,7 @@ describe('page repair eligibility and promotion', () => {
       summary: 'The location identity is recognizable, but its permanent topology drifted.',
     }
     expect(hasHardPageQaFailure(setDrift)).toBe(true)
-    const entry: PageQaEntry = { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: true, result: setDrift, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+    const entry: PageQaEntry = { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: true, result: setDrift, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     expect(applyPageQaRepairPolicy(entry, 1).hardFailure).toBe(true)
     expect(advancePageQaRepairStagnation(createPageQaRepairStagnationState(), entry).state.consecutiveFailures).toEqual({ 'panel-1:setContinuityMatch': 1, 'panel-1:setContinuityAudit': 1 })
 
@@ -334,7 +334,7 @@ describe('page repair eligibility and promotion', () => {
     expect(hasHardPageQaFailure(inconsistentAudit)).toBe(true)
     const normalizedInconsistentAudit = applyPageQaTolerancePolicy(inconsistentAudit)
     expect(normalizedInconsistentAudit.panels[0]?.setContinuityMatch).toBe(false)
-    const inconsistentEntry: PageQaEntry = { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.6-sol', hardFailure: true, result: normalizedInconsistentAudit, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+    const inconsistentEntry: PageQaEntry = { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: true, result: normalizedInconsistentAudit, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     expect(advancePageQaRepairStagnation(createPageQaRepairStagnationState(), inconsistentEntry).state.consecutiveFailures).toEqual({ 'panel-1:setContinuityMatch': 1, 'panel-1:setContinuityAudit': 1 })
 
     const strictPayload = { ...setDrift, panels: [{ ...setDrift.panels[0]!, identityIssueKind: 'none' as const, dialogueIssueKind: 'none' as const }] }

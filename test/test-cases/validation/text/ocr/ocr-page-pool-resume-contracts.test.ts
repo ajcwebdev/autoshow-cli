@@ -22,7 +22,7 @@ describe('pooled OCR page scheduler contracts', () => {
     acceptedPage.status = 'accepted'
     acceptedPage.accepted = {
       provider: 'openai',
-      model: 'gpt-5.6-sol',
+      model: 'gpt-6.1-sol',
       attempt: acceptedPage.attempts.length,
       acceptedAtMs: 1,
       durationMs: 1,
@@ -31,12 +31,12 @@ describe('pooled OCR page scheduler contracts', () => {
     }
     const interruptedPage = restored.pages[1]!
     interruptedPage.status = 'claimed'
-    interruptedPage.claim = { claimId: 'stale', targetKey: 'openai:gpt-5.6-sol', laneKey: 'openai:env-api-key', attempt: 3, claimedAtMs: 2 }
+    interruptedPage.claim = { claimId: 'stale', targetKey: 'openai:gpt-6.1-sol', laneKey: 'openai:env-api-key', attempt: 3, claimedAtMs: 2 }
     interruptedPage.attempts.push({
       attempt: 3,
       claimId: 'stale',
       provider: 'openai',
-      model: 'gpt-5.6-sol',
+      model: 'gpt-6.1-sol',
       laneKey: 'openai:env-api-key',
       status: 'running',
       startedAtMs: 2,
@@ -59,7 +59,7 @@ describe('pooled OCR page scheduler contracts', () => {
   })
 
   test('explicit re-enablement permits a retired target to retry without changing accepted pages', async () => {
-    const target: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
+    const target: OcrTarget = { service: 'openai', model: 'gpt-6.1-sol' }
     const failed = await runPool({
       totalPages: 1,
       requestedTargets: [target],
@@ -83,7 +83,7 @@ describe('pooled OCR page scheduler contracts', () => {
   })
 
   test('re-enabling one target does not revive a separately retired sibling on the same lane', async () => {
-    const selected: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
+    const selected: OcrTarget = { service: 'openai', model: 'gpt-6.1-sol' }
     const sibling: OcrTarget = { service: 'openai', model: 'gpt-5.6-terra' }
     const failed = await runPool({
       totalPages: 2,
@@ -110,7 +110,7 @@ describe('pooled OCR page scheduler contracts', () => {
   })
 
   test('a checkpointed in-flight claim resumes on the same still-eligible target', async () => {
-    const target: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
+    const target: OcrTarget = { service: 'openai', model: 'gpt-6.1-sol' }
     let crashCheckpoint: OcrPoolLedger | undefined
     await expect(runPool({
       totalPages: 1,
@@ -138,7 +138,7 @@ describe('pooled OCR page scheduler contracts', () => {
   })
 
   test('does not turn an accepted-page checkpoint failure into a provider retry', async () => {
-    const target: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
+    const target: OcrTarget = { service: 'openai', model: 'gpt-6.1-sol' }
     const persisted: OcrPoolLedger[] = []
     let providerCalls = 0
     let classifiedFailures = 0

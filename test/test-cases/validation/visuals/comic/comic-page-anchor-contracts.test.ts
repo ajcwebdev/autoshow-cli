@@ -11,7 +11,7 @@ const { tinyPng, repairAssessment, createSceneFixture } = setupPageContractFixtu
 
 describe('page QA parsing and audit routing', () => {
   test('routes panel QA through supported vision providers', () => {
-    expect(resolveComicQaProvider('gpt-5.6-sol')).toBe('openai')
+    expect(resolveComicQaProvider('gpt-6.1-sol')).toBe('openai')
     expect(resolveComicQaProvider('gemini-3.8-flash')).toBe('gemini')
     expect(() => resolveComicQaProvider('grok-4.5')).toThrow('supports OpenAI and Gemini')
   })

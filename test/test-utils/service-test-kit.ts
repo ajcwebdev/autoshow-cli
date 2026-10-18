@@ -11,9 +11,6 @@ import type { RunAndExpectOutputDirOptions, RunCommandOptions } from '~/types'
 import { stripAnsi } from '~/utils/terminal-colors'
 import {
   RUNWAY_INSUFFICIENT_CREDITS_MESSAGE,
-  isGlmAccountAvailabilityFailure,
-  isGlmCertificateExpiryFailure,
-  isGlmRetryable429Exhaustion,
   isDeepInfraWhisperLargeV3CommandTimeout,
   isGeminiImageAvailabilityFailure,
   isGeminiImageEmptyResponse,
@@ -24,15 +21,6 @@ export const classifyLiveProviderAvailabilityFailure = (output: string): string 
   const cleanOutput = stripAnsi(output)
   if (cleanOutput.includes(RUNWAY_INSUFFICIENT_CREDITS_MESSAGE)) {
     return 'Runway account does not have enough credits to run this task'
-  }
-  if (isGlmAccountAvailabilityFailure(cleanOutput)) {
-    return 'GLM account does not have enough balance or an active resource package'
-  }
-  if (isGlmCertificateExpiryFailure(cleanOutput)) {
-    return 'GLM provider TLS certificate has expired'
-  }
-  if (isGlmRetryable429Exhaustion(cleanOutput)) {
-    return 'GLM provider remained rate limited after retries'
   }
   if (isDeepInfraWhisperLargeV3CommandTimeout(cleanOutput)) {
     return 'DeepInfra openai/whisper-large-v3 transcription timed out'

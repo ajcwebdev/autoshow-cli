@@ -1,0 +1,3 @@
+## Episode Description
+
+James Berkins discusses being laid off during downsizing and landing a new developer job within 12 hours through professional connections.

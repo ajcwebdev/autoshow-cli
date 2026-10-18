@@ -1,0 +1,46 @@
+{
+  "result": "{\"chapters\":[{\"timestamp\":\"00:00:00\",\"title\":\"Twitter Spaces Recovery and React Miami Introduction\",\"description\":\"The hosts recover from a delayed Twitter Space launch, sharing a practical lesson about waiting for sessions to become visible. They welcome listeners to JavaScript Jam Live, introduce the React Miami collaboration, and explain that the series will retain its open, community-driven format while adding conference-related guests and activities.\"},{\"timestamp\":\"00:03:00\",\"title\":\"Community Participation and Partner Introductions\",\"description\":\"Scott encourages developers at every experience level to join the conversation with questions, comments, and perspectives. Anthony introduces Dev Agrawal as a React Miami media partner, while Michelle joins as an event organizer. The group emphasizes that the collaboration is intended to create more value, conversations, and opportunities for the wider JavaScript community.\"},{\"timestamp\":\"00:06:00\",\"title\":\"Miami Jam Game Show Format\",\"description\":\"Dev outlines Miami Jam, a React Miami companion program designed as an interactive game show rather than a conventional interview panel. Speaker trivia, JavaScript and TypeScript questions, library guesses, topic discussions, and audience scoring will encourage lively exchanges while still revealing presenters’ experience, motivations, and conference subjects. The source concludes at 00:08:42, for a total duration of 00:08:42.\"}] }",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-5.6-terra",
+    "providerReturnedModel": "gpt-5.6-terra",
+    "processingTime": 4234,
+    "inputTokenCount": 2540,
+    "outputTokenCount": 413,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 2540,
+      "outputTokenCount": 413,
+      "totalTokenCount": 2953
+    },
+    "rawProviderUsage": {
+      "input_tokens": 2540,
+      "input_tokens_details": {
+        "cache_write_tokens": 2537,
+        "cached_tokens": 0
+      },
+      "output_tokens": 413,
+      "output_tokens_details": {
+        "reasoning_tokens": 131
+      },
+      "total_tokens": 2953
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-5.6-terra",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_mediumChapters",
+          "schemaSha256": "21fdcdb40e118404ed84283dc2e2153afca07f6360aea5c77a5d2b38632c29af",
+          "strict": true
+        }
+      }
+    }
+  }
+}

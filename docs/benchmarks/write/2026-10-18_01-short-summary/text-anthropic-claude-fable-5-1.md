@@ -1,0 +1,3 @@
+## Episode Description
+
+James Berkins recounts being laid off from Tina CMS during downsizing and landing a new developer role within 12 hours thanks to his professional connections.

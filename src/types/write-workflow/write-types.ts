@@ -59,7 +59,7 @@ export type StructuredValidationResult = {
   issue?: string
 }
 
-export type LLMService = Step3Metadata['llmService']
+export type LLMService = 'openai' | 'gemini' | 'anthropic' | 'grok'
 
 export type StructuredPresetName =
   | 'shortSummary'

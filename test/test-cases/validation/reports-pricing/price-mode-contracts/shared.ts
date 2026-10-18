@@ -16,12 +16,12 @@ export const buildSttMetadata = (overrides: Partial<Step2Metadata> = {}): Step2M
 })
 
 export const buildOcrTimingMetadata = (input: {
-  service: 'kimi' | 'gemini'
+  service: 'deepinfra' | 'gemini'
   model: string
   pageCount: number
   preparation: NonNullable<ExtractionMetadata['pdfChunkPreparation']>
 }): ExtractionMetadata => ({
-  extractionMethod: input.service === 'kimi' ? 'pdf+kimi-ocr' : 'pdf+gemini-ocr',
+  extractionMethod: input.service === 'deepinfra' ? 'pdf+deepinfra-ocr' : 'pdf+gemini-ocr',
   totalPages: input.pageCount,
   ocrPages: input.pageCount,
   textPages: 0,
@@ -77,16 +77,14 @@ export const missingHostedOcrProfilePath = (): string =>
 
 export const HOSTED_OCR_PROVIDER_CASES = [
   { provider: 'mistral', flagName: 'mistral-ocr', modelsKey: 'mistralOcrModels', model: 'mistral-ocr-4-0' },
-  { provider: 'glm', flagName: 'glm-ocr', modelsKey: 'glmOcrModels', model: 'glm-5.3-flash' },
-  { provider: 'kimi', flagName: 'kimi-ocr', modelsKey: 'kimiOcrModels', model: 'kimi-k2.6' },
-  { provider: 'openai', flagName: 'openai-ocr', modelsKey: 'openaiOcrModels', model: 'gpt-5.6-luna' },
+  { provider: 'openai', flagName: 'openai-ocr', modelsKey: 'openaiOcrModels', model: 'gpt-6-luna' },
   { provider: 'grok', flagName: 'grok-ocr', modelsKey: 'grokOcrModels', model: 'grok-4.5' },
-  { provider: 'anthropic', flagName: 'anthropic-ocr', modelsKey: 'anthropicOcrModels', model: 'claude-sonnet-5' },
+  { provider: 'anthropic', flagName: 'anthropic-ocr', modelsKey: 'anthropicOcrModels', model: 'claude-sonnet-5-5' },
   { provider: 'gemini', flagName: 'gemini-ocr', modelsKey: 'geminiOcrModels', model: 'gemini-3.5-flash-lite' },
   { provider: 'deepinfra', flagName: 'deepinfra-ocr', modelsKey: 'deepinfraOcrModels', model: 'google/gemma-4-31B-it' }
 ] as const
 
-export const KIMI_OCR_PROVIDER_CASE = HOSTED_OCR_PROVIDER_CASES[2]
+export const DEEPINFRA_OCR_PROVIDER_CASE = HOSTED_OCR_PROVIDER_CASES[HOSTED_OCR_PROVIDER_CASES.length - 1]!
 
 export const expectedOcrProcessingMs = (
   provider: string,

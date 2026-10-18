@@ -1,0 +1,46 @@
+{
+  "result": "{\n  \"title\": \"Room on the Page\",\n  \"intro\": [\n    \"Teal enamel holds the map against the breeze;\",\n    \"Cream compass badge toward the window, toward the sea.\",\n    \"Mist rims the ridge. I trace where we'll arrive—\",\n    \"Harborlight Camp, with the telescope by night.\"\n  ],\n  \"verse1\": [\n    \"I'm Mira. Papa Bear checks rain and trail reports;\",\n    \"A human guide, rust coat, patience in his voice.\",\n    \"I check the torch, spare layer, water for the climb;\",\n    \"We each pack a route. Changed weather? Turn in time.\",\n    \"The mug pins the paper; my finger finds the bridge.\",\n    \"I name a fresh page for the camp along the ridge.\",\n    \"We clear the table, take each thing we carried in;\",\n    \"At the entrance, I photograph the route we're following.\",\n    \"Board against the print—same path, no revision;\",\n    \"A shortcut looks tempting. We keep our decision.\",\n    \"Above the harbor, that short bridge stretches long;\",\n    \"I label both positions. Neither view is wrong.\",\n    \"At camp: level ground, clear path, tripod feet checked;\",\n    \"Mug back from the edge, loose pages firmly clipped.\",\n    \"Cloud crosses the first star. I wanted the whole sight;\",\n    \"Papa suggests I write the cloud beside the light.\"\n  ],\n  \"chorus1\": [\n    \"Leave a little room on the page.\",\n    \"One bright point; let the cloud remain.\",\n    \"Set the mug down. Let the paper stay.\",\n    \"We don't need more than the view can say.\"\n  ],\n  \"verse2\": [\n    \"I lower the lantern, turn its shield to the table;\",\n    \"Less light in our circle makes the far ridge readable.\",\n    \"The telescope stays clear of the sun's last glow;\",\n    \"We wait for full dark. There's no need to go.\",\n    \"We trade the eyepiece. Bright point—not a distance.\",\n    \"Papa asks what's changed. I look for the difference:\",\n    \"Cloud shifted; harbor lights cut sharper below;\",\n    \"That pale band over the ridge has let go.\",\n    \"Then—one streak. Both looking. Gone before a sketch.\",\n    \"No time to catch the whole path, much less the rest.\",\n    \"Direction, time—approximate. A moment, then it passed;\",\n    \"I won't make a grand discovery out of something fast.\",\n    \"Hands around warm enamel; neither needs to speak.\",\n    \"Waiting gave a view that haste could never keep.\"\n  ],\n  \"chorus2\": [\n    \"Leave a little room on the page.\",\n    \"One brief streak doesn't need a name.\",\n    \"Set the mug down. Let the paper stay.\",\n    \"We don't need more than the view can say.\"\n  ],\n  \"verse3\": [\n    \"Before bed, route beside the record: we compare.\",\n    \"Place, weather, time, observer—all entered there.\",\n    \"A sketch is marked a sketch, not polished into proof;\",\n    \"An uncertain name stays uncertain. That's useful.\",\n    \"Someone who wasn't here should know what we could see;\",\n    \"The page can't borrow certainty from standing next to me.\",\n    \"Morning: mug, notebook, clip; lantern, case—counted.\",\n    \"Papa checks for scraps, for loose equipment round us.\",\n    \"We leave the level campsite clear as when we came;\",\n    \"Return along the markers, keep the route the same.\",\n    \"At the overlook, morning changes that bridge again;\",\n    \"A third small drawing joins the earlier two in pen.\",\n    \"Nothing needs erasing. Place and light explain\",\n    \"How honest observations differ—and remain.\"\n  ],\n  \"bridge\": [\n    \"Back at the window: teal mug, folded chart.\",\n    \"Four pages. Three bridge sketches, set apart.\",\n    \"That first page holds the cloud I wished away;\",\n    \"Now I wouldn't cut it out to clear the way.\"\n  ],\n  \"chorus3\": [\n    \"Leave a little room on the page.\",\n    \"Three bridge views; not one to erase.\",\n    \"Set the mug down. The next walk can wait.\",\n    \"First, what we saw. Then, what we can say.\"\n  ]\n}",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6.1-sol",
+    "providerReturnedModel": "gpt-6.1-sol",
+    "processingTime": 22894,
+    "inputTokenCount": 3518,
+    "outputTokenCount": 1429,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3518,
+      "outputTokenCount": 1429,
+      "totalTokenCount": 4947
+    },
+    "rawProviderUsage": {
+      "input_tokens": 3518,
+      "input_tokens_details": {
+        "cache_write_tokens": 3515,
+        "cached_tokens": 0
+      },
+      "output_tokens": 1429,
+      "output_tokens_details": {
+        "reasoning_tokens": 516
+      },
+      "total_tokens": 4947
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-6.1-sol",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_rapSongChapter",
+          "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6",
+          "strict": true
+        }
+      }
+    }
+  }
+}

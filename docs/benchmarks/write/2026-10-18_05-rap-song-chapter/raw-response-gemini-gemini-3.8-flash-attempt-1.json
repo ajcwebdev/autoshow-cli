@@ -1,0 +1,42 @@
+{
+  "result": "{\n  \"title\": \"Harborlight Field Notes\",\n  \"intro\": [\n    \"Teal enamel mug anchors down the corner fold,\",\n    \"Morning mist along the ridge is turning thin and cold.\",\n    \"Papa Bear checks the trail board before we lift a pack,\",\n    \"No shortcut taken, and an hour marked for turning back.\"\n  ],\n  \"verse1\": [\n    \"Set the cream compass badge right beside the open sill,\",\n    \"Trace the harbor footbridge climbing up the sheltered hill.\",\n    \"He carries years in the rust coat, patient with the pace,\",\n    \"Matches every route sheet so we leave a tidy place.\",\n    \"I photograph the board at the entrance by the trees,\",\n    \"Keep the paper weighted flat against an offshore breeze.\",\n    \"Up at the overlook, the bridge looks stretched and long—\",\n    \"From the shore it seemed so short, but neither sketch is wrong;\",\n    \"I just write down where I stood, pencil steady on the sheet,\",\n    \"Before we set the tent poles on the designated street.\",\n    \"Level ground, tripod balanced, casing tucked away,\",\n    \"Clip upon the notebook so the margins cannot stray.\",\n    \"First star shows behind a drift of evening cloud,\",\n    \"Don't wipe the vapor out to make the entry proud:\",\n    \"Write the pale band of sky, write the wind across the floor,\",\n    \"Note the single bright point, and wait for something more.\"\n  ],\n  \"chorus1\": [\n    \"Keep the lantern shielded, set the pencil to the line,\",\n    \"Write what you can see before you name the whole design.\",\n    \"From the footbridge to the ridge where the harbor waters gleam:\",\n    \"Describe the evidence before you claim what it might mean.\"\n  ],\n  \"verse2\": [\n    \"Slide the lantern shield down, leave an amber ring of light,\",\n    \"Just enough to find the mug and let the eyes adjust to night.\",\n    \"Take a turn against the lens, wait for solar glare to die,\",\n    \"He asks me what has shifted in the quarter of the sky:\",\n    \"The harbor lamps are sharper now, the pale band fades away,\",\n    \"The cloud drift is moving east where the water turns to gray.\",\n    \"I log a single silver point, resisting any guess—\",\n    \"Don't invent a distance when the measurement is less.\",\n    \"Then a sudden white streak cuts across the open dark,\",\n    \"Neither one can map the trail of that momentary spark;\",\n    \"So we log the rough compass heading and the minute that it flew,\",\n    \"Mark it brief, mark it fleeting, keep the record clean and true.\",\n    \"No grand declaration made from one unmeasured flash,\",\n    \"Just hands around the enamel mug as embers turn to ash.\"\n  ],\n  \"chorus2\": [\n    \"Keep the lantern shielded, set the pencil to the line,\",\n    \"Write what you can see before you name the whole design.\",\n    \"From the footbridge to the ridge where the harbor waters gleam:\",\n    \"Describe the evidence before you claim what it might mean.\"\n  ],\n  \"verse3\": [\n    \"Morning breaks across the camp, we check the ground for scraps,\",\n    \"Pack the lantern, clip the pad, and stow the tripod straps.\",\n    \"Papa Bear inspects the perimeter we occupied,\",\n    \"Leaving every stone intact along the mountainside.\",\n    \"Down beside the overlook, the sun has hit the bay,\",\n    \"The footbridge looks entirely changed in early morning gray.\",\n    \"I don't erase the evening view or strike the noon contour;\",\n    \"I add a third perspective where the timber meets the shore.\",\n    \"Three angles of the crossing, three conditions of the sun,\",\n    \"Not an error on the page, just the work of how it's done.\",\n    \"Four sheets of recorded wind, the hours and the names,\",\n    \"No inflated story built on speculative claims.\",\n    \"The mug sits by the window sill, the map is folded tight:\",\n    \"You learn to see the world by how you treat the fading light.\"\n  ],\n  \"bridge\": [\n    \"Observer: Mira. Weather: clear. Time: zero six fifteen.\",\n    \"Every sketch remains attached to where the marker had been seen.\",\n    \"The bridge didn't change its span between the dusk and dawn—\",\n    \"Only where the witness stood before the mist was gone.\"\n  ],\n  \"chorus3\": [\n    \"Keep the lantern shielded, set the pencil to the line,\",\n    \"Write what you can see before you name the whole design.\",\n    \"Angle, light, and vantage shift across the harbor stream:\",\n    \"Describe the evidence before you claim what it might mean.\"\n  ]\n}",
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-3.8-flash",
+    "providerReturnedModel": "gemini-3.8-flash",
+    "processingTime": 25127,
+    "inputTokenCount": 3523,
+    "outputTokenCount": 3258,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3523,
+      "outputTokenCount": 3258,
+      "totalTokenCount": 6781
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 3523,
+      "candidatesTokenCount": 1066,
+      "totalTokenCount": 6781,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 3523
+        }
+      ],
+      "thoughtsTokenCount": 2192,
+      "serviceTier": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-3.8-flash",
+      "generationConfig": {
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6"
+      }
+    }
+  }
+}

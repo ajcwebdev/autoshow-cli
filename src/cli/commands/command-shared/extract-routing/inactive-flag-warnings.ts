@@ -15,8 +15,6 @@ export const hasConfiguredOcrProviderSelection = (
 ): boolean =>
   opts.useTesseract === true
   || hasSelectedModel(opts.mistralOcrModels)
-  || hasSelectedModel(opts.glmOcrModels)
-  || hasSelectedModel(opts.kimiOcrModels)
   || hasSelectedModel(opts.openaiOcrModels)
   || hasSelectedModel(opts.grokOcrModels)
   || hasSelectedModel(opts.anthropicOcrModels)

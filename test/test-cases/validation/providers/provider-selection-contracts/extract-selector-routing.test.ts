@@ -20,7 +20,7 @@ describe('provider selection contracts', () => {
       provider: ['mistral=voxtral-mini-2602']
     }, new Set(['provider']), { media: true, document: false })
     const documentNormalized = normalizeExtractGenericSelectorFlags({
-      provider: ['glm=glm-5.3-flash']
+      provider: ['mistral=mistral-ocr-4-0']
     }, new Set(['provider']), { media: false, document: true })
     const grokDocumentNormalized = normalizeExtractGenericSelectorFlags({
       provider: ['grok=grok-4.5']
@@ -36,7 +36,7 @@ describe('provider selection contracts', () => {
     }, new Set(['all-local']), { media: true, document: true, article: true })
 
     expect(buildOptsFromFlags(mediaNormalized.flags, {}, mediaNormalized.explicitFlags).mistralSttModels).toEqual(['voxtral-mini-2602'])
-    expect(buildOptsFromFlags(documentNormalized.flags, {}, documentNormalized.explicitFlags).glmOcrModels).toEqual(['glm-5.3-flash'])
+    expect(buildOptsFromFlags(documentNormalized.flags, {}, documentNormalized.explicitFlags).mistralOcrModels).toEqual(['mistral-ocr-4-0'])
     expect(buildOptsFromFlags(grokDocumentNormalized.flags, {}, grokDocumentNormalized.explicitFlags).grokOcrModels).toEqual(['grok-4.5'])
     const mixedDefaultOpts = buildOptsFromFlags(mixedDefaultNormalized.flags, {}, mixedDefaultNormalized.explicitFlags)
     expect(mixedDefaultOpts.mistralSttModels).toEqual(['voxtral-mini-2602'])
@@ -70,12 +70,12 @@ describe('provider selection contracts', () => {
       'extract',
       'input/examples/document/1-document.pdf',
       '--provider',
-      'glm=glm-5.3-flash',
+      'mistral=mistral-ocr-4-0',
       '--price'
     ], { media: false, document: true })
     expect(routeAwareDocumentArgs).toEqual([
-      '--glm-ocr',
-      'glm-5.3-flash',
+      '--mistral-ocr',
+      'mistral-ocr-4-0',
       '--price'
     ])
     expect(normalizeExtractGenericSelectorArgs([
@@ -137,8 +137,8 @@ describe('provider selection contracts', () => {
     ])
 
     const routeAwareDocumentOpts = buildOptsFromFlags(documentNormalized.flags, {}, documentNormalized.explicitFlags, { flagOccurrences: documentNormalized.flagOccurrences })
-    expect(routeAwareDocumentOpts.glmOcrModels).toEqual(['glm-5.3-flash'])
-    expect(routeAwareDocumentOpts.glmModels).toBeUndefined()
+    expect(routeAwareDocumentOpts.mistralOcrModels).toEqual(['mistral-ocr-4-0'])
+    expect('mistralModels' in routeAwareDocumentOpts).toBe(false)
 
     expect(() => normalizeExtractGenericSelectorFlags({
       provider: ['mistral=mistral-ocr-4-0']

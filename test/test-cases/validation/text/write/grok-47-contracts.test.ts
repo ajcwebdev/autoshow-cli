@@ -40,17 +40,16 @@ const response = (content: unknown, finishReason = 'stop') => Response.json({
 const metadata = (format: DocumentMetadata['format']): DocumentMetadata => ({ slug: 'synthetic', format, pageCount: 1, fileSize: 3 })
 
 describe('Grok 4.7 documented Chat Completions and OCR contracts', () => {
-  test('explicit selectors and all-provider membership retain prior model identities', () => {
-    expect(buildOptsFromFlags({ grok: true }).grokModels).toEqual(['grok-4.6'])
+  test('explicit selectors and defaults use Grok 4.7 while OCR retains Grok 4.5', () => {
+    expect(buildOptsFromFlags({ grok: true }).grokModels).toEqual(['grok-4.7'])
     expect(buildOptsFromFlags({ 'grok-ocr': true }).grokOcrModels).toEqual(['grok-4.5'])
     expect(buildOptsFromFlags({ grok: model }).grokModels).toEqual([model])
     expect(buildOptsFromFlags({ 'grok-ocr': model }).grokOcrModels).toEqual([model])
     expect(buildOptsFromFlags({ 'all-llm': true }).grokModels).toContain(model)
     expect(buildOptsFromFlags({ 'all-ocr': true }).grokOcrModels).toContain(model)
-    expect(buildOptsFromFlags({ grok: 'grok-4.6' }).grokModels).toEqual(['grok-4.6'])
-    for (const prior of ['grok-4.5', 'grok-4.6']) {
-      expect(buildOptsFromFlags({ 'grok-ocr': prior }).grokOcrModels).toEqual([prior])
-    }
+    expect(buildOptsFromFlags({ 'grok-ocr': 'grok-4.5' }).grokOcrModels).toEqual(['grok-4.5'])
+    expect(() => buildOptsFromFlags({ grok: 'grok-4.6' })).toThrow('Use "grok-4.7" instead')
+    expect(() => buildOptsFromFlags({ 'grok-ocr': 'grok-4.6' })).toThrow('Use "grok-4.7" instead')
   })
 
   for (const effort of [undefined, 'low', 'medium', 'high', 'xhigh', 'default'] as const) {

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "01-short-summary",
+  "provider": "openai",
+  "model": "gpt-6-luna",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:30:40.019Z",
+  "artifactHashes": {
+    "raw-response-openai-gpt-6-luna-attempt-1.json": "55e6a8a7ffdbc3f5f6b9f1398744c64150f43f91a662e195f450c936a27dede3",
+    "text-openai-gpt-6-luna.json": "228a95a674878564bc1a841b1d7e2f6709419f889626d01fea73729201feb264",
+    "text-openai-gpt-6-luna.md": "db0d16ab31ffd3def98c0d43c592909dcbd20d060d687fd7b9ba8358ed747342"
+  },
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6-luna",
+    "providerReturnedModel": "gpt-6-luna",
+    "processingTime": 2796,
+    "inputTokenCount": 438,
+    "outputTokenCount": 88,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 438,
+      "outputTokenCount": 88,
+      "totalTokenCount": 526
+    },
+    "rawProviderUsage": {
+      "input_tokens": 438,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 88,
+      "output_tokens_details": {
+        "reasoning_tokens": 48
+      },
+      "total_tokens": 526
+    },
+    "outputFileName": "text-openai-gpt-6-luna.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "shortSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-6-luna",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_shortSummary",
+          "schemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.00878
+  },
+  "completedAt": "2026-10-18T18:30:42.819Z",
+  "wallTimeMs": 2796,
+  "networkAttempts": 1
+}

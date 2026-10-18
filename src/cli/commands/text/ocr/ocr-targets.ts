@@ -2,11 +2,10 @@ import type { ExtractionOptions, OcrTarget, Step2ProviderSelectionFilter, Step2P
 import { UsageError } from '~/utils/error-handler'
 import { sanitizeModelName } from '~/cli/commands/command-shared/target-runner'
 import { collectOcrProviderSpecs } from './ocr-cli'
+import { hostedOcrAdapterForService } from './hosted-ocr-adapters'
 
 const providerToOcrService = (provider: string): OcrTarget['service'] => {
   if (provider === 'mistral-ocr') return 'mistral'
-  if (provider === 'glm-ocr') return 'glm'
-  if (provider === 'kimi-ocr') return 'kimi'
   if (provider === 'openai-ocr') return 'openai'
   if (provider === 'grok-ocr') return 'grok'
   if (provider === 'anthropic-ocr') return 'anthropic'
@@ -16,7 +15,7 @@ const providerToOcrService = (provider: string): OcrTarget['service'] => {
 }
 
 export const collectExplicitOcrTargets = (
-  opts: Pick<ExtractionOptions, 'useTesseract' | 'mistralOcrModel' | 'glmOcrModel' | 'kimiOcrModel' | 'openaiOcrModel' | 'grokOcrModel' | 'anthropicOcrModel' | 'geminiOcrModel' | 'deepinfraOcrModel'> & {
+  opts: Pick<ExtractionOptions, 'useTesseract' | 'mistralOcrModel' | 'openaiOcrModel' | 'grokOcrModel' | 'anthropicOcrModel' | 'geminiOcrModel' | 'deepinfraOcrModel'> & {
     step2SelectionOrigins?: Partial<Record<string, Step2ProviderSelectionOrigin>> | undefined
     provider?: string[] | undefined
   },
@@ -62,15 +61,16 @@ export const getOcrTargetDirectoryName = (target: OcrTarget): string =>
 export const buildExtractionOptionsForTarget = (
   opts: ExtractionOptions,
   target: OcrTarget
-): ExtractionOptions => ({
-  ...opts,
-  useTesseract: target.service === 'tesseract' ? true : undefined,
-  mistralOcrModel: target.service === 'mistral' ? target.model : undefined,
-  glmOcrModel: target.service === 'glm' ? target.model : undefined,
-  kimiOcrModel: target.service === 'kimi' ? target.model : undefined,
-  openaiOcrModel: target.service === 'openai' ? target.model : undefined,
-  grokOcrModel: target.service === 'grok' ? target.model : undefined,
-  anthropicOcrModel: target.service === 'anthropic' ? target.model : undefined,
-  geminiOcrModel: target.service === 'gemini' ? target.model : undefined,
-  deepinfraOcrModel: target.service === 'deepinfra' ? target.model : undefined
-})
+): ExtractionOptions => {
+  if (target.service !== 'tesseract') hostedOcrAdapterForService(target.service)
+  return {
+    ...opts,
+    useTesseract: target.service === 'tesseract' ? true : undefined,
+    mistralOcrModel: target.service === 'mistral' ? target.model : undefined,
+    openaiOcrModel: target.service === 'openai' ? target.model : undefined,
+    grokOcrModel: target.service === 'grok' ? target.model : undefined,
+    anthropicOcrModel: target.service === 'anthropic' ? target.model : undefined,
+    geminiOcrModel: target.service === 'gemini' ? target.model : undefined,
+    deepinfraOcrModel: target.service === 'deepinfra' ? target.model : undefined
+  }
+}

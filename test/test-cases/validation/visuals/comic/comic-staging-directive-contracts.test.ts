@@ -231,11 +231,11 @@ describe('staging directive parser contracts', () => {
       echoed['staging'] = { blocking: [{ invented: true }] }
       return {
         text: JSON.stringify(echoed),
-        metadata: { llmService: 'openai', llmModel: 'gpt-5.6-sol', processingTime: 1, inputTokenCount: 10, outputTokenCount: 5, outputFileName: 'review.json', outputFormat: 'json', structuredMode: 'native', structuredPresetNames: [] },
+        metadata: { llmService: 'openai', llmModel: 'gpt-6.1-sol', processingTime: 1, inputTokenCount: 10, outputTokenCount: 5, outputFileName: 'review.json', outputFormat: 'json', structuredMode: 'native', structuredPresetNames: [] },
       }
     }
 
-    const reviewed = await reviewStructuredScriptWithLlm(source, provisional, 'gpt-5.6-sol', {}, {
+    const reviewed = await reviewStructuredScriptWithLlm(source, provisional, 'gpt-6.1-sol', {}, {
       runStructuredLlm,
       characterKeys: testCharacterCatalog.characterKeys,
       characterAliasGuidance: 'CAPTAIN -> captain, ENGINEER -> engineer, PILOT -> pilot',

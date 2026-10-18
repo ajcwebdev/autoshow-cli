@@ -1,0 +1,45 @@
+{
+  "result": "{\n  \"title\": \"Introducing Miami Jam: How JavaScript Jam Live Is Turning Conference Talks into a Game Show\",\n  \"outline\": [\n    \"Introduction and context: a glitchy Twitter Space start, the open-mic spirit of JavaScript Jam Live, and the big announcement\",\n    \"Core ideas and supporting evidence: the React Miami media partnership with Edgio's team and Dev Agrawal, plus Miami Jam's trivia-driven, audience-powered game show format\",\n    \"Implications, takeaways, and next steps: what the format change means for developer communities and what to watch for in the coming weeks\"\n  ],\n  \"draft\": \"When the hosts of JavaScript Jam Live tried to kick off their latest Twitter Space, the platform had other plans. The room appeared to be starting on one phone while remaining invisible to everyone else who wanted to join. After a few tense minutes, patience won out and the Space went live — a small reminder that even seasoned developers and community builders get humbled by technology. As Scott Steinlage joked later, it doesn't matter how much you know about tech; there is always something waiting to make you look like a fool. Anthony Campolo countered with a nod to the old Demotivators posters: sometimes your role is simply to be a lesson for others. That mix of authenticity, humor, and resilience set the perfect tone for what turned out to be a big announcement: JavaScript Jam Live is teaming up with React Miami, and together they are launching something new called Miami Jam.\\n\\nA quick introduction for the uninitiated: JavaScript Jam Live describes itself as an open mic for anything JavaScript and web development related. The show, hosted by Ishan Anand, VP of Product at Edgio, alongside Anthony Campolo, Developer Advocate at Edgio, and Scott Steinlage, Technical Community Manager at Edgio, thrives on audience participation. Listeners are invited to raise their hands, come up on stage, and share questions, comments, facts, or opinions. According to the hosts, that participation is not just welcome noise — it is what makes the conversations great. Whether you are a beginner who has been writing code for a few months or a veteran who has been shipping web applications for decades, the show wants to hear from you.\\n\\nThis week's episode carried special news. JavaScript Jam Live is collaborating with React Miami, the conference happening in April 2023, as an official media partner. Anthony and Scott are joining Dev Agrawal, who is also a media partner for the conference, to produce a series of events, activities, and content in the weeks leading up to and around the conference. Scott, for his part, wasted no time branding the whole stretch React Miami Month, and promised that some extra goodies for the community would be revealed along the way. Michelle, one of the organizers of React Miami, stopped by the Space to explain how the partnership came together: the organizers essentially handed the media partners a green light to do whatever they liked. \\\"We'll see whether you end up regretting it or not,\\\" Ishan joked — but the early signs suggest the experiment is going to be a lot of fun rather than a regret.\\n\\nSo what did they build with that freedom? Dev Agrawal came up with an idea he calls Miami Jam, a live game show scheduled for the following week, co-hosted with Anthony and Scott. The premise is simple but refreshing: move away from the typical interview or panel format where speakers are asked predictable questions about their topics. Instead, Miami Jam uses trivia-style questions as its engine. Some questions will be strictly React-related. Others will poke at weird quirks in JavaScript and TypeScript, or touch on anything adjacent to the React ecosystem. Some will ask contestants to guess which library is being used based on clues. And in a clever twist, some questions will be drawn from other speakers' talks — meaning each panelist might be quizzed on a colleague's topic before the conversation flows into a deeper discussion.\\n\\nThe game show framing is not just a gimmick. The trivia questions act as on-ramps to substantive conversation. After a speaker answers a question about their own talk, the hosts can segue into their motivations, their industry experience, and the projects that brought them to the React Miami stage. Speakers are encouraged to share experiences with each other rather than talking past one another, which makes the show collaborative rather than performative. The result, Dev hopes, is a format that is more fun, more interactive, and more engaging for everyone involved.\\n\\nThe audience is not limited to watching, either. Viewers in the room will be able to engage with the speakers directly. Beyond asking their own questions, audience members may get to influence the game itself — for example, by deciding how many points a speaker earns for answering a particular question. It is a playful mechanic that blurs the line between panel and audience, keeping everyone alert and invested.\\n\\nMichelle's presence on the call underscored why this partnership makes sense. React Miami's organizers want the surrounding community content to reflect the energy of the conference itself, and giving media partners creative freedom is one way to get it. For listeners, the collaboration promises extra value: more React Miami speakers appearing on JavaScript Jam Live in the coming weeks, discussing topics that make sense for their expertise, all wrapped in the familiar JavaScript Jam vibe — nothing changing about the open-mic spirit, just more of it.\\n\\nThere are a few takeaways here for anyone building developer communities. First, format matters: interviews and panels are comfortable, but a game show can surface stories and chemistry that standard Q&A never touches. Second, trust your partners: handing a team a green light and letting them experiment can produce ideas like Miami Jam. Third, participation compounds: the more the audience is invited in — whether to answer trivia or to assign points — the more valuable the show becomes for everyone. Finally, stay humble about technology: Twitter Spaces will glitch, microphones will fail, and patience really is a virtue.\\n\\nThe weeks ahead promise a steady stream of React Miami speakers on JavaScript Jam Live, culminating in Miami Jam itself. If you are heading to React Miami or simply love the React ecosystem, keep an eye out for the game show, bring your best trivia answers, and be ready to raise your hand. In an open-mic community, the best moments belong to the audience too.\"\n}",
+  "metadata": {
+    "llmService": "glm",
+    "llmModel": "glm-5.3-flash",
+    "providerReturnedModel": "glm-5.3-flash",
+    "processingTime": 76448,
+    "inputTokenCount": 2434,
+    "outputTokenCount": 6932,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 2434,
+      "outputTokenCount": 6932,
+      "totalTokenCount": 9366
+    },
+    "rawProviderUsage": {
+      "completion_tokens": 6932,
+      "completion_tokens_details": {
+        "reasoning_tokens": 5625
+      },
+      "prompt_tokens": 2434,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 9366
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "glm-5.3-flash",
+      "stream": false,
+      "max_tokens": 16000,
+      "thinking": {
+        "type": "enabled"
+      },
+      "response_format": {
+        "type": "json_object"
+      }
+    }
+  }
+}

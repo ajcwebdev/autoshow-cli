@@ -4,11 +4,6 @@ import { inspectBudgetSource } from './budget-source-inspection'
 
 const expectedCoverage = [
   ['test/test-cases/e2e/service/text/write/gemini-3.8-flash.test.ts', 'write-gemini-gemini-3.8-flash'],
-  ['test/test-cases/e2e/service/text/write/glm-5.3.test.ts', 'write-glm-glm-5.3'],
-  ['test/test-cases/e2e/service/text/write/glm-5.3-flash.test.ts', 'write-glm-glm-5.3-flash'],
-  ['test/test-cases/e2e/service/text/write/together-kimi-k3.test.ts', 'write-together-kimi-k3'],
-  ['test/test-cases/e2e/service/text/write/together-glm-5.3.test.ts', 'write-together-glm-5.3'],
-  ['test/test-cases/e2e/service/text/write/together-glm-5.3-flash.test.ts', 'write-together-glm-5.3-flash'],
   // OCR PDF and image cases are separate tests, each with its own budget key.
   ['test/test-cases/e2e/service/text/ocr/gemini-3.8-flash.test.ts', 'extract-gemini-gemini-3.8-flash', 'extract-gemini-gemini-3.8-flash-image'],
   ['test/test-cases/e2e/service/text/ocr/anthropic-claude-fable-5-1.test.ts', 'extract-anthropic-claude-fable-5-1', 'extract-anthropic-claude-fable-5-1-image'],

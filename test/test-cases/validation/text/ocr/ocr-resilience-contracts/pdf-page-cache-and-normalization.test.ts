@@ -8,7 +8,7 @@ describe('PDF page cache and normalization contracts', () => {
     const identity = {
       extractionMethod: 'openai-ocr' as const,
       ocrService: 'openai' as const,
-      ocrModel: 'gpt-5.6-sol',
+      ocrModel: 'gpt-6.1-sol',
       requestedReasoningEffort: 'high' as const,
       effectiveReasoningEffort: 'high' as const,
       ocrProviderMode: 'pool' as const,

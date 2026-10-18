@@ -64,29 +64,29 @@ describe('OCR manifest logging contracts', () => {
 
     expect(summary.runSummary?.entries[1]).toMatchObject({
       step: 'Extract (partial)',
-      providerModel: 'kimi/kimi-latest (failed partial)',
+      providerModel: 'deepinfra/deepinfra-latest (failed partial)',
       actualCostSource: 'partial_provider_usage',
       actualInputMetric: 'pages',
       actualInputValue: 227
     })
     expect(summary.promptUsage?.entries[1]).toMatchObject({
       step: 'Extract (partial)',
-      providerModel: 'kimi/kimi-latest (failed partial)',
+      providerModel: 'deepinfra/deepinfra-latest (failed partial)',
       usage: '971207/107681 tok / 227/228 pages'
     })
     expect(summary.ocrCostCalculation?.entries[1]).toMatchObject({
-      providerModel: 'kimi/kimi-latest (failed partial)',
+      providerModel: 'deepinfra/deepinfra-latest (failed partial)',
       pages: '227/228',
       actualInputs: '971207/107681 tok; partial failed',
       actualCostCents: 0.7
     })
 
-    expect(summary.runSummary?.entries[1]?.providerModel).toContain('kimi/kimi-latest (failed partial)')
+    expect(summary.runSummary?.entries[1]?.providerModel).toContain('deepinfra/deepinfra-latest (failed partial)')
   })
 
   test('partial OCR metadata aggregates local cached page-result tokens without leaking source names', async () => {
     const outputDir = await mkdtemp(join(process.cwd(), '.autoshow-partial-ocr-'))
-    const target = { service: 'kimi' as const, model: 'kimi-latest' }
+    const target = { service: 'deepinfra' as const, model: 'deepinfra-latest' }
     const pageResultsDir = join(outputDir, 'providers', getOcrTargetDirectoryName(target), 'page-results')
 
     try {
@@ -99,9 +99,9 @@ describe('OCR manifest logging contracts', () => {
         pageNumber: 1,
         run: {
           pages: [{ pageNumber: 1, method: 'ocr', text: 'alpha page' }],
-          extractionMethod: 'kimi-ocr',
-          ocrService: 'kimi',
-          ocrModel: 'kimi-latest',
+          extractionMethod: 'deepinfra-ocr',
+          ocrService: 'deepinfra',
+          ocrModel: 'deepinfra-latest',
           totalPages: 1,
           promptTokens: 10,
           completionTokens: 3
@@ -115,9 +115,9 @@ describe('OCR manifest logging contracts', () => {
         pageNumber: 2,
         run: {
           pages: [{ pageNumber: 2, method: 'ocr', text: 'beta page' }],
-          extractionMethod: 'kimi-ocr',
-          ocrService: 'kimi',
-          ocrModel: 'kimi-latest',
+          extractionMethod: 'deepinfra-ocr',
+          ocrService: 'deepinfra',
+          ocrModel: 'deepinfra-latest',
           totalPages: 1,
           promptTokens: 20,
           completionTokens: 4
@@ -130,9 +130,9 @@ describe('OCR manifest logging contracts', () => {
         pageNumber: 3,
         run: {
           pages: [{ pageNumber: 3, method: 'ocr', text: 'source-less page' }],
-          extractionMethod: 'kimi-ocr',
-          ocrService: 'kimi',
-          ocrModel: 'kimi-latest',
+          extractionMethod: 'deepinfra-ocr',
+          ocrService: 'deepinfra',
+          ocrModel: 'deepinfra-latest',
           totalPages: 1,
           promptTokens: 100,
           completionTokens: 100
@@ -143,7 +143,7 @@ describe('OCR manifest logging contracts', () => {
         outputDir,
         requestedTargets: [target],
         failuresByIndex: new Map([[0, {
-          message: 'Kimi OCR page 3 timed out after 10m',
+          message: 'DeepInfra OCR page 3 timed out after 10m',
           category: 'timeout',
           failureKind: 'timeout',
           retryable: true,
@@ -155,7 +155,7 @@ describe('OCR manifest logging contracts', () => {
 
       expect(partial).toHaveLength(1)
       expect(partial[0]).toMatchObject({
-        extractionMethod: 'kimi-ocr',
+        extractionMethod: 'deepinfra-ocr',
         totalPages: 3,
         completedPages: 2,
         failedPages: 1,

@@ -8,8 +8,8 @@ describe('price mode contracts', () => {
       const timing = computeEstimatedProcessingTimes({
         sttTargets: [{ service: 'deepgram', model: 'nova-3' }],
         audioDurationSeconds: 10,
-        extractTargets: [{ provider: 'kimi', model: 'kimi-k2.6', pageCount: 2 }],
-        llmTargets: [{ service: 'openai', model: 'gpt-5.6-luna', inputTokens: 600, outputTokens: 400 }],
+        extractTargets: [{ provider: 'deepinfra', model: 'google/gemma-4-31B-it', pageCount: 2 }],
+        llmTargets: [{ service: 'openai', model: 'gpt-6-luna', inputTokens: 600, outputTokens: 400 }],
         ttsTargets: [{ service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }],
         ttsCharacterCount: 1000,
         imageTargets: [{ service: 'openai', model: 'gpt-image-2', count: 2 }],

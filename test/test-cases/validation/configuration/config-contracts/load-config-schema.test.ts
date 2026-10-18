@@ -13,10 +13,7 @@ describe('config load schema contracts', () => {
         },
         llm: {
           openai: ['gpt-5.6-terra'],
-          grok: ['grok-4.6'],
-          glm: ['glm-5.3-flash'],
-          kimi: ['kimi-k3'],
-          together: ['kimi-k3', 'glm-5.3-flash'],
+          grok: ['grok-4.7'],
           providerConcurrency: 3,
           localConcurrency: 1
         },
@@ -31,10 +28,9 @@ describe('config load schema contracts', () => {
             providerConcurrency: 3,
             localConcurrency: 1,
             ocrConcurrency: 4,
-            openaiOcr: ['gpt-5.6-sol'],
+            openaiOcr: ['gpt-6.1-sol'],
             grokOcr: ['grok-4.5'],
             deepinfraOcr: ['google/gemma-4-31B-it'],
-            kimiOcr: ['kimi-k2.6']
           }
         },
         tts: {
