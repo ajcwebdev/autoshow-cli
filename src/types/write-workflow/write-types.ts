@@ -82,6 +82,8 @@ export type StructuredPresetName =
   | 'seoArticle'
   | 'contentStrategy'
   | 'emailNewsletter'
+  | 'sources'
+  | 'literatureReview'
   | 'pdfChapterBoundaries'
   | 'x'
   | 'tiktok'

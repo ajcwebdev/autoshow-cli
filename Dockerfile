@@ -39,6 +39,7 @@ RUN bun --no-env-file build src/cli/create-cli.ts \
       --asset=src/prompts/entries/chapters \
       --asset=src/prompts/entries/creative-writing \
       --asset=src/prompts/entries/marketing-content \
+      --asset=src/prompts/entries/research \
       --asset=src/prompts/entries/social-media \
       --asset=src/prompts/entries/song-lyrics \
       --asset=src/prompts/entries/summary-and-overview \

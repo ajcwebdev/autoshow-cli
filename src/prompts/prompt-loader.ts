@@ -44,6 +44,7 @@ const EMBEDDED_PROMPT_DIRECTORIES = [
   'chapters',
   'creative-writing',
   'marketing-content',
+  'research',
   'social-media',
   'song-lyrics',
   'summary-and-overview'

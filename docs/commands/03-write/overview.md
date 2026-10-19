@@ -15,6 +15,7 @@ Generate structured LLM output from local markdown or plaintext. With no `--prov
   - [Grok](#grok)
 - [Prompts](#prompts)
   - [Summary and Overview](#summary-and-overview)
+  - [Research](#research)
   - [Chapters](#chapters)
   - [Marketing Content](#marketing-content)
   - [Social Media](#social-media)
@@ -162,6 +163,21 @@ Grok 4.7 costs `$2 / $6` per 1M input/output tokens below 200,000 input tokens. 
 - `faq`
 - `questions`
 - `metadata`
+
+### Research
+
+- `sources`: Extract a deduplicated, relevance-ranked inventory of concrete works, official records, and personal accounts discussed in the input. Each record includes its name, stated creator (or `null`), type, exact first-reference timestamp or location, context, and identification confidence. Return an empty source list when none are identifiable.
+- `literatureReview`: Synthesize the supplied material into an academic review with thematic evidence, theoretical frameworks, methodological analysis, critical evaluation, research gaps, future directions, and references. State evidence limits and leave unsupported lists empty.
+
+Both prompts use only the supplied input. They do not browse for references or verify external sources, and they must not invent authors, publication dates, URLs, citation details, or research findings.
+
+```bash
+bun autoshow write input/examples/document/harborlight-field-notes.md --prompt sources --rendered-text
+bun autoshow write input/examples/document/harborlight-field-notes.md --prompt literatureReview --rendered-text
+bun autoshow write input/examples/document/harborlight-field-notes.md --prompt sources literatureReview --price
+```
+
+Single-prompt output is the task's JSON object. Combined selection returns separate `sources` and `literatureReview` objects keyed by prompt name; the `sources` object contains its own `sources` array. `--rendered-text` also saves readable Markdown, and `--price` estimates without generation.
 
 ### Chapters
 

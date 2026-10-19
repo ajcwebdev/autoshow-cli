@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { readDependencyUrlAndSha256 } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
@@ -324,6 +324,11 @@ test('compiled Docker entrypoint remains an isolated measured experiment', async
   expect(dockerfile).toContain('--no-compile-autoload-dotenv')
   expect(dockerfile).toContain('--compile-exec-argv=--no-orphans')
   expect(dockerfile).toContain('--asset=src/prompts/entries/summary-and-overview')
+  for (const entry of await readdir(resolve(repositoryRoot, 'src/prompts/entries'), { withFileTypes: true })) {
+    if (entry.name !== '.DS_Store' && entry.isDirectory()) {
+      expect(dockerfile).toContain(`--asset=src/prompts/entries/${entry.name}`)
+    }
+  }
   expect(dockerfile).toContain('--asset=src/tools/o200k-base-ranks.tiktoken.gz')
   expect(dockerfile).toContain('--asset=src/cli/commands/setup-and-utilities/models/stt-config')
   expect(dockerfile).toContain("--asset-naming='[dir]/[name].[ext]'")
