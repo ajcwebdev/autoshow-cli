@@ -40,7 +40,7 @@ Why now: console policy had become the dominant diagnostic problem in full runs,
 
 Under `bun test`, passing tests emit only Bun's result line and failing tests keep that line plus every `console` write from that test. `bun t` captures console the same way and adds a failure-first terminal. JUnit remains the post-run summary for `report.json`. Budget preflight is quiet on success. `bun t` artifacts default to `output/test-output/`, with timestamped run directories, `latest.log`, and `.test-cache/`.
 
-The `bun t` terminal hides `✓` and `»` lines and Bun's skipped list, prints a file header only before output that is shown, and prints `progress: N passed · N failed · N skipped` after 10 seconds of idle terminal. `runner.log` keeps the full stream; `--verbose` prints that stream and skips the progress line. After Bun exits, `bun t` prints a digest: failures with messages, a skip summary, up to five tests that took at least one second, and calibration recommendations that omit the local engines `whisperfile`, `tesseract`, and `defuddle`. It keeps `latest-model-calibration.json` beside `latest.log`. A failed run keeps its directory until the next run's cleanup, a passing run removes it, and `--no-cleanup` keeps every run directory. Plain `bun test` prints every result line.
+The `bun t` terminal hides `✓` and `»` lines and Bun's skipped list, prints a file header only before output that is shown, and prints `progress: N passed · N failed · N skipped` after 10 seconds of idle terminal. `runner.log` keeps the full stream; `--verbose` prints that stream and skips the progress line. After Bun exits, `bun t` prints a digest: failures with messages, a skip summary, up to five tests that took at least one second, and calibration recommendations that omit the local engines `whisperfile`, `tesseract`, and `defuddle`. It keeps `latest-model-calibration.json` beside `latest.log`. A passing test-mode run removes its own directory unless `--no-cleanup` is selected; price-only runs retain their reports by default. Prior runs survive unless `--cleanup` explicitly prunes confirmed successful runner artifacts. Active, failed, interrupted, unknown, and TTS/audio evidence remain protected. Plain `bun test` prints every result line.
 
 This applies to:
 
@@ -96,7 +96,7 @@ bun test test/test-cases/validation/runtime-contracts/test-runner-contracts/
 1. Passing tests emit no captured console output, and failing tests reprint their own logs even when tests run concurrently.
 2. `bun t` hides pass and skip lines, prints headers only before visible output, keeps the full stream in `runner.log`, and `--verbose` restores it.
 3. The digest leads with failures, summarizes skips, lists up to five slow tests, and omits local engines from timing recommendations.
-4. Cleanup keeps `latest.log` and `latest-model-calibration.json`, retains a failed run's directory until the next cleanup, and writes failed and skipped `report.json` entries into `latest.log`.
+4. Cleanup keeps root files and `.test-cache/`, preserves active, failed, interrupted, unknown, and TTS/audio evidence, and writes failed and skipped `report.json` entries into `latest.log`. Price-only mode retains current and prior run artifacts by default; prior successful artifacts require explicit `--cleanup`.
 
 ## References
 

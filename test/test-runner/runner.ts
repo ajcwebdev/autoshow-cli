@@ -188,11 +188,11 @@ const writeFallbackReport = async (
   })
 }
 
-export const runTestRunner = async (argv: string[]): Promise<number> => {
+export const runTestRunner = async (argv: string[], outputRoot?: string): Promise<number> => {
   const args = parseRunnerArgs(argv)
   const glob = new Bun.Glob('test/test-cases/**/*.test.ts')
   const allFiles = (await Array.fromAsync(glob.scan({ dot: false }))).sort()
-  const artifacts = await createRunArtifacts()
+  const artifacts = await createRunArtifacts(outputRoot)
   installTimestampedConsole()
   l.write('info', `Test run artifacts: ${normalizeRepoPath(artifacts.runDir)}`, { category: 'artifact' })
 
@@ -201,9 +201,9 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
   try {
     appendRunnerLog(artifacts, `Run ID: ${artifacts.runId}\nStarted: ${artifacts.startedAtIso}\nArgs: ${argv.slice(2).join(' ')}\n`)
     const preparation = await Promise.allSettled([
-      args.preserveTestOutput
-        ? Promise.resolve()
-        : cleanupTestOutputRoot(artifacts.rootDir, { keepRunDir: artifacts.runDir, preserveActiveRuns: true }),
+      args.cleanupPreviousRuns
+        ? cleanupTestOutputRoot(artifacts.rootDir, { keepRunDir: artifacts.runDir })
+        : Promise.resolve(),
       prebuildTestCliBundle(artifacts),
       prepareBudgetPreflight(args, allFiles, artifacts),
     ])
@@ -224,19 +224,16 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
   }
 
   const latestLogPath = await writeLatestRunLog(artifacts, exitCode, latestLogDigest)
-  // A failed run keeps its junit, report, and per-test outputs; the next run's cleanup removes it.
-  const keepRunDir = args.preserveTestOutput || exitCode !== 0
+  // Failed and interrupted runs remain evidence, including during later cleanup.
+  const keepRunDir = args.preserveTestOutput || exitCode !== 0 || !await cleanupRunArtifacts(artifacts)
   if (keepRunDir) {
-    if (!args.preserveTestOutput) {
-      l.write('info', `Failed run kept: ${normalizeRepoPath(artifacts.runDir)}`, { category: 'artifact' })
-    }
+    if (!args.preserveTestOutput) l.write('info', `${exitCode !== 0 ? 'Failed run kept' : 'Protected run artifacts kept'}: ${normalizeRepoPath(artifacts.runDir)}`, { category: 'artifact' })
     l.write('info', `Report JSON: ${normalizeRepoPath(artifacts.reportJsonPath)}`, { category: 'artifact' })
     if (!args.priceMode) {
       l.write('info', `E2E Report JSON: ${normalizeRepoPath(artifacts.e2eReportJsonPath)}`, { category: 'artifact' })
     }
     l.write('info', `Latest log: ${normalizeRepoPath(latestLogPath)}`, { category: 'artifact' })
   } else {
-    await cleanupRunArtifacts(artifacts)
     l.write('info', `Test output cleaned up; latest log: ${normalizeRepoPath(latestLogPath)}`, { category: 'artifact' })
   }
   return exitCode

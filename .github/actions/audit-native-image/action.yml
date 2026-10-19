@@ -1,0 +1,39 @@
+name: Audit native production image
+description: Inventory and scan the exact native image digest and retain complete advisory dispositions.
+inputs:
+  arch:
+    description: Native runner architecture (amd64 or arm64)
+    required: true
+  digest:
+    description: Exact per-architecture index digest
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Record the exact shipped image graph
+      shell: bash
+      env:
+        ARCH: ${{ inputs.arch }}
+        IMAGE_DIGEST: ${{ inputs.digest }}
+      run: |
+        set -euo pipefail
+        case "${ARCH}" in amd64|arm64) ;; *) exit 1 ;; esac
+        [[ "${IMAGE_DIGEST}" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Missing native image digest' >&2; exit 1; }
+        image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')@${IMAGE_DIGEST}"
+        printf 'DEPENDENCY_SCAN_IMAGE=%s\n' "${image}" >> "${GITHUB_ENV}"
+        mkdir -p "runtime/ci/docker-${ARCH}" "docs/reports/release-evidence/${ARCH}"
+        docker pull --platform "linux/${ARCH}" "${image}" >/dev/null
+        docker image inspect "${image}" > "runtime/ci/docker-${ARCH}/image-identity.json"
+        docker run --rm --platform "linux/${ARCH}" --network none --entrypoint sh "${image}" -c 'dpkg-query -W -f="\${Package}\t\${Version}\t\${Architecture}\n"' > "runtime/ci/docker-${ARCH}/debian-packages.tsv"
+        docker run --rm --platform "linux/${ARCH}" --network none --entrypoint tar "${image}" -czf - /usr/share/doc > "runtime/ci/docker-${ARCH}/native-notices.tar.gz"
+    - name: Inventory, audit, and gate the exact shipped image
+      uses: ./.github/actions/scan-image
+      with:
+        image: ${{ env.DEPENDENCY_SCAN_IMAGE }}
+        evidence-dir: runtime/ci/docker-${{ inputs.arch }}
+    - name: Record dispositions for every high and critical advisory
+      if: always() && env.DEPENDENCY_SCAN_IMAGE != ''
+      shell: bash
+      env:
+        ARCH: ${{ inputs.arch }}
+      run: docker run --rm --platform "linux/${ARCH}" --network none --entrypoint bun --mount "type=bind,src=${GITHUB_WORKSPACE}/runtime/ci/docker-${ARCH},dst=/evidence,readonly" "${DEPENDENCY_SCAN_IMAGE}" --no-env-file src/tools/triage-image-advisories.ts /evidence --scan-name image-advisories.json > "docs/reports/release-evidence/${ARCH}/advisory-triage.json"

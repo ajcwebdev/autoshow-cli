@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test'
-import { readFile, readdir } from 'node:fs/promises'
+import { readFile, mkdtemp, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { join, resolve } from 'node:path'
+import { tmpdir } from 'node:os'
 import { readDependencyUrlAndSha256 } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
 import { SUPPORTED_BUN_VERSION } from '~/utils/bun-version'
 
@@ -10,9 +11,9 @@ const dockerfilePath = resolve(repositoryRoot, 'Dockerfile')
 const dockerDocsPath = resolve(repositoryRoot, 'docs/docker.md')
 
 test('published image OCR smoke commands pass real CLI option validation', async () => {
-  const workflow = await readFile(resolve(repositoryRoot, '.github/workflows/docker-publish.yml'), 'utf8')
-  const commands = [...workflow.matchAll(/bun --no-env-file \/app\/src\/cli\/create-cli\.ts (extract \/benchmark\/fixture\.pdf [^;]+?) >\/dev\/null 2>&1/g)]
-  expect(commands).toHaveLength(2)
+  const smoke = await readFile(resolve(repositoryRoot, 'src/tools/docker-release-smoke.sh'), 'utf8')
+  const commands = [...smoke.matchAll(/bun --no-env-file \/app\/src\/cli\/create-cli\.ts (extract \/benchmark\/fixture\.pdf [^;]+?) >\/dev\/null 2>&1/g)]
+  expect(commands).toHaveLength(1)
   for (const [, command] of commands) {
     const args = command!.replace('/benchmark/fixture.pdf', 'test/fixtures/setup/managed-toolchain-smoke.pdf')
       .replace('/benchmark/output', '/tmp/autoshow-docker-smoke-price').split(' ')
@@ -30,9 +31,11 @@ test('published image OCR smoke commands pass real CLI option validation', async
 
 test('all Docker runtime targets opt out of Bun TCP keepalive for silent provider requests', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
-  const runtimeBase = dockerfile.slice(dockerfile.indexOf('AS runtime-base'), dockerfile.indexOf('FROM runtime-base AS runtime'))
-  expect(runtimeBase).toContain('ENV AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1')
-  expect(dockerfile).toContain('FROM runtime-base AS compiled-experiment')
+  const runtime = dockerfile.slice(dockerfile.indexOf('AS runtime'), dockerfile.indexOf('FROM runtime AS alignment'))
+  expect(runtime).toContain('ENV AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1')
+  expect(dockerfile).toContain('FROM runtime AS alignment')
+  expect(dockerfile).toContain('FROM runtime AS production')
+  expect(dockerfile).not.toContain('AUTOSHOW_DISABLE_HTTP_KEEPALIVE=0')
 })
 
 test('Docker yt-dlp pin matches resolved native setup metadata in both directions', async () => {
@@ -53,31 +56,22 @@ test('Docker yt-dlp pin matches resolved native setup metadata in both direction
   }).toEqual({ missing: [], extra: [] })
   expect(dockerArgs).toEqual(expectedArgs)
 
-  const downloadIndex = dockerfile.indexOf("const response = await fetch(url)")
-  const checksumIndex = dockerfile.indexOf('"${YT_DLP_SHA256}" /usr/local/bin/yt-dlp | sha256sum -c -')
-  const chmodIndex = dockerfile.indexOf('chmod 0755 /usr/local/bin/yt-dlp')
-
-  expect(downloadIndex).toBeGreaterThan(-1)
-  expect(checksumIndex).toBeGreaterThan(downloadIndex)
-  expect(chmodIndex).toBeGreaterThan(checksumIndex)
-
-  const fetchStage = dockerfile.slice(dockerfile.indexOf('AS fetch'), dockerfile.indexOf('AS runtime'))
-  const runtimeStage = dockerfile.slice(dockerfile.indexOf('AS runtime'))
-  expect(fetchStage).toContain('for await (const chunk of response.body) writer.write(chunk)')
-  expect(dockerfile).toContain('FROM --platform=$BUILDPLATFORM ${BUN_BASE_IMAGE} AS fetch')
-  expect(fetchStage).not.toContain('curl')
-  expect(runtimeStage).not.toContain('curl')
-  expect(runtimeStage).toContain('COPY --from=fetch /usr/local/bin/yt-dlp /usr/local/bin/yt-dlp')
+  const download = dockerfile.split('\n').find(line => /^ADD .*\/usr\/local\/bin\/yt-dlp$/.test(line)) ?? ''
+  expect(download).toContain('--checksum=sha256:${YT_DLP_SHA256}')
+  expect(download).toContain('--chmod=0755')
+  expect(download).toContain('${YT_DLP_URL}')
+  expect(dockerfile.indexOf(download)).toBeGreaterThan(dockerfile.indexOf('apt-get upgrade'))
+  expect(dockerfile).not.toMatch(/^FROM .* AS fetch$/m)
 })
 
 test('Docker supplies a pinned native Deno runtime for yt-dlp in every runtime target', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
   expect(dockerfile).toContain('ARG DENO_BASE_IMAGE=denoland/deno:bin-2.9.6@sha256:4cf0029b9aeeeed5efcbb71828737f0d7c8c8a20072df960e51a5679ef0d21ba')
   expect(dockerfile).toContain('FROM ${DENO_BASE_IMAGE} AS youtube-js')
-  const runtimeBase = dockerfile.slice(dockerfile.indexOf('AS runtime-base'), dockerfile.indexOf('FROM runtime-base AS runtime'))
-  expect(runtimeBase).toContain('COPY --from=youtube-js /deno /usr/local/bin/deno')
-  expect(runtimeBase).toContain('RUN deno --version && yt-dlp --version')
-  expect(dockerfile).toContain('FROM runtime-base AS compiled-experiment')
+  const runtime = dockerfile.slice(dockerfile.indexOf('AS runtime'), dockerfile.indexOf('FROM runtime AS alignment'))
+  expect(runtime).toContain('COPY --from=youtube-js /deno /usr/local/bin/deno')
+  expect(runtime).toContain('deno --version')
+  expect(runtime).toContain('yt-dlp --version')
 })
 
 test('Docker documentation supports direct image invocation without a root scripts directory', async () => {
@@ -90,12 +84,12 @@ test('Docker documentation supports direct image invocation without a root scrip
 
 test('Docker images carry immutable build identity and publish provenance plus SBOM attestations', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
-  const workflow = await readFile(resolve(repositoryRoot, '.github/workflows/docker-publish.yml'), 'utf8')
+  const build = await readFile(resolve(repositoryRoot, 'src/tools/docker-release-build.sh'), 'utf8')
   const stages = dockerfile.split(/^(?=FROM )/m)
   const stageName = (stage: string) => stage.match(/^FROM .+ AS (\S+)/)?.[1]
   const identityStages = stages.filter(stage => /^ARG VCS_REF=/m.test(stage))
 
-  expect(identityStages.map(stageName)).toEqual(['runtime', 'compiled-experiment'])
+  expect(identityStages.map(stageName)).toEqual(['runtime'])
   for (const stage of identityStages) {
     const lastRun = stage.lastIndexOf('RUN ')
     expect(lastRun).toBeGreaterThan(-1)
@@ -106,18 +100,16 @@ test('Docker images carry immutable build identity and publish provenance plus S
     expect(stage).toContain('LABEL org.opencontainers.image.created="${BUILD_DATE}"')
     expect(stage).toContain('LABEL org.opencontainers.image.revision="${VCS_REF}"')
   }
-  const runtimeBase = stages.find(stage => stageName(stage) === 'runtime-base') ?? ''
-  expect(runtimeBase).toContain('ARG DEBIAN_SNAPSHOT=')
-  expect(runtimeBase).not.toMatch(/ARG (AUTOSHOW_VERSION|BUILD_DATE|VCS_REF)/)
-  expect(runtimeBase).not.toMatch(/\$\{(AUTOSHOW_VERSION|BUILD_DATE|VCS_REF)\}/)
+  const runtime = stages.find(stage => stageName(stage) === 'runtime') ?? ''
+  expect(runtime).toContain('ARG DEBIAN_SNAPSHOT=')
+  expect(runtime.indexOf('ARG VCS_REF=')).toBeGreaterThan(runtime.lastIndexOf('RUN '))
   expect(dockerfile).toContain('org.opencontainers.image.source="https://github.com/ajcwebdev/autoshow-cli"')
-  expect(workflow.match(/--provenance=mode=max/g)).toHaveLength(2)
-  expect(workflow.match(/--sbom=true/g)).toHaveLength(2)
-  // The two publishing builds and the two compiled-experiment builds share the identity args so the compiled build reuses the per-arch registry cache.
-  expect(workflow.match(/--build-arg "VCS_REF=\$\{GITHUB_SHA\}"/g)).toHaveLength(4)
-  // Two publishing builds and two compiled-experiment builds import the per-architecture registry cache.
-  expect(workflow.match(/--cache-from "type=registry,ref=\$\{image\}:buildcache-(amd64|arm64)"/g)).toHaveLength(4)
-  expect(workflow).not.toContain(':buildcache" ')
+  expect(build).toContain('--provenance=mode=max')
+  expect(build).toContain('--sbom=true')
+  expect(build).toContain('--build-arg "VCS_REF=${GITHUB_SHA}"')
+  expect(build).toContain('--cache-from "type=registry,ref=${image}:buildcache-${ARCH}"')
+  expect(build).toContain('--cache-to "type=registry,ref=${image}:buildcache-${ARCH},mode=max"')
+  expect(build).not.toContain(':buildcache" ')
 })
 
 test('dependency-graph image audits reuse the published per-architecture layer cache and rebuild weekly from scratch', async () => {
@@ -190,7 +182,12 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
     'fetch-error-contracts.test.ts',
     'multipart-serialization-contracts.test.ts',
     'profiling-recipes-contracts.test.ts',
-    'reference-tokenizer-contracts.test.ts'
+    'reference-tokenizer-contracts.test.ts',
+    'runner-preservation.test.ts',
+    'docker-runtime-recipe.test.ts',
+    'docker-installed-dependencies.test.ts',
+    'docker-release-index.test.ts',
+    'docker-release-shell.test.ts'
   ]) {
     expect(verifyRuns).toContain(contract)
   }
@@ -209,133 +206,97 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
   expect(hygiene?.steps?.some(step => step.name === 'Upload production license report')).toBe(true)
   expect(hygiene?.steps?.some(step => step.name === 'Upload dependency cleanup review')).toBe(true)
 
-  // Verification, hygiene, builds, smoke, and audit gate publication. The compiled-entrypoint experiment still
-  // runs for evidence but is advisory and does not block tagging.
+  // Builds retain separate outputs and checks; shared actions receive architecture as data.
   expect(jobs['publish-manifest']?.needs).toEqual([
-    'verify',
-    'package-hygiene',
-    'build-amd64',
-    'build-arm64',
-    'smoke-amd64',
-    'smoke-arm64',
-    'audit-amd64',
-    'audit-arm64'
+    'verify', 'package-hygiene', 'build-amd64', 'build-arm64',
+    'smoke-amd64', 'smoke-arm64', 'audit-amd64', 'audit-arm64'
   ])
-  expect(jobs['publish-manifest']?.needs).not.toContain('compiled-experiment-amd64')
-  expect(jobs['publish-manifest']?.needs).not.toContain('compiled-experiment-arm64')
+  expect(Object.keys(jobs).some(name => name.startsWith('compiled-experiment'))).toBe(false)
+  const buildScript = await readFile(resolve(repositoryRoot, 'src/tools/docker-release-build.sh'), 'utf8')
+  const smokeScript = await readFile(resolve(repositoryRoot, 'src/tools/docker-release-smoke.sh'), 'utf8')
+  expect(buildScript).toContain('push-by-digest=true')
+  expect(buildScript).toContain('--target production')
+  expect(smokeScript).toContain('docker-installed-dependencies.ts')
+  expect(smokeScript).not.toContain('install --frozen-lockfile')
+  expect(smokeScript).not.toContain('cliPrebuildMs')
+  for (const command of ['config --show', 'setup --doctor', 'Setup doctor completed', 'coldHelpWallMs', 'fixturePeakRssBytes', 'managed-toolchain-smoke.pdf', 'measurements.json']) expect(smokeScript).toContain(command)
+  const audit = Bun.YAML.parse(await readFile(resolve(repositoryRoot, '.github/actions/audit-native-image/action.yml'), 'utf8')) as { runs: { steps: Array<{ name?: string; uses?: string; if?: string; with?: Record<string, string>; run?: string }> } }
+  expect(audit.runs.steps.find(step => step.uses === './.github/actions/scan-image')?.with).toEqual({ image: '${{ env.DEPENDENCY_SCAN_IMAGE }}', 'evidence-dir': 'runtime/ci/docker-${{ inputs.arch }}' })
+  const triage = audit.runs.steps.find(step => step.name === 'Record dispositions for every high and critical advisory')
+  expect(triage?.if).toBe("always() && env.DEPENDENCY_SCAN_IMAGE != ''")
+  expect(triage?.run).toContain('src/tools/triage-image-advisories.ts /evidence --scan-name image-advisories.json')
 
   for (const arch of ['amd64', 'arm64'] as const) {
-    const upperArch = arch.toUpperCase()
+    const runner = arch === 'amd64' ? 'ubuntu-24.04' : 'ubuntu-24.04-arm'
     const buildJob = jobs[`build-${arch}`]
-    // Builds wait only for change detection: they start immediately on pushes that change image inputs, and
-    // docs-only pushes keep the previous latest. Verification and hygiene gate publish-manifest instead.
     expect(buildJob?.needs).toEqual(['changes'])
     expect(buildJob?.if).toBe("github.event_name == 'push' && needs.changes.outputs.image == 'true'")
-    expect(buildJob?.permissions).toMatchObject({ contents: 'read', packages: 'write' })
-    expect(buildJob?.outputs).toEqual({
-      digest: '${{ steps.build.outputs.digest }}',
-      build_duration_ms: '${{ steps.build.outputs.build_duration_ms }}'
-    })
-    const buildRuns = buildJob?.steps?.map(step => step.run ?? '').join('\n') ?? ''
-    expect(buildRuns).toContain('push-by-digest=true')
-    expect(buildRuns).not.toContain('--target compiled-experiment')
-
-    const fetchRun = buildJob?.steps?.find(step => step.name === 'Fetch repository at the pushed commit')?.run ?? ''
-    const privateHelper = fetchRun.indexOf('umask 077')
-    const helperMode = fetchRun.indexOf('chmod 700 "$credential_helper"')
-    const restoredUmask = fetchRun.indexOf('umask 022')
-    const checkout = fetchRun.indexOf('git checkout --detach FETCH_HEAD')
-    expect(privateHelper).toBeGreaterThan(-1)
-    expect(helperMode).toBeGreaterThan(privateHelper)
-    expect(restoredUmask).toBeGreaterThan(helperMode)
-    expect(checkout).toBeGreaterThan(restoredUmask)
-
-    for (const [prefix, artifact] of [
-      ['smoke', 'docker-smoke'],
-      ['compiled-experiment', 'docker-compiled-experiment'],
-      ['audit', 'docker-audit']
-    ] as const) {
-      const evidenceJob = jobs[`${prefix}-${arch}`]
-      expect(evidenceJob?.needs).toEqual([`build-${arch}`])
-      expect(evidenceJob?.if).toBeUndefined()
-      expect(evidenceJob?.permissions).toEqual({ contents: 'read', packages: 'read' })
-      const upload = evidenceJob?.steps?.find(step => step.uses?.startsWith('actions/upload-artifact@'))
+    expect(buildJob?.permissions).toEqual({ contents: 'read', packages: 'write' })
+    expect(buildJob?.outputs).toEqual({ digest: '${{ steps.build.outputs.digest }}', build_duration_ms: '${{ steps.build.outputs.build_duration_ms }}' })
+    expect(buildJob?.steps?.find(step => step.uses === './.github/actions/build-native-image')?.with).toEqual({ arch })
+    expect((buildJob as { 'runs-on'?: string })['runs-on']).toBe(runner)
+    for (const kind of ['smoke', 'audit']) {
+      const job = jobs[`${kind}-${arch}`]
+      expect(job?.needs).toEqual([`build-${arch}`])
+      expect(job?.permissions).toEqual({ contents: 'read', packages: 'read' })
+      expect((job as { 'runs-on'?: string })['runs-on']).toBe(runner)
+      expect(job?.['continue-on-error']).toBeUndefined()
+      const shared = job?.steps?.find(step => step.uses === `./.github/actions/${kind}-native-image`)
+      expect(shared?.with?.['arch']).toBe(arch)
+      expect(shared?.with?.['digest']).toBe('${{ needs.build-' + arch + '.outputs.digest }}')
+      if (kind === 'smoke') expect(shared?.with?.['build-duration-ms']).toBe('${{ needs.build-' + arch + '.outputs.build_duration_ms }}')
+      const upload = job?.steps?.find(step => step.uses?.startsWith('actions/upload-artifact@'))
       expect(upload?.if).toBe('always()')
-      expect(upload?.with?.['name']).toBe(`${artifact}-${arch}`)
-      expect(JSON.stringify(evidenceJob).replaceAll('secrets.GITHUB_TOKEN', '')).not.toContain('secrets.')
+      expect(upload?.with?.['name']).toBe(`docker-${kind}-${arch}`)
+      expect(upload?.with?.['path']).toContain(`runtime/ci/docker-${arch}`)
+      expect(JSON.stringify(job).replaceAll('secrets.GITHUB_TOKEN', '')).not.toContain('secrets.')
     }
-
-    const smokeJob = jobs[`smoke-${arch}`]
-    const smokeStep = smokeJob?.steps?.find(step => step.name === `Smoke and measure ${upperArch} image`)
-    const smokeRun = smokeStep?.run ?? ''
-    expect(smokeStep?.env?.['BUILD_DURATION_MS']).toBe(`\${{ needs.build-${arch}.outputs.build_duration_ms }}`)
-    expect(smokeRun).toContain('install --frozen-lockfile --production')
-    expect(smokeRun).toContain('config --show')
-    expect(smokeRun).toContain('setup --doctor')
-    expect(smokeRun).toContain('Setup doctor completed')
-    expect(smokeRun).toContain('coldHelpWallMs')
-    expect(smokeRun).toContain('cliPrebuildMs')
-    expect(smokeRun).toContain('fixturePeakRssBytes')
-    expect(smokeRun).toContain('managed-toolchain-smoke.pdf')
-    expect(smokeRun).toContain('measurements.json')
-    expect(smokeRun).toContain('dst=/app/test/docker-acceptance/native-image-acceptance.ts,readonly')
-    expect(smokeRun).toContain('--entrypoint bun')
-    expect(smokeRun).not.toContain('--user')
-    expect(smokeRun).not.toContain('--target compiled-experiment')
-
-    expect(jobs[`compiled-experiment-${arch}`]?.['continue-on-error']).toBe(true)
-    const compiledRun = jobs[`compiled-experiment-${arch}`]?.steps?.find(step => step.name === `Build and measure ${upperArch} compiled experiment`)?.run ?? ''
-    expect(compiledRun).toContain('--target compiled-experiment')
-    expect(compiledRun).toContain(`--cache-from "type=registry,ref=\${image}:buildcache-${arch}"`)
-    expect(compiledRun).toContain('--build-arg "VCS_REF=${GITHUB_SHA}"')
-    expect(compiledRun).toContain('write /benchmark/input.md --price --no-color')
-    expect(compiledRun).toContain('compiled-paths.log')
-    expect(compiledRun).toContain('Setup doctor completed')
-    expect(compiledRun).toContain('Estimate:')
-    expect(compiledRun).toContain('Expected [0-9]+ files in ')
-    expect(compiledRun).toContain('coldHelpWallMs')
-    expect(compiledRun).toContain('helpPeakRssBytes')
-    expect(compiledRun).toContain('compiled-entrypoint-experiment.json')
-    expect(compiledRun).toContain('--arg decision reject')
-    expect(compiledRun).not.toContain('--user')
-    expect(compiledRun).not.toContain('--provenance')
-
-    const auditJob = jobs[`audit-${arch}`]
-    expect(auditJob?.steps?.find(step => step.uses?.startsWith('actions/checkout@'))?.with?.['sparse-checkout']).toBe('.github')
-    expect(auditJob?.steps?.find(step => step.uses === './.github/actions/scan-image')?.with).toEqual({
-      image: '${{ env.DEPENDENCY_SCAN_IMAGE }}',
-      'evidence-dir': `runtime/ci/docker-${arch}`
-    })
-    expect(auditJob?.steps?.some(step => step.uses?.startsWith('anchore/'))).toBe(false)
-    const triageStep = auditJob?.steps?.find(step => step.name === 'Record dispositions for every high and critical advisory')
-    expect(triageStep?.if).toBe("always() && env.DEPENDENCY_SCAN_IMAGE != ''")
-    expect(triageStep?.run).toContain('src/tools/triage-image-advisories.ts /evidence --scan-name image-advisories.json')
-    expect(triageStep?.run).toContain(`docs/reports/release-evidence/${arch}/advisory-triage.json`)
   }
+  // Every checkout uses the triggering identity without keeping its credential in the worktree.
+  for (const job of Object.values(jobs)) for (const step of job.steps ?? []) {
+    if (step.uses?.startsWith('actions/checkout@')) expect(step.with).toMatchObject({ ref: '${{ github.sha }}', 'fetch-depth': 1, 'persist-credentials': false })
+  }
+  expect(workflowSource).not.toContain('credential_helper')
+  expect(workflowSource).not.toContain('git checkout')
 })
 
-test('compiled Docker entrypoint remains an isolated measured experiment', async () => {
-  const dockerfile = await readFile(dockerfilePath, 'utf8')
-  expect(dockerfile).toContain('FROM runtime-base AS compiled-experiment')
-  expect(dockerfile).toContain('FROM runtime AS production')
-  expect(dockerfile).toContain('--compile')
-  expect(dockerfile).toContain('--bytecode')
-  expect(dockerfile).toContain('--format=esm')
-  expect(dockerfile).toContain('--no-compile-autoload-dotenv')
-  expect(dockerfile).toContain('--compile-exec-argv=--no-orphans')
-  expect(dockerfile).toContain('--asset=src/prompts/entries/summary-and-overview')
-  for (const entry of await readdir(resolve(repositoryRoot, 'src/prompts/entries'), { withFileTypes: true })) {
-    if (entry.name !== '.DS_Store' && entry.isDirectory()) {
-      expect(dockerfile).toContain(`--asset=src/prompts/entries/${entry.name}`)
+test('release promotion waits for every immutable-candidate acceptance shard', async () => {
+  type Step = { name?: string; run?: string; env?: Record<string, string> }
+  type Job = { needs?: string | string[]; if?: string; steps?: Step[] }
+  const workflow = Bun.YAML.parse(await readFile(resolve(repositoryRoot, '.github/workflows/docker-publish.yml'), 'utf8')) as { jobs: Record<string, Job>; concurrency: { 'cancel-in-progress': string } }
+  const jobs = workflow.jobs
+  const candidate = jobs['publish-manifest']!
+  const candidateRun = candidate.steps?.map(step => step.run ?? '').join('\n') ?? ''
+  expect(candidateRun).toContain('docker-release-index.ts candidate')
+  expect(candidateRun).not.toContain(':latest')
+  const accept = jobs['acceptance']!.steps?.find(step => step.name === 'Accept immutable candidate through its CLI')!
+  expect(jobs['acceptance']?.needs).toBe('publish-manifest')
+  expect(accept.env?.['EXPECTED_DIGEST']).toBe('${{ needs.publish-manifest.outputs.digest }}')
+  expect(accept.run).toContain('--image "${image}@${EXPECTED_DIGEST}" --pull always')
+  expect(accept.run).toContain('--expected-digest "${EXPECTED_DIGEST}" --expected-revision "${GITHUB_SHA}"')
+  expect(jobs['acceptance-required']?.needs).toEqual(['changes', 'publish-manifest', 'acceptance'])
+  const promotion = jobs['promote-latest']!
+  expect(promotion.needs).toEqual(['changes', 'publish-manifest', 'acceptance-required', 'build-amd64', 'build-arm64'])
+  expect(promotion.if).not.toContain('always()')
+  const promote = promotion.steps?.find(step => step.name === 'Copy accepted index and verify latest digest')!
+  expect(promote.env?.['ACCEPTED_DIGEST']).toBe('${{ needs.publish-manifest.outputs.digest }}')
+  expect(promote.run).toContain('docker-release-index.ts promote "${image}" "${ACCEPTED_DIGEST}"')
+  expect(workflow.concurrency['cancel-in-progress']).toBe("${{ github.event_name == 'pull_request' }}")
+  const directory = await mkdtemp(join(tmpdir(), 'docker-promotion-gate-'))
+  try {
+    const gate = jobs['acceptance-required']!.steps![0]!.run!
+    for (const candidateStatus of ['success', 'failure', 'skipped', 'cancelled']) for (const acceptance of ['success', 'failure', 'skipped', 'cancelled']) {
+      const result = Bun.spawnSync(['bash', '-c', gate], { env: { PATH: process.env['PATH'], PUBLICATION: candidateStatus, ACCEPTANCE: acceptance, GITHUB_STEP_SUMMARY: join(directory, 'summary') }, stdout: 'pipe', stderr: 'pipe' })
+      expect(result.exitCode).toBe(candidateStatus === 'success' && acceptance === 'success' ? 0 : 1)
     }
-  }
-  expect(dockerfile).toContain('--asset=src/tools/o200k-base-ranks.tiktoken.gz')
-  expect(dockerfile).toContain('--asset=src/cli/commands/setup-and-utilities/models/stt-config')
-  expect(dockerfile).toContain("--asset-naming='[dir]/[name].[ext]'")
-  expect(dockerfile).toContain('--metafile-md=/app/compiled-entrypoint-metafile.md')
-  expect(dockerfile).not.toContain('COPY --chown=bun:bun src/tools/o200k-base-ranks.tiktoken.gz')
-  expect(dockerfile.trimEnd()).toEndWith('FROM runtime AS production')
+  } finally { await rm(directory, { recursive: true, force: true }) }
+})
 
+test('source production remains default and standalone native runtime paths remain available', async () => {
+  const dockerfile = await readFile(dockerfilePath, 'utf8')
+  expect(dockerfile.match(/^FROM .+ AS (\S+)$/gm)?.map(line => line.split(' ').at(-1))).toEqual(['youtube-js', 'deps', 'runtime', 'alignment', 'production'])
+  expect(dockerfile.trimEnd()).toEndWith('FROM runtime AS production')
+  expect(dockerfile).toContain('ENTRYPOINT ["bun", "--no-env-file", "/app/src/cli/create-cli.ts"]')
   const runtimePaths = await readFile(resolve(repositoryRoot, 'src/utils/runtime-paths.ts'), 'utf8')
   const projectRoot = await readFile(resolve(repositoryRoot, 'src/utils/project-root.ts'), 'utf8')
   expect(runtimePaths).toContain('Bun.isStandaloneExecutable')
@@ -409,7 +370,6 @@ test('image legs scan once through the shared scan-image composite and derive th
   expect(runJq(['--arg', 'cutoff', 'low', '-f', 'gate-count.jq'], fixableText).trim()).toBe('2')
 
   const expectedEvidenceDirs = {
-    'docker-publish.yml': ['runtime/ci/docker-amd64', 'runtime/ci/docker-arm64'],
     'dependency-graphs.yml': ['runtime/dependency-evidence'],
     'warm-grype-db.yml': ['runtime/ci/grype-db-warmup']
   }
@@ -422,11 +382,6 @@ test('image legs scan once through the shared scan-image composite and derive th
     const scanImageSteps = allSteps.filter(step => step.uses === './.github/actions/scan-image')
     for (const step of scanImageSteps) expect(evidenceDirs).toContain(String(step.with?.['evidence-dir']))
     expect(new Set(scanImageSteps.map(step => step.with?.['evidence-dir']))).toEqual(new Set(evidenceDirs))
-    if (workflowName === 'docker-publish.yml') {
-      const triage = allSteps.filter(step => step.name === 'Record dispositions for every high and critical advisory')
-      expect(triage).toHaveLength(2)
-      for (const step of triage) expect(step.if?.startsWith('always()')).toBe(true)
-    }
     if (workflowName === 'warm-grype-db.yml') {
       const warmup = Bun.YAML.parse(source) as {
         on?: { schedule?: Array<{ cron: string }>, workflow_dispatch?: unknown }

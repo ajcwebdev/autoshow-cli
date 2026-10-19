@@ -2,7 +2,11 @@ import { describe, expect, test } from 'bun:test'
 import type { ExecutedBudgetPreflightVariant, PriceCommandSpec, TestRunArtifacts } from '~/types'
 import { argvKeyFor } from '../../../../test-runner/budget-preflight-cache'
 import { collectOrderedVariantObservations, partitionBudgetCacheHits } from '../../../../test-runner/budget-preflight-orchestration'
-import { buildPriceSpawnArgs } from '../../../../test-runner/price-execution'
+import { buildPriceSpawnArgs, executePriceCommand, withPriceExecutionConfig } from '../../../../test-runner/price-execution'
+import { closeArtifactLogs, createRunArtifacts } from '../../../../test-runner/artifacts'
+import { BUDGET_PRICE_SELECTION_REGISTRY } from '../../../../test-runner/price-commands/registry/index'
+import { withTempDir } from '../../../../test-utils/temp-dirs'
+import { join } from 'node:path'
 import { buildBunTestArgs, buildTestWorkerEnv, createBunCrashDetector } from '../../../../test-runner/process-execution'
 import { BUN_FILE_TIMINGS_CACHE_PATH } from '../../../../test-runner/file-timings'
 import { toObservation } from '../../../../test-runner/price-evaluation'
@@ -89,6 +93,46 @@ describe('test-runner process and price orchestration', () => {
     } finally {
       if (previous === undefined) delete process.env['AUTOSHOW_TEST_CLI_BUNDLE']
       else process.env['AUTOSHOW_TEST_CLI_BUNDLE'] = previous
+    }
+  })
+
+  test('every mapped command dispatches with an explicit price flag and missing price fails before dispatch', () => {
+    for (const entry of BUDGET_PRICE_SELECTION_REGISTRY) {
+      const args = buildPriceSpawnArgs(withPriceExecutionConfig(entry), artifacts)
+      expect(args).toContain('--price')
+      expect(args.slice(0, 2)).toEqual(['bun', '--no-env-file'])
+    }
+    expect(() => buildPriceSpawnArgs(command('unsafe', ['src/cli/create-cli.ts', 'image', 'example']), artifacts))
+      .toThrow('must explicitly select --price before dispatch')
+  })
+
+  test('actual price subprocesses isolate ambient credentials even when the runner is live', async () => {
+    const keys = ['OPENAI_API_KEY', 'MISTRAL_API_KEY', 'AUTOSHOW_UNRELATED_SECRET', 'AUTOSHOW_TEST_CREDENTIAL_MODE']
+    const previous = keys.map(key => process.env[key])
+    try {
+      process.env['OPENAI_API_KEY'] = 'price-provider-sentinel'
+      process.env['MISTRAL_API_KEY'] = 'price-other-provider-sentinel'
+      process.env['AUTOSHOW_UNRELATED_SECRET'] = 'price-secret-sentinel'
+      process.env['AUTOSHOW_TEST_CREDENTIAL_MODE'] = 'live'
+      await withTempDir('autoshow-price-credential-probe-', async dir => {
+        const owned = await createRunArtifacts(join(dir, 'artifacts'))
+        try {
+          const probePath = join(dir, 'probe.ts')
+          await Bun.write(probePath, `console.log(JSON.stringify({
+            schemaVersion: 1, type: 'result', status: 'success',
+            data: { estimate: { totalEstimatedCostCents: 0 }, visible: ${JSON.stringify(keys)}.filter(key => process.env[key] !== undefined), price: process.argv.includes('--price') }
+          }))`)
+          const result = await executePriceCommand(command('credential probe', [probePath, '--price']), owned, 'PROBE')
+          expect(result.exitCode).toBe(0)
+          expect(result.parsedCost).toBe(0)
+          expect(JSON.parse(result.stdout).data).toMatchObject({ visible: [], price: true })
+          expect(result.stdout).not.toContain('sentinel')
+        } finally {
+          await closeArtifactLogs(owned)
+        }
+      })
+    } finally {
+      keys.forEach((key, index) => restoreEnv(key, previous[index]))
     }
   })
 

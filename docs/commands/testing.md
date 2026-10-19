@@ -62,8 +62,9 @@ Per-command coverage, price examples, and live selections live on these pages:
 - `--max-concurrency` and `--parallel` default to the machine's available parallelism. E2E-only selections default `--parallel` to 32. Pass `--max-concurrency=<n>` or `--parallel=<n>` to override. `--concurrency` is not a Bun test flag and is rejected. `--retry` is rejected so each selected command and test runs at most once.
 - `--parallel` isolates test files. Use `--no-isolate` only as a temporary diagnostic escape hatch for a confirmed isolation or preload regression; it is not a supported default because it weakens file-level state separation.
 - Interrupting a run terminates local test descendants.
-- Each run writes artifacts under `./output/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. By default, `bun t` removes that directory after a passing run. A failed run keeps its directory (`junit.xml`, `report.json`, `commands.log`, and per-test CLI outputs) until the next run's cleanup. Use `--no-cleanup` to keep every run directory.
-- Two files at `./output/test-output/` survive cleanup. `latest.log` starts with the run summary and the uncapped digest, followed by the failed and skipped `report.json` entries, the runner log, and the tail of the command log. Each run regenerates `latest-model-calibration.json` from retained run metadata for model cost and timeout recommendations. It does not measure word boundaries. A normal `bun t` cleanup also keeps `.test-cache/` for file timings, the prebuilt CLI bundle, and the budget-preflight cache.
+- Each run writes artifacts under `./output/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. A normal `bun t` removes its own passing run directory, while `bun t --price` retains its report by default. Both preserve earlier runs. Use `--no-cleanup` to keep the current directory in either mode. Failed and interrupted runs retain their reports, logs, and per-test outputs.
+- `--cleanup` explicitly prunes prior directories confirmed by this runner's completion marker and matching successful report, then removes the current successful run. Active, failed, interrupted, legacy, unknown, and TTS/audio artifacts stay intact. If both cleanup flags appear, the last one wins.
+- Root files and `.test-cache/` survive cleanup. `latest.log` starts with the run summary and the uncapped digest, followed by the failed and skipped `report.json` entries, the runner log, and the tail of the command log. Test-mode runs regenerate `latest-model-calibration.json` from retained run metadata for model cost and timeout recommendations. It does not measure word boundaries. `.test-cache/` keeps file timings, the prebuilt CLI bundle, and the budget-preflight cache.
 - Use `--no-adaptive-concurrency` to disable adaptive per-provider lane limits.
 
 ```bash
@@ -106,6 +107,7 @@ bun t test/test-cases/e2e/service/text/write/ --budget 2500
 ```
 
 - `--price` with no path filters resolves all mapped test price commands.
+- `--price` preserves previous evidence and its own estimated-cost report by default; `--no-cleanup` states that preference explicitly. Pricing subprocesses do not receive provider credentials and disable `.env` loading.
 - `--budget` applies independently to each matching test; estimates are not combined into an aggregate cap. An unmapped or unevaluated hosted test fails locally instead of calling a provider. Local engine tests run without that evidence and still skip when a budget names their key.
 - Most validation paths have no mapped price commands, so `--price` on them reports a zero-cost pass.
 

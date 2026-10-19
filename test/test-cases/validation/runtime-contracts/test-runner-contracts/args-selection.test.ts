@@ -39,7 +39,8 @@ describe('test-runner contracts', () => {
       expect(parsed.pathFilters).toEqual(['test/test-cases/validation/runtime-contracts/'])
       expect(parsed.priceMode).toBe(true)
       expect(parsed.budgetHundredthCents).toBe(500)
-      expect(parsed.preserveTestOutput).toBe(false)
+      expect(parsed.preserveTestOutput).toBe(true)
+      expect(parsed.cleanupPreviousRuns).toBe(false)
       expect(parsed.passthroughArgs).toEqual(['--bail'])
     })
 
@@ -100,6 +101,7 @@ describe('test-runner contracts', () => {
       priceMode: true,
       budgetHundredthCents: 250,
       preserveTestOutput: true,
+      cleanupPreviousRuns: false,
       verbose: true,
       adaptiveConcurrency: false,
       passthroughArgs: ['--bail', 'plain'],
@@ -162,7 +164,19 @@ describe('test-runner contracts', () => {
 
       expect(parsed.pathFilters).toEqual(['test/test-cases/validation/'])
       expect(parsed.preserveTestOutput).toBe(true)
+      expect(parsed.cleanupPreviousRuns).toBe(false)
     })
+
+  test('prior-run cleanup requires an explicit flag and price mode preserves its report by default', () => {
+    expect(parseRunnerArgs(['bun', 'runner'])).toMatchObject({ preserveTestOutput: false, cleanupPreviousRuns: false })
+    expect(parseRunnerArgs(['bun', 'runner', '--price'])).toMatchObject({ preserveTestOutput: true, cleanupPreviousRuns: false })
+    for (const flags of [['--price', '--cleanup'], ['--cleanup', '--price']]) {
+      expect(parseRunnerArgs(['bun', 'runner', ...flags])).toMatchObject({ preserveTestOutput: false, cleanupPreviousRuns: true, passthroughArgs: [] })
+    }
+    expect(parseRunnerArgs(['bun', 'runner', '--cleanup'])).toMatchObject({ preserveTestOutput: false, cleanupPreviousRuns: true })
+    expect(parseRunnerArgs(['bun', 'runner', '--cleanup', '--no-cleanup', '--price'])).toMatchObject({ preserveTestOutput: true, cleanupPreviousRuns: false })
+    expect(parseRunnerArgs(['bun', 'runner', '--no-cleanup', '--cleanup', '--price'])).toMatchObject({ preserveTestOutput: false, cleanupPreviousRuns: true })
+  })
 
   test('arg parsing consumes --no-adaptive-concurrency as a runner flag', () => {
       const parsed = parseRunnerArgs([

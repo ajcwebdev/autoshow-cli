@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-24
-- **Date Updated:** 2026-10-18
+- **Date Updated:** 2026-10-19
 - **Verification Status:** Passed
 
 Native AMD64 and ARM64 production validation passed on the published image. Both native compiled-entrypoint experiments were reviewed and rejected because their images grew; production retains the source entrypoint.
@@ -87,7 +87,7 @@ Hosted-provider credentials arrive at runtime through Docker's `--env-file` or `
 
 Image tools are discovered on the normal Linux `PATH`. The CLI does not special-case containers, so omitted tools fail in setup, doctor, or the workflow the same way they would on a native Linux host.
 
-Multi-architecture images (`linux/amd64` and `linux/arm64`) publish to `ghcr.io/ajcwebdev/autoshow-cli`, tagged `latest` and by full commit SHA, on pushes to `main` that change image inputs (`Dockerfile`, dependencies, `config/`, `src/`, the acceptance harness, or workflows). Docs-only pushes keep the previous `latest`. The production image runs the TypeScript source entrypoint; the `compiled-experiment` target remains unpublished, and adopting it requires a material improvement without asset, path, diagnostic, image-size, or multi-architecture regressions.
+Multi-architecture images (`linux/amd64` and `linux/arm64`) publish to `ghcr.io/ajcwebdev/autoshow-cli`, tagged `latest` and by full commit SHA, on pushes to `main` that change image inputs (`Dockerfile`, dependencies, `config/`, `src/`, the acceptance harness, or workflows). Docs-only pushes keep the previous `latest`. The production image runs the TypeScript source entrypoint. The rejected compiled-image stages and recurring experiment jobs were retired on October 19; the historical measurements and decision below remain the basis for any future, explicitly owned and manually dispatched research. Adopting compilation still requires a material improvement without asset, path, diagnostic, image-size, or multi-architecture regressions.
 
 This applies to:
 
@@ -151,6 +151,14 @@ The image recipe, entrypoint, and publishing workflow ship with the repository, 
 
 The runtime APT snapshot is pinned to `20261016T082316Z`, which includes `libexpat1` version `2.9.0-1~deb13u1` for both AMD64 and ARM64. [Debian DSA-6566-1](https://lists.debian.org/debian-security-announce/2026/msg00480.html) identifies that version as the trixie fix for the Expat vulnerabilities reported by the image audits. The previous October 15 snapshot preceded the October 16 security release. Both architectures' compressed package indexes were checked against the [signed security InRelease](https://snapshot.debian.org/archive/debian-security/20261016T082316Z/dists/trixie-security/InRelease), whose signatures were verified with Debian's published security archive keys, and the downloaded `.deb` files matched the indexes' SHA-256 values. Native CI image builds, smoke tests, and the existing fixable high-severity audit gate remain the acceptance checks; no advisory exceptions were added.
 
+### Production runtime protection (2026-10-19)
+
+The recipe now contains `youtube-js`, `deps`, `runtime`, optional `alignment`, and final `production` stages. Application source, installed production dependencies, package manifests, and frozen optional-tool manifests stay root-owned and readable by the runtime user. Only input, output, runtime, and home/cache directories belong to `bun`. The default configuration path `/app/config/autoshow.json` links to `/app/runtime/autoshow.json`, preserving configuration writes and persistence through an initially empty runtime mount while keeping frozen configuration assets protected. Linux callers using another UID/GID supply writable host-owned state and home mounts as described in the [Docker guide](../docker.md).
+
+The alignment stage installs its frozen dependencies as root during the build, removes group/other write access, and returns to `USER bun`. Production remains the last stage and retains the source entrypoint. The yt-dlp download uses checksum-verified `ADD` with executable mode after the expensive APT layer; its URL and hash continue to match native setup metadata. Installed-image smoke imports the dependencies shipped by the build with networking disabled instead of reinstalling them. Removing unused experiment and fetch stages simplifies maintenance; it does not establish a smaller runtime image.
+
+Local October 19 validation built production and alignment on a native ARM64 Docker daemon. Offline checks confirmed dependency imports, refused writes to code/dependencies/manifests, writable state and configuration, and host-owned binds under a nonmatching UID/GID; configuration and a local cached-asset fixture survived successive disposable containers. Core acceptance passed 26/26 cases against the local production image, and the alignment image passed four existing native ONNX tests, including actual synthetic inference and overwrite rejection. An intentionally incorrect yt-dlp checksum failed the build at `ADD`. Native AMD64 builds/scans and registry promotion remain CI checks; these local results do not claim new AMD64 or registry verification.
+
 ### Bun 1.4 Migration Evidence
 
 On 2026-08-31, local no-cost measurements compared the production image on Bun 1.3.14 with Bun 1.4.0 on one Docker Desktop host with a local Tesseract OCR fixture. The migration benchmark utility was retired on September 23; these measurements and the existing benchmark artifacts remain historical evidence. Current Docker acceptance continues through `bun t:docker`. The dotenv result is archived in [ADR-004](ADR-004-setup-toolchain-and-runtime-configuration.md#bun-14-dotenv-compatibility), and Linux TIFF and ImageMagick routing constraints in [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md#bun-14-image-routing). On native ARM64, containerized help, setup, and `setup --doctor` passed with the expected warnings for tools and models left out of the image:
@@ -184,6 +192,7 @@ The September 22 review passed `bun run check` (structure, naming and types), `b
 ```bash
 bun run check
 bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
+bun test test/test-cases/validation/cli/docker-runtime-recipe.test.ts
 ```
 
 1. The image `yt-dlp` URL and SHA-256 match native Linux metadata, and documentation shows direct `docker run`.
@@ -192,6 +201,7 @@ bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
 
 - [x] Review native Bun 1.4 production-image evidence for AMD64 and ARM64 — Passed on native Ubuntu runners in the 2026-09-22 CI run.
 - [x] Review both native compiled-entrypoint experiment artifacts — Rejected for production because both compiled images grew by about 70 MB; retain the source entrypoint.
+- [x] Retire the rejected compiled-image build stages, recurring experiment jobs, and experiment-only sampling — Removed on 2026-10-19; historical commands, measurements, and rejection evidence remain above. Standalone-runtime support remains available to native compilation.
 
 ## References
 

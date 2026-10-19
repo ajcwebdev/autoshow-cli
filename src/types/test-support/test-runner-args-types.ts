@@ -2,6 +2,7 @@ export type RunnerArgs = {
   priceMode: boolean
   budgetHundredthCents: number | undefined
   preserveTestOutput: boolean
+  cleanupPreviousRuns: boolean
   verbose: boolean
   adaptiveConcurrency: boolean
   passthroughArgs: string[]
@@ -12,6 +13,7 @@ export type RunnerParseState = {
   priceMode: boolean
   budgetHundredthCents: number | undefined
   preserveTestOutput: boolean
+  cleanupPreviousRuns: boolean
   verbose: boolean
   adaptiveConcurrency: boolean
   passthroughArgs: string[]

@@ -4,6 +4,8 @@ AutoShow publishes a Docker image with the CLI and common local tools so you can
 
 Pre-built `linux/amd64` and `linux/arm64` images are on GitHub Container Registry (GHCR), tagged `latest` and by full commit SHA. They are published for every push to `main` that changes image inputs (`Dockerfile`, dependencies, `config/`, `src/`, the acceptance harness, or workflows), and docs-only pushes keep the previous `latest`.
 
+Publication first creates a SHA-tagged candidate index after verification, package checks, native offline smoke, and vulnerability scans. All twelve core, model, and public-site acceptance shards run against its immutable digest. Only a successful candidate is copied to `latest`, preserving both native platform descriptors, SBOM, and provenance attestations. A failed or skipped shard blocks promotion and leaves the previous `latest` in place. Push releases remain serialized; existing build, smoke, audit, and required-check names are retained.
+
 The image includes:
 
 - `ffmpeg` and `ffprobe`
@@ -34,6 +36,8 @@ docker build -t autoshow-cli:local .
 
 `bun t:docker --suite core` pulls the published image and runs local acceptance cases on the Docker daemon's native architecture. It uses no hosted inference or provider credentials; pulling the image requires network access. Failed runs retain their evidence and cached assets. Use `bun t:docker --help` to see suite, timeout, and evidence-directory options without starting Docker.
 
+Select a local build with `bun t:docker --suite core --image autoshow-cli:local --pull never`. Select a registry candidate with `bun t:docker --suite core --image ghcr.io/ajcwebdev/autoshow-cli@sha256:<digest> --pull always --expected-revision <full-commit-sha>`. The default pull policy is `always`; `missing` uses an already installed image or pulls it if absent. A failed pull never falls back to a cached tag. Registry pulls execute the verified manifest digest, and cached local tags execute the inspected immutable image ID. `--expected-digest` accepts that manifest digest or local image ID. All selections retain native architecture, non-root user, entrypoint, credential, and revision checks.
+
 The examples below use `autoshow-cli:local`. Substitute `ghcr.io/ajcwebdev/autoshow-cli:latest` if you pulled the published image.
 
 ## Run
@@ -61,7 +65,7 @@ docker run --rm -i \
 
 Only the mounted directory is visible. If a source is outside it, run from a common ancestor or add another mount. Paths are interpreted inside the container; do not pass an unmounted host-absolute path.
 
-On Linux, add `--user "$(id -u):$(id -g)"` so bind-mounted output is owned by your host user.
+This quick invocation uses disposable application state and home/cache directories. On Linux, use the persistent workspace function below to run with your host UID/GID and writable state/home mounts, so bind-mounted output is owned by your host user.
 
 ### Separate input and output mounts
 
@@ -108,7 +112,7 @@ Set `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES` to a positive whole number of bytes to rep
 
 ## Project Workspace Invocation
 
-Use this optional shell function from any directory after exporting `AUTOSHOW_WORKSPACE` as your absolute project root. Create `.env` and `.autoshow/` there first. On Linux it preserves host ownership; on Docker Desktop the ordinary bind mounts handle ownership. Arguments remain literal, including spaces and shell metacharacters. Docker failure never triggers native execution.
+Use this recommended shell function from any directory after exporting `AUTOSHOW_WORKSPACE` as your absolute project root. Create `.env` there and create `.autoshow/home/.cache` as your host user with `mkdir -p "$AUTOSHOW_WORKSPACE/.autoshow/home/.cache"`. On Linux it preserves host ownership; on Docker Desktop the ordinary bind mounts handle ownership. Arguments remain literal, including spaces and shell metacharacters. Docker failure never triggers native execution.
 
 ```bash
 autoshow() (
@@ -116,6 +120,7 @@ autoshow() (
   set -- --rm -i \
     --mount "type=bind,src=$autoshow_workspace,dst=/workspace" \
     --mount "type=bind,src=$autoshow_workspace/.autoshow,dst=/app/runtime" \
+    --mount "type=bind,src=$autoshow_workspace/.autoshow/home,dst=/home/bun" \
     --workdir /workspace --env-file "$autoshow_workspace/.env" \
     --env AUTOSHOW_REQUIRED_IMAGE_MODEL=gpt-image-2 \
     "${AUTOSHOW_IMAGE:-autoshow-cli:local}" "$@"
@@ -128,7 +133,23 @@ autoshow() (
 
 The `AUTOSHOW_REQUIRED_IMAGE_MODEL` line is optional. Remove it for unrestricted models. When it is set, image-producing comic commands and standalone image commands must name that model explicitly. Help, version, and `comic generate-images --qa-only` stay exempt. A violation exits 64 before pricing or output setup.
 
-Keep the separate `/app/runtime` mount intact: protected voice assets, provisioning journals, and account identity keys must survive disposable containers. Docker's explicit `--env` overrides the same key in `--env-file`. `AUTOSHOW_IMAGE` selects a rebuilt tag without a host launcher.
+Keep the separate `/app/runtime` and `/home/bun` mounts intact: protected voice assets, provisioning journals, account identity keys, managed tools, configuration, and caches must survive disposable containers. The default `/app/config/autoshow.json` path links to `/app/runtime/autoshow.json`; an empty runtime mount provisions it on first config write. Source, dependencies, frozen manifests, and bundled configuration assets remain root-owned. For other Linux `--user` invocations, bind host-owned writable directories to `/app/runtime` and `/home/bun` plus any input/output locations the command uses; changing the user alone does not initialize these directories. Keep identity/voice state and credentials out of broad evidence uploads. Docker's explicit `--env` overrides the same key in `--env-file`. `AUTOSHOW_IMAGE` selects a rebuilt tag without a host launcher.
+
+## Security pin maintenance
+
+The release/dependency maintainer, `@ajcwebdev`, owns the image security pins and their promotion evidence. Review them together every Monday after the scheduled native uncached audits, and before a release that changes one of these pins. For an applicable security advisory, assess it as soon as notified, update all affected pins in one change, and run the same native candidate gates before promotion. If a fix is unavailable, retain the advisory's owner, affected packages, reachability, disposition, and next action in the release triage; a rebuild alone does not close it.
+
+| Pin family           | Coordinated update surfaces                                                                                                                                                                                                      |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bun                  | `package.json` packageManager, `bun.lock`, `src/utils/bun-version.ts`, Docker base tag/digest, setup metadata, pinned setup-bun versions, and version contracts                                                                  |
+| Deno and yt-dlp      | Docker image/download digests and URLs, defaults in `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`, optional `config/deps.json` overrides, native setup distribution metadata, and documented tool versions |
+| Build infrastructure | Dockerfile frontend digest, Buildx version, BuildKit image digest, and pinned Docker/checkout/setup actions in workflows and shared actions                                                                                      |
+| Scanners             | Syft/Grype versions and architecture checksums in `.github/actions/scan-image/`, plus any callers overriding those versions                                                                                                      |
+| Debian               | Dockerfile `DEBIAN_SNAPSHOT`, signed Debian/security snapshot sources, the Bun base digest's distribution, and package inventory/advisory evidence for both native architectures                                                 |
+
+Verify exact metadata paths against the current setup registry when updating a tool. Preserve signed APT metadata, snapshot selection, `apt-get upgrade`, frozen dependency installation, and digest/checksum checks. The scheduled `--pull --no-cache` audit detects problems in the selected inputs; a pinned old snapshot still contains its old packages. Move the snapshot and relevant base/tool pins to acquire later security releases, following [Debian Snapshot](https://snapshot.debian.org/) and [Docker's base-image pinning guidance](https://docs.docker.com/build/building/best-practices/#pin-base-image-versions).
+
+Confirm a fix through the candidate index digest, each original native build digest, shipped Debian and production dependency inventories, both native scans, every high/critical advisory disposition, and all acceptance shards. The shared audit action records the exact image identity, package list, SBOM, scan, scanner database timestamp, notices, and triage. Promotion uses a single accepted index source as a [verbatim index copy](https://docs.docker.com/reference/cli/docker/buildx/imagetools/create/) and checks the final `latest` digest against it. Retain those CI artifacts with the release; a source pin edit or a separate rebuild is not proof of what `latest` ships.
 
 ## Docker-only Network Diagnostic
 

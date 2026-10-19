@@ -97,8 +97,13 @@ const consumeRunnerControlArg = (
   }
 
   switch (arg) {
+    case '--cleanup':
+      state.preserveTestOutput = false
+      state.cleanupPreviousRuns = true
+      return { kind: 'consumed', nextIndex: index }
     case '--no-cleanup':
       state.preserveTestOutput = true
+      state.cleanupPreviousRuns = false
       return { kind: 'consumed', nextIndex: index }
     case '--verbose':
       state.verbose = true
@@ -131,6 +136,7 @@ export const parseRunnerArgs = (argv: string[]): RunnerArgs => {
     priceMode: false,
     budgetHundredthCents: undefined,
     preserveTestOutput: false,
+    cleanupPreviousRuns: false,
     verbose: false,
     adaptiveConcurrency: true,
     passthroughArgs: [],
@@ -152,5 +158,8 @@ export const parseRunnerArgs = (argv: string[]): RunnerArgs => {
     state[classifyRunnerArg(arg)].push(arg)
   }
 
+  // Price verification retains both prior evidence and its own report unless
+  // the caller explicitly requests cleanup, independent of option order.
+  if (state.priceMode && !state.cleanupPreviousRuns) state.preserveTestOutput = true
   return state
 }

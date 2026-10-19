@@ -1,0 +1,22 @@
+name: Smoke native production image
+description: Verify the installed image offline and retain native rendering and performance evidence.
+inputs:
+  arch:
+    description: Native runner architecture (amd64 or arm64)
+    required: true
+  digest:
+    description: Exact per-architecture index digest
+    required: true
+  build-duration-ms:
+    description: Native build elapsed milliseconds
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Smoke and measure native image offline
+      shell: bash
+      env:
+        ARCH: ${{ inputs.arch }}
+        IMAGE_DIGEST: ${{ inputs.digest }}
+        BUILD_DURATION_MS: ${{ inputs.build-duration-ms }}
+      run: bash src/tools/docker-release-smoke.sh

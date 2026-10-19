@@ -26,6 +26,7 @@ test('documented container invocation preserves arguments, mounts, policy enviro
   expect(result.args.slice(-args.length)).toEqual(args)
   expect(result.args).toContain('type=bind,src=/project with spaces,dst=/workspace')
   expect(result.args).toContain('type=bind,src=/project with spaces/.autoshow,dst=/app/runtime')
+  expect(result.args).toContain('type=bind,src=/project with spaces/.autoshow/home,dst=/home/bun')
   expect(result.args).toContain('/project with spaces/.env')
   expect(result.args).toContain('/workspace')
   expect(result.args).toContain('AUTOSHOW_REQUIRED_IMAGE_MODEL=gpt-image-2')
