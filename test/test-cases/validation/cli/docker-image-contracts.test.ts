@@ -134,6 +134,9 @@ test('dependency-graph image audits reuse the published per-architecture layer c
   expect(build?.run).toContain('--load')
   expect(build?.run).not.toContain('type=gha')
   expect(workflowSource).not.toContain('docker build --pull --no-cache')
+  const onnxCommands = steps.find(step => step.name === 'Verify optional ONNX backend offline')?.run?.split('\n') ?? []
+  expect(onnxCommands.find(line => line.includes('stt-onnx-alignment.test.ts'))).not.toContain('--user')
+  expect(onnxCommands.find(line => line.includes('alignment-inventory.txt'))).toContain('--user 0')
 })
 
 test('Docker publication is blocked by exact-version no-cost verification and package hygiene', async () => {

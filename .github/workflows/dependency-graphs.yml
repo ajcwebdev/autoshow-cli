@@ -141,7 +141,8 @@ jobs:
         if: matrix.target == 'alignment'
         run: |
           docker run --rm --network none --entrypoint bun --mount "type=bind,src=${GITHUB_WORKSPACE}/test,dst=/app/test,readonly" autoshow-audit:${{ github.sha }} --no-env-file test test/test-cases/validation/stt/workflows/timing/stt-onnx-alignment.test.ts
-          docker run --rm --network none --entrypoint bun autoshow-audit:${{ github.sha }} --no-env-file pm --cwd config/stt-alignment ls --all > runtime/dependency-evidence/alignment-inventory.txt
+          # Bun pm opens the frozen manifest for writing; only inventory needs root over the immutable graph.
+          docker run --rm --network none --user 0 --entrypoint bun autoshow-audit:${{ github.sha }} --no-env-file pm --cwd config/stt-alignment ls --all > runtime/dependency-evidence/alignment-inventory.txt
       - name: Inventory, audit, and gate this commit's image
         uses: ./.github/actions/scan-image
         with:
