@@ -11,7 +11,20 @@ WORKDIR /app
 
 COPY package.json bun.lock bunfig.toml ./
 
-RUN bun --no-env-file install --frozen-lockfile --production
+RUN bun --no-env-file install --frozen-lockfile --production --omit=peer
+
+FROM ${BUN_BASE_IMAGE} AS alignment-deps
+ARG TARGETARCH
+WORKDIR /app/config/stt-alignment
+COPY config/stt-alignment ./
+RUN set -eu; \
+    case "${TARGETARCH}" in amd64) arch=x64 ;; arm64) arch=arm64 ;; *) echo "Unsupported target architecture: ${TARGETARCH}" >&2; exit 1 ;; esac; \
+    bun --no-env-file install --frozen-lockfile --ignore-scripts; \
+    onnx_bin=node_modules/onnxruntime-node/bin/napi-v6; \
+    test -f "${onnx_bin}/linux/${arch}/onnxruntime_binding.node"; \
+    find "${onnx_bin}" -mindepth 2 -maxdepth 2 ! -path "${onnx_bin}/linux/${arch}" -exec rm -rf {} +; \
+    test -f "${onnx_bin}/linux/${arch}/onnxruntime_binding.node"; \
+    chmod -R a+rX,go-w .
 
 FROM ${BUN_BASE_IMAGE} AS runtime
 
@@ -46,17 +59,6 @@ RUN set -eux; \
       qpdf \
       tesseract-ocr \
       tesseract-ocr-eng; \
-    printf '%s\n' \
-      '#!/bin/sh' \
-      'SYSTEM_TESSDATA="/usr/share/tesseract-ocr/5/tessdata"' \
-      'if [ -n "${TESSDATA_PREFIX:-}" ] && [ ! -f "${TESSDATA_PREFIX%/}/eng.traineddata" ] && [ -f "$SYSTEM_TESSDATA/eng.traineddata" ]; then' \
-      '  export TESSDATA_PREFIX="$SYSTEM_TESSDATA"' \
-      'elif [ -z "${TESSDATA_PREFIX:-}" ] && [ -f "$SYSTEM_TESSDATA/eng.traineddata" ]; then' \
-      '  export TESSDATA_PREFIX="$SYSTEM_TESSDATA"' \
-      'fi' \
-      'exec /usr/bin/tesseract "$@"' \
-      > /usr/local/bin/tesseract; \
-    chmod 0755 /usr/local/bin/tesseract; \
     rm -rf /var/lib/apt/lists/* /root/.cache/* /tmp/*
 
 # Keep the download after APT so yt-dlp pin changes reuse the package layer.
@@ -77,8 +79,7 @@ RUN set -eux; \
     chmod 0755 /app /app/config; \
     chmod -R a+rX,go-w /app/src /app/node_modules /app/config/defuddle; \
     chmod 0644 package.json bun.lock bunfig.toml tsconfig.json; \
-    install -d -o bun -g bun -m 0755 input output runtime runtime/tools /home/bun /home/bun/.cache; \
-    ln -s /usr/share/tesseract-ocr/5/tessdata runtime/tools/tessdata; \
+    install -d -o bun -g bun -m 0755 input output runtime /home/bun /home/bun/.cache; \
     ln -s ../runtime/autoshow.json config/autoshow.json
 
 USER bun
@@ -94,11 +95,6 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.revision="${VCS_REF}"
 
 FROM runtime AS alignment
-# Installation needs a writable dependency directory; only the build runs as root.
-USER root
-COPY --chown=0:0 config/stt-alignment ./config/stt-alignment
-RUN bun --no-env-file install --cwd config/stt-alignment --frozen-lockfile --ignore-scripts
-RUN chmod -R a+rX,go-w config/stt-alignment
-USER bun
+COPY --from=alignment-deps --chown=0:0 /app/config/stt-alignment ./config/stt-alignment
 
 FROM runtime AS production

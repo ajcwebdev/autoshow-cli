@@ -20,6 +20,7 @@ Generate structured LLM output from local markdown or plaintext. With no `--prov
   - [Marketing Content](#marketing-content)
   - [Social Media](#social-media)
   - [Song Lyrics](#song-lyrics)
+  - [Song Explainer](#song-explainer)
   - [Creative Writing](#creative-writing)
 - [Output](#output)
 - [Generate Media from Write Output](#generate-media-from-write-output)
@@ -215,6 +216,40 @@ Single-prompt output is the task's JSON object. Combined selection returns separ
 - `rapSong`
 - `rapSongChapter`
 - `rapSongLong`
+
+### Song Explainer
+
+`songExplainer` builds a listening guide explaining the terms, people, places, objects, events, relationships, allusions, metaphors, and other context needed to understand each lyric. It accepts three input types:
+
+- **Source text only:** A transcript, book chapter, article, or other general text. Produces background and a glossary for a song adapted from that material, explicitly noting that no lyrics were supplied. It does not invent lyrics or line annotations.
+- **Lyrics only:** Explains every supplied lyric in order, with a glossary and relevant background. Identifies ambiguity and missing source context.
+- **Lyrics and original source:** Connects individual lyrics to the original material, resolves compressed references, and flags meaningful changes, unsupported additions, or contradictions.
+
+```bash
+bun autoshow write input/examples/document/harborlight-field-notes.md --prompt songExplainer --rendered-text
+bun autoshow write output/<song-write-run>/text.md --prompt songExplainer --rendered-text
+bun autoshow write input/song-context.md --prompt songExplainer --rendered-text
+```
+
+For paired input, put both parts in one `.md` or `.txt` file, with clear labels. For example, save this as `input/song-context.md`:
+
+```markdown
+## Lyrics
+
+### Verse 1
+Mara lets the tide ledger speak
+She lifts the gate so the quay can breathe
+
+## Original source
+
+Mara is the lockkeeper at North Quay. She checks the tide ledger, a record of water levels, before opening the harbor gate. Boats return after she opens it.
+```
+
+Lyrics may be plain text, rendered Markdown, or a structured song object pasted into the input document. For recordings or documents, run `extract` first and pass the resulting text to `write`.
+
+Output contains `inputType` (`sourceOnly`, `lyricsOnly`, or `lyricsAndSource`), `title`, `overview`, `background`, `glossary`, `lyricAnnotations`, and `uncertainties`. Glossary entries identify their evidence basis: supplied source, lyrics, general knowledge, interpretation, or an unresolved reference. Annotations preserve each supplied lyric line, use global line numbers excluding titles, headings, stage directions, and blanks, and retain repeated choruses as separate occurrences. Source-only input has no lyric annotations; lyrics-only annotations have no source connections.
+
+`--rendered-text` saves a readable Markdown guide alongside the JSON. Add `--price` to estimate before generation. The prompt does not browse or claim external verification. Multiple selected prompts share the same input; to explain newly generated lyrics, pass their saved output to a subsequent `write --prompt songExplainer` run.
 
 ### Creative Writing
 

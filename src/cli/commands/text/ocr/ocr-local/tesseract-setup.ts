@@ -1,13 +1,14 @@
 import { runCapture, runInherit, detectPlatform } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import * as l from '~/utils/app-logger/app-logger'
-import { getTesseractBinary, resolveTessdataPrefix } from '~/utils/runtime-paths'
+import { getTesseractBinary, resolveTessdataPrefix, tessdataDir, toProjectDisplayPath } from '~/utils/runtime-paths'
+import { inspectTesseractEnglishData } from '~/utils/tesseract-language-data'
 import {
   ensureManagedTessdataSupportFiles,
   installManagedTesseractMacos
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools'
 import { isRuntimeToolHealthy } from '~/cli/commands/setup-and-utilities/setup/setup-download/tool-health'
 import { isCompactSetupMode } from '~/utils/setup-output-mode'
-import { InternalError } from '~/utils/error-handler'
+import { InfraError, InternalError } from '~/utils/error-handler'
 
 const shouldPrintCompletion = (): boolean => !isCompactSetupMode()
 
@@ -37,26 +38,22 @@ const installTesseract = async (): Promise<void> => {
   throw InternalError('Unsupported platform for tesseract setup', { stage: 'setup:tesseract' })
 }
 
-const ensureEnglishLanguageData = async (): Promise<void> => {
-  const result = await runCapture(getTesseractBinary(), ['--list-langs'], {
+export const ensureTesseractEnglishData = async (): Promise<void> => {
+  const prefix = resolveTessdataPrefix()
+  const source = prefix ? toProjectDisplayPath(prefix) : 'Tesseract packaged default'
+  const result = await inspectTesseractEnglishData(async args => await runCapture(getTesseractBinary(), args, {
     allowFailure: true,
-    env: { TESSDATA_PREFIX: resolveTessdataPrefix() }
-  })
-  const langs = result.stdout
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
+    env: { TESSDATA_PREFIX: prefix }
+  }))
 
-  if (langs.includes('eng')) {
-    l.write('info', 'Tesseract language data (eng) found', { category: 'command' })
+  if (result.status === 'ready') {
+    l.write('info', `Tesseract language data (eng) ready (${source})`, { category: 'command' })
     return
   }
-
-  l.warn('Could not find eng.traineddata in tessdata path', { category: 'command' })
-  l.write('info', `Add eng.traineddata to ${resolveTessdataPrefix()} (the CLI points tesseract at this directory)`, {
-      category: 'command',
-      metadata: { tool: 'tesseract', tessdataPrefix: resolveTessdataPrefix() }
-    })
+  throw InfraError(`Tesseract English data is unavailable (${source}): ${result.detail}`, {
+    stage: 'setup:tesseract-data',
+    hints: [`Install packaged Tesseract English data, or add valid eng.traineddata to ${toProjectDisplayPath(tessdataDir)}.`]
+  })
 }
 
 export const setupTesseractOcr = async (): Promise<void> => {
@@ -64,7 +61,7 @@ export const setupTesseractOcr = async (): Promise<void> => {
   if (detectPlatform() === 'darwin') {
     await ensureManagedTessdataSupportFiles()
   }
-  await ensureEnglishLanguageData()
+  await ensureTesseractEnglishData()
 
   if (shouldPrintCompletion()) {
     l.write('info', 'Extraction OCR setup complete', { category: 'command' })

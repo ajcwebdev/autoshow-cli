@@ -2,6 +2,7 @@ import { isRecord } from '~/utils/rest-client'
 import * as v from 'valibot'
 import type { StructuredValidationContext, StructuredValidationResult, ValibotSchema } from '~/types'
 import { isSongLyricsPreset } from './preset-registry'
+import { SongExplainerSchema, validateSongExplainerSemantics } from './song-explainer-preset-schema'
 
 const stripMarkdownCodeFence = (raw: string): string => {
   const trimmed = raw.trim()
@@ -84,6 +85,25 @@ const normalizeStructuredValue = (
   return normalized
 }
 
+const validatePresetSemantics = (
+  schema: ValibotSchema,
+  value: unknown
+): string | undefined => {
+  // Structural validation has already established the shape of each leaf.
+  if (schema === SongExplainerSchema) {
+    return validateSongExplainerSemantics(value as v.InferOutput<typeof SongExplainerSchema>)
+  }
+  const entries = 'entries' in schema ? schema.entries : undefined
+  if (isRecord(entries) && isRecord(value)) {
+    for (const [key, leafSchema] of Object.entries(entries)) {
+      if (leafSchema !== SongExplainerSchema) continue
+      const issue = validateSongExplainerSemantics(value[key] as v.InferOutput<typeof SongExplainerSchema>)
+      if (issue) return `${key}: ${issue}`
+    }
+  }
+  return undefined
+}
+
 export const parseAndValidateStructured = (
   schema: ValibotSchema,
   rawText: string,
@@ -103,6 +123,9 @@ export const parseAndValidateStructured = (
       issue: JSON.stringify(flattened)
     }
   }
+
+  const semanticIssue = validatePresetSemantics(schema, validation.output)
+  if (semanticIssue) return { success: false, issue: semanticIssue }
 
   return {
     success: true,

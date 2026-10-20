@@ -1,7 +1,7 @@
-import { existsSync } from 'node:fs'
+import { accessSync, constants, existsSync, lstatSync, statSync } from 'node:fs'
 import { basename, extname, isAbsolute, join, posix, relative, resolve } from 'node:path'
 import type { ResolvedRuntimeTool, ResolveRuntimeToolOptions, RuntimeToolId } from '~/types'
-import { ValidationError } from '~/utils/error-handler'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 import { PROJECT_ROOT } from '~/utils/project-root'
 
 export { PROJECT_ROOT, toProjectRelativePath } from '~/utils/project-root'
@@ -156,4 +156,35 @@ export const getYtDlpBinaryPath = (): string => getRuntimeToolCommand('yt-dlp')
 export const getMutoolBinary = (): string => getRuntimeToolCommand('mutool')
 export const getTesseractBinary = (): string => getRuntimeToolCommand('tesseract')
 
-export const resolveTessdataPrefix = (): string => tessdataDir
+// Missing managed English data leaves Tesseract's packaged default in control.
+// An existing invalid entry must fail visibly instead of silently changing models.
+export const resolveTessdataPrefix = (directory = tessdataDir): string | undefined => {
+  const englishData = join(directory, 'eng.traineddata')
+  const invalid = (reason: string) => InfraError(
+    `Managed Tesseract English data at ${toProjectDisplayPath(englishData)} ${reason}`,
+    {
+      stage: 'ocr:tesseract-data',
+      hints: ['Restore readable, valid eng.traineddata, or remove the invalid managed entry to use packaged data when available.']
+    }
+  )
+  try {
+    lstatSync(englishData)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+    throw invalid(`cannot be inspected (${(error as NodeJS.ErrnoException).code ?? 'filesystem error'}).`)
+  }
+  let data
+  try { data = statSync(englishData) } catch {
+    throw invalid('does not resolve to a readable regular file.')
+  }
+  if (!data.isFile()) throw invalid('is not a regular file.')
+  if (data.size === 0) throw invalid('is empty.')
+  // Require readable permission bits and actual access, including ACLs/ownership.
+  if ((data.mode & 0o444) === 0) throw invalid('is not readable.')
+  try {
+    accessSync(englishData, constants.R_OK)
+  } catch {
+    throw invalid('is not readable.')
+  }
+  return directory
+}

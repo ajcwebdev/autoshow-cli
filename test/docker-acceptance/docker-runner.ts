@@ -123,7 +123,7 @@ export async function runDockerAcceptance(
     await Bun.write(join(options.output, 'image.json'), `${JSON.stringify(identity, null, 2)}\n`)
     await provision(['setup', '--doctor'], 'none')
     stage = 'fixtures'
-    await prepareDockerFixtures(engine, selected.some(scenario => scenario.suite === 'models'))
+    await prepareDockerFixtures(engine, selected.some(scenario => scenario.suite === 'models'), selected.some(scenario => scenario.id === 'fb2-calibre'))
     if (selected.some(scenario => scenario.network === 'fixture')) await startDockerFixtureServer(engine)
     stage = 'scenarios'
     for (const scenario of selected) {

@@ -33,6 +33,7 @@ const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<Doctor
   pathExists: async () => true,
   listDirectory: async () => ['whisper-tiny.llamafile', 'whisper-small.en.llamafile'],
   directoryHasFiles: async () => true,
+  resolveTessdataPrefix: () => '/fixture/tessdata',
   run: async (command: string, args: string[]) => {
     if (command.includes('tesseract') && args.includes('--list-langs')) {
       return okRun('List of available languages in "/tmp":\neng\n')

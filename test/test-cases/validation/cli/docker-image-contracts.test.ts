@@ -297,7 +297,7 @@ test('release promotion waits for every immutable-candidate acceptance shard', a
 
 test('source production remains default and standalone native runtime paths remain available', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
-  expect(dockerfile.match(/^FROM .+ AS (\S+)$/gm)?.map(line => line.split(' ').at(-1))).toEqual(['youtube-js', 'deps', 'runtime', 'alignment', 'production'])
+  expect(dockerfile.match(/^FROM .+ AS (\S+)$/gm)?.map(line => line.split(' ').at(-1))).toEqual(['youtube-js', 'deps', 'alignment-deps', 'runtime', 'alignment', 'production'])
   expect(dockerfile.trimEnd()).toEndWith('FROM runtime AS production')
   expect(dockerfile).toContain('ENTRYPOINT ["bun", "--no-env-file", "/app/src/cli/create-cli.ts"]')
   const runtimePaths = await readFile(resolve(repositoryRoot, 'src/utils/runtime-paths.ts'), 'utf8')
@@ -322,9 +322,12 @@ test('image legs scan once through the shared scan-image composite and derive th
   const steps = action.runs?.steps ?? []
   expect(steps.some(step => step.uses?.startsWith('anchore/sbom-action@'))).toBe(false)
   expect(steps.some(step => step.uses?.startsWith('anchore/scan-action@'))).toBe(false)
-  const installer = steps.find(step => step.name === 'Install Syft and Grype')?.run ?? ''
+  const installer = steps.find(step => step.name === 'Install required scanners')?.run ?? ''
   expect(installer).toContain('install-scan-tools.sh')
-  expect(await readFile(resolve(actionDir, 'install-scan-tools.sh'), 'utf8')).toContain('--retry-all-errors')
+  const installerSource = await readFile(resolve(actionDir, 'install-scan-tools.sh'), 'utf8')
+  expect(installerSource).toContain('--retry 3')
+  expect(installerSource).toContain('--retry-max-time 120')
+  expect(installerSource).not.toContain('--retry-all-errors')
   expect(steps.find(step => step.name === 'Inventory the image')?.run).toContain('syft "${IMAGE}" -o "spdx-json=${SBOM}"')
   const scanSteps = steps.filter(step => step.name === 'Audit the image')
   expect(scanSteps).toHaveLength(1)

@@ -133,11 +133,19 @@ test('dependency graph jobs run only for the graph inputs a change touches and s
     alignment: '${{ steps.changes.outputs.alignment }}',
     javascript_graph: '${{ steps.changes.outputs.javascript_graph }}'
   })
-  const gates = { javascript: 'javascript_graph', alignment: 'alignment', images: 'image' }
+  const gates = { javascript: 'javascript_graph', alignment: 'alignment', 'image-targets': 'image' }
   for (const [job, flag] of Object.entries(gates)) {
     expect(graphs.jobs[job]?.needs).toBe('changes')
     expect(graphs.jobs[job]?.if).toBe(`needs.changes.outputs.${flag} == 'true'`)
   }
+  expect(graphs.jobs['images']?.needs).toEqual(['changes', 'image-targets'])
+  expect(graphs.jobs['images']?.if).toBe("${{ !cancelled() && needs.changes.outputs.image == 'true' }}")
+  const source = await Bun.file(resolve(repositoryRoot, '.github/workflows/dependency-graphs.yml')).text()
+  expect(source).toContain("target: ${{ fromJSON(needs.image-targets.outputs.targets || '[\"production\",\"alignment\"]') }}")
+  const selection = graphs.jobs['image-targets'] as Job & { permissions: Record<string, string> }
+  expect(selection.permissions).toEqual({ contents: 'read', actions: 'read' })
+  expect(selection.outputs).toEqual({ targets: '${{ steps.coverage.outputs.targets }}' })
+  expect(selection.steps?.find(step => step.id === 'coverage')?.run).toBe('bun --no-env-file src/tools/docker-audit-coverage.ts')
 })
 
 test('Docker publication skips contract tests, builds, and acceptance for changes that cannot affect them', async () => {

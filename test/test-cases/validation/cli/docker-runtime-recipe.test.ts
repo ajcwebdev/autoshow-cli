@@ -11,7 +11,7 @@ const stages = dockerfile.split(/^(?=FROM )/m).filter(stage => stage.startsWith(
 const stageNamed = (name: string): string => stages.find(stage => new RegExp(`^FROM .+ AS ${name}\\n`).test(stage)) ?? ''
 
 test('default Docker target retains the source runtime and isolates optional alignment dependencies', () => {
-  expect(stages.map(stage => stage.match(/^FROM .+ AS (\S+)/)?.[1])).toEqual(['youtube-js', 'deps', 'runtime', 'alignment', 'production'])
+  expect(stages.map(stage => stage.match(/^FROM .+ AS (\S+)/)?.[1])).toEqual(['youtube-js', 'deps', 'alignment-deps', 'runtime', 'alignment', 'production'])
   expect(stages.at(-1)?.trim()).toBe('FROM runtime AS production')
   const runtime = stageNamed('runtime')
   expect(runtime).toContain('ENTRYPOINT ["bun", "--no-env-file", "/app/src/cli/create-cli.ts"]')
@@ -21,20 +21,23 @@ test('default Docker target retains the source runtime and isolates optional ali
   expect(runtime).toContain('ENV AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1')
 })
 
-test('alignment installs frozen dependencies with build permissions then returns to a non-root runtime', () => {
+test('alignment copies a frozen, normalized target-native graph without installing into runtime HOME', () => {
   const alignment = stageNamed('alignment')
-  let user = 'bun'
-  const installs = []
-  for (const line of alignment.split('\n')) {
-    if (line.startsWith('USER ')) user = line.slice('USER '.length)
-    if (/^RUN .*\bbun\b.*\binstall\b/.test(line)) installs.push({ user, command: line })
-  }
-  expect(installs).toHaveLength(1)
-  expect(installs[0]?.user).toBe('root')
-  expect(installs[0]?.command).toMatch(/--cwd config\/stt-alignment\b/)
-  expect(installs[0]?.command).toContain('--frozen-lockfile')
-  expect(installs[0]?.command).toContain('--ignore-scripts')
-  expect(user).toBe('bun')
+  const builder = stageNamed('alignment-deps')
+  expect(alignment).toContain('COPY --from=alignment-deps')
+  expect(alignment).not.toMatch(/^(?:USER|RUN) /m)
+  expect(builder).toContain('WORKDIR /app/config/stt-alignment')
+  expect(builder).toContain('bun --no-env-file install --frozen-lockfile --ignore-scripts')
+  expect(builder).toContain('chmod -R a+rX,go-w .')
+  expect(builder).toContain('ARG TARGETARCH')
+  expect(builder).toContain('amd64) arch=x64')
+  expect(builder).toContain('arm64) arch=arm64')
+  expect(builder).toContain('Unsupported target architecture')
+  expect(builder).toContain('onnxruntime_binding.node')
+  expect(stageNamed('runtime')).toContain('USER bun')
+  expect(stageNamed('deps')).toContain('--production --omit=peer')
+  expect(stageNamed('runtime')).not.toContain('runtime/tools/tessdata')
+  expect(stageNamed('runtime')).not.toContain('/usr/local/bin/tesseract')
 })
 
 test('the image config link preserves real config creation, update, and reset in an initially empty runtime mount', async () => {

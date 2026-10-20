@@ -23,9 +23,7 @@ runs:
         printf 'DEPENDENCY_SCAN_IMAGE=%s\n' "${image}" >> "${GITHUB_ENV}"
         mkdir -p "runtime/ci/docker-${ARCH}" "docs/reports/release-evidence/${ARCH}"
         docker pull --platform "linux/${ARCH}" "${image}" >/dev/null
-        docker image inspect "${image}" > "runtime/ci/docker-${ARCH}/image-identity.json"
-        docker run --rm --platform "linux/${ARCH}" --network none --entrypoint sh "${image}" -c 'dpkg-query -W -f="\${Package}\t\${Version}\t\${Architecture}\n"' > "runtime/ci/docker-${ARCH}/debian-packages.tsv"
-        docker run --rm --platform "linux/${ARCH}" --network none --entrypoint tar "${image}" -czf - /usr/share/doc > "runtime/ci/docker-${ARCH}/native-notices.tar.gz"
+        IMAGE_REFERENCE="${image}" EVIDENCE_DIR="runtime/ci/docker-${ARCH}" bash src/tools/docker-capture-native-evidence.sh
     - name: Inventory, audit, and gate the exact shipped image
       uses: ./.github/actions/scan-image
       with:

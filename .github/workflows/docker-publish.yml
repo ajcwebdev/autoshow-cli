@@ -124,11 +124,20 @@ jobs:
             test/test-cases/validation/stt/async-stt-lifecycle-adoption-contracts.test.ts \
             test/test-cases/validation/audio/tts/tts-compact-archive-contracts.test.ts \
             test/test-cases/validation/text/ocr/ocr-bun-image-normalization-contracts.test.ts \
+            test/test-cases/validation/text/write/song-explainer-contracts.test.ts \
+            test/test-cases/validation/text/write/research-prompts-contracts.test.ts \
+            test/test-cases/validation/text/write/structured-output-failure-contracts.test.ts \
+            test/test-cases/validation/configuration/prompt-loader-contracts.test.ts \
             test/test-cases/validation/setup/tar-gz-security-contracts.test.ts \
             test/test-cases/validation/setup/setup-doctor-contracts.test.ts \
             test/test-cases/validation/cli/docker-image-contracts.test.ts \
             test/test-cases/validation/cli/docker-runtime-recipe.test.ts \
             test/test-cases/validation/cli/docker-installed-dependencies.test.ts \
+            test/test-cases/validation/cli/docker-application-permissions.test.ts \
+            test/test-cases/validation/cli/docker-scanner-install.test.ts \
+            test/test-cases/validation/cli/docker-native-evidence.test.ts \
+            test/test-cases/validation/cli/docker-audit-coverage.test.ts \
+            test/test-cases/validation/runtime-contracts/tesseract-data-selection.test.ts \
             test/test-cases/validation/cli/docker-release-index.test.ts \
             test/test-cases/validation/cli/docker-release-shell.test.ts \
             test/test-cases/validation/runtime-contracts/ci-run-timings-contracts.test.ts || migration_status=$?
@@ -138,6 +147,9 @@ jobs:
           cat "${RUNNER_TEMP}/docker-docx-contracts.log"
           echo "cli-smoke=${cli_status} docker-docx=${docker_status} migration=${migration_status}"
           test "${cli_status}" -eq 0 && test "${docker_status}" -eq 0 && test "${migration_status}" -eq 0
+      - name: Verify authored Docker build context
+        if: "steps.changes.outputs.image == 'true'"
+        run: bun --no-env-file test/docker-acceptance/docker-context-acceptance.ts
   package-hygiene:
     name: Package hygiene
     runs-on: ubuntu-24.04

@@ -6,6 +6,8 @@ Pre-built `linux/amd64` and `linux/arm64` images are on GitHub Container Registr
 
 Publication first creates a SHA-tagged candidate index after verification, package checks, native offline smoke, and vulnerability scans. All twelve core, model, and public-site acceptance shards run against its immutable digest. Only a successful candidate is copied to `latest`, preserving both native platform descriptors, SBOM, and provenance attestations. A failed or skipped shard blocks promotion and leaves the previous `latest` in place. Push releases remain serialized; existing build, smoke, audit, and required-check names are retained.
 
+Production installs the frozen runtime graph without peer dependencies. The build context allows only the root manifests, application source, and Defuddle/alignment configuration; nested dependency trees, hidden workspace files, and logs are excluded. Native verification recursively checks root ownership, readable/traversable modes, symlink routes, and absent group/other write access across the application and optional alignment tree. Only the configuration link into runtime state is exempt from that immutable boundary.
+
 The image includes:
 
 - `ffmpeg` and `ffprobe`
@@ -32,9 +34,17 @@ To build locally from source:
 docker build -t autoshow-cli:local .
 ```
 
+The stages are `youtube-js`, `deps`, `alignment-deps`, `runtime`, `alignment`, and final/default `production`. Build the optional CPU alignment backend with `docker build --target alignment -t autoshow-cli:alignment .`. Its independent builder installs the frozen ONNX graph, keeps only the target Linux architecture's native binaries, and normalizes permissions before copying; it does not install into the runtime user's HOME. Production does not build or ship that graph. The frontend remains digest-pinned at 1.6; permission normalization stays explicit in build steps.
+
+OCR, setup, and doctor use the same English language data selection. If managed `eng.traineddata` is absent, Tesseract uses its packaged default, including when runtime storage is mounted empty. Present but invalid managed data fails with a diagnostic. Doctor and setup initialize the English model as well as listing languages, so a corrupt model does not pass merely because its filename exists.
+
 ### Acceptance checks
 
 `bun t:docker --suite core` pulls the published image and runs local acceptance cases on the Docker daemon's native architecture. It uses no hosted inference or provider credentials; pulling the image requires network access. Failed runs retain their evidence and cached assets. Use `bun t:docker --help` to see suite, timeout, and evidence-directory options without starting Docker.
+
+Core acceptance includes authored FB2 conversion through Calibre, conversion metadata and extracted chapter text, malformed-input rejection, and a separate EPUB integrity probe before temporary conversion cleanup. Defuddle preparation may download its optional package; cached tool checks and document conversion run offline, while local URL fixtures use an isolated Docker network. These checks are distinct from public-site acceptance.
+
+`bun --no-env-file test/docker-acceptance/docker-context-acceptance.ts` verifies the allowlist using an authored scratch context and offline BuildKit export. `bun --no-env-file test/docker-acceptance/docker-tesseract-data-acceptance.ts --image autoshow-cli:local` verifies actual OCR, setup, and doctor across packaged, managed, invalid, and reset data layouts without network access. Native dependency-image CI runs that data gate for both targets, checks alignment first use with the image's original HOME before any replacement mounts, then verifies writable mounted state as the default user and a host UID/GID.
 
 Select a local build with `bun t:docker --suite core --image autoshow-cli:local --pull never`. Select a registry candidate with `bun t:docker --suite core --image ghcr.io/ajcwebdev/autoshow-cli@sha256:<digest> --pull always --expected-revision <full-commit-sha>`. The default pull policy is `always`; `missing` uses an already installed image or pulls it if absent. A failed pull never falls back to a cached tag. Registry pulls execute the verified manifest digest, and cached local tags execute the inspected immutable image ID. `--expected-digest` accepts that manifest digest or local image ID. All selections retain native architecture, non-root user, entrypoint, credential, and revision checks.
 
@@ -144,12 +154,16 @@ The release/dependency maintainer, `@ajcwebdev`, owns the image security pins an
 | Bun                  | `package.json` packageManager, `bun.lock`, `src/utils/bun-version.ts`, Docker base tag/digest, setup metadata, pinned setup-bun versions, and version contracts                                                                  |
 | Deno and yt-dlp      | Docker image/download digests and URLs, defaults in `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`, optional `config/deps.json` overrides, native setup distribution metadata, and documented tool versions |
 | Build infrastructure | Dockerfile frontend digest, Buildx version, BuildKit image digest, and pinned Docker/checkout/setup actions in workflows and shared actions                                                                                      |
-| Scanners             | Syft/Grype versions and architecture checksums in `.github/actions/scan-image/`, plus any callers overriding those versions                                                                                                      |
+| Scanners             | Syft/Grype version selectors, architecture selection, and release-checksum verification in `.github/actions/scan-image/`, plus callers overriding versions                                                                       |
 | Debian               | Dockerfile `DEBIAN_SNAPSHOT`, signed Debian/security snapshot sources, the Bun base digest's distribution, and package inventory/advisory evidence for both native architectures                                                 |
 
 Verify exact metadata paths against the current setup registry when updating a tool. Preserve signed APT metadata, snapshot selection, `apt-get upgrade`, frozen dependency installation, and digest/checksum checks. The scheduled `--pull --no-cache` audit detects problems in the selected inputs; a pinned old snapshot still contains its old packages. Move the snapshot and relevant base/tool pins to acquire later security releases, following [Debian Snapshot](https://snapshot.debian.org/) and [Docker's base-image pinning guidance](https://docs.docker.com/build/building/best-practices/#pin-base-image-versions).
 
 Confirm a fix through the candidate index digest, each original native build digest, shipped Debian and production dependency inventories, both native scans, every high/critical advisory disposition, and all acceptance shards. The shared audit action records the exact image identity, package list, SBOM, scan, scanner database timestamp, notices, and triage. Promotion uses a single accepted index source as a [verbatim index copy](https://docs.docker.com/reference/cli/docker/buildx/imagetools/create/) and checks the final `latest` digest against it. Retain those CI artifacts with the release; a source pin edit or a separate rebuild is not proof of what `latest` ships.
+
+Release and independent image audits share native evidence capture from the inspected immutable image ID: package inventory, notices, rendering capabilities, shipped source pins/policies, identity, and checksums. On main pushes, the independent workflow can omit its production rebuild only after both same-commit native release audits succeed and retain matching evidence artifacts. The lookup waits at most 180 seconds; missing, failed, expired, or unavailable coverage retains production auditing. PRs, schedules, and manual runs retain both targets, including scheduled uncached builds.
+
+Scanner downloads use one bounded transient-retry policy; checksum and archive-integrity failures stop immediately. Scanning an existing SBOM, including database warmup, installs Grype alone. Image inventory also installs Syft. Database hydration, freshness evidence, and severity/fixability gates remain required.
 
 ## Docker-only Network Diagnostic
 

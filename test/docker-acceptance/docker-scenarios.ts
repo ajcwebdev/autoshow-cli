@@ -11,6 +11,7 @@ import { assertSttExtractRun } from '../test-utils/assert-stt-extract-run'
 import { artifactExists, assertArtifact, assertContains, assertDownloadOnly, assertDownloadRecord, assertRejection, downloadScenarios, PUBLIC_DOWNLOADS, rejectionScenarios, DOWNLOAD_TIMESTAMPED_CHILD_DIR_PATTERN } from '../scenarios/local-cli-contracts'
 import type { CliOutcome, LocalExecutionAdapter } from '../scenarios/local-cli-contracts'
 import { containerFixture, FIXTURE_ORIGIN } from './docker-fixtures'
+import { FB2_CHAPTERS } from './docker-ebook-probe'
 import type { DockerOptions, Suite } from './docker-options'
 
 export const MODEL_SELECTORS = [
@@ -158,6 +159,49 @@ function ocrCases(): DockerScenario[] {
   }))
 }
 
+function ebookCases(): DockerScenario[] {
+  return [
+    {
+      id: 'fb2-calibre', suite: 'core', network: 'none', args: ['extract', containerFixture('fb2')],
+      async verify(adapter, result) {
+        const dir = outputDirectory(result)
+        const manifest = await mappedManifest(adapter, dir)
+        const metadata = await mappedRecord(adapter, dir) as OcrE2eExtractMetadata
+        expect(manifest.command).toBe('extract')
+        expect(manifest.items[0]?.extractRoute).toBe('document')
+        assertContains(metadata, {
+          step1: { format: 'epub', sourceFormat: 'fb2', normalizedFormat: 'epub', conversionChain: ['calibre'] },
+          step2: {
+            extractionMethod: 'epub-text', inputFamily: 'epub', normalizedFrom: 'fb2', conversionChain: ['calibre'], outputFidelity: 'cleaned-epub-text',
+            chapterExport: { sourceFormat: 'epub', normalizedFrom: 'fb2', mode: 'chapters', directories: ['chapters'] }
+          },
+          resolvedStep2: { route: 'native-document', sourceKind: 'epub' }, requestedProviders: [], providerStates: [], missingProviders: []
+        })
+        const text = await Bun.file(join(dir, 'extraction.txt')).text()
+        const chapters = (await readdir(join(dir, 'chapters'))).filter(file => file.endsWith('.txt')).sort()
+        const chapterTexts = await Promise.all(chapters.map(file => Bun.file(join(dir, 'chapters', file)).text()))
+        for (const chapter of FB2_CHAPTERS) {
+          expect(text).toContain(chapter.title)
+          expect(text).toContain(chapter.text)
+          requireCondition(chapterTexts.some(content => content.includes(chapter.title) && content.includes(chapter.text)), `Missing authored chapter export: ${chapter.title}`)
+        }
+        expect(text.indexOf(FB2_CHAPTERS[0].text)).toBeLessThan(text.indexOf(FB2_CHAPTERS[1].text))
+        requireCondition((metadata.step2?.chapterExport?.logicalChapterCount ?? 0) >= FB2_CHAPTERS.length, 'Missing logical FB2 chapters')
+        expect(await artifactExists(join(dir, 'result.json'))).toBe(false)
+        expect(await artifactExists(join(dir, 'converted.epub'))).toBe(false)
+      }
+    },
+    {
+      id: 'reject-malformed-fb2', suite: 'core', network: 'none', args: ['extract', containerFixture('malformedFb2')],
+      async verify(_adapter, result) {
+        expect(result.exitCode).not.toBe(0)
+        expect(result.outputDir, 'Malformed FB2 must not create a successful extraction run').toBe(null)
+        expect(`${result.stdout}\n${result.stderr}`).toContain('Calibre ebook-convert failed')
+      }
+    }
+  ]
+}
+
 function sttCase(id: string, selector: ModelSelector, args: string[], origin: 'default' | 'explicit', split = false): DockerScenario {
   const [service, model] = selector.split(':') as ['whisperfile', string]
   return {
@@ -224,7 +268,7 @@ function lyricCase(id: string, mode: 'captions' | 'tiny' | 'default' | 'batch'):
 
 export function dockerScenarios(): DockerScenario[] {
   return [
-    ...downloadCases(), ...ocrCases(),
+    ...downloadCases(), ...ocrCases(), ...ebookCases(),
     ...(['fixture', 'public'] as const).map((network): DockerScenario => ({
       id: `defuddle-${network}`, suite: network === 'public' ? 'network' : 'core', network, provision: 'defuddle',
       args: ['extract', network === 'public' ? PUBLIC_DOWNLOADS.article : `${FIXTURE_ORIGIN}/article.html`, '--provider', 'defuddle'],
@@ -278,6 +322,8 @@ export function selectDockerScenarios(options: Pick<DockerOptions, 'suite' | 'mo
   expect(localModels.sort(), 'Local model registry changed; add acceptance coverage').toStrictEqual([...SUPPORTED_WHISPERFILE_MODELS.map(model => `whisperfile:${model}`), 'defuddle:defuddle'].sort())
   requireCondition(all.some(scenario => scenario.id === 'ocr-image-explicit' && scenario.args.includes('tesseract')), 'Missing Tesseract coverage')
   requireCondition(all.some(scenario => scenario.id === 'defuddle-fixture'), 'Missing Defuddle coverage')
+  requireCondition(all.some(scenario => scenario.id === 'fb2-calibre' && scenario.suite === 'core' && scenario.network === 'none'), 'Missing offline Calibre conversion coverage')
+  requireCondition(all.some(scenario => scenario.id === 'reject-malformed-fb2' && scenario.suite === 'core' && scenario.network === 'none'), 'Missing malformed FB2 rejection coverage')
   expect(new Set(all.map(scenario => scenario.id)).size, 'Duplicate scenario IDs').toBe(all.length)
   for (const selector of MODEL_SELECTORS) requireCondition(all.some(scenario => scenario.id === `stt-${selector.replace(':', '-')}` && scenario.model === selector), `Missing inference coverage: ${selector}`)
   const selected = all.filter(scenario => (options.suite === 'all' || options.suite === scenario.suite) && (!options.model || scenario.model === options.model))
