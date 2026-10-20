@@ -8,12 +8,11 @@ import { childEnv } from '~/utils/child-env'
 import { normalizeCredentialValue } from '~/utils/validate/credential-value'
 import { stripAnsi } from '~/utils/terminal-colors'
 import { buildBunTestFlags, isE2EOnlyTestSelection } from './args'
-import { appendRunnerLog, TEST_OUTPUT_ROOT } from './artifacts'
-import { BUN_FILE_TIMINGS_CACHE_PATH, prepareBunFileTimings } from './file-timings'
+import { appendRunnerLog } from './artifacts'
+import { BUN_FILE_TIMINGS_CACHE_PATH } from './file-timings'
 import { createTerminalFilter, formatProgressLine, type TerminalFilter } from './terminal-filter'
 import { formatTimedOutputPrefix, lineHasTimedOutputPrefix, normalizeRepoPath } from './utils'
 
-const TEST_CLI_BUNDLE_PATH = join(TEST_OUTPUT_ROOT, '.test-cache', 'cli.js')
 const MAX_RUNNER_STREAM_BYTES = 64 * 1024 * 1024
 const MAX_RUNNER_LINE_CHARACTERS = 64 * 1024
 const PROGRESS_HEARTBEAT_MS = 10_000
@@ -34,10 +33,11 @@ export const createBunCrashDetector = (onCrash: () => void): ((line: string) => 
 }
 
 export const prebuildTestCliBundle = async (artifacts: TestRunArtifacts): Promise<void> => {
-  await mkdir(join(TEST_OUTPUT_ROOT, '.test-cache'), { recursive: true })
-  const commandText = `bun build src/cli/create-cli.ts --target=bun --outfile ${TEST_CLI_BUNDLE_PATH}`
+  const bundlePath = join(artifacts.rootDir, '.test-cache', 'cli.js')
+  await mkdir(join(artifacts.rootDir, '.test-cache'), { recursive: true })
+  const commandText = `bun build src/cli/create-cli.ts --target=bun --outfile ${bundlePath}`
   await appendRunnerLog(artifacts, `\n=== PREBUILD CLI ${commandText} ===\n`)
-  const proc = Bun.spawn(['bun', '--no-env-file', 'build', 'src/cli/create-cli.ts', '--target=bun', '--outfile', TEST_CLI_BUNDLE_PATH], {
+  const proc = Bun.spawn(['bun', '--no-env-file', 'build', 'src/cli/create-cli.ts', '--target=bun', '--outfile', bundlePath], {
     env: childEnv(),
     stdout: 'pipe',
     stderr: 'pipe',
@@ -51,9 +51,9 @@ export const prebuildTestCliBundle = async (artifacts: TestRunArtifacts): Promis
   if (exitCode !== 0) {
     throw new Error(`Failed to prebuild test CLI bundle (exit ${exitCode}): ${stderr || stdout}`)
   }
-  process.env['AUTOSHOW_TEST_CLI_BUNDLE'] = TEST_CLI_BUNDLE_PATH
+  process.env['AUTOSHOW_TEST_CLI_BUNDLE'] = bundlePath
   process.env['AUTOSHOW_PROJECT_ROOT'] = process.cwd()
-  l.write('info', `Prebuilt test CLI bundle: ${normalizeRepoPath(TEST_CLI_BUNDLE_PATH)}`, { category: 'command' })
+  l.write('info', `Prebuilt test CLI bundle: ${normalizeRepoPath(bundlePath)}`, { category: 'command' })
 }
 
 export const runWithConcurrency = async <T, R>(
@@ -189,7 +189,6 @@ export const runBunTest = async (
   envOverrides: Record<string, string> = {},
   verbose = false
 ): Promise<number> => {
-  await prepareBunFileTimings()
   const args = buildBunTestArgs(files, artifacts, passthroughArgs, extraArgs)
   await appendRunnerLog(artifacts, `\n=== START bun ${args.join(' ')} ===\n`)
   const proc = Bun.spawn(['bun', '--no-env-file', ...args], {

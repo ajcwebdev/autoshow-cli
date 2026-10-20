@@ -32,7 +32,7 @@ async function harness(options: { pullFails?: boolean; timeout?: boolean; imageA
       return { exitCode: 125, stdout: '', stderr: 'unknown flag: --platform', timedOut: false, durationMs: 1 }
     }
     if (args[0] === 'image') stdout = JSON.stringify([{
-      Id: 'sha256:local-config', Os: 'linux', Architecture: options.imageArchitecture ?? 'arm64', Size: 123,
+      Id: `sha256:${'d'.repeat(64)}`, Os: 'linux', Architecture: options.imageArchitecture ?? 'arm64', Size: 123,
       RepoDigests: [options.imageDigest ?? pinned], Config: { User: 'bun', Entrypoint: ['bun', '--no-env-file', '/app/src/cli/create-cli.ts'], Env: ['HOME=/home/bun'], Labels: { 'org.opencontainers.image.revision': 'c'.repeat(40) } }
     }])
     if (args[0] === 'run' && options.timeout) { await onTimeout?.(); exitCode = 137; timedOut = true }
@@ -44,7 +44,7 @@ async function harness(options: { pullFails?: boolean; timeout?: boolean; imageA
 
 test('pull failure never inspects a cached tag or runs a container', async () => {
   const { engine, calls } = await harness({ pullFails: true })
-  await expect(engine.resolveImage()).rejects.toThrow('Pull latest failed')
+  await expect(engine.resolveImage()).rejects.toThrow(`Pull ${REQUESTED_IMAGE} failed`)
   expect(calls.map(call => call[0])).toEqual(['info', 'pull'])
   expect(engine.identity).toBeUndefined()
 })
@@ -61,7 +61,7 @@ test('failed image resolution produces a failed report with zero executions', as
   expect(report.passed).toBe(false)
   expect(report.selectedCount).toBeGreaterThan(0)
   expect(report.executedCount).toBe(0)
-  expect(report.errors[0]).toContain('Pull latest failed')
+  expect(report.errors[0]).toContain(`Pull ${REQUESTED_IMAGE} failed`)
 })
 
 test('latest is pulled once and all CLI and helper containers use its immutable digest', async () => {
@@ -98,14 +98,14 @@ test('cross-architecture requests fail before pulling and unexpected publication
   expect(calls).toHaveLength(1)
   engine.options.platform = 'linux/arm64'
   engine.options.expectedDigest = `sha256:${'b'.repeat(64)}`
-  await expect(engine.resolveImage()).rejects.toThrow('latest changed')
+  await expect(engine.resolveImage()).rejects.toThrow('differs from the expected digest')
   expect(calls.some(call => call[0] === 'run')).toBe(false)
 })
 
 test('native digest inspection rejects a mismatched architecture or digest before execution', async () => {
   for (const [options, message] of [
-    [{ imageArchitecture: 'amd64' }, 'Pulled architecture differs from native daemon'],
-    [{ imageDigest: `ghcr.io/ajcwebdev/autoshow-cli@sha256:${'b'.repeat(64)}` }, 'Image inspection did not confirm the pulled digest']
+    [{ imageArchitecture: 'amd64' }, 'Selected architecture differs from native daemon'],
+    [{ imageDigest: `ghcr.io/ajcwebdev/autoshow-cli@sha256:${'b'.repeat(64)}` }, 'Image inspection did not confirm the selected manifest digest']
   ] as const) {
     const { engine, calls } = await harness(options)
     await expect(engine.resolveImage()).rejects.toThrow(message)
@@ -229,6 +229,8 @@ test('every recommended selector executes inference and CI contains every native
   expect(save?.if).toBe("always() && steps.assets.outputs.cache-hit != 'true'")
   expect(save?.with?.['key']).toBe('${{ steps.assets.outputs.cache-primary-key }}')
   expect(workflow.jobs['acceptance-required']?.needs).toEqual(['changes', 'publish-manifest', 'acceptance'])
+  expect(workflow.jobs['promote-latest']?.needs).toEqual(['changes', 'publish-manifest', 'acceptance-required', 'build-amd64', 'build-arm64'])
+  expect(workflow.jobs['promote-latest']?.if).not.toContain('always()')
 })
 
 test('zero selected/executed cases and incomplete runs cannot pass', async () => {

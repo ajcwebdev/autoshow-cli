@@ -15,22 +15,6 @@ describe('classifyLiveProviderAvailabilityFailure', () => {
         expected: 'Runway account does not have enough credits to run this task'
       },
       {
-        output: 'Failed to run GLM model: {"code":"1113","message":"insufficient balance"}',
-        expected: 'GLM account does not have enough balance or an active resource package'
-      },
-      {
-        output: 'glm/glm-5.3-flash: certificate has expired',
-        expected: 'GLM provider TLS certificate has expired'
-      },
-      {
-        output: 'Retry Attempt\noperation glm-ocr reason retryable status 429\nCommand failed: glm-ocr failed after 4/4 attempts',
-        expected: 'GLM provider remained rate limited after retries'
-      },
-      {
-        output: 'Retry Attempt\noperation glm-llm reason retryable status 429\nFailed to run GLM model: glm-llm failed after 2/2 attempts',
-        expected: 'GLM provider remained rate limited after retries'
-      },
-      {
         output: 'DeepInfra target openai/whisper-large-v3 command timed out after 300000ms',
         expected: 'DeepInfra openai/whisper-large-v3 transcription timed out'
       },
@@ -66,7 +50,6 @@ describe('classifyLiveProviderAvailabilityFailure', () => {
   })
 
   test('does not classify unrelated failures or the DeepInfra turbo model', () => {
-    expect(classifyLiveProviderAvailabilityFailure('GLM validation failed because output was malformed')).toBeNull()
     expect(classifyLiveProviderAvailabilityFailure('command timed out for openai/whisper-large-v3')).toBeNull()
     expect(classifyLiveProviderAvailabilityFailure('DeepInfra openai/whisper-large-v3 completed')).toBeNull()
     expect(classifyLiveProviderAvailabilityFailure('DeepInfra openai/whisper-large-v3-turbo command timed out')).toBeNull()

@@ -25,12 +25,9 @@ describe('option resolution contracts', () => {
   test('buildOptsFromFlags maps representative CLI flags to runtime options', () => {
       const opts = buildOptsFromFlags({
         openai: 'gpt-5.6-terra',
-        grok: 'grok-4.6',
-        glm: 'glm-5.3-flash',
-        kimi: 'kimi-k3',
-        together: 'glm-5.3-flash',
+        grok: 'grok-4.7',
         'mistral-stt': 'voxtral-mini-2602',
-        'grok-stt': 'speech-to-text',
+        'grok-stt': 'grok-voice-transcribe-2.0',
         'together-stt': 'openai/whisper-large-v3',
         'deepgram-stt': 'nova-3',
         'scrapecreators-stt': 'youtube-transcript',
@@ -51,10 +48,9 @@ describe('option resolution contracts', () => {
         'tts-speaker-boost': 'elevenlabs=true',
         'tts-seed': 'elevenlabs=12345',
         'tts-pronunciation-dictionary': ['elevenlabs=dict_1:version_2', 'elevenlabs=dict_3'],
-        'openai-ocr': 'gpt-5.6-sol',
+        'openai-ocr': 'gpt-6.1-sol',
         'grok-ocr': 'grok-4.5',
         'deepinfra-ocr': 'google/gemma-4-31B-it',
-        'kimi-ocr': 'kimi-k2.6',
         'tesseract-ocr': true,
         'youtube-captions': true,
         'best-quality': true,
@@ -67,12 +63,9 @@ describe('option resolution contracts', () => {
       })
 
       expect(opts.openaiModels?.[0]).toBe('gpt-5.6-terra')
-      expect(opts.grokModels?.[0]).toBe('grok-4.6')
-      expect(opts.glmModels?.[0]).toBe('glm-5.3-flash')
-      expect(opts.kimiModels?.[0]).toBe('kimi-k3')
-      expect(opts.togetherModels?.[0]).toBe('glm-5.3-flash')
+      expect(opts.grokModels?.[0]).toBe('grok-4.7')
       expect(opts.mistralSttModels?.[0]).toBe('voxtral-mini-2602')
-      expect(opts.grokSttModels?.[0]).toBe('speech-to-text')
+      expect(opts.grokSttModels?.[0]).toBe('grok-voice-transcribe-2.0')
       expect(opts.togetherSttModels?.[0]).toBe('openai/whisper-large-v3')
       expect(opts.deepgramSttModels?.[0]).toBe('nova-3')
       expect(opts.scrapecreatorsSttModels?.[0]).toBe('youtube-transcript')
@@ -89,10 +82,9 @@ describe('option resolution contracts', () => {
       expect(opts.elevenlabsTtsSeed).toBe(12345)
       expect(opts.elevenlabsTtsTextNormalization).toBe('on')
       expect(opts.elevenlabsTtsPronunciationDictionaryLocators).toEqual(['dict_1:version_2', 'dict_3'])
-      expect(opts.openaiOcrModels?.[0]).toBe('gpt-5.6-sol')
+      expect(opts.openaiOcrModels?.[0]).toBe('gpt-6.1-sol')
       expect(opts.grokOcrModels?.[0]).toBe('grok-4.5')
       expect(opts.deepinfraOcrModels?.[0]).toBe('google/gemma-4-31B-it')
-      expect(opts.kimiOcrModels?.[0]).toBe('kimi-k2.6')
       expect(opts.useTesseract).toBe(true)
       expect(opts.youtubeCaptions).toBe(true)
       expect(opts.bestQuality).toBe(true)
@@ -145,7 +137,7 @@ describe('option resolution contracts', () => {
   test('pooled OCR expected files describe isolated page attempts instead of fanout results', async () => {
       const opts = buildOptsFromFlags({
         'ocr-provider-mode': 'pool',
-        'openai-ocr': 'gpt-5.6-sol',
+        'openai-ocr': 'gpt-6.1-sol',
         'mistral-ocr': 'mistral-ocr-4-0',
         format: 'text'
       })

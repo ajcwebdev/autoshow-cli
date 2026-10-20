@@ -1,4 +1,5 @@
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { assertNoRemovedLlmSelections } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError, InternalError } from '~/utils/error-handler'
@@ -9,9 +10,6 @@ import { runOpenAIModel } from './write-services/write-openai/run-openai'
 import { runGeminiModel } from './write-services/write-gemini/run-gemini'
 import { runAnthropicModel } from './write-services/write-anthropic/run-anthropic'
 import { runGrokModel } from './write-services/write-grok/run-grok'
-import { runGlmModel } from './write-services/write-glm/run-glm'
-import { runKimiModel } from './write-services/kimi/run-kimi'
-import { runTogetherModel } from './write-services/write-together/run-together'
 import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStrictMode } from './structured-output/capabilities'
 import { buildStructuredInstructionSuffix, resolveStructuredSchema } from './structured-output/schema-resolver'
 import { isSongLyricsPreset } from './structured-output/preset-registry'
@@ -41,6 +39,7 @@ const buildTargetFileStem = (target: LLMTarget, modelCounts: Map<string, number>
     : target.model)
 
 export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
+  assertNoRemovedLlmSelections(options)
   const targets: LLMTarget[] = []
   const appendTargets = (
     service: LLMTarget['service'],
@@ -49,7 +48,8 @@ export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
     run: LLMTarget['run']
   ): void => {
     for (const model of models ?? []) {
-      if (!getModelRegistry().llm[service]?.models[model]) throw UsageError(`Unsupported write model ${service}/${model}. Select an active model explicitly.`)
+      const registeredModels = getModelRegistry().llm[service]?.models
+      if (!registeredModels || !Object.hasOwn(registeredModels, model)) throw UsageError(`Unsupported write model ${service}/${model}. Select an active model explicitly.`)
       targets.push({ service, label, model, run })
     }
   }
@@ -58,9 +58,6 @@ export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
   appendTargets('anthropic', 'Anthropic', options.anthropicModels, runAnthropicModel)
   appendTargets('openai', 'OpenAI', options.openaiModels, runOpenAIModel)
   appendTargets('grok', 'Grok', options.grokModels, runGrokModel)
-  appendTargets('glm', 'GLM', options.glmModels, runGlmModel)
-  appendTargets('kimi', 'Kimi', options.kimiModels, runKimiModel)
-  appendTargets('together', 'Together', options.togetherModels, runTogetherModel)
 
   return filterModelCostTargets(targets, options, 'llm')
 }
@@ -69,6 +66,10 @@ export const runLlmTargetsForStructuredPrompt = async (
   options: RunLlmTargetsForStructuredPromptOptions
 ): Promise<StructuredRunResult[]> => {
   for (const target of options.targets) {
+    const registeredModels = getModelRegistry().llm[target.service]?.models
+    if (!registeredModels || !Object.hasOwn(registeredModels, target.model)) {
+      throw UsageError(`Unsupported write model ${target.service}/${target.model}. Select an active model explicitly.`)
+    }
     resolveReasoningPolicy({
       step: 'llm',
       service: target.service,

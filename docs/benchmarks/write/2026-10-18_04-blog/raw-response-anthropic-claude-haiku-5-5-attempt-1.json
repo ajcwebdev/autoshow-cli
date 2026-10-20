@@ -1,0 +1,47 @@
+{
+  "result": "{\"title\": \"Behind the Mic: Hosting a JavaScript Jam Live Space and Previewing Miami Jam for React Miami\", \"outline\": [\"Introduction: why a live Twitter Space about JavaScript is worth covering\", \"The technical hiccups and what hosts can learn from them\", \"Meet the hosts and guests: roles, backgrounds, and why they matter\", \"The React Miami partnership and what it means for the community\", \"Miami Jam: a game show format for technical conversations\", \"Audience participation, scoring, and keeping discussions collaborative\", \"Takeaways for hosts, speakers, and community members\", \"Conclusion and next steps\"], \"draft\": \"Live audio shows are one of the most unpredictable formats in developer media. A single broken connection, a microphone button that refuses to respond, or a stream that looks live on one device but is invisible to everyone else can derail an entire episode before the first real question gets asked. That is exactly what happened at the start of a recent JavaScript Jam Live session hosted on Twitter Spaces, and the recovery offers a useful look at how community shows actually run behind the scenes. The conversation that followed also laid out an ambitious plan for a collaboration with React Miami, including a game show style format called Miami Jam.\\n\\nThe session opened with a reset. The hosts apologized to the audience for the interruption and credited Scott for getting the space working again. One host explained a quirk that many Spaces hosts have run into: sometimes when you start a Space, your phone shows it as live while it has not really started for other listeners. The fix, according to the host who had seen it before, was patience. Waiting a minute or two often lets the platform catch up and the Space finally goes live. For anyone producing regular audio content, the lesson is simple. Test the setup before the audience arrives, expect a short delay after pressing start, and keep a relaxed tone when things go sideways. Listeners tend to forgive technical problems when the hosts handle them with humor and transparency.\\n\\nThe welcome also made the purpose of the show clear. JavaScript Jam Live describes itself as an open mic for anything JavaScript and web development related. Nothing is off limits, whether the topic is frameworks, tooling, browser behavior, or the everyday problems developers face. The show invites audience members to come up and speak, and the hosts emphasized that beginners and experienced developers alike are welcome. That openness is what gives community audio shows their value. A beginner's question about a confusing error can spark a discussion that benefits advanced developers too.\\n\\nEach host introduced themselves, which is a good habit for any multi-speaker show. Ishan Anand, who led the opening, introduced himself as VP of Product at Edgio, an edge deployment platform, and framed the upcoming weeks as a collaboration with React Miami. Anthony Campolo described himself as a developer advocate at Edgio and welcomed Dev Agrawal, a media partner who would help put together events, activities, and content for the conference. Scott Steinlage introduced himself as a technical community manager at Edgio and said he wanted to hear from everyone who wanted to come up and ask questions, share facts, or offer opinions. Clear roles like these help listeners understand who is who, and they make it easier for audience members to know whom to address.\\n\\nThe React Miami partnership was the centerpiece of the discussion. The hosts described a plan to bring more speakers from the conference onto the show to discuss topics that fit their interests. The team stressed that the classic JavaScript Jam style would not change. Instead, the partnership would add more voices, more guests, and extra material that the hosts promised to reveal later. One host even corrected a slip in the schedule, noting that what they were really planning was a React Miami month rather than a single week. The conference also had its own organizers and supporters listening in. Michelle, one of the React Miami organizers, joined the conversation and noted that the media partners had been given the green light to try new ideas, which sounded like both a compliment and a warning.\\n\\nThe most distinctive idea came from Dev, who proposed a show called Miami Jam. Rather than a typical interview or panel discussion where guests answer a series of prepared questions, Miami Jam would work more like a game show. Hosts would ask trivia style questions about React, quirks of JavaScript or TypeScript, or anything adjacent to the React ecosystem. Some questions might ask the audience to guess which library a snippet uses. Others might ask one speaker a question about another speaker's topic, forcing them to engage with someone else's work. The show would then use these moments as springboards into deeper conversations about each speaker's talk, motivation, and experience in the industry.\\n\\nThis format has real appeal. Traditional panels can feel formal, and guests sometimes end up repeating the same talking points they have shared elsewhere. A game show structure creates tension, humor, and reasons for speakers to react to one another. It also gives the audience a clear role. Dev explained that listeners could ask questions and, in some cases, decide how many points a speaker earns for a given answer. That kind of scoring encourages people to pay attention and invites them into the conversation rather than leaving them as passive observers. Dev also emphasized that the goal was to encourage speakers to share experiences with each other, so the show would still deliver the insight and background that listeners want.\\n\\nCollaboration is the common thread across all of these plans. Community events succeed when hosts, speakers, sponsors, and audience members all feel invited to participate. The hosts repeatedly asked people to come up, speak, and engage, which is a practical approach for any community show. Audience members do not need to be experts to contribute. They can ask a clarifying question, share a bug they fixed, or push back on a claim they disagree with. Those small contributions often produce the most memorable moments.\\n\\nThere are several practical takeaways for anyone running a live audio show or planning a similar event. First, test your setup early and build in time for platform delays. Second, introduce every participant clearly so the audience knows who is speaking and why. Third, make participation easy by inviting people to speak and explaining how they can join. Fourth, consider formats beyond the standard interview, such as trivia, lightning rounds, or audience voting, to keep energy high. Finally, be willing to laugh at mistakes. The opening of this session showed that a stumble can become part of the story when the hosts respond with patience and good humor.\\n\\nThe JavaScript Jam Live session ended the segment on a forward-looking note. The React Miami collaboration will bring new guests, new formats, and new opportunities for the community to get involved. Miami Jam, with its trivia questions and audience scoring, is an experiment worth watching. Whether you plan to attend the conference, listen to the show, or host your own audio event, the core lessons remain the same. Prepare thoroughly, welcome everyone who wants to participate, and treat the community as your co-host. The best technical conversations happen when people feel free to speak up, and this session demonstrated that approach well.\"}",
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-haiku-5-5",
+    "providerReturnedModel": "claude-haiku-5-5",
+    "processingTime": 15150,
+    "inputTokenCount": 3660,
+    "outputTokenCount": 2670,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3660,
+      "outputTokenCount": 2670
+    },
+    "rawProviderUsage": {
+      "input_tokens": 3660,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2670,
+      "output_tokens_details": {
+        "thinking_tokens": 378
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-haiku-5-5",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "9b4269f300a26357a404a2bb0e5180f38dc0bef1d551f375208170336361b72e"
+        }
+      }
+    }
+  }
+}

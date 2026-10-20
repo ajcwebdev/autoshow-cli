@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { appendChapterExportArtifacts } from '~/cli/commands/sources/download/download-targets/single/document-write'
 import { writeProviderArtifacts } from '~/cli/commands/text/ocr/process-ocr'
 import { resolveLocalPdfChapterDetection } from '~/cli/commands/text/ocr/pdf/ocr-chapters/detection'
+import { resolveLlmCandidates } from '~/cli/commands/text/ocr/pdf/ocr-chapters/llm'
 import { buildPdfChapterFiles } from '~/cli/commands/text/ocr/pdf/ocr-chapters/ocr-chapter-artifacts'
 import { buildChapterSlug, cleanDetectedChapterTitle } from '~/cli/commands/text/ocr/pdf/ocr-chapters/text'
 import { parseTocEntriesFromPage } from '~/cli/commands/text/ocr/pdf/ocr-chapters/toc'
@@ -17,6 +18,25 @@ const page = (pageNumber: number, text: string): PageResult => ({
 })
 
 describe('OCR PDF chapter detection contracts', () => {
+  for (const selection of [
+    { llmService: 'glm', llmModel: 'glm-5.3' },
+    { llmService: 'kimi', llmModel: 'kimi-k3' },
+    { llmService: 'together', llmModel: 'glm-5.3' },
+    { llmService: 'unknown', llmModel: 'model' },
+    { llmService: '__proto__', llmModel: 'model' },
+    { llmService: 'openai', llmModel: 'unimplemented-model' },
+    { llmService: 'openai', llmModel: '__proto__' },
+    { llmService: 'anthropic', llmModel: 'claude-sonnet-5' }
+  ]) {
+    test(`unsupported chapter LLM ${selection.llmService}/${selection.llmModel} rejects before reading the dossier`, async () => {
+      await expect(resolveLlmCandidates({
+        ...selection,
+        get pages(): PageResult[] { throw new Error('dossier read before selection validation') },
+        tocPages: [], tocEntries: [], pageMapSpans: [], localCandidates: []
+      })).rejects.toThrow('Unsupported PDF chapter LLM')
+    })
+  }
+
   const jonestownTocTitles = [
     'Introduction',
     'The Story Begins',

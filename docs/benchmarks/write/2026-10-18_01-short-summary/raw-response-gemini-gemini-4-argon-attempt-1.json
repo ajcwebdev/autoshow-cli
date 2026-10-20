@@ -1,0 +1,47 @@
+{
+  "result": "{\n  \"episodeDescription\": \"James Berkins shares how he leveraged his professional connections and freelance history to secure a new job within 12 hours of being laid off during a recession.\"\n}",
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-4-argon",
+    "providerReturnedModel": "gemini-4-argon",
+    "processingTime": 5559,
+    "inputTokenCount": 666,
+    "outputTokenCount": 57,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 666,
+      "outputTokenCount": 57,
+      "totalTokenCount": 723
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 666,
+      "candidatesTokenCount": 57,
+      "totalTokenCount": 723,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 666
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 57
+        }
+      ]
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-4-argon",
+      "generationConfig": {
+        "maxOutputTokens": 65536,
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c"
+      }
+    }
+  }
+}

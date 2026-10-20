@@ -12,40 +12,32 @@ describe('config provider and concurrency default contracts', () => {
   test('buildConfigPatchFromFlags maps explicit provider, OCR, batch, and pricing defaults', () => {
     expect(buildConfigPatchFromFlags({
       openai: 'gpt-5.6-terra',
-      grok: 'grok-4.6',
-      glm: 'glm-5.3-flash',
-      kimi: 'kimi-k3',
-      together: ['kimi-k3', 'glm-5.3-flash'],
+      grok: 'grok-4.7',
       'llm-provider-concurrency': '3',
       'llm-local-concurrency': '1',
       'tesseract-ocr': true,
-      'openai-ocr': ['gpt-5.6-sol'],
+      'openai-ocr': ['gpt-6.1-sol'],
       'grok-ocr': ['grok-4.5'],
       'deepinfra-ocr': ['google/gemma-4-31B-it'],
-      'kimi-ocr': ['kimi-k2.6'],
       'ocr-dpi': '450',
       'ocr-provider-concurrency': '4',
       'ocr-local-concurrency': '2',
       'batch-limit': '7',
       'max-cents': '25'
-    }, new Set(['openai', 'grok', 'glm', 'kimi', 'together', 'llm-provider-concurrency', 'llm-local-concurrency', 'tesseract-ocr', 'openai-ocr', 'grok-ocr', 'deepinfra-ocr', 'kimi-ocr', 'ocr-dpi', 'ocr-provider-concurrency', 'ocr-local-concurrency', 'batch-limit', 'max-cents']))).toEqual({
+    }, new Set(['openai', 'grok', 'llm-provider-concurrency', 'llm-local-concurrency', 'tesseract-ocr', 'openai-ocr', 'grok-ocr', 'deepinfra-ocr', 'ocr-dpi', 'ocr-provider-concurrency', 'ocr-local-concurrency', 'batch-limit', 'max-cents']))).toEqual({
       defaults: {
         llm: {
           openai: ['gpt-5.6-terra'],
-          grok: ['grok-4.6'],
-          glm: ['glm-5.3-flash'],
-          kimi: ['kimi-k3'],
-          together: ['kimi-k3', 'glm-5.3-flash'],
+          grok: ['grok-4.7'],
           providerConcurrency: 3,
           localConcurrency: 1
         },
         extract: {
           ocr: {
             tesseract: true,
-            openaiOcr: ['gpt-5.6-sol'],
+            openaiOcr: ['gpt-6.1-sol'],
             grokOcr: ['grok-4.5'],
             deepinfraOcr: ['google/gemma-4-31B-it'],
-            kimiOcr: ['kimi-k2.6'],
             dpi: 450,
             providerConcurrency: 4,
             localConcurrency: 2

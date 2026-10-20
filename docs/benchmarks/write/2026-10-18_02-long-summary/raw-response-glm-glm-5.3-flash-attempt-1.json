@@ -1,0 +1,45 @@
+{
+  "result": "{\"episodeSummary\": \"In a guest-free episode of FS Jam, the hosts unpack the little-documented craft of building third-party scripts and widgets, drawing on lessons from creating Everfund's donation widget. They cover choosing a bundler and module format, why UMD remains necessary alongside CommonJS and ESM, and tooling failures that forced a Rollup workaround, plus hosting choices between npm CDNs and private buckets, browser support trade-offs, and a stubborn WordPress incompatibility solved by self-hosting the script. They compare iframe-based widgets with injecting content into the DOM, weighing CORS, CSS encapsulation, and customization trade-offs, along with the size gap between vanilla JS and React SDKs and a shift toward a headless donation API. The conversation then turns to the podcast itself: more no-guest deep dives, documentation practices like the Divio system and tools such as ReadMe and Docusaurus, attending Remix Conf, and introducing sponsorships. Anthony emphasizes educating first as a developer advocate and carefully vetting guests and sponsors, citing one product he regrets promoting. They close with favorite recent episodes and a goal of keeping FS Jam sustainable while serving as a lasting record for future developers.\"}",
+  "metadata": {
+    "llmService": "glm",
+    "llmModel": "glm-5.3-flash",
+    "providerReturnedModel": "glm-5.3-flash",
+    "processingTime": 21045,
+    "inputTokenCount": 10489,
+    "outputTokenCount": 2003,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 10489,
+      "outputTokenCount": 2003,
+      "totalTokenCount": 12492
+    },
+    "rawProviderUsage": {
+      "completion_tokens": 2003,
+      "completion_tokens_details": {
+        "reasoning_tokens": 1759
+      },
+      "prompt_tokens": 10489,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 12492
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "glm-5.3-flash",
+      "stream": false,
+      "max_tokens": 16000,
+      "thinking": {
+        "type": "enabled"
+      },
+      "response_format": {
+        "type": "json_object"
+      }
+    }
+  }
+}

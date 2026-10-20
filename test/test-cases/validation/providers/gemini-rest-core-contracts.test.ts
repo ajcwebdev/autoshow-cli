@@ -117,7 +117,7 @@ describe('Gemini REST contracts', () => {
     expect(calls).toHaveLength(1)
   })
 
-  for (const model of ['gemini-3.7-flash', 'gemini-3.8-flash']) {
+  for (const model of ['gemini-3.8-flash']) {
     test(`Gemini LLM structured output sends response JSON schema (${model})`, async () => {
       process.env['GEMINI_API_KEY'] = 'gemini-key'
       let requestSignal: AbortSignal | null | undefined

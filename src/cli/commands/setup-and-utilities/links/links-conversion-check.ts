@@ -14,7 +14,7 @@ export const extractHtmlPlainText = (html: string): string =>
     .replace(/<[^>]+>/g, ' ')
     .replace(/&(?:amp|lt|gt|quot|nbsp|#x27|#39|#36);/g, entity => HTML_ENTITIES[entity] ?? entity)
 
-// snake_case and camelCase names, hyphenated IDs that carry a digit (`voxtral-mini-2602`, `gpt-5.6-luna`), and dollar
+// snake_case and camelCase names, hyphenated IDs that carry a digit (`voxtral-mini-2602`, `gpt-6-luna`), and dollar
 // prices: the tokens a reference page exists to convey, and ones that prose rarely contains by accident.
 export const collectIdentifiers = (text: string): Set<string> => new Set(text.match(IDENTIFIER) ?? [])
 

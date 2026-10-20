@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "02-long-summary",
+  "provider": "gemini",
+  "model": "gemini-3.8-flash",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:31:17.267Z",
+  "artifactHashes": {
+    "raw-response-gemini-gemini-3.8-flash-attempt-1.json": "325215a590168e2053b8816b848d416b08bb85525518df754dfc49f8535f8ea3",
+    "text-gemini-gemini-3.8-flash.json": "ab307c0edfa464302c8f074e98fd77e76c6c9ce316e4546591646468289ce11e",
+    "text-gemini-gemini-3.8-flash.md": "fa0574e73b0440e9eb4a3fd362a9e339e95db446ab0b9c4750d83d9ba3569ff1"
+  },
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-3.8-flash",
+    "providerReturnedModel": "gemini-3.8-flash",
+    "processingTime": 9153,
+    "inputTokenCount": 11103,
+    "outputTokenCount": 1220,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 11103,
+      "outputTokenCount": 1220,
+      "totalTokenCount": 12323
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 11103,
+      "candidatesTokenCount": 176,
+      "totalTokenCount": 12323,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 11103
+        }
+      ],
+      "thoughtsTokenCount": 1044,
+      "serviceTier": "standard"
+    },
+    "outputFileName": "text-gemini-gemini-3.8-flash.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "longSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-3.8-flash",
+      "generationConfig": {
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599"
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 2.58045
+  },
+  "completedAt": "2026-10-18T18:31:26.421Z",
+  "wallTimeMs": 9154,
+  "networkAttempts": 1
+}

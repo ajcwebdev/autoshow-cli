@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "05-rap-song-chapter",
+  "provider": "anthropic",
+  "model": "claude-sonnet-5",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:38:05.937Z",
+  "artifactHashes": {
+    "raw-response-anthropic-claude-sonnet-5-attempt-1.json": "29bcb179fd4873d44a89a6804cfabe9dff3570bdead209df908a2dc11f9f0477",
+    "text-anthropic-claude-sonnet-5.json": "2ad1e1cd0cf17d6ca6ac670914004ce4051e73503fad789322447c1dd4377b40",
+    "text-anthropic-claude-sonnet-5.md": "14566926a255632a89079ddb38fc14d71ff8170da960c461169448dc995472f7"
+  },
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-sonnet-5",
+    "providerReturnedModel": "claude-sonnet-5",
+    "processingTime": 65692,
+    "inputTokenCount": 6348,
+    "outputTokenCount": 6199,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 6348,
+      "outputTokenCount": 6199
+    },
+    "rawProviderUsage": {
+      "input_tokens": 6348,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 6199,
+      "output_tokens_details": {
+        "thinking_tokens": 4707
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "text-anthropic-claude-sonnet-5.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "rapSongChapterLyrics"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-sonnet-5",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "680eedc7eb5aa95aa176da75864b42099305422ba0907cbc92f2c247eca65682"
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 7.4686
+  },
+  "completedAt": "2026-10-18T18:39:11.631Z",
+  "wallTimeMs": 65693,
+  "networkAttempts": 1
+}

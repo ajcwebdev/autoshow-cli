@@ -1,9 +1,10 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runCliInProcess } from '~/cli/create-cli'
 import { configureOutputRoot, getOutputRoot } from '~/cli/commands/command-shared/output-root'
 import { resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
+import { resetLoggerForInvocation } from '~/utils/app-logger/app-logger'
 import { captureProcessOutput } from '../../../../test-utils/console-capture'
 import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 
@@ -16,6 +17,8 @@ const tempDirs = setupContractSuiteLifecycle({
 })
 
 describe('write batch terminal results', () => {
+  afterEach(() => { resetLoggerForInvocation(false) })
+
   for (const concurrency of [1, 2]) {
     test(`concurrency ${concurrency} publishes one JSON result for both completed writes`, async () => {
       const root = await tempDirs.make()

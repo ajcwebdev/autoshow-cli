@@ -139,18 +139,14 @@ describe('OCR Bun.Image normalization contracts', () => {
 
   test('hosted OCR strategy uses Bun.Image only for the safe provider format gaps', () => {
     const bunCases: Array<{ engine: HostedExtractOcrEngine; format: string }> = [
-      { engine: 'glm-ocr', format: 'webp' },
-      { engine: 'glm-ocr', format: 'gif' },
-      { engine: 'glm-ocr', format: 'bmp' },
+      { engine: 'grok-ocr', format: 'webp' },
+      { engine: 'grok-ocr', format: 'gif' },
+      { engine: 'grok-ocr', format: 'bmp' },
       { engine: 'mistral-ocr', format: 'webp' },
       { engine: 'mistral-ocr', format: 'gif' },
       { engine: 'mistral-ocr', format: 'bmp' },
       { engine: 'anthropic-ocr', format: 'bmp' },
       { engine: 'openai-ocr', format: 'bmp' },
-      { engine: 'grok-ocr', format: 'webp' },
-      { engine: 'grok-ocr', format: 'gif' },
-      { engine: 'grok-ocr', format: 'bmp' },
-      { engine: 'kimi-ocr', format: 'bmp' },
       { engine: 'gemini-ocr', format: 'gif' },
       { engine: 'gemini-ocr', format: 'bmp' },
       { engine: 'deepinfra-ocr', format: 'bmp' },
@@ -159,11 +155,8 @@ describe('OCR Bun.Image normalization contracts', () => {
     const imageMagickCases: Array<{ engine: HostedExtractOcrEngine; format: string }> = [
       { engine: 'anthropic-ocr', format: 'tif' },
       { engine: 'openai-ocr', format: 'tif' },
-      { engine: 'glm-ocr', format: 'tif' },
-      { engine: 'glm-ocr', format: 'tiff' },
       { engine: 'grok-ocr', format: 'tif' },
       { engine: 'grok-ocr', format: 'tiff' },
-      { engine: 'kimi-ocr', format: 'tif' },
       { engine: 'gemini-ocr', format: 'tif' },
       { engine: 'deepinfra-ocr', format: 'tif' },
     ]
@@ -174,7 +167,7 @@ describe('OCR Bun.Image normalization contracts', () => {
       { engine: 'grok-ocr', format: 'jpeg' },
       { engine: 'grok-ocr', format: 'png' },
       { engine: 'gemini-ocr', format: 'png' },
-      { engine: 'kimi-ocr', format: 'webp' },
+      { engine: 'anthropic-ocr', format: 'webp' },
     ]
 
     for (const entry of bunCases) {
@@ -186,7 +179,7 @@ describe('OCR Bun.Image normalization contracts', () => {
     for (const entry of directCases) {
       expect(resolveHostedDirectImageInputStrategy(entry.format, entry.engine)).toBe('direct')
     }
-    expect(resolveHostedDirectImageInputStrategy('svg', 'glm-ocr')).toBe('unsupported')
+    expect(resolveHostedDirectImageInputStrategy('svg', 'grok-ocr')).toBe('unsupported')
   })
 
   test('hosted OCR Bun.Image normalization writes PNG for provider-specific image gaps', async () => {

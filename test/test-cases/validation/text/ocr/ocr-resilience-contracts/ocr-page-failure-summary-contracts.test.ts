@@ -13,11 +13,11 @@ describe('OCR resilience contracts', () => {
       await withRetry(
         {
           retryClass: 'runtime_http_create_conservative',
-          operationName: 'kimi-ocr page 3',
+          operationName: 'deepinfra-ocr page 3',
           policy: { maxAttempts: 6, baseDelayMs: 0, maxDelayMs: 0, jitter: false, exponential: false }
         },
         async () => {
-          throw ProviderError('Kimi OCR request rejected (429)', { status: 429 })
+          throw ProviderError('DeepInfra OCR request rejected (429)', { status: 429 })
         },
         (error) => classifyFetchRetry(error, 'runtime_http_create_conservative')
       )
@@ -28,7 +28,7 @@ describe('OCR resilience contracts', () => {
     }
 
     expect(exhausted).toBeInstanceOf(AppError)
-    expect((exhausted as AppError).message).toMatch(/^kimi-ocr page 3 failed after 6\/6 attempts \(max attempts reached, \d+ms elapsed\): Kimi OCR request rejected \(429\)/)
+    expect((exhausted as AppError).message).toMatch(/^deepinfra-ocr page 3 failed after 6\/6 attempts \(max attempts reached, \d+ms elapsed\): DeepInfra OCR request rejected \(429\)/)
 
     const failure = classifyOcrProviderFailure(exhausted)
     expect(failure.attemptsMade).toBe(6)

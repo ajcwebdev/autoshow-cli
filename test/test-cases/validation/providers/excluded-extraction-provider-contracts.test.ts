@@ -30,17 +30,19 @@ const opts = () => buildOptsFromFlags({})
 const sttTarget = (service: typeof excludedStt[number]): SttTarget => ({ service, model: 'auto', local: false })
 const urlState = (service: HtmlArticleBackend, status: 'succeeded' | 'missing' | 'failed' | 'running') => ({ service, model: service, status, attempts: 1, artifactDir: `providers/${service}`, metadata: { originalReceipt: 'retained' } })
 
-test('five excluded tuples stay outside the active 128-model inventory, credentials and expansion', () => {
+test('excluded tuples stay outside the active model inventory, credentials and expansion', () => {
   const registry = getModelRegistry()
-  expect(Object.fromEntries(Object.entries(registry).map(([category, services]) => [category, Object.values(services).reduce((n, service) => n + Object.keys(service.models).length, 0)]))).toEqual({ stt: 31, extract: 33, llm: 23, tts: 7, image: 13, music: 4, video: 17 })
+  expect(Object.fromEntries(Object.entries(registry).map(([category, services]) => [category, Object.values(services).reduce((n, service) => n + Object.keys(service.models).length, 0)]))).toEqual({ stt: 31, extract: 24, llm: 11, tts: 7, image: 13, music: 4, video: 17 })
   expect(URL_ARTICLE_BACKENDS).toEqual(['defuddle', 'spider', 'zyte'])
   expect(Object.keys(URL_ARTICLE_PROVIDER_ADAPTERS)).toEqual(['defuddle', 'spider', 'zyte'])
   for (const provider of excludedStt) expect(registry.stt[provider]).toBeUndefined()
   for (const provider of excludedUrls) expect(registry.extract[provider]).toBeUndefined()
   for (const provider of ['firecrawl', ...excludedStt]) expect(HOSTED_PROVIDER_ENV_CHECKS.some(row => row.providerId === provider)).toBe(false)
-  expect(HOSTED_PROVIDER_ENV_CHECKS.find(row => row.providerId === 'glm')?.stages).toEqual(['write', 'ocr'])
-  expect(Object.keys(registry.llm['glm']!.models)).not.toHaveLength(0)
-  expect(Object.keys(registry.extract['glm']!.models)).not.toHaveLength(0)
+  for (const provider of ['glm', 'kimi']) {
+    expect(HOSTED_PROVIDER_ENV_CHECKS.some(row => String(row.providerId) === provider)).toBe(false)
+    expect(registry.llm[provider]).toBeUndefined()
+    expect(registry.extract[provider]).toBeUndefined()
+  }
   const all = collectSttTargets(buildOptsFromFlags({ 'all-stt': true }))
   expect(all.some(target => excludedStt.includes(target.service as typeof excludedStt[number]))).toBe(false)
   const decision = readFileSync('docs/adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md', 'utf8')
@@ -68,7 +70,7 @@ test('generic selectors, obsolete flags and direct old runtime settings fail loc
   expect(calls).toHaveLength(0)
 })
 
-test('obsolete saved config rejects locally while GLM write and OCR configuration remain valid', async () => {
+test('obsolete saved config rejects locally while supported write and OCR configuration remain valid', async () => {
   const calls = installMockFetch(() => { throw new Error('Unexpected provider call') })
   const path = join(await dirs.make(), 'config.json')
   for (const stt of [{ happyscribeStt: ['auto'] }, { supadataStt: ['auto'] }, { organizationId: 'old-org' }, { chunkSize: 100 }, { supadataLang: 'en' }]) {
@@ -79,8 +81,8 @@ test('obsolete saved config rejects locally while GLM write and OCR configuratio
     await Bun.write(path, JSON.stringify({ defaults: { extract: { url: { provider } } } }))
     await expect(loadConfig(path)).rejects.toThrow()
   }
-  await Bun.write(path, JSON.stringify({ defaults: { llm: { glm: [Object.keys(getModelRegistry().llm['glm']!.models)[0]] }, extract: { ocr: { glmOcr: [Object.keys(getModelRegistry().extract['glm']!.models)[0]] } } } }))
-  expect((await loadConfig(path)).defaults?.llm?.glm).toHaveLength(1)
+  await Bun.write(path, JSON.stringify({ defaults: { llm: { openai: [Object.keys(getModelRegistry().llm['openai']!.models)[0]] }, extract: { ocr: { openaiOcr: [Object.keys(getModelRegistry().extract['openai']!.models)[0]] } } } }))
+  expect((await loadConfig(path)).defaults?.llm?.openai).toHaveLength(1)
   expect(calls).toHaveLength(0)
 })
 

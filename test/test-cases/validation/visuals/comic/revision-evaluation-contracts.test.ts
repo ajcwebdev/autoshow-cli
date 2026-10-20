@@ -89,7 +89,7 @@ const createFixture = async (root: string, importance: RevisionPlan['entries'][n
   const plan: RevisionPlan = { ...unsigned, planFingerprint: computeRevisionPlanFingerprint(unsigned) }
   const planPath = join(root, 'revision-plan.json')
   await Bun.write(planPath, `${JSON.stringify(plan, null, 2)}\n`)
-  const options: GenerateImagesCommandOptions = { sceneSlug, scriptPath, revisionPlan: projectPath(planPath), panels: [1], panelsPerImage: 1, imageModels: ['gpt-image-2'], qa: true, qaModel: 'gpt-5.6-sol', maxRepairs: 0, comparisonPasses: 2, promote: 'clear-winners', target: 'images', size: '1536x1024', quality: 'high', concurrency: 1 }
+  const options: GenerateImagesCommandOptions = { sceneSlug, scriptPath, revisionPlan: projectPath(planPath), panels: [1], panelsPerImage: 1, imageModels: ['gpt-image-2'], qa: true, qaModel: 'gpt-6.1-sol', maxRepairs: 0, comparisonPasses: 2, promote: 'clear-winners', target: 'images', size: '1536x1024', quality: 'high', concurrency: 1 }
   return { options, plan, runDirectory, canonicalPath, planPath, originalBytes }
 }
 
@@ -119,12 +119,12 @@ describe('revision evaluation contracts', () => {
           requestImage: async () => ({ mode: 'edit', result: { imageBase64: tinyPng.toString('base64') } }),
           writeImage: async path => { await Bun.write(path, Buffer.concat([tinyPng, Buffer.from('candidate')])) },
           measureSimilarity: async () => ({ ssim: 0.8, normalizedRmse: 0.1 }),
-          recordManifest: async input => { expect(input.evaluation.comparisonProvider).toMatchObject({ service: 'openai', model: 'gpt-5.6-sol' }); await input.publishFinal?.() },
+          recordManifest: async input => { expect(input.evaluation.comparisonProvider).toMatchObject({ service: 'openai', model: 'gpt-6.1-sol' }); await input.publishFinal?.() },
         })
         expect(requests).toHaveLength(2)
         expect(coordinator.snapshot().lanes.map(lane => lane.lane.service)).toEqual(['openai'])
         for (const body of requests) {
-          expect(body['model']).toBe('gpt-5.6-sol')
+          expect(body['model']).toBe('gpt-6.1-sol')
           expect(body['text'].format).toMatchObject({ type: 'json_schema', strict: true, name: 'comic_revision_comparison_v4' })
           expect(body['input'][0].content[0].type).toBe('input_text')
           expect(body['input'][0].content.slice(1).every((part: any) => part.type === 'input_image' && part.detail === 'high')).toBe(true)
@@ -420,7 +420,7 @@ describe('revision evaluation contracts', () => {
     const targetKey = canonicalTargetKey('comic-image', 'gemini', 'gemini-3.1-flash-lite-image', 'hosted-api')
     const imageProvider: PipelineProviderState = { service: 'gemini', model: 'gemini-3.1-flash-lite-image', local: false, operation: 'comic-image', targetKey, transport: 'hosted-api', artifactDir: '.', status: 'succeeded', attempts: 1, options: {}, metadata: {}, result: {} }
     await updateComicImageManifest({ sceneRunDir, sourceIdentity, providers: [imageProvider], artifactRefs: [{ path: 'panels/panel-01.png', sha256: panelSha256 }] })
-    const evaluation = { schemaVersion: 1 as const, experimentId: 'revision-contract-test', planFingerprint: 'b'.repeat(64), evidenceDirectory: 'revision-evaluations/revision-contract-test-bbbbbbbbbbbbbbbb', imageProvider: { service: 'openai', model: 'gpt-image-2', attempts: 1, completed: 0, ambiguous: 1 }, comparisonProvider: { service: 'openai', model: 'gpt-5.6-sol', attempts: 0, completed: 0, invalid: 0 }, promotedPanels: [], retainedOriginalPanels: [1], actualCostUsd: 0 }
+    const evaluation = { schemaVersion: 1 as const, experimentId: 'revision-contract-test', planFingerprint: 'b'.repeat(64), evidenceDirectory: 'revision-evaluations/revision-contract-test-bbbbbbbbbbbbbbbb', imageProvider: { service: 'openai', model: 'gpt-image-2', attempts: 1, completed: 0, ambiguous: 1 }, comparisonProvider: { service: 'openai', model: 'gpt-6.1-sol', attempts: 0, completed: 0, invalid: 0 }, promotedPanels: [], retainedOriginalPanels: [1], actualCostUsd: 0 }
     await recordComicImageRevision({ sceneRunDir, evaluation, artifactRefs: [{ path: 'panels/panel-01.png', sha256: panelSha256 }] })
     const recorded = await recordComicImageRevision({ sceneRunDir, evaluation: { ...evaluation, retainedOriginalPanels: [1, 2] }, artifactRefs: [{ path: 'panels/panel-01.png', sha256: panelSha256 }] })
     expect(recorded.items[0]?.providers).toEqual([imageProvider])

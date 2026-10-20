@@ -1,0 +1,3 @@
+## Episode Description
+
+James Berkins discusses being laid off during a recession and quickly securing a new developer job through professional connections.

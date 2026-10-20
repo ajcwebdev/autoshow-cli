@@ -1,6 +1,8 @@
 import * as v from 'valibot'
 import type { StructuredPresetName, ValibotSchema } from '~/types'
 import { InternalError } from '~/utils/error-handler'
+import { RESEARCH_PRESET_SCHEMAS } from './research-preset-schemas'
+import { SongExplainerSchema } from './song-explainer-preset-schema'
 
 const TextSchema = v.pipe(v.string(), v.minLength(1))
 const TimestampSchema = v.pipe(v.string(), v.regex(/^\d{2}:\d{2}:\d{2}$/))
@@ -114,6 +116,8 @@ const RapSongExtendedLyricsSchema = v.object({
 })
 
 const PRESET_REGISTRY = {
+  ...RESEARCH_PRESET_SCHEMAS,
+  songExplainer: SongExplainerSchema,
   shortSummary: v.object({
     episodeDescription: ShortDescriptionSchema
   }),

@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import ts from 'typescript'
-import type { BudgetLiteralRead, BudgetSourceInspection, HelperBudgetKeySpec, InspectionState, ModelsRead, StringRead } from '~/types'
+import type { BudgetLiteralRead, BudgetSourceInspection, BudgetSourceInvocation, HelperBudgetKeySpec, InspectionState, ModelsRead, StringRead } from '~/types'
+import { ocrServiceTestCases } from '../../../../test-utils/define-ocr-service-test'
+import { sttServiceTestCases } from '../../../../test-utils/define-stt-service-test'
 
 const helperBudgetKeySpecs: HelperBudgetKeySpec[] = [
   { callName: 'defineLLMWriteTest', prefix: 'write', serviceProperty: 'llmService', modelMode: 'strings' },
@@ -183,6 +187,153 @@ const inspectHelperCall = (
   appendHelperModels(file, object, spec, service.value, keys, issues)
 }
 
+type ModuleReader = (path: string) => string | undefined
+type ResolutionScope = Readonly<{ file: string, sourceFile: ts.SourceFile, readModule: ModuleReader, parsed: Map<string, ts.SourceFile | undefined> }>
+type ResolvedValue = Readonly<{ expression: ts.Expression, scope: ResolutionScope }>
+type ResolvedProperties = { values: Map<string, ResolvedValue>, unresolvedSpreads: number }
+
+const readSiblingModule: ModuleReader = (path) => {
+  try {
+    return readFileSync(path, 'utf8')
+  } catch {
+    return undefined
+  }
+}
+
+const unwrapExpression = (expression: ts.Expression): ts.Expression =>
+  ts.isAsExpression(expression) || ts.isSatisfiesExpression(expression) || ts.isParenthesizedExpression(expression)
+    ? unwrapExpression(expression.expression)
+    : expression
+
+const parseModuleScope = (scope: ResolutionScope, path: string): ResolutionScope | undefined => {
+  if (!scope.parsed.has(path)) {
+    const source = scope.readModule(path)
+    scope.parsed.set(path, source === undefined ? undefined : ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS))
+  }
+  const sourceFile = scope.parsed.get(path)
+  return sourceFile ? { ...scope, file: path, sourceFile } : undefined
+}
+
+// Resolves a top-level const of this module, or a named import from a relative sibling module.
+const resolveIdentifier = (name: string, scope: ResolutionScope, depth = 0): ResolvedValue | undefined => {
+  if (depth > 3) return undefined
+  for (const statement of scope.sourceFile.statements) {
+    if (ts.isVariableStatement(statement) && (statement.declarationList.flags & ts.NodeFlags.Const) !== 0) {
+      const declaration = statement.declarationList.declarations.find(item => ts.isIdentifier(item.name) && item.name.text === name)
+      if (declaration?.initializer) return { expression: unwrapExpression(declaration.initializer), scope }
+    }
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || !statement.moduleSpecifier.text.startsWith('.')) continue
+    const bindings = statement.importClause?.namedBindings
+    const element = bindings && ts.isNamedImports(bindings) ? bindings.elements.find(item => item.name.text === name) : undefined
+    if (!element) continue
+    const specifier = statement.moduleSpecifier.text
+    const target = parseModuleScope(scope, join(dirname(scope.file), specifier.endsWith('.ts') ? specifier : `${specifier}.ts`))
+    return target ? resolveIdentifier((element.propertyName ?? element.name).text, target, depth + 1) : undefined
+  }
+  return undefined
+}
+
+const resolveValue = (expression: ts.Expression, scope: ResolutionScope): ResolvedValue => {
+  const value = unwrapExpression(expression)
+  return (ts.isIdentifier(value) ? resolveIdentifier(value.text, scope) : undefined) ?? { expression: value, scope }
+}
+
+// Applies properties in source order, so a later property or spread overrides an earlier one.
+const collectResolvedProperties = (
+  object: ts.ObjectLiteralExpression,
+  scope: ResolutionScope,
+  collected: ResolvedProperties = { values: new Map(), unresolvedSpreads: 0 }
+): ResolvedProperties => {
+  for (const property of object.properties) {
+    if (ts.isSpreadAssignment(property)) {
+      const spread = resolveValue(property.expression, scope)
+      if (ts.isObjectLiteralExpression(spread.expression)) collectResolvedProperties(spread.expression, spread.scope, collected)
+      else collected.unresolvedSpreads += 1
+    } else if (ts.isShorthandPropertyAssignment(property)) {
+      collected.values.set(property.name.text, resolveValue(property.name, scope))
+    } else if (ts.isPropertyAssignment(property)) {
+      const name = propertyNameText(property.name)
+      if (name !== undefined) collected.values.set(name, resolveValue(property.initializer, scope))
+    }
+  }
+  return collected
+}
+
+const DYNAMIC = Symbol('dynamic')
+
+const readResolvedString = (properties: ResolvedProperties, name: string): string | undefined | typeof DYNAMIC => {
+  const entry = properties.values.get(name)
+  if (!entry) return undefined
+  return literalString(entry.expression) ?? DYNAMIC
+}
+
+const readResolvedStrings = (properties: ResolvedProperties, name: string): string[] | undefined | typeof DYNAMIC => {
+  const entry = properties.values.get(name)
+  if (!entry) return undefined
+  if (!ts.isArrayLiteralExpression(entry.expression)) return DYNAMIC
+  const values = entry.expression.elements.map(element => literalString(resolveValue(element, entry.scope).expression))
+  return values.every((value): value is string => value !== undefined) ? values : DYNAMIC
+}
+
+type ServiceCases = readonly { budgetKey: string, args: readonly string[] }[] | string
+
+const readOcrCases = (properties: ResolvedProperties, models: string[], provider: string): ServiceCases => {
+  const expectedService = readResolvedString(properties, 'expectedService')
+  const inputMode = readResolvedString(properties, 'inputMode')
+  const imageInput = readResolvedString(properties, 'imageInput')
+  if (expectedService === DYNAMIC || inputMode === DYNAMIC || imageInput === DYNAMIC) return 'has a dynamic expectedService, inputMode or imageInput; use string literals or inspectable constants'
+  if (inputMode !== undefined && inputMode !== 'pdf-and-image' && inputMode !== 'image-only') return `has an unknown inputMode ${inputMode}`
+  return ocrServiceTestCases({ models, provider, expectedService, inputMode, imageInput })
+}
+
+const readSttCases = (properties: ResolvedProperties, models: string[], provider: string): ServiceCases => {
+  const sttService = readResolvedString(properties, 'sttService')
+  const inputPath = readResolvedString(properties, 'inputPath')
+  const extraArgs = readResolvedStrings(properties, 'extraArgs')
+  if (typeof sttService !== 'string') return 'has no inspectable sttService'
+  if (inputPath === DYNAMIC || extraArgs === DYNAMIC) return 'has a dynamic inputPath or extraArgs; use string literals or inspectable constants'
+  return sttServiceTestCases({ models, provider, sttService, inputPath, extraArgs })
+}
+
+// OCR and STT helpers expose their exact CLI invocations, so price commands can be compared with them.
+const inspectServiceCaseCall = (
+  file: string,
+  call: ts.CallExpression,
+  spec: HelperBudgetKeySpec,
+  scope: ResolutionScope,
+  keys: string[],
+  invocations: BudgetSourceInvocation[],
+  issues: string[]
+): void => {
+  const argument = call.arguments[0]
+  if (!argument || !ts.isObjectLiteralExpression(argument)) {
+    issues.push(`${file}: ${spec.callName} has no inspectable configuration object`)
+    return
+  }
+  const properties = collectResolvedProperties(argument, scope)
+  if (properties.unresolvedSpreads > 0) {
+    issues.push(`${file}: ${spec.callName} spreads a value that is not an inspectable object literal`)
+    return
+  }
+  const models = readResolvedStrings(properties, 'models')
+  const provider = readResolvedString(properties, 'provider')
+  if (models === undefined || models === DYNAMIC || models.length === 0 || typeof provider !== 'string') {
+    issues.push(`${file}: ${spec.callName} needs inspectable literal models and provider`)
+    return
+  }
+  const cases = spec.callName === 'defineOCRServiceTest'
+    ? readOcrCases(properties, models, provider)
+    : readSttCases(properties, models, provider)
+  if (typeof cases === 'string') {
+    issues.push(`${file}: ${spec.callName} ${cases}`)
+    return
+  }
+  for (const testCase of cases) {
+    keys.push(testCase.budgetKey)
+    invocations.push({ key: testCase.budgetKey, args: testCase.args })
+  }
+}
+
 const isBudgetKeyLiteral = (value: string): boolean =>
   /^(?:extract|image|music|transcribe|tts|video|write)-/.test(value)
 
@@ -336,7 +487,7 @@ const createInspectionState = (): InspectionState => ({
   generationWrapperCalls: 0,
 })
 
-export const inspectBudgetSource = (file: string, source: string): BudgetSourceInspection => {
+export const inspectBudgetSource = (file: string, source: string, readModule: ModuleReader = readSiblingModule): BudgetSourceInspection => {
   const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
   const syntaxIssues = parseIssues(file, sourceFile)
   if (syntaxIssues.length > 0) {
@@ -350,9 +501,15 @@ export const inspectBudgetSource = (file: string, source: string): BudgetSourceI
   }
 
   const helperKeys: string[] = []
+  const invocations: BudgetSourceInvocation[] = []
+  const scope: ResolutionScope = { file, sourceFile, readModule, parsed: new Map() }
   for (const spec of helperBudgetKeySpecs) {
     for (const call of state.helperCalls.get(spec.callName) ?? []) {
-      inspectHelperCall(file, call, spec, helperKeys, state.issues)
+      if (spec.callName === 'defineOCRServiceTest' || spec.callName === 'defineSTTServiceTest') {
+        inspectServiceCaseCall(file, call, spec, scope, helperKeys, invocations, state.issues)
+      } else {
+        inspectHelperCall(file, call, spec, helperKeys, state.issues)
+      }
     }
   }
 
@@ -364,5 +521,6 @@ export const inspectBudgetSource = (file: string, source: string): BudgetSourceI
       ...helperKeys,
     ],
     issues: state.issues,
+    invocations,
   }
 }

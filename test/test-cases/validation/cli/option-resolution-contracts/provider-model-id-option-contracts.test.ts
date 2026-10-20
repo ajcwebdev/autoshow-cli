@@ -5,29 +5,19 @@ validateAnthropicOcrModel,
 validateGeminiOcrModel,
 validateGrokModel,
 validateGrokOcrModel,
-validateKimiOcrModel,
 validateMistralOcrModel,
 validateOpenAIOcrModel,
-validateTogetherModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 
 describe('option resolution contracts', () => {
 
-  test('Together write model validator accepts public selectors and rejects raw provider IDs', () => {
-      const expectedAllowed = 'Allowed values: kimi-k3, glm-5.3, glm-5.3-flash'
-
-      expect(validateTogetherModel('kimi-k3')).toBe('kimi-k3')
-      expect(validateTogetherModel('glm-5.3-flash')).toBe('glm-5.3-flash')
-      expect(() => validateTogetherModel('moonshotai/Kimi-K2.6')).toThrow(`Invalid model "moonshotai/Kimi-K2.6" for --llm together[=model]. ${expectedAllowed}`)
-      expect(() => validateTogetherModel('zai-org/GLM-5.3-FLASH')).toThrow(`Invalid model "zai-org/GLM-5.3-FLASH" for --llm together[=model]. ${expectedAllowed}`)
-    })
 
   test('Grok write model validator accepts Grok 4.7 and 4.6 and rejects Grok 4.5 plus aliases', () => {
-      const expectedAllowed = 'Allowed values: grok-4.7, grok-4.6'
+      const expectedAllowed = 'Allowed values: grok-4.7'
 
       expect(validateGrokModel('grok-4.7')).toBe('grok-4.7')
-      expect(validateGrokModel('grok-4.6')).toBe('grok-4.6')
+      expect(validateGrokModel('grok-4.7')).toBe('grok-4.7')
       expect(() => validateGrokModel('grok-4.5')).toThrow(`Invalid model "grok-4.5" for --llm grok[=model]. ${expectedAllowed}`)
       expect(() => validateGrokModel('grok-4.5-latest')).toThrow(`Invalid model "grok-4.5-latest" for --llm grok[=model]. ${expectedAllowed}`)
       expect(() => validateGrokModel('grok-build-latest')).toThrow(`Invalid model "grok-build-latest" for --llm grok[=model]. ${expectedAllowed}`)
@@ -36,20 +26,18 @@ describe('option resolution contracts', () => {
   test('OCR model validators accept new priority vision selectors and reject invalid IDs', () => {
       expect(validateMistralOcrModel('mistral-ocr-4-0')).toBe('mistral-ocr-4-0')
       expect(validateAnthropicOcrModel('claude-fable-5')).toBe('claude-fable-5')
-      expect(validateAnthropicOcrModel('claude-sonnet-5')).toBe('claude-sonnet-5')
-      expect(validateAnthropicOcrModel('claude-sonnet-5')).toBe('claude-sonnet-5')
-      expect(validateAnthropicOcrModel('claude-sonnet-5')).toBe('claude-sonnet-5')
-      expect(validateAnthropicOcrModel('claude-opus-5')).toBe('claude-opus-5')
-      expect(validateGeminiOcrModel('gemini-3.7-flash')).toBe('gemini-3.7-flash')
+      expect(validateAnthropicOcrModel('claude-sonnet-5-5')).toBe('claude-sonnet-5-5')
+      expect(validateAnthropicOcrModel('claude-sonnet-5-5')).toBe('claude-sonnet-5-5')
+      expect(validateAnthropicOcrModel('claude-sonnet-5-5')).toBe('claude-sonnet-5-5')
+      expect(validateAnthropicOcrModel('claude-opus-5-5')).toBe('claude-opus-5-5')
+      expect(validateGeminiOcrModel('gemini-3.8-flash')).toBe('gemini-3.8-flash')
       expect(validateGeminiOcrModel('gemini-3.5-flash')).toBe('gemini-3.5-flash')
       expect(validateGeminiOcrModel('gemini-3.6-flash')).toBe('gemini-3.6-flash')
       expect(validateGeminiOcrModel('gemini-3.5-flash-lite')).toBe('gemini-3.5-flash-lite')
       expect(validateGrokOcrModel('grok-4.5')).toBe('grok-4.5')
-      expect(validateGrokOcrModel('grok-4.6')).toBe('grok-4.6')
-      expect(validateOpenAIOcrModel('gpt-5.6-sol')).toBe('gpt-5.6-sol')
+      expect(validateGrokOcrModel('grok-4.7')).toBe('grok-4.7')
+      expect(validateOpenAIOcrModel('gpt-6.1-sol')).toBe('gpt-6.1-sol')
       expect(validateOpenAIOcrModel('gpt-5.6-terra')).toBe('gpt-5.6-terra')
-      expect(validateKimiOcrModel('kimi-k2.6')).toBe('kimi-k2.6')
-      expect(validateKimiOcrModel('kimi-k3')).toBe('kimi-k3')
 
       expect(() => validateMistralOcrModel('mistral-ocr-2405')).toThrow('Invalid model "mistral-ocr-2405" for --provider/--ocr mistral[=model]')
       expect(() => validateMistralOcrModel('mistral-ocr-latest')).toThrow('Invalid model "mistral-ocr-latest" for --provider/--ocr mistral[=model]. Allowed values: mistral-ocr-4-0, mistral-ocr-4-1')
@@ -62,9 +50,6 @@ describe('option resolution contracts', () => {
       const openaiDefault = resolveCheapestModelForFlag('openai')
       const geminiDefault = resolveCheapestModelForFlag('gemini')
       const grokDefault = resolveCheapestModelForFlag('grok')
-      const glmDefault = resolveCheapestModelForFlag('glm')
-      const kimiDefault = resolveCheapestModelForFlag('kimi')
-      const togetherDefault = resolveCheapestModelForFlag('together')
       const deepgramDefault = resolveCheapestModelForFlag('deepgram-stt')
       const assemblyaiDefault = resolveCheapestModelForFlag('assemblyai-stt')
       const gladiaDefault = resolveCheapestModelForFlag('gladia-stt')
@@ -77,16 +62,12 @@ describe('option resolution contracts', () => {
       const geminiOcrDefault = resolveCheapestModelForFlag('gemini-ocr')
       const grokOcrDefault = resolveCheapestModelForFlag('grok-ocr')
       const deepinfraOcrDefault = resolveCheapestModelForFlag('deepinfra-ocr')
-      const kimiOcrDefault = resolveCheapestModelForFlag('kimi-ocr')
       const elevenlabsTtsDefault = resolveCheapestModelForFlag('elevenlabs-tts')
       const openaiTtsDefault = resolveCheapestModelForFlag('openai-tts')
       const opts = buildOptsFromFlags({
         openai: true,
         gemini: true,
         grok: true,
-        glm: true,
-        kimi: true,
-        together: true,
         'deepgram-stt': true,
         'assemblyai-stt': true,
         'gladia-stt': true,
@@ -98,18 +79,14 @@ describe('option resolution contracts', () => {
         'gemini-ocr': true,
         'grok-ocr': true,
         'deepinfra-ocr': true,
-        'kimi-ocr': true,
         'elevenlabs-tts': true,
         'openai-tts': true,
 
       })
 
       expect(openaiDefault).toBeDefined()
-      expect(geminiDefault).toBe('gemini-3.7-flash')
-      expect(grokDefault).toBe('grok-4.6')
-      expect(glmDefault).toBeDefined()
-      expect(kimiDefault).toBe('kimi-k3')
-      expect(togetherDefault).toBe('glm-5.3-flash')
+      expect(geminiDefault).toBe('gemini-3.8-flash')
+      expect(grokDefault).toBe('grok-4.7')
       expect(deepgramDefault).toBeDefined()
       expect(assemblyaiDefault).toBe('universal-3-5-pro')
       expect(gladiaDefault).toBe('solaria-3')
@@ -122,15 +99,11 @@ describe('option resolution contracts', () => {
       expect(geminiOcrDefault).toBe('gemini-3.5-flash-lite')
       expect(grokOcrDefault).toBe('grok-4.5')
       expect(deepinfraOcrDefault).toBe('google/gemma-4-31B-it')
-      expect(kimiOcrDefault).toBe('kimi-k2.6')
       expect(elevenlabsTtsDefault).toBe('eleven_v3')
       expect(openaiTtsDefault).toBe('gpt-4o-mini-tts-2025-12-15')
       expect(opts.openaiModels?.[0]).toBe(openaiDefault)
       expect(geminiDefault).toBe(opts.geminiModels?.[0])
       expect(grokDefault).toBe(opts.grokModels?.[0])
-      expect(glmDefault).toBe(opts.glmModels?.[0])
-      expect(kimiDefault).toBe(opts.kimiModels?.[0])
-      expect(togetherDefault).toBe(opts.togetherModels?.[0])
       expect(opts.deepgramSttModels?.[0]).toBe(deepgramDefault)
       expect(opts.assemblyaiSttModels?.[0]).toBe(assemblyaiDefault)
       expect(opts.gladiaSttModels?.[0]).toBe(gladiaDefault)
@@ -142,7 +115,6 @@ describe('option resolution contracts', () => {
       expect(opts.geminiOcrModels?.[0]).toBe(geminiOcrDefault)
       expect(opts.grokOcrModels?.[0]).toBe(grokOcrDefault)
       expect(opts.deepinfraOcrModels?.[0]).toBe(deepinfraOcrDefault)
-      expect(opts.kimiOcrModels?.[0]).toBe(kimiOcrDefault)
       expect(opts.elevenlabsTtsModels?.[0]).toBe(elevenlabsTtsDefault)
       expect(opts.openaiTtsModels?.[0]).toBe(openaiTtsDefault)
     })

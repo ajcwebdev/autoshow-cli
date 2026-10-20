@@ -18,8 +18,7 @@ import { UsageError } from '~/utils/error-handler'
 import { ALL_STEP_CONCURRENCY_SCOPES, resolveStepConcurrency } from '~/cli/flags/service-selector-normalization/step-concurrency-scopes'
 
 const OCR_MODEL_KEYS = [
-  'mistralOcrModels', 'glmOcrModels',
-  'kimiOcrModels', 'openaiOcrModels',
+  'mistralOcrModels', 'openaiOcrModels',
   'grokOcrModels', 'anthropicOcrModels',
   'geminiOcrModels', 'deepinfraOcrModels',
 ] as const satisfies readonly OcrRuntimeOptionKey[]

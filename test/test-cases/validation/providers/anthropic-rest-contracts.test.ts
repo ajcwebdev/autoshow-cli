@@ -34,7 +34,7 @@ const structuredOpts: StructuredRequestOptions = {
 describe('Anthropic REST contracts', () => {
   test('Fable 5.1 resolves alongside Fable 5 with documented pricing', () => {
     expect(buildOptsFromFlags({ anthropic: 'claude-fable-5-1' }).anthropicModels).toEqual(['claude-fable-5-1'])
-    expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5' })).toThrow('Invalid model "claude-fable-5" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-1, claude-sonnet-5, claude-opus-5')
+    expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5' })).toThrow('Invalid model "claude-fable-5" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-1')
     expect(getModelRegistry().llm['anthropic']?.models['claude-fable-5-1']).toMatchObject({
       inputCostPer1MCents: 1000,
       outputCostPer1MCents: 5000,
@@ -102,7 +102,7 @@ describe('Anthropic REST contracts', () => {
         usage: { input_tokens: 11, output_tokens: 3 }
     }))
 
-    const result = await runAnthropicModel('Summarize this.', 'claude-sonnet-5', structuredOpts)
+    const result = await runAnthropicModel('Summarize this.', 'claude-sonnet-5-5', structuredOpts)
 
     expect(result.result).toBe('Hello from Claude.')
     expect(calls).toHaveLength(1)
@@ -110,7 +110,7 @@ describe('Anthropic REST contracts', () => {
       url: 'https://api.anthropic.com/v1/messages',
       method: 'POST',
       bodyJson: {
-        model: 'claude-sonnet-5',
+        model: 'claude-sonnet-5-5',
         max_tokens: 16000,
         messages: [{ role: 'user', content: 'Summarize this.' }],
         output_config: {
@@ -134,7 +134,7 @@ describe('Anthropic REST contracts', () => {
       usage: { input_tokens: 11, output_tokens: 3 }
     }))
 
-    const result = await runAnthropicModel('Summarize this.', 'claude-sonnet-5', {
+    const result = await runAnthropicModel('Summarize this.', 'claude-sonnet-5-5', {
       ...structuredOpts,
       requestedReasoningEffort: 'medium'
     })
@@ -162,7 +162,7 @@ describe('Anthropic REST contracts', () => {
     const message = await createAnthropicMessage(
       { apiKey: 'anthropic-key', baseURL: 'https://mock.anthropic.local/v1' },
       {
-        model: 'claude-sonnet-5',
+        model: 'claude-sonnet-5-5',
         max_tokens: 16,
         messages: [{ role: 'user', content: 'Hello' }]
       }
@@ -212,7 +212,7 @@ describe('Anthropic REST contracts', () => {
     await createAnthropicMessage(
       { apiKey: 'anthropic-key', baseURL: 'https://mock.anthropic.local' },
       {
-        model: 'claude-sonnet-5',
+        model: 'claude-sonnet-5-5',
         max_tokens: 1024,
         messages: [{
           role: 'user',
@@ -277,7 +277,7 @@ describe('Anthropic REST contracts', () => {
     const error = await expectProviderHttpError(async () => await createAnthropicMessage(
       { apiKey: 'anthropic-key', baseURL: 'https://mock.anthropic.local' },
       {
-        model: 'claude-sonnet-5',
+        model: 'claude-sonnet-5-5',
         max_tokens: 16,
         messages: [{ role: 'user', content: 'Hello' }]
       }

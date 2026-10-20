@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
+import { collectVideoTargets } from '~/cli/commands/visuals/video/video-targets'
 import {
   installMockFetch,
   jsonResponse,
@@ -12,6 +14,34 @@ import {
 } from './shared'
 
 describe('video provider REST contracts', () => {
+  test('generic video controls dispatch the existing PixVerse payload and retain transport bytes', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    const calls = installMockFetch((call) => {
+      if (call.method === 'POST') return jsonResponse({ id: 'generic-controls', status: 'succeeded', output: 'https://replicate.delivery/example/generic.mp4' })
+      if (call.url === 'https://replicate.delivery/example/generic.mp4') return videoResponse()
+      throw new Error(`Unexpected request: ${call.method} ${call.url}`)
+    })
+    await withTempDir(async (dir) => {
+      const target = collectVideoTargets(buildOptsFromFlags({
+        'replicate-video': 'pixverse/pixverse-v6', seed: '0', 'negative-prompt': 'blur', 'multi-clip': false
+      }))[0]!
+      const result = await target.run('A calm landscape', dir)
+      expect(await Bun.file(result.videoPath).bytes()).toEqual(videoBytes)
+    })
+    expect(calls[0]?.url).toBe('https://api.replicate.com/v1/models/pixverse/pixverse-v6/predictions')
+    expect(calls[0]?.bodyJson).toMatchObject({ input: { seed: 0, negative_prompt: 'blur', generate_multi_clip_switch: false } })
+  })
+
+  test('generic video controls reject a successful provider envelope without a video artifact', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    const calls = installMockFetch(() => jsonResponse({ id: 'missing-artifact', status: 'succeeded', output: [] }))
+    await withTempDir(async (dir) => {
+      const target = collectVideoTargets(buildOptsFromFlags({ 'replicate-video': 'pixverse/pixverse-v6', seed: '1' }))[0]!
+      await expect(target.run('A calm landscape', dir)).rejects.toThrow('Replicate video generation completed without an output video URL')
+    })
+    expect(calls).toHaveLength(1)
+  })
+
   test('Replicate Seedance creates predictions, polls, downloads output, and records metadata', async () => {
     process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
     const calls = installMockFetch((call) => {

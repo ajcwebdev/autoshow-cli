@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-24
-- **Date Updated:** 2026-09-23
+- **Date Updated:** 2026-10-19
 - **Verification Status:** Passed
 
 Native AMD64 and ARM64 production validation passed on the published image. Both native compiled-entrypoint experiments were reviewed and rejected because their images grew; production retains the source entrypoint.
@@ -83,11 +83,11 @@ AutoShow distributes an additive Debian slim local-lite Docker image alongside n
 
 The image includes `ffmpeg`, `ffprobe`, `yt-dlp` at the native Linux pin with Deno for YouTube JavaScript challenges, Tesseract OCR with English data, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, and ImageMagick with Pango and DejaVu fonts. Heavy local STT, LLM, and TTS engines, model weights, Defuddle, and hosted-provider credentials stay outside the image.
 
-Hosted-provider credentials arrive at runtime through Docker's `--env-file` or `-e` options and are never baked into the image. The entrypoint disables Bun's automatic `.env` loading, so mounting a file at `/app/.env` is not a supported credential path. User data stays on the host via bind mounts: the working directory at `/workspace`, or input, output, and runtime paths under `/app`. Linux hosts that need host-owned output use `--user "$(id -u):$(id -g)"`. A bind mount over `/app/runtime` hides the image tessdata symlink; the image `tesseract` command falls back to Debian English data when `TESSDATA_PREFIX` is unset or that prefix has no `eng.traineddata`.
+Hosted-provider credentials arrive at runtime through Docker's `--env-file` or `-e` options and are never baked into the image. The entrypoint disables Bun's automatic `.env` loading, so mounting a file at `/app/.env` is not a supported credential path. User data stays on the host via bind mounts: the working directory at `/workspace`, or input, output, and runtime paths under `/app`. Linux hosts that need host-owned output use `--user "$(id -u):$(id -g)"`. Shared source-level Tesseract selection uses managed English data when present and valid, and the packaged default when managed data is absent. An empty runtime mount therefore retains Debian English OCR without an image-only wrapper or tessdata symlink; invalid managed data receives a diagnostic from OCR, setup, and doctor.
 
 Image tools are discovered on the normal Linux `PATH`. The CLI does not special-case containers, so omitted tools fail in setup, doctor, or the workflow the same way they would on a native Linux host.
 
-Multi-architecture images (`linux/amd64` and `linux/arm64`) publish to `ghcr.io/ajcwebdev/autoshow-cli`, tagged `latest` and by full commit SHA, on pushes to `main` that change image inputs (`Dockerfile`, dependencies, `config/`, `src/`, the acceptance harness, or workflows). Docs-only pushes keep the previous `latest`. The production image runs the TypeScript source entrypoint; the `compiled-experiment` target remains unpublished, and adopting it requires a material improvement without asset, path, diagnostic, image-size, or multi-architecture regressions.
+Multi-architecture images (`linux/amd64` and `linux/arm64`) publish to `ghcr.io/ajcwebdev/autoshow-cli`, tagged `latest` and by full commit SHA, on pushes to `main` that change image inputs (`Dockerfile`, dependencies, `config/`, `src/`, the acceptance harness, or workflows). Docs-only pushes keep the previous `latest`. The production image runs the TypeScript source entrypoint. The rejected compiled-image stages and recurring experiment jobs were retired on October 19; the historical measurements and decision below remain the basis for any future, explicitly owned and manually dispatched research. Adopting compilation still requires a material improvement without asset, path, diagnostic, image-size, or multi-architecture regressions.
 
 This applies to:
 
@@ -147,6 +147,20 @@ Negative outcomes:
 
 The image recipe, entrypoint, and publishing workflow ship with the repository, and user-facing usage is documented in the [Docker guide](../docker.md).
 
+### Security snapshot refresh (2026-10-18)
+
+The runtime APT snapshot is pinned to `20261016T082316Z`, which includes `libexpat1` version `2.9.0-1~deb13u1` for both AMD64 and ARM64. [Debian DSA-6566-1](https://lists.debian.org/debian-security-announce/2026/msg00480.html) identifies that version as the trixie fix for the Expat vulnerabilities reported by the image audits. The previous October 15 snapshot preceded the October 16 security release. Both architectures' compressed package indexes were checked against the [signed security InRelease](https://snapshot.debian.org/archive/debian-security/20261016T082316Z/dists/trixie-security/InRelease), whose signatures were verified with Debian's published security archive keys, and the downloaded `.deb` files matched the indexes' SHA-256 values. Native CI image builds, smoke tests, and the existing fixable high-severity audit gate remain the acceptance checks; no advisory exceptions were added.
+
+### Production runtime protection (2026-10-19)
+
+The recipe contains `youtube-js`, `deps`, independent `alignment-deps`, `runtime`, optional `alignment`, and final `production` stages. Application source, installed production dependencies, package manifests, and frozen optional-tool manifests stay root-owned and readable by the runtime user. Only input, output, runtime, and home/cache directories belong to `bun`. The default configuration path `/app/config/autoshow.json` links to `/app/runtime/autoshow.json`, preserving configuration writes and persistence through an initially empty runtime mount while keeping frozen configuration assets protected. Linux callers using another UID/GID supply writable host-owned state and home mounts as described in the [Docker guide](../docker.md).
+
+The alignment dependency builder installs and normalizes its frozen graph independently of runtime HOME, pruning native binaries for other operating systems and architectures. The alignment target only copies that graph and inherits `USER bun`. Production remains last, retains the source entrypoint, and omits peer dependencies from its runtime install. The context allowlist follows recipe inputs. Recursive installed-image verification protects `/app` itself and immutable descendants, rejects writable or escaping symlink routes, and checks optional alignment contents; a separate synthetic local-package probe exercises alignment's original HOME before mounted-state checks. The yt-dlp download uses checksum-verified `ADD` with executable mode after the expensive APT layer; its URL and hash continue to match native setup metadata. Installed-image smoke imports the dependencies shipped by the build offline without reinstalling them.
+
+Earlier October 19 validation built production and alignment on a native ARM64 Docker daemon. Offline checks confirmed dependency imports, refused writes to code/dependencies/manifests, writable state and configuration, and host-owned binds under a nonmatching UID/GID; configuration and a local cached-asset fixture survived successive disposable containers. Core acceptance passed 26/26 cases against the local production image, and the alignment image passed four existing native ONNX tests, including actual synthetic inference and overwrite rejection. An intentionally incorrect yt-dlp checksum failed the build at `ADD`.
+
+After the simplification changes, both rebuilt ARM64 images passed original-HOME first use, recursive permissions, and fresh state under default and host UID/GID selections. Nineteen deliberately invalid permission/ownership/link controls were rejected. Production core acceptance passed 28/28 including authored FB2 conversion and malformed-input rejection; alignment again passed four real ONNX tests. The real Tesseract gate passed nine cases and twelve phases covering packaged/managed data, invalid artifacts, and removal/reset. Both immutable image scans passed the existing fixable high/critical gate, retaining unfixed findings and triage. Native AMD64 builds/scans, full model/public-network acceptance, actual workflow execution, and registry promotion remain CI gates; these local results do not claim new AMD64 or registry verification.
+
 ### Bun 1.4 Migration Evidence
 
 On 2026-08-31, local no-cost measurements compared the production image on Bun 1.3.14 with Bun 1.4.0 on one Docker Desktop host with a local Tesseract OCR fixture. The migration benchmark utility was retired on September 23; these measurements and the existing benchmark artifacts remain historical evidence. Current Docker acceptance continues through `bun t:docker`. The dotenv result is archived in [ADR-004](ADR-004-setup-toolchain-and-runtime-configuration.md#bun-14-dotenv-compatibility), and Linux TIFF and ImageMagick routing constraints in [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md#bun-14-image-routing). On native ARM64, containerized help, setup, and `setup --doctor` passed with the expected warnings for tools and models left out of the image:
@@ -180,6 +194,7 @@ The September 22 review passed `bun run check` (structure, naming and types), `b
 ```bash
 bun run check
 bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
+bun test test/test-cases/validation/cli/docker-runtime-recipe.test.ts
 ```
 
 1. The image `yt-dlp` URL and SHA-256 match native Linux metadata, and documentation shows direct `docker run`.
@@ -188,6 +203,7 @@ bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
 
 - [x] Review native Bun 1.4 production-image evidence for AMD64 and ARM64 — Passed on native Ubuntu runners in the 2026-09-22 CI run.
 - [x] Review both native compiled-entrypoint experiment artifacts — Rejected for production because both compiled images grew by about 70 MB; retain the source entrypoint.
+- [x] Retire the rejected compiled-image build stages, recurring experiment jobs, and experiment-only sampling — Removed on 2026-10-19; historical commands, measurements, and rejection evidence remain above. Standalone-runtime support remains available to native compilation.
 
 ## References
 
@@ -195,4 +211,3 @@ bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
 - Related ADR: [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md)
 - Related ADR: [ADR-019](ADR-019-read-successful-http-bodies-whole-under-a-payload-class-ceiling.md)
 - [Docker guide](../docker.md)
-- [Docker usage and acceptance guide](../docker.md)

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-09-24
+- **Date Updated:** 2026-10-17
 - **Verification Status:** Passed
 - **Supersession:** Absorbs the shared TTS, voice-management, rendering, slot, and compact authority of "Add Character Voice References and Multi-Speaker Script-to-Audio", whose comic scene-run authority moved to [ADR-013](ADR-013-comic-scene-audio-and-presentation.md), and all of "Master TTS Delivery Audio Outside Paid Slot Identity". The rule that `resume` adopts a pre-mastering canonical directory's legacy chunking and 16 kHz output, which [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) cites, belongs to this record. This is the standalone `tts` and `voice` command record.
 
@@ -275,4 +275,4 @@ Gemini design creates persistent resources before candidate selection. The creat
 
 The October 15 Gemini evidence review is complete for documented contracts, retained unary outcomes and local transport, lifecycle and recovery validation. Retained token counts and duration-based conversions disagree; invoice attribution, unpublished voice-operation tariffs and valuation across future rate boundaries remain unresolved. Unobserved live streaming/Batch outcomes, voice-design fidelity, pronunciation effects and long-term expiry behavior remain unverified.
 
-The [retained recording assessment](../benchmarks/tts/assessment.md) records offline ASR and signal measurements for 42 selected recordings. Subjective ratings remain excluded and unscored; mocked transport, decoded artifacts and ASR discrepancies do not establish spoken correctness or perceptual quality. Accepted follow-ups for Inworld remote async/Batch, Grok timestamps/replacements and bounded Soniox regional REST, silence reduction and read-only voice discovery remain pending implementation. Additional Gemini interfaces remain separately deferred; completing the evidence review does not implement those extensions.
+The [retained recording assessment](../benchmarks/tts/assessment.md) records offline ASR and signal measurements for 42 selected recordings. Subjective ratings remain excluded and unscored; mocked transport, decoded artifacts and ASR discrepancies do not establish spoken correctness or perceptual quality. Proposed extensions for Inworld remote async/Batch, Grok timestamps/replacements and Soniox regional REST, silence reduction and read-only voice discovery were declined on 2026-10-17: optional TTS features are added only in a form that works across providers, Grok replacements duplicate the provider-independent `--tts-pronunciations` lexicon, and timestamp output was already declined for ElevenLabs on the same basis. Additional Gemini interfaces remain separately deferred; completing the evidence review does not implement those extensions.

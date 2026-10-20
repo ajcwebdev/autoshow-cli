@@ -1,0 +1,53 @@
+{
+  "result": "{\"chapters\":[{\"timestamp\":\"00:00:01\",\"title\":\"Space Glitch and Host Introductions\",\"description\":\"After a Twitter Space startup glitch, the hosts explain that waiting briefly can make a Space go live. Ishan, Anthony, and Scott welcome everyone to JavaScript Jam Live, introduce their Edgio roles, and preview a React Miami collaboration that preserves the open-mic format while inviting beginners and experienced developers to participate.\"},{\"timestamp\":\"00:04:45\",\"title\":\"Guests and the Miami Jam Game Show\",\"description\":\"Dev introduces himself as a React Miami media partner, Michelle joins despite connection trouble, and a few listeners briefly appear. Dev then describes Miami Jam, a trivia-style show where React and JavaScript questions lead into speaker motivations and shared experiences, with audience scoring and participation. The discussion runs through 00:08:42.\"}]}",
+  "metadata": {
+    "llmService": "grok",
+    "llmModel": "grok-4.7",
+    "providerReturnedModel": "grok-4.7",
+    "processingTime": 26184,
+    "inputTokenCount": 3875,
+    "outputTokenCount": 2273,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 1152,
+      "inputTokenCount": 3875,
+      "outputTokenCount": 2273,
+      "totalTokenCount": 6148
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 3875,
+      "completion_tokens": 185,
+      "total_tokens": 6148,
+      "prompt_tokens_details": {
+        "text_tokens": 3875,
+        "audio_tokens": 0,
+        "image_tokens": 0,
+        "cached_tokens": 1152
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 2088,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "num_sources_used": 0,
+      "cost_in_usd_ticks": 196600000
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "grok-4.7",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_mediumChapters",
+          "schemaSha256": "21fdcdb40e118404ed84283dc2e2153afca07f6360aea5c77a5d2b38632c29af",
+          "strict": true
+        }
+      }
+    }
+  }
+}

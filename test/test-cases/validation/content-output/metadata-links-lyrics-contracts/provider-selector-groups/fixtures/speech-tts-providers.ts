@@ -5,7 +5,7 @@ export const GROK_TTS_LINKS = sectionLinks('Grok', 'TTS')
 export const GROK_ALL_LINKS = providerLinks('Grok')
 
 export const TOGETHER_GENERAL_LINKS = sectionLinks('Together', 'General')
-export const TOGETHER_TEXT_LINKS = sectionLinks('Together', 'Text')
+export const TOGETHER_STT_LINKS = sectionLinks('Together', 'STT')
 export const TOGETHER_ALL_LINKS = providerLinks('Together')
 
 export const CLOUDFLARE_MODELS_LINKS = sectionLinks('Cloudflare', 'Models')

@@ -10,6 +10,13 @@ import { buildProviderStates as buildSttProviderStates, readExistingSttRun } fro
 import type { OcrTarget, ResolvedFlagOptions, ResumeTarget, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
 import { readCanonicalRecord, writeProviderResultFixture, writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
+// Each rejecting preflight runs once; every message fragment is then checked on that one error.
+const rejectionOf = async (operation: Promise<unknown>): Promise<Error> => {
+  const outcome = await operation.then(() => undefined, (error: unknown) => error)
+  expect(outcome).toBeInstanceOf(Error)
+  return outcome as Error
+}
+
 describe('additive resume provider selection', () => {
   test('STT resume keeps completed retired models readable but blocks unfinished retired targets', async () => {
     await withTempDir('autoshow-stt-retired-model-resume-', async (dir) => {
@@ -53,14 +60,12 @@ describe('additive resume provider selection', () => {
         undefined,
         { youtubeCaptions: false, currentTargets: [] }
       )).resolves.toBe(false)
-      await expect(priceSttTarget(
+      const rejection = await rejectionOf(priceSttTarget(
         incompleteTarget,
         { youtubeCaptions: false } as ResolvedFlagOptions
-      )).rejects.toThrow('Stored STT target assemblyai/universal-3-pro is incomplete')
-      await expect(priceSttTarget(
-        incompleteTarget,
-        { youtubeCaptions: false } as ResolvedFlagOptions
-      )).rejects.toThrow('Start a new target with an active assemblyai model.')
+      ))
+      expect(rejection.message).toContain('Stored STT target assemblyai/universal-3-pro is incomplete')
+      expect(rejection.message).toContain('Start a new target with an active assemblyai model.')
     })
   })
 
@@ -83,14 +88,12 @@ describe('additive resume provider selection', () => {
         manifestPath: join(dir, PIPELINE_MANIFEST_FILE)
       }
 
-      await expect(priceSttTarget(
+      const rejection = await rejectionOf(priceSttTarget(
         incompleteTarget,
         { youtubeCaptions: false } as ResolvedFlagOptions
-      )).rejects.toThrow('Stored STT target rev/low_cost is incomplete')
-      await expect(priceSttTarget(
-        incompleteTarget,
-        { youtubeCaptions: false } as ResolvedFlagOptions
-      )).rejects.toThrow('Start a new target with an active STT provider.')
+      ))
+      expect(rejection.message).toContain('Stored STT target rev/low_cost is incomplete')
+      expect(rejection.message).toContain('Start a new target with an active STT provider.')
     })
   })
 
@@ -115,12 +118,9 @@ describe('additive resume provider selection', () => {
       }
       const opts = buildOptsFromFlags({})
 
-      await expect(priceOcrTarget(resumeTarget, opts)).rejects.toThrow(
-        'Stored OCR target gemini/gemini-3.1-flash-lite is incomplete, but that model is no longer in the active registry.'
-      )
-      await expect(priceOcrTarget(resumeTarget, opts)).rejects.toThrow(
-        'Re-run with --provider gemini=gemini-3.5-flash-lite to add the replacement as a distinct target.'
-      )
+      const rejection = await rejectionOf(priceOcrTarget(resumeTarget, opts))
+      expect(rejection.message).toContain('Stored OCR target gemini/gemini-3.1-flash-lite is incomplete, but that model is no longer in the active registry.')
+      expect(rejection.message).toContain('Re-run with --provider gemini=gemini-3.5-flash-lite to add the replacement as a distinct target.')
 
       const estimate = await priceOcrTarget(resumeTarget, opts, [replacement])
       expect(estimate.steps).toHaveLength(1)

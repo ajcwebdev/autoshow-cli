@@ -1,6 +1,8 @@
 import { rm } from 'node:fs/promises'
+import { basename } from 'node:path'
 import type { HttpPayloadClass, HttpPayloadLimit, HttpPayloadReadOptions, InlineMediaResponseEstimate } from '~/types'
 import { AppError, UsageError } from '~/utils/error-handler'
+import { MEDIA_DOWNLOAD_TIMEOUT_MS } from '~/utils/timeouts'
 
 // Contract: successful HTTP bodies are read here, whole or not at all. Bounded capture in
 // `bounded-capture.ts` keeps a redacted tail for diagnostics (error bodies, process output) and
@@ -12,12 +14,14 @@ const MIB = 1024 * 1024
 
 /**
  * Ceilings only stop one response from exhausting memory. A successful body is work a provider
- * was already paid for, so `result` leaves wide headroom over any real deliverable.
+ * was already paid for, so `result` leaves wide headroom over any real deliverable. `source`
+ * bounds a user-supplied download on disk, sized above multi-hour video.
  */
 export const HTTP_PAYLOAD_CLASS_BYTES = {
   control: 16 * MIB,
   result: 512 * MIB,
-  download: 2048 * MIB
+  download: 2048 * MIB,
+  source: 16 * 1024 * MIB
 } as const satisfies Record<HttpPayloadClass, number>
 
 const DEFAULT_PAYLOAD_CLASS: HttpPayloadClass = 'result'
@@ -43,7 +47,9 @@ export const validateHttpPayloadEnvironment = (): void => {
 export const resolveHttpPayloadLimit = (options: HttpPayloadReadOptions = {}): HttpPayloadLimit => {
   const payloadClass = options.payloadClass ?? DEFAULT_PAYLOAD_CLASS
   const environmentLimit = readEnvironmentLimit()
-  if (environmentLimit !== undefined) return { maxBytes: environmentLimit, source: 'environment', payloadClass }
+  // A source streams to disk, so an override sized for memory may raise its ceiling but never lower it.
+  const environmentApplies = environmentLimit !== undefined && (payloadClass !== 'source' || environmentLimit > HTTP_PAYLOAD_CLASS_BYTES.source)
+  if (environmentApplies) return { maxBytes: environmentLimit, source: 'environment', payloadClass }
   if (typeof options.maxBytes === 'number' && Number.isFinite(options.maxBytes) && options.maxBytes > 0) {
     return { maxBytes: Math.floor(options.maxBytes), source: 'call', payloadClass }
   }
@@ -70,7 +76,7 @@ const oversizeError = (
     ...(context.status !== undefined ? { status: context.status } : {}),
     hints: [
       `Set ${HTTP_PAYLOAD_MAX_BYTES_ENV} (bytes) above the reported size, then rerun.`,
-      ...(observed.measure === 'estimated' ? [] : ['The provider may already have billed this request, so raise the ceiling before retrying.'])
+      ...(observed.measure === 'estimated' || limit.payloadClass === 'source' ? [] : ['The provider may already have billed this request, so raise the ceiling before retrying.'])
     ],
     metadata: {
       payloadClass: limit.payloadClass,
@@ -162,14 +168,41 @@ export const readHttpPayloadJson = async (
 ): Promise<unknown> => JSON.parse(await readHttpPayloadText(response, label, options)) as unknown
 
 /**
- * Streams a body straight to disk. Nothing is held in memory, so no ceiling applies and a
- * download of any size works. A failed transfer removes the partial file.
+ * Signal for fetching a user-supplied source: the caller's cancellation plus a total deadline.
+ * Aborting the fetch also aborts its body stream, so the deadline covers the whole transfer.
  */
-export const writeHttpPayloadToFile = async (response: Response, path: string): Promise<number> => {
+export const sourceDownloadSignal = (
+  callerSignal?: AbortSignal | undefined,
+  deadlineMs: number = MEDIA_DOWNLOAD_TIMEOUT_MS
+): AbortSignal => {
+  const deadline = AbortSignal.timeout(deadlineMs)
+  return callerSignal ? AbortSignal.any([callerSignal, deadline]) : deadline
+}
+
+/**
+ * Streams a body straight to disk. Nothing is held in memory, so without `limit` no ceiling
+ * applies: a paid result must never be discarded for its size. Source downloads pass
+ * `{ payloadClass: 'source' }` so an oversized or endless body cannot fill the disk. A failed
+ * transfer removes the partial file.
+ */
+export const writeHttpPayloadToFile = async (
+  response: Response,
+  path: string,
+  limitOptions?: HttpPayloadReadOptions | undefined
+): Promise<number> => {
+  const limit = limitOptions ? resolveHttpPayloadLimit(limitOptions) : undefined
+  const context = { status: response.status, stage: limitOptions?.stage }
+  const label = `Download to ${basename(path)}`
   const stream = response.body
   if (!stream) {
     await Bun.write(path, new Uint8Array(0))
     return 0
+  }
+
+  const declared = declaredContentLength(response)
+  if (limit && declared !== undefined && declared > limit.maxBytes) {
+    await stream.cancel().catch(() => {})
+    throw oversizeError(label, limit, { bytes: declared, measure: 'declared' }, context)
   }
 
   const writer = Bun.file(path).writer()
@@ -180,6 +213,9 @@ export const writeHttpPayloadToFile = async (response: Response, path: string): 
       const { done, value } = await reader.read()
       if (done) break
       totalBytes += value.byteLength
+      if (limit && totalBytes > limit.maxBytes) {
+        throw oversizeError(label, limit, { bytes: totalBytes, measure: 'streamed' }, context)
+      }
       await writer.write(value)
     }
     await writer.end()

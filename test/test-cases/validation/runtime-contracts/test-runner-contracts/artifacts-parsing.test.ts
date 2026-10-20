@@ -6,7 +6,7 @@ import {
 } from 'bun:test'
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { appendRunnerLog, cleanupTestOutputRoot, createRunArtifacts, writeLatestRunLog, writeReportJson } from '../../../../test-runner/artifacts'
+import { appendRunnerLog, cleanupRunArtifacts, cleanupTestOutputRoot, closeArtifactLogs, createRunArtifacts, writeLatestRunLog, writeReportJson } from '../../../../test-runner/artifacts'
 import { parseJunit, parseTestcase, resolveTestcaseStatus } from '../../../../test-runner/parsers'
 import { buildTestReportData } from '../../../../test-runner/reports/test-report'
 import {
@@ -16,10 +16,24 @@ import {
   parseOutputDirFromText
 } from '../../../../test-runner/utils'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import type { TestRunArtifacts } from '~/types'
 
 const tempDirs: string[] = []
+const openArtifacts: TestRunArtifacts[] = []
+
+const completedRun = async (dir: string, exitCode = 0): Promise<TestRunArtifacts> => {
+  const artifacts = await createRunArtifacts(dir)
+  await writeReportJson(artifacts, {
+    run: { id: artifacts.runId, mode: 'price', endedAt: new Date().toISOString() },
+    summary: { total: 1, passed: exitCode === 0 ? 1 : 0, failed: exitCode === 0 ? 0 : 1, skipped: 0 },
+  })
+  await writeLatestRunLog(artifacts, exitCode)
+  await writeFile(artifacts.activeRunPath, '{"pid":2147483647}')
+  return artifacts
+}
 
 afterEach(async () => {
+  await Promise.all(openArtifacts.splice(0).map(closeArtifactLogs))
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
@@ -51,52 +65,83 @@ describe('test-runner contracts', () => {
       expect(parseCommandEstimatedTotal(`outputDir: /tmp/autoshow/stale-run\n${padding}`)).toBeNull()
     })
 
-  test('test-output cleanup preserves only the latest log and calibration report', async () => {
+  test('explicit cleanup removes only completed successful runner artifacts', async () => {
       const dir = await makeTempDir('autoshow-test-output-cleanup-')
       tempDirs.push(dir)
 
+      const completed = await completedRun(dir)
       await writeFile(join(dir, 'latest.log'), 'previous run\n')
       await writeFile(join(dir, 'latest-model-calibration.json'), '{}\n')
       await mkdir(join(dir, 'stale-run'), { recursive: true })
       await writeFile(join(dir, 'stale-run', 'report.json'), '{}\n')
       await mkdir(join(dir, '.test-cache'), { recursive: true })
       await writeFile(join(dir, '.test-cache', 'cache.txt'), 'cache\n')
+      await writeFile(join(dir, 'retained-notes.txt'), 'report evidence\n')
 
       await cleanupTestOutputRoot(dir)
 
-      expect((await readdir(dir)).sort()).toEqual(['latest-model-calibration.json', 'latest.log'])
+      expect((await readdir(dir)).sort()).toEqual(['.test-cache', 'latest-model-calibration.json', 'latest.log', 'retained-notes.txt', 'stale-run'])
+      expect(await Bun.file(completed.reportJsonPath).exists()).toBe(false)
       expect(await readFile(join(dir, 'latest.log'), 'utf8')).toBe('previous run\n')
     })
 
-  test('test-output cleanup can preserve active runner artifacts', async () => {
+  test('explicit cleanup preserves active, failed, interrupted, TTS, and invalid run evidence', async () => {
       const dir = await makeTempDir('autoshow-test-output-active-cleanup-')
       tempDirs.push(dir)
 
       const current = await createRunArtifacts(dir)
-      const activeRun = join(dir, 'active-run')
-      const staleRun = join(dir, 'stale-run')
+      openArtifacts.push(current)
+      const active = await completedRun(dir)
+      const failed = await completedRun(dir, 1)
+      const interrupted = await createRunArtifacts(dir)
+      openArtifacts.push(interrupted)
+      await writeFile(interrupted.activeRunPath, '{"pid":2147483647}')
+      const ttsWork = await completedRun(dir)
+      const ttsManifest = await completedRun(dir)
+      const ttsAudio = await completedRun(dir)
+      const corruptReport = await completedRun(dir)
+      const corruptManifest = await completedRun(dir)
+      const conflictingFailure = await completedRun(dir)
+      const removable = await completedRun(dir)
       const cacheDir = join(dir, '.test-cache')
 
-      await mkdir(activeRun, { recursive: true })
-      await mkdir(staleRun, { recursive: true })
       await mkdir(cacheDir, { recursive: true })
-      await writeFile(join(activeRun, '.active-run.json'), `${JSON.stringify({
+      await writeFile(active.activeRunPath, `${JSON.stringify({
         pid: process.pid,
         startedAt: new Date().toISOString(),
       })}\n`)
-      await writeFile(join(staleRun, 'report.json'), '{}\n')
       await writeFile(join(cacheDir, 'cache.txt'), 'cache\n')
+      await mkdir(join(ttsWork.runDir, 'outputs', '.tts-tmp-openai-model'), { recursive: true })
+      await writeFile(join(ttsWork.runDir, 'outputs', '.tts-tmp-openai-model', 'segment.wav'), 'paid segment')
+      await writeFile(join(ttsManifest.runDir, 'manifest.json'), '{"command":"tts"}')
+      await writeFile(join(ttsAudio.runDir, 'segment.wav'), 'retained audio')
+      await writeFile(corruptReport.reportJsonPath, '{invalid')
+      await writeFile(join(corruptManifest.runDir, 'manifest.json'), '{invalid')
+      const report = await Bun.file(conflictingFailure.reportJsonPath).json() as Record<string, unknown>
+      await writeReportJson(conflictingFailure, { ...report, tests: [{ status: 'failed' }] })
 
       await cleanupTestOutputRoot(dir, {
         keepRunDir: current.runDir,
-        preserveActiveRuns: true,
       })
 
       expect((await readdir(dir)).sort()).toEqual([
         '.test-cache',
-        'active-run',
+        'latest.log',
         current.runId,
+        active.runId,
+        failed.runId,
+        interrupted.runId,
+        ttsWork.runId,
+        ttsManifest.runId,
+        ttsAudio.runId,
+        corruptReport.runId,
+        corruptManifest.runId,
+        conflictingFailure.runId,
       ].sort())
+      expect(await Bun.file(removable.reportJsonPath).exists()).toBe(false)
+      expect(await readFile(join(ttsWork.runDir, 'outputs', '.tts-tmp-openai-model', 'segment.wav'), 'utf8')).toBe('paid segment')
+      expect(await cleanupRunArtifacts(ttsManifest)).toBe(false)
+      expect(await cleanupRunArtifacts(failed)).toBe(false)
     })
 
   test('latest log captures failure diagnostics before cleanup', async () => {
@@ -133,7 +178,8 @@ describe('test-runner contracts', () => {
       await cleanupTestOutputRoot(dir)
       const latestLog = await readFile(latestLogPath, 'utf8')
 
-      expect((await readdir(dir)).sort()).toEqual(['latest.log'])
+      expect((await readdir(dir)).sort()).toEqual([artifacts.runId, 'latest.log'].sort())
+      expect(await Bun.file(artifacts.reportJsonPath).exists()).toBe(true)
       expect(latestLog).toContain(`Run ID: ${artifacts.runId}`)
       expect(latestLog).toContain('Exit code: 1')
       expect(latestLog).toContain('test/test-cases/example.test.ts :: fails usefully: expected true')

@@ -40,7 +40,7 @@ export type MusicServiceModelCase = {
 
 export type TtsExtraArgs = readonly string[] | ((model: string) => readonly string[] | Promise<readonly string[]>)
 
-type VideoTestService = 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+type VideoTestService = 'gemini' | 'minimax' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 
 type GenerationCommand = 'image' | 'video' | 'music'
 

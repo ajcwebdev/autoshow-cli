@@ -103,7 +103,7 @@ const selectCheapestSttModel = (service: string): string => {
   return selectCheapestRegistryModel(serviceConfig.models, sttHourlyCost)
 }
 
-export const selectCheapestExtractModel = (service: 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'): string => {
+export const selectCheapestExtractModel = (service: 'mistral' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'): string => {
   const serviceConfig = getModelRegistry().extract[service]
   if (!serviceConfig) {
     throw InternalError(`Missing extract service config: ${service}`, { stage: 'models:cheapest' })
@@ -319,8 +319,6 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'openai-stt': () => selectCheapestSttModel('openai-stt'),
   'cloudflare-stt': () => selectCheapestSttModel('cloudflare'),
   'mistral-ocr': () => selectCheapestExtractModel('mistral'),
-  'glm-ocr': () => selectCheapestExtractModel('glm'),
-  'kimi-ocr': () => selectCheapestExtractModel('kimi'),
   'openai-ocr': () => selectCheapestExtractModel('openai'),
   'grok-ocr': () => selectCheapestExtractModel('grok'),
   'anthropic-ocr': () => selectCheapestExtractModel('anthropic'),
@@ -330,9 +328,6 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   gemini: () => selectCheapestLlmModel('gemini'),
   anthropic: () => selectCheapestLlmModel('anthropic'),
   grok: () => selectCheapestLlmModel('grok'),
-  glm: () => selectCheapestLlmModel('glm'),
-  kimi: () => selectCheapestLlmModel('kimi'),
-  together: () => selectCheapestLlmModel('together'),
   'soniox-tts': () => selectCheapestTtsModel('soniox'),
   'grok-tts': () => selectCheapestTtsModel('grok'),
   'gemini-image': () => selectCheapestImageModel('gemini'),

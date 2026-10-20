@@ -35,10 +35,11 @@ export const setupCommand = defineCliCommand({
   flags: setupFlags,
   help: {
     beforeFlags: SETUP_MODE_NOTES,
+    notes: ['Save TTS models with --tts provider=model. Transport mode and remote-job wait controls apply only to individual tts invocations.'],
     examples: [
       ['bun autoshow setup', 'Install all dependencies'],
       ['bun autoshow setup --show', 'Print current config'],
-      ['bun autoshow setup --llm openai=gpt-5.6-luna --stt whisperfile=small', 'Set default LLM and STT model'],
+      ['bun autoshow setup --llm openai=gpt-6-luna --stt whisperfile=small', 'Set default LLM and STT model'],
       ['bun autoshow setup --models tiny.en --models whisperfile:small', 'Download whisperfile models without running inference'],
       ['bun autoshow setup --step whisperfile', 'Download the default whisperfile model (tiny)'],
       ['bun autoshow setup --network-check serve --port 8787', 'Serve a local diagnostic fixture'],

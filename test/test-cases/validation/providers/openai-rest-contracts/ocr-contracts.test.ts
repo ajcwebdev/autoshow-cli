@@ -3,7 +3,6 @@ import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runDeepinfraOcr } from '~/cli/commands/text/ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr'
 import { runGrokOcr } from '~/cli/commands/text/ocr/ocr-services/grok-ocr/run-grok-ocr'
-import { runKimiOcr } from '~/cli/commands/text/ocr/ocr-services/kimi-ocr/run-kimi-ocr'
 import { runOpenAIOcr } from '~/cli/commands/text/ocr/ocr-services/openai-ocr/run-openai-ocr'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, withOcrDocumentFixture } from './shared'
 
@@ -14,7 +13,7 @@ const CHAT_OCR_OPTIONS = { dpi: 300, password: undefined, outputDir: '', ocrPrep
 const dataUrl = (mime: string, bytes: Uint8Array): string =>
   `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`
 
-const STRUCTURED_OUTPUT_MODELS = ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra'] as const
+const STRUCTURED_OUTPUT_MODELS = ['gpt-6-astra', 'gpt-6.1-sol', 'gpt-5.6-terra'] as const
 
 describe('OpenAI REST OCR contracts', () => {
   test('OpenAI OCR sends data URLs and returns response usage token metadata', async () => {
@@ -25,7 +24,7 @@ describe('OpenAI REST OCR contracts', () => {
     }))
 
     await withOcrDocumentFixture({ slug: 'page', format: 'png' }, async ({ path, bytes, metadata }) => {
-      const result = await runOpenAIOcr(path, metadata, 'gpt-5.6-sol', OPENAI_BASE)
+      const result = await runOpenAIOcr(path, metadata, 'gpt-6.1-sol', OPENAI_BASE)
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'OCR text' }])
       expect(result.promptTokens).toBe(123)
@@ -126,62 +125,6 @@ describe('OpenAI REST OCR contracts', () => {
     })
   })
 
-  test('Kimi OCR preserves its legacy disabled default but delegates explicit default to the provider', async () => {
-    process.env['KIMI_API_KEY'] = 'kimi-key'
-    const calls = installFetch(() => jsonResponse({
-      choices: [{ message: { content: 'Kimi OCR text' }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 4232, completion_tokens: 2068 }
-    }))
-
-    await withOcrDocumentFixture({ slug: 'page', format: 'png' }, async ({ dir, path, metadata }) => {
-      const result = await runKimiOcr(path, metadata, 'kimi-k2.6', { ...CHAT_OCR_OPTIONS, outputDir: dir })
-      expect(result.promptTokens).toBe(4232)
-      expect(result.completionTokens).toBe(2068)
-      await runKimiOcr(path, metadata, 'kimi-k2.6', {
-        ...CHAT_OCR_OPTIONS,
-        outputDir: dir,
-        reasoningEffort: 'default'
-      })
-
-      expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'Kimi OCR text' }])
-      expect(calls).toHaveLength(2)
-      expect(calls[0]?.bodyJson?.['model']).toBe('kimi-k2.6')
-      expect(calls[0]?.headers.get('authorization')).toBe('Bearer kimi-key')
-      expect(calls[0]?.bodyJson?.['thinking']).toEqual({ type: 'disabled' })
-      expect(calls[0]?.bodyJson?.['max_completion_tokens']).toBe(8192)
-      expect(calls[1]?.bodyJson).not.toHaveProperty('thinking')
-      expect(calls[1]?.bodyJson).not.toHaveProperty('reasoning_effort')
-    })
-  })
-
-  test('Kimi K3 defaults omitted effort to low and sends named effort overrides', async () => {
-    process.env['KIMI_API_KEY'] = 'kimi-key'
-    const calls = installFetch(() => jsonResponse({
-      choices: [{ message: { content: 'Kimi K3 OCR text' }, finish_reason: 'stop' }]
-    }))
-
-    await withOcrDocumentFixture({ slug: 'page', format: 'png' }, async ({ dir, path, metadata }) => {
-      await runKimiOcr(path, metadata, 'kimi-k3', { ...CHAT_OCR_OPTIONS, outputDir: dir })
-      await runKimiOcr(path, metadata, 'kimi-k3', {
-        ...CHAT_OCR_OPTIONS,
-        outputDir: dir,
-        reasoningEffort: 'high'
-      })
-      await runKimiOcr(path, metadata, 'kimi-k3', {
-        ...CHAT_OCR_OPTIONS,
-        outputDir: dir,
-        reasoningEffort: 'default'
-      })
-
-      expect(calls[0]?.bodyJson).not.toHaveProperty('thinking')
-      expect(calls[0]?.bodyJson?.['reasoning_effort']).toBe('low')
-      expect(calls[1]?.bodyJson).not.toHaveProperty('thinking')
-      expect(calls[1]?.bodyJson?.['reasoning_effort']).toBe('high')
-      expect(calls[2]?.bodyJson).not.toHaveProperty('thinking')
-      expect(calls[2]?.bodyJson).not.toHaveProperty('reasoning_effort')
-    })
-  })
-
   test('OpenAI single-page PDF OCR requests plain text instead of a JSON envelope', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
     const calls = installFetch(() => jsonResponse({
@@ -190,7 +133,7 @@ describe('OpenAI REST OCR contracts', () => {
     }))
 
     await withOcrDocumentFixture({ slug: 'page', format: 'pdf' }, async ({ path, metadata }) => {
-      const result = await runOpenAIOcr(path, metadata, 'gpt-5.6-sol', OPENAI_BASE)
+      const result = await runOpenAIOcr(path, metadata, 'gpt-6.1-sol', OPENAI_BASE)
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'Plain OCR text' }])
       const body = calls[0]?.bodyJson
@@ -214,7 +157,7 @@ describe('OpenAI REST OCR contracts', () => {
     }))
 
     await withOcrDocumentFixture({ slug: 'blank', format: 'pdf' }, async ({ path, metadata }) => {
-      const result = await runOpenAIOcr(path, metadata, 'gpt-5.6-sol', OPENAI_BASE)
+      const result = await runOpenAIOcr(path, metadata, 'gpt-6.1-sol', OPENAI_BASE)
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: '' }])
       expect(result.promptTokens).toBe(9)

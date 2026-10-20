@@ -120,11 +120,11 @@ const writeWriteRun = async (dir: string): Promise<void> => {
   await writeSingleManifestFixture(dir, 'write', {
     step3: {
       llmService: 'openai',
-      llmModel: 'gpt-5.6-sol',
+      llmModel: 'gpt-6.1-sol',
       processingTime: 1,
       inputTokenCount: 1200,
       outputTokenCount: 240,
-      outputFileName: 'text-gpt-5.6-sol.json',
+      outputFileName: 'text-gpt-6.1-sol.json',
       outputFormat: 'json',
       structuredMode: 'native',
       structuredPresetNames: ['shortSummary']
@@ -324,7 +324,7 @@ test('explicit OCR resume succeeds when selected providers are complete and mani
     completionStatus: 'incomplete',
     requestedProviders: [
       { service: 'tesseract', model: 'tesseract' },
-      { service: 'openai', model: 'gpt-5.6-sol' }
+      { service: 'openai', model: 'gpt-6.1-sol' }
     ],
     missingProviders: [
       { service: 'tesseract', model: 'tesseract' }
@@ -339,8 +339,8 @@ test('explicit OCR resume succeeds when selected providers are complete and mani
       },
       {
         service: 'openai',
-        model: 'gpt-5.6-sol',
-        artifactDir: 'providers/openai-gpt-5.6-sol',
+        model: 'gpt-6.1-sol',
+        artifactDir: 'providers/openai-gpt-6.1-sol',
         status: 'succeeded',
         attempts: 1
       }
@@ -354,7 +354,7 @@ test('explicit OCR resume succeeds when selected providers are complete and mani
       dpi: 300,
       languages: 'eng',
       ocrService: 'openai',
-      ocrModel: 'gpt-5.6-sol'
+      ocrModel: 'gpt-6.1-sol'
     }
   }, { extractRoute: 'document' })
 
@@ -363,7 +363,7 @@ test('explicit OCR resume succeeds when selected providers are complete and mani
     'resume', '--json',
     runDir,
     '--provider',
-    'openai=gpt-5.6-sol'
+    'openai=gpt-6.1-sol'
   ], {
     env: { NO_COLOR: '1', OPENAI_API_KEY: '' }
   })
@@ -461,7 +461,7 @@ test('write resume --price estimates selected missing LLM providers without prov
     'resume', '--json',
     runDir,
     '--provider',
-    'grok=grok-4.6',
+    'grok=grok-4.7',
     '--price'
   ], {
     env: { NO_COLOR: '1', XAI_API_KEY: '' }
@@ -470,7 +470,7 @@ test('write resume --price estimates selected missing LLM providers without prov
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
   expect(output).toContain('Estimate:')
-  expect(output).toContain('grok-4.6')
+  expect(output).toContain('grok-4.7')
   expect(await Bun.file(manifestPath).text()).toBe(before)
 })
 

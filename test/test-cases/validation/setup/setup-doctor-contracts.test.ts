@@ -33,6 +33,7 @@ const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<Doctor
   pathExists: async () => true,
   listDirectory: async () => ['whisper-tiny.llamafile', 'whisper-small.en.llamafile'],
   directoryHasFiles: async () => true,
+  resolveTessdataPrefix: () => '/fixture/tessdata',
   run: async (command: string, args: string[]) => {
     if (command.includes('tesseract') && args.includes('--list-langs')) {
       return okRun('List of available languages in "/tmp":\neng\n')
@@ -260,8 +261,8 @@ describe('setup doctor contracts', () => {
   test('doctor treats absent optional hosted provider keys as non-warning when unconfigured', async () => {
     const report = await collectDoctorReport(makeDoctorProbes({ env: {} }))
 
-    expect(findDoctorCheck(report, 'TOGETHER_API_KEY (Together write/STT)').status).toBe('MISSING')
-    expect(findDoctorCheck(report, 'TOGETHER_API_KEY (Together write/STT)').severity).toBe('info')
+    expect(findDoctorCheck(report, 'TOGETHER_API_KEY (Together STT)').status).toBe('MISSING')
+    expect(findDoctorCheck(report, 'TOGETHER_API_KEY (Together STT)').severity).toBe('info')
     expect(report.hasWarnings).toBe(false)
   })
 
@@ -271,24 +272,24 @@ describe('setup doctor contracts', () => {
       loadConfig: async () => ({
         defaults: {
           llm: {
-            openai: ['gpt-5'],
-            together: ['moonshotai/Kimi-K2-Instruct']
+            openai: ['gpt-6-luna'],
+            anthropic: ['claude-sonnet-5-5']
           }
         }
       })
     }))
 
-    expect(report.missingConfiguredCredentialEnvVars).toEqual(['TOGETHER_API_KEY'])
+    expect(report.missingConfiguredCredentialEnvVars).toEqual(['ANTHROPIC_API_KEY'])
   })
 
   test('strict doctor exits 2 for missing configured credentials while default doctor remains advisory', async () => {
     const probes = makeDoctorProbes({
       env: {},
-      loadConfig: async () => ({ defaults: { llm: { together: ['moonshotai/Kimi-K2-Instruct'] } } })
+      loadConfig: async () => ({ defaults: { llm: { anthropic: ['claude-sonnet-5-5'] } } })
     })
 
     const advisory = await runDoctor({ probeOverrides: probes })
-    expect(advisory.missingConfiguredCredentialEnvVars).toEqual(['TOGETHER_API_KEY'])
+    expect(advisory.missingConfiguredCredentialEnvVars).toEqual(['ANTHROPIC_API_KEY'])
 
     try {
       await runDoctor({ strict: true, probeOverrides: probes })
@@ -296,7 +297,7 @@ describe('setup doctor contracts', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(AppUsageError)
       expect((error as AppUsageError).exitCode).toBe(2)
-      expect((error as AppUsageError).metadata['missingCredentialEnvVars']).toEqual(['TOGETHER_API_KEY'])
+      expect((error as AppUsageError).metadata['missingCredentialEnvVars']).toEqual(['ANTHROPIC_API_KEY'])
     }
   })
 

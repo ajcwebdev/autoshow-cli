@@ -16,50 +16,50 @@ describe('provider selection contracts', () => {
       dir: '/tmp/write-run',
       manifestPath: '/tmp/write-run/manifest.json'
     }, {
-      provider: ['together=kimi-k3', 'together=glm-5.3-flash', 'anthropic=claude-sonnet-5', 'anthropic=claude-sonnet-5']
+      provider: ['openai=gpt-6-luna', 'openai=gpt-6.1-sol', 'anthropic=claude-sonnet-5-5', 'anthropic=claude-sonnet-5-5']
     }, new Set(['provider']))
     const opts = buildOptsFromFlags(normalized.flags, {}, normalized.explicitFlags, { flagOccurrences: normalized.flagOccurrences })
 
     expect(normalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
-      { name: 'together', value: 'kimi-k3' },
-      { name: 'together', value: 'glm-5.3-flash' },
-      { name: 'anthropic', value: 'claude-sonnet-5' },
-      { name: 'anthropic', value: 'claude-sonnet-5' }
+      { name: 'openai', value: 'gpt-6-luna' },
+      { name: 'openai', value: 'gpt-6.1-sol' },
+      { name: 'anthropic', value: 'claude-sonnet-5-5' },
+      { name: 'anthropic', value: 'claude-sonnet-5-5' }
     ])
-    expect(opts.togetherModels).toEqual(['kimi-k3', 'glm-5.3-flash'])
-    expect(opts.anthropicModels).toEqual(['claude-sonnet-5'])
+    expect(opts.openaiModels).toEqual(['gpt-6-luna', 'gpt-6.1-sol'])
+    expect(opts.anthropicModels).toEqual(['claude-sonnet-5-5'])
   })
 
-  test('write resume filenames keep duplicate short model selectors service-qualified', () => {
+  test('write resume filenames qualify collisions with existing outputs and repeated selectors', () => {
     const existingEntries: Step3Metadata[] = [
       {
-        llmService: 'glm',
-        llmModel: 'glm-5.3-flash',
+        llmService: 'openai',
+        llmModel: 'gpt-6.1-sol',
         processingTime: 1,
         inputTokenCount: 1,
         outputTokenCount: 1,
-        outputFileName: 'text-glm-5.3-flash.json',
+        outputFileName: 'text-gpt-6.1-sol.json',
         outputFormat: 'json',
         structuredMode: 'native',
         structuredPresetNames: ['shortSummary']
       },
       {
-        llmService: 'kimi',
-        llmModel: 'kimi-k3',
+        llmService: 'openai',
+        llmModel: 'gpt-6-luna',
         processingTime: 1,
         inputTokenCount: 1,
         outputTokenCount: 1,
-        outputFileName: 'text-kimi-k3.json',
+        outputFileName: 'text-gpt-6-luna.json',
         outputFormat: 'json',
         structuredMode: 'native',
         structuredPresetNames: ['shortSummary']
       }
     ]
     const selectedTargets = [
-      { service: 'together' as const, model: 'kimi-k3' },
-      { service: 'together' as const, model: 'glm-5.3-flash' },
-      { service: 'anthropic' as const, model: 'claude-sonnet-5' },
-      { service: 'anthropic' as const, model: 'claude-sonnet-5' }
+      { service: 'openai' as const, model: 'gpt-6-luna' },
+      { service: 'openai' as const, model: 'gpt-6.1-sol' },
+      { service: 'anthropic' as const, model: 'claude-sonnet-5-5' },
+      { service: 'anthropic' as const, model: 'claude-sonnet-5-5' }
     ]
     const reservedFileNames = new Set(existingEntries.map((entry) => entry.outputFileName))
 
@@ -68,24 +68,24 @@ describe('provider selection contracts', () => {
       selectedTargets,
       existingEntries,
       reservedFileNames
-    })).toBe('text-together-kimi-k3.json')
+    })).toBe('text-openai-gpt-6-luna.json')
     expect(buildWriteResumeOutputFileName({
       target: selectedTargets[1]!,
       selectedTargets,
       existingEntries,
       reservedFileNames
-    })).toBe('text-together-glm-5.3-flash.json')
+    })).toBe('text-openai-gpt-6.1-sol.json')
     expect(buildWriteResumeOutputFileName({
       target: selectedTargets[2]!,
       selectedTargets,
       existingEntries,
       reservedFileNames
-    })).toBe('text-anthropic-claude-sonnet-5.json')
+    })).toBe('text-anthropic-claude-sonnet-5-5.json')
     expect(buildWriteResumeOutputFileName({
       target: selectedTargets[3]!,
       selectedTargets,
       existingEntries,
       reservedFileNames
-    })).toBe('text-anthropic-claude-sonnet-5-2.json')
+    })).toBe('text-anthropic-claude-sonnet-5-5-2.json')
   })
 })

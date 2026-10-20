@@ -1,7 +1,7 @@
 import { describe,expect,test } from 'bun:test'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
-import { getExtractPricing,getLlmCost,getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getExtractPricing,getLlmCost,getModelRegistry,getRetiredModelRate } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { Step3Metadata } from '~/types'
 import { requireDefined } from '../../../../test-utils/value-assertions'
 
@@ -21,7 +21,7 @@ const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Me
 
 describe('price mode contracts', () => {
 
-  test('OpenAI GPT-5.6 Terra and Luna registries share current write and OCR rates', () => {
+  test('OpenAI GPT-5.6 Terra and historical Luna share write and OCR tariff accessors', () => {
       expect(getLlmCost('openai', 'gpt-5.6-terra')).toMatchObject({
         inputCostPer1MCents: 200,
         outputCostPer1MCents: 1200
@@ -41,10 +41,11 @@ describe('price mode contracts', () => {
         outputCostPer1MCents: 120
       })
       expect(getModelRegistry().llm['openai']?.models['gpt-5.6-terra']?.cachedInputCostPer1MCents).toBe(20)
-      expect(getModelRegistry().llm['openai']?.models['gpt-5.6-luna']?.cachedInputCostPer1MCents).toBe(2)
+      expect(getRetiredModelRate('llm', 'openai', 'gpt-5.6-luna')?.cachedInputCostPer1MCents).toBe(2)
+      expect(getModelRegistry().llm['openai']?.models['gpt-5.6-luna']).toBeUndefined()
     })
 
-  test('Together LLM pricing uses serverless rates in estimates', () => {
+  test('historical Together LLM receipts retain frozen serverless rates', () => {
       expect(getLlmCost('together', 'kimi-k3')).toMatchObject({
         inputCostPer1MCents: 300,
         outputCostPer1MCents: 1500
@@ -73,19 +74,13 @@ describe('price mode contracts', () => {
         outputCostPer1MCents: 50
       })
 
-      const kimiEntry = getModelRegistry().llm['together']?.models['kimi-k3']
-      const glmEntry = getModelRegistry().llm['together']?.models['glm-5.3-flash']
+      const kimiEntry = getRetiredModelRate('llm', 'together', 'kimi-k3')
+      const glmEntry = getRetiredModelRate('llm', 'together', 'glm-5.3-flash')
       if (!kimiEntry || !glmEntry) {
         throw new Error('Missing Together registry entries')
       }
-      expect(kimiEntry).toMatchObject({
-        pricingTier: 'Together AI serverless token pricing',
-        cachedInputCostPer1MCents: 30
-      })
-      expect(glmEntry).toMatchObject({
-        pricingSourceUrl: 'https://docs.together.ai/docs/serverless/models',
-        cachedInputCostPer1MCents: 3
-      })
+      expect(kimiEntry).toMatchObject({ cachedInputCostPer1MCents: 30 })
+      expect(glmEntry).toMatchObject({ cachedInputCostPer1MCents: 3 })
     })
 
   const TOKEN_PRICED_OCR_CASES = [
@@ -149,7 +144,7 @@ describe('price mode contracts', () => {
       expect(actual.totalCost).toBeCloseTo(estimated.totalCost)
     })
   }
-  test('current Gemini, Claude, and Kimi additions use published flat rates without context bands', () => {
+  test('current and historical Gemini, Claude, and Kimi rates use published flat rates without context bands', () => {
       expect(getLlmCost('gemini', 'gemini-3.7-flash')).toMatchObject({
         inputCostPer1MCents: 150,
         outputCostPer1MCents: 750
@@ -220,9 +215,8 @@ describe('price mode contracts', () => {
         expect(getLlmCost(service, model)?.tokenPricingBands).toBeUndefined()
       }
 
-      const kimiK3 = requireDefined(getModelRegistry().llm['kimi']?.models['kimi-k3'], 'Kimi K3 registry entry')
+      const kimiK3 = requireDefined(getRetiredModelRate('llm', 'kimi', 'kimi-k3'), 'Kimi K3 frozen tariff')
       expect(kimiK3).toMatchObject({
-        pricingSourceUrl: 'https://platform.kimi.ai/docs/pricing/chat',
         cachedInputCostPer1MCents: 30
       })
 
@@ -233,7 +227,7 @@ describe('price mode contracts', () => {
       })
     })
 
-  test('current OCR additions register published rates for document extraction', () => {
+  test('current and historical OCR targets retain published rates for document extraction', () => {
       expect(getExtractPricing('gemini', 'gemini-3.7-flash')).toMatchObject({
         inputCostPer1MCents: 150,
         outputCostPer1MCents: 750

@@ -21,6 +21,8 @@ import { fileExists } from '~/utils/cli-utils'
 import { isTextInputPath } from '~/cli/commands/text/write/text-input-utils'
 import type { CliFlagOccurrence, StandaloneMusicCommandOptions } from '~/types'
 import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/model-cost-filter'
+import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
+import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 
 const HOSTED_MUSIC_FLAGS = [
   'all-providers',
@@ -54,12 +56,6 @@ const runHostedMusicGeneration = async (
     : input
 
   const musicMaxCents = await resolveMaxCentsFromFlags(flags)
-  const musicDurationRaw = typeof flags['duration'] === 'string'
-    ? parseInt(flags['duration'], 10)
-    : undefined
-  const musicDuration = Number.isFinite(musicDurationRaw) ? musicDurationRaw : undefined
-  const musicLyricsFile = typeof flags['lyrics-file'] === 'string' ? flags['lyrics-file'] : undefined
-  const musicInstrumental = flags['instrumental'] === true
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     flags,
     explicitFlags,
@@ -68,7 +64,13 @@ const runHostedMusicGeneration = async (
     STANDALONE_MUSIC_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-music' }
   )
+  const configPath = await resolveConfigPath(typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined)
+  const config = await loadConfig(configPath)
+  providerNormalized.flags = mergeConfigIntoRawFlags(providerNormalized.flags, config, providerNormalized.explicitFlags, 'music')
   const musicOpts: StandaloneMusicCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'music' })
+  const musicDuration = musicOpts.musicDuration
+  const musicLyricsFile = musicOpts.musicLyricsFile
+  const musicInstrumental = musicOpts.musicInstrumental
 
   const unfilteredSteps = await buildMusicEstimates(musicOpts)
   const unfilteredEstimate = aggregateExplicitPriceEstimate(unfilteredSteps, musicOpts)
@@ -160,7 +162,7 @@ export const musicCommand = defineCliCommand({
   flags: musicCommandFlags,
   help: {
     beforeFlags: [
-      'Hosted mode: music <prompt> [--provider provider[=model]]. Local mode: music --audio <file> [--captions <file>] or music --batch <dir>.',
+      'Hosted mode: music <prompt> with --provider provider[=model], --all-providers, or a saved defaults.music selection. Local mode: music --audio <file> [--captions <file>] or music --batch <dir>.',
       `Do not combine a hosted prompt or hosted flags (${HOSTED_MUSIC_FLAGS.map(name => `--${name}`).join(', ')}) with lyric-video flags (${LYRIC_VIDEO_FLAGS.map(name => `--${name}`).join(', ')}).`,
       '--audio and --captions cannot be combined with --batch. Local mode requires --audio or --batch.',
       '--output-dir pins the hosted run, single lyric-video run, or lyric-video batch parent directory. --price performs read-only planning.',

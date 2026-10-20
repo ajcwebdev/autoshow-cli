@@ -332,7 +332,7 @@ const averageTokenCount = (
   ))
 
 const llmRegistryService = (
-  service: LLMTarget['service']
+  service: Step3Metadata['llmService']
 ): string =>
   service
 

@@ -10,7 +10,6 @@ import {
 const envKeys = [
   'OPENAI_API_KEY',
   'XAI_API_KEY',
-  'KIMI_API_KEY',
   'DEEPGRAM_API_KEY',
   'DEEPINFRA_API_KEY',
   'MINIMAX_API_KEY',

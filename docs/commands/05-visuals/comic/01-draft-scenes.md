@@ -34,7 +34,7 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 | Flag                            | Description                                                                                                                                                       | Default                                  |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| `--provider <provider[=model]>` | Text model for `blocking` and `scene`. `blocking` requires an OpenAI or Gemini vision-capable model ([Supported Models](./00-comic-overview.md#supported-models)) | `gpt-5.6-sol` for `blocking` and `scene` |
+| `--provider <provider[=model]>` | Text model for `blocking` and `scene`. `blocking` requires an OpenAI or Gemini vision-capable model ([Supported Models](./00-comic-overview.md#supported-models)) | `gpt-6.1-sol` for `blocking` and `scene` |
 
 ### Examples
 
@@ -45,25 +45,25 @@ The staged local route is the walkthrough default. Import the authored plan only
 ```bash
 bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only structure --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only prompt --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --provider openai=gpt-5.6-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --provider openai=gpt-6.1-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --blocking-plan "$ROOT/blocking-plan.json" --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --rebind --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only scene --panel-count 4 --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only scene --panel-count 4 --provider openai=gpt-6.1-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only panel-prompts --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 Optional hosted blocking replaces the imported plan; use it in a separate freshly prepared workspace after its quoted batch is accepted:
 
 ```bash
-bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --provider openai=gpt-6.1-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 Optional full-pipeline and no-blocking alternatives also need separate fresh roots/runs, not the reviewed main run. Re-run setup with an unused `--root`, reset all five variables to it, then choose **one** alternative. The full pipeline creates structure/prompts and consumes the supplied references. The scene-only no-blocking alternative first needs local structure/prompts and ignores any prior plan. All alternatives keep four panels, matching the four authored notes.
 
 ```bash
-bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --panel-count 4 --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only scene --panel-count 4 --no-blocking --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --no-blocking --panel-count 4 --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --panel-count 4 --provider openai=gpt-6.1-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only scene --panel-count 4 --no-blocking --provider openai=gpt-6.1-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --no-blocking --panel-count 4 --provider openai=gpt-6.1-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 For an intentional review edit, first paste reviewed camera/costume directives from `review --notes` into the copied script. Then apply them to the same reviewed scene and rebuild prompts. The supplied notes alone do not alter the script.

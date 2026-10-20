@@ -18,7 +18,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider c
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider cloudflare=@cf/openai/whisper-large-v3-turbo
 ```
 
-Bare `--provider cloudflare` defaults to the cheapest model, `@cf/openai/whisper-tiny-en`. These are the Whisper models on Workers AI; set both `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. `@cf/openai/whisper-tiny-en` is an English-only beta model with no published price; its rate comes from the Neuron usage Cloudflare reports in each response.
+Bare `--provider cloudflare` defaults to the cheapest model, `@cf/openai/whisper-tiny-en`. These are the Whisper models on Workers AI; set both `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. `@cf/openai/whisper-tiny-en` is an English-only beta model with no published price; its rate comes from the Neuron usage Cloudflare reports in each response. Workers AI also hosts `@cf/deepgram/nova-3`, but it is not selectable: [direct Deepgram](../diarization/overview.md) `--provider deepgram=nova-3` was cheaper and faster with comparable quality in the October 2026 benchmarks.
 
 For nonrecurring paid usage, create an authenticated AI Gateway, select **Unified billing** in its Workers AI billing settings, load prepaid AI Gateway credits, and set `CLOUDFLARE_AI_GATEWAY_ID` to that gateway's ID. AutoShow sends the documented `cf-aig-gateway-id` header on the same model endpoint for all three Whisper models. The gateway's billing setting controls payment; setting the environment variable alone does not change it. Without a gateway, Workers Free has a daily allowance and additional usage requires Workers Paid. Cloudflare adds a 5% fee when purchasing Unified Billing credits; AutoShow's inference estimates exclude credit-purchase fees, taxes, free allowances, and discounts. Purchase minimum and credit expiry are not established by the public billing guide. See [Unified Billing](https://developers.cloudflare.com/ai-gateway/features/unified-billing/), [gateway billing setup](https://developers.cloudflare.com/ai-gateway/configuration/manage-gateway/#configure-workers-ai-billing), and the [REST request contract](https://developers.cloudflare.com/ai-gateway/usage/rest-api/).
 
@@ -49,7 +49,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider t
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider together=openai/whisper-large-v3
 ```
 
-Bare `--provider together` defaults to `nvidia/parakeet-tdt-0.6b-v3`. `nvidia/nemotron-3-asr-streaming-0.6b` and `nvidia/nemotron-3.5-asr-streaming-0.6b` are streaming-only and are not selectable.
+Bare `--provider together` defaults to `nvidia/parakeet-tdt-0.6b-v3`. `nvidia/nemotron-3-asr-streaming-0.6b` and `nvidia/nemotron-3.5-asr-streaming-0.6b` accept only WebSocket streaming and are not selectable: Together lists them on its batch transcription page, but on 2026-10-17 the batch endpoint rejected `nvidia/nemotron-3.5-asr-streaming-0.6b` with "This model only supports WebSocket streaming." Together documents an 80 MB direct-upload limit, and AutoShow splits uploads at 20 MiB for every Together model.
 
 ### OpenAI
 
@@ -75,7 +75,7 @@ Rows are newest first. Pricing is the AutoShow per-hour estimate.
 | DeepInfra `nvidia/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b` | 2026-06-04 | Native words    | 15 minutes        | No documented cap | $0.012/hr  |
 | DeepInfra `Qwen/Qwen3-ASR-1.7B`                                 | 2026-01-29 | Native words    | 30 minutes        | No documented cap | $0.027/hr  |
 | DeepInfra `Qwen/Qwen3-ASR-0.6B`                                 | 2026-01-29 | Native words    | 30 minutes        | No documented cap | $0.012/hr  |
-| Together `nvidia/parakeet-tdt-0.6b-v3`                          | 2025-08-14 | Native words    | 4 hours           | 500 MiB           | $0.09/hr   |
+| Together `nvidia/parakeet-tdt-0.6b-v3`                          | 2025-08-14 | Native words    | 4 hours           | 20 MiB            | $0.09/hr   |
 | DeepInfra `mistralai/Voxtral-Small-24B-2507`                    | 2025-07-15 | Text only       | 30 minutes        | No documented cap | $0.18/hr   |
 | DeepInfra `mistralai/Voxtral-Mini-3B-2507`                      | 2025-07-15 | Text only       | 30 minutes        | No documented cap | $0.06/hr   |
 | Cloudflare `@cf/openai/whisper-large-v3-turbo`                  | 2024-09    | Native words    | No documented cap | 8 MiB             | $0.031/hr  |

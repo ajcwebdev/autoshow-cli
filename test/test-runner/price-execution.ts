@@ -35,6 +35,7 @@ const writeCommandMetric = async (artifacts: TestRunArtifacts, record: Record<st
 }
 
 export const buildPriceSpawnArgs = (entry: PriceCommandSpec, artifacts: TestRunArtifacts): string[] => {
+  if (!entry.args.includes('--price')) throw new Error(`Pricing command "${entry.name}" must explicitly select --price before dispatch`)
   const spawnArgs = [...entry.args, '--output-root', `${artifacts.runDir}/outputs/price`, '--json']
   const bundle = process.env['AUTOSHOW_TEST_CLI_BUNDLE']?.trim()
   const cliArgs = bundle && spawnArgs[0] === 'src/cli/create-cli.ts'

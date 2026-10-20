@@ -21,7 +21,7 @@ test('actual additive OCR resume preserves the complete recorded old cost row an
     await lifecycle.withDir(async dir => {
       const path = join(dir, 'source.png')
       await Bun.write(path, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1sAAAAASUVORK5CYII=', 'base64'))
-      const oldTarget: OcrTarget = { service: 'openai', model: 'gpt-5.6-sol' }
+      const oldTarget: OcrTarget = { service: 'openai', model: 'gpt-6.1-sol' }
       const newTarget: OcrTarget = { service: 'openai', model: 'gpt-6-luna' }
       const oldMetadata = {
         extractionMethod: 'image+openai-ocr' as const, totalPages: 1, ocrPages: 1, textPages: 0,

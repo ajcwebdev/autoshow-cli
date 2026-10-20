@@ -77,7 +77,7 @@ const importFixturePlan = async (slug: string, workspace: string): Promise<void>
   const importPath = join(workspace, 'hand-authored-plan.json')
   await writeFile(importPath, JSON.stringify(buildBlockingFixturePlan(script), null, 2))
   await captureLogEvents(async () => {
-    await generateBlockingPlan(slug, { model: 'gpt-5.6-sol', importPath, requestPlan: async () => { throw new Error('import must not call the drafter') } })
+    await generateBlockingPlan(slug, { model: 'gpt-6.1-sol', importPath, requestPlan: async () => { throw new Error('import must not call the drafter') } })
   })
 }
 
@@ -186,7 +186,7 @@ describe('scene drafting against a blocking plan', () => {
     const prompts: string[] = []
     await captureLogEvents(async () => {
       await generateSceneJson(slug, {
-        model: 'gpt-5.6-sol',
+        model: 'gpt-6.1-sol',
         requestScene: async (request: SceneDraftRequest) => {
           prompts.push(request.prompt)
           return { text: JSON.stringify(request.attempt === 1 ? sceneWithout('bishop') : buildBlockingFixtureScene({ withBlocking: true })), inputTokens: 100, outputTokens: 200 }
@@ -210,7 +210,7 @@ describe('scene drafting against a blocking plan', () => {
     let attempts = 0
     await captureLogEvents(async () => {
       await expect(generateSceneJson(slug, {
-        model: 'gpt-5.6-sol',
+        model: 'gpt-6.1-sol',
         requestScene: async () => { attempts++; return { text: JSON.stringify(sceneWithout('bishop')), inputTokens: 100, outputTokens: 200 } },
       })).rejects.toThrow('contradicts the blocking plan after 2 attempts')
     })
@@ -226,7 +226,7 @@ describe('scene drafting against a blocking plan', () => {
     let attempts = 0
     const { events } = await captureLogEvents(async () => {
       await expect(generateSceneJson(slug, {
-        model: 'gpt-5.6-sol',
+        model: 'gpt-6.1-sol',
         requestScene: async () => { attempts++; return { text: JSON.stringify(sceneWithout('bishop')), inputTokens: 100, outputTokens: 200 } },
       })).rejects.toThrow('contradicts the blocking plan after 2 attempts')
     })
@@ -242,7 +242,7 @@ describe('scene drafting against a blocking plan', () => {
     let attempts = 0
     await captureLogEvents(async () => {
       await expect(generateSceneJson(slug, {
-        model: 'gpt-5.6-sol',
+        model: 'gpt-6.1-sol',
         requestScene: async () => { attempts++; return { text: '{}' } },
       })).rejects.toThrow()
     })
@@ -258,7 +258,7 @@ describe('scene drafting against a blocking plan', () => {
     const prompts: string[] = []
     await captureLogEvents(async () => {
       await generateSceneJson(slug, {
-        model: 'gpt-5.6-sol',
+        model: 'gpt-6.1-sol',
         requestScene: async (request: SceneDraftRequest) => {
           prompts.push(request.prompt)
           const scene = buildBlockingFixtureScene()

@@ -61,11 +61,11 @@ describe('resume all-shortcut additive selection', () => {
       await writeSingleManifestFixture(dir, 'write', {
         step3: {
           llmService: 'openai',
-          llmModel: 'gpt-5.6-sol',
+          llmModel: 'gpt-6.1-sol',
           processingTime: 1,
           inputTokenCount: 1,
           outputTokenCount: 1,
-          outputFileName: 'text-gpt-5.6-sol.json',
+          outputFileName: 'text-gpt-6.1-sol.json',
           outputFormat: 'json',
           structuredMode: 'native',
           structuredPresetNames: ['shortSummary']
@@ -88,11 +88,11 @@ describe('resume all-shortcut additive selection', () => {
       await writeSingleManifestFixture(dir, 'write', {
         step3: {
           llmService: 'openai',
-          llmModel: 'gpt-5.6-sol',
+          llmModel: 'gpt-6.1-sol',
           processingTime: 1,
           inputTokenCount: 1,
           outputTokenCount: 1,
-          outputFileName: 'text-gpt-5.6-sol.json',
+          outputFileName: 'text-gpt-6.1-sol.json',
           outputFormat: 'json',
           structuredMode: 'native',
           structuredPresetNames: ['shortSummary']
@@ -101,9 +101,9 @@ describe('resume all-shortcut additive selection', () => {
 
       const normalized = normalizeResumeSelectorFlagsForTarget(
         target('write', dir),
-        { provider: ['openai=gpt-5.6-sol'] },
+        { provider: ['openai=gpt-6.1-sol'] },
         new Set(['provider']),
-        ['resume', dir, '--provider', 'openai=gpt-5.6-sol']
+        ['resume', dir, '--provider', 'openai=gpt-6.1-sol']
       )
       const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 
@@ -157,12 +157,12 @@ describe('resume all-shortcut additive selection', () => {
 
   test('write resume records successful partial LLM results and exits incomplete for failed targets', async () => {
     const env = snapshotEnv([
-      'TOGETHER_API_KEY',
-      'GLM_API_KEY'
+      'XAI_API_KEY',
+      'OPENAI_API_KEY'
     ])
     try {
-      process.env['TOGETHER_API_KEY'] = 'together-key'
-      process.env['GLM_API_KEY'] = 'glm-key'
+      process.env['XAI_API_KEY'] = 'grok-key'
+      process.env['OPENAI_API_KEY'] = 'openai-key'
 
       await withTempDir('autoshow-write-resume-partial-', async (dir) => {
         const sourceText = 'Source body for write resume.'
@@ -177,11 +177,11 @@ describe('resume all-shortcut additive selection', () => {
           },
           step3: {
             llmService: 'openai',
-            llmModel: 'gpt-5.6-sol',
+            llmModel: 'gpt-6.1-sol',
             processingTime: 1,
             inputTokenCount: 1,
             outputTokenCount: 1,
-            outputFileName: 'text-gpt-5.6-sol.json',
+            outputFileName: 'text-gpt-6.1-sol.json',
             outputFormat: 'json',
             structuredMode: 'native',
             structuredPresetNames: ['shortSummary']
@@ -191,10 +191,10 @@ describe('resume all-shortcut additive selection', () => {
         await Bun.write(join(dir, 'source.txt'), sourceText)
 
         installMockFetch((call) => {
-          if (call.headers.get('authorization') === 'Bearer glm-key') {
+          if (call.headers.get('authorization') === 'Bearer openai-key') {
             return jsonResponse({
               error: {
-                message: 'Model glm-5.3-flash does not exist or you do not have access to it.'
+                message: 'Model gpt-6-luna does not exist or you do not have access to it.'
               }
             }, { status: 404 })
           }
@@ -208,9 +208,9 @@ describe('resume all-shortcut additive selection', () => {
 
         const normalized = normalizeResumeSelectorFlagsForTarget(
           target('write', dir),
-          { provider: ['together=kimi-k3', 'glm=glm-5.3-flash'] },
+          { provider: ['grok=grok-4.7', 'openai=gpt-6-luna'] },
           new Set(['provider']),
-          ['resume', dir, '--provider', 'together=kimi-k3', '--provider', 'glm=glm-5.3-flash']
+          ['resume', dir, '--provider', 'grok=grok-4.7', '--provider', 'openai=gpt-6-luna']
         )
         const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 
@@ -222,7 +222,7 @@ describe('resume all-shortcut additive selection', () => {
             kind: 'infrastructure',
             stage: 'resume:generation',
             exitCode: 2,
-            message: 'Write resume still has 1 incomplete provider(s): glm/glm-5.3-flash'
+            message: 'Write resume still has 1 incomplete provider(s): openai/gpt-6-luna'
           })
         }
 
@@ -231,14 +231,14 @@ describe('resume all-shortcut additive selection', () => {
         const step3 = Array.isArray(item?.metadata['step3'])
           ? item.metadata['step3'] as Step3Metadata[]
           : [item?.metadata['step3'] as Step3Metadata]
-        const togetherEntry = step3.find((entry) => `${entry.llmService}/${entry.llmModel}` === 'together/kimi-k3')
-        expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).toContain('together/kimi-k3')
-        expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).not.toContain('glm/glm-5.3-flash')
-        expect(togetherEntry).toBeDefined()
-        expect(await Bun.file(join(dir, togetherEntry!.outputFileName)).exists()).toBe(true)
+        const grokEntry = step3.find((entry) => `${entry.llmService}/${entry.llmModel}` === 'grok/grok-4.7')
+        expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).toContain('grok/grok-4.7')
+        expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).not.toContain('openai/gpt-6-luna')
+        expect(grokEntry).toBeDefined()
+        expect(await Bun.file(join(dir, grokEntry!.outputFileName)).exists()).toBe(true)
         expect(item?.providers).toEqual(expect.arrayContaining([
-          expect.objectContaining({ service: 'together', model: 'kimi-k3', status: 'succeeded' }),
-          expect.objectContaining({ service: 'glm', model: 'glm-5.3-flash', status: 'missing' })
+          expect.objectContaining({ service: 'grok', model: 'grok-4.7', status: 'succeeded' }),
+          expect.objectContaining({ service: 'openai', model: 'gpt-6-luna', status: 'missing' })
         ]))
       })
     } finally {

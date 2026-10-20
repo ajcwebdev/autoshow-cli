@@ -40,8 +40,8 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 | `--provider <provider[=model]>`     | Use exactly one supported image model (see [Supported Models](./00-comic-overview.md#supported-models))                                           | `gpt-image-2`                                               |
 | `--size <size>`                     | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for `gpt-image-2` or GPT Image 2.5 (Flare/Sunburst)    | `1024x1536` for `--character`; `1536x1024` for `--location` |
 | `--quality <quality>`               | `low`, `medium`, `high`, or `auto`; Image 2.5 also supports `xhigh` and `max`. Only OpenAI applies it, and other providers use their own defaults | `medium` for `--character`; `high` for `--location`         |
-| `--llm-provider <provider[=model]>` | Text model that writes the location specification when the key is absent from the catalog                                                         | `gpt-5.6-sol`                                               |
-| `--qa-provider <provider[=model]>`  | QA model for location views; QA requires an OpenAI or Gemini vision-capable LLM                                                                   | `gpt-5.6-sol`                                               |
+| `--llm-provider <provider[=model]>` | Text model that writes the location specification when the key is absent from the catalog                                                         | `gpt-6.1-sol`                                               |
+| `--qa-provider <provider[=model]>`  | QA model for location views; QA requires an OpenAI or Gemini vision-capable LLM                                                                   | `gpt-6.1-sol`                                               |
 
 ### Examples
 

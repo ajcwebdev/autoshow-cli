@@ -1,0 +1,28 @@
+name: Build native production image
+description: Push one native image index by digest, including provenance and SBOM attestations.
+inputs:
+  arch:
+    description: Native runner architecture (amd64 or arm64)
+    required: true
+outputs:
+  digest:
+    description: Exact per-architecture index digest
+    value: ${{ steps.build.outputs.digest }}
+  build_duration_ms:
+    description: Build elapsed milliseconds
+    value: ${{ steps.build.outputs.build_duration_ms }}
+runs:
+  using: composite
+  steps:
+    - name: Create Buildx builder
+      uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      with:
+        name: autoshow-builder
+        version: v0.37.0
+        driver-opts: image=moby/buildkit:v0.33.0@sha256:6c2fa84a6b61ccd72899dde4239f8d5717f05f9a8ca6f3cad185fb1a95a94de3
+    - name: Build and push native image by digest
+      id: build
+      shell: bash
+      env:
+        ARCH: ${{ inputs.arch }}
+      run: bash src/tools/docker-release-build.sh

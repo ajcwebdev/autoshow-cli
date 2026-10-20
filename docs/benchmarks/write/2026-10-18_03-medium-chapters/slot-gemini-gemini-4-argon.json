@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "03-medium-chapters",
+  "provider": "gemini",
+  "model": "gemini-4-argon",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:32:32.757Z",
+  "artifactHashes": {
+    "raw-response-gemini-gemini-4-argon-attempt-1.json": "453711ffad7cb965031a80cea7a4c546588e425d622acd8be2e6b11bb738b1b9",
+    "text-gemini-gemini-4-argon.json": "8adb4c22e1042e208a834f60e995cf1e8a266f0f26cad87f91f3ae0580bf84d5",
+    "text-gemini-gemini-4-argon.md": "c7f02026e334e8f4cb94cc234c581d3e98bf21542c11457180b2abc649321d14"
+  },
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-4-argon",
+    "providerReturnedModel": "gemini-4-argon",
+    "processingTime": 6451,
+    "inputTokenCount": 3067,
+    "outputTokenCount": 338,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3067,
+      "outputTokenCount": 338,
+      "totalTokenCount": 3405
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 3067,
+      "candidatesTokenCount": 338,
+      "totalTokenCount": 3405,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 3067
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 338
+        }
+      ]
+    },
+    "outputFileName": "text-gemini-gemini-4-argon.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "mediumChapters"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-4-argon",
+      "generationConfig": {
+        "maxOutputTokens": 65536,
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "21fdcdb40e118404ed84283dc2e2153afca07f6360aea5c77a5d2b38632c29af"
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 1.9027999999999998
+  },
+  "completedAt": "2026-10-18T18:32:39.215Z",
+  "wallTimeMs": 6452,
+  "networkAttempts": 1
+}

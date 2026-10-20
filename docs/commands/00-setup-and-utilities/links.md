@@ -87,10 +87,8 @@ Accepted provider selectors are the lowercase names below. Fetch other documenta
 | `--provider fal`            | `general`, `image`, `llmstxt`, `video`                                                 |
 | `--provider gemini`         | `general`, `image`, `llmstxt`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
 | `--provider gladia`         | `general`, `llmstxt`, `models`, `stt`                                                  |
-| `--provider glm`            | `general`, `llmstxt`, `models`, `ocr`, `text`                                          |
 | `--provider grok`           | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`, `video`          |
 | `--provider inworld`        | `general`, `llmstxt`, `models`, `tts`                                                  |
-| `--provider kimi`           | `general`, `llmstxt`, `models`, `ocr`, `text`                                          |
 | `--provider ltx`            | `llmstxt`, `models`, `video`                                                           |
 | `--provider lumalabs`       | `general`, `image`, `llmstxt`, `models`, `video`                                       |
 | `--provider minimax`        | `general`, `llmstxt`, `models`, `music`                                                |
@@ -101,7 +99,7 @@ Accepted provider selectors are the lowercase names below. Fetch other documenta
 | `--provider soniox`         | `general`, `llmstxt`, `stt`                                                            |
 | `--provider speechmatics`   | `general`, `llmstxt`, `stt`                                                            |
 | `--provider spider`         | `general`, `llmstxt`, `url`                                                            |
-| `--provider together`       | `general`, `llmstxt`, `models`, `stt`, `text`                                          |
+| `--provider together`       | `general`, `llmstxt`, `models`, `stt`                                                  |
 | `--provider whisperfile`    | `llmstxt`, `stt`                                                                       |
 | `--provider x`              | `general`, `llmstxt`, `url`                                                            |
 | `--provider zyte`           | `general`, `llmstxt`, `url`                                                            |

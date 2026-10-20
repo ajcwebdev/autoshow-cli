@@ -65,9 +65,9 @@ describe('file cache contracts', () => {
       sourceFile: 'input.pdf',
       run: {
         pages: [{ pageNumber: 1, method: 'ocr', text: 'cached text' }],
-        extractionMethod: 'kimi-ocr',
-        ocrService: 'kimi',
-        ocrModel: 'kimi-k2.6',
+        extractionMethod: 'deepinfra-ocr',
+        ocrService: 'deepinfra',
+        ocrModel: 'google/gemma-4-31B-it',
         totalPages: 1,
         requestedReasoningEffort: 'disabled',
         effectiveReasoningEffort: 'disabled'
@@ -77,9 +77,9 @@ describe('file cache contracts', () => {
     expect(parseStoredHostedOcrPageCache(storedPage, {
       sourceFile: 'input.pdf',
       identity: {
-        extractionMethod: 'kimi-ocr',
-        ocrService: 'kimi',
-        ocrModel: 'kimi-k2.6',
+        extractionMethod: 'deepinfra-ocr',
+        ocrService: 'deepinfra',
+        ocrModel: 'google/gemma-4-31B-it',
         requestedReasoningEffort: 'disabled',
         effectiveReasoningEffort: 'disabled'
       }
@@ -88,9 +88,9 @@ describe('file cache contracts', () => {
     expect(parseStoredHostedOcrPageCache(storedPage, {
       sourceFile: 'input.pdf',
       identity: {
-        extractionMethod: 'kimi-ocr',
-        ocrService: 'kimi',
-        ocrModel: 'kimi-k2.6',
+        extractionMethod: 'deepinfra-ocr',
+        ocrService: 'deepinfra',
+        ocrModel: 'google/gemma-4-31B-it',
         requestedReasoningEffort: 'default',
         effectiveReasoningEffort: 'disabled'
       }

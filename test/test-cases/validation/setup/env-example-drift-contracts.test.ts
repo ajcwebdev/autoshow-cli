@@ -18,10 +18,15 @@ const readEnvExampleNames = async (): Promise<string[]> => {
     .filter(Boolean)
 }
 
-test('.env.example names exactly the HOSTED_PROVIDER_ENV_CHECKS inventory', async () => {
+// Optional routing settings documented beside the credentials. They are not credentials, so they stay out of the hosted
+// credential inventory and its missing-key hints.
+const OPTIONAL_ENV_EXAMPLE_NAMES = ['CLOUDFLARE_AI_GATEWAY_ID']
+
+test('.env.example names exactly the HOSTED_PROVIDER_ENV_CHECKS inventory plus documented optional settings', async () => {
   const exampleNames = await readEnvExampleNames()
   expect(new Set(exampleNames).size).toBe(exampleNames.length)
-  expect([...exampleNames].sort()).toEqual([...registryEnvVars].sort())
+  expect([...exampleNames].sort()).toEqual([...registryEnvVars, ...OPTIONAL_ENV_EXAMPLE_NAMES].sort())
+  for (const name of OPTIONAL_ENV_EXAMPLE_NAMES) expect(registryEnvVars).not.toContain(name)
 })
 
 test('MISSING_ENV_HINTS covers exactly the HOSTED_PROVIDER_ENV_CHECKS inventory', () => {

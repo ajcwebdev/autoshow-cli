@@ -1,0 +1,19 @@
+{
+  "chapters": [
+    {
+      "timestamp": "00:00:00",
+      "title": "Welcome Back and Host Introductions",
+      "description": "The hosts recover from Twitter Space technical difficulties and welcome listeners back to JavaScript Jam Live, an open mic for JavaScript and web development. Ishan Anand and Anthony Campolo of Edgio introduce themselves and preview the special multi-week collaboration with React Miami."
+    },
+    {
+      "timestamp": "00:03:15",
+      "title": "React Miami Month and Community Participation",
+      "description": "Scott Steinlage recaps the launch hiccups and rebrands the partnership as React Miami Month, promising more speakers, extra goodies, and added value while keeping the classic JavaScript Jam vibe. He invites beginners and experts alike to request the mic before introducing himself and guest Dev Agrawal."
+    },
+    {
+      "timestamp": "00:06:21",
+      "title": "Introducing the Miami Jam Game Show",
+      "description": "Dev Agrawal unveils Miami Jam, a game show replacing standard interviews with trivia on React, JavaScript quirks, and speaker topics to spark deeper discussions. React Miami organizer Michelle drops in to cheer on the media partners, and Dev explains audience participation and scoring. The episode concludes at 00:10:00."
+    }
+  ]
+}

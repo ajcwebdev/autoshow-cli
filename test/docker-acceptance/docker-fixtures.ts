@@ -1,8 +1,10 @@
 import { join } from 'node:path'
 import { DockerEngine, containerArguments } from './docker-engine'
+import { EBOOK_CONVERSION_PROBE, FB2_FIXTURE } from './docker-ebook-probe'
 
 export const FIXTURE_NAMES: Record<string, string> = {
   audio: 'speech.mp3', video: 'speech.mp4', pdf: 'document.pdf', image: 'document.png', epub: 'document.epub',
+  fb2: 'document.fb2', malformedFb2: 'malformed.fb2',
   text: 'text.md', dialogue: 'dialogue.txt', captions: 'speech-fixed.vtt', urls: 'urls.md', batch: 'batch'
 }
 export function containerFixture(name: string): string {
@@ -56,10 +58,11 @@ await Bun.write('/fixtures/speech.flac', bytes);
 console.log(JSON.stringify({url,sha256:expected,bytes:bytes.length}));
 `
 
-export async function prepareDockerFixtures(engine: DockerEngine, speech: boolean): Promise<void> {
+export async function prepareDockerFixtures(engine: DockerEngine, speech: boolean, ebookConversion = false): Promise<void> {
   const dir = join(engine.options.output, 'fixtures')
   for (const [name, content] of Object.entries({
     'empty-config.json': '{}\n', 'text.md': 'The morning sky is blue. We are testing a local command.\n',
+    'document.fb2': FB2_FIXTURE, 'malformed.fb2': 'This synthetic fixture is deliberately not FictionBook XML.\n',
     'dialogue.txt': 'Host: The morning sky is blue.\nGuest: We are testing a local command.\n',
     'speech-fixed.vtt': 'WEBVTT\n\n00:00:00.000 --> 00:00:00.800\nshort line one\n\n00:00:00.900 --> 00:00:01.800\nshort line two\n',
     'urls.md': `${FIXTURE_ORIGIN}/speech.mp3\n${FIXTURE_ORIGIN}/speech.mp4\n`,
@@ -70,6 +73,7 @@ export async function prepareDockerFixtures(engine: DockerEngine, speech: boolea
     engine.requireSuccess(await engine.container(args, network, engine.options.setupTimeoutMs, binary, true), `Prepare fixture (${binary})`)
   }
   await tool('python3', ['-c', DOCUMENT_SCRIPT])
+  if (ebookConversion) await tool('bun', ['--no-env-file', '-e', EBOOK_CONVERSION_PROBE])
   await tool('mutool', ['draw', '-r', '120', '-o', '/fixtures/document.png', '/fixtures/document.pdf', '1'])
   if (speech) {
     await tool('bun', ['--no-env-file', '-e', SPEECH_SCRIPT], 'bridge')

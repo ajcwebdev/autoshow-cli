@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "01-short-summary",
+  "provider": "together",
+  "model": "glm-5.3-flash",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:30:42.806Z",
+  "artifactHashes": {
+    "raw-response-together-glm-5.3-flash-attempt-1.json": "563b83d603d5cce446580f6479e9923b55db0e75f785f15c478883e718262a6b",
+    "text-together-glm-5.3-flash.json": "bc8c4225608ad1ccadc3398e4bfdf5ae375153ea2a58d80284c64ef3af8c305d",
+    "text-together-glm-5.3-flash.md": "f998648e8bf4eebb32bb9cfecfc2d33b616fb78b86b8cd6041f7e47154bcc396"
+  },
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "glm-5.3-flash",
+    "providerReturnedModel": "zai-org/GLM-5.3-Flash",
+    "processingTime": 2800,
+    "inputTokenCount": 429,
+    "outputTokenCount": 506,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 429,
+      "outputTokenCount": 506,
+      "totalTokenCount": 935
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 429,
+      "completion_tokens": 506,
+      "total_tokens": 935,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 467
+      }
+    },
+    "outputFileName": "text-together-glm-5.3-flash.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "shortSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "zai-org/GLM-5.3-Flash",
+      "stream": false,
+      "max_tokens": 32768,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_shortSummary",
+          "schemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.031735000000000006
+  },
+  "completedAt": "2026-10-18T18:30:45.608Z",
+  "wallTimeMs": 2801,
+  "networkAttempts": 1
+}

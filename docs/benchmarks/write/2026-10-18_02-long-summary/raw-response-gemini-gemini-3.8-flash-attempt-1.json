@@ -1,0 +1,42 @@
+{
+  "result": "{\"episodeSummary\":\"In this episode of FS Jam, the co-hosts examine the engineering hurdles of building embeddable third-party JavaScript widgets, drawing directly from practical experience creating Everfund's donation SDK. They discuss the complexities of module bundling formats, comparing the necessity of legacy UMD support against modern ECMAScript modules, and evaluate architectural tradeoffs between injecting dynamic DOM components versus using sandboxed iframes to mitigate CORS issues and CSS conflicts. The conversation then expands into developer documentation, categorizing effective docs into tutorials, API references, explanations, and how-to guides. Shifting toward podcast operations, the hosts reflect on community sustainability, the ethics of developer advocacy, and the vetting required to maintain audience trust when introducing sponsorships. Concluding with reflections on past standout guests, the discussion emphasizes that understanding web tooling evolution provides essential historical context for current and future software engineers.\"}",
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-3.8-flash",
+    "providerReturnedModel": "gemini-3.8-flash",
+    "processingTime": 9153,
+    "inputTokenCount": 11103,
+    "outputTokenCount": 1220,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 11103,
+      "outputTokenCount": 1220,
+      "totalTokenCount": 12323
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 11103,
+      "candidatesTokenCount": 176,
+      "totalTokenCount": 12323,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 11103
+        }
+      ],
+      "thoughtsTokenCount": 1044,
+      "serviceTier": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-3.8-flash",
+      "generationConfig": {
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599"
+      }
+    }
+  }
+}

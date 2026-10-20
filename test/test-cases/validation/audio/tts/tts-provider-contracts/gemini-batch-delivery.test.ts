@@ -8,6 +8,7 @@ import { runGeminiRemoteBatch } from '~/cli/commands/audio/tts/tts-services/tts-
 import { collectTtsTargets } from '~/cli/commands/audio/tts/tts-targets'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
+import { resetLoggerForInvocation } from '~/utils/app-logger/app-logger'
 import { resolveTtsDeliveryOptions } from '~/cli/options/option-resolution/tts-delivery-options'
 import { readObservedAudio } from '~/cli/commands/audio/tts/script-to-audio/attempt-io'
 import type { GeminiProviderJobRun } from '~/types/tts-workflow/gemini-provider-job-types'
@@ -17,7 +18,7 @@ import { setupTtsContractLifecycle, installMockFetch } from './shared'
 import { LITE, batchAudio } from './gemini-fixtures'
 
 const { makeTempDir } = setupTtsContractLifecycle()
-afterEach(resetPinnedRunDir)
+afterEach(() => { resetPinnedRunDir(); resetLoggerForInvocation(false) })
 
 const tone = createSyntheticWavBytes({ sampleRate: 24000, durationSeconds: 0.1, frequencyHz: 440, amplitude: 0.2 })
 const first = 'Alpha words keep this paragraph comfortably below the requested limit'

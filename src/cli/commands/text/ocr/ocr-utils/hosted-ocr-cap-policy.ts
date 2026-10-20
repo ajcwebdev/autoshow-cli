@@ -24,8 +24,6 @@ export const HOSTED_OCR_PROFILE_MAX_CAP_CEILING = 48
 export const HOSTED_OCR_DEFAULT_SCOPE_LABEL = 'env-api-key'
 const HOSTED_OCR_RETRY_EVENT_LIMIT = 50
 
-const KIMI_PROFILE_HIGH_CAP_THRESHOLD = 13
-const KIMI_PROFILE_HIGH_CAP_MIN_CLEAN_SAMPLES = 3
 
 const clamp = (min: number, max: number, value: number): number =>
   Math.min(max, Math.max(min, value))
@@ -88,11 +86,6 @@ const profileConfidenceRank = (
   return 0
 }
 
-const cleanSampleCount = (value: unknown): number =>
-  typeof value === 'number' && Number.isFinite(value)
-    ? Math.max(0, Math.floor(value))
-    : 0
-
 const profileDisqualification = (
   estimate: HostedOcrProfileEstimate | undefined,
   exactProfileMatch: boolean,
@@ -115,30 +108,6 @@ const profileDisqualification = (
     return 'profile-cap-not-above-auto-cap'
   }
   return 'profile-missing-raised-cap'
-}
-
-const kimiProfileDisqualification = (
-  admission: HostedOcrSchedulerAdmission,
-  estimate: HostedOcrProfileEstimate | undefined,
-  exactProfileMatch: boolean,
-  raisedMaxCap: number | undefined
-): string | undefined => {
-  if (admission.service !== 'kimi' || !exactProfileMatch) return undefined
-  if (
-    (estimate?.profile.retryPressureCount ?? 0) > 0
-    || (estimate?.profile.pauseTimeMs ?? 0) > 0
-  ) {
-    return 'kimi-profile-retry-pressure'
-  }
-  if (
-    typeof raisedMaxCap === 'number'
-    && raisedMaxCap >= KIMI_PROFILE_HIGH_CAP_THRESHOLD
-    && cleanSampleCount(estimate?.profile.cleanSampleCount)
-      < KIMI_PROFILE_HIGH_CAP_MIN_CLEAN_SAMPLES
-  ) {
-    return 'kimi-profile-needs-clean-samples'
-  }
-  return undefined
 }
 
 const resolveHostedOcrLaneCaps = (input: {
@@ -182,18 +151,11 @@ const resolveHostedOcrLaneCaps = (input: {
           profile.raisedMaxCap
         )
       : undefined
-  const kimiReason = kimiProfileDisqualification(
-    input.admission,
-    estimate,
-    exactProfileMatch,
-    raisedMaxCap
-  )
 
   if (
     typeof raisedMaxCap === 'number'
     && raisedMaxCap > baseMaxCap
     && estimate?.confidence === 'healthy'
-    && kimiReason === undefined
   ) {
     return {
       maxCap: raisedMaxCap,
@@ -205,8 +167,7 @@ const resolveHostedOcrLaneCaps = (input: {
   }
 
   const disqualificationReason =
-    kimiReason
-    ?? profileDisqualification(
+    profileDisqualification(
       estimate,
       exactProfileMatch,
       raisedMaxCap,
@@ -281,9 +242,6 @@ export const resolveHostedOcrLaneProfileRefresh = (
   resolution: HostedOcrLaneCapResolution
 ): Partial<HostedOcrSchedulerLaneState> | undefined => {
   if (lane.mode === 'fixed') return undefined
-  if (lane.service === 'kimi' && lane.retryPressureCount > 0) {
-    return undefined
-  }
   if (resolution.maxCap <= lane.maxCap) {
     if (
       lane.capSource !== 'profile'
@@ -450,27 +408,3 @@ export const isHostedOcrTimeoutError = (error: unknown): boolean => {
 
 export const shouldBackoffHostedOcrError = (error: unknown): boolean =>
   getHostedOcrErrorStatus(error) === 429
-
-export const resolveKimiHostedOcrProfileAfterPressure = (
-  lane: HostedOcrSchedulerLaneState,
-  documentPages: number
-): Partial<HostedOcrSchedulerLaneState> | undefined => {
-  if (
-    lane.service !== 'kimi'
-    || lane.mode !== 'auto'
-    || lane.capSource !== 'profile'
-  ) {
-    return undefined
-  }
-  const unprofiledCap = resolveHostedOcrAutoMaxCap(
-    Math.max(1, documentPages)
-  )
-  if (lane.maxCap <= unprofiledCap) return undefined
-  return {
-    maxCap: unprofiledCap,
-    capSource: 'unprofiled',
-    profileDisqualificationReason: 'kimi-current-retry-pressure',
-    profileRaisedMaxCap: undefined,
-    currentCap: Math.min(lane.currentCap, unprofiledCap)
-  }
-}

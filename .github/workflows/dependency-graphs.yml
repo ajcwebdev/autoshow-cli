@@ -28,6 +28,31 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - id: changes
         uses: ./.github/actions/detect-changes
+  image-targets:
+    name: Select independently audited image targets
+    needs: changes
+    if: needs.changes.outputs.image == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      targets: ${{ steps.coverage.outputs.targets }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.4.2
+      - name: Reuse completed same-commit native release audit coverage or retain both targets
+        id: coverage
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          IMAGE_CHANGED: ${{ needs.changes.outputs.image }}
+        run: bun --no-env-file src/tools/docker-audit-coverage.ts
   javascript:
     needs: changes
     if: needs.changes.outputs.javascript_graph == 'true'
@@ -84,12 +109,12 @@ jobs:
           name: alignment-${{ matrix.os }}
           path: runtime/dependency-evidence
   images:
-    needs: changes
-    if: needs.changes.outputs.image == 'true'
+    needs: [changes, image-targets]
+    if: ${{ !cancelled() && needs.changes.outputs.image == 'true' }}
     strategy:
       fail-fast: false
       matrix:
-        target: [production, alignment]
+        target: ${{ fromJSON(needs.image-targets.outputs.targets || '["production","alignment"]') }}
         platform:
           - os: ubuntu-24.04
             arch: amd64
@@ -99,6 +124,9 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.4.2
       - name: Create Buildx builder
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
         with:
@@ -121,13 +149,9 @@ jobs:
           fi
           docker buildx build --platform "linux/${ARCH}" --target "${TARGET}" --build-arg VCS_REF=${{ github.sha }} --load --tag autoshow-audit:${{ github.sha }} "$@" .
           printf '{"freshBuild":%s,"cacheSource":"%s"}\n' "${FRESH_BUILD}" "$([ "${FRESH_BUILD}" = true ] && printf none || printf '%s:buildcache-%s' "${image}" "${ARCH}")" > runtime/dependency-evidence/build-mode.json
-          docker image inspect autoshow-audit:${{ github.sha }} > runtime/dependency-evidence/image-identity.json
-          docker run --rm --network none --entrypoint sh autoshow-audit:${{ github.sha }} -c 'dpkg-query -W -f="\${Package}\t\${Version}\t\${Architecture}\n"' > runtime/dependency-evidence/debian-packages.tsv
-          docker run --rm --network none --entrypoint tar autoshow-audit:${{ github.sha }} -czf - /usr/share/doc > runtime/dependency-evidence/native-notices.tar.gz
-          docker run --rm --network none --entrypoint sh autoshow-audit:${{ github.sha }} -c 'ffmpeg -hide_banner -filters; convert -list format; fc-match "DejaVu Sans"' > runtime/dependency-evidence/rendering-capabilities.txt
-          docker run --rm --network none --entrypoint bun autoshow-audit:${{ github.sha }} --no-env-file -e 'import {readDependencyMetadata} from "./src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts"; console.log(JSON.stringify(await readDependencyMetadata(), null, 2))' > runtime/dependency-evidence/native-source-pins.json
-          cp src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy.ts runtime/dependency-evidence/native-distribution-policy.ts
-          cp src/cli/commands/stt/local/whisperfile/whisperfile-artifacts.ts runtime/dependency-evidence/model-artifact-pins.ts
+          IMAGE_REFERENCE="autoshow-audit:${GITHUB_SHA}" EVIDENCE_DIR=runtime/dependency-evidence bash src/tools/docker-capture-native-evidence.sh
+      - name: Verify Tesseract packaged and managed data offline
+        run: bun --no-env-file test/docker-acceptance/docker-tesseract-data-acceptance.ts --image "autoshow-audit:${{ github.sha }}" --output runtime/dependency-evidence/tesseract
       - name: Verify native image rendering offline
         run: |
           case "$(docker info --format '{{.Architecture}}')" in
@@ -136,12 +160,33 @@ jobs:
             *) echo 'Unsupported Docker daemon architecture' >&2; exit 1 ;;
           esac
           test "${daemon_arch}" = "${{ matrix.platform.arch }}"
+          docker run --rm --network none --platform linux/${{ matrix.platform.arch }} --entrypoint bun autoshow-audit:${{ github.sha }} --no-env-file src/tools/docker-installed-dependencies.ts
           docker run --rm --network none --platform linux/${{ matrix.platform.arch }} --entrypoint bun --mount "type=bind,src=${GITHUB_WORKSPACE}/test/docker-acceptance/native-image-acceptance.ts,dst=/app/test/docker-acceptance/native-image-acceptance.ts,readonly" autoshow-audit:${{ github.sha }} --no-env-file /app/test/docker-acceptance/native-image-acceptance.ts "${bun_arch}"
       - name: Verify optional ONNX backend offline
         if: matrix.target == 'alignment'
         run: |
+          docker run --rm --network none --entrypoint bun autoshow-audit:${{ github.sha }} --no-env-file src/tools/docker-first-use.ts
+          # First-use above must see the original HOME; state checks use fresh writable mounts.
+          for state_user in default host; do
+            state_dir="$(mktemp -d "${RUNNER_TEMP}/alignment-state-XXXXXX")"
+            mkdir -p "${state_dir}/runtime" "${state_dir}/home" "${state_dir}/input" "${state_dir}/output"
+            if [ "${state_user}" = default ]; then
+              sudo chown -R 1000:1000 "${state_dir}"
+              set --
+            else
+              set -- --user "$(id -u):$(id -g)"
+            fi
+            docker run --rm --network none "$@" --entrypoint bun \
+              --mount "type=bind,src=${state_dir}/runtime,dst=/app/runtime" \
+              --mount "type=bind,src=${state_dir}/home,dst=/home/bun" \
+              --mount "type=bind,src=${state_dir}/input,dst=/app/input" \
+              --mount "type=bind,src=${state_dir}/output,dst=/app/output" \
+              autoshow-audit:${{ github.sha }} --no-env-file src/tools/docker-installed-dependencies.ts --state \
+              > "runtime/dependency-evidence/alignment-state-${state_user}.json"
+          done
           docker run --rm --network none --entrypoint bun --mount "type=bind,src=${GITHUB_WORKSPACE}/test,dst=/app/test,readonly" autoshow-audit:${{ github.sha }} --no-env-file test test/test-cases/validation/stt/workflows/timing/stt-onnx-alignment.test.ts
-          docker run --rm --network none --entrypoint bun autoshow-audit:${{ github.sha }} --no-env-file pm --cwd config/stt-alignment ls --all > runtime/dependency-evidence/alignment-inventory.txt
+          # Bun pm opens the frozen manifest for writing; only inventory needs root over the immutable graph.
+          docker run --rm --network none --user 0 --entrypoint bun autoshow-audit:${{ github.sha }} --no-env-file pm --cwd config/stt-alignment ls --all > runtime/dependency-evidence/alignment-inventory.txt
       - name: Inventory, audit, and gate this commit's image
         uses: ./.github/actions/scan-image
         with:

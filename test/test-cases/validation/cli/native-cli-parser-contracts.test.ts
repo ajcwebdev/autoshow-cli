@@ -187,7 +187,7 @@ describe('native CLI parser contracts', () => {
       '--model',
       '--model',
       'gpt-test',
-      '--model=glm-test',
+      '--model=gemini-test',
       '--long-name',
       'dashed'
     ], commands, globalFlags)
@@ -199,7 +199,7 @@ describe('native CLI parser contracts', () => {
     expect(parsed.flags['dry']).toBe(true)
     expect(parsed.flags['feature']).toBe(false)
     expect(parsed.flags['name']).toBe('fixture')
-    expect(parsed.flags['model']).toEqual([true, 'gpt-test', 'glm-test'])
+    expect(parsed.flags['model']).toEqual([true, 'gpt-test', 'gemini-test'])
     expect(parsed.flags['long-name']).toBe('dashed')
     expect(parsed.flags['longName']).toBeUndefined()
     expect(parsed.rawParsed.explicitFlags.has('dry')).toBe(true)
@@ -215,7 +215,7 @@ describe('native CLI parser contracts', () => {
       { name: 'name', raw: '--name=fixture', value: 'fixture', known: true },
       { name: 'model', raw: '--model', value: true, known: true },
       { name: 'model', raw: '--model', value: 'gpt-test', known: true },
-      { name: 'model', raw: '--model=glm-test', value: 'glm-test', known: true },
+      { name: 'model', raw: '--model=gemini-test', value: 'gemini-test', known: true },
       { name: 'long-name', raw: '--long-name', value: 'dashed', known: true }
     ])
   })

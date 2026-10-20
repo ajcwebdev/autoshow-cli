@@ -1,6 +1,6 @@
 import type { OcrOutputFormat, TesseractOcrResult } from '~/types'
 import { exec } from '~/utils/cli-utils'
-import { getTesseractBinary, hasRuntimeTool, resolveTessdataPrefix } from '~/utils/runtime-paths'
+import { getTesseractBinary, hasRuntimeTool, resolveTessdataPrefix, toProjectDisplayPath } from '~/utils/runtime-paths'
 import { setupTesseractOcr } from '../ocr-local/tesseract-setup'
 import { InfraError } from '~/utils/error-handler'
 
@@ -38,14 +38,18 @@ export const ocrImage = async (
   if (outputFormat === 'tsv') {
     args.push('tsv')
   }
+  const prefix = resolveTessdataPrefix()
   const result = await exec(getTesseractBinary(), args, {
     env: {
       OMP_THREAD_LIMIT: '2',
-      TESSDATA_PREFIX: resolveTessdataPrefix()
+      TESSDATA_PREFIX: prefix
     }
   })
   if (result.exitCode !== 0) {
-    throw InfraError(result.stderr || `OCR failed for ${imagePath}`, { stage: 'ocr:tesseract' })
+    throw InfraError(
+      `Tesseract OCR failed (${prefix ? `managed data: ${toProjectDisplayPath(prefix)}` : 'packaged default data'}): ${result.stderr || `OCR failed for ${imagePath}`}`,
+      { stage: 'ocr:tesseract' }
+    )
   }
   if (outputFormat === 'tsv') {
     const confidence = parseTsvConfidence(result.stdout)

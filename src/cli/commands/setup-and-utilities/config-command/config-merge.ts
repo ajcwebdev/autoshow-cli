@@ -56,10 +56,10 @@ const STEP2_PROVIDER_CONFIG_PATHS = Object.fromEntries(
 const PROVIDER_SELECTION_GROUPS: readonly { gate: readonly string[], flags: readonly string[] }[] = [
   { gate: STT_PROVIDER_FLAGS, flags: STT_PROVIDER_FLAGS },
   { gate: LLM_PROVIDER_FLAGS, flags: LLM_PROVIDER_FLAGS },
-  { gate: TTS_PROVIDER_FLAGS, flags: TTS_PROVIDER_FLAGS },
-  { gate: IMAGE_PROVIDER_FLAGS, flags: IMAGE_PROVIDER_FLAGS },
-  { gate: VIDEO_PROVIDER_FLAGS, flags: VIDEO_PROVIDER_FLAGS },
-  { gate: MUSIC_PROVIDER_FLAGS, flags: MUSIC_PROVIDER_FLAGS },
+  { gate: [...TTS_PROVIDER_FLAGS, 'all-tts'], flags: TTS_PROVIDER_FLAGS },
+  { gate: [...IMAGE_PROVIDER_FLAGS, 'all-image'], flags: IMAGE_PROVIDER_FLAGS },
+  { gate: [...VIDEO_PROVIDER_FLAGS, 'all-video'], flags: VIDEO_PROVIDER_FLAGS },
+  { gate: [...MUSIC_PROVIDER_FLAGS, 'all-music'], flags: MUSIC_PROVIDER_FLAGS },
   { gate: OCR_PROVIDER_FLAGS, flags: OCR_PROVIDER_FLAGS },
   { gate: URL_PROVIDER_DEFAULT_GROUP_FLAGS, flags: URL_PROVIDER_FLAGS }
 ]
@@ -251,9 +251,6 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'gemini':            ['defaults', 'llm', 'gemini'],
   'anthropic':         ['defaults', 'llm', 'anthropic'],
   'grok':              ['defaults', 'llm', 'grok'],
-  'glm':               ['defaults', 'llm', 'glm'],
-  'kimi':              ['defaults', 'llm', 'kimi'],
-  'together':          ['defaults', 'llm', 'together'],
   'llm-provider-concurrency': ['defaults', 'llm', 'providerConcurrency'],
   'llm-local-concurrency': ['defaults', 'llm', 'localConcurrency'],
   'elevenlabs-tts':    ['defaults', 'tts', 'elevenlabsTts'],
@@ -307,6 +304,8 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'fal-video':         ['defaults', 'video', 'falVideo'],
   'replicate-video-seed': ['defaults', 'video', 'replicateVideoSeed'],
   'replicate-video-negative-prompt': ['defaults', 'video', 'replicateVideoNegativePrompt'],
+  'seed': ['defaults', 'video', 'replicateVideoSeed'],
+  'negative-prompt': ['defaults', 'video', 'replicateVideoNegativePrompt'],
   'video-provider-concurrency': ['defaults', 'video', 'providerConcurrency'],
   'elevenlabs-music':  ['defaults', 'music', 'elevenlabsMusic'],
   'minimax-music':     ['defaults', 'music', 'minimaxMusic'],
@@ -402,7 +401,7 @@ const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
     'image-provider-concurrency',
     'video-provider-concurrency',
     'music-provider-concurrency',
-    'replicate-video-seed'
+    'replicate-video-seed', 'seed'
   ])
   if (numericFlags.has(flagName)) {
     const n = Number(rawValue)
@@ -427,6 +426,10 @@ export const buildConfigPatchFromFlags = (
   explicitFlags: Set<string>,
   flagOccurrences: readonly CliFlagOccurrence[] = []
 ): Record<string, unknown> => {
+  const removedFlags = ['glm', 'kimi', 'together', 'glm-ocr', 'kimi-ocr'].filter(flag => explicitFlags.has(flag))
+  if (removedFlags.length > 0) {
+    throw UsageError(`Provider selections ${removedFlags.join(', ')} are no longer supported. Remove them and select an active provider explicitly.`)
+  }
   const patch: Record<string, unknown> = {}
   const rawOccurrences = collectRepeatableModelFlagOccurrences(flagOccurrences)
   const discardedFlags: string[] = []

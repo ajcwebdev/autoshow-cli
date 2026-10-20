@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "02-long-summary",
+  "provider": "grok",
+  "model": "grok-4.6",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:31:17.267Z",
+  "artifactHashes": {
+    "raw-response-grok-grok-4.6-attempt-1.json": "c5af8caa713363455e548e4b7365189fe5f0df2471d286610bf994f079a31449",
+    "text-grok-grok-4.6.json": "47d726b0f22279342f1cdf6ce883a1c889019469dd455ccef0d5a31f13987592",
+    "text-grok-grok-4.6.md": "71d266fc36c51bbf3bcf650e31b9acf954f36c084783cec8c865dd4d2a387890"
+  },
+  "metadata": {
+    "llmService": "grok",
+    "llmModel": "grok-4.6",
+    "providerReturnedModel": "grok-4.6",
+    "processingTime": 75473,
+    "inputTokenCount": 10896,
+    "outputTokenCount": 4967,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 512,
+      "inputTokenCount": 10896,
+      "outputTokenCount": 4967,
+      "totalTokenCount": 15863
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 10896,
+      "completion_tokens": 225,
+      "total_tokens": 15863,
+      "prompt_tokens_details": {
+        "text_tokens": 10896,
+        "audio_tokens": 0,
+        "image_tokens": 0,
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 4742,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      },
+      "num_sources_used": 0,
+      "cost_in_usd_ticks": 508260000
+    },
+    "outputFileName": "text-grok-grok-4.6.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "longSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "grok-4.6",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_longSummary",
+          "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 5.1594
+  },
+  "completedAt": "2026-10-18T18:32:32.747Z",
+  "wallTimeMs": 75480,
+  "networkAttempts": 1
+}

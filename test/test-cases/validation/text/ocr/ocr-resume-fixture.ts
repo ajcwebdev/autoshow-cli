@@ -7,7 +7,7 @@ import type { DocumentMetadata, HostedOcrRun, OcrProviderState, OcrTarget, PageR
 export const requestedTargets: OcrTarget[] = [
   { service: 'tesseract', model: 'tesseract' },
   { service: 'mistral', model: 'mistral-ocr' },
-  { service: 'anthropic', model: 'claude-sonnet-5' }
+  { service: 'anthropic', model: 'claude-sonnet-5-5' }
 ]
 export const tesseractTarget = requestedTargets[0] as OcrTarget
 export const mistralTarget = requestedTargets[1] as OcrTarget

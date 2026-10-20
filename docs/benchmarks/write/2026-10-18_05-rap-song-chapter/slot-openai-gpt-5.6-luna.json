@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "05-rap-song-chapter",
+  "provider": "openai",
+  "model": "gpt-5.6-luna",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:37:57.215Z",
+  "artifactHashes": {
+    "raw-response-openai-gpt-5.6-luna-attempt-1.json": "5678f4604358b1a61a88e867da2f146e7725025c4ac3d0586e37203496b27aea",
+    "text-openai-gpt-5.6-luna.json": "24b7642310f9492d687925b2ad6439a3ea5cd16c0b0d3ca9c53c49c25b28135d",
+    "text-openai-gpt-5.6-luna.md": "cfd450f9ee652902b4c46490b688493b8705d87ae605ed74f071a52794762265"
+  },
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-5.6-luna",
+    "providerReturnedModel": "gpt-5.6-luna",
+    "processingTime": 6692,
+    "inputTokenCount": 3518,
+    "outputTokenCount": 1053,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3518,
+      "outputTokenCount": 1053,
+      "totalTokenCount": 4571
+    },
+    "rawProviderUsage": {
+      "input_tokens": 3518,
+      "input_tokens_details": {
+        "cache_write_tokens": 3515,
+        "cached_tokens": 0
+      },
+      "output_tokens": 1053,
+      "output_tokens_details": {
+        "reasoning_tokens": 206
+      },
+      "total_tokens": 4571
+    },
+    "outputFileName": "text-openai-gpt-5.6-luna.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "rapSongChapterLyrics"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-5.6-luna",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_rapSongChapter",
+          "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.19672
+  },
+  "completedAt": "2026-10-18T18:38:03.907Z",
+  "wallTimeMs": 6692,
+  "networkAttempts": 1
+}

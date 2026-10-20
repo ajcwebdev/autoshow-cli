@@ -1,0 +1,47 @@
+{
+  "result": "{\"episodeDescription\":\"Guest James Berkins joins the show to share how he was laid off during a recession-era downsizing and landed a new devrel job within 12 hours thanks to his professional connections.\"}",
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-sonnet-5-5",
+    "providerReturnedModel": "claude-sonnet-5-5",
+    "processingTime": 2459,
+    "inputTokenCount": 817,
+    "outputTokenCount": 68,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 817,
+      "outputTokenCount": 68
+    },
+    "rawProviderUsage": {
+      "input_tokens": 817,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 68,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-sonnet-5-5",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "421c6f04b3b9776dd52ba7dfe616fdf7c27237e2529cfa764a4973f09b47521a"
+        }
+      }
+    }
+  }
+}

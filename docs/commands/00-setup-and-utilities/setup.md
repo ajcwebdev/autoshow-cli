@@ -100,7 +100,7 @@ Model selector flags are repeatable. Repeating a provider selector saves all sel
 
 ```bash
 bun autoshow setup --stt deepinfra=openai/whisper-large-v3 --stt deepinfra=openai/whisper-large-v3-turbo
-bun autoshow setup --llm openai=gpt-5.6-sol --llm openai=gpt-5.6-terra
+bun autoshow setup --llm openai=gpt-6.1-sol --llm openai=gpt-5.6-terra
 ```
 ## Config Schema
 
@@ -168,6 +168,8 @@ Representative JSON shape:
 Model-selecting fields are arrays of models, not single strings. Use `bun autoshow setup --show` to inspect the saved file.
 
 Image, video, and music tuning defaults such as `duration` and `format` are edited in `config/autoshow.json`. The `setup` flags for image, video, and music persist the provider and model selectors.
+
+Save a TTS model with `--tts provider=model`. The standalone `tts --model`, `--gemini-tts-mode`, and `--gemini-tts-batch-wait-seconds` controls are not setup settings; pass transport and remote-job wait controls directly to `tts`. Setup rejects these unsupported flags before installation.
 
 ## Persisted Defaults and Precedence
 

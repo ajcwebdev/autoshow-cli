@@ -21,11 +21,12 @@ describe('QA-only continuity price estimate', () => {
     expect(only.events.every(event => event.category === 'pricing')).toBe(true)
     const onlyDetails = only.events.find(event => event.message === 'Comic - Price Estimate: generate-images (QA-only)')
     expect(onlyDetails?.metadata).toMatchObject({ mode: 'qa-only', canonicalPanels: 3, judgeModel: JUDGE_MODEL, judgeCalls: 0, pageJudgeCalls: 0, continuityQa: true, continuityOnly: true, continuityJudgeCalls: 3, continuityInputUnits: 27_000, continuityOutputUnits: 4_500, imageGenerationCalls: 0, imageRepairCalls: 0 })
-    expect(onlyDetails?.metadata?.['continuityCost']).toBeCloseTo(0.27, 10)
-    expect(onlyDetails?.metadata?.['estimatedTotal']).toBeCloseTo(0.27, 10)
+    // The gpt-6.1-sol judge is priced at $2/1M input and $10/1M output (checked 2026-10-17): 27,000 x $0.000002 + 4,500 x $0.00001.
+    expect(onlyDetails?.metadata?.['continuityCost']).toBeCloseTo(0.099, 10)
+    expect(onlyDetails?.metadata?.['estimatedTotal']).toBeCloseTo(0.099, 10)
     expect((onlyDetails?.metadata?.['details'] as Record<string, unknown>)['Continuity judge calls']).toBe(3)
     expect((onlyDetails?.metadata?.['details'] as Record<string, unknown>)['Heuristic continuity units']).toBe('27,000 input + 4,500 output')
-    expect(only.events.some(event => event.message === 'Total: ~$0.27')).toBe(true)
+    expect(only.events.some(event => event.message === 'Total: ~$0.10')).toBe(true)
     expect(only.events.some(event => event.message.startsWith('QA-only price mode performs no provider calls or writes'))).toBe(true)
 
     const beside = await captureLogEvents(async () => {
@@ -33,8 +34,9 @@ describe('QA-only continuity price estimate', () => {
     })
     const besideDetails = beside.events.find(event => event.message === 'Comic - Price Estimate: generate-images (QA-only)')
     expect(besideDetails?.metadata).toMatchObject({ canonicalPanels: 2, judgeCalls: 2, pageJudgeCalls: 2, continuityOnly: false, continuityJudgeCalls: 2, continuityInputUnits: 18_000, continuityOutputUnits: 3_000 })
-    expect(besideDetails?.metadata?.['estimatedTotal']).toBeCloseTo(0.302, 10)
-    expect(beside.events.some(event => event.message === 'Total: ~$0.30')).toBe(true)
+    // Two page judges (10,000 + 2,400 tokens, $0.044) plus two continuity calls (18,000 + 3,000 units, $0.066).
+    expect(besideDetails?.metadata?.['estimatedTotal']).toBeCloseTo(0.11, 10)
+    expect(beside.events.some(event => event.message === 'Total: ~$0.11')).toBe(true)
 
     const plain = await captureLogEvents(async () => {
       await estimateQaOnlyPanelAuditPrice({ sceneSlug, scriptPath: 'script.md', qaOnly: true, qa: true, qaModel: JUDGE_MODEL, maxRepairs: 0, panels: [2] })
@@ -42,6 +44,6 @@ describe('QA-only continuity price estimate', () => {
     const plainDetails = plain.events.find(event => event.message === 'Comic - Price Estimate: generate-images (QA-only)')
     expect(plainDetails?.metadata).toMatchObject({ judgeCalls: 1 })
     expect(plainDetails?.metadata?.['continuityJudgeCalls']).toBeUndefined()
-    expect(plain.events.some(event => event.message === 'Total: ~$0.06')).toBe(true)
+    expect(plain.events.some(event => event.message === 'Total: ~$0.02')).toBe(true)
   })
 })

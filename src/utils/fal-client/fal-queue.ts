@@ -1,3 +1,4 @@
+import * as l from '~/utils/app-logger/app-logger'
 import { FAL_QUEUE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { InfraError } from '~/utils/error-handler'
 import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
@@ -37,10 +38,58 @@ const readErrorBody = async (response: Response): Promise<string> => {
 
 const getFalQueueBaseUrl = (): string => FAL_QUEUE_DEFAULT_BASE_URL.replace(/\/+$/, '')
 
-const cancelFalQueueRequest = async (apiKey: string, cancelUrl: string): Promise<void> => {
+const FAL_CANCEL_TIMEOUT_MS = 15_000
+
+const parseReportedCancelStatus = (body: string): string | undefined => {
   try {
-    await fetch(cancelUrl, { method: 'PUT', headers: headersFor(apiKey) })
+    const parsed: unknown = JSON.parse(body)
+    return parsed && typeof parsed === 'object' && typeof (parsed as Record<string, unknown>)['status'] === 'string'
+      ? (parsed as Record<string, string>)['status']
+      : undefined
   } catch {
+    return undefined
+  }
+}
+
+const describeCancelOutcome = (status: number, reported: string | undefined): { outcome: string, message: string } => {
+  if (status >= 200 && status < 300) {
+    return { outcome: 'cancellation-requested', message: 'fal.ai accepted the cancellation; a request that was already processing may still complete and be billed.' }
+  }
+  if (status === 400 && reported === 'ALREADY_COMPLETED') {
+    return { outcome: 'already-completed', message: 'The fal.ai request had already completed before cancellation; its result may be billed and still retrievable.' }
+  }
+  if (status === 404) {
+    return { outcome: 'not-found', message: 'fal.ai reported no request to cancel.' }
+  }
+  return { outcome: 'rejected', message: `fal.ai rejected the cancellation (HTTP ${status}); the request may still be running.` }
+}
+
+/**
+ * Best-effort cancellation after a local failure. fal documents 202 CANCELLATION_REQUESTED,
+ * 400 ALREADY_COMPLETED and 404 NOT_FOUND; none confirms that remote work stopped, so every
+ * outcome is logged for reconciliation and the caller keeps its original error. Request IDs are
+ * redacted from logs, so the outcome carries only statuses.
+ */
+export const cancelFalQueueRequest = async (
+  apiKey: string,
+  cancelUrl: string,
+  timeoutMs: number = FAL_CANCEL_TIMEOUT_MS
+): Promise<void> => {
+  try {
+    const response = await fetch(cancelUrl, { method: 'PUT', headers: headersFor(apiKey), signal: AbortSignal.timeout(timeoutMs) })
+    const body = await readRestDiagnosticText(response)
+    const reported = parseReportedCancelStatus(body)
+    const { outcome, message } = describeCancelOutcome(response.status, reported)
+    l.warn(message, {
+      category: 'pipeline',
+      metadata: { provider: 'fal', cancelOutcome: outcome, status: response.status, ...(reported ? { reportedStatus: reported } : {}) }
+    })
+  } catch (error) {
+    l.warn('The fal.ai cancellation outcome is unknown; the request may still be running.', {
+      category: 'pipeline',
+      metadata: { provider: 'fal', cancelOutcome: 'unknown' },
+      error
+    })
   }
 }
 

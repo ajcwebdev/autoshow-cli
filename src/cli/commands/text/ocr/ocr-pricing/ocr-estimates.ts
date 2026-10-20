@@ -4,12 +4,12 @@ import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
 import { getDocumentInfo } from '~/cli/commands/sources/download/document/mutool-utils'
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { validateAnthropicOcrModel, validateDeepinfraOcrModel, validateGeminiOcrModel, validateGlmOcrModel, validateGrokOcrModel, validateKimiOcrModel, validateMistralOcrModel, validateOpenAIOcrModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateAnthropicOcrModel, validateDeepinfraOcrModel, validateGeminiOcrModel, validateGrokOcrModel, validateMistralOcrModel, validateOpenAIOcrModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { EstimateOcrTokenUsageOptions, HostedOcrEstimateOptions, HostedOcrTokenUsageEstimate, TokenEstimateMetadata, TokenOcrCostEstimate, TokenPricedOcrProvider } from '~/types'
 import { resolveHostedOcrTokenUsageEstimate } from '../ocr-utils/hosted-ocr-token-profiles'
 import { computeOcrTokenCost } from '~/utils/pricing/ocr-token-pricing'
 import { UsageError, InfraError, ValidationError } from '~/utils/error-handler'
-import { writeHttpPayloadToFile } from '~/utils/http-payload'
+import { sourceDownloadSignal, writeHttpPayloadToFile } from '~/utils/http-payload'
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.gif', '.bmp'] as const
 const DEFAULT_EXTRACT_PAGE_COUNT = 1
@@ -18,10 +18,8 @@ const OCR_OUTPUT_TOKENS_PER_PAGE = 1000
 const OPENAI_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed OpenAI OCR benchmark usage. Actual OpenAI OCR cost is computed from response usage after execution.'
 export const ANTHROPIC_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed Anthropic OCR benchmark usage. Actual Anthropic OCR cost is computed from response usage after execution, and PDF cost varies with extracted text plus page-image tokens.'
 export const GEMINI_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed Gemini OCR benchmark usage. Actual Gemini OCR cost is computed from response usage after execution.'
-export const GLM_OCR_PRICE_NOTE = 'Model-specific token estimate from the registry or an observed usage profile; new GLM vision targets use uncalibrated page heuristics. Actual GLM OCR cost is computed from response usage after execution.'
 export const GROK_OCR_PRICE_NOTE = 'Provisional heuristic token estimate of 4000 input tokens and 1000 output tokens per page until Grok OCR calibration data is available. Actual Grok OCR cost is computed from response usage after execution.'
 export const DEEPINFRA_OCR_PRICE_NOTE = 'Model-specific token estimate from the registry or an observed usage profile; new Gemma 4 targets use uncalibrated page heuristics. Actual DeepInfra OCR cost is computed from response usage after execution.'
-export const KIMI_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed Kimi OCR benchmark usage. Actual Kimi OCR cost is computed from response usage after execution. AutoShow uses Kimi cache-miss input pricing for conservative estimates.'
 
 export const estimateOcrTokenUsage = (
   provider: TokenPricedOcrProvider,
@@ -85,9 +83,9 @@ const tokenEstimateMetadata = (
 
 const downloadToTemp = async (url: string): Promise<string> => {
   const tempPath = join(tmpdir(), `autoshow-price-${crypto.randomUUID()}.pdf`)
-  const response = await fetch(url)
+  const response = await fetch(url, { signal: sourceDownloadSignal() })
   if (!response.ok) throw InfraError(`Failed to fetch ${url}: ${response.status}`, { stage: 'ocr:extract-pricing', status: response.status })
-  await writeHttpPayloadToFile(response, tempPath)
+  await writeHttpPayloadToFile(response, tempPath, { payloadClass: 'source', stage: 'ocr:extract-pricing' })
   return tempPath
 }
 
@@ -211,13 +209,6 @@ const estimateTokenPricedOcrCost = async <TProvider extends TokenPricedOcrProvid
   }
 }
 
-export const estimateGlmOcrCost = (
-  modelRaw: string,
-  input: string,
-  options: HostedOcrEstimateOptions = {}
-): Promise<TokenOcrCostEstimate<'glm'>> =>
-  estimateTokenPricedOcrCost('glm', validateGlmOcrModel, 3, 3, modelRaw, input, options)
-
 export const estimateOpenAIOcrCost = (
   modelRaw: string,
   input: string,
@@ -252,13 +243,5 @@ export const estimateDeepinfraOcrCost = (
   options: HostedOcrEstimateOptions = {}
 ): Promise<TokenOcrCostEstimate<'deepinfra'> & { note: string }> =>
   estimateTokenPricedOcrCost('deepinfra', validateDeepinfraOcrModel, 9, 19, modelRaw, input, options, DEEPINFRA_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'deepinfra'> & { note: string }>
-
-export const estimateKimiOcrCost = (
-  modelRaw: string,
-  input: string,
-  options: HostedOcrEstimateOptions = {}
-): Promise<TokenOcrCostEstimate<'kimi'> & { note: string }> =>
-  estimateTokenPricedOcrCost('kimi', validateKimiOcrModel, 95, 400, modelRaw, input, options, KIMI_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'kimi'> & { note: string }>
-
 
 export { OPENAI_OCR_PRICE_NOTE }

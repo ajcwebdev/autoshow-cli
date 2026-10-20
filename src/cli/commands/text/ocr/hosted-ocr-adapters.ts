@@ -7,20 +7,18 @@ import type {
   HostedOcrRun,
   HostedOcrService
 } from '~/types'
-import { hasAnthropicOcr, hasDeepinfraOcr, hasGeminiOcr, hasGlmOcr, hasGrokOcr, hasKimiOcr, hasMistralOcr, hasOpenAIOcr } from './ocr-engine-selection'
+import { hasAnthropicOcr, hasDeepinfraOcr, hasGeminiOcr, hasGrokOcr, hasMistralOcr, hasOpenAIOcr } from './ocr-engine-selection'
 import { ANTHROPIC_OCR_LIMIT_SOURCE } from './ocr-services/anthropic-ocr/anthropic-ocr'
 import { runAnthropicOcr } from './ocr-services/anthropic-ocr/run-anthropic-ocr'
 import { DEEPINFRA_OCR_LIMIT_SOURCE } from './ocr-services/deepinfra-ocr/deepinfra-ocr'
 import { runDeepinfraOcr } from './ocr-services/deepinfra-ocr/run-deepinfra-ocr'
 import { GEMINI_OCR_LIMIT_SOURCE } from './ocr-services/gemini-ocr/gemini-ocr'
 import { runGeminiOcr } from './ocr-services/gemini-ocr/run-gemini-ocr'
-import { runGlmOcr } from './ocr-services/glm-ocr/run-glm-ocr'
 import { GROK_OCR_LIMIT_SOURCE } from './ocr-services/grok-ocr/grok-ocr'
 import { runGrokOcr } from './ocr-services/grok-ocr/run-grok-ocr'
-import { KIMI_OCR_LIMIT_SOURCE } from './ocr-services/kimi-ocr/kimi'
-import { runKimiOcr } from './ocr-services/kimi-ocr/run-kimi-ocr'
 import { runMistralOcr } from './ocr-services/mistral-ocr/run-mistral-ocr'
 import { runOpenAIOcr } from './ocr-services/openai-ocr/run-openai-ocr'
+import { UsageError } from '~/utils/error-handler'
 import { createRenderedPngPageChunk } from './ocr-utils/pdf-chunk-fallback'
 
 const renderedPngPages = (opts: ExtractionOptions): HostedOcrFallbackOptions => ({
@@ -71,53 +69,6 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
         ocrModel
       }
     }
-  },
-  {
-    service: 'glm',
-    engine: 'glm-ocr',
-    label: 'GLM OCR',
-    limitSource: 'https://docs.z.ai/guides/vlm/glm-5.3-flash',
-    directImageFormats: ['png', 'jpg'],
-    directImageSupportError: 'The GLM OCR provider sends PNG/JPG images to GLM directly; PDF pages are rendered to PNG. AutoShow normalizes WEBP/GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
-    selectModel: (opts) => hasGlmOcr(opts) ? opts.glmOcrModel as string : undefined,
-    fallbackOptions: renderedPngPages,
-    request: async ({ inputPath, inputMetadata, ocrModel, opts, onRetryable }) => {
-      const run = await runGlmOcr(inputPath, inputMetadata, ocrModel, {
-        ...opts,
-        onRetryable,
-        reasoningEffort: opts.reasoningEffort
-      })
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'glm',
-        ocrModel,
-        canonicalText: run.markdown,
-        ...(typeof run.totalPages === 'number' ? { totalPages: run.totalPages } : {}),
-        ...tokenUsage(run)
-      }
-    }
-  },
-  {
-    service: 'kimi',
-    engine: 'kimi-ocr',
-    label: 'Kimi OCR',
-    limitSource: KIMI_OCR_LIMIT_SOURCE,
-    directImageFormats: ['png', 'jpg', 'webp', 'gif'],
-    directImageSupportError: 'The Kimi OCR provider sends PNG/JPG/WEBP/GIF images to Kimi directly; PDF pages are rendered to PNG. AutoShow normalizes BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
-    selectModel: (opts) => hasKimiOcr(opts) ? opts.kimiOcrModel as string : undefined,
-    request: async (request) => {
-      const run = await runKimiOcr(request.inputPath, request.inputMetadata, request.ocrModel, pageRenderingProviderOptions(request))
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'kimi',
-        ocrModel: request.ocrModel,
-        totalPages: run.totalPages,
-        ...tokenUsage(run)
-      }
-    },
-    fallbackOptions: renderedPngPages
   },
   {
     service: 'openai',
@@ -247,8 +198,14 @@ const ADAPTERS_BY_ENGINE = new Map<HostedExtractOcrEngine, HostedOcrAdapterDescr
   HOSTED_OCR_ADAPTERS.map((adapter) => [adapter.engine, adapter])
 )
 
-export const hostedOcrAdapterForService = (service: HostedOcrService): HostedOcrAdapterDescriptor =>
-  ADAPTERS_BY_SERVICE.get(service) as HostedOcrAdapterDescriptor
+export const hostedOcrAdapterForService = (service: HostedOcrService): HostedOcrAdapterDescriptor => {
+  const adapter = ADAPTERS_BY_SERVICE.get(service)
+  if (!adapter) throw UsageError(`OCR provider ${service} is no longer implemented. Select a current OCR provider.`)
+  return adapter
+}
 
-export const hostedOcrAdapterForEngine = (engine: HostedExtractOcrEngine): HostedOcrAdapterDescriptor =>
-  ADAPTERS_BY_ENGINE.get(engine) as HostedOcrAdapterDescriptor
+export const hostedOcrAdapterForEngine = (engine: HostedExtractOcrEngine): HostedOcrAdapterDescriptor => {
+  const adapter = ADAPTERS_BY_ENGINE.get(engine)
+  if (!adapter) throw UsageError(`OCR engine ${engine} is no longer implemented. Select a current OCR provider.`)
+  return adapter
+}

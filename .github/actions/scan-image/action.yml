@@ -49,11 +49,12 @@ runs:
         printf 'sbom=%s\n' "${SBOM:-${EVIDENCE_DIR}/image.spdx.json}" >> "${GITHUB_OUTPUT}"
         printf 'today=%s\n' "$(date -u +%Y-%m-%d)" >> "${GITHUB_OUTPUT}"
         printf 'db-dir=%s\n' "${RUNNER_TEMP}/grype-db" >> "${GITHUB_OUTPUT}"
-    - name: Install Syft and Grype
+    - name: Install required scanners
       shell: bash
       env:
         SYFT_VERSION: ${{ inputs.syft-version }}
         GRYPE_VERSION: ${{ inputs.grype-version }}
+        INSTALL_SYFT: ${{ inputs.image != '' }}
       run: bash "${GITHUB_ACTION_PATH}/install-scan-tools.sh"
     - name: Inventory the image
       if: inputs.image != ''

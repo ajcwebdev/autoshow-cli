@@ -34,6 +34,7 @@ export interface DashboardGroup {
   label: string;
   metricColumns: { quality: string; speed: string; cost: string };
   metricDirections: DashboardMetricDirections;
+  metricSortLabels?: { quality: string; speed: string; cost: string };
   evidenceColumns: string[];
   perRunMetricLabel?: string;
   showPerRun?: boolean;
@@ -70,7 +71,7 @@ export interface CombinedDashboardModel {
   groups: DashboardGroup[];
   methodParagraphs: string[];
   notes: string[];
-  sampleTables?: Array<{ title: string; columns: string[]; rows: DashboardRunInventoryCell[][]; notes?: string[] }>;
+  sampleTables?: Array<{ title: string; columns: string[]; rows: DashboardRunInventoryCell[][]; notes?: string[]; providerKeyColumn?: number }>;
 }
 
 export interface BenchmarkDashboardTab {
@@ -78,6 +79,8 @@ export interface BenchmarkDashboardTab {
   label: string;
   rootLabel: string;
   model: CombinedDashboardModel;
+  /** A view restricted to currently implemented, active CLI models; the full historical model stays above. */
+  supportedModel?: CombinedDashboardModel;
 }
 
 /** Sibling file names the page links or loads by relative name; plain names only, no directories or URLs. */

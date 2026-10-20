@@ -200,7 +200,7 @@ describe('adaptive provider group parser', () => {
       'write',
       'input/examples/tts/01-tts-short.md',
       '--provider',
-      'openai=gpt-5.6-sol'
+      'openai=gpt-6.1-sol'
     ])).toEqual([
       'write/openai',
     ])

@@ -53,7 +53,7 @@ Inspect `metadata/blocking-plan.json`: `generatedBy.mode` is `import`, citations
 Hosted blocking is an **alternative**, not another required purchase. It uses the supplied establishing reference and reserves a validation retry. Price it before replacing the authored plan:
 
 ```bash
-bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --provider openai=gpt-5.6-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --provider openai=gpt-6.1-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 ### 3. Estimate related hosted work before dispatch
@@ -61,8 +61,8 @@ bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only blocking --provid
 Use [the cumulative estimate](#cumulative-estimate) first. Only for an accepted batch, draft the scene and inspect its source coverage, dialogue, blocking citations, and locations:
 
 ```bash
-bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only scene --panel-count 4 --provider openai=gpt-5.6-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only scene --panel-count 4 --provider openai=gpt-5.6-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only scene --panel-count 4 --provider openai=gpt-6.1-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only scene --panel-count 4 --provider openai=gpt-6.1-sol --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 The second command is hosted. The repository ships no pre-approved hosted `scene.json`; local preparation stops before it. Each panel must cite its authored note and following segments, preserve spoken lines, and name `harborlight-camp`. Without a compatible reviewed scene, later examples are prerequisites, not runnable completion claims.
@@ -122,7 +122,7 @@ For recorded interrupted requests use [`resume <run-directory> --price`, then `r
 
 ## Supported Models
 
-Comic images accept OpenAI, Gemini, Grok, Replicate, and Luma model IDs; fal.ai image models are unavailable here. Default image: `gpt-image-2`. Default text: `gpt-5.6-sol`; blocking and QA require a supported OpenAI or Gemini vision model. Audio defaults to the cheapest hosted TTS target, so this walkthrough selects its model explicitly. Model lists: [image](../image/overview.md), [write](../../03-write/overview.md), [TTS](../../04-audio/tts/overview.md).
+Comic images accept OpenAI, Gemini, Grok, Replicate, and Luma model IDs; fal.ai image models are unavailable here. Default image: `gpt-image-2`. Default text: `gpt-6.1-sol`; blocking and QA require a supported OpenAI or Gemini vision model. Audio defaults to the cheapest hosted TTS target, so this walkthrough selects its model explicitly. Model lists: [image](../image/overview.md), [write](../../03-write/overview.md), [TTS](../../04-audio/tts/overview.md).
 
 ## Command Docs
 

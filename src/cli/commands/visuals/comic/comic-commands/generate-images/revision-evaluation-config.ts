@@ -3,7 +3,7 @@ export const REVISION_IMAGE_MODEL = 'gpt-image-2'
 
 export const REVISION_COMPARISON_PROVIDER = 'openai'
 
-export const REVISION_COMPARISON_MODEL = 'gpt-5.6-sol'
+export const REVISION_COMPARISON_MODEL = 'gpt-6.1-sol'
 
 export const REVISION_COMPARISON_PASSES = 2
 

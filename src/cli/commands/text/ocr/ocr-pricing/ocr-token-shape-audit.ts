@@ -1,4 +1,6 @@
 import { resolve } from 'node:path'
+import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { HOSTED_OCR_ADAPTERS } from '../hosted-ocr-adapters'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { readManifest, resolveManifestRelativePath } from '~/cli/commands/command-shared/pipeline-manifest'
 import { readHostedOcrTokenUsageProfilesForAudit, resolveHostedOcrModeFromExtractionMethod, resolveHostedOcrTokenPageCountBand } from '../ocr-utils/hosted-ocr-token-profiles'
@@ -13,8 +15,12 @@ import { isNormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/
 const MINIMUM_HEALTHY_SAMPLES = 3
 const PROMOTION_ERROR_THRESHOLD = 20
 
-const defaultTarget = (provider: TokenPricedOcrProvider, model: string): boolean =>
-  provider === 'kimi' || (provider === 'gemini' && model.toLowerCase().includes('pro'))
+const defaultTarget = (provider: TokenPricedOcrProvider, model: string): boolean => {
+  const configuredModels = getModelRegistry().extract[provider]?.models
+  return HOSTED_OCR_ADAPTERS.some(adapter => adapter.service === provider)
+    && configuredModels !== undefined
+    && Object.hasOwn(configuredModels, model)
+}
 
 const targetSelected = (
   provider: TokenPricedOcrProvider,
@@ -83,6 +89,7 @@ const metricAudit = (
 const usageBasis = (provider: TokenPricedOcrProvider): OcrTokenShapeAuditBucket['usageBasis'] =>
   provider === 'gemini'
     ? 'candidate-plus-thoughts'
+    // Historical Kimi evidence retains its original accounting label.
     : provider === 'kimi'
       ? 'reported-prompt-completion'
       : 'canonical-prompt-completion'

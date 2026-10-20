@@ -12,6 +12,7 @@ import { globalFlagsForCommand } from './global-flag-support'
 import type { CliCommandDefinition, CliCommandHelpDefinition, CliFlagDefinition, CliFlagsDefinition, CliParameterDefinition, CliRootDefinition } from '~/types'
 
 export const HELP_EXAMPLE_ALIGN_COLUMN_CAP = 100
+const HELP_DEFAULTS_NOTE = 'Defaults shown are built-in fallbacks; saved settings can override them. Boolean switches are off unless stated otherwise.'
 
 const ANSI_ESCAPE_PATTERN = /\x1b\[[0-9;]*m/g
 
@@ -250,6 +251,7 @@ export const renderRootHelp = (
   if (options.topic === 'globals') lines.splice(5)
   if (options.topic !== 'overview') lines.push('Global Flags', ...renderFlagRows(orderGlobalFlags(root.globalFlags), '  ', width), '')
   if (options.topic !== 'globals') lines.push('Examples', `  ${root.scriptName} extract document.pdf --price`, '    Preview local document extraction', `  ${root.scriptName} write notes.md --price`, '    Estimate a writing run', '')
+  lines.push('Notes', wrapHelpDescription('  ', HELP_DEFAULTS_NOTE, width), '')
   lines.push('Help Topics', '  overview  Commands and common workflows', '  globals   Shared output and diagnostic controls', '', `Run ${root.scriptName} <command> --help for command flags, or add --help-topic <topic> for focused help.`)
   return `${lines.join('\n')}\n`
 }
@@ -301,7 +303,7 @@ export const renderCommandHelp = (
   if (examples.length > 0) {
     lines.push(...examples)
   }
-  const notes = renderNotes({ ...command, help: { ...command.help, notes: [...(command.help?.notes ?? []), ...(topic?.notes ?? [])] } })
+  const notes = renderNotes({ ...command, help: { ...command.help, notes: [HELP_DEFAULTS_NOTE, ...(command.help?.notes ?? []), ...(topic?.notes ?? [])] } })
   if (notes.length > 0) {
     lines.push(...notes.map(line => line.startsWith('  ') ? wrapHelpDescription('  ', line.trim(), width) : line))
   }

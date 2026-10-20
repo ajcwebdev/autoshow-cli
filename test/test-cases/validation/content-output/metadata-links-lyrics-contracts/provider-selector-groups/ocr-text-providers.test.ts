@@ -1,128 +1,14 @@
 import { expect, test } from 'bun:test'
-import { expectLinksUsageError } from '../links-usage-errors'
-import {
-  collectLinks,
-  parseLinksArgv,
-} from '~/cli/commands/setup-and-utilities/links/define-links-command'
-import {
-  GLM_OCR_LINKS,
-  GLM_MODELS_LINKS,
-  KIMI_ALL_LINKS,
-  KIMI_MODELS_LINKS,
-  KIMI_OCR_LINKS,
-  KIMI_TEXT_LINKS,
-  SPIDER_URL_LINKS,
-  X_URL_LINKS,
-  ZYTE_URL_LINKS
-} from './fixtures/index'
+import { collectLinks, parseLinksArgv } from '~/cli/commands/setup-and-utilities/links/define-links-command'
+import { SPIDER_URL_LINKS, X_URL_LINKS, ZYTE_URL_LINKS } from './fixtures/index'
 
-test('links selector retains GLM OCR and models while rejecting its removed Reader section', async () => {
-  const glmOcrSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--provider', 'glm',
-    'ocr'
-  ])
-
-  expect(collectLinks(
-    glmOcrSelection.serviceSelections,
-    glmOcrSelection.globalSections
-  )).toEqual(GLM_OCR_LINKS)
-
-  const glmModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--provider', 'glm',
-    'models'
-  ])
-
-  expect(collectLinks(
-    glmModelsSelection.serviceSelections,
-    glmModelsSelection.globalSections
-  )).toEqual(GLM_MODELS_LINKS)
-
-  await expectLinksUsageError([
-    'bun', 'src/cli/create-cli.ts', 'links', '--provider', 'glm', 'url'
-  ], 'Unknown links section(s) for --provider glm: url')
-
-  const globalUrlSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    'url'
-  ])
-
-  expect(collectLinks(
-    globalUrlSelection.serviceSelections,
-    globalUrlSelection.globalSections
-  )).toEqual([
-    ...X_URL_LINKS,
-    ...ZYTE_URL_LINKS,
-    ...SPIDER_URL_LINKS
-  ])
+test('removed Kimi and GLM links providers reject instead of exposing inactive catalogs', () => {
+  for (const provider of ['kimi', 'glm']) for (const section of [undefined, 'models', 'text', 'ocr']) {
+    expect(() => parseLinksArgv(['bun', 'src/cli/create-cli.ts', 'links', '--provider', provider, ...(section ? [section] : [])])).toThrow()
+  }
 })
 
-
-test('links selector accepts kimi provider with general text and ocr sections', async () => {
-  const kimiSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--provider', 'kimi'
-  ])
-
-  expect(kimiSelection.serviceSelections.get('kimi')).toEqual([])
-  expect(collectLinks(
-    kimiSelection.serviceSelections,
-    kimiSelection.globalSections
-  )).toEqual(KIMI_ALL_LINKS)
-
-  const kimiModelsSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--provider', 'kimi',
-    'models'
-  ])
-
-  expect(collectLinks(
-    kimiModelsSelection.serviceSelections,
-    kimiModelsSelection.globalSections
-  )).toEqual(KIMI_MODELS_LINKS)
-
-  const kimiTextSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--provider', 'kimi',
-    'text'
-  ])
-
-  expect(collectLinks(
-    kimiTextSelection.serviceSelections,
-    kimiTextSelection.globalSections
-  )).toEqual(KIMI_TEXT_LINKS)
-
-  const kimiOcrSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--provider', 'kimi',
-    'ocr'
-  ])
-
-  expect(collectLinks(
-    kimiOcrSelection.serviceSelections,
-    kimiOcrSelection.globalSections
-  )).toEqual(KIMI_OCR_LINKS)
-
-  await expectLinksUsageError([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--provider', 'kimi',
-    'tts'
-  ], 'Unknown links section(s) for --provider kimi: tts')
+test('global URL links include only the retained provider sections', () => {
+  const selection = parseLinksArgv(['bun', 'src/cli/create-cli.ts', 'links', 'url'])
+  expect(collectLinks(selection.serviceSelections, selection.globalSections)).toEqual([...X_URL_LINKS, ...ZYTE_URL_LINKS, ...SPIDER_URL_LINKS])
 })

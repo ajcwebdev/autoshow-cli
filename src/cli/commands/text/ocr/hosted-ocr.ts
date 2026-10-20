@@ -6,6 +6,7 @@ import { commandExists, exec } from '~/utils/cli-utils'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'
+import { assertNoRemovedOcrSelections } from './ocr-engine-selection'
 import { HOSTED_OCR_ADAPTERS, hostedOcrAdapterForEngine, hostedOcrAdapterForService } from './hosted-ocr-adapters'
 import { GEMINI_FILE_UPLOAD_BYTES, GEMINI_PDF_PAGE_COUNT_LIMIT } from './ocr-services/gemini-ocr/gemini-ocr'
 import { isBunImagePngNormalizableFormat, normalizeImageToPngWithBun } from './ocr-utils/bun-image-utils'
@@ -54,7 +55,7 @@ const hostedDirectImageFormats = (
 
 const HOSTED_DIRECT_IMAGE_FORMATS = Object.fromEntries(
   HOSTED_OCR_ADAPTERS.map((adapter) => [adapter.engine, hostedDirectImageFormats([...adapter.directImageFormats])])
-) as Record<HostedExtractOcrEngine, HostedDirectImageFormatSet>
+) as Partial<Record<HostedExtractOcrEngine, HostedDirectImageFormatSet>>
 
 const normalizeHostedImageFormat = (format: string): string =>
   format.toLowerCase() === 'jpeg'
@@ -69,6 +70,7 @@ export const resolveHostedDirectImageInputStrategy = (
 ): HostedDirectImageInputStrategy => {
   const normalizedFormat = normalizeHostedImageFormat(format)
   const formats = HOSTED_DIRECT_IMAGE_FORMATS[engine]
+  if (!formats) return 'unsupported'
   if (formats.direct.has(normalizedFormat)) {
     return 'direct'
   }
@@ -403,6 +405,7 @@ export const runHostedOcr = async (
   step1Metadata: DocumentMetadata,
   opts: ExtractionOptions
 ): Promise<HostedOcrRun> => {
+  assertNoRemovedOcrSelections(opts)
   const selectedProvider = resolveHostedOcrSelection(opts)
   if (selectedProvider) {
     resolveReasoningPolicy({

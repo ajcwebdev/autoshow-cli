@@ -149,7 +149,7 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
     completionTokens: 100000
   } satisfies OcrStepFixture],
   partialStep2: [{
-    extractionMethod: 'kimi-ocr',
+    extractionMethod: 'deepinfra-ocr',
     totalPages: 228,
     ocrPages: 227,
     textPages: 0,
@@ -157,17 +157,17 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
     dpi: 300,
     languages: 'eng',
     tokenEstimate: 190000,
-    ocrService: 'kimi',
-    ocrModel: 'kimi-latest',
+    ocrService: 'deepinfra',
+    ocrModel: 'deepinfra-latest',
     promptTokens: 971207,
     completionTokens: 107681,
     providerCostSource: 'partial_provider_usage',
     status: 'failed_partial',
-    artifactDir: 'providers/kimi-kimi-latest',
+    artifactDir: 'providers/deepinfra-deepinfra-latest',
     completedPages: 227,
     failedPages: 1,
     failure: {
-      message: 'Kimi OCR page 9 timed out after 10m',
+      message: 'DeepInfra OCR page 9 timed out after 10m',
       category: 'timeout',
       failureKind: 'timeout',
       retryable: true
@@ -185,8 +185,8 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
       completionTokens: 100000
     }, {
       step: 'extract',
-      provider: 'kimi',
-      model: 'kimi-latest',
+      provider: 'deepinfra',
+      model: 'deepinfra-latest',
       cost: 0.75,
       pageCount: 228,
       promptTokens: 1000000,
@@ -205,8 +205,8 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
       completionTokens: 100000
     }, {
       step: 'extract',
-      provider: 'kimi',
-      model: 'kimi-latest',
+      provider: 'deepinfra',
+      model: 'deepinfra-latest',
       cost: 0.7,
       costSource: 'partial_provider_usage',
       inputMetric: 'tokens',
@@ -237,8 +237,8 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
         delta: { costCents: -0.05 }
       }),
       createOcrDiagnostic({
-        provider: 'kimi',
-        model: 'kimi-latest',
+        provider: 'deepinfra',
+        model: 'deepinfra-latest',
         status: 'failed_partial',
         pages: 228,
         completedPages: 227,
@@ -277,8 +277,8 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
         inputValue: 228
       }, {
         step: 'extract',
-        provider: 'kimi',
-        model: 'kimi-latest',
+        provider: 'deepinfra',
+        model: 'deepinfra-latest',
         processingTimeMs: 600000,
         inputMetric: 'pages',
         inputValue: 227

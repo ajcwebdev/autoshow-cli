@@ -7,29 +7,31 @@ import { ttsChunkingFlags, ttsExportFlags, ttsMasteringFlags } from './tts-deliv
 import type { CliFlagsDefinition } from '~/types'
 
 export const ttsFlags = {
-  'tts-dialogue-format': strFlag(`Dialogue input format for multi-speaker TTS: ${formatValueList(TTS_DIALOGUE_FORMATS)} (requires --tts-speaker)`),
-  'tts-speaker': strListFlag('Multi-speaker TTS voice mapping, SPEAKER=VOICE or SPEAKER=path; repeatable')
+  'tts-dialogue-format': strFlag(`Dialogue input format for multi-speaker TTS: ${formatValueList(TTS_DIALOGUE_FORMATS)}; required with --tts-speaker (default: unset)`),
+  'tts-speaker': strListFlag('Multi-speaker TTS voice mapping, SPEAKER=VOICE; repeatable; existing provider voice IDs only (default: single voice)')
 } as const satisfies CliFlagsDefinition
 
 export const genericTtsOptionFlags = {
   'allow-ambiguous-redispatch': boolFlag('Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio'),
-  'tts-voice': strListFlag('Generic TTS voice selector. Use value with one selected provider, or provider=value with multiple providers.'),
+  'tts-voice': strListFlag('Generic TTS voice selector. Use value with one selected provider, or provider=value with multiple providers. See bun autoshow tts --help-topic provider:<name> for available voices and defaults.'),
   'tts-speed': strListFlag(genericTtsOptionDescription('tts-speed', 'Generic TTS speed')),
   'tts-language': strListFlag(genericTtsOptionDescription('tts-language', 'Generic TTS language')),
   'tts-text-normalization': strListFlag(genericTtsOptionDescription('tts-text-normalization', 'Generic TTS text normalization')),
   'tts-instructions': strListFlag(genericTtsOptionDescription('tts-instructions', 'Generic TTS voice/style instructions or free-form delivery description')),
   'tts-stability': strListFlag(genericTtsOptionDescription('tts-stability', 'Generic TTS voice stability')),
-  'tts-similarity': strListFlag(genericTtsOptionDescription('tts-similarity', 'Generic TTS voice similarity boost')),
-  'tts-style': strListFlag(genericTtsOptionDescription('tts-style', 'Generic TTS voice style exaggeration')),
-  'tts-speaker-boost': strListFlag(genericTtsOptionDescription('tts-speaker-boost', 'Generic TTS speaker boost')),
+  // None of the active ElevenLabs models supports these controls. Preserve parsing and explicit
+  // rejection for older callers, but do not advertise options that cannot affect an active model.
+  'tts-similarity': { ...strListFlag(genericTtsOptionDescription('tts-similarity', 'Generic TTS voice similarity boost')), help: { hidden: true } },
+  'tts-style': { ...strListFlag(genericTtsOptionDescription('tts-style', 'Generic TTS voice style exaggeration')), help: { hidden: true } },
+  'tts-speaker-boost': { ...strListFlag(genericTtsOptionDescription('tts-speaker-boost', 'Generic TTS speaker boost')), help: { hidden: true } },
   'tts-seed': strListFlag(genericTtsOptionDescription('tts-seed', 'Generic TTS deterministic generation seed')),
   'tts-pronunciation-dictionary': strListFlag(genericTtsOptionDescription('tts-pronunciation-dictionary', 'Generic TTS pronunciation dictionary locator as dictionary_id or dictionary_id:version_id')),
   'tts-response-format': strListFlag(genericTtsOptionDescription('tts-response-format', 'Generic TTS audio response format')),
 } as const satisfies CliFlagsDefinition
 
 const standaloneTtsOnlyFlags = {
-  'gemini-tts-mode': strFlag('Gemini transport: unary|stream|batch (default unary). Batch submits remote Batch API jobs; directory batching is local.'),
-  'gemini-tts-batch-wait-seconds': strFlag('Seconds to wait for Gemini Batch jobs (default 86400; 0 submits and returns). Resume retains pending jobs.'),
+  'gemini-tts-mode': strFlag('Gemini transport: unary|stream|batch (default: unary); requires an explicit Gemini selection. Batch submits remote Batch API jobs; directory batching is local.'),
+  'gemini-tts-batch-wait-seconds': strFlag('Seconds to wait for Gemini Batch jobs; integer 0-86400 (default: 86400; 0 submits and returns); requires --gemini-tts-mode batch. Resume retains pending jobs.'),
 } as const satisfies CliFlagsDefinition
 
 const ttsProviderSelectionFlags = {

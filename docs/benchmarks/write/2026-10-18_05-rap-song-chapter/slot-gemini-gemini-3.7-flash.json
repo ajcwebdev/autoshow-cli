@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "05-rap-song-chapter",
+  "provider": "gemini",
+  "model": "gemini-3.7-flash",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:37:31.443Z",
+  "artifactHashes": {
+    "raw-response-gemini-gemini-3.7-flash-attempt-1.json": "feac6e98f7971fa4743a0db46b6cec3a86740ca0170352cd5bad1e4328b3b569",
+    "text-gemini-gemini-3.7-flash.json": "2d5e81f3d19be05ab0271261c7baca324e2134c4b84742f0e3096b388d3eede8",
+    "text-gemini-gemini-3.7-flash.md": "b29fb72e52573b75dcf992aa09d6785b56c3fcbb9948b22a0e8897ed787c10b1"
+  },
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-3.7-flash",
+    "providerReturnedModel": "gemini-3.8-flash",
+    "processingTime": 35217,
+    "inputTokenCount": 3523,
+    "outputTokenCount": 3946,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3523,
+      "outputTokenCount": 3946,
+      "totalTokenCount": 7469
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 3523,
+      "candidatesTokenCount": 856,
+      "totalTokenCount": 7469,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 3523
+        }
+      ],
+      "thoughtsTokenCount": 3090,
+      "serviceTier": "standard"
+    },
+    "outputFileName": "text-gemini-gemini-3.7-flash.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "rapSongChapterLyrics"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-3.7-flash",
+      "generationConfig": {
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6"
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 3.4879499999999997
+  },
+  "completedAt": "2026-10-18T18:38:06.660Z",
+  "wallTimeMs": 35217,
+  "networkAttempts": 1
+}

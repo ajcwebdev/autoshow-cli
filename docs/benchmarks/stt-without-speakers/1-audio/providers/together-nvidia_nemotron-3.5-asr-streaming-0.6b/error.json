@@ -1,0 +1,61 @@
+{
+  "service": "together",
+  "model": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+  "message": "Together transcription failed (400): This model only supports WebSocket streaming.",
+  "stage": "openai",
+  "status": 400,
+  "rawResponseFile": "raw-response.json",
+  "error": {
+    "name": "OpenAIRestError",
+    "message": "Together transcription failed (400): This model only supports WebSocket streaming.",
+    "stack": "OpenAIRestError: Together transcription failed (400): This model only supports WebSocket streaming.\n    at createError (src/utils/openai/openai-client.ts:79:9)\n    at <anonymous> (src/utils/rest-client.ts:126:29)\n    at async <anonymous> (src/utils/openai/openai-client.ts:146:26)\n    at async <anonymous> (src/utils/openai/openai-client.ts:192:9)\n    at async <anonymous> (src/cli/commands/stt/stt-shared/openai-compatible-single-speaker.ts:98:9)\n    at async <anonymous> (src/cli/commands/stt/stt-shared/openai-compatible-single-speaker.ts:183:20)\n    at async <anonymous> (src/utils/retries.ts:35:20)\n    at async <anonymous> (src/cli/commands/stt/stt-shared/openai-compatible-single-speaker.ts:116:9)\n    at async <anonymous> (src/cli/commands/stt/stt-shared/openai-compatible-single-speaker.ts:178:25)\n    at async <anonymous> (src/cli/commands/stt/diarization-off-by-default/together/run-together-stt.ts:40:16)\n    at async <anonymous> (src/cli/commands/stt/run-stt/dispatch.ts:74:36)\n    at async <anonymous> (src/cli/commands/stt/run-stt/dispatch.ts:92:50)",
+    "kind": "provider_http",
+    "hints": [],
+    "exitCode": 1,
+    "status": 400,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "*",
+      "alt-svc": "h3=\":443\"; ma=86400",
+      "cf-cache-status": "DYNAMIC",
+      "cf-ray": "REDACTED",
+      "connection": "keep-alive",
+      "content-length": "200",
+      "content-type": "application/json; charset=utf-8",
+      "date": "Sat, 17 Oct 2026 20:24:22 GMT",
+      "etag": "W/\"c8-umgXctE3VBIbKseCtGVg/VKZkgc\"",
+      "request-id": "REDACTED",
+      "server": "cloudflare",
+      "strict-transport-security": "max-age=15552000; includeSubDomains",
+      "vary": "accept-encoding",
+      "x-amzn-trace-id": "REDACTED",
+      "x-api-call-start": "2026-10-17T20:24:21.984Z",
+      "x-api-received": "2026-10-17T20:24:21.739Z",
+      "x-request-id": "REDACTED"
+    },
+    "stage": "openai",
+    "metadata": {},
+    "body": "{\n  \"id\": \"p5deNEb-3pDw3Z-a4c206bab982de75\",\n  \"error\": {\n    \"message\": \"This model only supports WebSocket streaming.\",\n    \"type\": \"invalid_request_error\",\n    \"param\": null,\n    \"code\": null\n  }\n}",
+    "rawResponse": {
+      "id": "p5deNEb-3pDw3Z-a4c206bab982de75",
+      "error": {
+        "message": "This model only supports WebSocket streaming.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": null
+      }
+    },
+    "bodyBytes": 200,
+    "bodyTruncated": false,
+    "bodyPreview": "{ \"id\": \"p5deNEb-3pDw3Z-a4c206bab982de75\", \"error\": { \"message\": \"This model only supports WebSocket streaming.\", \"type\": \"invalid_request_error\", \"param\": null, \"code\": null } }",
+    "error": {
+      "message": "This model only supports WebSocket streaming.",
+      "type": "invalid_request_error",
+      "param": null,
+      "code": null
+    },
+    "type": "invalid_request_error",
+    "bodyRetainedBytes": 200,
+    "bodyOmittedBytes": 0
+  }
+}

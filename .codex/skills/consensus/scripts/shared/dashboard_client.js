@@ -16,6 +16,7 @@ const SORT_METRICS = ["quality", "speed", "cost"];
 /** Starting split for the custom-weighting sliders; the three always total 100. */
 const WEIGHT_DEFAULTS = { quality: 60, speed: 20, cost: 20 };
 const SORT_LABELS = { quality: "Quality", speed: "Speed", cost: "Cost" };
+const MODEL_FILTER_STORAGE_KEY = "autoshow-dashboard-supported-models-only";
 const ARTIFACT_HREF_PATTERN = /^(?:[A-Za-z0-9_.~-]+\/)*[A-Za-z0-9_.~-]+$/;
 
 function esc(value) {
@@ -99,13 +100,14 @@ function providerRows(group, metric, includeData) {
 }
 
 function providerTable(group, idPrefix) {
+  const sortLabels = group.metricSortLabels ?? SORT_LABELS;
   const evidenceHeaders = group.evidenceColumns.map((column) => `<th class="num">${esc(column)}</th>`).join("");
   const radios = SORT_METRICS.map((metric, index) => {
     const id = sortControlId(group.key, metric, idPrefix);
     const checked = index === 0 ? " checked" : "";
     return (
       `<input type="radio" name="sort-${esc(idPrefix)}${esc(group.key)}" id="${esc(id)}" value="${metric}"${checked}>` +
-      `<label class="sort-opt" for="${esc(id)}">${SORT_LABELS[metric]}</label>`
+      `<label class="sort-opt" for="${esc(id)}">${esc(sortLabels[metric])}</label>`
     );
   }).join("");
   const tables = SORT_METRICS.map((metric) => {
@@ -120,7 +122,7 @@ function providerTable(group, idPrefix) {
       `<table class="providers">` +
       `<thead>${header}</thead>` +
       `<tbody>${providerRows(group, metric, metric === "quality")}</tbody>` +
-      `<caption>Sorted by ${SORT_LABELS[metric].toLowerCase()}. Click Quality, Speed, or Cost to reorder. Rank boxes show each metric's own rank: green = top third, yellow = middle third, red = bottom third. Groups are as equal as possible, with extra places in earlier thirds.</caption>` +
+      `<caption>Sorted by ${esc(sortLabels[metric].toLowerCase())}. Click ${esc(sortLabels.quality)}, ${esc(sortLabels.speed)}, or ${esc(sortLabels.cost)} to reorder. Rank boxes show each metric's own rank: green = top third, yellow = middle third, red = bottom third. Groups are as equal as possible, with extra places in earlier thirds.</caption>` +
       `</table></div>`
     );
   }).join("");
@@ -130,7 +132,7 @@ function providerTable(group, idPrefix) {
       const id = `w-${idPrefix}${group.key}-${metric}`;
       return (
         `<span class="w">` +
-        `<label for="${esc(id)}">${SORT_LABELS[metric]}</label>` +
+        `<label for="${esc(id)}">${esc(sortLabels[metric])}</label>` +
         `<input type="range" id="${esc(id)}" data-weight="${metric}" min="0" max="100" step="1" value="${WEIGHT_DEFAULTS[metric]}">` +
         `<output for="${esc(id)}">${WEIGHT_DEFAULTS[metric]}%</output>` +
         `</span>`
@@ -291,15 +293,24 @@ function renderTabPanel(tab) {
 }
 
 /** Markup for the whole <main>: heading, tab radios, tab bar, and one panel per tab. */
-function renderDashboard(data) {
+function renderDashboard(data, options = {}) {
   assertTabs(data.tabs);
+  const supportedOnly = options.supportedOnly !== false;
+  const hasSupportedView = data.tabs.some((tab) => tab.supportedModel);
   const inputs = data.tabs
     .map((tab, index) => `<input type="radio" name="dashboard-tab" id="tab-${tab.key}"${index === 0 ? " checked" : ""}>`)
     .join("\n");
   const chips = data.tabs.map((tab) => `<label for="tab-${tab.key}">${esc(tab.label)}</label>`).join("");
-  const panels = data.tabs.map((tab) => renderTabPanel(tab)).join("\n");
+  const panels = data.tabs.map((tab) => renderTabPanel({
+    ...tab,
+    model: supportedOnly ? tab.supportedModel ?? tab.model : tab.model,
+  })).join("\n");
+  const modelFilter = hasSupportedView
+    ? `<div class="model-filter"><label for="supported-models-only"><input type="checkbox" id="supported-models-only"${supportedOnly ? " checked" : ""}> Only CLI-supported models</label><span class="notes">Uncheck to include historical models.</span></div>`
+    : "";
   return `<h1>${esc(data.title)}</h1>
 <p class="meta">Generated ${esc(data.generatedAt)} &middot; ${data.tabs.length} combined benchmark ${data.tabs.length === 1 ? "root" : "roots"}</p>
+${modelFilter}
 ${inputs}
 <nav class="tabbar">${chips}</nav>
 ${panels}`;
@@ -392,7 +403,7 @@ function buildCustomTable(sort) {
 }
 
 /** Adds the Custom sort option and its three-slider weighting to every group's sort row. */
-function attachWeights(main) {
+function attachWeights(main, state = {}) {
   main.querySelectorAll(".provider-sort").forEach((sort, index) => {
     const panel = sort.querySelector(".weights");
     const radios = sort.querySelectorAll('input[type="radio"]');
@@ -424,6 +435,10 @@ function attachWeights(main) {
     for (const metric of SORT_METRICS) {
       sliders[metric] = panel.querySelector(`input[data-weight="${metric}"]`);
       outputs[metric] = panel.querySelector(`output[for="${sliders[metric].id}"]`);
+    }
+    const saved = state[last.name];
+    if (saved?.weights) {
+      for (const metric of SORT_METRICS) sliders[metric].value = String(saved.weights[metric]);
     }
 
     const rows = [...wrap.querySelectorAll("tbody tr")];
@@ -530,6 +545,10 @@ function attachWeights(main) {
     }
 
     paint(current());
+    if (saved && [...SORT_METRICS, "custom"].includes(saved.selected)) {
+      const selected = sort.querySelector(`input[value="${saved.selected}"]`);
+      if (selected) selected.checked = true;
+    }
   });
 }
 
@@ -559,14 +578,66 @@ function attachTabs(main) {
   }
 }
 
-/** Replaces the shell's contents with the rendered dashboard and wires up its controls. */
-function mount(main, data) {
-  main.innerHTML = renderDashboard(data);
+function storedSupportedOnly() {
+  try {
+    return globalThis.localStorage?.getItem(MODEL_FILTER_STORAGE_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+function rememberSupportedOnly(value) {
+  try { globalThis.localStorage?.setItem(MODEL_FILTER_STORAGE_KEY, String(value)); } catch { /* Storage can be unavailable. */ }
+}
+
+function captureDashboardState(main, previous = {}) {
+  const sorts = { ...previous.sorts };
+  for (const sort of main.querySelectorAll(".provider-sort")) {
+    const selected = sort.querySelector('input[type="radio"]:checked');
+    if (!selected) continue;
+    const weights = {};
+    for (const input of sort.querySelectorAll("input[data-weight]")) weights[input.dataset.weight] = Number(input.value);
+    sorts[selected.name] = { selected: selected.value, weights };
+  }
+  const details = {};
+  for (const panel of main.querySelectorAll(".panel")) {
+    for (const detail of panel.querySelectorAll("details")) {
+      const key = `${panel.id}:${detail.querySelector("summary")?.textContent}`;
+      details[key] = detail.open;
+    }
+  }
+  return { tabId: main.querySelector('input[name="dashboard-tab"]:checked')?.id, sorts, details };
+}
+
+/** Replaces the shell's contents with the selected view, preserving controls when the model filter changes. */
+function mount(main, data, options = {}) {
+  const supportedOnly = options.supportedOnly ?? storedSupportedOnly();
+  const state = options.state ?? {};
+  main.innerHTML = renderDashboard(data, { supportedOnly });
   if (typeof data.title === "string") {
     document.title = data.title;
   }
+  for (const radio of main.querySelectorAll('input[name="dashboard-tab"]')) {
+    if (radio.id === state.tabId) radio.checked = true;
+  }
   attachTabs(main);
-  attachWeights(main);
+  attachWeights(main, state.sorts);
+  for (const panel of main.querySelectorAll(".panel")) {
+    for (const detail of panel.querySelectorAll("details")) {
+      const key = `${panel.id}:${detail.querySelector("summary")?.textContent}`;
+      if (state.details?.[key] !== undefined) detail.open = state.details[key];
+    }
+  }
+  const toggle = main.querySelector("#supported-models-only");
+  if (toggle) {
+    toggle.addEventListener("change", () => {
+      const nextState = captureDashboardState(main, state);
+      const checked = toggle.checked;
+      rememberSupportedOnly(checked);
+      mount(main, data, { supportedOnly: checked, state: nextState });
+      main.querySelector("#supported-models-only")?.focus({ preventScroll: true });
+    });
+  }
 }
 
 function showStatus(main, message) {
@@ -601,6 +672,7 @@ const api = {
   TAB_KEY_PATTERN,
   SORT_METRICS,
   WEIGHT_DEFAULTS,
+  MODEL_FILTER_STORAGE_KEY,
   esc,
   assertTabs,
   renderTabPanel,

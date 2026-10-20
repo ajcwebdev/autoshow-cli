@@ -18,7 +18,7 @@ afterEach(async () => {
 
 describe('test-runner contracts', () => {
   test('price config isolation appends empty config to mapped write price commands', () => {
-      const args = ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'openai=gpt-5.6-sol', '--price']
+      const args = ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'openai=gpt-6.1-sol', '--price']
 
       expect(withEmptyPriceConfig(args)).toEqual([
         ...args,
@@ -43,7 +43,7 @@ describe('test-runner contracts', () => {
         'write',
         'https://ajc.pics/autoshow/examples/1-audio.mp3',
         '--provider',
-        'openai=gpt-5.6-sol',
+        'openai=gpt-6.1-sol',
         '--price',
         '--config-path',
         'config/custom-autoshow.json',

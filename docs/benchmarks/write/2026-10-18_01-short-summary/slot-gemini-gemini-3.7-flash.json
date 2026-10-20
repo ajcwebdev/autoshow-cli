@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "caseId": "01-short-summary",
+  "provider": "gemini",
+  "model": "gemini-3.7-flash",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:30:43.808Z",
+  "artifactHashes": {
+    "raw-response-gemini-gemini-3.7-flash-attempt-1.json": "50666b526bea5dcb6f4c0c0ace20db5e5eaa54bce834247ed60fcda2d85eda0c",
+    "text-gemini-gemini-3.7-flash.json": "b13b27dbb4e6a14dff9e54ef62c567eb727fb7e01f8f3586dce483bbd0adc9c1",
+    "text-gemini-gemini-3.7-flash.md": "a88e407dbd34d4f10e5972abc19b2f188dc774f00892c625276df1a2193f2551"
+  },
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-3.7-flash",
+    "providerReturnedModel": "gemini-3.8-flash",
+    "processingTime": 4013,
+    "inputTokenCount": 468,
+    "outputTokenCount": 425,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 468,
+      "outputTokenCount": 425,
+      "totalTokenCount": 893
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 468,
+      "candidatesTokenCount": 30,
+      "totalTokenCount": 893,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 468
+        }
+      ],
+      "thoughtsTokenCount": 395,
+      "serviceTier": "standard"
+    },
+    "outputFileName": "text-gemini-gemini-3.7-flash.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "shortSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-3.7-flash",
+      "generationConfig": {
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c"
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.38894999999999996
+  },
+  "completedAt": "2026-10-18T18:30:47.829Z",
+  "wallTimeMs": 4020,
+  "networkAttempts": 1
+}

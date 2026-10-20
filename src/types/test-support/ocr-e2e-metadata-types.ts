@@ -1,5 +1,6 @@
 type OcrE2eEpubExportMetadata = {
   sourceFormat?: 'epub' | 'pdf'
+  normalizedFrom?: string
   mode?: 'chapters' | 'chunks'
   chunkLimitChars?: number
   directories?: string[]
@@ -20,7 +21,7 @@ type OcrE2ePdfChapterDetectionMetadata = {
 }
 
 export type OcrE2eExtractMetadata = {
-  step1?: { format?: string }
+  step1?: { format?: string; sourceFormat?: string; normalizedFormat?: string; conversionChain?: string[] }
   primaryProvider?: { service?: string; model?: string }
   resolvedStep2?: {
     route?: string
@@ -32,6 +33,9 @@ export type OcrE2eExtractMetadata = {
   missingProviders?: Array<unknown>
   step2?: {
     extractionMethod?: string
+    inputFamily?: string
+    normalizedFrom?: string
+    conversionChain?: string[]
     totalPages?: number
     epub?: Record<string, unknown>
     chapterExport?: OcrE2eEpubExportMetadata

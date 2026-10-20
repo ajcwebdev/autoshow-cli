@@ -1,0 +1,42 @@
+{
+  "result": "{\"episodeDescription\":\"James Berkins recounts being laid off during a downturn and, thanks to strong dev connections, signing a new role within 12 hours.\"}",
+  "metadata": {
+    "llmService": "kimi",
+    "llmModel": "kimi-k3",
+    "providerReturnedModel": "kimi-k3",
+    "processingTime": 5571,
+    "inputTokenCount": 542,
+    "outputTokenCount": 158,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 542,
+      "outputTokenCount": 158,
+      "totalTokenCount": 700
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 542,
+      "completion_tokens": 158,
+      "total_tokens": 700,
+      "completion_tokens_details": {
+        "reasoning_tokens": 110
+      },
+      "prompt_tokens_details": {
+        "cache_write_tokens": 512
+      }
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "low",
+    "requestSettings": {
+      "model": "kimi-k3",
+      "stream": false,
+      "max_completion_tokens": 32768,
+      "reasoning_effort": "low",
+      "response_format": {
+        "type": "json_object"
+      }
+    }
+  }
+}

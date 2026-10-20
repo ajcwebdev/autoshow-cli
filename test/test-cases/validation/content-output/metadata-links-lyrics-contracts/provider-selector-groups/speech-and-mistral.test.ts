@@ -17,7 +17,7 @@ import {
   TOGETHER_ALL_LINKS,
   TOGETHER_GENERAL_LINKS,
   TOGETHER_MODELS_LINKS,
-  TOGETHER_TEXT_LINKS
+  TOGETHER_STT_LINKS
 } from './fixtures/index'
 import { registerProviderSelectorCases } from './provider-selector-cases'
 
@@ -45,13 +45,13 @@ registerProviderSelectorCases([
     invalid: { sections: ['music'], message: 'Unknown links section(s) for --provider grok: music' }
   },
   {
-    name: 'links selector accepts together provider with general models stt and text sections',
+    name: 'links selector accepts together provider with general models and stt sections',
     provider: 'together',
     all: { expected: TOGETHER_ALL_LINKS, outputFileName: 'together-all-links.md' },
     selections: [
-      { sections: ['text'], expected: TOGETHER_TEXT_LINKS, outputFileName: 'together-text-links.md' },
+      { sections: ['stt'], expected: TOGETHER_STT_LINKS, outputFileName: 'together-stt-links.md' },
       { sections: ['models'], expected: TOGETHER_MODELS_LINKS },
-      { sections: ['general', 'text'], expected: [...TOGETHER_GENERAL_LINKS, ...TOGETHER_TEXT_LINKS], outputFileName: 'together-general-text-links.md' }
+      { sections: ['general', 'stt'], expected: [...TOGETHER_GENERAL_LINKS, ...TOGETHER_STT_LINKS], outputFileName: 'together-general-stt-links.md' }
     ],
     invalid: { sections: ['ocr'], message: 'Unknown links section(s) for --provider together: ocr' }
   },

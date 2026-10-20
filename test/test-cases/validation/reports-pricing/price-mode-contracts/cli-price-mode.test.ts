@@ -14,7 +14,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'write',
-    args: ['write', STABLE_TTS_MD_PATH, '--provider', 'openai=gpt-5.6-luna', '--price', '--json'],
+    args: ['write', STABLE_TTS_MD_PATH, '--provider', 'openai=gpt-6-luna', '--price', '--json'],
     expected: '"files"'
   },
   {
@@ -84,7 +84,7 @@ describe('price mode contracts', () => {
         'extract',
         'input/examples/document/3-document.pdf',
         '--provider',
-        'kimi=kimi-k2.6',
+        'deepinfra=google/gemma-4-31B-it',
         '--price', '--json'
       ])
 
@@ -101,9 +101,9 @@ describe('price mode contracts', () => {
         'write',
         STABLE_TTS_MD_PATH,
         '--provider',
-        'openai=gpt-5.6-sol',
+        'openai=gpt-6.1-sol',
         '--provider',
-        'grok=grok-4.6',
+        'grok=grok-4.7',
         '--price', '--json'
       ])
 

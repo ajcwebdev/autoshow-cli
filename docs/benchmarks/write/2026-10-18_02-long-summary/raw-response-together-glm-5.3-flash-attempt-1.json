@@ -1,0 +1,47 @@
+{
+  "result": "{\n  \"episodeSummary\": \"In this co-host-only episode, the Everfund founder walks Anthony through the rarely documented craft of building a third-party JavaScript widget, using Everfund's donation script as a case study. He explains why injected scripts must typically be bundled to UMD since CommonJS fails on other sites, how Microbundle produced invalid UMD output so Rollup was added, and the tradeoffs of hosting scripts privately versus on npm CDNs. They weigh when it's safe to drop UMD for ESM given roughly 93% browser support, compare npm packages versus script tags for developer experience, and describe their separate JavaScript and React SDKs. Key challenges include CSS encapsulation, iframe versus DOM injection (iframes avoid CORS blocks and ease updates but resist styling customization), and a baffling WordPress bug solved by bundling the script inside the WordPress instance. Looking ahead, Everfund is building a headless donation SDK. The episode closes with podcast housekeeping: documentation approaches like Divio's taxonomy and ReadMe with Stripe as the benchmark, upcoming sponsorships, thoughts on vetting guests and sponsor trust, favorite recent episodes such as Hydrogen and Kent C. Dodds, and attending Remix Conference.\"\n}",
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "glm-5.3-flash",
+    "providerReturnedModel": "zai-org/GLM-5.3-Flash",
+    "processingTime": 15812,
+    "inputTokenCount": 10489,
+    "outputTokenCount": 2438,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 10489,
+      "outputTokenCount": 2438,
+      "totalTokenCount": 12927
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 10489,
+      "completion_tokens": 2438,
+      "total_tokens": 12927,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 2191
+      }
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "zai-org/GLM-5.3-Flash",
+      "stream": false,
+      "max_tokens": 32768,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_longSummary",
+          "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+          "strict": true
+        }
+      }
+    }
+  }
+}

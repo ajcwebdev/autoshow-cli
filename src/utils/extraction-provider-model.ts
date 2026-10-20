@@ -1,5 +1,6 @@
 import type { ExtractionMetadata, ProviderModelBase } from '~/types'
 
+// Saved metadata can name retired article providers; active URL adapters control dispatch.
 const HTML_EXTRACTION_PROVIDER_MODELS: Array<[method: string, provider: string, model: string]> = [
   ['html+defuddle', 'defuddle', 'defuddle'],
   ['html+firecrawl', 'firecrawl', 'firecrawl'],

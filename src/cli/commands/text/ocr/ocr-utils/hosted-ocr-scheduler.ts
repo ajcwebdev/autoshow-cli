@@ -152,12 +152,6 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
       return this.fixedCap ?? HOSTED_OCR_AUTO_INITIAL_CAP
     }
     const existingLane = this.lanes.get(laneIdentity.laneKey)
-    if (
-      existingLane?.service === 'kimi'
-      && existingLane.retryPressureCount > 0
-    ) {
-      return existingLane.maxCap
-    }
     const targetKey = targetKeyFor(admission)
     const laneTargetCount = existingLane
       ? prospectiveHostedOcrLaneTargetCount(existingLane, targetKey)

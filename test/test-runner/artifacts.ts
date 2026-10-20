@@ -2,7 +2,7 @@ import { appendFileSync } from 'node:fs'
 import { AppendLogSink } from './append-log-sink'
 import { readUtf8FileExact } from '~/utils/bun-file-io'
 import { mkdir, readdir, rm } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { basename, dirname, resolve } from 'node:path'
 import type { RunnerLogHandle, TestRunArtifacts } from '~/types'
 import { formatTimestampForDir } from './utils'
 import { isObjectLike } from '~/utils/value-helpers'
@@ -12,6 +12,7 @@ export const LATEST_CALIBRATION_FILE = 'latest-model-calibration.json'
 // Files at the output root that outlive every run's cleanup.
 const PRESERVED_ROOT_FILES = new Set([LATEST_LOG_FILE, LATEST_CALIBRATION_FILE])
 const ACTIVE_RUN_FILE = '.active-run.json'
+const COMPLETED_RUN_FILE = '.completed-run.json'
 const RUNNER_LOG_FLUSH_INTERVAL_MS = 100
 const RUNNER_LOG_FLUSH_SIZE_BYTES = 64 * 1024
 const COMMAND_LOG_TAIL_BYTES = 256 * 1024
@@ -107,8 +108,8 @@ const isPidAlive = (pid: number): boolean => {
   try {
     process.kill(pid, 0)
     return true
-  } catch {
-    return false
+  } catch (error) {
+    return !(isObjectLike(error) && error['code'] === 'ESRCH')
   }
 }
 
@@ -116,6 +117,44 @@ const isActiveRunDir = async (dir: string): Promise<boolean> => {
   const marker = await readJsonIfExists(resolve(dir, ACTIVE_RUN_FILE))
   const pid = marker?.['pid']
   return typeof pid === 'number' && Number.isInteger(pid) && pid > 0 && isPidAlive(pid)
+}
+
+const hasPreservedTtsArtifacts = async (dir: string): Promise<boolean> => {
+  // A passing test can intentionally exercise a failed or interrupted TTS run.
+  // Keep those purchased segments and journals even when the test itself passes.
+  try {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      if (entry.name === '.DS_Store') continue
+      if (entry.isDirectory()) {
+        if (entry.name.startsWith('.tts-tmp-') || await hasPreservedTtsArtifacts(resolve(dir, entry.name))) return true
+      } else if (entry.isFile() && entry.name === 'manifest.json') {
+        const manifest = await readJsonIfExists(resolve(dir, entry.name))
+        if (!manifest || manifest['command'] === 'tts') return true
+      } else if (entry.isFile() && /\.(?:wav|mp3|m4a|aac|ogg|flac|opus|aiff?)$/i.test(entry.name)) {
+        return true
+      }
+    }
+    return false
+  } catch {
+    // Unreadable evidence cannot establish that recursive deletion is safe.
+    return true
+  }
+}
+
+const isCompletedSuccessfulRun = async (dir: string): Promise<boolean> => {
+  const completed = await readJsonIfExists(resolve(dir, COMPLETED_RUN_FILE))
+  if (completed?.['schemaVersion'] !== 1 || completed['owner'] !== 'autoshow-test-runner'
+    || completed['runId'] !== basename(dir) || completed['exitCode'] !== 0) return false
+  const report = await readJsonIfExists(resolve(dir, 'report.json'))
+  const run = report?.['run']
+  const summary = report?.['summary']
+  return isObjectLike(run) && run['id'] === basename(dir)
+    && (run['mode'] === 'price' || run['mode'] === 'test')
+    && typeof run['endedAt'] === 'string' && Number.isFinite(Date.parse(run['endedAt']))
+    && isObjectLike(summary) && summary['failed'] === 0
+    && report?.['error'] === undefined
+    && !readRecords(report?.['tests']).some(entry => entry['status'] === 'failed')
+    && !readRecords(report?.['commands']).some(entry => entry['status'] === 'failed')
 }
 
 const formatUnknown = (value: unknown): string | null => {
@@ -209,7 +248,7 @@ const appendFailures = (lines: string[], report: Record<string, unknown> | null)
 
 export const cleanupTestOutputRoot = async (
   rootDir = TEST_OUTPUT_ROOT,
-  options: { keepRunDir?: string, preserveActiveRuns?: boolean } = {}
+  options: { keepRunDir?: string } = {}
 ): Promise<void> => {
   await mkdir(rootDir, { recursive: true })
 
@@ -218,7 +257,8 @@ export const cleanupTestOutputRoot = async (
   const pathsToRemove: string[] = []
 
   for (const entry of entries) {
-    if (PRESERVED_ROOT_FILES.has(entry.name)) {
+    if (entry.name === '.DS_Store') continue
+    if (!entry.isDirectory() || PRESERVED_ROOT_FILES.has(entry.name)) {
       continue
     }
 
@@ -227,14 +267,10 @@ export const cleanupTestOutputRoot = async (
       continue
     }
 
-    if (options.preserveActiveRuns) {
-      if (entry.name === '.test-cache') {
-        continue
-      }
-      if (entry.isDirectory() && await isActiveRunDir(entryPath)) {
-        continue
-      }
-    }
+    // Cleanup is limited to this runner's confirmed successful artifacts.
+    // Active, failed, interrupted, legacy, unknown, and TTS work stays intact.
+    if (await isActiveRunDir(entryPath) || !await isCompletedSuccessfulRun(entryPath)
+      || await hasPreservedTtsArtifacts(entryPath)) continue
 
     pathsToRemove.push(entryPath)
   }
@@ -242,9 +278,11 @@ export const cleanupTestOutputRoot = async (
   await Promise.all(pathsToRemove.map(path => rm(path, { recursive: true, force: true })))
 }
 
-export const cleanupRunArtifacts = async (artifacts: TestRunArtifacts): Promise<void> => {
+export const cleanupRunArtifacts = async (artifacts: TestRunArtifacts): Promise<boolean> => {
   await closeArtifactLogs(artifacts)
+  if (!await isCompletedSuccessfulRun(artifacts.runDir) || await hasPreservedTtsArtifacts(artifacts.runDir)) return false
   await rm(artifacts.runDir, { recursive: true, force: true })
+  return true
 }
 
 export const createRunArtifacts = async (rootDir = TEST_OUTPUT_ROOT): Promise<TestRunArtifacts> => {
@@ -407,5 +445,12 @@ export const writeLatestRunLog = async (
 
   await mkdir(artifacts.rootDir, { recursive: true })
   await Bun.write(latestLogPath, `${lines.join('\n')}\n`)
+  await Bun.write(resolve(artifacts.runDir, COMPLETED_RUN_FILE), `${JSON.stringify({
+    schemaVersion: 1,
+    owner: 'autoshow-test-runner',
+    runId: artifacts.runId,
+    exitCode,
+    endedAt: new Date().toISOString(),
+  })}\n`)
   return latestLogPath
 }

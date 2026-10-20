@@ -269,36 +269,6 @@
       "completionTokensPerPage": 294
     },
     {
-      "provider": "glm",
-      "model": "glm-5.3-flash",
-      "ocrMode": "image",
-      "pageCountBand": "1",
-      "effectiveReasoningEffort": "default",
-      "sampleCount": 3,
-      "promptTokensPerPage": 1828,
-      "completionTokensPerPage": 309
-    },
-    {
-      "provider": "glm",
-      "model": "glm-5.3-flash",
-      "ocrMode": "image",
-      "pageCountBand": "1",
-      "effectiveReasoningEffort": "low",
-      "sampleCount": 3,
-      "promptTokensPerPage": 1828,
-      "completionTokensPerPage": 280
-    },
-    {
-      "provider": "glm",
-      "model": "glm-5.3-flash",
-      "ocrMode": "image",
-      "pageCountBand": "1",
-      "effectiveReasoningEffort": "max",
-      "sampleCount": 3,
-      "promptTokensPerPage": 1828,
-      "completionTokensPerPage": 318
-    },
-    {
       "provider": "grok",
       "model": "grok-4.5",
       "ocrMode": "image",
@@ -357,36 +327,6 @@
       "sampleCount": 3,
       "promptTokensPerPage": 2077,
       "completionTokensPerPage": 295
-    },
-    {
-      "provider": "kimi",
-      "model": "kimi-k3",
-      "ocrMode": "image",
-      "pageCountBand": "1",
-      "effectiveReasoningEffort": "default",
-      "sampleCount": 3,
-      "promptTokensPerPage": 1957,
-      "completionTokensPerPage": 920
-    },
-    {
-      "provider": "kimi",
-      "model": "kimi-k3",
-      "ocrMode": "image",
-      "pageCountBand": "1",
-      "effectiveReasoningEffort": "low",
-      "sampleCount": 3,
-      "promptTokensPerPage": 1958,
-      "completionTokensPerPage": 664
-    },
-    {
-      "provider": "kimi",
-      "model": "kimi-k3",
-      "ocrMode": "image",
-      "pageCountBand": "1",
-      "effectiveReasoningEffort": "max",
-      "sampleCount": 3,
-      "promptTokensPerPage": 1957,
-      "completionTokensPerPage": 731
     },
     {
       "provider": "openai",

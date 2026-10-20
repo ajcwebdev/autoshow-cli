@@ -13,6 +13,15 @@ import {
 
 export const formatAllowedValues = (values: readonly string[]): string => values.join(', ')
 
+export const assertNoRemovedLlmSelections = (options: object): void => {
+  const values = options as Record<string, unknown>
+  const removedKeys = ['glmModels', 'kimiModels', 'togetherModels']
+    .filter(key => values[key] !== undefined && values[key] !== null)
+  if (removedKeys.length > 0 || ['glm', 'kimi', 'together'].includes(String(values['llmService']))) {
+    throw UsageError('GLM and Kimi writing models, including Together routes, are no longer supported. Remove the obsolete selection and choose an active model explicitly. AutoShow will not silently substitute a different model identity.')
+  }
+}
+
 const SELECTOR_CATEGORIES = [
   { stepFlag: 'stt', targets: WRITE_STT_PROVIDER_TARGETS },
   { stepFlag: 'ocr', targets: WRITE_OCR_PROVIDER_TARGETS },

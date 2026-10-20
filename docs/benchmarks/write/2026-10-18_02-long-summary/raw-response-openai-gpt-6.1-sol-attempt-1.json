@@ -1,0 +1,46 @@
+{
+  "result": "{\"episodeSummary\":\"The FSJam hosts explore the challenges of building third-party JavaScript widgets through Everfund’s donation SDK. They compare UMD, CommonJS, and ES modules, weighing browser compatibility against bundle size, and discuss CDN hosting, npm packages, framework integration, and a WordPress issue solved by hosting the script locally. The conversation then contrasts iframe-based widgets with direct DOM rendering: iframes simplify isolation and updates but limit styling customization. Everfund’s planned headless donation API illustrates a shift toward giving developers control over their own interfaces. From there, the hosts discuss documentation, distinguishing tutorials, how-to guides, explanations, and API references. They close by considering FSJam’s future, including more host-only discussions, sponsorships, and merchandise to support production. Throughout, they emphasize education-first advocacy, vetting guests and sponsors, and preserving listener trust, while framing the podcast as a lasting record of web development’s evolving ideas.\"}",
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6.1-sol",
+    "providerReturnedModel": "gpt-6.1-sol",
+    "processingTime": 3964,
+    "inputTokenCount": 10205,
+    "outputTokenCount": 200,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 10205,
+      "outputTokenCount": 200,
+      "totalTokenCount": 10405
+    },
+    "rawProviderUsage": {
+      "input_tokens": 10205,
+      "input_tokens_details": {
+        "cache_write_tokens": 10202,
+        "cached_tokens": 0
+      },
+      "output_tokens": 200,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 10405
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-6.1-sol",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_longSummary",
+          "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+          "strict": true
+        }
+      }
+    }
+  }
+}

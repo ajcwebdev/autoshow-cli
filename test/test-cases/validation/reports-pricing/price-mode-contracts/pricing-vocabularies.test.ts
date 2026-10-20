@@ -18,6 +18,7 @@ const EXPECTED_COST_SOURCES = [
   'local_zero'
 ] as const satisfies readonly CostSource[]
 
+// Includes frozen receipt identities; active provider dispatch is separately restricted.
 const EXPECTED_TOKEN_PRICED_OCR_PROVIDERS = [
   'glm',
   'kimi',

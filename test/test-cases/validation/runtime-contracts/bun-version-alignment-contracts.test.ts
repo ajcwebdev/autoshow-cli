@@ -31,12 +31,20 @@ describe('Bun version alignment contracts', () => {
     expect((lockfile.packages?.['bun-types'] as unknown[] | undefined)?.[0]).toBe(`bun-types@${SUPPORTED_BUN_VERSION}`)
     expect(dockerfile).toContain(`oven/bun:${SUPPORTED_BUN_VERSION}-slim@sha256:cb3bbbb08e13a4a2ff400f24c7a2a1d5efa83f6ef8544d52d95a519631e2fc61`)
 
-    const workflow = await Bun.file('.github/workflows/docker-publish.yml').text()
-    const setupVersions = [...workflow.matchAll(/bun-version: (\S+)/g)].map(([, version]) => version)
-    const runtimeVersions = [...workflow.matchAll(/--version\)" = "([^"]+)"/g)].map(([, version]) => version)
-    expect(setupVersions).toHaveLength(3)
-    expect(runtimeVersions).toHaveLength(3)
-    expect(new Set([...setupVersions, ...runtimeVersions])).toEqual(new Set([SUPPORTED_BUN_VERSION]))
+    const workflow = Bun.YAML.parse(await Bun.file('.github/workflows/docker-publish.yml').text()) as {
+      jobs?: Record<string, { steps?: Array<{ uses?: string, run?: string, with?: Record<string, unknown> }> }>
+    }
+    const setupSteps = Object.entries(workflow.jobs ?? {}).flatMap(([job, config]) =>
+      (config.steps ?? []).filter(step => step.uses?.startsWith('oven-sh/setup-bun@')).map(step => ({ job, step })))
+    expect(setupSteps.map(({ job }) => job).sort()).toEqual([
+      'acceptance', 'package-hygiene', 'promote-latest', 'publish-manifest', 'verify',
+    ])
+    for (const { step } of setupSteps) expect(step.with?.['bun-version']).toBe(SUPPORTED_BUN_VERSION)
+
+    const runtimePins = Object.entries(workflow.jobs ?? {}).flatMap(([job, config]) =>
+      (config.steps ?? []).flatMap(step =>
+        [...(step.run ?? '').matchAll(/--version\)" = "([^"]+)"/g)].map(([, version]) => ({ job, version }))))
+    expect(runtimePins).toEqual([{ job: 'verify', version: SUPPORTED_BUN_VERSION }])
   })
 
   test('exact-version, age-gate, and isolated-linker install policies remain enabled', async () => {

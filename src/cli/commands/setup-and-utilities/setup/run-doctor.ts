@@ -29,6 +29,7 @@ import { pathExists } from '~/utils/filesystem'
 import { AppUsageError } from '~/utils/error-handler'
 import { hintsForMissingEnv, resolveCredential } from '~/utils/validate/env-utils'
 import { isSupportedBunVersion, SUPPORTED_BUN_VERSION } from '~/utils/bun-version'
+import { inspectTesseractEnglishData } from '~/utils/tesseract-language-data'
 
 const listNames = async (path: string): Promise<string[]> => {
   try {
@@ -60,13 +61,14 @@ const createDoctorProbes = (overrides: Partial<DoctorProbes> = {}): DoctorProbes
   pathExists: pathExists,
   listDirectory: listNames,
   directoryHasFiles: directoryHasAnyFiles,
-  run: async (command, args) => {
+  run: async (command, args, options) => {
     if (command === 'sh' && args[0] === whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL)) {
       try { await verifyWhisperfileArtifact(args[0], WHISPERFILE_ARTIFACTS[DEFAULT_WHISPERFILE_MODEL]!) }
       catch (error) { return { stdout: '', stderr: String(error), exitCode: 1 } }
     }
-    return await runCapture(command, args, { allowFailure: true })
+    return await runCapture(command, args, { ...options, allowFailure: true })
   },
+  resolveTessdataPrefix,
   resolveYtDlpBinaryInfo,
   readDefuddleCliReadiness,
   resolveConfigPath,
@@ -178,7 +180,6 @@ const checkTesseractEnglishData = async (probes: DoctorProbes): Promise<DoctorCh
     })
   }
 
-  const tessdataPrefix = resolveTessdataPrefix()
   if (resolved.source === 'managed' && !await probes.pathExists(englishTrainedDataPath)) {
     return check('MISSING', 'Tesseract eng data', `${englishTrainedDataPath} not found`, {
       severity: 'warn',
@@ -192,24 +193,23 @@ const checkTesseractEnglishData = async (probes: DoctorProbes): Promise<DoctorCh
     })
   }
 
-  const result = await probes.run(resolved.path, ['--list-langs'])
-  if (result.exitCode !== 0) {
-    return check('WARN', 'Tesseract eng data', `could not list languages: ${formatRunIssue(result)}`, {
-      nextStep: 'bun autoshow setup'
-    })
-  }
-
-  const langs = `${result.stdout}\n${result.stderr}`
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-
-  return langs.includes('eng')
-    ? check('OK', 'Tesseract eng data', `eng available (${resolved.source}, TESSDATA_PREFIX=${tessdataPrefix})`)
-    : check('MISSING', 'Tesseract eng data', 'eng not listed by tesseract --list-langs', {
+  try {
+    const prefix = probes.resolveTessdataPrefix()
+    const result = await inspectTesseractEnglishData(async args => await probes.run(resolved.path, args, {
+      env: { TESSDATA_PREFIX: prefix }
+    }))
+    return result.status === 'ready'
+      ? check('OK', 'Tesseract eng data', `eng initialized (${resolved.source}, TESSDATA_PREFIX=${prefix ?? 'Tesseract packaged default'})`)
+      : check(result.status === 'missing' ? 'MISSING' : 'WARN', 'Tesseract eng data', result.detail, {
+        severity: 'warn',
+        nextStep: 'bun autoshow setup'
+      })
+  } catch (error) {
+    return check('WARN', 'Tesseract eng data', error instanceof Error ? error.message : String(error), {
       severity: 'warn',
       nextStep: 'bun autoshow setup'
     })
+  }
 }
 
 const hasFilter = (filtersOutput: string, filterName: string): boolean =>

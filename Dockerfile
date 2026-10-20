@@ -9,66 +9,28 @@ FROM ${BUN_BASE_IMAGE} AS deps
 
 WORKDIR /app
 
-COPY package.json bun.lock* bunfig.toml ./
+COPY package.json bun.lock bunfig.toml ./
 
-RUN bun --no-env-file install --frozen-lockfile --production
+RUN bun --no-env-file install --frozen-lockfile --production --omit=peer
 
-FROM ${BUN_BASE_IMAGE} AS build-deps
+FROM ${BUN_BASE_IMAGE} AS alignment-deps
+ARG TARGETARCH
+WORKDIR /app/config/stt-alignment
+COPY config/stt-alignment ./
+RUN set -eu; \
+    case "${TARGETARCH}" in amd64) arch=x64 ;; arm64) arch=arm64 ;; *) echo "Unsupported target architecture: ${TARGETARCH}" >&2; exit 1 ;; esac; \
+    bun --no-env-file install --frozen-lockfile --ignore-scripts; \
+    onnx_bin=node_modules/onnxruntime-node/bin/napi-v6; \
+    test -f "${onnx_bin}/linux/${arch}/onnxruntime_binding.node"; \
+    find "${onnx_bin}" -mindepth 2 -maxdepth 2 ! -path "${onnx_bin}/linux/${arch}" -exec rm -rf {} +; \
+    test -f "${onnx_bin}/linux/${arch}/onnxruntime_binding.node"; \
+    chmod -R a+rX,go-w .
 
-WORKDIR /app
-
-COPY package.json bun.lock* bunfig.toml ./
-
-RUN bun --no-env-file install --frozen-lockfile
-
-COPY tsconfig.json ./
-COPY config ./config
-COPY src ./src
-
-RUN bun --no-env-file build src/cli/commands/stt/workflows/timing/stt-onnx-worker.ts --target=bun --outfile=/app/stt-onnx-worker.js
-
-RUN bun --no-env-file build src/cli/create-cli.ts \
-      --compile \
-      --bytecode \
-      --format=esm \
-      --no-compile-autoload-dotenv \
-      --no-compile-autoload-bunfig \
-      --no-compile-autoload-tsconfig \
-      --no-compile-autoload-package-json \
-      --compile-exec-argv=--no-orphans \
-      --asset=src/prompts/entries/chapters \
-      --asset=src/prompts/entries/creative-writing \
-      --asset=src/prompts/entries/marketing-content \
-      --asset=src/prompts/entries/social-media \
-      --asset=src/prompts/entries/song-lyrics \
-      --asset=src/prompts/entries/summary-and-overview \
-      --asset=src/tools/o200k-base-ranks.tiktoken.gz \
-      --asset=config \
-      --asset=src/cli/commands/setup-and-utilities/models \
-      --asset=src/cli/commands/setup-and-utilities/models/ocr-config \
-      --asset=src/cli/commands/setup-and-utilities/models/stt-config \
-      --asset=src/cli/commands/setup-and-utilities/models/tts-config \
-      --asset=src/cli/commands/visuals/comic/comic-prompts/prompts.json \
-      --asset-naming='[dir]/[name].[ext]' \
-      --metafile=/app/compiled-entrypoint-metafile.json \
-      --metafile-md=/app/compiled-entrypoint-metafile.md \
-      --outfile=/app/autoshow
-
-FROM --platform=$BUILDPLATFORM ${BUN_BASE_IMAGE} AS fetch
-
-ARG YT_DLP_URL=https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp
-ARG YT_DLP_SHA256=1fa6733c37ea6fb51c99ad8fe785e7b7e5f3246c9b980230329d4fb72ed8d4d6
-
-RUN set -eux; \
-    YT_DLP_URL="${YT_DLP_URL}" bun --no-env-file -e 'const url = process.env.YT_DLP_URL; const response = await fetch(url); if (!response.ok || !response.body) throw new Error(`yt-dlp download failed: ${response.status}`); const writer = Bun.file("/usr/local/bin/yt-dlp").writer(); for await (const chunk of response.body) writer.write(chunk); await writer.end();'; \
-    printf '%s %s\n' "${YT_DLP_SHA256}" /usr/local/bin/yt-dlp | sha256sum -c -; \
-    chmod 0755 /usr/local/bin/yt-dlp
-
-FROM ${BUN_BASE_IMAGE} AS runtime-base
+FROM ${BUN_BASE_IMAGE} AS runtime
 
 ARG DEBIAN_FRONTEND=noninteractive
-# Includes the PCRE2, OpenSSL, libheif, and librsvg security fixes required by the image audits.
-ARG DEBIAN_SNAPSHOT=20261015T205142Z
+# Includes the PCRE2, OpenSSL, libheif, librsvg, and Expat security fixes required by the image audits.
+ARG DEBIAN_SNAPSHOT=20261016T082316Z
 
 LABEL org.opencontainers.image.title="autoshow-cli"
 LABEL org.opencontainers.image.description="Bun-native AutoShow CLI with Debian slim local-lite tools"
@@ -97,37 +59,28 @@ RUN set -eux; \
       qpdf \
       tesseract-ocr \
       tesseract-ocr-eng; \
-    printf '%s\n' \
-      '#!/bin/sh' \
-      'SYSTEM_TESSDATA="/usr/share/tesseract-ocr/5/tessdata"' \
-      'if [ -n "${TESSDATA_PREFIX:-}" ] && [ ! -f "${TESSDATA_PREFIX%/}/eng.traineddata" ] && [ -f "$SYSTEM_TESSDATA/eng.traineddata" ]; then' \
-      '  export TESSDATA_PREFIX="$SYSTEM_TESSDATA"' \
-      'elif [ -z "${TESSDATA_PREFIX:-}" ] && [ -f "$SYSTEM_TESSDATA/eng.traineddata" ]; then' \
-      '  export TESSDATA_PREFIX="$SYSTEM_TESSDATA"' \
-      'fi' \
-      'exec /usr/bin/tesseract "$@"' \
-      > /usr/local/bin/tesseract; \
-    chmod 0755 /usr/local/bin/tesseract; \
     rm -rf /var/lib/apt/lists/* /root/.cache/* /tmp/*
 
-COPY --from=fetch /usr/local/bin/yt-dlp /usr/local/bin/yt-dlp
+# Keep the download after APT so yt-dlp pin changes reuse the package layer.
+ARG YT_DLP_URL=https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp
+ARG YT_DLP_SHA256=1fa6733c37ea6fb51c99ad8fe785e7b7e5f3246c9b980230329d4fb72ed8d4d6
+ADD --checksum=sha256:${YT_DLP_SHA256} --chmod=0755 ${YT_DLP_URL} /usr/local/bin/yt-dlp
 COPY --from=youtube-js /deno /usr/local/bin/deno
 
-RUN deno --version && yt-dlp --version
-
 WORKDIR /app
-COPY --chown=bun:bun config/defuddle ./config/defuddle
-
-FROM runtime-base AS runtime
-
-COPY --from=deps --chown=bun:bun /app/node_modules ./node_modules
-COPY --chown=bun:bun package.json bun.lock* bunfig.toml tsconfig.json ./
-COPY --chown=bun:bun src ./src
+COPY --chown=0:0 config/defuddle ./config/defuddle
+COPY --from=deps --chown=0:0 /app/node_modules ./node_modules
+COPY --chown=0:0 package.json bun.lock bunfig.toml tsconfig.json ./
+COPY --chown=0:0 src ./src
 
 RUN set -eux; \
-    mkdir -p input output runtime/tools; \
-    ln -s /usr/share/tesseract-ocr/5/tessdata runtime/tools/tessdata; \
-    chown -R bun:bun /app /home/bun
+    deno --version; \
+    yt-dlp --version; \
+    chmod 0755 /app /app/config; \
+    chmod -R a+rX,go-w /app/src /app/node_modules /app/config/defuddle; \
+    chmod 0644 package.json bun.lock bunfig.toml tsconfig.json; \
+    install -d -o bun -g bun -m 0755 input output runtime /home/bun /home/bun/.cache; \
+    ln -s ../runtime/autoshow.json config/autoshow.json
 
 USER bun
 
@@ -141,32 +94,7 @@ LABEL org.opencontainers.image.version="${AUTOSHOW_VERSION}"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.revision="${VCS_REF}"
 
-FROM runtime-base AS compiled-experiment
-
-COPY --from=build-deps --chown=bun:bun /app/autoshow /app/autoshow
-COPY --from=build-deps --chown=bun:bun /app/stt-onnx-worker.js /app/src/cli/commands/stt/workflows/timing/stt-onnx-worker.js
-COPY --chown=bun:bun config/stt-alignment ./config/stt-alignment
-COPY --from=build-deps --chown=bun:bun /app/compiled-entrypoint-metafile.json /app/compiled-entrypoint-metafile.json
-COPY --from=build-deps --chown=bun:bun /app/compiled-entrypoint-metafile.md /app/compiled-entrypoint-metafile.md
-RUN set -eux; \
-    mkdir -p input output runtime/tools; \
-    ln -s /usr/share/tesseract-ocr/5/tessdata runtime/tools/tessdata; \
-    chown -R bun:bun /app /home/bun
-
-USER bun
-
-ENTRYPOINT ["/app/autoshow"]
-CMD ["help"]
-# Build identity is declared after the last RUN so per-commit values never invalidate cached layers.
-ARG AUTOSHOW_VERSION=0.1.0
-ARG BUILD_DATE=unknown
-ARG VCS_REF=unknown
-LABEL org.opencontainers.image.version="${AUTOSHOW_VERSION}"
-LABEL org.opencontainers.image.created="${BUILD_DATE}"
-LABEL org.opencontainers.image.revision="${VCS_REF}"
-
 FROM runtime AS alignment
-COPY --chown=bun:bun config/stt-alignment ./config/stt-alignment
-RUN bun --no-env-file install --cwd config/stt-alignment --frozen-lockfile --ignore-scripts
+COPY --from=alignment-deps --chown=0:0 /app/config/stt-alignment ./config/stt-alignment
 
 FROM runtime AS production

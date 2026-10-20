@@ -21,7 +21,6 @@ import { writeFakeDefuddleBinIn } from '../../../../../test-utils/fixtures/fake-
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../../test-utils/rest-contract-helpers'
 
 const envKeys = [
-  'GLM_API_KEY',
   'SPIDER_API_KEY',
   'ZYTE_API_KEY',
   'AUTOSHOW_DEFUDDLE_ARGS_LOG',

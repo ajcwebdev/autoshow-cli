@@ -160,15 +160,14 @@ describe('Bun-native migration contracts', () => {
 
     const failure = runSyncCommand(process.execPath, ['-e', 'process.stdout.write("out"); process.stderr.write("err"); process.exit(7)'])
     expect(failure).toMatchObject({ exitCode: 7, success: false, stdout: 'out', stderr: 'err' })
-    expect(() => runSyncCommandOrThrow(process.execPath, ['-e', 'process.stderr.write("failed"); process.exit(9)']))
-      .toThrow(SyncCommandError)
+    let thrown: unknown
     try {
       runSyncCommandOrThrow(process.execPath, ['-e', 'process.stderr.write("failed"); process.exit(9)'])
-      throw new Error('runSyncCommandOrThrow unexpectedly accepted a failure')
     } catch (error) {
-      expect(error).toBeInstanceOf(SyncCommandError)
-      expect(error).toMatchObject({ exitCode: 1, childExitCode: 9, stderr: 'failed' })
+      thrown = error
     }
+    expect(thrown).toBeInstanceOf(SyncCommandError)
+    expect(thrown).toMatchObject({ exitCode: 1, childExitCode: 9, stderr: 'failed' })
   })
 
   test('synchronous subprocess maxBuffer keeps exact output and bounds overflow', () => {

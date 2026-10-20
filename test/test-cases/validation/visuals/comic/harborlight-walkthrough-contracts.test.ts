@@ -26,7 +26,7 @@ const workspace = async (retainedRoot?: string) => {
   await Bun.write(wav, createSyntheticWavBytes({ durationSeconds: 0.35, amplitude: 0.2, frequencyHz: 440 }))
   // Independent official wire expectations (retrieved 2026-10-15):
   // https://developers.openai.com/api/docs/guides/text
-  // https://developers.openai.com/api/docs/models/gpt-5.6-sol
+  // https://developers.openai.com/api/docs/models/gpt-6.1-sol
   // https://developers.openai.com/api/reference/resources/images/methods/edit
   // https://developers.openai.com/api/reference/resources/images/methods/generate
   // https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create
@@ -39,7 +39,7 @@ globalThis.fetch = async (input, init) => {
  const model = typeof body?.get === 'function' ? body.get('model') : body?.model
  appendFileSync(${JSON.stringify(callsFile)}, JSON.stringify({ url, model, responseFormat: body?.response_format }) + String.fromCharCode(10))
  if (url === 'https://api.openai.com/v1/responses') {
-  if (model !== 'gpt-5.6-sol' || body.text?.format?.type !== 'json_schema') throw new Error('Unexpected scene model or structured response contract')
+  if (model !== 'gpt-6.1-sol' || body.text?.format?.type !== 'json_schema') throw new Error('Unexpected scene model or structured response contract')
   return Response.json({ id: 'resp_harborlight_test', object: 'response', status: 'completed', model, output: [{ id: 'msg_harborlight_test', type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: readFileSync(${JSON.stringify(sceneFile)}, 'utf8'), annotations: [] }] }], usage: { input_tokens: 200, output_tokens: 200, total_tokens: 400 } })
  }
  if (url === 'https://api.openai.com/v1/images/edits' || url === 'https://api.openai.com/v1/images/generations') {
@@ -98,7 +98,7 @@ test('original Harborlight inputs support real local parser, prompts, authored b
   expect(plan.generatedBy.mode).toBe('import')
   expect(plan.stageStates[0].startsAt.sourceSegmentSha256).toMatch(/^[a-f0-9]{64}$/)
   for (const stage of ['blocking', 'scene']) {
-    const result = await w.success(['draft-scenes', w.script, '--only', stage, '--provider', 'openai=gpt-5.6-sol', ...(stage === 'scene' ? ['--panel-count', '4'] : []), '--price'])
+    const result = await w.success(['draft-scenes', w.script, '--only', stage, '--provider', 'openai=gpt-6.1-sol', ...(stage === 'scene' ? ['--panel-count', '4'] : []), '--price'])
     expect(JSON.parse(result.stdout).data.price).toBe(true)
     const estimate = result.stderr.trim().split('\n').map(line => JSON.parse(line)).find(event => typeof event.metadata?.totalCost === 'number')
     expect(estimate.metadata.totalCost).toBeGreaterThan(0)
@@ -108,7 +108,7 @@ test('original Harborlight inputs support real local parser, prompts, authored b
   expect(await Bun.file(join(w.run, 'metadata/structured-script.json')).text()).toBe(bytes)
   expect(await Bun.file(join(w.run, 'metadata/scene.json')).exists()).toBe(false)
   expect(await w.calls()).toEqual([])
-  const badCount = await w.cli(['draft-scenes', w.script, '--only', 'scene', '--panel-count', '5', '--provider', 'openai=gpt-5.6-sol'])
+  const badCount = await w.cli(['draft-scenes', w.script, '--only', 'scene', '--panel-count', '5', '--provider', 'openai=gpt-6.1-sol'])
   expect(badCount.code).not.toBe(0)
   expect(badCount.stdout + badCount.stderr).toContain('4 authored')
   expect(await w.calls()).toEqual([])
@@ -117,7 +117,7 @@ test('original Harborlight inputs support real local parser, prompts, authored b
 test('controlled hosted scene, sketch sheet and final panels feed real snapshots, canonical publication and local review without quality claims', async () => {
   const w = await workspace(), { structured } = await prepareLocalStages(w)
   await Bun.write(w.sceneFile, JSON.stringify(sceneResponse(structured)))
-  await w.success(['draft-scenes', w.script, '--only', 'scene', '--panel-count', '4', '--provider', 'openai=gpt-5.6-sol'], true)
+  await w.success(['draft-scenes', w.script, '--only', 'scene', '--panel-count', '4', '--provider', 'openai=gpt-6.1-sol'], true)
   await w.success(['draft-scenes', w.script, '--only', 'panel-prompts'])
   expect(await w.calls()).toHaveLength(1)
   expect(await Bun.file(join(w.run, 'metadata/panel-prompts/source-coverage.json')).json()).toMatchObject({ complete: true, totalSegments: 12, coveredSegments: 12, missingSegments: [], missingItems: [] })
@@ -150,7 +150,7 @@ test('controlled hosted scene, sketch sheet and final panels feed real snapshots
 test('controlled synthetic dialogue supports decoded local audio and synchronized slideshow with missing/corrupt artifact rejection and reuse', async () => {
   const w = await workspace(process.env['AUTOSHOW_HARBORLIGHT_COMIC_ARTIFACT_ROOT']), { bytes, structured } = await prepareLocalStages(w)
   await Bun.write(w.sceneFile, JSON.stringify(sceneResponse(structured)))
-  await w.success(['draft-scenes', w.script, '--only', 'scene', '--panel-count', '4', '--provider', 'openai=gpt-5.6-sol'], true)
+  await w.success(['draft-scenes', w.script, '--only', 'scene', '--panel-count', '4', '--provider', 'openai=gpt-6.1-sol'], true)
   await w.success(['draft-scenes', w.script, '--only', 'panel-prompts'])
   await w.success(['generate-images', w.script, '--target', 'images', '--provider', 'openai=gpt-image-2', '--no-qa', '--max-repairs', '0'], true)
   // Test-only approved snapshot: never copied to user fixtures or presented as a reviewed real voice.

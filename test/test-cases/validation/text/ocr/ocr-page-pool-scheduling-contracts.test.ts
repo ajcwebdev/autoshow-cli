@@ -32,7 +32,7 @@ describe('pooled OCR page scheduler contracts', () => {
 
   test('uses one shared queue, preserves page order, and shares same-account lane caps', async () => {
     const targets: OcrTarget[] = [
-      { service: 'openai', model: 'gpt-5.6-sol' },
+      { service: 'openai', model: 'gpt-6.1-sol' },
       { service: 'openai', model: 'gpt-5.6-terra' },
       { service: 'gemini', model: 'gemini-3.6-flash' },
       { service: 'tesseract', model: 'tesseract' }
@@ -87,7 +87,7 @@ describe('pooled OCR page scheduler contracts', () => {
 
   test('hands a transient or ambiguous failure to another eligible target and records paid attempts', async () => {
     const targets: OcrTarget[] = [
-      { service: 'openai', model: 'gpt-5.6-sol' },
+      { service: 'openai', model: 'gpt-6.1-sol' },
       { service: 'mistral', model: 'mistral-ocr-4-0' }
     ]
     const ledger = await runPool({
@@ -133,7 +133,7 @@ describe('pooled OCR page scheduler contracts', () => {
 
   test('retires target and account lanes without discarding accepted pages', async () => {
     const targets: OcrTarget[] = [
-      { service: 'openai', model: 'gpt-5.6-sol' },
+      { service: 'openai', model: 'gpt-6.1-sol' },
       { service: 'openai', model: 'gpt-5.6-terra' },
       { service: 'mistral', model: 'mistral-ocr-4-0' }
     ]
@@ -143,7 +143,7 @@ describe('pooled OCR page scheduler contracts', () => {
       targetsToRun: targets,
       providerConcurrency: 3,
       processPage: async ({ pageNumber, target }) => {
-        if (target.service === 'openai' && target.model === 'gpt-5.6-sol') {
+        if (target.service === 'openai' && target.model === 'gpt-6.1-sol') {
           throw Object.assign(ProviderError('account blocked'), { laneWide: true })
         }
         await Bun.sleep(target.service === 'mistral' ? 1 : 3)

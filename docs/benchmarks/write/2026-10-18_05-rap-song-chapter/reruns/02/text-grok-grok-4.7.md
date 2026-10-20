@@ -1,0 +1,98 @@
+# Room on the Page
+
+Intro
+
+I set the teal enamel mug beside the folded map.
+Mira. Cream compass badge faced the open window.
+Thin mist striped the ridge beyond the harbor.
+Papa Bear, human field guide, patient, rust-colored coat.
+
+Verse 1
+
+You checked the weather, the trail notice, the time we turn.
+Nothing entered the pack until those three were firm.
+I checked the torch, the water, the notebook, the spare layer.
+Each carried a route copy. Weather changes, we turn back.
+The mug's weight kept the map from lifting in the harbor breeze.
+I matched the footbridge to the first marker and traced the path.
+Harborlight Camp — I wrote it on a fresh notebook page.
+Table cleared. We took the scope and all we brought, before dusk.
+Trail mouth: I photographed the board, then checked the printed map.
+The marker pointed toward the sheltered ridge. We held that line.
+A shortcut tempted. A brighter hillside called. We did not change the plan.
+Overlook. You showed the bridge looking different from a new angle.
+Short from the shore. Long from above. I drew both views.
+I labeled where I stood. I did not call one sketch untrue.
+Tent on the designated level ground. We kept the path clear.
+Scope stayed cased while we checked the tripod feet.
+Mug back from the edge. Notebook clipped so the pages would not blow.
+A thin cloud crossed the first evening star. I hoped to see everything at once.
+You suggested recording the cloud as part of the view.
+First entry — pale sky, one bright point, breeze from the water — already useful.
+
+Chorus
+
+Write what you can actually see.
+Teal mug on the folded map.
+Harborlight — leave room on the page.
+Describe it before you decide.
+
+Verse 2
+
+Darkness settled. I lowered the lantern, turned the shield to the table.
+A small warm circle found the mug and the notebook.
+Beyond it, ridge and sky grew easier to distinguish.
+You kept the scope away from the sun's last glow.
+We waited for full darkness, then began.
+Turns at the eyepiece. I described a bright point without guessing distance.
+You asked what had changed since the previous look.
+The cloud had moved.
+The harbor lights had sharpened.
+The pale band above the ridge had faded.
+A brief streak crossed the open sky while we both looked up.
+Neither of us had time to draw the entire path.
+Direction, approximate time, a moment — that was all.
+The page left room. A glimpse did not become a grand discovery.
+We said nothing for a while. The quiet was part of our shared attention.
+Mug in my hands. Waiting gave a view we would have missed by hurrying.
+
+Chorus
+
+Write what you can actually see.
+Teal mug warm between both hands.
+Harborlight — leave room on the page.
+A moment noted is not a grand discovery.
+
+Verse 3
+
+Before bed I compared the notebook with the route plan.
+Place, weather, time, observer — each entry carried them.
+Sketches labeled sketches. Uncertain stayed uncertain.
+Someone who never stood beside the scope could still use the page.
+Morning. I counted: mug, notebook, clip, lantern, case.
+You checked the designated campsite for scraps and loose equipment.
+We left the site as clear as we found it, same marked path toward the harbor.
+At the overlook, morning light made the footbridge look different again.
+I added a third small drawing to the first page.
+Nothing in the old sketches had to be erased.
+Together they showed how position and light can change an honest look.
+Open window. The teal mug returned beside the folded map.
+Four pages of notes. Three sketches of the footbridge.
+Describe the evidence before deciding what it means.
+That habit can start the next walk, without a more dramatic story.
+
+Bridge
+
+Rewind — the page, not the ridge.
+"Pale sky. One bright point. A breeze from the water."
+You, in the dark: "What changed since the previous look?"
+Streak: direction, approximate time, only a moment.
+Sketch labeled sketch. Uncertain left uncertain.
+Room on the page, not a grand discovery.
+
+Chorus
+
+Write what you can actually see.
+Teal mug back beside the folded map.
+Harborlight — the old sketches stayed.
+Describe the evidence. Then decide.

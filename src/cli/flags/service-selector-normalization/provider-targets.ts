@@ -117,8 +117,6 @@ export const WRITE_STT_PROVIDER_TARGETS = {
 export const WRITE_OCR_PROVIDER_TARGETS = {
   tesseract: 'tesseract-ocr',
   mistral: 'mistral-ocr',
-  glm: 'glm-ocr',
-  kimi: 'kimi-ocr',
   openai: 'openai-ocr',
   grok: 'grok-ocr',
   anthropic: 'anthropic-ocr',
@@ -131,9 +129,6 @@ export const WRITE_LLM_PROVIDER_TARGETS = {
   gemini: 'gemini',
   anthropic: 'anthropic',
   grok: 'grok',
-  glm: 'glm',
-  kimi: 'kimi',
-  together: 'together',
 } as const satisfies Record<string, string>
 
 // Comic's text roles use the shared LLM registry. The QA vision judge is restricted structurally:
@@ -149,9 +144,6 @@ export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescripto
     gemini: { modelsKey: 'geminiModels' },
     anthropic: { modelsKey: 'anthropicModels' },
     grok: { modelsKey: 'grokModels' },
-    glm: { modelsKey: 'glmModels' },
-    kimi: { modelsKey: 'kimiModels' },
-    together: { modelsKey: 'togetherModels' },
   }
 )
 

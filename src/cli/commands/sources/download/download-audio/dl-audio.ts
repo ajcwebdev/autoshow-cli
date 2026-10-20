@@ -124,7 +124,7 @@ const downloadDirectMediaUrl = async (url: string, outputDir: string): Promise<s
     },
     (error) => classifyFetchRetry(error, 'runtime_http_read')
   )
-  await writeHttpPayloadToFile(response, dest)
+  await writeHttpPayloadToFile(response, dest, { payloadClass: 'source', stage: 'download:audio' })
   return dest
 }
 
@@ -206,7 +206,7 @@ const downloadDirectAudioUrl = async (url: string, outputDir: string): Promise<s
 
   const ext = inferExtensionFromContentType(contentType)
   const rawPath = createTempDownloadPath(outputDir, 'raw-audio', ext)
-  await writeHttpPayloadToFile(resp, rawPath)
+  await writeHttpPayloadToFile(resp, rawPath, { payloadClass: 'source', stage: 'download:audio' })
 
   const rawFile = Bun.file(rawPath)
   if (rawFile.size < 1000) {

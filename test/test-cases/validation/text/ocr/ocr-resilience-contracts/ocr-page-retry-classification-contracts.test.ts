@@ -37,7 +37,7 @@ describe('OCR resilience contracts', () => {
         sleeps.push(delayMs)
       }) as typeof Bun.sleep
       await expect(withOcrPageRequestRetry(
-        'kimi-ocr page 3',
+        'deepinfra-ocr page 3',
         async () => {
           attempts += 1
           throw ProviderError('rate limited', { status: 429 })
@@ -48,7 +48,7 @@ describe('OCR resilience contracts', () => {
             pressures.push(pressure)
           }
         }
-      )).rejects.toThrow('kimi-ocr page 3 failed after 2/2 attempts')
+      )).rejects.toThrow('deepinfra-ocr page 3 failed after 2/2 attempts')
     } finally {
       ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = previousSleep
     }
@@ -73,13 +73,13 @@ describe('OCR resilience contracts', () => {
     try {
       ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
       await expect(withOcrPageRequestRetry(
-        'kimi-ocr page 9',
+        'deepinfra-ocr page 9',
         async () => {
           attempts += 1
           throw ProviderError('rate limited', { status: 429 })
         },
         { timeoutMs: 1000 }
-      )).rejects.toThrow(`kimi-ocr page 9 failed after ${OCR_PAGE_REQUEST_ATTEMPTS}/${OCR_PAGE_REQUEST_ATTEMPTS} attempts`)
+      )).rejects.toThrow(`deepinfra-ocr page 9 failed after ${OCR_PAGE_REQUEST_ATTEMPTS}/${OCR_PAGE_REQUEST_ATTEMPTS} attempts`)
     } finally {
       ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = previousSleep
     }
@@ -87,10 +87,10 @@ describe('OCR resilience contracts', () => {
     expect(attempts).toBe(OCR_PAGE_REQUEST_ATTEMPTS)
   })
 
-  test('Kimi insufficient-balance 429 is a non-retryable quota blocker', async () => {
+  test('DeepInfra insufficient-balance 429 is a non-retryable quota blocker', async () => {
     const previousSleep = Bun.sleep
     let attempts = 0
-    const error = ProviderError('Kimi OCR request failed (429): insufficient account balance for account acct_live_secret1234', { status: 429, metadata: { rawResponse: {
+    const error = ProviderError('DeepInfra OCR request failed (429): insufficient account balance for account acct_live_secret1234', { status: 429, metadata: { rawResponse: {
         error: {
           message: 'insufficient account balance for account acct_live_secret1234',
           request_id: 'req_secret123456789'
@@ -99,11 +99,11 @@ describe('OCR resilience contracts', () => {
 
     try {
       ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {
-        throw new Error('non-retryable Kimi quota failures should not sleep')
+        throw new Error('non-retryable DeepInfra quota failures should not sleep')
       }) as typeof Bun.sleep
 
       await expect(withOcrPageRequestRetry(
-        'kimi-ocr page 3',
+        'deepinfra-ocr page 3',
         async () => {
           attempts += 1
           throw error
@@ -187,7 +187,7 @@ describe('OCR resilience contracts', () => {
         sleeps.push(delayMs)
       }) as typeof Bun.sleep
       await expect(withOcrPageRequestRetry(
-        'kimi-ocr page 3',
+        'deepinfra-ocr page 3',
         async () => {
           attempts += 1
           throw ProviderError('rate limited', { status: 429, headers: new Headers({ 'retry-after': '2' }) })
@@ -199,7 +199,7 @@ describe('OCR resilience contracts', () => {
             pressures.push(pressure)
           }
         }
-      )).rejects.toThrow('kimi-ocr page 3 failed after 2/2 attempts')
+      )).rejects.toThrow('deepinfra-ocr page 3 failed after 2/2 attempts')
     } finally {
       ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = previousSleep
     }

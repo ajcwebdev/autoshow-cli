@@ -47,7 +47,7 @@ const malformedPageRun: NonNullable<RunHostedOcrPdfChunkFallbackOptions['buildMa
 }], { totalPages: 1 })
 
 describe('PDF chunk cache and stitching contracts', () => {
-  for (const provider of ['DeepInfra', 'GLM Flash']) {
+  for (const provider of ['DeepInfra', 'Grok']) {
     test(`${provider} token-truncated artifacts remain failures and never become cached page text`, async () => {
       await withLocalTestDir('ocr-page-token-limit', async (dir) => {
         const attemptedPages: number[] = []

@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "benchmarkDate": "2026-10-18",
+  "repetitions": 1,
+  "providerConcurrency": 2,
+  "qualityProxy": {
+    "method": "model-output-unit-price",
+    "label": "Price proxy ($ / 1M output tokens)",
+    "higherIsBetter": true
+  },
+  "providers": [
+    {
+      "provider": "gemini",
+      "model": "gemini-4-argon",
+      "inputCostPer1MCents": 400,
+      "outputCostPer1MCents": 2000
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.8-flash",
+      "inputCostPer1MCents": 150,
+      "outputCostPer1MCents": 750
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.7-flash",
+      "inputCostPer1MCents": 150,
+      "outputCostPer1MCents": 750
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-5-5",
+      "inputCostPer1MCents": 400,
+      "outputCostPer1MCents": 2000
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "inputCostPer1MCents": 200,
+      "outputCostPer1MCents": 1000
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "inputCostPer1MCents": 10,
+      "outputCostPer1MCents": 50
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5-1",
+      "inputCostPer1MCents": 1000,
+      "outputCostPer1MCents": 5000
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5",
+      "inputCostPer1MCents": 200,
+      "outputCostPer1MCents": 1000
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-5",
+      "inputCostPer1MCents": 500,
+      "outputCostPer1MCents": 2500
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "inputCostPer1MCents": 200,
+      "outputCostPer1MCents": 1000
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "inputCostPer1MCents": 10,
+      "outputCostPer1MCents": 50
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "inputCostPer1MCents": 1000,
+      "outputCostPer1MCents": 5000
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "inputCostPer1MCents": 400,
+      "outputCostPer1MCents": 2000
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "inputCostPer1MCents": 200,
+      "outputCostPer1MCents": 1200
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "inputCostPer1MCents": 20,
+      "outputCostPer1MCents": 120
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.7",
+      "inputCostPer1MCents": 200,
+      "outputCostPer1MCents": 600
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.6",
+      "inputCostPer1MCents": 200,
+      "outputCostPer1MCents": 600
+    },
+    {
+      "provider": "glm",
+      "model": "glm-5.3",
+      "inputCostPer1MCents": 140,
+      "outputCostPer1MCents": 440
+    },
+    {
+      "provider": "glm",
+      "model": "glm-5.3-flash",
+      "inputCostPer1MCents": 15,
+      "outputCostPer1MCents": 50
+    },
+    {
+      "provider": "kimi",
+      "model": "kimi-k3",
+      "inputCostPer1MCents": 300,
+      "outputCostPer1MCents": 1500
+    },
+    {
+      "provider": "together",
+      "model": "kimi-k3",
+      "inputCostPer1MCents": 300,
+      "outputCostPer1MCents": 1500
+    },
+    {
+      "provider": "together",
+      "model": "glm-5.3",
+      "inputCostPer1MCents": 140,
+      "outputCostPer1MCents": 440
+    },
+    {
+      "provider": "together",
+      "model": "glm-5.3-flash",
+      "inputCostPer1MCents": 15,
+      "outputCostPer1MCents": 50
+    }
+  ],
+  "cases": [
+    {
+      "id": "01-short-summary",
+      "prompt": "shortSummary",
+      "input": "docs/benchmarks/write/2026-09-16_06-51-18-238_1-audio/transcription.txt",
+      "runDir": "docs/benchmarks/write/2026-10-18_01-short-summary",
+      "estimatedCostCents": 10.612214344000003,
+      "sourceSha256": "917278332da1433557c4d32bd0cab9a719c0a66630e8834be9ecc680cb681a7f",
+      "promptSha256": "618a53b0a7be2d366d681d56c087e7be271aef48693b8e2d183be2d89117404d",
+      "schemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c"
+    },
+    {
+      "id": "02-long-summary",
+      "prompt": "longSummary",
+      "input": "docs/benchmarks/stt-with-speakers/2022-09-30-widgets-fsjam-40-minutes/consensus-transcription.txt",
+      "runDir": "docs/benchmarks/write/2026-10-18_02-long-summary",
+      "estimatedCostCents": 88.801610792,
+      "sourceSha256": "11bcf09318ef081e1dcc286f4fced41cffc6d30bce859ec334a273df5cef3da9",
+      "promptSha256": "f7e32cd815ddff3f43c4fa926c7dd9b06956dd509d7a228131b015904eb9c0cf",
+      "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599"
+    },
+    {
+      "id": "03-medium-chapters",
+      "prompt": "mediumChapters",
+      "input": "docs/benchmarks/stt-with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt",
+      "runDir": "docs/benchmarks/write/2026-10-18_03-medium-chapters",
+      "estimatedCostCents": 40.78095435200001,
+      "sourceSha256": "75833a586501e8bb5c01a5dd0899668d9fad7434c6dd763c7313a0f80e3be453",
+      "promptSha256": "3327adb7c18cef27d77d7c2512f6172aecb0222cd2391142b722c9f96a8b274a",
+      "schemaSha256": "21fdcdb40e118404ed84283dc2e2153afca07f6360aea5c77a5d2b38632c29af"
+    },
+    {
+      "id": "04-blog",
+      "prompt": "blog",
+      "input": "docs/benchmarks/stt-with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt",
+      "runDir": "docs/benchmarks/write/2026-10-18_04-blog",
+      "estimatedCostCents": 65.59883880000001,
+      "sourceSha256": "75833a586501e8bb5c01a5dd0899668d9fad7434c6dd763c7313a0f80e3be453",
+      "promptSha256": "25ddb9aeed75f2b758e8a8c417d09d6092f11d766b56a69b9d29d20a39bbe094",
+      "schemaSha256": "6a7be88f6d1e36488bb5e1c39765f78161fadbb922b259a752e33273ca2ecc60"
+    },
+    {
+      "id": "05-rap-song-chapter",
+      "prompt": "rapSongChapter",
+      "input": "input/examples/document/harborlight-field-notes.md",
+      "runDir": "docs/benchmarks/write/2026-10-18_05-rap-song-chapter",
+      "estimatedCostCents": 92.611811824,
+      "sourceSha256": "5c90187ee9fca8553ed9cb573c801383a3c119f626857292255d1e1e33dbd5e3",
+      "promptSha256": "bacdd0fb41b8cf2ca17aafb36a8c3d9294e596c9eecd20bd3f54452762c7f331",
+      "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6"
+    }
+  ],
+  "baseEstimatedCostCents": 298.40543011200003,
+  "approval": {
+    "estimatedCostCents": 298.405,
+    "scope": "One pass of five prompts across 23 configured provider/model routes (115 requests); no schema validation repurchases.",
+    "evidence": "User approved the quoted benchmark batch and dashboard update on 2026-10-18."
+  },
+  "policy": {
+    "validationRetries": 0,
+    "transportRetries": "Only explicit HTTP 429 admission responses may be retried; no retry after transport ambiguity or inference response.",
+    "repetitions": 1,
+    "reasoningEffort": "existing-cli-defaults",
+    "estimateLimitations": "Existing CLI/model defaults apply, including Kimi low reasoning. Registry heuristic; generated reasoning, provider tokenization and caching may change actual cost. Estimate is not a hard spending cap."
+  },
+  "fingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c"
+}

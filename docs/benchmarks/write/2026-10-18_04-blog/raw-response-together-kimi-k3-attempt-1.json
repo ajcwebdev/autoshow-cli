@@ -1,0 +1,47 @@
+{
+  "result": "{\"title\":\"Miami Jam: JavaScript Jam Live Teams Up with React Miami for a Developer Game Show\",\"outline\":[\"Introduction: a glitchy start and a lesson in patience for Twitter Spaces hosts\",\"What JavaScript Jam Live is and who hosts it\",\"The React Miami partnership and the birth of 'React Miami Month'\",\"Meet the media partners and the organizer who gave them creative freedom\",\"Miami Jam: the game show concept that replaces the standard interview\",\"Why the format works: trivia as an on-ramp to deeper discussion\",\"Audience participation mechanics, including letting attendees award points\",\"Broader lessons for developer communities and event organizers\",\"What's next and how to get involved\"],\"draft\":\"Anyone who hosts live audio knows the first five minutes are an adventure. This week's JavaScript Jam Live proved it: the Twitter Space appeared to start on the host's phone while remaining invisible to everyone trying to join. The fix, as the team explained, was simply patience. Wait a minute or two and the platform sorts itself out, then suddenly the Space goes live for everyone. It's a small but useful lesson for anyone running Spaces: sometimes the technology just needs a moment to catch up. Once the connection stabilized and the audience rejoined, the show delivered an announcement worth waiting for: a multi-week collaboration with React Miami, and a brand-new game show called Miami Jam.\\n\\nFor the uninitiated, JavaScript Jam Live is an open mic for anything JavaScript and web development related. Audience participation isn't just tolerated; it's the point. The show is hosted by a trio from Edgio, the edge deployment platform: Ishan Anand, VP of Product; Anthony Campolo, developer advocate; and Scott Steinlage, technical community manager. Their door is open to everyone. As Scott put it, whether you're a beginner or you've been building for the web for years, the hosts want to hear from you: questions, comments, facts, opinions, all of it. When listeners come up on stage, he noted, the conversations get better for everybody, and that involvement is a big part of what increases the value of the show.\\n\\nThis episode kicked off what Scott jokingly renamed \\\"React Miami Month.\\\" JavaScript Jam is partnering with the React Miami conference, and the collaboration means more speakers from the conference lineup appearing on the show in the weeks ahead, talking about topics that make sense for their talks. Importantly, the team emphasized that nothing about the show's core identity is changing. The traditional JavaScript Jam vibe stays intact; the partnership simply adds more value for listeners, plus some \\\"extra goodies\\\" the hosts teased but didn't fully reveal. Joining the episode were Dev Agrawal, a fellow media partner for React Miami alongside Anthony and Scott, and Michelle, one of the conference's organizers, who dropped in to hear the plans unfold.\\n\\nMichelle's role is worth pausing on. As an organizer, she explained that the React Miami team essentially gave the media partners the green light to do whatever they like, which, as Anthony quipped, may or may not be something she ends up regretting. That creative freedom produced the episode's big reveal. Rather than running a standard interview or panel at the conference, Dev has roped Anthony and Scott into co-hosting something with considerably more chaos potential: a live game show they're calling Miami Jam, happening during the week of the event.\\n\\nThe concept is a deliberate departure from the usual formula. A typical speaker show brings on a few guests and asks them about their topics and motivations, and the answers, while valuable, can feel predictable. Miami Jam flips the structure. Instead of straightforward questions, speakers will face trivia-style prompts. Those might be React-related questions, puzzles about weird quirks in JavaScript or TypeScript or anything adjacent to React, or challenges like guessing which library is being used in a given scenario. Some questions might even concern another speaker's topic, with the person on the spot required to answer it. The trivia isn't the destination, though. It's the on-ramp. Each question becomes an opportunity to segue into more detailed, in-depth discussion about what the speaker is presenting and why.\\n\\nIn other words, the substance of a great interview is still there. The hosts still expect to draw out insight about each speaker's talk, the motivation behind giving it, the speaker's experience in the industry, and the work that led them to the React Miami stage. The difference is the wrapper. Structuring the conversation as a game makes it more fun, more interactive, and more collaborative. Dev emphasized that the format encourages speakers to share experiences with each other, not just with the hosts, turning what could be a series of isolated Q&As into something closer to a group conversation with stakes, scoring, and surprises.\\n\\nThe audience isn't left out of the fun. Miami Jam is being designed so that attendees at the show can engage directly with the speakers. Obviously there will be room for audience questions, but participation goes further: in some cases, audience members may get to decide how many points a speaker earns for answering a question. That single mechanic changes the energy of the room. Suddenly the crowd isn't passively watching a panel; they're judges, collaborators, and part of the spectacle. It fits squarely within the JavaScript Jam philosophy that community involvement is what makes these events valuable in the first place.\\n\\nThere's a broader lesson here for developer relations teams and community builders. Conferences are full of panels and fireside chats, and most blur together. By contrast, a game show format is memorable by design. It gives speakers a chance to show personality and humor alongside technical depth, and it gives the audience stories to tell afterward. It also lowers the barrier to participation: answering trivia or awarding points feels far less intimidating than stepping to a microphone with a formal question. For a community event like JavaScript Jam, which prides itself on welcoming beginners and veterans alike, that accessibility matters.\\n\\nAs for what's next, the hosts promised that future episodes will feature more React Miami speakers discussing topics that align with the conference, all while keeping the familiar open-mic format intact. If you've been curious about React Miami, the coming weeks of JavaScript Jam Live look like an ideal preview. And if you're attending the conference itself, keep an eye out for Miami Jam: Dev, Anthony, and Scott will be running the show live, and the audience will be part of the action. Whether you're a first-time listener or a longtime community member, now is a great time to request the mic, ask a question, and join the conversation.\"}",
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "kimi-k3",
+    "providerReturnedModel": "moonshotai/Kimi-K3",
+    "processingTime": 59771,
+    "inputTokenCount": 2569,
+    "outputTokenCount": 3580,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 2569,
+      "outputTokenCount": 3580,
+      "totalTokenCount": 6149
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 2569,
+      "completion_tokens": 3580,
+      "total_tokens": 6149,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 2229
+      }
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "moonshotai/Kimi-K3",
+      "stream": false,
+      "max_tokens": 131072,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_blog",
+          "schemaSha256": "6a7be88f6d1e36488bb5e1c39765f78161fadbb922b259a752e33273ca2ecc60",
+          "strict": true
+        }
+      }
+    }
+  }
+}

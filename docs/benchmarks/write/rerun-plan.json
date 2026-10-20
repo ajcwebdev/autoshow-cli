@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "originalPlanPath": "docs/benchmarks/write/benchmark-plan.json",
+  "originalPlanSha256": "21ee5a87a3337443afddea5452ddc2692baacd9256707e8abb56927e818310d4",
+  "originalPlanFingerprint": "3df9adef36e1214fa90217b87b1cd24eeb46c99d479e1cac54a9250a17ef0f7c",
+  "attempt": "02",
+  "providerConcurrency": 2,
+  "selectionSha256": "fd812b3fe195bd8c7a162158ac7e8664383755a0c05dae7fa8c4298c721a0324",
+  "cases": [
+    {
+      "id": "01-short-summary",
+      "prompt": "shortSummary",
+      "input": "docs/benchmarks/write/2026-09-16_06-51-18-238_1-audio/transcription.txt",
+      "runDir": "docs/benchmarks/write/2026-10-18_01-short-summary/reruns/02",
+      "estimatedCostCents": 0.3692,
+      "sourceSha256": "917278332da1433557c4d32bd0cab9a719c0a66630e8834be9ecc680cb681a7f",
+      "promptSha256": "618a53b0a7be2d366d681d56c087e7be271aef48693b8e2d183be2d89117404d",
+      "schemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c",
+      "originalRunDir": "docs/benchmarks/write/2026-10-18_01-short-summary",
+      "providers": [
+        {
+          "provider": "anthropic",
+          "model": "claude-sonnet-5-5",
+          "inputCostPer1MCents": 200,
+          "outputCostPer1MCents": 1000,
+          "originalReceiptPath": "docs/benchmarks/write/2026-10-18_01-short-summary/slot-anthropic-claude-sonnet-5-5.json",
+          "originalReceiptSha256": "bcd869e8de55b305b95e1a31ba5a1e5a5f7b0a5f540c6d57e0b3a9483293996c",
+          "originalStatus": "validation-failed",
+          "nativeEstimatedCostCents": 0.3692,
+          "scenario": {
+            "inputTokens": 817,
+            "outputTokens": 68,
+            "basis": "Original returned input/output usage; this is an observed scenario, not the Anthropic maximum.",
+            "costCents": 0.2314
+          }
+        }
+      ]
+    },
+    {
+      "id": "03-medium-chapters",
+      "prompt": "mediumChapters",
+      "input": "docs/benchmarks/stt-with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt",
+      "runDir": "docs/benchmarks/write/2026-10-18_03-medium-chapters/reruns/02",
+      "estimatedCostCents": 0.7520199999999999,
+      "sourceSha256": "75833a586501e8bb5c01a5dd0899668d9fad7434c6dd763c7313a0f80e3be453",
+      "promptSha256": "3327adb7c18cef27d77d7c2512f6172aecb0222cd2391142b722c9f96a8b274a",
+      "schemaSha256": "21fdcdb40e118404ed84283dc2e2153afca07f6360aea5c77a5d2b38632c29af",
+      "originalRunDir": "docs/benchmarks/write/2026-10-18_03-medium-chapters",
+      "providers": [
+        {
+          "provider": "glm",
+          "model": "glm-5.3",
+          "inputCostPer1MCents": 140,
+          "outputCostPer1MCents": 440,
+          "originalReceiptPath": "docs/benchmarks/write/2026-10-18_03-medium-chapters/slot-glm-glm-5.3.json",
+          "originalReceiptSha256": "ec5f2ad9d82dd21b781e00d2c1154dbec8d9e0ef85d3d2cb836c26c61e5e9514",
+          "originalStatus": "failed",
+          "nativeEstimatedCostCents": 0.7520199999999999,
+          "scenario": {
+            "inputTokens": 2554,
+            "outputTokens": 16000,
+            "basis": "Maximum native GLM max_tokens=16000; input is the larger of native preflight and returned same-case GLM usage.",
+            "costCents": 7.39756
+          }
+        }
+      ]
+    },
+    {
+      "id": "05-rap-song-chapter",
+      "prompt": "rapSongChapter",
+      "input": "input/examples/document/harborlight-field-notes.md",
+      "runDir": "docs/benchmarks/write/2026-10-18_05-rap-song-chapter/reruns/02",
+      "estimatedCostCents": 6.49362,
+      "sourceSha256": "5c90187ee9fca8553ed9cb573c801383a3c119f626857292255d1e1e33dbd5e3",
+      "promptSha256": "bacdd0fb41b8cf2ca17aafb36a8c3d9294e596c9eecd20bd3f54452762c7f331",
+      "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6",
+      "originalRunDir": "docs/benchmarks/write/2026-10-18_05-rap-song-chapter",
+      "providers": [
+        {
+          "provider": "grok",
+          "model": "grok-4.7",
+          "inputCostPer1MCents": 200,
+          "outputCostPer1MCents": 600,
+          "originalReceiptPath": "docs/benchmarks/write/2026-10-18_05-rap-song-chapter/slot-grok-grok-4.7.json",
+          "originalReceiptSha256": "6248e99cfe6fe6cf6d96d6371f42f3f1496293eaaf24eea91b20f9854e2e440d",
+          "originalStatus": "validation-failed",
+          "nativeEstimatedCostCents": 2.2532,
+          "scenario": {
+            "inputTokens": 4939,
+            "outputTokens": 35831,
+            "basis": "Largest observed same-case Grok billed output, including reasoning. The original request has no output-token cap.",
+            "costCents": 22.4864
+          }
+        },
+        {
+          "provider": "grok",
+          "model": "grok-4.6",
+          "inputCostPer1MCents": 200,
+          "outputCostPer1MCents": 600,
+          "originalReceiptPath": "docs/benchmarks/write/2026-10-18_05-rap-song-chapter/slot-grok-grok-4.6.json",
+          "originalReceiptSha256": "f008daeaf5ff1ee4eaa3a110e8b319049f989a664ad9172b6177a09b887439fc",
+          "originalStatus": "failed",
+          "nativeEstimatedCostCents": 2.2532,
+          "scenario": {
+            "inputTokens": 4939,
+            "outputTokens": 35831,
+            "basis": "Largest observed same-case Grok billed output, including reasoning. The original request has no output-token cap.",
+            "costCents": 22.4864
+          }
+        },
+        {
+          "provider": "glm",
+          "model": "glm-5.3",
+          "inputCostPer1MCents": 140,
+          "outputCostPer1MCents": 440,
+          "originalReceiptPath": "docs/benchmarks/write/2026-10-18_05-rap-song-chapter/slot-glm-glm-5.3.json",
+          "originalReceiptSha256": "ed867381c58c5fca1e2fe300819f8c29a0b4954b5e8ab11528ae78cf92ad7ae9",
+          "originalStatus": "failed",
+          "nativeEstimatedCostCents": 1.6252399999999998,
+          "scenario": {
+            "inputTokens": 4066,
+            "outputTokens": 16000,
+            "basis": "Maximum native GLM max_tokens=16000; input is the larger of native preflight and returned same-case GLM usage.",
+            "costCents": 7.60924
+          }
+        },
+        {
+          "provider": "glm",
+          "model": "glm-5.3-flash",
+          "inputCostPer1MCents": 15,
+          "outputCostPer1MCents": 50,
+          "originalReceiptPath": "docs/benchmarks/write/2026-10-18_05-rap-song-chapter/slot-glm-glm-5.3-flash.json",
+          "originalReceiptSha256": "0ff209111306168d30d376385f5d85ee93882f0ff8e9e7efe154c8381690c95c",
+          "originalStatus": "failed",
+          "nativeEstimatedCostCents": 0.18098999999999998,
+          "scenario": {
+            "inputTokens": 4066,
+            "outputTokens": 16000,
+            "basis": "Maximum native GLM max_tokens=16000; input is the larger of native preflight and returned same-case GLM usage.",
+            "costCents": 0.86099
+          }
+        },
+        {
+          "provider": "together",
+          "model": "glm-5.3-flash",
+          "inputCostPer1MCents": 15,
+          "outputCostPer1MCents": 50,
+          "originalReceiptPath": "docs/benchmarks/write/2026-10-18_05-rap-song-chapter/slot-together-glm-5.3-flash.json",
+          "originalReceiptSha256": "337be1320aa478ece4db05b5e5d3d0ef3a697f07366038fe33ce11994be96e00",
+          "originalStatus": "failed",
+          "nativeEstimatedCostCents": 0.18098999999999998,
+          "scenario": {
+            "inputTokens": 4066,
+            "outputTokens": 32768,
+            "basis": "Native Together max_tokens with native preflight input; this scenario excludes additional input-tokenization variation.",
+            "costCents": 1.69939
+          }
+        }
+      ]
+    }
+  ],
+  "requestCount": 7,
+  "nativeEstimatedCostCents": 7.614839999999999,
+  "observedMaxOutputScenarioCostCents": 62.77138,
+  "priorKnownCostCents": 381.41711999999995,
+  "priorUnresolvedSlots": 5,
+  "policy": {
+    "inferenceAttemptsPerTarget": 1,
+    "validationRetries": 0,
+    "requestControls": "identical-to-original-cli-defaults",
+    "transportRetries": "Only explicit HTTP 429 admission responses may be retried; no retry after transport ambiguity or inference response.",
+    "spendingRisk": "The native preflight excludes potentially large thinking usage. The observed/max-output scenario is not a hard cap: Grok has no output-token cap, provider tokenization can vary, and HTTP 429 admission retries are not priced as billable inference. Prior unresolved requests may already have been billed. Costs are cumulative with the original batch; preserve all original artifacts and do not dispatch until the exact command and spending risk have explicit approval."
+  },
+  "authorization": {
+    "command": "bun src/tools/rerun-write-benchmark.ts --run",
+    "planFingerprint": "c4fc514d0006e487642ad0042334945b0a4f14822eaf3aa0734613539359a795",
+    "approvedAt": "2026-10-18T19:14:21.820Z",
+    "evidence": "User replied: i approve. This directly approved the proposed seven-request command for approximately USD 0.63 additional, with Grok reasoning exceeding the estimate possible and five original charges unresolved.",
+    "acknowledgedScenarioCostCents": 62.77138,
+    "acknowledgesUncappedReasoning": true,
+    "acknowledgesPriorUnresolvedBilling": true
+  },
+  "fingerprint": "c4fc514d0006e487642ad0042334945b0a4f14822eaf3aa0734613539359a795"
+}

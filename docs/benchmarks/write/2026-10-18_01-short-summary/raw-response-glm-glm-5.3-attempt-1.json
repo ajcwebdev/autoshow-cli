@@ -1,0 +1,45 @@
+{
+  "result": "{\n  \"episodeDescription\": \"A podcast interview where guest James Berkins shares how he rebounded from a recession layoff, landing a new developer job within 12 hours thanks to his professional network.\"\n}",
+  "metadata": {
+    "llmService": "glm",
+    "llmModel": "glm-5.3",
+    "providerReturnedModel": "glm-5.3",
+    "processingTime": 7614,
+    "inputTokenCount": 429,
+    "outputTokenCount": 553,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 429,
+      "outputTokenCount": 553,
+      "totalTokenCount": 982
+    },
+    "rawProviderUsage": {
+      "completion_tokens": 553,
+      "completion_tokens_details": {
+        "reasoning_tokens": 509
+      },
+      "prompt_tokens": 429,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 982
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "glm-5.3",
+      "stream": false,
+      "max_tokens": 16000,
+      "thinking": {
+        "type": "enabled"
+      },
+      "response_format": {
+        "type": "json_object"
+      }
+    }
+  }
+}

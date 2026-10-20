@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `docs/benchmarks/stt-without-speakers/2022-09-30-widgets-fsjam-40-minutes`
-- Total providers: 13 (0 local, 13 third-party service)
+- Total providers: 14 (0 local, 14 third-party service)
 - Local, third-party non-diarization, and third-party diarization providers are ranked separately for price, speed, and quality score.
 - Quality score uses speaker-aware WER-derived transcript accuracy, with text-only WER retained as supporting evidence.
 
@@ -55,24 +55,26 @@
 | 11   | <code>together-openai_whisper-large-v3</code>                              | $0.0606 | 94.68       | 5.32%             | 4.57%         | not-supported | 10.43s          | 232.40× realtime | $0.0606     |
 | 12   | <code>deepinfra-mistralai_Voxtral-Small-24B-2507</code>                    | $0.1212 | 62.04       | 37.96%            | 37.48%        | not-supported | 295.39s         | 8.20× realtime   | $0.1212     |
 | 13   | <code>openai-stt-gpt-transcribe</code>                                     | $0.1818 | 96.75       | 3.25%             | 2.46%         | not-supported | 59.92s          | 40.44× realtime  | $0.1818     |
+| 14   | <code>cloudflare-@cf_deepgram_nova-3</code>                                | $0.2100 | 95.61       | 4.39%             | 3.65%         | not-supported | 9.02s           | 268.72× realtime | $0.2100     |
 
 #### Speed
 
 | Rank | Provider                                                                   | Value   | Score / 100 | Speaker-aware WER | Text-only WER | Diarization   | Processing Time | Throughput       | Actual Cost |
 | ---: | -------------------------------------------------------------------------- | ------: | ----------: | ----------------: | ------------: | ------------- | --------------: | ---------------: | ----------: |
 | 1    | <code>together-nvidia_parakeet-tdt-0.6b-v3</code>                          | 3.39s   | 95.70       | 4.30%             | 3.58%         | not-supported | 3.39s           | 714.55× realtime | $0.0606     |
-| 2    | <code>together-openai_whisper-large-v3</code>                              | 10.43s  | 94.68       | 5.32%             | 4.57%         | not-supported | 10.43s          | 232.40× realtime | $0.0606     |
-| 3    | <code>deepinfra-openai_whisper-large-v3-turbo</code>                       | 10.69s  | 87.27       | 12.73%            | 12.06%        | not-supported | 10.69s          | 226.58× realtime | $0.0081     |
-| 4    | <code>deepinfra-openai_whisper-large-v3</code>                             | 18.81s  | 87.94       | 12.06%            | 11.37%        | not-supported | 18.81s          | 128.81× realtime | $0.0182     |
-| 5    | <code>deepinfra-Qwen_Qwen3-ASR-1.7B</code>                                 | 21.52s  | 95.96       | 4.04%             | 3.28%         | not-supported | 21.52s          | 112.59× realtime | $0.0182     |
-| 6    | <code>deepinfra-Qwen_Qwen3-ASR-0.6B</code>                                 | 31.06s  | 95.16       | 4.84%             | 4.08%         | not-supported | 31.06s          | 78.01× realtime  | $0.0081     |
-| 7    | <code>openai-stt-gpt-transcribe</code>                                     | 59.92s  | 96.75       | 3.25%             | 2.46%         | not-supported | 59.92s          | 40.44× realtime  | $0.1818     |
-| 8    | <code>deepinfra-mistralai_Voxtral-Mini-3B-2507</code>                      | 64.46s  | 96.60       | 3.40%             | 2.63%         | not-supported | 64.46s          | 37.59× realtime  | $0.0404     |
-| 9    | <code>deepinfra-nvidia_Nemotron-3.5-ASR-Streaming-Multilingual-0.6b</code> | 107.45s | 93.50       | 6.50%             | 5.80%         | not-supported | 107.45s         | 22.55× realtime  | $0.0081     |
-| 10   | <code>cloudflare-@cf_openai_whisper-large-v3-turbo</code>                  | 162.23s | 93.50       | 6.50%             | 5.77%         | not-supported | 162.23s         | 14.94× realtime  | $0.0207     |
-| 11   | <code>cloudflare-@cf_openai_whisper-tiny-en</code>                         | 189.62s | 86.01       | 13.99%            | 13.38%        | not-supported | 189.62s         | 12.78× realtime  | $0.0003     |
-| 12   | <code>cloudflare-@cf_openai_whisper</code>                                 | 267.51s | 86.04       | 13.96%            | 13.31%        | not-supported | 267.51s         | 9.06× realtime   | $0.0183     |
-| 13   | <code>deepinfra-mistralai_Voxtral-Small-24B-2507</code>                    | 295.39s | 62.04       | 37.96%            | 37.48%        | not-supported | 295.39s         | 8.20× realtime   | $0.1212     |
+| 2    | <code>cloudflare-@cf_deepgram_nova-3</code>                                | 9.02s   | 95.61       | 4.39%             | 3.65%         | not-supported | 9.02s           | 268.72× realtime | $0.2100     |
+| 3    | <code>together-openai_whisper-large-v3</code>                              | 10.43s  | 94.68       | 5.32%             | 4.57%         | not-supported | 10.43s          | 232.40× realtime | $0.0606     |
+| 4    | <code>deepinfra-openai_whisper-large-v3-turbo</code>                       | 10.69s  | 87.27       | 12.73%            | 12.06%        | not-supported | 10.69s          | 226.58× realtime | $0.0081     |
+| 5    | <code>deepinfra-openai_whisper-large-v3</code>                             | 18.81s  | 87.94       | 12.06%            | 11.37%        | not-supported | 18.81s          | 128.81× realtime | $0.0182     |
+| 6    | <code>deepinfra-Qwen_Qwen3-ASR-1.7B</code>                                 | 21.52s  | 95.96       | 4.04%             | 3.28%         | not-supported | 21.52s          | 112.59× realtime | $0.0182     |
+| 7    | <code>deepinfra-Qwen_Qwen3-ASR-0.6B</code>                                 | 31.06s  | 95.16       | 4.84%             | 4.08%         | not-supported | 31.06s          | 78.01× realtime  | $0.0081     |
+| 8    | <code>openai-stt-gpt-transcribe</code>                                     | 59.92s  | 96.75       | 3.25%             | 2.46%         | not-supported | 59.92s          | 40.44× realtime  | $0.1818     |
+| 9    | <code>deepinfra-mistralai_Voxtral-Mini-3B-2507</code>                      | 64.46s  | 96.60       | 3.40%             | 2.63%         | not-supported | 64.46s          | 37.59× realtime  | $0.0404     |
+| 10   | <code>deepinfra-nvidia_Nemotron-3.5-ASR-Streaming-Multilingual-0.6b</code> | 107.45s | 93.50       | 6.50%             | 5.80%         | not-supported | 107.45s         | 22.55× realtime  | $0.0081     |
+| 11   | <code>cloudflare-@cf_openai_whisper-large-v3-turbo</code>                  | 162.23s | 93.50       | 6.50%             | 5.77%         | not-supported | 162.23s         | 14.94× realtime  | $0.0207     |
+| 12   | <code>cloudflare-@cf_openai_whisper-tiny-en</code>                         | 189.62s | 86.01       | 13.99%            | 13.38%        | not-supported | 189.62s         | 12.78× realtime  | $0.0003     |
+| 13   | <code>cloudflare-@cf_openai_whisper</code>                                 | 267.51s | 86.04       | 13.96%            | 13.31%        | not-supported | 267.51s         | 9.06× realtime   | $0.0183     |
+| 14   | <code>deepinfra-mistralai_Voxtral-Small-24B-2507</code>                    | 295.39s | 62.04       | 37.96%            | 37.48%        | not-supported | 295.39s         | 8.20× realtime   | $0.1212     |
 
 #### Quality Score
 
@@ -82,15 +84,16 @@
 | 2    | <code>deepinfra-mistralai_Voxtral-Mini-3B-2507</code>                      | 96.60/100 quality score | 96.60       | 3.40%             | 2.63%         | not-supported | 64.46s          | 37.59× realtime  | $0.0404     |
 | 3    | <code>deepinfra-Qwen_Qwen3-ASR-1.7B</code>                                 | 95.96/100 quality score | 95.96       | 4.04%             | 3.28%         | not-supported | 21.52s          | 112.59× realtime | $0.0182     |
 | 4    | <code>together-nvidia_parakeet-tdt-0.6b-v3</code>                          | 95.70/100 quality score | 95.70       | 4.30%             | 3.58%         | not-supported | 3.39s           | 714.55× realtime | $0.0606     |
-| 5    | <code>deepinfra-Qwen_Qwen3-ASR-0.6B</code>                                 | 95.16/100 quality score | 95.16       | 4.84%             | 4.08%         | not-supported | 31.06s          | 78.01× realtime  | $0.0081     |
-| 6    | <code>together-openai_whisper-large-v3</code>                              | 94.68/100 quality score | 94.68       | 5.32%             | 4.57%         | not-supported | 10.43s          | 232.40× realtime | $0.0606     |
-| 7    | <code>cloudflare-@cf_openai_whisper-large-v3-turbo</code>                  | 93.50/100 quality score | 93.50       | 6.50%             | 5.77%         | not-supported | 162.23s         | 14.94× realtime  | $0.0207     |
-| 8    | <code>deepinfra-nvidia_Nemotron-3.5-ASR-Streaming-Multilingual-0.6b</code> | 93.50/100 quality score | 93.50       | 6.50%             | 5.80%         | not-supported | 107.45s         | 22.55× realtime  | $0.0081     |
-| 9    | <code>deepinfra-openai_whisper-large-v3</code>                             | 87.94/100 quality score | 87.94       | 12.06%            | 11.37%        | not-supported | 18.81s          | 128.81× realtime | $0.0182     |
-| 10   | <code>deepinfra-openai_whisper-large-v3-turbo</code>                       | 87.27/100 quality score | 87.27       | 12.73%            | 12.06%        | not-supported | 10.69s          | 226.58× realtime | $0.0081     |
-| 11   | <code>cloudflare-@cf_openai_whisper</code>                                 | 86.04/100 quality score | 86.04       | 13.96%            | 13.31%        | not-supported | 267.51s         | 9.06× realtime   | $0.0183     |
-| 12   | <code>cloudflare-@cf_openai_whisper-tiny-en</code>                         | 86.01/100 quality score | 86.01       | 13.99%            | 13.38%        | not-supported | 189.62s         | 12.78× realtime  | $0.0003     |
-| 13   | <code>deepinfra-mistralai_Voxtral-Small-24B-2507</code>                    | 62.04/100 quality score | 62.04       | 37.96%            | 37.48%        | not-supported | 295.39s         | 8.20× realtime   | $0.1212     |
+| 5    | <code>cloudflare-@cf_deepgram_nova-3</code>                                | 95.61/100 quality score | 95.61       | 4.39%             | 3.65%         | not-supported | 9.02s           | 268.72× realtime | $0.2100     |
+| 6    | <code>deepinfra-Qwen_Qwen3-ASR-0.6B</code>                                 | 95.16/100 quality score | 95.16       | 4.84%             | 4.08%         | not-supported | 31.06s          | 78.01× realtime  | $0.0081     |
+| 7    | <code>together-openai_whisper-large-v3</code>                              | 94.68/100 quality score | 94.68       | 5.32%             | 4.57%         | not-supported | 10.43s          | 232.40× realtime | $0.0606     |
+| 8    | <code>cloudflare-@cf_openai_whisper-large-v3-turbo</code>                  | 93.50/100 quality score | 93.50       | 6.50%             | 5.77%         | not-supported | 162.23s         | 14.94× realtime  | $0.0207     |
+| 9    | <code>deepinfra-nvidia_Nemotron-3.5-ASR-Streaming-Multilingual-0.6b</code> | 93.50/100 quality score | 93.50       | 6.50%             | 5.80%         | not-supported | 107.45s         | 22.55× realtime  | $0.0081     |
+| 10   | <code>deepinfra-openai_whisper-large-v3</code>                             | 87.94/100 quality score | 87.94       | 12.06%            | 11.37%        | not-supported | 18.81s          | 128.81× realtime | $0.0182     |
+| 11   | <code>deepinfra-openai_whisper-large-v3-turbo</code>                       | 87.27/100 quality score | 87.27       | 12.73%            | 12.06%        | not-supported | 10.69s          | 226.58× realtime | $0.0081     |
+| 12   | <code>cloudflare-@cf_openai_whisper</code>                                 | 86.04/100 quality score | 86.04       | 13.96%            | 13.31%        | not-supported | 267.51s         | 9.06× realtime   | $0.0183     |
+| 13   | <code>cloudflare-@cf_openai_whisper-tiny-en</code>                         | 86.01/100 quality score | 86.01       | 13.99%            | 13.38%        | not-supported | 189.62s         | 12.78× realtime  | $0.0003     |
+| 14   | <code>deepinfra-mistralai_Voxtral-Small-24B-2507</code>                    | 62.04/100 quality score | 62.04       | 37.96%            | 37.48%        | not-supported | 295.39s         | 8.20× realtime   | $0.1212     |
 
 ### Third-Party Service Diarization
 
@@ -117,6 +120,7 @@
 
 | Provider                                                                   | Group                               | Diarization   | Score / 100 | Speaker-aware WER | Text-only WER | Processing Time | Throughput       | Actual Cost |
 | -------------------------------------------------------------------------- | ----------------------------------- | ------------- | ----------: | ----------------: | ------------: | --------------: | ---------------: | ----------: |
+| <code>cloudflare-@cf_deepgram_nova-3</code>                                | Third-Party Service Non-Diarization | not-supported | 95.61       | 4.39%             | 3.65%         | 9.02s           | 268.72× realtime | $0.2100     |
 | <code>cloudflare-@cf_openai_whisper</code>                                 | Third-Party Service Non-Diarization | not-supported | 86.04       | 13.96%            | 13.31%        | 267.51s         | 9.06× realtime   | $0.0183     |
 | <code>cloudflare-@cf_openai_whisper-large-v3-turbo</code>                  | Third-Party Service Non-Diarization | not-supported | 93.50       | 6.50%             | 5.77%         | 162.23s         | 14.94× realtime  | $0.0207     |
 | <code>cloudflare-@cf_openai_whisper-tiny-en</code>                         | Third-Party Service Non-Diarization | not-supported | 86.01       | 13.99%            | 13.38%        | 189.62s         | 12.78× realtime  | $0.0003     |
@@ -135,6 +139,7 @@
 
 | Provider                                                                   | Substitutions | Deletions | Insertions | Ref. Words |
 | -------------------------------------------------------------------------- | ------------: | --------: | ---------: | ---------: |
+| <code>cloudflare-@cf_deepgram_nova-3</code>                                | 149           | 155       | 57         | 8226       |
 | <code>cloudflare-@cf_openai_whisper</code>                                 | 308           | 293       | 547        | 8226       |
 | <code>cloudflare-@cf_openai_whisper-large-v3-turbo</code>                  | 138           | 119       | 278        | 8226       |
 | <code>cloudflare-@cf_openai_whisper-tiny-en</code>                         | 695           | 302       | 154        | 8226       |
@@ -153,6 +158,7 @@
 
 | Provider                                                                   | Substitutions | Deletions | Insertions | Ref. Words |
 | -------------------------------------------------------------------------- | ------------: | --------: | ---------: | ---------: |
+| <code>cloudflare-@cf_deepgram_nova-3</code>                                | 147           | 92        | 59         | 8160       |
 | <code>cloudflare-@cf_openai_whisper</code>                                 | 303           | 232       | 551        | 8160       |
 | <code>cloudflare-@cf_openai_whisper-large-v3-turbo</code>                  | 133           | 57        | 281        | 8160       |
 | <code>cloudflare-@cf_openai_whisper-tiny-en</code>                         | 691           | 242       | 159        | 8160       |

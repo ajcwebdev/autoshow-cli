@@ -7,6 +7,7 @@ import { classifyFetchRetry } from '~/utils/retries'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import { resolveLlmReasoningOptions } from './llm-reasoning-options'
 import { llmRequestSettings } from '~/cli/commands/text/write/write-utils/llm-request-settings'
+import { isAppError, ValidationError } from '~/utils/error-handler'
 
 export const runOpenAICompatibleChatModel = async ({
   prompt,
@@ -39,9 +40,26 @@ export const runOpenAICompatibleChatModel = async ({
         const response = await createOpenAIChatCompletion(resolvedConfig, body, {
           signal: createSignal()
         })
-        checkResponse?.(response)
+        try {
+          checkResponse?.(response)
+        } catch (error) {
+          if (isAppError(error)) error.metadata['requestSettings'] = llmRequestSettings(body)
+          throw error
+        }
 
         const text = extractOpenAIChatCompletionText(response) ?? ''
+        if (!text.trim()) {
+          throw ValidationError(`${providerLabel} returned no response text from model.`, {
+            stage: 'write:openai-chat',
+            retryable: false,
+            metadata: {
+              rawResponse: response,
+              rawProviderUsage: response.usage,
+              returnedModel: response.model,
+              requestSettings: llmRequestSettings(body)
+            }
+          })
+        }
         return {
           text,
           usage: mapUsage ? mapUsage(response.usage) : response.usage,

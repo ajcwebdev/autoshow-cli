@@ -2,13 +2,14 @@ import { expect } from 'bun:test'
 import { requireCondition } from '../test-utils/require-condition'
 import { chmod, mkdir } from 'node:fs/promises'
 import { isAbsolute, join, posix, relative, resolve } from 'node:path'
-import { IMAGE_REPOSITORY, nativePlatform, REQUESTED_IMAGE } from './docker-options'
-import type { DockerOptions, Platform } from './docker-options'
+import { canonicalImageRepository, nativePlatform, parseImageReference } from './docker-options'
+import type { DockerOptions, Platform, PullPolicy } from './docker-options'
 import { runDockerProcess } from '../../src/tools/docker-process'
 import type { ProcessOutcome, ProcessRunner } from '../../src/tools/docker-process'
 
 export interface ImageIdentity {
   requestedTag: string
+  pullPolicy: PullPolicy
   digest: string
   reference: string
   platform: Platform
@@ -22,6 +23,10 @@ export interface ImageIdentity {
 
 export interface CommandEvidence extends ProcessOutcome { argv: string[]; logPrefix: string }
 export interface MountMapping { host: string; container: string; readonly?: boolean }
+interface ImageInspection {
+  Id: string; Os: string; Architecture: string; Size: number; RepoDigests?: string[]
+  Config: { Labels?: Record<string, string>; User: string; Entrypoint: string[]; Env?: string[] }
+}
 
 export function mapArtifactPath(path: string, mounts: MountMapping[], relativeTo = '/results'): string {
   const absolute = posix.resolve(relativeTo, path)
@@ -35,7 +40,8 @@ export function mapArtifactPath(path: string, mounts: MountMapping[], relativeTo
 }
 
 export function containerArguments(identity: ImageIdentity, name: string, runId: string, mounts: MountMapping[], network: string, args: string[], entrypoint?: string): string[] {
-  requireCondition(identity.reference.startsWith(`${IMAGE_REPOSITORY}@sha256:`), 'An immutable GHCR reference is required')
+  const reference = parseImageReference(identity.reference)
+  requireCondition(reference.digest === identity.digest || (reference.imageId === identity.imageId && reference.imageId === identity.digest), 'A verified immutable image reference is required')
   const result = ['run', '--rm', '--pull', 'never', '--name', name, '--label', `autoshow.acceptance=${runId}`, '--platform', identity.platform,
     '--network', network, '--workdir', '/workspace', '--env', 'NO_COLOR=1', '--env', 'CI=true', '--env', 'AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1']
   for (const mount of mounts) {
@@ -52,7 +58,7 @@ export class DockerEngine {
   readonly commands: CommandEvidence[] = []
   readonly owned = new Set<string>()
   readonly mounts: MountMapping[] = []
-  identity?: ImageIdentity
+  identity: ImageIdentity | undefined
   fixtureNetwork: string | undefined
   interrupted = false
   private sequence = 0
@@ -78,30 +84,54 @@ export class DockerEngine {
   }
 
   async resolveImage(): Promise<ImageIdentity> {
+    this.identity = undefined
+    const selected = parseImageReference(this.options.image)
+    requireCondition(!(selected.imageId && this.options.pull === 'always'), 'An image ID cannot use --pull always')
     const info = this.requireSuccess(await this.command(['info', '--format', '{{json .Architecture}}']), 'Docker daemon')
     const platform = nativePlatform(JSON.parse(info.stdout) as string)
     requireCondition(!this.options.platform || this.options.platform === platform, `--platform ${this.options.platform} is not native to this ${platform} Docker daemon`)
-    const pull = this.requireSuccess(await this.command(['pull', '--platform', platform, REQUESTED_IMAGE], this.options.setupTimeoutMs), 'Pull latest')
-    const digests = [...new Set([...`${pull.stdout}\n${pull.stderr}`.matchAll(/^Digest:\s+(sha256:[a-f0-9]{64})\s*$/gm)].map(match => match[1]!))]
-    expect(digests.length, 'Pull did not report one immutable digest').toBe(1)
-    const digest = digests[0]!
-    const reference = `${IMAGE_REPOSITORY}@${digest}`
-    const inspection = this.requireSuccess(await this.command(['image', 'inspect', reference]), 'Inspect pulled digest')
-    const [image] = JSON.parse(inspection.stdout) as Array<{ Id: string; Os: string; Architecture: string; Size: number; RepoDigests: string[]; Config: { Labels?: Record<string, string>; User: string; Entrypoint: string[]; Env: string[] } }>
-    requireCondition(image, 'Missing pulled image inspection')
-    requireCondition(image.RepoDigests.includes(reference), 'Image inspection did not confirm the pulled digest')
-    expect(`${image.Os}/${image.Architecture}`, 'Pulled architecture differs from native daemon').toBe(platform)
-    requireCondition(image.Config.User && !['0', 'root'].includes(image.Config.User.split(':')[0]!), 'Acceptance requires the image normal non-root user')
+    let inspection: ProcessOutcome | undefined
+    let manifestDigest = selected.digest
+    let reference = selected.digest ? `${selected.repository}@${selected.digest}` : selected.reference
+    if (this.options.pull !== 'always') {
+      inspection = await this.command(['image', 'inspect', selected.reference])
+      if (this.options.pull === 'never' || selected.imageId) this.requireSuccess(inspection, 'Inspect selected local image (no registry fallback)')
+    }
+    if (!inspection || inspection.exitCode !== 0 || inspection.timedOut) {
+      const pull = this.requireSuccess(await this.command(['pull', '--platform', platform, selected.reference], this.options.setupTimeoutMs), `Pull ${selected.reference}`)
+      const digests = [...new Set([...`${pull.stdout}\n${pull.stderr}`.matchAll(/^Digest:\s+(sha256:[a-f0-9]{64})\s*$/gm)].map(match => match[1]!))]
+      expect(digests.length, 'Pull did not report one immutable digest').toBe(1)
+      manifestDigest = digests[0]!
+      if (selected.digest) expect(manifestDigest, 'Pulled digest differs from the selected immutable reference').toBe(selected.digest)
+      reference = `${selected.repository}@${manifestDigest}`
+      inspection = this.requireSuccess(await this.command(['image', 'inspect', reference]), 'Inspect pulled digest')
+    }
+    const images = JSON.parse(inspection.stdout) as ImageInspection[]
+    requireCondition(Array.isArray(images) && images.length === 1 && images[0], 'Expected one selected image inspection')
+    const image = images[0]
+    requireCondition(/^sha256:[a-f0-9]{64}$/.test(image.Id), 'Image inspection did not provide an immutable image ID')
+    if (selected.imageId) expect(image.Id, 'Image inspection differs from the selected image ID').toBe(selected.imageId)
+    if (manifestDigest) {
+      requireCondition(image.RepoDigests?.some(value => {
+        const inspected = parseImageReference(value)
+        return inspected.digest === manifestDigest && inspected.repository && canonicalImageRepository(inspected.repository) === canonicalImageRepository(selected.repository!)
+      }), 'Image inspection did not confirm the selected manifest digest')
+    } else reference = image.Id
+    const digest = manifestDigest ?? image.Id
+    expect(`${image.Os}/${image.Architecture}`, 'Selected architecture differs from native daemon').toBe(platform)
+    const username = image.Config.User?.split(':')[0]
+    requireCondition(username && username !== 'root' && !/^[+-]?0+$/.test(username), 'Acceptance requires the image normal non-root user')
     requireCondition(image.Config.Entrypoint?.length, 'Image must provide a CLI entrypoint')
     for (const value of image.Config.Env ?? []) {
       const [key, ...rest] = value.split('=')
       requireCondition(!/(API_KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)/i.test(key!) || !rest.join('='), `Image contains credential setting: ${key}`)
     }
-    this.identity = { requestedTag: REQUESTED_IMAGE, digest, reference, platform, imageId: image.Id, revision: image.Config.Labels?.['org.opencontainers.image.revision'] ?? 'unknown', imageSizeBytes: image.Size, user: image.Config.User, entrypoint: image.Config.Entrypoint }
-    await Bun.write(join(this.options.output, 'image.json'), `${JSON.stringify(this.identity, null, 2)}\n`)
-    if (this.options.expectedDigest) expect(digest, 'latest changed since publication').toBe(this.options.expectedDigest)
-    if (this.options.expectedRevision) expect(this.identity.revision, 'Image revision differs from published commit').toBe(this.options.expectedRevision)
-    return this.identity
+    const identity: ImageIdentity = { requestedTag: selected.reference, pullPolicy: this.options.pull, digest, reference, platform, imageId: image.Id, revision: image.Config.Labels?.['org.opencontainers.image.revision'] ?? 'unknown', imageSizeBytes: image.Size, user: image.Config.User, entrypoint: image.Config.Entrypoint }
+    if (this.options.expectedDigest) expect(digest, 'Selected image digest differs from the expected digest').toBe(this.options.expectedDigest)
+    if (this.options.expectedRevision) expect(identity.revision, 'Image revision differs from expected commit').toBe(this.options.expectedRevision)
+    await Bun.write(join(this.options.output, 'image.json'), `${JSON.stringify(identity, null, 2)}\n`)
+    this.identity = identity
+    return identity
   }
 
   async prepareMounts(): Promise<void> {

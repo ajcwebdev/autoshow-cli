@@ -24,7 +24,7 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'gemini',
     model: 'gemini-3.1-flash-lite',
-    message: 'Model "gemini-3.1-flash-lite" is retired for --llm gemini[=model]. Use "gemini-3.7-flash" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "gemini-3.1-flash-lite" is retired for --llm gemini[=model]. Use "gemini-3.8-flash" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'gemini-ocr',
@@ -34,12 +34,12 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'kimi-ocr',
     model: retiredKimiOcr,
-    message: `Invalid model "${retiredKimiOcr}" for --provider/--ocr kimi[=model]. Allowed values: kimi-k2.6, kimi-k3`
+    message: 'Provider selections kimi-ocr are no longer supported.'
   },
   {
     flag: 'kimi-ocr',
     model: `${retiredKimiOcr}-highspeed`,
-    message: `Invalid model "${retiredKimiOcr}-highspeed" for --provider/--ocr kimi[=model]. Allowed values: kimi-k2.6, kimi-k3`
+    message: 'Provider selections kimi-ocr are no longer supported.'
   },
   {
     flag: 'openai-tts',

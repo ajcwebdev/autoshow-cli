@@ -1,0 +1,89 @@
+# Describe It First
+
+Intro
+
+Teal mug on the folded map, compass badge to the glass.
+Window open, ridge still wearing one thin stripe of mist.
+Papa Bear's already checking weather, notice, time back.
+You want a big story? Sit down. I've got a notebook.
+
+Verse 1
+
+I'm Mira. Papa Bear's my guide, rust-colored coat, patient stride.
+Weather first, then the trail notice, then the time we're back,
+And only then does anything get added to his pack.
+I count the torch, the water, spare layer, notebook, too.
+Each of us holds a route copy, and the rule runs through:
+If the weather changes, we turn around.
+The mug holds down the map while we match the bridge to ground.
+One finger on the path, then I write it at the top:
+Harborlight Camp, fresh page, and I don't stop.
+At the trail board I photograph the route, check it on the print.
+The wooden marker points to the sheltered ridge, no hint
+Of a shortcut, no brighter hillside, bends the plan we made.
+We leave the table clear, carry out all we brought in, neat.
+A good observation starts with careful arrival, then a question, then time.
+
+Chorus
+
+Say what you see, then say what it means.
+Mug on the map, and the notebook stays clean.
+Not the grand story, not the rush for the prize,
+Just the page that stays true to your eyes.
+
+Verse 2
+
+At the overlook he shows me one landmark, two faces:
+The footbridge looks short from the shore, long from above.
+I draw both views and label where I stood,
+No 'this one's wrong,' just where I was standing.
+At camp: tent on the level ground, the path kept clear,
+Telescope stays in its case while we check the tripod gear.
+Mug on the low table, off the edge, notebook clipped tight.
+Then a thin cloud crosses the first star. I wanted all of it.
+He says, 'Log the cloud. It's part of the view.'
+First entry: pale sky, one bright point, breeze off the water.
+Plain as that, and useful. It's what we could see, nothing more.
+Lantern shield toward the table, a warm ring round the mug,
+Full dark before we start, scope turned from the sun's last glow.
+I describe a bright point, no guess at distance.
+He asks what's changed: cloud moved, harbor lights sharper, pale band faded.
+
+Chorus
+
+Say what you see, then say what it means.
+Mug by the lantern, and the notebook stays clean.
+Not the grand story, not the rush for the prize,
+Just the cloud written in as part of the skies.
+
+Verse 3
+
+Then a streak crosses the open sky, both of us looking up.
+No time to draw its whole path. It's gone in a moment.
+So we write the direction, the approximate time, how brief it was.
+No grand discovery. We leave room for 'not sure.'
+Then quiet. Neither of us talks. My hands go warm round the mug.
+Last line of the night: waiting gave us a view we'd have missed by hurrying.
+Before bed we check the notebook against the route plan:
+Place, weather, time, observer, every one named.
+Sketches labeled sketches. Uncertain stays uncertain,
+So someone who never stood by the telescope could use it.
+Morning: I count the table. Mug, notebook, clip, lantern, case.
+He walks the campsite for scraps and loose gear. Clear as we found it.
+Same marked path to the harbor. At the overlook, new light.
+Third small drawing on the first page. Nothing old erased.
+Four pages of notes, three bridge sketches, one habit.
+
+Bridge
+
+Page one: pale sky. One bright point. Breeze from the water.
+Later: streak, direction noted, time approximate, lasted a moment.
+Margin: not sure. Left it that way.
+No dramatic story needed. The page already did its job.
+
+Chorus
+
+Say what you see, then say what it means.
+Mug back by the map, four pages, three bridge scenes.
+Nothing erased, nothing forced to be grand,
+Next walk starts with this habit, and a steady hand.

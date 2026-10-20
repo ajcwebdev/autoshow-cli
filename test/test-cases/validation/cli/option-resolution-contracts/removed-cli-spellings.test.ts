@@ -31,7 +31,7 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['extract', 'https://example.com/a.mp3', '--no-cache'], flag: '--no-cache' },
   { argv: ['extract', 'https://example.com/a.mp3', '--cache-dir=/tmp/x'], flag: '--cache-dir' },
   { argv: ['write', 'https://example.com/a.mp3', '--all-url'], flag: '--all-url' },
-  { argv: ['write', 'https://example.com/a.mp3', '--openai', 'gpt-5.6-sol'], flag: '--openai' },
+  { argv: ['write', 'https://example.com/a.mp3', '--openai', 'gpt-6.1-sol'], flag: '--openai' },
   { argv: ['extract', 'https://example.com/article', '--url-backend', 'firecrawl'], flag: '--url-backend' },
   { argv: ['extract', 'https://example.com/article', '--url-provider', 'spider'], flag: '--url-provider' },
   { argv: ['resume', 'output/x', '--url-provider', 'supadata'], flag: '--url-provider' },

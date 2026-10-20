@@ -3,9 +3,9 @@ import type { LLMService } from '~/types'
 import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStrictMode } from '~/cli/commands/text/write/structured-output/capabilities'
 
 describe('structured output provider capability contracts', () => {
-  test('Together uses native strict structured output', () => {
-    expect(resolveStructuredStrategy('together')).toBe('native')
-    expect(shouldApplyStrictMode('together', true)).toBe(true)
+  test('OpenAI uses native strict structured output', () => {
+    expect(resolveStructuredStrategy('openai')).toBe('native')
+    expect(shouldApplyStrictMode('openai', true)).toBe(true)
   })
 
   test('every provider has an explicit validation retry budget', () => {
@@ -14,9 +14,6 @@ describe('structured output provider capability contracts', () => {
       anthropic: 1,
       gemini: 1,
       grok: 0,
-      glm: 1,
-      kimi: 1,
-      together: 1,
     }
 
     for (const [service, budget] of Object.entries(expected) as Array<[LLMService, number]>) {

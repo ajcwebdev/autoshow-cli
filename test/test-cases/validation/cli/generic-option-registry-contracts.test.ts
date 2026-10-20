@@ -53,7 +53,10 @@ describe('generic option registries cannot drift from their capability tables', 
       expect(providers.length).toBeGreaterThan(0)
       for (const provider of providers) expect(provider in WRITE_STT_PROVIDER_TARGETS).toBe(true)
     }
-    expect([...declared].sort()).toEqual(['chunkSize', 'languageHint', 'organizationId', 'responseFormat', 'verbatim'])
+    expect([...declared].sort()).toEqual(['languageHint', 'responseFormat', 'verbatim'])
+    // Excluded Happy Scribe and Supadata keep no controls; their former settings fail locally instead.
+    expect(STT_ENGINE_OPTION_CAPABILITIES.happyscribe).toEqual({})
+    expect(STT_ENGINE_OPTION_CAPABILITIES.supadata).toEqual({})
   })
 
   test('the engine-to-provider map covers exactly the public STT provider spellings', () => {

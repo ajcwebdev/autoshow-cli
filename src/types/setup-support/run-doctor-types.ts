@@ -1,4 +1,4 @@
-import type { AutoshowConfig, ManagedArtifactToolId, ManagedArtifactValidation, ResolvedYtDlpBinary, RunResult } from '~/types'
+import type { AutoshowConfig, ManagedArtifactToolId, ManagedArtifactValidation, ResolvedYtDlpBinary, RunOptions, RunResult } from '~/types'
 export type DoctorStatus = 'OK' | 'MISSING' | 'WARN' | 'INFO'
 
 export type DoctorSeverity = 'warn' | 'info'
@@ -24,7 +24,8 @@ export type DoctorProbes = {
   pathExists: (path: string) => Promise<boolean>
   listDirectory: (path: string) => Promise<string[]>
   directoryHasFiles: (path: string) => Promise<boolean>
-  run: (command: string, args: string[]) => Promise<RunResult>
+  run: (command: string, args: string[], options?: RunOptions) => Promise<RunResult>
+  resolveTessdataPrefix: () => string | undefined
   resolveYtDlpBinaryInfo: () => ResolvedYtDlpBinary | undefined
   readDefuddleCliReadiness: () => Promise<DoctorCheck>
   resolveConfigPath: () => Promise<string>

@@ -24,8 +24,8 @@ describe('generateBlockingPlan stage', () => {
     const plan = fixturePlan()
     const requests: BlockingPlanRequest[] = []
     const { result, events } = await captureLogEvents(async () => await generateBlockingPlan(slug, {
-      model: 'gpt-5.6-sol',
-      requestPlan: async request => { requests.push(request); return { ...draftResponse(plan), returnedModel: 'gpt-5.6-sol-2026' } },
+      model: 'gpt-6.1-sol',
+      requestPlan: async request => { requests.push(request); return { ...draftResponse(plan), returnedModel: 'gpt-6.1-sol-2026' } },
     }))
     expect(requests).toHaveLength(1)
     expect(requests[0]!.imagePaths).toEqual([inputs.establishingImages['cargo-bay']!, inputs.establishingImages['seamus-quarters']!])
@@ -37,7 +37,7 @@ describe('generateBlockingPlan stage', () => {
     expect(result.bindingsPath).toBeNull()
     expect(result.planPath).toBe(getBlockingPlanPath(slug))
     const written = v.parse(BlockingPlanSchema, JSON.parse(await Bun.file(result.planPath).text()))
-    expect(written.generatedBy).toEqual({ mode: 'llm', model: 'gpt-5.6-sol-2026' })
+    expect(written.generatedBy).toEqual({ mode: 'llm', model: 'gpt-6.1-sol-2026' })
     expect(written.structuredScriptSha256).toBe(structuredSha256)
     expect(written.locations.map(location => location.specificationSha256)).toEqual(plan.locations.map(location => location.specificationSha256))
     expect(written.stageStates[0]!.startsAt).toEqual(plan.stageStates[0]!.startsAt)
@@ -45,7 +45,7 @@ describe('generateBlockingPlan stage', () => {
     expect(sha256Bytes(new Uint8Array(await Bun.file(result.planPath).arrayBuffer()))).toBe(hashBlockingPlan(written))
     expect(result.stats.totalInputTokens).toBe(1200)
     expect(result.stats.totalOutputTokens).toBe(800)
-    expect(events.some(event => event.message.startsWith('blocking-plan generated file=blocking-plan.json model=gpt-5.6-sol-2026 tokens=2,000'))).toBe(true)
+    expect(events.some(event => event.message.startsWith('blocking-plan generated file=blocking-plan.json model=gpt-6.1-sol-2026 tokens=2,000'))).toBe(true)
     expect(await Bun.file(getInvalidBlockingPlanPath(slug)).exists()).toBe(false)
   })
 
@@ -69,7 +69,7 @@ describe('generateBlockingPlan stage', () => {
     let result
     try {
       result = await generateBlockingPlan(slug, {
-        model: 'gpt-5.6-sol',
+        model: 'gpt-6.1-sol',
         concurrency: 3,
         hostedConcurrencyCoordinator: coordinator,
         requestPlan: async request => { requests.push(request); return draftResponse(request.attempt === 1 ? broken : plan) },
@@ -96,7 +96,7 @@ describe('generateBlockingPlan stage', () => {
     const broken = fixturePlan()
     broken.stageStates[1]!.characters = broken.stageStates[1]!.characters.filter(mark => mark.characterKey !== 'chat')
     let calls = 0
-    await expect(generateBlockingPlan(slug, { model: 'gpt-5.6-sol', requestPlan: async () => { calls++; return draftResponse(broken) } })).rejects.toThrow('Blocking plan stage state "gulp-sits" drops "chat" without an exit move')
+    await expect(generateBlockingPlan(slug, { model: 'gpt-6.1-sol', requestPlan: async () => { calls++; return draftResponse(broken) } })).rejects.toThrow('Blocking plan stage state "gulp-sits" drops "chat" without an exit move')
     expect(calls).toBe(2)
     const invalid = JSON.parse(await Bun.file(getInvalidBlockingPlanPath(slug)).text())
     expect(invalid.schemaVersion).toBe(1)
@@ -109,7 +109,7 @@ describe('generateBlockingPlan stage', () => {
     const { slug, structuredSha256, workspace } = await prepareWorkspace()
     const importPath = join(workspace, 'hand-authored-plan.json')
     await writeFile(importPath, JSON.stringify(stripStampedFields(fixturePlan()), null, 2))
-    const { result, events } = await captureLogEvents(async () => await generateBlockingPlan(slug, { model: 'gpt-5.6-sol', importPath, requestPlan: async () => { throw new Error('the import path must not call the drafter') } }))
+    const { result, events } = await captureLogEvents(async () => await generateBlockingPlan(slug, { model: 'gpt-6.1-sol', importPath, requestPlan: async () => { throw new Error('the import path must not call the drafter') } }))
     expect(result.mode).toBe('import')
     expect(result.attempts).toBe(1)
     expect(result.stats.totalInputTokens).toBe(0)
@@ -121,7 +121,7 @@ describe('generateBlockingPlan stage', () => {
     const stale = structuredClone(stripStampedFields(fixturePlan())) as { stageStates: Array<{ startsAt: Record<string, unknown> }> }
     stale.stageStates[0]!.startsAt['sourceSegmentSha256'] = 'f'.repeat(64)
     await writeFile(importPath, JSON.stringify(stale))
-    await expect(generateBlockingPlan(slug, { model: 'gpt-5.6-sol', importPath })).rejects.toThrow('run draft-scenes --rebind')
+    await expect(generateBlockingPlan(slug, { model: 'gpt-6.1-sol', importPath })).rejects.toThrow('run draft-scenes --rebind')
     expect(getBlockingDirectory(slug)).toBe(join(workspace, 'metadata', 'blocking'))
   })
 
@@ -130,13 +130,13 @@ describe('generateBlockingPlan stage', () => {
     const importPath = join(workspace, 'stale-plan.json')
     const stale = structuredClone(fixturePlan()) as unknown as Record<string, unknown>
     delete stale['sceneSlug']
-    stale['generatedBy'] = { mode: 'llm', model: 'gpt-5.6-sol-2026' }
+    stale['generatedBy'] = { mode: 'llm', model: 'gpt-6.1-sol-2026' }
     stale['structuredScriptSha256'] = 'e'.repeat(64)
     const staleLocation = (stale['locations'] as Array<Record<string, unknown>>)[0]!
     staleLocation['specificationSha256'] = 'd'.repeat(64)
     staleLocation['geometrySource'] = 'location-plans'
     await writeFile(importPath, JSON.stringify(stale, null, 2))
-    const result = await generateBlockingPlan(slug, { model: 'gpt-5.6-sol', importPath })
+    const result = await generateBlockingPlan(slug, { model: 'gpt-6.1-sol', importPath })
     const written = v.parse(BlockingPlanSchema, JSON.parse(await Bun.file(result.planPath).text()))
     expect(written.generatedBy).toEqual({ mode: 'import', model: null })
     expect(written.structuredScriptSha256).toBe(structuredSha256)
@@ -144,7 +144,7 @@ describe('generateBlockingPlan stage', () => {
     expect(written.locations[0]!.specificationSha256).toBe(fixturePlan().locations[0]!.specificationSha256)
     expect(written.locations[0]!.geometrySource).toBe('specification')
     await writeFile(importPath, JSON.stringify(fixturePlan(), null, 2))
-    await expect(generateBlockingPlan(slug, { model: 'gpt-5.6-sol', importPath })).rejects.toThrow(`Blocking plan sceneSlug "${BLOCKING_FIXTURE_SCENE_SLUG}" does not match the scene "${slug}"`)
+    await expect(generateBlockingPlan(slug, { model: 'gpt-6.1-sol', importPath })).rejects.toThrow(`Blocking plan sceneSlug "${BLOCKING_FIXTURE_SCENE_SLUG}" does not match the scene "${slug}"`)
   })
 
   test('import mode binds a reviewed scene from panelBindings in the import file and leaves scene.json untouched', async () => {
@@ -152,7 +152,7 @@ describe('generateBlockingPlan stage', () => {
     const panelBindings = fixturePanels().map(panel => ({ panelNumber: panel.number, stageStateId: null, cameraSetupId: panel.blocking!.cameraSetupId, croppedOnStage: panel.blocking!.croppedOnStage, axisBreak: panel.blocking!.axisBreak }))
     const importPath = join(workspace, 'hand-authored-plan.json')
     await writeFile(importPath, JSON.stringify({ ...stripStampedFields(fixturePlan()), panelBindings }, null, 2))
-    const { result, events } = await captureLogEvents(async () => await generateBlockingPlan(slug, { model: 'gpt-5.6-sol', importPath, requestPlan: async () => { throw new Error('the import path must not call the drafter') } }))
+    const { result, events } = await captureLogEvents(async () => await generateBlockingPlan(slug, { model: 'gpt-6.1-sol', importPath, requestPlan: async () => { throw new Error('the import path must not call the drafter') } }))
     expect(result.mode).toBe('import')
     expect(result.bind).toBe(true)
     expect(result.bindingsPath).toBe(getBlockingBindingsPath(slug))
@@ -173,7 +173,7 @@ describe('generateBlockingPlan stage', () => {
     const { slug, sceneBytes, workspace } = await prepareWorkspace({ scene: true })
     const importPath = join(workspace, 'hand-authored-plan.json')
     await writeFile(importPath, JSON.stringify(stripStampedFields(fixturePlan()), null, 2))
-    const error = await generateBlockingPlan(slug, { model: 'gpt-5.6-sol', importPath }).catch((caught: unknown) => caught)
+    const error = await generateBlockingPlan(slug, { model: 'gpt-6.1-sol', importPath }).catch((caught: unknown) => caught)
     expect(error).toBeInstanceOf(Error)
     expect((error as Error).message).toContain(`Blocking plan for ${slug} failed validation after 1 attempt:\n- Bind mode needs panelBindings for panels 1-6 in the import file ${importPath}: the reviewed scene JSON carries no blocking citation for those panels`)
     expect((error as Error).message).not.toContain('is missing a blocking citation')
@@ -184,14 +184,14 @@ describe('generateBlockingPlan stage', () => {
     expect(invalid.validationErrors).toHaveLength(1)
     const partial = fixturePanels().slice(0, 4).map(panel => ({ panelNumber: panel.number, stageStateId: null, cameraSetupId: panel.blocking!.cameraSetupId, croppedOnStage: panel.blocking!.croppedOnStage, axisBreak: panel.blocking!.axisBreak }))
     await writeFile(importPath, JSON.stringify({ ...stripStampedFields(fixturePlan()), panelBindings: [...partial, { ...partial[0]!, panelNumber: 9 }, { ...partial[1]! }] }, null, 2))
-    const partialError = await generateBlockingPlan(slug, { model: 'gpt-5.6-sol', importPath }).catch((caught: unknown) => caught)
+    const partialError = await generateBlockingPlan(slug, { model: 'gpt-6.1-sol', importPath }).catch((caught: unknown) => caught)
     expect((partialError as Error).message).toContain('- panelBindings names panel 9 which is not in the reviewed scene JSON')
     expect((partialError as Error).message).toContain('- panelBindings lists panel 2 more than once')
     expect((partialError as Error).message).toContain('- Panel 5 has no binding in panelBindings')
     expect((partialError as Error).message).toContain('- Panel 6 has no binding in panelBindings')
     await writeFile(getSceneJsonPath(slug), JSON.stringify(buildBlockingFixtureScene({ withBlocking: true }), null, 2))
     await writeFile(importPath, JSON.stringify(stripStampedFields(fixturePlan()), null, 2))
-    const bound = await generateBlockingPlan(slug, { model: 'gpt-5.6-sol', importPath })
+    const bound = await generateBlockingPlan(slug, { model: 'gpt-6.1-sol', importPath })
     expect(bound.bind).toBe(true)
     expect(bound.bindings?.panels).toEqual([])
     expect(await Bun.file(getBlockingBindingsPath(slug)).exists()).toBe(true)
@@ -203,7 +203,7 @@ describe('generateBlockingPlan stage', () => {
     const panelBindings = fixturePanels().map(panel => ({ panelNumber: panel.number, stageStateId: null, cameraSetupId: panel.blocking!.cameraSetupId, croppedOnStage: panel.blocking!.croppedOnStage, axisBreak: panel.blocking!.axisBreak }))
     const requests: BlockingPlanRequest[] = []
     const { result, events } = await captureLogEvents(async () => await generateBlockingPlan(slug, {
-      model: 'gpt-5.6-sol',
+      model: 'gpt-6.1-sol',
       requestPlan: async request => { requests.push(request); return draftResponse(plan, { panelBindings: [...panelBindings].reverse() }) },
     }))
     expect(result.bind).toBe(true)
@@ -227,7 +227,7 @@ describe('generateBlockingPlan stage', () => {
     const { slug, sceneBytes } = await prepareWorkspace({ scene: true })
     const plan = fixturePlan()
     const panelBindings = fixturePanels().map(panel => ({ panelNumber: panel.number, stageStateId: null, cameraSetupId: panel.number === 1 ? 'reverse-from-hatch' : panel.blocking!.cameraSetupId, croppedOnStage: panel.blocking!.croppedOnStage, axisBreak: panel.blocking!.axisBreak }))
-    await expect(generateBlockingPlan(slug, { model: 'gpt-5.6-sol', requestPlan: async () => draftResponse(plan, { panelBindings }) })).rejects.toThrow('Panel 1 lists "seamus" who is not in frame for camera "reverse-from-hatch"')
+    await expect(generateBlockingPlan(slug, { model: 'gpt-6.1-sol', requestPlan: async () => draftResponse(plan, { panelBindings }) })).rejects.toThrow('Panel 1 lists "seamus" who is not in frame for camera "reverse-from-hatch"')
     expect(await Bun.file(getSceneJsonPath(slug)).text()).toBe(sceneBytes!)
     expect(await Bun.file(getBlockingBindingsPath(slug)).exists()).toBe(false)
     expect(await Bun.file(getInvalidBlockingPlanPath(slug)).exists()).toBe(true)

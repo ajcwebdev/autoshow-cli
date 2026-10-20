@@ -59,7 +59,7 @@ export type StructuredValidationResult = {
   issue?: string
 }
 
-export type LLMService = Step3Metadata['llmService']
+export type LLMService = 'openai' | 'gemini' | 'anthropic' | 'grok'
 
 export type StructuredPresetName =
   | 'shortSummary'
@@ -82,6 +82,8 @@ export type StructuredPresetName =
   | 'seoArticle'
   | 'contentStrategy'
   | 'emailNewsletter'
+  | 'sources'
+  | 'literatureReview'
   | 'pdfChapterBoundaries'
   | 'x'
   | 'tiktok'
@@ -92,6 +94,7 @@ export type StructuredPresetName =
   | 'rapSongLyrics'
   | 'rapSongLongLyrics'
   | 'rapSongChapterLyrics'
+  | 'songExplainer'
   | 'poetryCollection'
   | 'screenplay'
   | 'shortStory'

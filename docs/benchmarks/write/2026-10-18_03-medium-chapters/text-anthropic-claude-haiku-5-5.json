@@ -1,0 +1,14 @@
+{
+  "chapters": [
+    {
+      "timestamp": "00:00:00",
+      "title": "Opening, Technical Hiccups, and Introductions",
+      "description": "The hosts address a Twitter Space glitch where the broadcast appeared to start before going live, then welcome the audience back. Ishan Anand introduces JavaScript Jam Live and the React Miami collaboration, while Anthony and Scott explain their roles at Edgio and invite listeners to join the conversation."
+    },
+    {
+      "timestamp": "00:04:59",
+      "title": "Media Partners and the Miami Jam Game Show",
+      "description": "Dev introduces himself as a media partner for React Miami and previews Miami Jam, a trivia-style game show. He explains that questions will spark deeper conversations about speakers' topics, motivations, and experiences, while audience members can help decide how many points each answer earns."
+    }
+  ]
+}

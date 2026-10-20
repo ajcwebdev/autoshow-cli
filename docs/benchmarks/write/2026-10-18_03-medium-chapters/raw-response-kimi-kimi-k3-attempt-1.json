@@ -1,0 +1,42 @@
+{
+  "result": "{\n  \"chapters\": [\n    {\n      \"timestamp\": \"00:00:00\",\n      \"title\": \"Twitter Space Recovery and Welcome\",\n      \"description\": \"The hosts open by explaining the Twitter Space startup glitch, thanking Scott and the audience for sticking with the session, and framing JavaScript Jam Live as an open mic for JavaScript and web development topics with strong audience participation.\"\n    },\n    {\n      \"timestamp\": \"00:03:15\",\n      \"title\": \"React Miami Collaboration and Introductions\",\n      \"description\": \"Scott, Anthony, Ishan, Dev, Dan, and Michelle introduce themselves while outlining the React Miami partnership, upcoming speaker involvement, and the inclusive format encouraging beginners and experienced developers alike to request the mic and join the conversation.\"\n    },\n    {\n      \"timestamp\": \"00:06:21\",\n      \"title\": \"Miami Jam Game Show Preview\",\n      \"description\": \"Dev previews Miami Jam, a React Miami media-partner show that swaps standard panels for trivia-style prompts about React, JavaScript, TypeScript, libraries, and speaker topics, using playful scoring and audience interaction to spark deeper stories through the end at 00:10:00.\"\n    }\n  ]\n}",
+  "metadata": {
+    "llmService": "kimi",
+    "llmModel": "kimi-k3",
+    "providerReturnedModel": "kimi-k3",
+    "processingTime": 17159,
+    "inputTokenCount": 2615,
+    "outputTokenCount": 639,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 2615,
+      "outputTokenCount": 639,
+      "totalTokenCount": 3254
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 2615,
+      "completion_tokens": 639,
+      "total_tokens": 3254,
+      "completion_tokens_details": {
+        "reasoning_tokens": 374
+      },
+      "prompt_tokens_details": {
+        "cache_write_tokens": 2560
+      }
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "low",
+    "requestSettings": {
+      "model": "kimi-k3",
+      "stream": false,
+      "max_completion_tokens": 32768,
+      "reasoning_effort": "low",
+      "response_format": {
+        "type": "json_object"
+      }
+    }
+  }
+}

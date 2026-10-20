@@ -205,6 +205,7 @@ export const runGrokStt = async (
     attachError: attachSttStageErrorContext,
     doFetch: async (signal) => {
       const form = new FormData()
+      form.append('model', model)
       form.append('format', String(!options.grokSttVerbatim))
       if (options.grokSttVerbatim) form.append('filler_words', 'true')
       form.append('language', 'en')

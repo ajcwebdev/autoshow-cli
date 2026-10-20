@@ -11,8 +11,6 @@ export type WriteDocumentOutputMetadataOptions = {
   step3: Step3Metadata | Step3Metadata[]
   preflightEstimate?: AggregatedPriceEstimate | undefined
   mistralOcrModel: string | undefined
-  glmOcrModel: string | undefined
-  kimiOcrModel: string | undefined
   openaiOcrModel: string | undefined
   grokOcrModel: string | undefined
   anthropicOcrModel: string | undefined

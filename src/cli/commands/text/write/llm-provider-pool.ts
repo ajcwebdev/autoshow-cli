@@ -1,6 +1,6 @@
 import { runProviderTargetScheduler } from '~/cli/commands/command-shared/provider-target-scheduler'
 import type { HostedConcurrencyCoordinator, IndexedLlmTarget, LLMTarget, TargetSchedulerConcurrency } from '~/types'
-import { InfraError } from '~/utils/error-handler'
+import { InfraError, UsageError } from '~/utils/error-handler'
 
 const isHostedLlmTarget = (
   target: Pick<LLMTarget, 'service'>
@@ -9,9 +9,6 @@ const isHostedLlmTarget = (
   || target.service === 'gemini'
   || target.service === 'anthropic'
   || target.service === 'grok'
-  || target.service === 'glm'
-  || target.service === 'kimi'
-  || target.service === 'together'
 
 export const runLlmProviderTargetPools = async (
   targets: LLMTarget[],
@@ -33,7 +30,7 @@ export const runLlmProviderTargetPools = async (
     getPool: () => 'hosted',
     runTarget: async (_index, entry) => {
       if (!isHostedLlmTarget(entry.target)) {
-        return
+        throw UsageError(`Unsupported write provider ${entry.target.service}. Select an active provider explicitly.`)
       }
       await worker(entry.index, entry.target)
     }

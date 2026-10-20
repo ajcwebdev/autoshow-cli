@@ -84,8 +84,11 @@ export const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
 
 export const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
   const candidateId = optionalFlag(ctx, 'save') ?? parameter(ctx, 'candidateId')
-  const subjectKey = optionalFlag(ctx, 'subject-key') ?? optionalParameter(ctx, 'subjectKey')
-  if (!subjectKey) throw UsageError('--subject-key is required.')
+  const positionalSubject = optionalParameter(ctx, 'subjectKey')
+  const aliasSubject = optionalFlag(ctx, 'subject-key')
+  if (positionalSubject && aliasSubject && positionalSubject !== aliasSubject) throw UsageError('Positional subject key conflicts with --subject-key; supply one matching subject.')
+  const subjectKey = positionalSubject ?? aliasSubject
+  if (!subjectKey) throw UsageError('A subject key is required; use voice design <subject-key> --save <candidate-id>.')
   const desiredName = requiredFlag(ctx, 'voice-name')
   const provenanceRef = requiredFlag(ctx, 'provenance-ref')
   const provider = providerFlag(ctx)

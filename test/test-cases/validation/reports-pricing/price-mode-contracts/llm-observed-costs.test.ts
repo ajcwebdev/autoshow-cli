@@ -19,7 +19,7 @@ describe('price mode contracts', () => {
   test('text write estimated costs stay price-aligned while observed LLM counts stay uncalibrated', async () => {
       const opts = {
         prompts: ['shortSummary'],
-        openaiModels: ['gpt-5.6-sol'],
+        openaiModels: ['gpt-5.6-terra'],
         useTesseract: false,
         urlBackend: 'defuddle',
         urlBackendExplicit: false
@@ -30,24 +30,24 @@ describe('price mode contracts', () => {
         applyCostMultipliers: false,
         llmTargets: [{
           service: 'openai',
-          model: 'gpt-5.6-sol',
+          model: 'gpt-5.6-terra',
           inputTokens: 100_000,
           outputTokens: 100_000
         }]
       })
-      const multiplier = getLlmEstimation('openai', 'gpt-5.6-sol').costMultiplier
+      const multiplier = getLlmEstimation('openai', 'gpt-5.6-terra').costMultiplier
 
       expect(multiplier).not.toBe(1)
       expect(estimated.steps[0]).toMatchObject({
         step: 'llm',
         provider: 'openai',
-        model: 'gpt-5.6-sol',
+        model: 'gpt-5.6-terra',
         costMultiplier: multiplier
       })
       expect(observedEstimate.steps[0]).toMatchObject({
         step: 'llm',
         provider: 'openai',
-        model: 'gpt-5.6-sol',
+        model: 'gpt-5.6-terra',
         estimatedInputTokens: 100_000,
         estimatedOutputTokens: 100_000,
         costMultiplier: 1

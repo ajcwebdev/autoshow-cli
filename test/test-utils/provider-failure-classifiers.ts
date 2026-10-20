@@ -45,37 +45,6 @@ export const isTransientPressureOutput = (output: string): boolean => {
 
 export const RUNWAY_INSUFFICIENT_CREDITS_MESSAGE = 'You do not have enough credits to run this task.'
 
-const hasGlmSignal = (output: string): boolean =>
-  /\bGLM\b/i.test(output)
-  || /\bglm[-_](?:reader|ocr|llm|stt)\b/i.test(output)
-  || /\bZ\.?AI\b/i.test(output)
-  || /\bapi\.z\.ai\b/i.test(output)
-  || /\bpaas\/v4\b/i.test(output)
-
-export const isGlmAccountAvailabilityFailure = (output: string): boolean => {
-  if (!hasGlmSignal(output)) return false
-  return (
-    /\b1113\b/.test(output) ||
-    /insufficient\s+(?:account\s+)?balance/i.test(output) ||
-    /balance\s+(?:is\s+)?(?:not\s+enough|insufficient)/i.test(output) ||
-    /not\s+enough\s+balance/i.test(output) ||
-    /no\s+(?:available\s+)?resource\s+package/i.test(output) ||
-    /resource\s+package.{0,80}(?:not\s+found|unavailable|expired|exhausted|insufficient)/i.test(output)
-  )
-}
-
-export const isGlmCertificateExpiryFailure = (output: string): boolean =>
-  hasGlmSignal(output)
-  && (
-    /\bcertificate\s+(?:has\s+)?expired\b/i.test(output) ||
-    /\bCERT_HAS_EXPIRED\b/i.test(output)
-  )
-
-export const isGlmRetryable429Exhaustion = (output: string): boolean =>
-  /retryable status 429/i.test(output)
-  && (/\bglm-(?:ocr|llm)\b/i.test(output) || /GLM (?:OCR|model)/i.test(output))
-  && (/\bfailed after \d+(?:\/\d+)? attempts\b/i.test(output) || /\bCommand failed\b/i.test(output))
-
 export const isDeepInfraWhisperLargeV3CommandTimeout = (output: string): boolean =>
   /\bdeepinfra\b/i.test(output)
   && /openai\/whisper-large-v3(?!-turbo)\b/i.test(output)

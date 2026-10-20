@@ -21,7 +21,7 @@ const configFlags = {
 } as const satisfies CliFlagsDefinition
 
 const pricingFlags = {
-  'max-cents': strFlag('Budget limit in cents — commands exceeding this fail unless --allow-over-budget is set')
+  'max-cents': strFlag('Budget limit in cents; non-negative number; omit for no budget cap. Commands exceeding it fail unless --allow-over-budget is set')
 } as const satisfies CliFlagsDefinition
 
 const authFlags = {
@@ -31,6 +31,9 @@ const authFlags = {
 
 const configTtsFlags = omitFlags(ttsCommandFlags, [
   'provider',
+  'model',
+  'gemini-tts-mode',
+  'gemini-tts-batch-wait-seconds',
   'all-providers',
   'concurrency-mode',
   'provider-concurrency',

@@ -7,6 +7,7 @@ import { configureOutputRoot, getOutputRoot } from '~/cli/commands/command-share
 import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { readObservedAudio } from '~/cli/commands/audio/tts/script-to-audio/attempt-io'
 import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
+import { resetLoggerForInvocation } from '~/utils/app-logger/app-logger'
 import { captureConsoleText, captureProcessOutput } from '../../../../../test-utils/console-capture'
 import { jsonResponse } from '../../../../../test-utils/rest-contract-helpers'
 import type { MockFetchCall } from '~/types'
@@ -15,7 +16,7 @@ import { LITE, batchAudio, wav } from './gemini-fixtures'
 
 const { makeTempDir } = setupTtsContractLifecycle()
 const originalOutputRoot = getOutputRoot()
-afterEach(() => { resetPinnedRunDir(); configureOutputRoot(originalOutputRoot) })
+afterEach(() => { resetPinnedRunDir(); configureOutputRoot(originalOutputRoot); resetLoggerForInvocation(false) })
 const emptyConfig = 'test/test-utils/fixtures/empty-autoshow-config.json'
 const providers = ['--provider', `gemini=${LITE}`, '--provider', 'soniox=tts-rt-v2', '--gemini-tts-mode', 'batch']
 // Same documented Soniox REST endpoint asserted in soniox-contracts.test.ts.

@@ -1,0 +1,47 @@
+{
+  "result": "{\"episodeDescription\": \"James Berkins shares how getting laid off during company downsizing led to landing a new developer relations job within 12 hours thanks to his industry connections.\"}",
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-opus-5",
+    "providerReturnedModel": "claude-opus-5",
+    "processingTime": 1688,
+    "inputTokenCount": 815,
+    "outputTokenCount": 59,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 815,
+      "outputTokenCount": 59
+    },
+    "rawProviderUsage": {
+      "input_tokens": 815,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 59,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-opus-5",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "421c6f04b3b9776dd52ba7dfe616fdf7c27237e2529cfa764a4973f09b47521a"
+        }
+      }
+    }
+  }
+}

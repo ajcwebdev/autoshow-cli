@@ -1,7 +1,7 @@
 import type { BudgetPreflightSummary, HeadBudgetResult, PriceCommandResult, RunnerArgs, TestRunArtifacts } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { serializeDiagnosticError } from '~/utils/error-handler'
-import { isLiveCredentialMode, parseRunnerArgs } from './args'
+import { buildBunTestFlags, isLiveCredentialMode, parseRunnerArgs } from './args'
 import { UNBUDGETED_LIVE_RUN_ENV } from '../test-utils/budget-env'
 import {
   appendRunnerLog,
@@ -15,7 +15,7 @@ import {
   writeReportJson
 } from './artifacts'
 import { prepareBudgetPreflight } from './budget-preflight-orchestration'
-import { recordFileTimings } from './file-timings'
+import { buildFileTimingsRunContext, recordFileTimings } from './file-timings'
 import { buildModelCalibrationReport } from './model-calibration'
 import { readMetrics, parseJunit } from './parsers'
 import { resolveSelectedFiles } from './path-selection'
@@ -81,7 +81,15 @@ const runStandardTestMode = async (
   const endedAtIso = new Date().toISOString()
   const endedAtMs = Date.now()
   const reportData = await buildTestReportData(junitCases, metrics, artifacts, endedAtIso, endedAtMs, argv.slice(2), budgetHead.summary)
-  await recordFileTimings(junitCases)
+  await recordFileTimings(junitCases, buildFileTimingsRunContext({
+    runId: artifacts.runId,
+    recordedAt: endedAtIso,
+    selection: args.pathFilters,
+    bunFlags: buildBunTestFlags(filesToRun, args.passthroughArgs),
+    credentialMode: isLiveCredentialMode() ? 'live' : 'fixture',
+    exitCode,
+    discoveredFiles: allFiles,
+  }))
   await writeReportJson(artifacts, reportData)
   if (typeof reportData['e2e'] === 'object' && reportData['e2e'] !== null) {
     await writeJsonFile(artifacts.e2eReportJsonPath, reportData['e2e'] as Record<string, unknown>)
@@ -180,11 +188,11 @@ const writeFallbackReport = async (
   })
 }
 
-export const runTestRunner = async (argv: string[]): Promise<number> => {
+export const runTestRunner = async (argv: string[], outputRoot?: string): Promise<number> => {
   const args = parseRunnerArgs(argv)
   const glob = new Bun.Glob('test/test-cases/**/*.test.ts')
   const allFiles = (await Array.fromAsync(glob.scan({ dot: false }))).sort()
-  const artifacts = await createRunArtifacts()
+  const artifacts = await createRunArtifacts(outputRoot)
   installTimestampedConsole()
   l.write('info', `Test run artifacts: ${normalizeRepoPath(artifacts.runDir)}`, { category: 'artifact' })
 
@@ -193,9 +201,9 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
   try {
     appendRunnerLog(artifacts, `Run ID: ${artifacts.runId}\nStarted: ${artifacts.startedAtIso}\nArgs: ${argv.slice(2).join(' ')}\n`)
     const preparation = await Promise.allSettled([
-      args.preserveTestOutput
-        ? Promise.resolve()
-        : cleanupTestOutputRoot(artifacts.rootDir, { keepRunDir: artifacts.runDir, preserveActiveRuns: true }),
+      args.cleanupPreviousRuns
+        ? cleanupTestOutputRoot(artifacts.rootDir, { keepRunDir: artifacts.runDir })
+        : Promise.resolve(),
       prebuildTestCliBundle(artifacts),
       prepareBudgetPreflight(args, allFiles, artifacts),
     ])
@@ -216,19 +224,16 @@ export const runTestRunner = async (argv: string[]): Promise<number> => {
   }
 
   const latestLogPath = await writeLatestRunLog(artifacts, exitCode, latestLogDigest)
-  // A failed run keeps its junit, report, and per-test outputs; the next run's cleanup removes it.
-  const keepRunDir = args.preserveTestOutput || exitCode !== 0
+  // Failed and interrupted runs remain evidence, including during later cleanup.
+  const keepRunDir = args.preserveTestOutput || exitCode !== 0 || !await cleanupRunArtifacts(artifacts)
   if (keepRunDir) {
-    if (!args.preserveTestOutput) {
-      l.write('info', `Failed run kept: ${normalizeRepoPath(artifacts.runDir)}`, { category: 'artifact' })
-    }
+    if (!args.preserveTestOutput) l.write('info', `${exitCode !== 0 ? 'Failed run kept' : 'Protected run artifacts kept'}: ${normalizeRepoPath(artifacts.runDir)}`, { category: 'artifact' })
     l.write('info', `Report JSON: ${normalizeRepoPath(artifacts.reportJsonPath)}`, { category: 'artifact' })
     if (!args.priceMode) {
       l.write('info', `E2E Report JSON: ${normalizeRepoPath(artifacts.e2eReportJsonPath)}`, { category: 'artifact' })
     }
     l.write('info', `Latest log: ${normalizeRepoPath(latestLogPath)}`, { category: 'artifact' })
   } else {
-    await cleanupRunArtifacts(artifacts)
     l.write('info', `Test output cleaned up; latest log: ${normalizeRepoPath(latestLogPath)}`, { category: 'artifact' })
   }
   return exitCode

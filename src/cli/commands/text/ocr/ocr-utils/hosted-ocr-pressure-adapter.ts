@@ -1,5 +1,5 @@
 import type { HostedOcrRetryContext, HostedOcrSchedulerLaneState, HostedOcrSchedulerRetryPressure, QueuedHostedOcrJob } from '~/types'
-import { buildHostedOcrRetryEvent, getHostedOcrErrorStatus, isHostedOcrTimeoutError, resolveHostedOcrBackoff, resolveHostedOcrRetryEvents, resolveHostedOcrRetryPause, resolveKimiHostedOcrProfileAfterPressure, shouldBackoffHostedOcrError } from './hosted-ocr-cap-policy'
+import { buildHostedOcrRetryEvent, getHostedOcrErrorStatus, isHostedOcrTimeoutError, resolveHostedOcrBackoff, resolveHostedOcrRetryEvents, resolveHostedOcrRetryPause, shouldBackoffHostedOcrError } from './hosted-ocr-cap-policy'
 
 export interface HostedOcrPressurePolicy {
   sharedHostedPolicy: boolean
@@ -46,11 +46,6 @@ export const recordHostedOcrLaneRetryPressure = (
   if (!policy.sharedHostedPolicy) {
     Object.assign(lane, resolveHostedOcrBackoff(lane))
   }
-  const kimiConstraint = resolveKimiHostedOcrProfileAfterPressure(
-    lane,
-    policy.documentPages
-  )
-  if (kimiConstraint) Object.assign(lane, kimiConstraint)
   recordHostedOcrLaneRetryEvent(lane, pressure, context)
   if (!policy.sharedHostedPolicy) {
     const pause = resolveHostedOcrRetryPause(
