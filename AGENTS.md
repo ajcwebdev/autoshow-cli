@@ -18,9 +18,9 @@
 
 # Paid Provider Execution Rules
 
-- An individual paid-provider run or a planned combination of related paid-provider runs is automatically approved when its estimated total cost is at most $0.25 USD. Do not ask for additional confirmation for runs within this threshold.
+- An individual paid-provider command or a planned combination of related paid-provider commands is automatically approved when its estimated total cost is less than $1.00 USD. Do not ask for additional confirmation for commands within this threshold.
 - Estimate costs before execution using price preflight or known provider rates, including applicable minimum billing, add-ons, and billable retries. Track cumulative spending for a combination; do not split related work into new combinations to reset the threshold.
-- If the applicable estimate is unknown or exceeds $0.25 USD, obtain explicit user approval naming the exact command or combination and expected cost/risk before execution. Generic instructions like “do it”, “try it”, or “rerun it” do not override the threshold. This spending threshold does not authorize unrelated work.
+- If the applicable estimate is unknown or is $1.00 USD or more, obtain explicit user approval naming the exact command or combination and expected cost/risk before execution. Generic instructions like “do it”, “try it”, or “rerun it” do not override the threshold. This spending threshold does not authorize unrelated work.
 - Apply these rules to any execution that can incur provider charges, including verification, regardless of command or provider flags. Exclude price-only and mocked execution only when verified to make no billable provider calls.
 - For provider failure debugging, complete local/no-cost preparation and validation first, then apply these spending rules to any billable execution.
 - If an unapproved paid-provider process is accidentally started, stop it promptly and report what was run.
