@@ -18,11 +18,10 @@ const block = {
 }
 
 describe('Mistral OCR 4.1 contracts', () => {
-  test('selectors preserve current models and default', () => {
-    for (const selector of ['mistral-ocr-4-0', model]) {
-      expect(buildOptsFromFlags({ 'mistral-ocr': selector }).mistralOcrModels).toEqual([selector])
-    }
-    expect(buildOptsFromFlags({ 'mistral-ocr': true }).mistralOcrModels).toEqual(['mistral-ocr-4-0'])
+  test('selectors preserve the current model and default, and reject the removed 4.0 model locally', () => {
+    expect(buildOptsFromFlags({ 'mistral-ocr': model }).mistralOcrModels).toEqual([model])
+    expect(buildOptsFromFlags({ 'mistral-ocr': true }).mistralOcrModels).toEqual([model])
+    expect(() => buildOptsFromFlags({ 'mistral-ocr': 'mistral-ocr-4-0' })).toThrow('Allowed values: mistral-ocr-4-1')
   })
 
   for (const format of ['pdf', 'png'] as const) {
@@ -86,7 +85,7 @@ describe('Mistral OCR 4.1 contracts', () => {
     const calls = installMockFetch(() => { throw new Error('Pricing must not call a provider') })
     expect(await estimateMistralOcrCost(model, input)).toMatchObject({ pageCount: 1, costPer1kPagesCents: 400, totalCost: 0.4 })
     expect(await estimateMistralOcrCost(model, input, { annotated: true })).toMatchObject({ costPer1kPagesCents: 500, totalCost: 0.5 })
-    expect(await estimateMistralOcrCost('mistral-ocr-4-0', input)).toMatchObject({ totalCost: 0.4 })
+    await expect(estimateMistralOcrCost('mistral-ocr-4-0', input)).rejects.toThrow('Allowed values: mistral-ocr-4-1')
     expect(calls).toHaveLength(0)
   })
 })

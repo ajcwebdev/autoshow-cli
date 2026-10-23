@@ -5,8 +5,8 @@ import { ValidationError } from '~/utils/error-handler'
 import type { ImageGenerationModel, ImageGenerationSize } from '~/types'
 import { supportsOpenAIFlexibleImageSize } from '~/cli/commands/setup-and-utilities/models/image-models'
 
-export const DEFAULT_IMAGE_MODEL: ImageGenerationModel = 'gpt-image-2'
-const CUSTOM_SIZE_MODELS = 'gpt-image-2 or GPT Image 2.5 (Flare/Sunburst)'
+export const DEFAULT_IMAGE_MODEL: ImageGenerationModel = 'gpt-image-2.5-flare'
+const CUSTOM_SIZE_MODELS = 'GPT Image 2.5 (Flare/Sunburst)'
 
 const IMAGE_SIZE_OPTIONS = new Set<string>(IMAGE_GENERATION_SIZES)
 const CUSTOM_IMAGE_SIZE_PATTERN = /^(\d+)x(\d+)$/

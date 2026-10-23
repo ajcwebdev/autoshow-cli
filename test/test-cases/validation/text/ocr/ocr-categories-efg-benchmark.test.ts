@@ -41,15 +41,15 @@ test('provider caps apply while global capacity remains available', () => {
 })
 
 test('one slow model can serialize recovery while other models retain provider capacity', () => {
-  const lanes = createOcrBenchmarkLanes(12, { deepinfra: 4 }, { 'deepinfra/google/gemma-4-31B-it': 1 })
-  const gemma = { provider: 'deepinfra', model: 'google/gemma-4-31B-it' }
-  const first = lanes.acquire(gemma)
+  const lanes = createOcrBenchmarkLanes(12, { grok: 4 }, { 'grok/grok-4.7': 1 })
+  const slow = { provider: 'grok', model: 'grok-4.7' }
+  const first = lanes.acquire(slow)
   first.commit()
-  expect(lanes.canStart(gemma)).toBe(false)
-  expect(lanes.canStart({ provider: 'deepinfra', model: 'Qwen/Qwen3.8-27B' })).toBe(true)
+  expect(lanes.canStart(slow)).toBe(false)
+  expect(lanes.canStart({ provider: 'grok', model: 'grok-fixture' })).toBe(true)
   expect(lanes.canStart({ provider: 'openai', model: 'fixture' })).toBe(true)
   first.release()
-  expect(lanes.canStart(gemma)).toBe(true)
+  expect(lanes.canStart(slow)).toBe(true)
 })
 
 test('Gemini aliases cannot race journal I/O; cached reuse consumes no rate-limit interval', () => {

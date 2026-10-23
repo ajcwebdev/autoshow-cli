@@ -30,7 +30,7 @@ describe('page repair eligibility and promotion', () => {
       const failed = judges === 1
       return { pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['framing'] : [], editInstructions: failed ? 'Correct the framing.' : '' })), summary: failed ? 'Repair framing.' : 'Pass.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     }
-    await generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 2 }, {
+    await generateComicPages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 2 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) }, judgePage,
     })
@@ -53,19 +53,19 @@ describe('page repair eligibility and promotion', () => {
       const failed = judges === 1
       return { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-6.1-sol', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['angle'] : [], editInstructions: failed ? 'Use the specified angle.' : '', ...(failed ? { repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', recommendation: 'targeted-edit', rationale: 'The angle is wrong and a bounded edit fixes it.' }) } : {}) }], summary: failed ? 'Repair.' : 'Pass.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     }
-    await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 2 }, {
+    await generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 2 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) }, judgePage,
     })
     const output = join(runDirectory, 'panels', 'test-run', 'panel-01.png')
     expect(calls).toHaveLength(2)
-    expect(calls[1]?.model).toBe('gpt-image-2')
+    expect(calls[1]?.model).toBe('gpt-image-2.5-flare')
     expect(calls[1]?.referenceImages[0]).toContain('attempt-0.png')
     expect(await Bun.file(output).exists()).toBe(true)
   })
 
   test('prices two order-swapped comparisons for every possible individual-panel repair', () => {
-    const request = normalizeFinalImageEstimateRequest({ sceneSlug: 'pricing', scriptPath: 'script.md', imageModels: ['gpt-image-2'], panelsPerImage: 1, maxRepairs: 1 })
+    const request = normalizeFinalImageEstimateRequest({ sceneSlug: 'pricing', scriptPath: 'script.md', imageModels: ['gpt-image-2.5-flare'], panelsPerImage: 1, maxRepairs: 1 })
     if (request.mode !== 'panel') throw new Error('Expected panel mode')
     const qa = estimateQaWork(request, { mode: 'panel', totalOutputs: 2, skipped: 0, grid: null }, { mode: 'panel', panelPromptsDir: '/tmp', panels: [], gridPages: [] })
     expect(qa?.mode).toBe('panel')
@@ -92,7 +92,7 @@ describe('page repair eligibility and promotion', () => {
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     }
     expect(decidePageQaRepairDispatch(failedEntry).action).toBe('skip')
-    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1 }, {
+    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1 }, {
       requestImage: async () => { throw new Error('repair image call must be skipped') },
       judgePage: async () => failedEntry,
     })).rejects.toThrow('1 panel QA hard failure(s)')
@@ -136,7 +136,7 @@ describe('page repair eligibility and promotion', () => {
       let judges = 0
       let imageCalls = 0
       const comparisonOrders: string[][] = []
-      await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1 }, {
+      await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1 }, {
         requestImage: async () => { imageCalls++; return { mode: 'edit', result: { imageBase64: candidateBytes.toString('base64') } } },
         writeImage: async path => { await Bun.write(path, candidateBytes) },
         judgePage: async (): Promise<PageQaEntry> => {
@@ -173,7 +173,7 @@ describe('page repair eligibility and promotion', () => {
     const calls: ComicImageRequestInput[] = []
     let judges = 0
     let comparisons = 0
-    await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 2 }, {
+    await generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 2 }, {
       requestImage: async input => {
         calls.push(input)
         const bytes = Buffer.from(calls.length === 1 ? 'rejected-edit' : 'passing-fresh-restart')
@@ -206,7 +206,7 @@ describe('page repair eligibility and promotion', () => {
     await Bun.write(output, Buffer.from('original-clear-winner'))
     let judges = 0
     let comparisons = 0
-    await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1 }, {
+    await generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1 }, {
       requestImage: async () => ({ mode: 'edit', result: { imageBase64: candidateBytes.toString('base64') } }),
       writeImage: async path => { await Bun.write(path, candidateBytes) },
       judgePage: async (): Promise<PageQaEntry> => {
@@ -231,7 +231,7 @@ describe('page repair eligibility and promotion', () => {
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['depth staging'], editInstructions: 'Move the hero deeper.', repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', recommendation: 'targeted-edit', rationale: 'The staging contradicts the shot plan.' }) }], summary: 'Shot-plan staging remains unresolved.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
-    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 4 }, {
+    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 4 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) }, judgePage,
       requestRepairComparison: async request => ({ text: repairComparisonResponse(request.pass, 'winner'), inputTokens: 2, outputTokens: 1 }),
@@ -254,7 +254,7 @@ describe('page repair eligibility and promotion', () => {
       result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['framing'], editInstructions: 'Correct framing.' })), summary: 'Grouped framing remains unresolved.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
-    await expect(generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 4 }, {
+    await expect(generateComicPages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 4 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) }, judgePage,
     })).rejects.toThrow('1 comic page QA hard failure(s)')

@@ -9,7 +9,7 @@ describe('price mode contracts', () => {
 
       expect(normalizeFinalImageEstimateRequest(base)).toMatchObject({
         mode: 'panel',
-        models: ['gpt-image-2'],
+        models: ['gpt-image-2.5-flare'],
         size: '1536x1024',
         quality: 'high',
         force: false,
@@ -33,20 +33,20 @@ describe('price mode contracts', () => {
       })
 
       const single = normalizeFinalImageEstimateRequest(base)
-      expect(resolveFinalImageOutputPathParts(single, 'gpt-image-2', 'canonical')).toEqual({})
+      expect(resolveFinalImageOutputPathParts(single, 'gpt-image-2.5-flare', 'canonical')).toEqual({})
       const multipleModels = normalizeFinalImageEstimateRequest({
         ...base,
-        imageModels: ['gpt-image-2', 'gemini-3.1-flash-lite-image']
+        imageModels: ['gpt-image-2.5-flare', 'gemini-3.1-flash-lite-image']
       })
-      expect(resolveFinalImageOutputPathParts(multipleModels, 'gpt-image-2', 'canonical')).toEqual({
-        model: 'gpt-image-2'
+      expect(resolveFinalImageOutputPathParts(multipleModels, 'gpt-image-2.5-flare', 'canonical')).toEqual({
+        model: 'gpt-image-2.5-flare'
       })
       const explicitVariation = normalizeFinalImageEstimateRequest({
         ...base,
         variations: ['canonical']
       })
-      expect(resolveFinalImageOutputPathParts(explicitVariation, 'gpt-image-2', 'canonical')).toEqual({
-        model: 'gpt-image-2',
+      expect(resolveFinalImageOutputPathParts(explicitVariation, 'gpt-image-2.5-flare', 'canonical')).toEqual({
+        model: 'gpt-image-2.5-flare',
         variation: 'canonical'
       })
     })
@@ -56,7 +56,7 @@ describe('price mode contracts', () => {
         scriptPath: 'scene.md',
         sceneSlug: 'scene',
         panelsPerImage: 2,
-        imageModels: ['gpt-image-2', 'gemini-3.1-flash-lite-image'],
+        imageModels: ['gpt-image-2.5-flare', 'gemini-3.1-flash-lite-image'],
         variations: ['canonical', 'cinematic-depth'],
         maxRepairs: 2
       })
@@ -83,8 +83,8 @@ describe('price mode contracts', () => {
             panelNumbers: [1, 2],
             referenceCount: 3,
             outputs: [
-              output('gpt-image-2', 'canonical', true, true),
-              output('gpt-image-2', 'cinematic-depth', false),
+              output('gpt-image-2.5-flare', 'canonical', true, true),
+              output('gpt-image-2.5-flare', 'cinematic-depth', false),
               output('gemini-3.1-flash-lite-image', 'canonical', false),
               output('gemini-3.1-flash-lite-image', 'cinematic-depth', false)
             ]
@@ -94,8 +94,8 @@ describe('price mode contracts', () => {
             panelNumbers: [3, 4],
             referenceCount: 2,
             outputs: [
-              output('gpt-image-2', 'canonical', false),
-              output('gpt-image-2', 'cinematic-depth', false),
+              output('gpt-image-2.5-flare', 'canonical', false),
+              output('gpt-image-2.5-flare', 'cinematic-depth', false),
               output('gemini-3.1-flash-lite-image', 'canonical', false),
               output('gemini-3.1-flash-lite-image', 'cinematic-depth', false)
             ]
@@ -109,7 +109,7 @@ describe('price mode contracts', () => {
         totalOutputs: 7,
         skipped: 1,
         outputsByModel: [
-          { model: 'gpt-image-2', outputs: 3 },
+          { model: 'gpt-image-2.5-flare', outputs: 3 },
           { model: 'gemini-3.1-flash-lite-image', outputs: 4 }
         ]
       })
@@ -138,7 +138,7 @@ describe('price mode contracts', () => {
         sceneSlug: 'scene',
         panelsPerImage: 1,
         grid: { columns: 2, rows: 3 },
-        imageModels: ['gpt-image-2', 'gemini-3.1-flash-lite-image'],
+        imageModels: ['gpt-image-2.5-flare', 'gemini-3.1-flash-lite-image'],
         variations: ['canonical', 'animation-polish'],
         maxRepairs: 2
       })
@@ -171,8 +171,8 @@ describe('price mode contracts', () => {
           pageNumber: 1,
           panelNumbers: [1, 2],
           outputs: [
-            { model: 'gpt-image-2', variation: 'canonical', outputPath: 'a', exists: true, qaReportReusable: false },
-            { model: 'gpt-image-2', variation: 'animation-polish', outputPath: 'b', exists: false, qaReportReusable: false },
+            { model: 'gpt-image-2.5-flare', variation: 'canonical', outputPath: 'a', exists: true, qaReportReusable: false },
+            { model: 'gpt-image-2.5-flare', variation: 'animation-polish', outputPath: 'b', exists: false, qaReportReusable: false },
             { model: 'gemini-3.1-flash-lite-image', variation: 'canonical', outputPath: 'c', exists: true, qaReportReusable: false },
             { model: 'gemini-3.1-flash-lite-image', variation: 'animation-polish', outputPath: 'd', exists: false, qaReportReusable: false }
           ]

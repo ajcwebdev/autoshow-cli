@@ -98,15 +98,15 @@ function writeRun(root: string, name: string): string {
 
 function writeOcrRun(root: string, name: string): string {
   const runDir = join(root, name)
-  const succeededDir = join(runDir, 'providers', 'kimi-kimi-k2.6')
-  const failedDir = join(runDir, 'providers', 'kimi-kimi-k3')
+  const succeededDir = join(runDir, 'providers', 'openai-gpt-6-luna')
+  const failedDir = join(runDir, 'providers', 'openai-gpt-6.1-sol')
   mkdirSync(join(succeededDir, 'page-results'), { recursive: true })
   mkdirSync(join(failedDir, 'page-results'), { recursive: true })
   const result = {
     pages: [{ pageNumber: 1, method: 'ocr', text: 'ARGUMENT OF THE FIRST BOOK.' }],
-    extractionMethod: 'kimi-ocr',
-    ocrService: 'kimi',
-    ocrModel: 'kimi-k2.6',
+    extractionMethod: 'openai-ocr',
+    ocrService: 'openai',
+    ocrModel: 'gpt-6-luna',
     totalPages: 1,
   }
   writeFileSync(join(succeededDir, 'result.json'), `${JSON.stringify(result, null, 2)}\n`)
@@ -124,8 +124,8 @@ function writeOcrRun(root: string, name: string): string {
     schemaVersion: 1,
     runDir,
     providers: [{
-      providerKey: 'kimi/kimi-k2.6',
-      directoryName: 'kimi-kimi-k2.6',
+      providerKey: 'openai/gpt-6-luna',
+      directoryName: 'openai-gpt-6-luna',
       resultPath: join(succeededDir, 'result.json'),
     }],
     pages: [],
@@ -163,18 +163,18 @@ function writeOcrRun(root: string, name: string): string {
       status: 'partial',
       metadata: {},
       providers: [{
-        service: 'kimi',
-        model: 'kimi-k2.6',
-        artifactDir: 'providers/kimi-kimi-k2.6',
+        service: 'openai',
+        model: 'gpt-6-luna',
+        artifactDir: 'providers/openai-gpt-6-luna',
         status: 'succeeded',
         attempts: 1,
         options: {},
         metadata: {},
         result,
       }, {
-        service: 'kimi',
-        model: 'kimi-k3',
-        artifactDir: 'providers/kimi-kimi-k3',
+        service: 'openai',
+        model: 'gpt-6.1-sol',
+        artifactDir: 'providers/openai-gpt-6.1-sol',
         status: 'failed',
         attempts: 1,
         options: {},
@@ -368,7 +368,7 @@ describe('consensus compact-archive', () => {
         metadata: { image: { prompt: 'a cat' } },
         providers: [{
           service: 'openai',
-          model: 'gpt-image-2',
+          model: 'gpt-image-2.5-flare',
           artifactDir: '.',
           status: 'succeeded',
           attempts: 1,
@@ -415,8 +415,8 @@ describe('consensus compact-archive', () => {
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('Compacted 1 run directory')
 
-    const succeededDir = join(root, '05-pages-sample-document', 'providers', 'kimi-kimi-k2.6')
-    const failedDir = join(root, '05-pages-sample-document', 'providers', 'kimi-kimi-k3')
+    const succeededDir = join(root, '05-pages-sample-document', 'providers', 'openai-gpt-6-luna')
+    const failedDir = join(root, '05-pages-sample-document', 'providers', 'openai-gpt-6.1-sol')
     expect(existsSync(join(succeededDir, 'result.json'))).toBe(true)
     expect(existsSync(join(succeededDir, 'extraction.txt'))).toBe(true)
     expect(existsSync(join(succeededDir, 'page-results'))).toBe(false)
@@ -443,7 +443,7 @@ describe('consensus compact-archive', () => {
       providers: Array<{ resultPath: string }>
     }
     expect(pageMetrics.runDir).toBe('.')
-    expect(pageMetrics.providers[0]?.resultPath).toBe('providers/kimi-kimi-k2.6/result.json')
+    expect(pageMetrics.providers[0]?.resultPath).toBe('providers/openai-gpt-6-luna/result.json')
     const report = JSON.parse(readFileSync(join(runDir, 'provider-comparison-report.json'), 'utf8')) as {
       runDir: string
       consensusExtractionPath: string

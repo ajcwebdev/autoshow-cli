@@ -76,7 +76,7 @@ These examples use hosted providers:
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-mini-tts-2025-12-15
-bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2 --size 1024x1024
+bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2.5-flare --size 1024x1024
 bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=gemini-omni-1.1-flash
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental
 ```
@@ -95,7 +95,7 @@ bun autoshow setup --llm openai=gpt-6.1-sol --batch-limit 20 --max-cents 50
 Hosted and mixed-provider runs estimate cost before execution. Append `--price` to preview the estimate without running the job or making paid provider calls:
 
 ```bash
-bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2 --size 1024x1024 --price
+bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2.5-flare --size 1024x1024 --price
 ```
 
 `--max-cents` sets a hard budget; `--allow-over-budget` overrides it for one run. Provider plans can affect actual billing. See [configuration and budgets](./docs/commands/00-setup-and-utilities/setup.md#setting-defaults-and-configuration) for saved providers, voices, prompts, and other defaults.

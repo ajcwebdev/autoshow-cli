@@ -5,53 +5,61 @@ import { collectImageTargets } from '~/cli/commands/visuals/image/image-generati
 import { withTempImageFixture } from './shared'
 
 describe('provider selection contracts', () => {
-  test('gpt-image-2 accepts flexible valid OpenAI image sizes', () => {
+  test('gpt-image-2.5-flare accepts flexible valid OpenAI image sizes', () => {
     const opts = buildOptsFromFlags({
-      'openai-image': ['gpt-image-2'],
+      'openai-image': ['gpt-image-2.5-flare'],
       'size': '2048x1152'
     })
 
     expect(collectImageTargets(opts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'openai:gpt-image-2'
+      'openai:gpt-image-2.5-flare'
     ])
   })
 
   test('OpenAI image size validation is model-specific', () => {
     for (const invalidSize of ['1025x1024', '4096x1024', '3840x1024', '800x800', '3840x3840']) {
       const opts = buildOptsFromFlags({
-        'openai-image': ['gpt-image-2'],
+        'openai-image': ['gpt-image-2.5-flare'],
         'size': invalidSize
       })
-      expect(() => collectImageTargets(opts)).toThrow(`Invalid --size value "${invalidSize}" for gpt-image-2`)
+      expect(() => collectImageTargets(opts)).toThrow(`Invalid --size value "${invalidSize}" for gpt-image-2.5-flare`)
     }
 
     const validFlexibleSizeOpts = buildOptsFromFlags({
-      'openai-image': ['gpt-image-2'],
+      'openai-image': ['gpt-image-2.5-flare'],
       'size': '2048x1152'
     })
     expect(collectImageTargets(validFlexibleSizeOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'openai:gpt-image-2'
+      'openai:gpt-image-2.5-flare'
     ])
   })
 
-  test('gpt-image-2 rejects transparent background', () => {
-    const opts = buildOptsFromFlags({
-      'openai-image': ['gpt-image-2'],
+  test('transparent background is OpenAI-only and requires an alpha-capable format', () => {
+    expect(() => collectImageTargets(buildOptsFromFlags({
+      'openai-image': ['gpt-image-2.5-flare'],
+      'background': 'transparent',
+      'format': 'jpeg'
+    }))).toThrow('requires --format png or webp')
+    expect(collectImageTargets(buildOptsFromFlags({
+      'openai-image': ['gpt-image-2.5-flare'],
+      'background': 'transparent',
+      'format': 'png'
+    }))).toHaveLength(1)
+    expect(() => collectImageTargets(buildOptsFromFlags({
+      'grok-image': ['grok-imagine-image-2.0'],
       'background': 'transparent'
-    })
-
-    expect(() => collectImageTargets(opts)).toThrow('--background transparent is not supported by OpenAI/gpt-image-2')
+    }))).toThrow('--background is not supported by Grok/grok-imagine-image-2.0')
   })
 
   test('image-count maps only to providers with native multi-image request support', () => {
     const multiOpts = buildOptsFromFlags({
-      'openai-image': ['gpt-image-2'],
+      'openai-image': ['gpt-image-2.5-flare'],
       'grok-image': ['grok-imagine-image-2.0'],
       'count': '3'
     })
     const targets = collectImageTargets(multiOpts)
     expect(targets.map((target) => `${target.service}:${target.model}`)).toEqual([
-      'openai:gpt-image-2',
+      'openai:gpt-image-2.5-flare',
       'grok:grok-imagine-image-2.0'
     ])
 
@@ -69,11 +77,11 @@ describe('provider selection contracts', () => {
   test('image edit/reference flags validate provider and model support', () => {
     withTempImageFixture('autoshow-image-input-', (imagePath, tempDir) => {
       const openaiEditOpts = buildOptsFromFlags({
-        'openai-image': ['gpt-image-2'],
+        'openai-image': ['gpt-image-2.5-flare'],
         'input': [imagePath]
       })
       expect(collectImageTargets(openaiEditOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-        'openai:gpt-image-2'
+        'openai:gpt-image-2.5-flare'
       ])
 
       const grokEditOpts = buildOptsFromFlags({
@@ -86,7 +94,7 @@ describe('provider selection contracts', () => {
 
       const missingPath = join(tempDir, 'missing.png')
       const missingInputOpts = buildOptsFromFlags({
-        'openai-image': ['gpt-image-2'],
+        'openai-image': ['gpt-image-2.5-flare'],
         'input': [missingPath]
       })
       expect(() => collectImageTargets(missingInputOpts)).toThrow(`--input file "${missingPath}" does not exist`)

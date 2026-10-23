@@ -168,7 +168,7 @@ const RUNTIME_DEFAULT_ALLOWLIST: Record<string, string> = {
   'gemini-tts-mode': 'Must stay unset when omitted: any value, including unary, requires an explicit Gemini TTS selection.',
   'gemini-tts-batch-wait-seconds': 'Must stay unset when omitted: any value requires --gemini-tts-mode batch.',
   'provider-job-action': 'Must stay unset when omitted: any value is rejected for resume directories without a recorded Gemini provider job.',
-  'aspect-ratio': 'Image omission preserves provider sizing, OpenAI requires --size instead, and video defaults differ for fal.ai frame-input routes; no one ratio applies to all consumers.',
+  'aspect-ratio': 'Image omission preserves provider sizing, OpenAI requires --size instead, and video defaults differ by provider and input mode; no one ratio applies to all consumers.',
   candidates: 'Voice Design resolves three candidates for ElevenLabs and one for Inworld/Gemini; a seeded count would erase the provider-dependent choice.',
   compression: 'Only OpenAI jpeg/webp accepts this optional override; omission delegates compression to the provider, while any concrete value enables an override and is invalid for other providers/formats.',
   image: 'Setup persists image selectors only when supplied; there is no provider to seed for the no-saved-selection state, and seeding a provider would create a configuration change.',

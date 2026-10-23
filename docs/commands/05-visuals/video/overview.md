@@ -12,7 +12,6 @@ Generate a video from a text prompt or input image with one or more hosted video
 - [Video Services](#video-services)
   - [Gemini Omni](#gemini-omni)
   - [Grok](#grok)
-  - [fal.ai](#falai)
 - [Output](#output)
 - [Notes](#notes)
 - [Provider Capabilities](#provider-capabilities)
@@ -27,7 +26,6 @@ bun autoshow setup --doctor
 ```bash
 GEMINI_API_KEY=...
 XAI_API_KEY=...
-FAL_API_KEY=...
 ```
 ## Usage
 
@@ -40,14 +38,14 @@ The positional input is a text prompt or an image path, URL, or data URL. A posi
 
 Passing media flags without `--mode` is rejected because the default mode is text-to-video.
 
-| Mode                 | Providers            | Required inputs                                                              | Notes                                      |
-| -------------------- | -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
-| `text`               | All video providers  | none                                                                         | Default mode                               |
-| `image-to-video`     | Gemini, Grok, fal.ai | `--input-image`                                                              |                                            |
-| `reference-to-video` | Gemini, Grok, fal.ai | `--reference-image` and/or `--reference-video`                               |                                            |
-| `interpolate`        | Gemini, fal.ai       | `--input-image`, `--last-frame`                                              | First/last-frame transition                |
-| `edit`               | Gemini Omni          | `--previous-interaction-id` or `--input-video`                               | Conversational or uploaded-video edit      |
-| `extend`             | Gemini Omni          | `--previous-interaction-id` or `--input-video`; optional `--reference-image` | Append-only continuation, 3–10s per extend |
+| Mode                 | Providers           | Required inputs                                                              | Notes                                      |
+| -------------------- | ------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
+| `text`               | All video providers | none                                                                         | Default mode                               |
+| `image-to-video`     | Gemini, Grok        | `--input-image`                                                              |                                            |
+| `reference-to-video` | Gemini, Grok        | `--reference-image` and/or `--reference-video`                               |                                            |
+| `interpolate`        | Gemini              | `--input-image`, `--last-frame`                                              | First/last-frame transition                |
+| `edit`               | Gemini Omni         | `--previous-interaction-id` or `--input-video`                               | Conversational or uploaded-video edit      |
+| `extend`             | Gemini Omni         | `--previous-interaction-id` or `--input-video`; optional `--reference-image` | Append-only continuation, 3–10s per extend |
 
 `--input-video` is the Gemini Omni source clip for `edit` and `extend`. `reference-to-video` uses `--reference-video`.
 
@@ -74,16 +72,14 @@ The `video` and `resume` commands use the same short option names, including `--
 | `--input-image <path-or-url>`          | Input image for `image-to-video`; first frame for `interpolate`                                                           |
 | `--last-frame <path-or-url>`           | Last-frame image for `interpolate`                                                                                        |
 | `--reference-image <path-or-url>`      | Reference image for `reference-to-video` or Gemini Omni `extend`; repeatable                                              |
-| `--reference-video <path-or-url>`      | Reference MP4 for Gemini Omni (up to 3, 3s each) and fal.ai MiniMax H3/Seedance 2.5; repeatable                           |
-| `--reference-audio <path-or-url>`      | Reference audio for fal.ai MiniMax H3/Seedance 2.5; repeatable                                                            |
-| `--generate-audio`                     | Native audio where supported (fal.ai Seedance 2.5)                                                                        |
+| `--reference-video <path-or-url>`      | Reference MP4 for Gemini Omni (up to 3, 3s each); repeatable                                                              |
 | `--input-video <path-or-url>`          | Gemini Omni `edit`/`extend` source MP4 (uploaded sources ≤10s)                                                            |
 | `--previous-interaction-id <id>`       | Gemini Omni prior interaction id from `providerRequestId`; use with `edit` or `extend` instead of re-uploading            |
 | `--price`                              | Show the estimate and exit                                                                                                |
 | `--max-model-cents <n>`                | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price` |
 | `--output-dir <dir>`                   | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/`                                        |
 
-Use `--no-generate-audio` to disable supported audio generation explicitly. Other models have fixed provider audio behavior and reject an explicit `--generate-audio` control. Reference videos and audio are rejected for Grok, whose reference mode accepts images. Pass `--duration=-1` with the equals sign for automatic Seedance duration.
+Video models have fixed provider audio behavior. Reference videos are rejected for Grok, whose reference mode accepts images.
 
 See [Provider Capabilities](#provider-capabilities) for the per-model matrix.
 
@@ -168,33 +164,6 @@ bun autoshow video "an adult explorer wearing the teal jacket and round gold gla
 ```
 - Text, image, and reference durations are 1–15 seconds (default 8). Reference generation is capped at 720p.
 
-### fal.ai
-
-| Option     | Value                                                                         |
-| ---------- | ----------------------------------------------------------------------------- |
-| Selector   | `--provider fal[=<model>]`                                                    |
-| Models     | `minimax/h3`, plus the Seedance 2.5 and H3 Max routes below                   |
-| Modes      | H3 supports `text`, `image-to-video`, `reference-to-video`, and `interpolate` |
-| Duration   | H3 `5-15`s; default `5`s                                                      |
-| Resolution | H3 `768p\|2k`                                                                 |
-
-Seedance 2.5 and H3 Max require the exact route that matches `--mode`:
-
-| Models/routes                                                          | Modes                           | Duration             | Resolution        |
-| ---------------------------------------------------------------------- | ------------------------------- | -------------------- | ----------------- |
-| `bytedance/seedance-2.5/text-to-video`                                 | `text`                          | 4–30 seconds or `-1` | 480p, 720p, 1080p |
-| `bytedance/seedance-2.5/image-to-video`                                | `image-to-video`, `interpolate` | 4–30 seconds or `-1` | 480p, 720p, 1080p |
-| `bytedance/seedance-2.5/reference-to-video`                            | `reference-to-video`            | 4–30 seconds or `-1` | 480p, 720p, 1080p |
-| `minimax/h3-max/text-to-video`, `minimax/h3-max-turbo/text-to-video`   | `text`                          | 5–15 seconds         | 480p, 768p, 1080p |
-| `minimax/h3-max/image-to-video`, `minimax/h3-max-turbo/image-to-video` | `image-to-video`, `interpolate` | 5–15 seconds         | 480p, 768p, 1080p |
-
-```bash
-bun autoshow video "rain-soaked detective enters diner" --provider fal=minimax/h3 --duration 5 --resolution 2k
-bun autoshow video "a lighthouse at dusk" --provider fal=minimax/h3-max-turbo/text-to-video --duration 5 --resolution 768p --price
-```
-- MiniMax H3 accepts up to 9 `--reference-image`, 3 `--reference-video`, and 3 `--reference-audio` inputs (12 combined). Native audio is always on.
-- fal Seedance accepts 30 images, 10 videos, and 10 audios. Timed references must be 1.8–30.2 seconds each and total at most 30.2 seconds per modality. Image routes keep the input frame's aspect ratio. [fal Seedance](https://fal.ai/models/bytedance/seedance-2.5/reference-to-video)
-- H3 Max and Turbo have native audio and no `--generate-audio` toggle. [fal H3 Max](https://fal.ai/minimax-h3-max)
 
 ## Output
 
@@ -208,19 +177,11 @@ bun autoshow video "a lighthouse at dusk" --provider fal=minimax/h3-max-turbo/te
 
 ## Provider Capabilities
 
-Text-to-video and image-to-video are available on every provider. fal Seedance and H3 Max use a separate model id for text, image, and reference modes.
+Text-to-video and image-to-video are available on every provider.
 
 ✅ supported, ❌ not supported. Max resolution: ✅ 2K/4K, ⚠️ 1080p, ❌ 720p. Duration: ✅ 15s+, ⚠️ max 10s, ❌ max 8s. Aspect ratio: ✅ any/7+, ⚠️ 5–6, ❌ 3 or fewer / input frame. References: ❌ none, ⚠️ up to 3, ✅ 4 or more. Rows are newest first. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Outputs are the default per-second (or per-clip) estimate. Inputs are extra billed reference or token cost when published separately; `Included` means the published rate is per output second. Output pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first on the default billed rate (1 = cheapest); ties share a rank.
 
-| Provider                                           | Released     | reference-to-video | interpolate | edit | extend | Duration      | Max resolution | Aspect ratio   | Native audio          | References | Inputs                                        | Outputs                                               | Cost rank |
-| -------------------------------------------------- | ------------ | ------------------ | ----------- | ---- | ------ | ------------- | -------------- | -------------- | --------------------- | ---------- | --------------------------------------------- | ----------------------------------------------------- | --------- |
-| fal.ai `minimax/h3-max-turbo/text-to-video`        | ✅ 2026-09    | ❌                  | ❌           | ❌    | ❌      | ✅ 5–15s       | ⚠️ 1080p       | ⚠️ 6 ratios    | ✅ Always on           | ❌ No       | Included                                      | ✅ $0.025/$0.04/$0.08 per second at 480p/768p/1080p    | 1/10      |
-| fal.ai `minimax/h3-max-turbo/image-to-video`       | ✅ 2026-09    | ❌                  | ✅           | ❌    | ❌      | ✅ 5–15s       | ⚠️ 1080p       | ❌ Input frame  | ✅ Always on           | ❌ No       | Included                                      | ✅ $0.025/$0.04/$0.08 per second at 480p/768p/1080p    | 1/10      |
-| fal.ai `minimax/h3-max/text-to-video`              | ✅ 2026-09    | ❌                  | ❌           | ❌    | ❌      | ✅ 5–15s       | ⚠️ 1080p       | ⚠️ 6 ratios    | ✅ Always on           | ❌ No       | Included                                      | ✅ $0.05/$0.08/$0.16 per second at 480p/768p/1080p     | 3/10      |
-| fal.ai `minimax/h3-max/image-to-video`             | ✅ 2026-09    | ❌                  | ✅           | ❌    | ❌      | ✅ 5–15s       | ⚠️ 1080p       | ❌ Input frame  | ✅ Always on           | ❌ No       | Included                                      | ✅ $0.05/$0.08/$0.16 per second at 480p/768p/1080p     | 3/10      |
-| Gemini `gemini-omni-1.1-flash`                     | ✅ 2026-08    | ✅                  | ✅           | ✅    | ✅      | ⚠️ 3–10s      | ✅ 4K           | ❌ 16:9 or 9:16 | ✅ Always on           | ⚠️ Up to 3 | Not estimated                                 | ⚠️ $0.10/s                                            | 6/10      |
-| fal.ai `minimax/h3`                                | ✅ 2026-07-31 | ✅                  | ✅           | ❌    | ❌      | ✅ 5–15s       | ✅ 2K           | ⚠️ 6 ratios    | ✅ Always on           | ✅ Up to 9  | Included                                      | ⚠️ $0.26/s                                            | 7/10      |
-| fal.ai `bytedance/seedance-2.5/text-to-video`      | ✅ 2026-07-31 | ❌                  | ❌           | ❌    | ❌      | ✅ 4–30s or −1 | ⚠️ 1080p       | ✅ 7 ratios     | ⚠️ `--generate-audio` | ❌ No       | Included                                      | ❌ $0.2205/$0.473/$1.164 per second at 480p/720p/1080p | 8/10      |
-| fal.ai `bytedance/seedance-2.5/image-to-video`     | ✅ 2026-07-31 | ❌                  | ✅           | ❌    | ❌      | ✅ 4–30s or −1 | ⚠️ 1080p       | ❌ Input frame  | ⚠️ `--generate-audio` | ❌ No       | Included                                      | ❌ $0.2205/$0.473/$1.164 per second at 480p/720p/1080p | 8/10      |
-| fal.ai `bytedance/seedance-2.5/reference-to-video` | ✅ 2026-07-31 | ✅                  | ❌           | ❌    | ❌      | ✅ 4–30s or −1 | ⚠️ 1080p       | ✅ 7 ratios     | ⚠️ `--generate-audio` | ✅ Up to 30 | Video refs at 0.6× rate, input+output seconds | ❌ $0.2205/$0.473/$1.164 per second at 480p/720p/1080p | 8/10      |
-| Grok `grok-imagine-video-1.5`                      | ✅ 2026-05-30 | ✅                  | ❌           | ❌    | ❌      | ✅ 1–15s       | ⚠️ 1080p       | ✅ 7 ratios     | ❌ No                  | ✅ Up to 5  | $0.01/image                                   | ✅ $0.08/s at 480p ($0.14 at 720p, $0.25 at 1080p)     | 3/10      |
+| Provider                       | Released     | reference-to-video | interpolate | edit | extend | Duration | Max resolution | Aspect ratio   | Native audio | References | Inputs        | Outputs                                           | Cost rank |
+| ------------------------------ | ------------ | ------------------ | ----------- | ---- | ------ | -------- | -------------- | -------------- | ------------ | ---------- | ------------- | ------------------------------------------------- | --------- |
+| Gemini `gemini-omni-1.1-flash` | ✅ 2026-08    | ✅                  | ✅           | ✅    | ✅      | ⚠️ 3–10s | ✅ 4K           | ❌ 16:9 or 9:16 | ✅ Always on  | ⚠️ Up to 3 | Not estimated | ⚠️ $0.10/s                                        | 2/2       |
+| Grok `grok-imagine-video-1.5`  | ✅ 2026-05-30 | ✅                  | ❌           | ❌    | ❌      | ✅ 1–15s  | ⚠️ 1080p       | ✅ 7 ratios     | ❌ No         | ✅ Up to 5  | $0.01/image   | ✅ $0.08/s at 480p ($0.14 at 720p, $0.25 at 1080p) | 1/2       |

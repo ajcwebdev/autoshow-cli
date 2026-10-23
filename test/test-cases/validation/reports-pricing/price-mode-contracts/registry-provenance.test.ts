@@ -161,7 +161,7 @@ describe('price mode contracts', () => {
 
       const acceptedTokenBandFields = RETIRED_USD_TOKEN_BAND_FIELDS.flatMap((field) => {
         const registry = structuredClone(getModelRegistry())
-        const band = requireDefined(registry.llm['openai']?.models['gpt-6-astra']?.tokenPricingBands?.[0], 'Astra token pricing band fixture')
+        const band = requireDefined(registry.llm['openai']?.models['gpt-6.1-sol']?.tokenPricingBands?.[0], 'GPT-6.1 Sol token pricing band fixture')
         ;(band as unknown as JsonObject)[field] = 1
         return safeParse(ModelRegistrySchema, registry).success
           ? [`llm.tokenPricingBands.${field}`]
@@ -186,10 +186,10 @@ describe('price mode contracts', () => {
       }
 
       const missingEvidence = structuredClone(getModelRegistry())
-      const missingEvidenceModel = requireDefined(missingEvidence.extract['gemini']?.models['gemini-3.6-flash'], 'Gemini OCR lifecycle fixture')
+      const missingEvidenceModel = requireDefined(missingEvidence.extract['openai']?.models['gpt-6-luna'], 'OpenAI OCR lifecycle fixture')
       missingEvidenceModel.lifecycle = {
         status: 'deprecated',
-        replacementModel: 'gemini-3.5-flash-lite',
+        replacementModel: 'gpt-6.1-sol',
         defaultEligible: false,
         allExpansionEligible: false,
         checkedAt: '2026-08-13',
@@ -201,7 +201,7 @@ describe('price mode contracts', () => {
       invalidDateModel.lifecycle = {
         status: 'deprecated',
         shutdownDate: '2027-02-31',
-        replacementModel: 'gemini-3.5-flash-lite',
+        replacementModel: 'gemini-4-argon',
         defaultEligible: false,
         allExpansionEligible: false,
         sourceUrl: 'https://ai.google.dev/gemini-api/docs/deprecations',
@@ -210,7 +210,7 @@ describe('price mode contracts', () => {
       }
 
       const invalidActiveEligibility = structuredClone(getModelRegistry())
-      const invalidActiveModel = requireDefined(invalidActiveEligibility.extract['gemini']?.models['gemini-3.6-flash'], 'Gemini OCR active lifecycle fixture')
+      const invalidActiveModel = requireDefined(invalidActiveEligibility.extract['gemini']?.models['gemini-3.8-flash'], 'Gemini OCR active lifecycle fixture')
       invalidActiveModel.lifecycle = {
         status: 'active',
         defaultEligible: false,

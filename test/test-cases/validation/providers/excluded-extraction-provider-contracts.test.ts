@@ -32,7 +32,7 @@ const urlState = (service: HtmlArticleBackend, status: 'succeeded' | 'missing' |
 
 test('excluded tuples stay outside the active model inventory, credentials and expansion', () => {
   const registry = getModelRegistry()
-  expect(Object.fromEntries(Object.entries(registry).map(([category, services]) => [category, Object.values(services).reduce((n, service) => n + Object.keys(service.models).length, 0)]))).toEqual({ stt: 31, extract: 24, llm: 11, tts: 7, image: 13, music: 4, video: 17 })
+  expect(Object.fromEntries(Object.entries(registry).map(([category, services]) => [category, Object.values(services).reduce((n, service) => n + Object.keys(service.models).length, 0)]))).toEqual({ stt: 31, extract: 12, llm: 8, tts: 7, image: 4, music: 4, video: 2 })
   expect(URL_ARTICLE_BACKENDS).toEqual(['defuddle', 'spider', 'zyte'])
   expect(Object.keys(URL_ARTICLE_PROVIDER_ADAPTERS)).toEqual(['defuddle', 'spider', 'zyte'])
   for (const provider of excludedStt) expect(registry.stt[provider]).toBeUndefined()

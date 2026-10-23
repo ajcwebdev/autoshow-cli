@@ -178,10 +178,10 @@ describe('test-runner file timings', () => {
   test('long-running timeout classification covers whisper-local and video files', () => {
     expect(isLongRunningTestFile('test/test-cases/e2e/local/stt/whisperfile/whisperfile-default.test.ts')).toBe(true)
     expect(isLongRunningTestFile('test/test-cases/e2e/local/stt/whisperfile/whisperfile-default.test.ts')).toBe(true)
-    expect(isLongRunningTestFile('test/test-cases/e2e/service/visuals/video/fal-video.test.ts')).toBe(true)
+    expect(isLongRunningTestFile('test/test-cases/e2e/service/visuals/video/grok-imagine-video-1.5.test.ts')).toBe(true)
     expect(isLongRunningTestFile('test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts')).toBe(true)
     expect(isLongRunningTestFile('test/test-cases/validation/stt/workflows/transcript-video/transcript-video-contracts.test.ts')).toBe(true)
-    expect(isLongRunningTestFile('test/test-cases/e2e/service/visuals/image/fal-image.test.ts')).toBe(false)
+    expect(isLongRunningTestFile('test/test-cases/e2e/service/visuals/image/gemini-image-gen.test.ts')).toBe(false)
     expect(isLongRunningTestFile('test/test-cases/e2e/service/audio/music/gemini-lyria-3.5.test.ts')).toBe(false)
     expect(isLongRunningTestFile('test/test-cases/e2e/service/stt/diarization/deepgram-nova-3.test.ts')).toBe(false)
     expect(isLongRunningTestFile('test/test-cases/validation/cli/cli-help-contracts.test.ts')).toBe(false)

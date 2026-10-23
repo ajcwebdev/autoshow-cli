@@ -6,8 +6,8 @@ const expectedCoverage = [
   ['test/test-cases/e2e/service/text/write/gemini-3.8-flash.test.ts', 'write-gemini-gemini-3.8-flash'],
   // OCR PDF and image cases are separate tests, each with its own budget key.
   ['test/test-cases/e2e/service/text/ocr/gemini-3.8-flash.test.ts', 'extract-gemini-gemini-3.8-flash', 'extract-gemini-gemini-3.8-flash-image'],
-  ['test/test-cases/e2e/service/text/ocr/anthropic-claude-fable-5-1.test.ts', 'extract-anthropic-claude-fable-5-1', 'extract-anthropic-claude-fable-5-1-image'],
-  ['test/test-cases/e2e/service/text/ocr/openai-gpt-6-astra.test.ts', 'extract-openai-gpt-6-astra', 'extract-openai-gpt-6-astra-image'],
+  ['test/test-cases/e2e/service/text/ocr/anthropic-claude-opus-5-5.test.ts', 'extract-anthropic-claude-opus-5-5-image'],
+  ['test/test-cases/e2e/service/text/ocr/openai-gpt-6.1-sol.test.ts', 'extract-openai-gpt-6.1-sol-image'],
   ['test/test-cases/e2e/service/text/ocr/mistral-ocr-4-1.test.ts', 'extract-mistral-mistral-ocr-4-1', 'extract-mistral-mistral-ocr-4-1-image'],
   ['test/test-cases/e2e/service/stt/diarization/gemini-3.5-transcribe.test.ts', 'transcribe-gemini-stt-gemini-3.5-transcribe'],
   ['test/test-cases/e2e/service/visuals/image/grok-imagine-image-2.0.test.ts', 'image-grok-grok-imagine-image-2.0'],

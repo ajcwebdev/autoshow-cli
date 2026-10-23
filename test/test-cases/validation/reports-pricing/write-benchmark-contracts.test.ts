@@ -30,18 +30,18 @@ const setup = async (): Promise<{ plan: WriteBenchmarkPlan; entry: WriteBenchmar
 }
 
 describe('write benchmark dispatch and evidence', () => {
-  test('price-only plan binds five inputs and 11 active model routes without reusing historical approval or network dispatch', async () => {
+  test('price-only plan binds five inputs and 8 active model routes without reusing historical approval or network dispatch', async () => {
     globalThis.fetch = Object.assign(async () => { throw new Error('Price must not call a provider') }, { preconnect: originalFetch.preconnect }) as typeof fetch
     const plan = await buildWriteBenchmarkPlan()
     expect(plan.cases.map(entry => entry.prompt)).toEqual(['shortSummary', 'longSummary', 'mediumChapters', 'blog', 'rapSongChapter'])
-    expect(plan.providers).toHaveLength(11)
-    expect(plan.providers.length * plan.cases.length).toBe(55)
-    expect(plan.baseEstimatedCostCents).toBeCloseTo(189.12730797, 6)
+    expect(plan.providers).toHaveLength(8)
+    expect(plan.providers.length * plan.cases.length).toBe(40)
+    expect(plan.baseEstimatedCostCents).toBeCloseTo(77.07020865, 6)
     expect(plan.approval).toBeNull()
     expect(plan.providers.map(provider => `${provider.provider}/${provider.model}`)).toEqual([
       'gemini/gemini-4-argon', 'gemini/gemini-3.8-flash',
-      'anthropic/claude-opus-5-5', 'anthropic/claude-sonnet-5-5', 'anthropic/claude-haiku-5-5', 'anthropic/claude-fable-5-1',
-      'openai/gpt-6.1-sol', 'openai/gpt-6-luna', 'openai/gpt-6-astra', 'openai/gpt-5.6-terra',
+      'anthropic/claude-opus-5-5', 'anthropic/claude-sonnet-5-5', 'anthropic/claude-haiku-5-5',
+      'openai/gpt-6.1-sol', 'openai/gpt-6-luna',
       'grok/grok-4.7'
     ])
     expect(plan.cases.every(entry => /^[a-f0-9]{64}$/.test(entry.promptSha256))).toBe(true)
@@ -53,21 +53,21 @@ describe('write benchmark dispatch and evidence', () => {
     await expect(executeWriteBenchmark(await buildWriteBenchmarkPlan())).rejects.toThrow('requires its own explicit cost-specific approval')
     const historicalBytes = await Bun.file(WRITE_BENCHMARK_PLAN).text()
     const historical = JSON.parse(historicalBytes) as WriteBenchmarkPlan
-    expect(historical.providers).toHaveLength(23)
-    expect(historical.approval).not.toBeNull()
+    expect(historical.providers).toHaveLength(8)
+    expect(historical.approval).toBeNull()
     const receipts = await verifyWriteBenchmarkCache(historical)
-    expect(receipts).toHaveLength(115)
-    expect(receipts.filter(receipt => receipt.model === 'grok-4.6')).toHaveLength(5)
+    expect(receipts).toHaveLength(40)
+    expect(receipts.filter(receipt => receipt.model === 'grok-4.7')).toHaveLength(5)
     expect(await Bun.file(WRITE_BENCHMARK_PLAN).text()).toBe(historicalBytes)
-    await expect(executeWriteBenchmark(historical)).rejects.toThrow('plan contents changed')
+    await expect(executeWriteBenchmark(historical)).rejects.toThrow('requires its own explicit cost-specific approval')
   })
 
   test('a missing retired-model receipt rejects before an attempt is saved or its adapter dispatches', async () => {
     const { plan, entry, prepared } = await setup()
     let calls = 0
-    const target: LLMTarget = { service: 'grok', label: 'Grok', model: 'grok-4.6', run: async () => { calls++; return { result: '{}', metadata } } }
+    const target: LLMTarget = { service: 'grok', label: 'Grok', model: 'grok-4.5', run: async () => { calls++; return { result: '{}', metadata } } }
     await expect(runWriteBenchmarkSlot(plan, entry, prepared, target)).rejects.toThrow('Retired or unsupported benchmark model')
-    expect(await Bun.file(join(entry.runDir, 'slot-grok-grok-4.6.json')).exists()).toBe(false)
+    expect(await Bun.file(join(entry.runDir, 'slot-grok-grok-4.5.json')).exists()).toBe(false)
     expect(calls).toBe(0)
   })
 

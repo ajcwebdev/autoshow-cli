@@ -19,7 +19,7 @@
         },
         "benchmark": {
           "plan": "docs/benchmarks/text/write/benchmark-plan.json",
-          "fingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+          "fingerprint": "aea7d87bbdaf1b4e32608c10a1ae909d903863e1f0260a0359acfe3dc07c414a",
           "caseId": "05-rap-song-chapter",
           "prompt": "rapSongChapter",
           "repetitions": 1,
@@ -83,199 +83,11 @@
               }
             },
             "validationFailed": false
-          },
-          {
-            "llmService": "grok",
-            "llmModel": "grok-4.6",
-            "providerReturnedModel": "grok-4.6",
-            "processingTime": 198130,
-            "inputTokenCount": 4333,
-            "outputTokenCount": 11669,
-            "tokenCountSource": "provider_usage",
-            "providerUsage": {
-              "cachedInputTokenCount": 512,
-              "inputTokenCount": 4333,
-              "outputTokenCount": 11669,
-              "totalTokenCount": 16002
-            },
-            "rawProviderUsage": {
-              "prompt_tokens": 4333,
-              "completion_tokens": 966,
-              "total_tokens": 16002,
-              "prompt_tokens_details": {
-                "text_tokens": 4333,
-                "audio_tokens": 0,
-                "image_tokens": 0,
-                "cached_tokens": 512
-              },
-              "completion_tokens_details": {
-                "reasoning_tokens": 10703,
-                "audio_tokens": 0,
-                "accepted_prediction_tokens": 0,
-                "rejected_prediction_tokens": 0
-              },
-              "num_sources_used": 0,
-              "cost_in_usd_ticks": 779120000
-            },
-            "outputFileName": "text-grok-grok-4.6.json",
-            "outputFormat": "json",
-            "structuredMode": "native",
-            "structuredPresetNames": [
-              "rapSongChapterLyrics"
-            ],
-            "effectiveReasoningEffort": "default",
-            "requestSettings": {
-              "model": "grok-4.6",
-              "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                  "name": "prompt_rapSongChapter",
-                  "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6",
-                  "strict": true
-                }
-              }
-            },
-            "validationFailed": false
-          },
-          {
-            "llmService": "glm",
-            "llmModel": "glm-5.3",
-            "providerReturnedModel": "glm-5.3",
-            "processingTime": 182983,
-            "inputTokenCount": 3407,
-            "outputTokenCount": 16000,
-            "tokenCountSource": "provider_usage",
-            "providerUsage": {
-              "cachedInputTokenCount": 0,
-              "inputTokenCount": 3407,
-              "outputTokenCount": 16000,
-              "totalTokenCount": 19407
-            },
-            "rawProviderUsage": {
-              "completion_tokens": 16000,
-              "completion_tokens_details": {
-                "reasoning_tokens": 15995
-              },
-              "prompt_tokens": 3407,
-              "prompt_tokens_details": {
-                "cached_tokens": 0
-              },
-              "total_tokens": 19407
-            },
-            "outputFileName": "",
-            "outputFormat": "json",
-            "structuredMode": "native",
-            "structuredPresetNames": [
-              "rapSongChapterLyrics"
-            ],
-            "requestSettings": {
-              "model": "glm-5.3",
-              "stream": false,
-              "max_tokens": 16000,
-              "thinking": {
-                "type": "enabled"
-              },
-              "response_format": {
-                "type": "json_object"
-              }
-            },
-            "validationFailed": true
-          },
-          {
-            "llmService": "glm",
-            "llmModel": "glm-5.3-flash",
-            "providerReturnedModel": "glm-5.3-flash",
-            "processingTime": 225929,
-            "inputTokenCount": 3407,
-            "outputTokenCount": 16000,
-            "tokenCountSource": "provider_usage",
-            "providerUsage": {
-              "cachedInputTokenCount": 0,
-              "inputTokenCount": 3407,
-              "outputTokenCount": 16000,
-              "totalTokenCount": 19407
-            },
-            "rawProviderUsage": {
-              "completion_tokens": 16000,
-              "completion_tokens_details": {
-                "reasoning_tokens": 15995
-              },
-              "prompt_tokens": 3407,
-              "prompt_tokens_details": {
-                "cached_tokens": 0
-              },
-              "total_tokens": 19407
-            },
-            "outputFileName": "",
-            "outputFormat": "json",
-            "structuredMode": "native",
-            "structuredPresetNames": [
-              "rapSongChapterLyrics"
-            ],
-            "requestSettings": {
-              "model": "glm-5.3-flash",
-              "stream": false,
-              "max_tokens": 16000,
-              "thinking": {
-                "type": "enabled"
-              },
-              "response_format": {
-                "type": "json_object"
-              }
-            },
-            "validationFailed": true
-          },
-          {
-            "llmService": "together",
-            "llmModel": "glm-5.3-flash",
-            "providerReturnedModel": "zai-org/GLM-5.3-Flash",
-            "processingTime": 109665,
-            "inputTokenCount": 3407,
-            "outputTokenCount": 22670,
-            "tokenCountSource": "provider_usage",
-            "providerUsage": {
-              "cachedInputTokenCount": 0,
-              "inputTokenCount": 3407,
-              "outputTokenCount": 22670,
-              "totalTokenCount": 26077
-            },
-            "rawProviderUsage": {
-              "prompt_tokens": 3407,
-              "completion_tokens": 22670,
-              "total_tokens": 26077,
-              "prompt_tokens_details": {
-                "cached_tokens": 0
-              },
-              "completion_tokens_details": {
-                "reasoning_tokens": 21562
-              }
-            },
-            "outputFileName": "text-together-glm-5.3-flash.json",
-            "outputFormat": "json",
-            "structuredMode": "native",
-            "structuredPresetNames": [
-              "rapSongChapterLyrics"
-            ],
-            "effectiveReasoningEffort": "default",
-            "requestSettings": {
-              "model": "zai-org/GLM-5.3-Flash",
-              "stream": false,
-              "max_tokens": 32768,
-              "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                  "name": "prompt_rapSongChapter",
-                  "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6",
-                  "strict": true
-                }
-              }
-            },
-            "validationFailed": false
           }
         ],
         "cost": {
           "estimated": {
-            "totalCost": 6.49362,
+            "totalCost": 2.2532,
             "steps": [
               {
                 "step": "llm",
@@ -289,60 +101,11 @@
                 "costMultiplier": 1,
                 "pricingBand": "standard-below-200k",
                 "cost": 2.2532
-              },
-              {
-                "step": "llm",
-                "provider": "grok",
-                "model": "grok-4.6",
-                "inputCostPer1MCents": 200,
-                "outputCostPer1MCents": 600,
-                "estimatedInputTokens": 4066,
-                "estimatedOutputTokens": 2400,
-                "effectiveReasoningEffort": "default",
-                "costMultiplier": 1,
-                "pricingBand": "standard-up-to-200k",
-                "cost": 2.2532
-              },
-              {
-                "step": "llm",
-                "provider": "glm",
-                "model": "glm-5.3",
-                "inputCostPer1MCents": 140,
-                "outputCostPer1MCents": 440,
-                "estimatedInputTokens": 4066,
-                "estimatedOutputTokens": 2400,
-                "effectiveReasoningEffort": "default",
-                "costMultiplier": 1,
-                "cost": 1.6252399999999998
-              },
-              {
-                "step": "llm",
-                "provider": "glm",
-                "model": "glm-5.3-flash",
-                "inputCostPer1MCents": 15,
-                "outputCostPer1MCents": 50,
-                "estimatedInputTokens": 4066,
-                "estimatedOutputTokens": 2400,
-                "effectiveReasoningEffort": "default",
-                "costMultiplier": 1,
-                "cost": 0.18098999999999998
-              },
-              {
-                "step": "llm",
-                "provider": "together",
-                "model": "glm-5.3-flash",
-                "inputCostPer1MCents": 15,
-                "outputCostPer1MCents": 50,
-                "estimatedInputTokens": 4066,
-                "estimatedOutputTokens": 2400,
-                "effectiveReasoningEffort": "default",
-                "costMultiplier": 1,
-                "cost": 0.18098999999999998
               }
             ]
           },
           "observedEstimate": {
-            "totalCost": 43.99848999999999,
+            "totalCost": 26.5778,
             "steps": [
               {
                 "step": "llm",
@@ -355,56 +118,11 @@
                 "estimatedInputTokens": 4939,
                 "estimatedOutputTokens": 42650,
                 "pricingBand": "standard-below-200k"
-              },
-              {
-                "step": "llm",
-                "provider": "grok",
-                "model": "grok-4.6",
-                "cost": 7.868,
-                "costMultiplier": 1,
-                "inputCostPer1MCents": 200,
-                "outputCostPer1MCents": 600,
-                "estimatedInputTokens": 4333,
-                "estimatedOutputTokens": 11669,
-                "pricingBand": "standard-up-to-200k"
-              },
-              {
-                "step": "llm",
-                "provider": "glm",
-                "model": "glm-5.3",
-                "cost": 7.51698,
-                "costMultiplier": 1,
-                "inputCostPer1MCents": 140,
-                "outputCostPer1MCents": 440,
-                "estimatedInputTokens": 3407,
-                "estimatedOutputTokens": 16000
-              },
-              {
-                "step": "llm",
-                "provider": "glm",
-                "model": "glm-5.3-flash",
-                "cost": 0.851105,
-                "costMultiplier": 1,
-                "inputCostPer1MCents": 15,
-                "outputCostPer1MCents": 50,
-                "estimatedInputTokens": 3407,
-                "estimatedOutputTokens": 16000
-              },
-              {
-                "step": "llm",
-                "provider": "together",
-                "model": "glm-5.3-flash",
-                "cost": 1.184605,
-                "costMultiplier": 1,
-                "inputCostPer1MCents": 15,
-                "outputCostPer1MCents": 50,
-                "estimatedInputTokens": 3407,
-                "estimatedOutputTokens": 22670
               }
             ]
           },
           "actual": {
-            "totalCost": 43.99848999999999,
+            "totalCost": 26.5778,
             "steps": [
               {
                 "step": "llm",
@@ -417,58 +135,13 @@
                 "promptTokens": 4939,
                 "completionTokens": 42650,
                 "pricingBand": "standard-below-200k"
-              },
-              {
-                "step": "llm",
-                "provider": "grok",
-                "model": "grok-4.6",
-                "cost": 7.868,
-                "costSource": "provider_usage",
-                "inputMetric": "tokens",
-                "inputValue": 16002,
-                "promptTokens": 4333,
-                "completionTokens": 11669,
-                "pricingBand": "standard-up-to-200k"
-              },
-              {
-                "step": "llm",
-                "provider": "glm",
-                "model": "glm-5.3",
-                "cost": 7.51698,
-                "costSource": "provider_usage",
-                "inputMetric": "tokens",
-                "inputValue": 19407,
-                "promptTokens": 3407,
-                "completionTokens": 16000
-              },
-              {
-                "step": "llm",
-                "provider": "glm",
-                "model": "glm-5.3-flash",
-                "cost": 0.851105,
-                "costSource": "provider_usage",
-                "inputMetric": "tokens",
-                "inputValue": 19407,
-                "promptTokens": 3407,
-                "completionTokens": 16000
-              },
-              {
-                "step": "llm",
-                "provider": "together",
-                "model": "glm-5.3-flash",
-                "cost": 1.184605,
-                "costSource": "provider_usage",
-                "inputMetric": "tokens",
-                "inputValue": 26077,
-                "promptTokens": 3407,
-                "completionTokens": 22670
               }
             ]
           }
         },
         "timing": {
           "actual": {
-            "totalProcessingTimeMs": 1359041,
+            "totalProcessingTimeMs": 642334,
             "steps": [
               {
                 "step": "llm",
@@ -482,58 +155,6 @@
                 "throughputValue": 74.088,
                 "throughputUnit": "tokensPerSecond",
                 "timingScope": "wall"
-              },
-              {
-                "step": "llm",
-                "provider": "grok",
-                "model": "grok-4.6",
-                "processingTimeMs": 198130,
-                "inputMetric": "tokens",
-                "inputValue": 16002,
-                "rateBasis": "1KTokens",
-                "msPerUnit": 12381.577,
-                "throughputValue": 80.765,
-                "throughputUnit": "tokensPerSecond",
-                "timingScope": "wall"
-              },
-              {
-                "step": "llm",
-                "provider": "glm",
-                "model": "glm-5.3",
-                "processingTimeMs": 182983,
-                "inputMetric": "tokens",
-                "inputValue": 19407,
-                "rateBasis": "1KTokens",
-                "msPerUnit": 9428.711,
-                "throughputValue": 106.059,
-                "throughputUnit": "tokensPerSecond",
-                "timingScope": "wall"
-              },
-              {
-                "step": "llm",
-                "provider": "glm",
-                "model": "glm-5.3-flash",
-                "processingTimeMs": 225929,
-                "inputMetric": "tokens",
-                "inputValue": 19407,
-                "rateBasis": "1KTokens",
-                "msPerUnit": 11641.624,
-                "throughputValue": 85.899,
-                "throughputUnit": "tokensPerSecond",
-                "timingScope": "wall"
-              },
-              {
-                "step": "llm",
-                "provider": "together",
-                "model": "glm-5.3-flash",
-                "processingTimeMs": 109665,
-                "inputMetric": "tokens",
-                "inputValue": 26077,
-                "rateBasis": "1KTokens",
-                "msPerUnit": 4205.43,
-                "throughputValue": 237.788,
-                "throughputUnit": "tokensPerSecond",
-                "timingScope": "wall"
               }
             ]
           }
@@ -543,48 +164,6 @@
         {
           "service": "grok",
           "model": "grok-4.7",
-          "artifactDir": ".",
-          "status": "succeeded",
-          "attempts": 1,
-          "options": {},
-          "metadata": {}
-        },
-        {
-          "service": "grok",
-          "model": "grok-4.6",
-          "artifactDir": ".",
-          "status": "succeeded",
-          "attempts": 1,
-          "options": {},
-          "metadata": {}
-        },
-        {
-          "service": "glm",
-          "model": "glm-5.3",
-          "artifactDir": ".",
-          "status": "failed",
-          "attempts": 1,
-          "options": {},
-          "metadata": {},
-          "error": {
-            "message": "GLM returned no response text from model."
-          }
-        },
-        {
-          "service": "glm",
-          "model": "glm-5.3-flash",
-          "artifactDir": ".",
-          "status": "failed",
-          "attempts": 1,
-          "options": {},
-          "metadata": {},
-          "error": {
-            "message": "GLM returned no response text from model."
-          }
-        },
-        {
-          "service": "together",
-          "model": "glm-5.3-flash",
           "artifactDir": ".",
           "status": "succeeded",
           "attempts": 1,

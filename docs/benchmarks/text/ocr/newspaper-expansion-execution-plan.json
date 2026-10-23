@@ -35,13 +35,10 @@
       "openai": 4,
       "gemini": 4,
       "grok": 3,
-      "deepinfra": 4,
       "mistral": 3,
       "tesseract": 2
     },
-    "modelConcurrency": {
-      "deepinfra/google/gemma-4-31B-it": 1
-    },
+    "modelConcurrency": {},
     "requestTimeoutMs": 900000,
     "nyTimesLast": true,
     "retainedHoldsCountAgainstBudget": true
@@ -84,20 +81,8 @@
       "model": "gpt-6-luna"
     },
     {
-      "provider": "openai",
-      "model": "gpt-6-astra"
-    },
-    {
-      "provider": "openai",
-      "model": "gpt-5.6-terra"
-    },
-    {
       "provider": "grok",
       "model": "grok-4.7"
-    },
-    {
-      "provider": "grok",
-      "model": "grok-4.5"
     },
     {
       "provider": "anthropic",
@@ -113,52 +98,14 @@
     },
     {
       "provider": "anthropic",
-      "model": "claude-fable-5-1"
-    },
-    {
-      "provider": "anthropic",
       "model": "claude-fable-5"
     },
     {
       "provider": "gemini",
-      "model": "gemini-4-argon"
-    },
-    {
-      "provider": "gemini",
       "model": "gemini-3.8-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.5-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.6-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.5-flash-lite"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "google/gemma-4-31B-it"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "Qwen/Qwen3.8-27B"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "deepseek-ai/DeepSeek-V4.1-Flash"
     }
   ],
-  "excludedTargets": [
-    {
-      "provider": "mistral",
-      "model": "mistral-ocr-4-0",
-      "reason": "Unavailable in the preceding admitted runs; excluded from the latest21-target cohort."
-    }
-  ],
+  "excludedTargets": [],
   "cases": [
     {
       "id": "newspapers-expansion-bln-charter-aldermen",
@@ -526,15 +473,6 @@
   },
   "incompleteOutputs": [
     {
-      "caseId": "newspapers-expansion-perth-gazette-1833-03-02-p1",
-      "provider": "deepinfra",
-      "model": "google/gemma-4-31B-it",
-      "reason": "output-limit",
-      "qualityScore": null,
-      "retainedAccountingHold": false,
-      "nativeFinishReason": "length"
-    },
-    {
       "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
       "provider": "grok",
       "model": "grok-4.7",
@@ -547,33 +485,6 @@
       "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
       "provider": "gemini",
       "model": "gemini-3.8-flash",
-      "reason": "output-limit",
-      "qualityScore": null,
-      "retainedAccountingHold": false,
-      "nativeFinishReason": "MAX_TOKENS"
-    },
-    {
-      "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
-      "provider": "grok",
-      "model": "grok-4.5",
-      "reason": "output-limit",
-      "qualityScore": null,
-      "retainedAccountingHold": false,
-      "nativeFinishReason": "length"
-    },
-    {
-      "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
-      "provider": "gemini",
-      "model": "gemini-3.5-flash",
-      "reason": "output-limit",
-      "qualityScore": null,
-      "retainedAccountingHold": false,
-      "nativeFinishReason": "MAX_TOKENS"
-    },
-    {
-      "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
-      "provider": "gemini",
-      "model": "gemini-3.6-flash",
       "reason": "output-limit",
       "qualityScore": null,
       "retainedAccountingHold": false,

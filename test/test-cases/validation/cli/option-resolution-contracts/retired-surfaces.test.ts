@@ -29,7 +29,7 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'gemini-ocr',
     model: 'gemini-3.1-flash-lite',
-    message: 'Model "gemini-3.1-flash-lite" is retired for --provider/--ocr gemini[=model]. Use "gemini-3.5-flash-lite" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "gemini-3.1-flash-lite" is retired for --provider/--ocr gemini[=model]. Use "gemini-3.8-flash" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'kimi-ocr',
@@ -40,6 +40,11 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
     flag: 'kimi-ocr',
     model: `${retiredKimiOcr}-highspeed`,
     message: 'Provider selections kimi-ocr are no longer supported.'
+  },
+  {
+    flag: 'deepinfra-ocr',
+    model: 'retired-deepinfra-ocr-model',
+    message: 'Provider selections deepinfra-ocr are no longer supported.'
   },
   {
     flag: 'openai-tts',
@@ -79,7 +84,17 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'fal-video',
     model: 'fal-ai/pixverse/c1',
-    message: 'Model "fal-ai/pixverse/c1" is retired for --provider/--video fal[=model]. Use "minimax/h3" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Provider selections fal-video are no longer supported. Remove them and select an active provider explicitly. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'fal-image',
+    model: 'alibaba/qwen-image-3',
+    message: 'Provider selections fal-image are no longer supported. Remove them and select an active provider explicitly. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'openai-image',
+    model: 'gpt-image-2',
+    message: 'Invalid model "gpt-image-2" for --provider/--image openai[=model]. Allowed values: gpt-image-2.5-flare, gpt-image-2.5-sunburst'
   },
   {
     flag: 'gemini-video',
@@ -102,9 +117,9 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
     message: `Invalid model "${retiredMusicFree}" for ${formatModelSelector('minimax-music')}`
   },
   {
-    flag: 'deepinfra-ocr',
-    model: 'PaddlePaddle/PaddleOCR-VL-0.9B',
-    message: 'Invalid model "PaddlePaddle/PaddleOCR-VL-0.9B" for --provider/--ocr deepinfra[=model]. Allowed values: google/gemma-4-31B-it'
+    flag: 'mistral-ocr',
+    model: 'mistral-ocr-retired',
+    message: 'Invalid model "mistral-ocr-retired" for --provider/--ocr mistral[=model]. Allowed values: mistral-ocr-4-1'
   },
   {
     flag: 'assemblyai-stt',
@@ -138,6 +153,11 @@ describe('retired surfaces', () => {
     expect(existsSync(resolve('docs/commands/00-setup-and-utilities/benchmark/benchmark.md'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/text/ocr/ocr-services/fal-ocr'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/models/ocr-config/ocr-fal.json'))).toBe(false)
+    expect(existsSync(resolve('src/cli/commands/text/ocr/ocr-services/deepinfra-ocr'))).toBe(false)
+    expect(existsSync(resolve('src/cli/commands/setup-and-utilities/models/ocr-config/ocr-deepinfra.json'))).toBe(false)
+    expect(existsSync(resolve('src/utils/fal-client'))).toBe(false)
+    expect(existsSync(resolve('src/cli/commands/visuals/image/image-generation-services/fal-image-service'))).toBe(false)
+    expect(existsSync(resolve('src/cli/commands/visuals/video/video-services/fal-video-service'))).toBe(false)
   })
 
   test('retired models are rejected with public selectors', () => {

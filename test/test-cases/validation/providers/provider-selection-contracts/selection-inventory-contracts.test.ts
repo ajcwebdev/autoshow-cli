@@ -35,7 +35,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'grok-ocr',
   'anthropic-ocr',
   'gemini-ocr',
-  'deepinfra-ocr',
   'openai',
   'gemini',
   'anthropic',
@@ -49,13 +48,11 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'gemini-image',
   'openai-image',
   'grok-image',
-  'fal-image',
   'elevenlabs-music',
   'minimax-music',
   'gemini-music',
   'gemini-video',
-  'grok-video',
-  'fal-video'
+  'grok-video'
 ] as const
 
 const STT_SELECTION_PROBE = {
@@ -89,7 +86,6 @@ const OCR_SELECTION_PROBE = {
   grokOcrModels: undefined,
   anthropicOcrModels: undefined,
   geminiOcrModels: undefined,
-  deepinfraOcrModels: undefined,
   step2SelectionOrigins: {}
 } satisfies OcrSelectionOptions
 

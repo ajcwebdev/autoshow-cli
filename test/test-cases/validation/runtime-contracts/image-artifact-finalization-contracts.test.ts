@@ -40,7 +40,7 @@ describe('image artifact finalization contracts', () => {
     const outputDir = await makeTempDir('autoshow-image-single-target-')
     try {
       const result = await runImageTargets(
-        [makeTarget('gpt-image-2', ['generated-image.png', 'generated-image-2.png'])],
+        [makeTarget('gpt-image-2.5-flare', ['generated-image.png', 'generated-image-2.png'])],
         'prompt',
         outputDir,
         BASE_OPTIONS
@@ -61,7 +61,7 @@ describe('image artifact finalization contracts', () => {
     try {
       const result = await runImageTargets(
         [
-          makeTarget('gpt-image-2', ['a.png', 'b.png']),
+          makeTarget('gpt-image-2.5-sunburst', ['a.png', 'b.png']),
           makeTarget('gpt-image-2.5-flare', ['c.jpg'])
         ],
         'prompt',
@@ -70,19 +70,19 @@ describe('image artifact finalization contracts', () => {
       )
 
       expect(result.metadata.map(entry => entry.imageFileNames)).toEqual([
-        ['generated-image-openai-gpt-image-2.png', 'generated-image-openai-gpt-image-2-2.png'],
+        ['generated-image-openai-gpt-image-2.5-sunburst.png', 'generated-image-openai-gpt-image-2.5-sunburst-2.png'],
         ['generated-image-openai-gpt-image-2.5-flare.jpg']
       ])
       expect(result.imagePaths.map(path => basename(path))).toEqual([
-        'generated-image-openai-gpt-image-2.png',
-        'generated-image-openai-gpt-image-2-2.png',
+        'generated-image-openai-gpt-image-2.5-sunburst.png',
+        'generated-image-openai-gpt-image-2.5-sunburst-2.png',
         'generated-image-openai-gpt-image-2.5-flare.jpg'
       ])
       // The per-target workspaces are cleaned up, leaving only the renamed artifacts.
       expect((await readdir(outputDir)).sort()).toEqual([
-        'generated-image-openai-gpt-image-2-2.png',
         'generated-image-openai-gpt-image-2.5-flare.jpg',
-        'generated-image-openai-gpt-image-2.png'
+        'generated-image-openai-gpt-image-2.5-sunburst-2.png',
+        'generated-image-openai-gpt-image-2.5-sunburst.png'
       ])
     } finally {
       await rm(outputDir, { recursive: true, force: true })

@@ -42,7 +42,7 @@ describe('pooled OCR page scheduler contracts', () => {
       startedAtMs: 2,
       artifactDir: 'providers/openai/attempts/page-000002/attempt-003'
     })
-    const additive: OcrTarget = { service: 'gemini', model: 'gemini-3.6-flash' }
+    const additive: OcrTarget = { service: 'gemini', model: 'gemini-3.8-flash' }
     const resumed = await runPool({
       totalPages: 2,
       requestedTargets: [...failed.targets.map(({ service, model }) => ({ service, model })), additive],
@@ -84,7 +84,7 @@ describe('pooled OCR page scheduler contracts', () => {
 
   test('re-enabling one target does not revive a separately retired sibling on the same lane', async () => {
     const selected: OcrTarget = { service: 'openai', model: 'gpt-6.1-sol' }
-    const sibling: OcrTarget = { service: 'openai', model: 'gpt-5.6-terra' }
+    const sibling: OcrTarget = { service: 'openai', model: 'gpt-6-luna' }
     const failed = await runPool({
       totalPages: 2,
       requestedTargets: [selected, sibling],

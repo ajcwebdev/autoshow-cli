@@ -18,7 +18,7 @@ describe('OpenAI REST image contracts', () => {
 
     await withTempDir(async (dir) => {
       const result = await runOpenAIImageGen('A test image', dir, {
-        model: 'gpt-image-2',
+        model: 'gpt-image-2.5-flare',
         size: '1024x1024',
         quality: 'high',
         outputFormat: 'webp',
@@ -29,7 +29,7 @@ describe('OpenAI REST image contracts', () => {
       expect(new Uint8Array(await Bun.file(result.imagePaths[0]!).arrayBuffer())).toEqual(imageBytes)
       expect(result.metadata).toMatchObject({
         imageService: 'openai',
-        imageModel: 'gpt-image-2',
+        imageModel: 'gpt-image-2.5-flare',
         imageFileNames: ['generated-image.webp'],
         imageSize: '1024x1024',
         imageQuality: 'high',
@@ -38,7 +38,7 @@ describe('OpenAI REST image contracts', () => {
     })
 
     expect(calls[0]?.bodyJson).toMatchObject({
-      model: 'gpt-image-2',
+      model: 'gpt-image-2.5-flare',
       prompt: 'A test image',
       n: 1,
       size: '1024x1024',
@@ -58,12 +58,12 @@ describe('OpenAI REST image contracts', () => {
         { b64_json: Buffer.from(firstImage).toString('base64'), revised_prompt: 'A refined prompt' },
         { b64_json: Buffer.from(secondImage).toString('base64') }
       ],
-      model: 'gpt-image-2-actual'
+      model: 'gpt-image-2.5-flare-actual'
     }))
 
     await withTempDir(async (dir) => {
       const result = await runOpenAIImageGen('A test image', dir, {
-        model: 'gpt-image-2',
+        model: 'gpt-image-2.5-flare',
         count: 2,
         outputFormat: 'png'
       })
@@ -71,11 +71,11 @@ describe('OpenAI REST image contracts', () => {
       expect(result.imagePaths.map((imagePath) => imagePath.endsWith('.png'))).toEqual([true, true])
       expect(result.metadata).toMatchObject({
         imageService: 'openai',
-        imageModel: 'gpt-image-2',
+        imageModel: 'gpt-image-2.5-flare',
         imageCount: 2,
         imageFileNames: ['generated-image.png', 'generated-image-2.png'],
         revisedPrompt: 'A refined prompt',
-        providerReturnedModel: 'gpt-image-2-actual',
+        providerReturnedModel: 'gpt-image-2.5-flare-actual',
         requestMode: 'generation'
       })
     })
@@ -97,7 +97,7 @@ describe('OpenAI REST image contracts', () => {
       await writeFile(refPath, new Uint8Array([1, 2, 3]))
 
       const result = await runOpenAIImageGen('Edit this image', dir, {
-        model: 'gpt-image-2',
+        model: 'gpt-image-2.5-flare',
         mode: 'edit',
         inputs: [refPath],
         count: 1,
@@ -113,7 +113,7 @@ describe('OpenAI REST image contracts', () => {
       url: 'https://api.openai.com/v1/images/edits',
       method: 'POST'
     })
-    expect(calls[0]?.form?.get('model')).toBe('gpt-image-2')
+    expect(calls[0]?.form?.get('model')).toBe('gpt-image-2.5-flare')
     expect(calls[0]?.form?.get('prompt')).toBe('Edit this image')
     expect(calls[0]?.form?.get('moderation')).toBe('low')
     expect(calls[0]?.form?.get('output_compression')).toBe('75')
@@ -134,7 +134,7 @@ describe('OpenAI REST image contracts', () => {
       await writeFile(secondRef, new Uint8Array([4, 5, 6]))
 
       await runOpenAIImageGen('Keep character design consistent.', dir, {
-        model: 'gpt-image-2',
+        model: 'gpt-image-2.5-flare',
         mode: 'edit',
         inputs: [firstRef, secondRef],
         count: 1
@@ -165,7 +165,7 @@ describe('OpenAI REST image contracts', () => {
       await writeFile(refPath, new Uint8Array([1, 2, 3]))
 
       const result = await runOpenAIImageGen('Edit with usage', dir, {
-        model: 'gpt-image-2',
+        model: 'gpt-image-2.5-flare',
         mode: 'edit',
         inputs: [refPath]
       })
@@ -190,7 +190,7 @@ describe('OpenAI REST image contracts', () => {
     }))
 
     await withTempDir(async (dir) => {
-      const result = await runOpenAIImageGen('A test image', dir, { model: 'gpt-image-2' })
+      const result = await runOpenAIImageGen('A test image', dir, { model: 'gpt-image-2.5-flare' })
       expect(result.metadata.outputUnits).toBe(512)
       expect('imageInputUnits' in result.metadata).toBe(false)
       expect('textInputUnits' in result.metadata).toBe(false)
@@ -217,7 +217,7 @@ describe('OpenAI REST image contracts', () => {
       const refPath = join(dir, 'reference.png')
       await writeFile(refPath, referenceBytes)
 
-      const response = await createImage('Edit with usage', [refPath], 'gpt-image-2', '1536x1024', 'high')
+      const response = await createImage('Edit with usage', [refPath], 'gpt-image-2.5-flare', '1536x1024', 'high')
 
       expect(response.mode).toBe('edit')
       expect(response.result.imageBase64).toBe(Buffer.from(imageBytes).toString('base64'))
@@ -233,7 +233,7 @@ describe('OpenAI REST image contracts', () => {
 
     expect(calls).toHaveLength(1)
     expect(calls[0]?.url).toContain('/images/edits')
-    expect(calls[0]?.form?.get('model')).toBe('gpt-image-2')
+    expect(calls[0]?.form?.get('model')).toBe('gpt-image-2.5-flare')
   })
 
   test('comic createImage omits usage when the provider returns none', async () => {
@@ -242,7 +242,7 @@ describe('OpenAI REST image contracts', () => {
     installFetch(() => jsonResponse({ data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }] }))
 
     await withTempDir(async () => {
-      const response = await createImage('Generate without usage', [], 'gpt-image-2', '1536x1024', 'high')
+      const response = await createImage('Generate without usage', [], 'gpt-image-2.5-flare', '1536x1024', 'high')
       expect(response.mode).toBe('generate')
       expect('usage' in response).toBe(false)
     })

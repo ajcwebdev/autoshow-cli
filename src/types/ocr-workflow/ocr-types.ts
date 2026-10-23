@@ -135,12 +135,12 @@ export type OcrFn = (imagePath: string) => Promise<{ text: string, confidence?: 
 export type OcrFnProvider = OcrFn | { getOcrFn: () => Promise<OcrFn> }
 
 // Completed runs and pool ledgers retain removed provider identities; live selection comes from the adapter registry.
-export type HostedExtractOcrEngine = 'mistral-ocr' | 'glm-ocr' | 'kimi-ocr' | 'openai-ocr' | 'grok-ocr' | 'anthropic-ocr' | 'gemini-ocr' | 'deepinfra-ocr' | 'fal-ocr'
+export type HostedExtractOcrEngine = 'mistral-ocr' | 'glm-ocr' | 'kimi-ocr' | 'openai-ocr' | 'grok-ocr' | 'anthropic-ocr' | 'gemini-ocr' | 'deepinfra-ocr'
 
 export type HostedOcrRun = {
   pages: PageResult[]
   extractionMethod: HostedExtractOcrEngine
-  ocrService: 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'fal'
+  ocrService: 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'
   ocrModel: string
   canonicalText?: string
   totalPages?: number
@@ -161,7 +161,7 @@ export type HostedOcrRun = {
 }
 
 export type OcrTarget = {
-  service: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'fal'
+  service: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'
   model: string
 }
 

@@ -10,9 +10,3 @@ export const grokImage = {
   envVarKey: 'XAI_API_KEY',
   imageExtension: 'jpg',
 } as const
-
-export const falImage = {
-  provider: 'fal',
-  imageService: 'fal',
-  envVarKey: 'FAL_API_KEY',
-} as const

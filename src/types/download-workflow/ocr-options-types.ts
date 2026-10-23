@@ -17,7 +17,6 @@ export type OcrRuntimeOptions = {
   grokOcrModels: string[] | undefined
   anthropicOcrModels: string[] | undefined
   geminiOcrModels: string[] | undefined
-  deepinfraOcrModels: string[] | undefined
   primaryOcr: string | undefined
   docxMarkdown?: boolean | undefined
   chapterFiles: boolean | undefined

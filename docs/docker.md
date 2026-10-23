@@ -132,7 +132,7 @@ autoshow() (
     --mount "type=bind,src=$autoshow_workspace/.autoshow,dst=/app/runtime" \
     --mount "type=bind,src=$autoshow_workspace/.autoshow/home,dst=/home/bun" \
     --workdir /workspace --env-file "$autoshow_workspace/.env" \
-    --env AUTOSHOW_REQUIRED_IMAGE_MODEL=gpt-image-2 \
+    --env AUTOSHOW_REQUIRED_IMAGE_MODEL=gpt-image-2.5-flare \
     "${AUTOSHOW_IMAGE:-autoshow-cli:local}" "$@"
   if [ "$(uname -s)" = Linux ]; then
     set -- --user "$(id -u):$(id -g)" "$@"

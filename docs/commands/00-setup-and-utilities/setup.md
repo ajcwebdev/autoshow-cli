@@ -78,13 +78,13 @@ View or set persistent defaults in `config/autoshow.json`. Override that path wi
 ```bash
 bun autoshow setup --show
 bun autoshow setup --reset
-bun autoshow setup --llm openai=gpt-5.6-terra
+bun autoshow setup --llm openai=gpt-6-luna
 bun autoshow setup --stt whisperfile=small.en
 bun autoshow setup --ocr tesseract
-bun autoshow setup --ocr mistral=mistral-ocr-4-0 --ocr-language eng --ocr-dpi 300
+bun autoshow setup --ocr mistral=mistral-ocr-4-1 --ocr-language eng --ocr-dpi 300
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice voice_123
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --step-concurrency tts-chunk=3
-bun autoshow setup --image openai=gpt-image-2
+bun autoshow setup --image openai=gpt-image-2.5-flare
 bun autoshow setup --video grok=grok-imagine-video-1.5
 bun autoshow setup --batch-limit 20 --batch-order oldest --batch-concurrency 2
 bun autoshow setup --concurrency-mode immediate
@@ -100,7 +100,7 @@ Model selector flags are repeatable. Repeating a provider selector saves all sel
 
 ```bash
 bun autoshow setup --stt deepinfra=openai/whisper-large-v3 --stt deepinfra=openai/whisper-large-v3-turbo
-bun autoshow setup --llm openai=gpt-6.1-sol --llm openai=gpt-5.6-terra
+bun autoshow setup --llm openai=gpt-6.1-sol --llm openai=gpt-6-luna
 ```
 ## Config Schema
 
@@ -127,7 +127,7 @@ Representative JSON shape:
       }
     },
     "llm": {
-      "openai": ["gpt-5.6-terra"]
+      "openai": ["gpt-6-luna"]
     },
     "tts": {
       "elevenlabsTts": ["eleven_v3"],
@@ -135,7 +135,7 @@ Representative JSON shape:
       "ttsSpeakers": ["Host=voice_host", "Guest=voice_guest"]
     },
     "image": {
-      "openaiImage": ["gpt-image-2"],
+      "openaiImage": ["gpt-image-2.5-flare"],
       "size": "1024x1024",
       "count": 2
     },

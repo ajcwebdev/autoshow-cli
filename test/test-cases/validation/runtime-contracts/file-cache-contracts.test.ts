@@ -65,9 +65,9 @@ describe('file cache contracts', () => {
       sourceFile: 'input.pdf',
       run: {
         pages: [{ pageNumber: 1, method: 'ocr', text: 'cached text' }],
-        extractionMethod: 'deepinfra-ocr',
-        ocrService: 'deepinfra',
-        ocrModel: 'google/gemma-4-31B-it',
+        extractionMethod: 'gemini-ocr',
+        ocrService: 'gemini',
+        ocrModel: 'gemini-3.8-flash',
         totalPages: 1,
         requestedReasoningEffort: 'disabled',
         effectiveReasoningEffort: 'disabled'
@@ -77,9 +77,9 @@ describe('file cache contracts', () => {
     expect(parseStoredHostedOcrPageCache(storedPage, {
       sourceFile: 'input.pdf',
       identity: {
-        extractionMethod: 'deepinfra-ocr',
-        ocrService: 'deepinfra',
-        ocrModel: 'google/gemma-4-31B-it',
+        extractionMethod: 'gemini-ocr',
+        ocrService: 'gemini',
+        ocrModel: 'gemini-3.8-flash',
         requestedReasoningEffort: 'disabled',
         effectiveReasoningEffort: 'disabled'
       }
@@ -88,9 +88,9 @@ describe('file cache contracts', () => {
     expect(parseStoredHostedOcrPageCache(storedPage, {
       sourceFile: 'input.pdf',
       identity: {
-        extractionMethod: 'deepinfra-ocr',
-        ocrService: 'deepinfra',
-        ocrModel: 'google/gemma-4-31B-it',
+        extractionMethod: 'gemini-ocr',
+        ocrService: 'gemini',
+        ocrModel: 'gemini-3.8-flash',
         requestedReasoningEffort: 'default',
         effectiveReasoningEffort: 'disabled'
       }

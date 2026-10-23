@@ -1,46 +1,35 @@
-Consensus evaluation for video generation run 2026-05-21_06-51-12-517_video-gen.
+Video consensus evaluation
 
-This evaluation is based only on packet metadata. It does not include visual or audio quality assessment.
+Run directory: docs/benchmarks/video/2026-05-21_06-51-12-517_video-gen
+Category: video
+Evidence source: consensus packet built from manifest.json and the generated MP4 artifacts.
 
-All 9 retained provider outputs have recorded MP4 artifact metadata. The MP4 files themselves are not present in the committed run directory.
+This evaluation uses measurable packet evidence only. It does not claim to have watched the videos and does not assess visual quality, prompt adherence, motion quality, narrative coherence, or human preference.
 
-Recorded durations:
-- 4 seconds: gemini/veo-3.1-lite-generate-preview
-- 5 seconds: glm/cogvideox-3, glm/viduq1-text, runway/gen4.5, fal/minimax/h3
-- 6 seconds: minimax/T2V-01, minimax/T2V-01-Director, minimax/MiniMax-Hailuo-2.3
-- 8 seconds: grok/grok-imagine-video-1.5
+Scope
 
-Recorded processing time, fastest to slowest:
+- Providers: 2 service providers, 0 local providers.
+- Artifacts: both MP4 files are present, and their file sizes match the recorded metadata.
+- Gemini Omni was added on 2026-10-23 by resuming this run with one request at the provider-selected length.
+
+Recorded durations
+
+- grok/grok-imagine-video-1.5: 8 seconds (recorded).
+- gemini/gemini-omni-1.1-flash: no recorded duration; ffprobe measures the container at 10.005 seconds.
+
+Recorded processing time, fastest to slowest
+
 1. grok/grok-imagine-video-1.5: 32,747 ms
-2. gemini/veo-3.1-lite-generate-preview: 41,408 ms
-3. minimax/MiniMax-Hailuo-2.3: 72,335 ms
-4. runway/gen4.5: 101,564 ms
-5. glm/cogvideox-3: 149,944 ms
-6. minimax/T2V-01-Director: 154,630 ms
-7. glm/viduq1-text: 190,835 ms
-8. fal/minimax/h3: 370,169 ms
-9. minimax/T2V-01: 401,029 ms
+2. gemini/gemini-omni-1.1-flash: 33,278 ms
 
-Recorded cost, lowest to highest:
-1. minimax/T2V-01: 19 cents
-2. minimax/T2V-01-Director: 19 cents
-3. gemini/veo-3.1-lite-generate-preview: 20 cents
-4. glm/cogvideox-3: 20 cents
-5. minimax/MiniMax-Hailuo-2.3: 28 cents
-6. glm/viduq1-text: 40 cents
-7. runway/gen4.5: 60 cents
-8. grok/grok-imagine-video-1.5: 64 cents
-9. fal/minimax/h3: 130 cents
+Recorded cost, lowest to highest
 
-Recorded artifact file sizes, smallest to largest:
-1. minimax/MiniMax-Hailuo-2.3: 656,822 bytes
-2. minimax/T2V-01: 939,971 bytes
-3. runway/gen4.5: 1,415,618 bytes
-4. gemini/veo-3.1-lite-generate-preview: 1,453,888 bytes
-5. minimax/T2V-01-Director: 1,459,596 bytes
-6. grok/grok-imagine-video-1.5: 1,565,638 bytes
-7. glm/cogvideox-3: 3,551,253 bytes
-8. glm/viduq1-text: 4,069,481 bytes
-9. fal/minimax/h3: 8,634,227 bytes
+1. grok/grok-imagine-video-1.5: 64 cents (provider usage).
+2. gemini/gemini-omni-1.1-flash: 100 cents (registry rate; the provider returned no usage).
 
-No packet warnings were reported beyond missing committed MP4 files.
+Recorded artifact file sizes, smallest to largest
+
+1. grok/grok-imagine-video-1.5: 1,565,638 bytes
+2. gemini/gemini-omni-1.1-flash: 3,056,647 bytes
+
+No packet warnings were reported.

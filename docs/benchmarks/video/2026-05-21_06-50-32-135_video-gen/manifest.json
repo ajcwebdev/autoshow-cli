@@ -1,1 +1,184 @@
-{"command":"video","scope":"single","createdAt":"2026-05-21T06:50:32.135Z","updatedAt":"2026-05-21T06:50:32.135Z","items":[{"input":"a rainy neon city street, slow camera pan","outputDir":"docs/benchmarks/video/2026-05-21_06-50-32-135_video-gen","status":"incomplete","metadata":{"video":[{"videoGenService":"grok","videoGenModel":"grok-imagine-video-1.5","processingTime":32367,"videoFileName":"generated-video-grok-grok-imagine-video-1.5.mp4","videoFileSize":3490281,"videoDuration":8,"requestMode":"text","videoResolution":"480p","videoAspectRatio":"16:9","providerRequestId":"910d8c17-2103-9db2-89a7-1d7c77df671f","providerReturnedModel":"grok-imagine-video-1.5","providerVideoUrl":"https://vidgen.x.ai/xai-vidgen-bucket/xai-video-910d8c17-2103-9db2-89a7-1d7c77df671f.mp4","providerProgress":100,"providerModeration":true,"providerCostCents":64,"providerCostSource":"provider_usage"},{"videoGenService":"fal","videoGenModel":"minimax/h3","processingTime":183581,"videoFileName":"generated-video-fal-minimax-h3.mp4","videoFileSize":12117327,"videoDuration":5,"videoResolution":"2K","requestMode":"text","providerRequestId":"019fd903-a887-7cb0-8a98-33095e34f6f6","providerOutputUrl":"https://v3b.fal.media/files/b/0aa54cc2/SF6KxdrIxr6C04ib_CYn5_hImKRGwo.mp4","providerVideoUrl":"https://v3b.fal.media/files/b/0aa54cc2/SF6KxdrIxr6C04ib_CYn5_hImKRGwo.mp4","providerCostCents":130,"providerCostSource":"registry_fallback"}],"cost":{"estimated":{"totalCost":0,"steps":[]},"observedEstimate":{"totalCost":0,"steps":[]},"actual":{"totalCost":194,"steps":[{"step":"video","provider":"grok","model":"grok-imagine-video-1.5","cost":64,"costSource":"provider_usage","inputMetric":"durationSeconds","inputValue":8},{"step":"video","provider":"fal","model":"minimax/h3","cost":130,"costSource":"registry_fallback","inputMetric":"durationSeconds","inputValue":5}]}},"timing":{"estimated":{"totalProcessingTimeMs":0,"steps":[]},"actual":{"totalProcessingTimeMs":215948,"steps":[{"step":"video","provider":"grok","model":"grok-imagine-video-1.5","processingTimeMs":32367,"inputMetric":"durationSeconds","inputValue":8,"rateBasis":"durationSecond","msPerUnit":4045.875,"throughputValue":0.247,"throughputUnit":"x","timingScope":"wall"},{"step":"video","provider":"fal","model":"minimax/h3","processingTimeMs":183581,"inputMetric":"durationSeconds","inputValue":5,"rateBasis":"durationSecond","msPerUnit":36716.2,"throughputValue":0.027,"throughputUnit":"x","timingScope":"wall"}]}}},"providers":[{"service":"grok","model":"grok-imagine-video-1.5","artifactDir":".","status":"missing","attempts":0,"options":{},"metadata":{}},{"service":"fal","model":"minimax/h3","artifactDir":".","status":"missing","attempts":0,"options":{},"metadata":{}}]}]}
+{
+  "command": "video",
+  "scope": "single",
+  "createdAt": "2026-05-21T06:50:32.135Z",
+  "updatedAt": "2026-10-23T16:48:17.958Z",
+  "items": [
+    {
+      "input": "a rainy neon city street, slow camera pan",
+      "outputDir": "docs/benchmarks/video/2026-05-21_06-50-32-135_video-gen",
+      "status": "full",
+      "metadata": {
+        "video": [
+          {
+            "videoGenService": "grok",
+            "videoGenModel": "grok-imagine-video-1.5",
+            "processingTime": 32367,
+            "videoFileName": "generated-video-grok-grok-imagine-video-1.5.mp4",
+            "videoFileSize": 3490281,
+            "videoDuration": 8,
+            "requestMode": "text",
+            "videoResolution": "480p",
+            "videoAspectRatio": "16:9",
+            "providerRequestId": "910d8c17-2103-9db2-89a7-1d7c77df671f",
+            "providerReturnedModel": "grok-imagine-video-1.5",
+            "providerVideoUrl": "https://vidgen.x.ai/xai-vidgen-bucket/xai-video-910d8c17-2103-9db2-89a7-1d7c77df671f.mp4",
+            "providerProgress": 100,
+            "providerModeration": true,
+            "providerCostCents": 64,
+            "providerCostSource": "provider_usage"
+          },
+          {
+            "videoGenService": "gemini",
+            "videoGenModel": "gemini-omni-1.1-flash",
+            "processingTime": 41033,
+            "videoFileName": "generated-video-gemini-gemini-omni-1.1-flash.mp4",
+            "videoFileSize": 5941647,
+            "requestMode": "text",
+            "videoResolution": "720p",
+            "videoAspectRatio": "16:9",
+            "providerRequestId": "v1_ChdxWV9iYXJqRURQYlZqTWNQaWNPa21BcxIXcVlfYmFyakVEUGJWak1jUGljT2ttQXM",
+            "providerVideoUri": "https://generativelanguage.googleapis.com/v1beta/files/usn8vm7drown:download?alt=media",
+            "providerFileOutput": {
+              "mimeType": "video/mp4"
+            },
+            "hostedConcurrency": {
+              "version": 1,
+              "mode": "ramp",
+              "lanes": [
+                {
+                  "lane": {
+                    "service": "gemini",
+                    "scopeLabel": "configured-account",
+                    "laneKey": "gemini:configured-account"
+                  },
+                  "configuredLimit": 7,
+                  "currentLimit": 1,
+                  "active": 0,
+                  "activePeak": 1,
+                  "queuedWork": 0,
+                  "queuedPeak": 1,
+                  "admitted": 1,
+                  "completed": 1,
+                  "failed": 0,
+                  "canceled": 0,
+                  "rampTransitions": [],
+                  "pressureEvents": [],
+                  "pauseDurationMs": 0,
+                  "recoveryProbes": 0,
+                  "recoveryFailures": 0,
+                  "classes": [
+                    {
+                      "workClass": "video",
+                      "configuredLimit": 7,
+                      "active": 0,
+                      "activePeak": 1,
+                      "queued": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "cost": {
+          "estimated": {
+            "totalCost": 0,
+            "steps": []
+          },
+          "observedEstimate": {
+            "totalCost": 0,
+            "steps": []
+          },
+          "actual": {
+            "totalCost": 164,
+            "steps": [
+              {
+                "step": "video",
+                "provider": "grok",
+                "model": "grok-imagine-video-1.5",
+                "cost": 64,
+                "costSource": "provider_usage",
+                "inputMetric": "durationSeconds",
+                "inputValue": 8
+              },
+              {
+                "step": "video",
+                "provider": "gemini",
+                "model": "gemini-omni-1.1-flash",
+                "cost": 100,
+                "costSource": "registry_fallback",
+                "inputMetric": "durationSeconds",
+                "inputValue": 0
+              }
+            ]
+          }
+        },
+        "timing": {
+          "estimated": {
+            "totalProcessingTimeMs": 0,
+            "steps": []
+          },
+          "actual": {
+            "totalProcessingTimeMs": 73400,
+            "steps": [
+              {
+                "step": "video",
+                "provider": "grok",
+                "model": "grok-imagine-video-1.5",
+                "processingTimeMs": 32367,
+                "inputMetric": "durationSeconds",
+                "inputValue": 8,
+                "rateBasis": "durationSecond",
+                "msPerUnit": 4045.875,
+                "throughputValue": 0.247,
+                "throughputUnit": "x",
+                "timingScope": "wall"
+              },
+              {
+                "step": "video",
+                "provider": "gemini",
+                "model": "gemini-omni-1.1-flash",
+                "processingTimeMs": 41033,
+                "timingScope": "wall"
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "grok",
+          "model": "grok-imagine-video-1.5",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "gemini",
+          "model": "gemini-omni-1.1-flash",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {},
+          "settings": {
+            "schemaVersion": 1,
+            "settingsSchema": "gemini.video.v1",
+            "request": {
+              "model": "gemini-omni-1.1-flash",
+              "mode": "text",
+              "effective": {
+                "resolution": "720p",
+                "aspectRatio": "16:9",
+                "durationSeconds": 10
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

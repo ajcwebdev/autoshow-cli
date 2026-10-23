@@ -203,14 +203,14 @@ describe('blooper ledger', () => {
 
     const result = await captureBloopers({
       sceneSlug: '01-mandatory-meeting', episode: '02', runId: 'blooper-run', panelNumber: 1,
-      promotedPath, attemptsDirectory, imageModel: 'gpt-image-2', bloopersRoot, now: () => new Date('2026-09-02T00:00:00.000Z'),
+      promotedPath, attemptsDirectory, imageModel: 'gpt-image-2.5-flare', bloopersRoot, now: () => new Date('2026-09-02T00:00:00.000Z'),
     })
 
     expect(result.copied).toHaveLength(1)
     const record = result.copied[0]!
     expect(record).toMatchObject({
       schemaVersion: 1, runId: 'blooper-run', episode: '02', sceneSlug: '01-mandatory-meeting',
-      panelNumber: 1, attemptNumber: 0, lastHopModel: 'gpt-image-2', cleanLineage: true, lineage: 'clean',
+      panelNumber: 1, attemptNumber: 0, lastHopModel: 'gpt-image-2.5-flare', cleanLineage: true, lineage: 'clean',
       qaVerdict: 'hard-failure', hardFailureKeys: ['panel-1:blockingAudit'], category: 'side-flip', capturedAt: '2026-09-02T00:00:00.000Z',
     })
     const copiedPath = join(bloopersRoot, '02', '01-mandatory-meeting', 'panel-01-attempt-0.png')

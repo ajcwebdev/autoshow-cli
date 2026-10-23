@@ -31,6 +31,5 @@ export type ImageCostEstimate = CostEstimateBase<ImageProvider> & {
 export type EstimateImageCostOptions = Partial<Pick<ImageRuntimeOptions,
   | 'geminiImageModels' | 'openaiImageModels'
   | 'grokImageModels'
-  | 'falImageModels'
   | 'imageSize' | 'imageQuality' | 'imageCount' | 'imageInputs'
 >>

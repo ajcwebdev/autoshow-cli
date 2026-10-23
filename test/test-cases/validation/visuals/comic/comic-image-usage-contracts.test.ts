@@ -76,7 +76,7 @@ const passingPageJudge = async (): Promise<PageQaEntry> => ({
   usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
 })
 
-const pageOutput = (exists: boolean, qaReportReusable: boolean): FinalImageOutputInventory => ({ model: 'gpt-image-2', variation: 'canonical', outputPath: '/tmp/page.png', exists, qaReportReusable })
+const pageOutput = (exists: boolean, qaReportReusable: boolean): FinalImageOutputInventory => ({ model: 'gpt-image-2.5-flare', variation: 'canonical', outputPath: '/tmp/page.png', exists, qaReportReusable })
 
 const coverageReport: SourceCoverageReport = { complete: true, totalSegments: 2, coveredSegments: 2, missingSegments: [], missingItems: [], promptFiles: [] }
 
@@ -96,7 +96,7 @@ describe('comic image usage contracts', () => {
     const sceneSlug = `usage-stats-${crypto.randomUUID()}`
     await createSceneFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
-    const stats = await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], qa: true, maxRepairs: 0 }, {
+    const stats = await generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], qa: true, maxRepairs: 0 }, {
       requestImage: async input => { calls.push(input); return usageResponse() },
       writeImage,
       judgePage: passingJudge,
@@ -114,7 +114,7 @@ describe('comic image usage contracts', () => {
     const sceneSlug = `usage-pages-${crypto.randomUUID()}`
     await createSceneFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
-    const stats = await generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 0 }, {
+    const stats = await generateComicPages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 0 }, {
       requestImage: async input => { calls.push(input); return usageResponse() },
       writeImage,
       judgePage: passingPageJudge,
@@ -132,7 +132,7 @@ describe('comic image usage contracts', () => {
     const sceneSlug = `usage-sketches-${crypto.randomUUID()}`
     await createSceneFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
-    const stats = await generateSceneSketches(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1 }, {
+    const stats = await generateSceneSketches(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1 }, {
       requestImage: async input => { calls.push(input); return usageResponse() },
       writeImage,
     })
@@ -176,7 +176,7 @@ describe('comic image usage contracts', () => {
         checkPanelPromptSourceCoverage: async () => coverageReport,
         runImages: async options => {
           runId = options.runId
-          return await generatePanelImages(sceneSlug, { models: [...(options.imageModels ?? ['gpt-image-2'])], size: options.size ?? '1536x1024', quality: options.quality ?? 'high', force: false, runId: options.runId, concurrency: options.concurrency, panels: [1], qa: true, maxRepairs: 0 }, {
+          return await generatePanelImages(sceneSlug, { models: [...(options.imageModels ?? ['gpt-image-2.5-flare'])], size: options.size ?? '1536x1024', quality: options.quality ?? 'high', force: false, runId: options.runId, concurrency: options.concurrency, panels: [1], qa: true, maxRepairs: 0 }, {
             requestImage: async () => usageResponse(),
             writeImage,
             judgePage: passingJudge,
@@ -193,19 +193,24 @@ describe('comic image usage contracts', () => {
     expect(await Bun.file(join(runDirectory, 'panels', runId, 'panel-01.png')).exists()).toBe(true)
   })
 
-  test('models one thousand input units per reference and stays unpriced without a registry rate', () => {
+  test('models one thousand input units per reference, prices them at the registry rate, and stays unpriced without one', () => {
     expect(OPENAI_IMAGE_INPUT_UNITS_PER_REFERENCE).toBe(1000)
-    expect(estimateOpenAIImageInputUnits('gpt-image-2', 3)).toEqual({ unitsPerReference: 1000, referenceInputs: 3, totalUnits: 3000, ratePer1MCents: null, costCents: null, priced: false })
-    const [withReferences] = estimateImageCosts({ openaiImageModels: ['gpt-image-2'], imageSize: '1536x1024', imageQuality: 'high', imageCount: 2, imageInputs: ['a.png', 'b.png', 'c.png'] })
-    expect(withReferences?.imageInputEstimate).toEqual({ unitsPerReference: 1000, referenceInputs: 6, totalUnits: 6000, ratePer1MCents: null, costCents: null, priced: false })
-    expect(withReferences?.note).toContain(OPENAI_IMAGE_INPUT_COST_NOTE)
+    // GPT Image 2.5 Flare registry image-input rate: 800 cents per 1M units.
+    const flare = estimateOpenAIImageInputUnits('gpt-image-2.5-flare', 3)
+    expect(flare).toMatchObject({ unitsPerReference: 1000, referenceInputs: 3, totalUnits: 3000, ratePer1MCents: 800, priced: true })
+    expect(flare.costCents).toBeCloseTo(2.4)
+    expect(estimateOpenAIImageInputUnits('unregistered-openai-image-model', 3)).toEqual({ unitsPerReference: 1000, referenceInputs: 3, totalUnits: 3000, ratePer1MCents: null, costCents: null, priced: false })
+    const [withReferences] = estimateImageCosts({ openaiImageModels: ['gpt-image-2.5-flare'], imageSize: '1536x1024', imageQuality: 'high', imageCount: 2, imageInputs: ['a.png', 'b.png', 'c.png'] })
+    expect(withReferences?.imageInputEstimate).toMatchObject({ unitsPerReference: 1000, referenceInputs: 6, totalUnits: 6000, ratePer1MCents: 800, priced: true })
+    expect(withReferences?.imageInputEstimate?.costCents).toBeCloseTo(4.8)
+    expect(withReferences?.note).toContain('reference inputs are modeled separately at 1,000 tokens per reference')
     expect(OPENAI_IMAGE_INPUT_COST_NOTE).toContain('1,000 units per high-detail reference')
     expect(OPENAI_IMAGE_INPUT_COST_NOTE).toContain('unpriced')
-    expect(estimateImageCosts({ openaiImageModels: ['gpt-image-2'] })[0]?.imageInputEstimate).toBeUndefined()
+    expect(estimateImageCosts({ openaiImageModels: ['gpt-image-2.5-flare'] })[0]?.imageInputEstimate).toBeUndefined()
   })
 
   test('counts initial and repair reference inputs for OpenAI models only', () => {
-    const request = normalizeFinalImageEstimateRequest({ scriptPath: 'script.md', sceneSlug: 'pricing', imageModels: ['gpt-image-2', 'gemini-3.1-flash-lite-image'], maxRepairs: 2 })
+    const request = normalizeFinalImageEstimateRequest({ scriptPath: 'script.md', sceneSlug: 'pricing', imageModels: ['gpt-image-2.5-flare', 'gemini-3.1-flash-lite-image'], maxRepairs: 2 })
     if (request.mode !== 'panel') throw new Error('Expected panel mode')
     const inventory: FinalImagePanelInventory = {
       mode: 'panel',
@@ -216,20 +221,22 @@ describe('comic image usage contracts', () => {
       ],
       gridPages: [],
     }
-    expect(estimateFinalImageInputUnits(request, inventory)).toEqual({
-      unitsPerReference: 1000, referenceInputs: 11, totalUnits: 11_000, ratePer1MCents: null, costCents: null, priced: false,
-      models: ['gpt-image-2'], initialCalls: 1, initialReferenceInputs: 3, maximumRepairCalls: 2, maximumRepairReferenceInputs: 8,
+    const panelEstimate = estimateFinalImageInputUnits(request, inventory)
+    expect(panelEstimate).toMatchObject({
+      unitsPerReference: 1000, referenceInputs: 11, totalUnits: 11_000, ratePer1MCents: 800, priced: true,
+      models: ['gpt-image-2.5-flare'], initialCalls: 1, initialReferenceInputs: 3, maximumRepairCalls: 2, maximumRepairReferenceInputs: 8,
     })
+    expect(panelEstimate?.costCents).toBeCloseTo(8.8)
     expect(estimateFinalImageInputUnits({ ...request, models: ['gemini-3.1-flash-lite-image'] }, inventory)).toBeNull()
     expect(estimateFinalImageInputUnits({ ...request, qa: { enabled: false } }, inventory)).toMatchObject({ referenceInputs: 3, maximumRepairCalls: 0 })
     const modeEstimate = estimatePanelMode(request, inventory)
     const qaWork = estimateQaWork(request, modeEstimate, inventory)
     expect(estimateFinalImagePricing(request, modeEstimate, qaWork).imageInput).toBeNull()
-    expect(estimateFinalImagePricing(request, modeEstimate, qaWork, inventory).imageInput).toMatchObject({ referenceInputs: 11, totalUnits: 11_000, priced: false })
+    expect(estimateFinalImagePricing(request, modeEstimate, qaWork, inventory).imageInput).toMatchObject({ referenceInputs: 11, totalUnits: 11_000, priced: true })
   })
 
   test('models page-mode repair inputs for every output without a reusable QA report', () => {
-    const request = normalizeFinalImageEstimateRequest({ scriptPath: 'script.md', sceneSlug: 'pricing', imageModels: ['gpt-image-2'], panelsPerImage: 2, maxRepairs: 2 })
+    const request = normalizeFinalImageEstimateRequest({ scriptPath: 'script.md', sceneSlug: 'pricing', imageModels: ['gpt-image-2.5-flare'], panelsPerImage: 2, maxRepairs: 2 })
     if (request.mode !== 'page') throw new Error('Expected page mode')
     const inventory: FinalImagePageInventory = {
       mode: 'page',
@@ -241,7 +248,8 @@ describe('comic image usage contracts', () => {
       ],
     }
     const estimate = estimateFinalImageInputUnits(request, inventory)
-    expect(estimate).toMatchObject({ initialCalls: 1, initialReferenceInputs: 3, maximumRepairCalls: 4, maximumRepairReferenceInputs: 14, referenceInputs: 17, totalUnits: 17_000, priced: false })
+    expect(estimate).toMatchObject({ initialCalls: 1, initialReferenceInputs: 3, maximumRepairCalls: 4, maximumRepairReferenceInputs: 14, referenceInputs: 17, totalUnits: 17_000, priced: true })
+    expect(estimate?.costCents).toBeCloseTo(13.6)
     const qaWork = estimateQaWork(request, estimatePageMode(request, inventory), inventory)
     expect(qaWork?.maximumAdditionalImageEdits).toBe(4)
     expect(qaWork?.maximumAdditionalImageEdits).toBe(estimate?.maximumRepairCalls)
@@ -256,7 +264,7 @@ describe('comic image usage contracts', () => {
     const sceneSlug = `usage-page-price-${crypto.randomUUID()}`
     await createSceneFixture(sceneSlug)
     const { events } = await captureLogEvents(async () => {
-      await estimateFinalPanelImagesPrice({ scriptPath: 'script.md', sceneSlug, imageModels: ['gpt-image-2'], panelsPerImage: 2, maxRepairs: 1 })
+      await estimateFinalPanelImagesPrice({ scriptPath: 'script.md', sceneSlug, imageModels: ['gpt-image-2.5-flare'], panelsPerImage: 2, maxRepairs: 1 })
     })
     expect(events.every(event => event.category === 'pricing')).toBe(true)
     const messages = events.map(event => event.message)
@@ -264,10 +272,10 @@ describe('comic image usage contracts', () => {
     expect(pageIndex).toBeGreaterThanOrEqual(0)
     const subtotalIndex = messages.findIndex((message, index) => index > pageIndex && message.startsWith('Subtotal: ~$'))
     expect(subtotalIndex).toBeGreaterThan(pageIndex)
-    const inputIndex = messages.indexOf('Image input (modeled): 5,000 units across 5 references (unpriced)')
+    const inputIndex = messages.indexOf('Image input (modeled): 5,000 units across 5 references (~$0.04)')
     expect(inputIndex).toBe(subtotalIndex + 1)
     expect(messages[inputIndex + 1]).toBe('Grouped pages use canonical character references followed by each distinct immutable location reference.')
-    expect(events[inputIndex]?.metadata).toMatchObject({ models: ['gpt-image-2'], initialCalls: 1, initialReferenceInputs: 2, maximumRepairCalls: 1, maximumRepairReferenceInputs: 3, imageInputUnits: 5000, priced: false })
+    expect(events[inputIndex]?.metadata).toMatchObject({ models: ['gpt-image-2.5-flare'], initialCalls: 1, initialReferenceInputs: 2, maximumRepairCalls: 1, maximumRepairReferenceInputs: 3, imageInputUnits: 5000, priced: true })
     expect(messages).toContain('Comic Page QA Price Estimate')
     expect(events.find(event => event.message === 'Comic Page QA Price Estimate')?.metadata).toMatchObject({ maximumAdditionalImageEdits: 1 })
     const basisIndex = messages.indexOf(IMAGE_ESTIMATE_BASIS_NOTE)
@@ -279,16 +287,16 @@ describe('comic image usage contracts', () => {
     const sceneSlug = `usage-price-${crypto.randomUUID()}`
     await createSceneFixture(sceneSlug)
     const { events } = await captureLogEvents(async () => {
-      await estimateFinalPanelImagesPrice({ scriptPath: 'script.md', sceneSlug, imageModels: ['gpt-image-2'], maxRepairs: 1 })
+      await estimateFinalPanelImagesPrice({ scriptPath: 'script.md', sceneSlug, imageModels: ['gpt-image-2.5-flare'], maxRepairs: 1 })
     })
     expect(events.every(event => event.category === 'pricing')).toBe(true)
     const messages = events.map(event => event.message)
     const initialIndex = messages.indexOf('Initial image calls: 2')
-    const inputIndex = messages.indexOf('Image input (modeled): 10,000 units across 10 references (unpriced)')
+    const inputIndex = messages.indexOf('Image input (modeled): 10,000 units across 10 references (~$0.08)')
     expect(initialIndex).toBeGreaterThanOrEqual(0)
     expect(inputIndex).toBe(initialIndex + 1)
     expect(events[inputIndex]?.metadata).toMatchObject({
-      models: ['gpt-image-2'],
+      models: ['gpt-image-2.5-flare'],
       unitsPerReference: 1000,
       referenceInputs: 10,
       imageInputUnits: 10_000,
@@ -296,9 +304,9 @@ describe('comic image usage contracts', () => {
       initialReferenceInputs: 4,
       maximumRepairCalls: 2,
       maximumRepairReferenceInputs: 6,
-      ratePer1MCents: null,
-      costCents: null,
-      priced: false,
+      ratePer1MCents: 800,
+      costCents: 8,
+      priced: true,
     })
     expect(messages).toContain(PANEL_QA_BASIS_NOTE)
     const basisIndex = messages.indexOf(IMAGE_ESTIMATE_BASIS_NOTE)

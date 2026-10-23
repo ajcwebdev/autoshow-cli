@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
 import { getDocumentInfo } from '~/cli/commands/sources/download/document/mutool-utils'
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { validateAnthropicOcrModel, validateDeepinfraOcrModel, validateGeminiOcrModel, validateGrokOcrModel, validateMistralOcrModel, validateOpenAIOcrModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateAnthropicOcrModel, validateGeminiOcrModel, validateGrokOcrModel, validateMistralOcrModel, validateOpenAIOcrModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { EstimateOcrTokenUsageOptions, HostedOcrEstimateOptions, HostedOcrTokenUsageEstimate, TokenEstimateMetadata, TokenOcrCostEstimate, TokenPricedOcrProvider } from '~/types'
 import { resolveHostedOcrTokenUsageEstimate } from '../ocr-utils/hosted-ocr-token-profiles'
 import { computeOcrTokenCost } from '~/utils/pricing/ocr-token-pricing'
@@ -19,7 +19,6 @@ const OPENAI_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on 
 export const ANTHROPIC_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed Anthropic OCR benchmark usage. Actual Anthropic OCR cost is computed from response usage after execution, and PDF cost varies with extracted text plus page-image tokens.'
 export const GEMINI_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate based on observed Gemini OCR benchmark usage. Actual Gemini OCR cost is computed from response usage after execution.'
 export const GROK_OCR_PRICE_NOTE = 'Provisional heuristic token estimate of 4000 input tokens and 1000 output tokens per page until Grok OCR calibration data is available. Actual Grok OCR cost is computed from response usage after execution.'
-export const DEEPINFRA_OCR_PRICE_NOTE = 'Model-specific token estimate from the registry or an observed usage profile; new Gemma 4 targets use uncalibrated page heuristics. Actual DeepInfra OCR cost is computed from response usage after execution.'
 
 export const estimateOcrTokenUsage = (
   provider: TokenPricedOcrProvider,
@@ -236,12 +235,5 @@ export const estimateGeminiOcrCost = (
   options: HostedOcrEstimateOptions = {}
 ): Promise<TokenOcrCostEstimate<'gemini'>> =>
   estimateTokenPricedOcrCost('gemini', validateGeminiOcrModel, 25, 150, modelRaw, input, options)
-
-export const estimateDeepinfraOcrCost = (
-  modelRaw: string,
-  input: string,
-  options: HostedOcrEstimateOptions = {}
-): Promise<TokenOcrCostEstimate<'deepinfra'> & { note: string }> =>
-  estimateTokenPricedOcrCost('deepinfra', validateDeepinfraOcrModel, 9, 19, modelRaw, input, options, DEEPINFRA_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'deepinfra'> & { note: string }>
 
 export { OPENAI_OCR_PRICE_NOTE }

@@ -30,7 +30,7 @@ describe('hosted OCR cap and profile policy contracts', () => {
     expect(resolveHostedOcrLaneKey('gemini')).toBe('gemini:env-api-key')
     const scheduler = createHostedOcrScheduler({ mode: 'fixed', fixedCap: 2, pageCount: 1 })
     expect(() => scheduler.getMaxConcurrency({
-      ...admission('gemini', 'gemini-3.5-flash'),
+      ...admission('gemini', 'gemini-3.8-flash'),
       laneKey: 'gemini:mismatched-scope'
     })).toThrow('does not match its service and scope label')
   })
@@ -44,7 +44,7 @@ describe('hosted OCR cap and profile policy contracts', () => {
     const gate = defer()
     const starts: number[] = []
     const runs = Array.from({ length: 40 }, (_, index) =>
-      scheduler.run(admission('gemini', 'gemini-3.5-flash', 'gemini:flash'), async () => {
+      scheduler.run(admission('gemini', 'gemini-3.8-flash', 'gemini:flash'), async () => {
         starts.push(index)
         await gate.promise
         return index
@@ -76,7 +76,7 @@ describe('hosted OCR cap and profile policy contracts', () => {
     })
 
     await Promise.all(Array.from({ length: 5 }, (_, index) =>
-      scheduler.run(admission('gemini', 'gemini-3.5-flash', 'gemini:flash'), async () => index)
+      scheduler.run(admission('gemini', 'gemini-3.8-flash', 'gemini:flash'), async () => index)
     ))
     expect(scheduler.snapshot().lanes[0]).toMatchObject({
       initialCap: 10,
@@ -84,7 +84,7 @@ describe('hosted OCR cap and profile policy contracts', () => {
       retryPressureCount: 0
     })
 
-    scheduler.recordRetryPressure(admission('gemini', 'gemini-3.5-flash', 'gemini:flash'), {
+    scheduler.recordRetryPressure(admission('gemini', 'gemini-3.8-flash', 'gemini:flash'), {
       reason: 'rate-limit',
       status: 429
     })
@@ -94,12 +94,12 @@ describe('hosted OCR cap and profile policy contracts', () => {
     })
 
     await Promise.all(Array.from({ length: 3 }, (_, index) =>
-      scheduler.run(admission('gemini', 'gemini-3.5-flash', 'gemini:flash'), async () => index)
+      scheduler.run(admission('gemini', 'gemini-3.8-flash', 'gemini:flash'), async () => index)
     ))
     expect(scheduler.snapshot().lanes[0]?.currentCap).toBe(6)
 
     await Promise.all(Array.from({ length: 3 }, (_, index) =>
-      scheduler.run(admission('gemini', 'gemini-3.5-flash', 'gemini:flash'), async () => index)
+      scheduler.run(admission('gemini', 'gemini-3.8-flash', 'gemini:flash'), async () => index)
     ))
     expect(scheduler.snapshot().lanes[0]?.currentCap).toBe(7)
   })
@@ -115,14 +115,14 @@ describe('hosted OCR cap and profile policy contracts', () => {
       })
 
       expect(autoScheduler.getMaxConcurrency(
-        admission('gemini', 'gemini-3.5-flash', 'gemini:flash')
+        admission('gemini', 'gemini-3.8-flash', 'gemini:flash')
       )).toBe(HOSTED_OCR_PROFILE_MAX_CAP_CEILING)
       expect(fixedScheduler.getMaxConcurrency(
-        admission('gemini', 'gemini-3.5-flash', 'gemini:flash')
+        admission('gemini', 'gemini-3.8-flash', 'gemini:flash')
       )).toBe(7)
 
       await autoScheduler.run(
-        admission('gemini', 'gemini-3.5-flash', 'gemini:flash'),
+        admission('gemini', 'gemini-3.8-flash', 'gemini:flash'),
         async () => 'ok'
       )
       expect(autoScheduler.snapshot().lanes[0]).toMatchObject({
@@ -138,8 +138,8 @@ describe('hosted OCR cap and profile policy contracts', () => {
 
   test('unpromoted throughput profiles expose why the lane cap stayed unprofiled', async () => {
     const profile = buildThroughputProfile({
-      provider: 'deepinfra',
-      model: 'google/gemma-4-31B-it',
+      provider: 'openai',
+      model: 'gpt-6-luna',
       throughputPagesPerMinute: 50,
       activePeak: 16,
       sampleCount: 3,
@@ -150,7 +150,7 @@ describe('hosted OCR cap and profile policy contracts', () => {
     })
     await withThroughputProfile(profile, async (profilePath) => {
       const scheduler = createHostedOcrScheduler({ mode: 'auto', pageCount: 228, profilePath })
-      await scheduler.run(admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it'), async () => 'ok')
+      await scheduler.run(admission('openai', 'gpt-6-luna', 'openai:gpt-6-luna'), async () => 'ok')
 
       expect(scheduler.snapshot().lanes[0]).toMatchObject({
         capSource: 'unprofiled',
@@ -165,8 +165,8 @@ describe('hosted OCR cap and profile policy contracts', () => {
 describe('hosted OCR profile confidence and pressure telemetry contracts', () => {
   test('mixed-history profiles with a clean sample retain healthy confidence', async () => {
     const profile = buildThroughputProfile({
-      provider: 'deepinfra',
-      model: 'google/gemma-4-31B-it',
+      provider: 'openai',
+      model: 'gpt-6-luna',
       laneTargetCount: 1,
       throughputPagesPerMinute: 44,
       activePeak: 20,
@@ -180,8 +180,8 @@ describe('hosted OCR profile confidence and pressure telemetry contracts', () =>
     })
     await withThroughputProfile(profile, async (profilePath) => {
       const estimate = findHostedOcrThroughputProfile({
-        provider: 'deepinfra',
-        model: 'google/gemma-4-31B-it',
+        provider: 'openai',
+        model: 'gpt-6-luna',
         pageCount: 312,
         ocrConcurrencyMode: 'auto',
         laneTargetCount: 1,
@@ -190,7 +190,7 @@ describe('hosted OCR profile confidence and pressure telemetry contracts', () =>
       expect(estimate?.confidence).toBe('healthy')
 
       const scheduler = createHostedOcrScheduler({ mode: 'auto', pageCount: 312, profilePath })
-      await scheduler.run(admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it'), async () => 'ok')
+      await scheduler.run(admission('openai', 'gpt-6-luna', 'openai:gpt-6-luna'), async () => 'ok')
       expect(scheduler.snapshot().lanes[0]).toMatchObject({
         maxCap: 22,
         capSource: 'profile',
@@ -203,8 +203,8 @@ describe('hosted OCR profile confidence and pressure telemetry contracts', () =>
 
   test('healthy profiles can raise caps from one clean sample', async () => {
     const profile = buildThroughputProfile({
-      provider: 'deepinfra',
-      model: 'google/gemma-4-31B-it',
+      provider: 'openai',
+      model: 'gpt-6-luna',
       pageCountBand: '51-200',
       laneTargetCount: 1,
       throughputPagesPerMinute: 52,
@@ -215,7 +215,7 @@ describe('hosted OCR profile confidence and pressure telemetry contracts', () =>
     })
     await withThroughputProfile(profile, async (profilePath) => {
       const scheduler = createHostedOcrScheduler({ mode: 'auto', pageCount: 121, profilePath })
-      await scheduler.run(admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it'), async () => 'ok')
+      await scheduler.run(admission('openai', 'gpt-6-luna', 'openai:gpt-6-luna'), async () => 'ok')
       expect(scheduler.snapshot().lanes[0]).toMatchObject({
         maxCap: 13,
         capSource: 'profile',
@@ -228,8 +228,8 @@ describe('hosted OCR profile confidence and pressure telemetry contracts', () =>
 
   test('current retry pressure backs off active concurrency and records page-level timeout telemetry', async () => {
     const profile = buildThroughputProfile({
-      provider: 'deepinfra',
-      model: 'google/gemma-4-31B-it',
+      provider: 'openai',
+      model: 'gpt-6-luna',
       laneTargetCount: 1,
       throughputPagesPerMinute: 54,
       activePeak: 20,
@@ -242,7 +242,7 @@ describe('hosted OCR profile confidence and pressure telemetry contracts', () =>
     await withThroughputProfile(profile, async (profilePath) => {
       const scheduler = createHostedOcrScheduler({ mode: 'auto', pageCount: 312, profilePath })
       await scheduler.run({
-        ...admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it'),
+        ...admission('openai', 'gpt-6-luna', 'openai:gpt-6-luna'),
         pageNumber: 9
       }, async ({ onRetryable }) => {
         onRetryable({ reason: 'timeout', delayMs: 125 })
@@ -256,7 +256,7 @@ describe('hosted OCR profile confidence and pressure telemetry contracts', () =>
         retryPressureCount: 1,
         retryEvents: [{
           reason: 'timeout',
-          targetKey: 'deepinfra:google/gemma-4-31B-it',
+          targetKey: 'openai:gpt-6-luna',
           pageNumber: 9,
           delayMs: 125,
           effectiveCap: 9
@@ -272,12 +272,12 @@ describe('hosted OCR fixed cap policy contracts', () => {
     const gate = defer()
     const starts: number[] = []
 
-    scheduler.recordRetryPressure(admission('gemini', 'gemini-3.5-flash'), {
+    scheduler.recordRetryPressure(admission('gemini', 'gemini-3.8-flash'), {
       reason: 'rate-limit',
       status: 429
     })
     const runs = Array.from({ length: 8 }, (_, index) =>
-      scheduler.run(admission('gemini', 'gemini-3.5-flash', 'gemini:flash'), async () => {
+      scheduler.run(admission('gemini', 'gemini-3.8-flash', 'gemini:flash'), async () => {
         starts.push(index)
         await gate.promise
         return index
@@ -313,7 +313,7 @@ describe('hosted OCR fixed cap policy contracts', () => {
     })
     const target = admission(
       'gemini',
-      'gemini-3.5-flash',
+      'gemini-3.8-flash',
       'gemini:flash'
     )
     for (let index = 0; index < 55; index += 1) {

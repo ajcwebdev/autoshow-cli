@@ -233,16 +233,9 @@ Negative outcomes:
 
 Bun 1.4 decodes TIFF on macOS and Windows only, so production TIFF routing stays on the direct-provider or ImageMagick path and Linux and the Docker image still require ImageMagick, which also remains the comic compositing engine. Removal of the redundant Bun.Image type declarations is recorded in [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md#bun-14-image-declarations).
 
-### Token-shape evidence collected on 2026-09-23
+### Token-shape audit
 
-The retained [OCR benchmark manifests](../benchmarks/text/ocr) supply individual Kimi K2.6 samples with `effectiveReasoningEffort: disabled`. All 11 selected provider entries have full items, succeeded in one attempt, reported prompt and completion usage, and retained nonempty `result.json` and `extraction.txt` artifacts with matching page counts. The token-shape audit excludes incomplete entries and keeps image and PDF modes in separate buckets.
-
-| Model     | OCR mode | Page band | Healthy samples | Eligible component | Registry tokens/page | Observed median tokens/page | Median absolute percentage error |
-| --------- | -------- | --------- | --------------- | ------------------ | -------------------- | --------------------------- | -------------------------------- |
-| kimi-k2.6 | image    | 1         | 8               | prompt             | 4,265                | 1,307                       | 226.798%                         |
-| kimi-k2.6 | pdf      | 2-10      | 3               | completion         | 516                  | 341                         | 51.320%                          |
-
-Both eligible components have every observation on the same side of the registry value. These archived samples complete the evidence-collection follow-up without another paid call. At collection time, the registry had one model-wide token shape, while the qualified image and PDF observations called for different components; changing that shared shape required a mode-aware estimation decision under [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md). Kimi and GLM were removed from active support on October 18, 2026, including their bundled calibration profiles; these observations remain historical evidence. The audit tool's former static `--plan` suggested one-, three-, and four-page runs as one calibration set even though those span two page bands, so that obsolete paid-run plan was removed. The audit remains available through `bun run audit:ocr-tokens` with explicit `--run-dir` arguments.
+The token-shape audit excludes incomplete entries and keeps image and PDF modes in separate buckets. The 2026-09-23 archived samples it first summarized belonged to an OCR model whose benchmark evidence was removed on October 23, 2026, so they are no longer recorded here. The audit tool's former static `--plan` suggested one-, three-, and four-page runs as one calibration set even though those span two page bands, so that obsolete paid-run plan was removed. The audit remains available through `bun run audit:ocr-tokens` with explicit `--run-dir` arguments.
 
 ## Test Plan
 

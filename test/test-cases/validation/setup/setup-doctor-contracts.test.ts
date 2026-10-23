@@ -396,16 +396,13 @@ describe('setup doctor contracts', () => {
   test('doctor hosted provider map covers supported env vars', () => {
     const envVars = HOSTED_PROVIDER_ENV_CHECKS.map(check => check.envVar)
     expect(envVars).toEqual(expect.arrayContaining([
-      'FAL_API_KEY',
       'TOGETHER_API_KEY',
-
-
       'SCRAPECREATORS_API_KEY',
-
       'SPIDER_API_KEY',
       'ZYTE_API_KEY',
       'X_BEARER_TOKEN'
     ]))
+    expect(envVars).not.toContain('FAL_API_KEY')
   })
 })
 

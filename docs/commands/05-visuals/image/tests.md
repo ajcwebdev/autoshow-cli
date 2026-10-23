@@ -1,6 +1,6 @@
 # Image Service Tests
 
-Live image generation for the `image` command: fal.ai, Gemini, Grok, and OpenAI. These `bun t` commands may call paid or quota-limited providers.
+Live image generation for the `image` command: Gemini, Grok, and OpenAI. These `bun t` commands may call paid or quota-limited providers.
 
 ## Quick Start
 
@@ -10,7 +10,7 @@ bun t test/test-cases/e2e/service/visuals/image/
 
 ## Provider Env Vars
 
-Live image generation tests need a configured provider key: `FAL_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `XAI_API_KEY`.
+Live image generation tests need a configured provider key: `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `XAI_API_KEY`.
 
 ## Price Preflight
 

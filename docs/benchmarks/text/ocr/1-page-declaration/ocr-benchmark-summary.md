@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `docs/benchmarks/text/ocr/1-page-declaration`
-- Providers with page result files: 30
+- Providers with page result files: 9
 - Pages: 1
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.

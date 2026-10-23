@@ -7,5 +7,4 @@ export type OcrSelectionState = OcrModelOverrideOptions & {
   grokOcrModels?: string[] | undefined
   anthropicOcrModels?: string[] | undefined
   geminiOcrModels?: string[] | undefined
-  deepinfraOcrModels?: string[] | undefined
 }

@@ -7,7 +7,7 @@ import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'openai',
-  llmModel: 'gpt-5.6-sol',
+  llmModel: 'gpt-6.1-sol',
   processingTime: 1234,
   inputTokenCount: 300_000,
   outputTokenCount: 10_000,
@@ -21,45 +21,47 @@ const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Me
 
 describe('price mode contracts', () => {
 
-  test('OpenAI GPT-5.6 Terra and historical Luna share write and OCR tariff accessors', () => {
-      expect(getLlmCost('openai', 'gpt-5.6-terra')).toMatchObject({
+  test('GPT-6.1 Sol write and OCR and historical Grok 4.5 resolve through tariff accessors', () => {
+      expect(getLlmCost('openai', 'gpt-6.1-sol')).toMatchObject({
         inputCostPer1MCents: 200,
-        outputCostPer1MCents: 1200
+        outputCostPer1MCents: 1000
       })
-      expect(getExtractPricing('openai', 'gpt-5.6-terra')).toMatchObject({
+      for (const removed of ['gpt-6-astra', 'gpt-5.6-terra']) {
+        expect(getModelRegistry().llm['openai']?.models[removed]).toBeUndefined()
+        expect(getModelRegistry().extract['openai']?.models[removed]).toBeUndefined()
+        expect(getRetiredModelRate('llm', 'openai', removed)).toBeUndefined()
+      }
+      expect(getExtractPricing('openai', 'gpt-6.1-sol')).toMatchObject({
         inputCostPer1MCents: 200,
-        cachedInputCostPer1MCents: 20,
-        outputCostPer1MCents: 1200
+        cachedInputCostPer1MCents: 10,
+        outputCostPer1MCents: 1000
       })
-      expect(getLlmCost('openai', 'gpt-5.6-luna')).toMatchObject({
-        inputCostPer1MCents: 20,
-        outputCostPer1MCents: 120
+      expect(getLlmCost('grok', 'grok-4.5')).toMatchObject({
+        inputCostPer1MCents: 200,
+        outputCostPer1MCents: 600
       })
-      expect(getExtractPricing('openai', 'gpt-5.6-luna')).toMatchObject({
-        inputCostPer1MCents: 20,
-        cachedInputCostPer1MCents: 2,
-        outputCostPer1MCents: 120
+      expect(getExtractPricing('grok', 'grok-4.7')).toMatchObject({
+        inputCostPer1MCents: 200,
+        cachedInputCostPer1MCents: 50,
+        outputCostPer1MCents: 600
       })
-      expect(getModelRegistry().llm['openai']?.models['gpt-5.6-terra']?.cachedInputCostPer1MCents).toBe(20)
-      expect(getRetiredModelRate('llm', 'openai', 'gpt-5.6-luna')?.cachedInputCostPer1MCents).toBe(2)
-      expect(getModelRegistry().llm['openai']?.models['gpt-5.6-luna']).toBeUndefined()
+      expect(getModelRegistry().extract['grok']?.models['grok-4.5']).toBeUndefined()
+      expect(getModelRegistry().llm['openai']?.models['gpt-6.1-sol']?.cachedInputCostPer1MCents).toBe(10)
+      expect(getRetiredModelRate('llm', 'grok', 'grok-4.5')?.cachedInputCostPer1MCents).toBe(30)
+      expect(getModelRegistry().llm['grok']?.models['grok-4.5']).toBeUndefined()
     })
 
-  test('historical Together LLM receipts retain frozen serverless rates', () => {
-      expect(getLlmCost('together', 'kimi-k3')).toMatchObject({
-        inputCostPer1MCents: 300,
-        outputCostPer1MCents: 1500
-      })
-      expect(getLlmCost('together', 'glm-5.3-flash')).toMatchObject({
-        inputCostPer1MCents: 15,
-        outputCostPer1MCents: 50
+  test('historical LLM receipts retain frozen rates through preflight', () => {
+      expect(getLlmCost('gemini', 'gemini-3.6-flash')).toMatchObject({
+        inputCostPer1MCents: 150,
+        outputCostPer1MCents: 750
       })
 
       const estimated = computeEstimatedCosts({
         applyCostMultipliers: false,
         llmTargets: [{
-          service: 'together',
-          model: 'glm-5.3-flash',
+          service: 'gemini',
+          model: 'gemini-3.6-flash',
           inputTokens: 1_000_000,
           outputTokens: 1_000_000
         }]
@@ -67,20 +69,14 @@ describe('price mode contracts', () => {
 
       expect(estimated.steps[0]).toMatchObject({
         step: 'llm',
-        provider: 'together',
-        model: 'glm-5.3-flash',
-        cost: 65,
-        inputCostPer1MCents: 15,
-        outputCostPer1MCents: 50
+        provider: 'gemini',
+        model: 'gemini-3.6-flash',
+        cost: 900,
+        inputCostPer1MCents: 150,
+        outputCostPer1MCents: 750
       })
-
-      const kimiEntry = getRetiredModelRate('llm', 'together', 'kimi-k3')
-      const glmEntry = getRetiredModelRate('llm', 'together', 'glm-5.3-flash')
-      if (!kimiEntry || !glmEntry) {
-        throw new Error('Missing Together registry entries')
-      }
-      expect(kimiEntry).toMatchObject({ cachedInputCostPer1MCents: 30 })
-      expect(glmEntry).toMatchObject({ cachedInputCostPer1MCents: 3 })
+      expect(getRetiredModelRate('llm', 'gemini', 'gemini-3.6-flash')).toBeDefined()
+      expect(getModelRegistry().llm['gemini']?.models['gemini-3.6-flash']).toBeUndefined()
     })
 
   const TOKEN_PRICED_OCR_CASES = [
@@ -92,9 +88,9 @@ describe('price mode contracts', () => {
       expectedCost: 30.75015
     },
     {
-      name: 'Grok 4.5 OCR estimates and actuals propagate the long-context band',
+      name: 'Grok 4.7 OCR estimates and actuals propagate the long-context band',
       provider: 'grok' as const,
-      model: 'grok-4.5',
+      model: 'grok-4.7',
       extractionMethod: 'pdf+grok-ocr' as const,
       expectedCost: 81.2004
     }
@@ -135,7 +131,7 @@ describe('price mode contracts', () => {
         step: 'extract',
         provider: testCase.provider,
         model: testCase.model,
-        ...(testCase.provider === 'grok' ? { pricingBand: 'standard-over-200k' } : {})
+        ...(testCase.provider === 'grok' ? { pricingBand: 'standard-at-least-200k' } : {})
       }
       expect(estimated.steps[0]).toMatchObject(expected)
       expect(actual.steps[0]).toMatchObject(expected)
@@ -144,50 +140,29 @@ describe('price mode contracts', () => {
       expect(actual.totalCost).toBeCloseTo(estimated.totalCost)
     })
   }
-  test('current and historical Gemini, Claude, and Kimi rates use published flat rates without context bands', () => {
-      expect(getLlmCost('gemini', 'gemini-3.7-flash')).toMatchObject({
+  test('current and historical Gemini and Claude rates use published flat rates without context bands', () => {
+      expect(getLlmCost('gemini', 'gemini-3.6-flash')).toMatchObject({
         inputCostPer1MCents: 150,
         outputCostPer1MCents: 750
       })
-      expect(getLlmCost('anthropic', 'claude-opus-5')).toMatchObject({
-        inputCostPer1MCents: 500,
-        outputCostPer1MCents: 2500
+      expect(getLlmCost('anthropic', 'claude-fable-5')).toMatchObject({
+        inputCostPer1MCents: 1000,
+        outputCostPer1MCents: 5000
       })
-      expect(getLlmCost('kimi', 'kimi-k3')).toMatchObject({
-        inputCostPer1MCents: 300,
-        outputCostPer1MCents: 1500
-      })
-      expect(getExtractPricing('gemini', 'gemini-3.6-flash')).toMatchObject({
+      expect(getExtractPricing('gemini', 'gemini-3.8-flash')).toMatchObject({
         inputCostPer1MCents: 150,
         outputCostPer1MCents: 750
       })
-      expect(getExtractPricing('gemini', 'gemini-3.5-flash')).toMatchObject({
-        inputCostPer1MCents: 150,
-        outputCostPer1MCents: 900
-      })
-      expect(getExtractPricing('gemini', 'gemini-3.5-flash-lite')).toMatchObject({
-        inputCostPer1MCents: 30,
-        outputCostPer1MCents: 250
-      })
-      expect(getExtractPricing('grok', 'grok-4.5')).toMatchObject({
-        inputCostPer1MCents: 200,
-        outputCostPer1MCents: 600
-      })
+      expect(getExtractPricing('gemini', 'gemini-3.8-flash').tokenPricingBands).toBeUndefined()
       expect(getExtractPricing('anthropic', 'claude-fable-5')).toMatchObject({
         inputCostPer1MCents: 1000,
         outputCostPer1MCents: 5000
       })
-      expect(getExtractPricing('kimi', 'kimi-k2.6')).toMatchObject({
-        inputCostPer1MCents: 95,
-        outputCostPer1MCents: 400
-      })
       for (const [service, model] of [
         ['gemini', 'gemini-3.6-flash'],
         ['gemini', 'gemini-3.5-flash'],
-        ['gemini', 'gemini-3.5-flash-lite'],
         ['grok', 'grok-4.5'],
-        ['anthropic', 'claude-fable-5'],
-        ['kimi', 'kimi-k2.6']
+        ['anthropic', 'claude-fable-5']
       ] as const) {
         expect(getModelRegistry().llm[service]?.models[model]).toBeUndefined()
       }
@@ -195,30 +170,24 @@ describe('price mode contracts', () => {
       const geminiActual = computeActualCosts({
         step3: buildStep3CostMetadata({
           llmService: 'gemini',
-          llmModel: 'gemini-3.7-flash',
+          llmModel: 'gemini-3.6-flash',
           inputTokenCount: 1_000_000,
           outputTokenCount: 1_000_000
         })
       })
       expect(geminiActual.steps[0]).toMatchObject({
         provider: 'gemini',
-        model: 'gemini-3.7-flash',
+        model: 'gemini-3.6-flash',
         cost: 900,
         costSource: 'provider_usage'
       })
 
       for (const [service, model] of [
-        ['gemini', 'gemini-3.7-flash'],
-        ['anthropic', 'claude-opus-5'],
-        ['kimi', 'kimi-k3']
+        ['gemini', 'gemini-3.6-flash'],
+        ['anthropic', 'claude-fable-5']
       ] as const) {
         expect(getLlmCost(service, model)?.tokenPricingBands).toBeUndefined()
       }
-
-      const kimiK3 = requireDefined(getRetiredModelRate('llm', 'kimi', 'kimi-k3'), 'Kimi K3 frozen tariff')
-      expect(kimiK3).toMatchObject({
-        cachedInputCostPer1MCents: 30
-      })
 
       const voxtralMini = requireDefined(getModelRegistry().stt['mistral']?.models['voxtral-mini-2602'], 'Voxtral Mini registry entry')
       expect(voxtralMini).toMatchObject({
@@ -228,30 +197,23 @@ describe('price mode contracts', () => {
     })
 
   test('current and historical OCR targets retain published rates for document extraction', () => {
-      expect(getExtractPricing('gemini', 'gemini-3.7-flash')).toMatchObject({
+      expect(getExtractPricing('gemini', 'gemini-3.8-flash')).toMatchObject({
         inputCostPer1MCents: 150,
         outputCostPer1MCents: 750
       })
-      expect(getExtractPricing('gemini', 'gemini-3.6-flash')).toMatchObject({
-        inputCostPer1MCents: 150,
-        outputCostPer1MCents: 750
-      })
-      expect(getExtractPricing('gemini', 'gemini-3.5-flash-lite')).toMatchObject({
-        inputCostPer1MCents: 30,
-        outputCostPer1MCents: 250
-      })
-      expect(getExtractPricing('anthropic', 'claude-sonnet-5')).toMatchObject({
+      expect(getExtractPricing('anthropic', 'claude-sonnet-5-5')).toMatchObject({
         inputCostPer1MCents: 200,
+        cachedInputCostPer1MCents: 10,
         outputCostPer1MCents: 1000
       })
-      expect(getExtractPricing('anthropic', 'claude-opus-5')).toMatchObject({
-        inputCostPer1MCents: 500,
-        outputCostPer1MCents: 2500
+      expect(getExtractPricing('anthropic', 'claude-opus-5-5')).toMatchObject({
+        inputCostPer1MCents: 400,
+        cachedInputCostPer1MCents: 20,
+        outputCostPer1MCents: 2000
       })
-      expect(getExtractPricing('kimi', 'kimi-k3')).toMatchObject({
-        inputCostPer1MCents: 300,
-        cachedInputCostPer1MCents: 30,
-        outputCostPer1MCents: 1500
+      expect(getExtractPricing('anthropic', 'claude-fable-5')).toMatchObject({
+        inputCostPer1MCents: 1000,
+        outputCostPer1MCents: 5000
       })
     })
 })

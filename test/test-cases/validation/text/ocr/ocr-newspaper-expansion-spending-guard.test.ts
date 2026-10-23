@@ -17,7 +17,6 @@ import { runOpenAIOcr } from '~/cli/commands/text/ocr/ocr-services/openai-ocr/ru
 import { runAnthropicOcr } from '~/cli/commands/text/ocr/ocr-services/anthropic-ocr/run-anthropic-ocr'
 import { runGeminiOcr } from '~/cli/commands/text/ocr/ocr-services/gemini-ocr/run-gemini-ocr'
 import { runGrokOcr } from '~/cli/commands/text/ocr/ocr-services/grok-ocr/run-grok-ocr'
-import { runDeepinfraOcr } from '~/cli/commands/text/ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr'
 import { runMistralOcr } from '~/cli/commands/text/ocr/ocr-services/mistral-ocr/run-mistral-ocr'
 import { redDotPng } from '../../../../test-utils/media-fixtures'
 
@@ -109,16 +108,16 @@ describe('newspaper fixed authorization and native transport, with mocked provid
     expect(bodies.every(b => b.service_tier === 'default' && b.max_output_tokens === 16384 && b.reasoning.effort === 'high')).toBe(true)
     await expect(f.run()).rejects.toThrow('maximum request attempts'); expect(f.calls).toHaveLength(3)
   })
-  test('six native adapters transport a decoded largest-new-input PNG and decode valid mocked text artifacts', async () => {
+  test('five native adapters transport a decoded largest-new-input PNG and decode valid mocked text artifacts', async () => {
     const png = await new Bun.Image(redDotPng).resize(1920, 2418).png().bytes()
-    const keys = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'DEEPINFRA_API_KEY', 'MISTRAL_API_KEY']
+    const keys = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'MISTRAL_API_KEY']
     const previous = Object.fromEntries(keys.map(k => [k, process.env[k]])), nativeFetch = globalThis.fetch
     const text = 'Synthetic transport and artifact-decoding fixture; not an OCR accuracy result.', envelope = JSON.stringify({ pages: [{ pageNumber: 1, text }] })
     try {
       for (const key of keys) process.env[key] = 'nonbillable-mock-key'
       for (const [provider, model, run] of [
-        ['openai', 'gpt-6-luna', runOpenAIOcr], ['anthropic', 'claude-haiku-5-5', runAnthropicOcr], ['gemini', 'gemini-3.5-flash-lite', runGeminiOcr],
-        ['grok', 'grok-4.7', runGrokOcr], ['deepinfra', 'google/gemma-4-31B-it', runDeepinfraOcr], ['mistral', 'mistral-ocr-4-1', runMistralOcr]
+        ['openai', 'gpt-6-luna', runOpenAIOcr], ['anthropic', 'claude-haiku-5-5', runAnthropicOcr], ['gemini', 'gemini-3.5-flash', runGeminiOcr],
+        ['grok', 'grok-4.7', runGrokOcr], ['mistral', 'mistral-ocr-4-1', runMistralOcr]
       ] as const) {
         const f = await fixture(provider, model, png), input = join(f.root, f.plan.pages[0]!.input)
         await mkdir(join(input, '..'), { recursive: true }); await Bun.write(input, png)

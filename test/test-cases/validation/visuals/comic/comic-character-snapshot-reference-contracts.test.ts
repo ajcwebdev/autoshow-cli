@@ -34,7 +34,7 @@ describe('comic character handling flat-reference contracts', () => {
     await writeFile(sheet, tinyPng)
     await writeFile(getCharacterSketchManifestPath(charactersRoot), JSON.stringify({ schemaVersion: 1, sketches: [{
       characterKey: key, generationId: 'test-generation', origin: 'generated', sourceImage: 'hero.webp', outlineSheet: 'hero--outline-sheet.png',
-      sourceSha256: await checksumFile(catalog.get(key).sourcePath), sheetSha256: await checksumFile(sheet), model: 'gpt-image-2', createdAt: new Date().toISOString(),
+      sourceSha256: await checksumFile(catalog.get(key).sourcePath), sheetSha256: await checksumFile(sheet), model: 'gpt-image-2.5-flare', createdAt: new Date().toISOString(),
     }] }))
     const runDirectory = join(outputRoot, 'run')
     const manifest = await createCharacterReferenceSnapshot(runDirectory, [key, key], catalog)
@@ -81,8 +81,8 @@ describe('comic character handling flat-reference contracts', () => {
   })
 
   test('registry capabilities never trim required references and trim optional continuity deterministically', () => {
-    expect(() => trimOptionalContinuityReferences('gpt-image-2', Array.from({ length: 17 }, (_, index) => `required-${index}`), [])).toThrow(/requires 17/)
-    const result = trimOptionalContinuityReferences('gpt-image-2', ['sheet', 'source'], Array.from({ length: 20 }, (_, index) => `continuity-${index}`))
+    expect(() => trimOptionalContinuityReferences('gpt-image-2.5-flare', Array.from({ length: 17 }, (_, index) => `required-${index}`), [])).toThrow(/requires 17/)
+    const result = trimOptionalContinuityReferences('gpt-image-2.5-flare', ['sheet', 'source'], Array.from({ length: 20 }, (_, index) => `continuity-${index}`))
     expect(result.references.slice(0, 2)).toEqual(['sheet', 'source'])
     expect(result.references).toHaveLength(16)
     expect(result.trimmed).toHaveLength(6)

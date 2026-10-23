@@ -2,7 +2,6 @@ import { extname } from 'node:path'
 import type { ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
 import { sanitizeModelName } from '~/cli/commands/command-shared/target-runner'
 import { GENERATION_ARTIFACT_BASENAMES, generationArtifactFileName } from '~/cli/commands/command-shared/media-generation/media-generation-scaffold'
-import { getFalImageExtension } from '../image-generation-services/fal-image-service/run-fal-image-gen'
 import { normalizeOpenAIImageExtension } from '../image-generation-services/image-openai/openai-image-targets'
 
 const sanitizeImageModelName = sanitizeModelName
@@ -11,7 +10,7 @@ export const getExpectedImageCount = (
   target: Pick<ImageTarget, 'service' | 'model'>,
   options: ImageGenOptions
 ): number => {
-  if (target.service === 'openai' || target.service === 'grok' || target.service === 'fal') {
+  if (target.service === 'openai' || target.service === 'grok') {
     return Math.max(1, options.imageCount ?? 1)
   }
 
@@ -29,8 +28,6 @@ const getExpectedImageExtension = (
   if (target.service === 'grok') {
     return 'jpg'
   }
-
-  if (target.service === 'fal') return getFalImageExtension(options.imageFormat)
 
   return 'png'
 }

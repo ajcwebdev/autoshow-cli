@@ -130,7 +130,7 @@ describe('comic source coverage contracts', () => {
       await mkdir(join(getPanelPromptsDirectory(sceneSlug), 'panel-01'), { recursive: true })
 
       await expect(generateComicGridPages(sceneSlug, {
-        models: ['gpt-image-2'],
+        models: ['gpt-image-2.5-flare'],
         force: false,
         runId: 'test-run',
         concurrency: 1,

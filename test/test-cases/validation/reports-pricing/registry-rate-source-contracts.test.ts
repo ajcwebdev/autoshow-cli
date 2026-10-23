@@ -19,12 +19,12 @@ describe('registry rate source contracts', () => {
       grokImageModels: ['grok-imagine-image-2.0'], imageSize: '2K', imageQuality: 'medium'
     } as never)[0]?.costPerImageCents).toBe(grokImageRate as number)
 
-    const openaiImage = registry.image['openai']?.models['gpt-image-2']
-    const openaiRate = openaiImage?.costPerImageBySizeQualityCents?.['1024x1536']?.['high']
-    expect(openaiRate).toBeDefined()
+    const geminiImage = registry.image['gemini']?.models['gemini-3.1-flash-lite-image']
+    const geminiRate = geminiImage?.costPerImageBySizeCents?.['1K']
+    expect(geminiRate).toBeDefined()
     expect(estimateImageCosts({
-      openaiImageModels: ['gpt-image-2'], imageSize: '1024x1536', imageQuality: 'high'
-    } as never)[0]?.costPerImageCents).toBe(openaiRate as number)
+      geminiImageModels: ['gemini-3.1-flash-lite-image'], imageSize: '1K'
+    } as never)[0]?.costPerImageCents).toBe(geminiRate as number)
 
     const grokVideo = registry.video['grok']?.models['grok-imagine-video-1.5']
     const base = grokVideo?.baseCostPerSecondCents
@@ -35,11 +35,12 @@ describe('registry rate source contracts', () => {
       grokVideoModels: ['grok-imagine-video-1.5'], videoResolution: '1080p', videoDuration: 5
     } as never)[0]?.costPerSecond).toBe((base as number) * (multiplier as number))
 
-    const falVideo = registry.video['fal']?.models['minimax/h3']
-    expect(falVideo?.baseCostPerSecondCents).toBeDefined()
+    const geminiVideo = registry.video['gemini']?.models['gemini-omni-1.1-flash']
+    const geminiPerSecond = geminiVideo?.costPerSecondByResolutionCents?.['720p']
+    expect(geminiPerSecond).toBeDefined()
     expect(estimateVideoCosts({
-      falVideoModels: ['minimax/h3'], videoDuration: 5
-    } as never)[0]?.costPerSecond).toBe(falVideo?.baseCostPerSecondCents as number)
+      geminiVideoModels: ['gemini-omni-1.1-flash'], videoResolution: '720p', videoDuration: 5
+    } as never)[0]?.costPerSecond).toBe(geminiPerSecond as number)
   })
 
   test('image and video pricing modules carry no hardcoded registry-rate fallbacks', async () => {
@@ -60,9 +61,9 @@ describe('registry rate source contracts', () => {
   })
 
   test('requireRegistryRate fails loudly instead of quoting a stale number', () => {
-    expect(requireRegistryRate(4.5, { category: 'image', service: 'fal', model: 'm', field: 'costPerImageCents' })).toBe(4.5)
-    expect(() => requireRegistryRate(undefined, { category: 'image', service: 'fal', model: 'm', field: 'costPerImageCents' }))
-      .toThrow(/Missing costPerImageCents for fal\/m in the image model registry/)
+    expect(requireRegistryRate(4.5, { category: 'image', service: 'grok', model: 'm', field: 'costPerImageCents' })).toBe(4.5)
+    expect(() => requireRegistryRate(undefined, { category: 'image', service: 'grok', model: 'm', field: 'costPerImageCents' }))
+      .toThrow(/Missing costPerImageCents for grok\/m in the image model registry/)
   })
 
   test('retired model rates validate against the live registry schemas', () => {

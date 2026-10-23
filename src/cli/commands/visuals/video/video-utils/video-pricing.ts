@@ -1,6 +1,5 @@
-import { estimateFalPriorityCost, isFalPriorityVideo } from '../video-services/fal-video-service/fal-priority-video-contract'
-import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GrokVideoModel, ProviderModelSelectionSpec, VideoCostEstimate, VideoMode, VideoProvider } from '~/types'
-import { validateFalVideoModel, validateGeminiVideoModel, validateGrokVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import type { EstimateVideoCostOptions, GeminiVideoModel, GrokVideoModel, ProviderModelSelectionSpec, VideoCostEstimate, VideoMode, VideoProvider } from '~/types'
+import { validateGeminiVideoModel, validateGrokVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { getVideoModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { deriveGenerationPricingProviders, VIDEO_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import {
@@ -80,22 +79,6 @@ const estimateGrokCost = (model: GrokVideoModel, options: EstimateVideoCostOptio
   }
 }
 
-const estimateFalCost = (model: FalVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
-  if (isFalPriorityVideo(model)) return estimateFalPriorityCost(model, options)
-  const meta = getVideoModelMeta('fal', model)
-  const durationSeconds = options.videoDuration ?? 5
-  const costPerSecond = requireRegistryRate(meta?.baseCostPerSecondCents, { category: 'video', service: 'fal', model, field: 'baseCostPerSecondCents' })
-  return {
-    provider: 'fal',
-    model,
-    durationSeconds,
-    billedDurationSeconds: durationSeconds,
-    costPerSecond,
-    totalCost: durationSeconds * costPerSecond,
-    note: 'Estimate using fal.ai published per-second pricing'
-  }
-}
-
 export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCostEstimate[] => {
   const estimates: VideoCostEstimate[] = []
   for (const selection of collectSelections(options, VIDEO_PRICING_PROVIDERS)) {
@@ -105,9 +88,6 @@ export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCost
         break
       case 'grok':
         estimates.push(estimateGrokCost(validateGrokVideoModel(selection.model), options))
-        break
-      case 'fal':
-        estimates.push(estimateFalCost(validateFalVideoModel(selection.model), options))
         break
     }
   }

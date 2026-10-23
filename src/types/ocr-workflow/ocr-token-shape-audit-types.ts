@@ -28,7 +28,7 @@ export type OcrTokenShapeAuditBucket = {
   ocrMode: string
   pageCountBand: string
   effectiveReasoningEffort: HostedOcrTokenReasoningPolicy
-  usageBasis: 'candidate-plus-thoughts' | 'reported-prompt-completion' | 'canonical-prompt-completion'
+  usageBasis: 'candidate-plus-thoughts' | 'canonical-prompt-completion'
   healthySampleCount: number
   profileSampleCount?: number | undefined
   prompt: OcrTokenShapeAuditMetric

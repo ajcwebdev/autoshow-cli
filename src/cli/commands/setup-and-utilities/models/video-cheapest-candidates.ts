@@ -1,12 +1,11 @@
 import type { CheapestVideoSelection } from '~/types'
 import { InternalError } from '~/utils/error-handler'
 import { estimateVideoCost } from '~/cli/commands/visuals/video/video-utils/video-pricing'
-import { falPriorityModes, isFalPriorityVideo } from '~/cli/commands/visuals/video/video-services/fal-video-service/fal-priority-video-contract'
 import { getModelRegistry } from './model-loader'
 
-export type CheapestVideoProvider = 'gemini' | 'grok' | 'fal'
+export type CheapestVideoProvider = 'gemini' | 'grok'
 
-const TEXT_VIDEO_PROVIDERS = ['gemini', 'grok', 'fal'] as const
+const TEXT_VIDEO_PROVIDERS = ['gemini', 'grok'] as const
 const PERFORMANCE_TIE_BREAKERS = ['mini', 'nano', 'micro', 'flash', 'turbo', 'fast', 'small']
 
 const runtimeRank = (model: string): number => {
@@ -25,7 +24,6 @@ const providerVideoEstimateOptions = (
 ): Parameters<typeof estimateVideoCost>[0] => ({
   ...(provider === 'gemini' ? { geminiVideoModels: [model] } : {}),
   ...(provider === 'grok' ? { grokVideoModels: [model] } : {}),
-  ...(provider === 'fal' ? { falVideoModels: [model] } : {}),
   videoMode: 'text'
 })
 
@@ -79,15 +77,11 @@ export const selectCheapestVideoCandidateSelection = (
   return best
 }
 
-const modelSupportsTextVideo = (provider: CheapestVideoProvider, model: string): boolean =>
-  provider !== 'fal' || !isFalPriorityVideo(model) || falPriorityModes(model).includes('text')
-
 const generateDefaultTextCandidates = (): CheapestVideoSelection[] =>
   TEXT_VIDEO_PROVIDERS.flatMap((provider) => {
     const service = getModelRegistry().video[provider]
     if (!service) return []
     return Object.keys(service.models).flatMap((model) => {
-      if (!modelSupportsTextVideo(provider, model)) return []
       const candidate = estimateCandidate(provider, model, providerVideoEstimateOptions(provider, model))
       return candidate ? [candidate] : []
     })

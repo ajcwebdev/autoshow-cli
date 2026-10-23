@@ -16,12 +16,12 @@ export const buildSttMetadata = (overrides: Partial<Step2Metadata> = {}): Step2M
 })
 
 export const buildOcrTimingMetadata = (input: {
-  service: 'deepinfra' | 'gemini'
+  service: 'grok' | 'gemini'
   model: string
   pageCount: number
   preparation: NonNullable<ExtractionMetadata['pdfChunkPreparation']>
 }): ExtractionMetadata => ({
-  extractionMethod: input.service === 'deepinfra' ? 'pdf+deepinfra-ocr' : 'pdf+gemini-ocr',
+  extractionMethod: input.service === 'grok' ? 'pdf+grok-ocr' : 'pdf+gemini-ocr',
   totalPages: input.pageCount,
   ocrPages: input.pageCount,
   textPages: 0,
@@ -76,15 +76,14 @@ export const missingHostedOcrProfilePath = (): string =>
   join(tmpdir(), `autoshow-missing-ocr-profile-${process.pid}-${Date.now()}-${Math.random()}.json`)
 
 export const HOSTED_OCR_PROVIDER_CASES = [
-  { provider: 'mistral', flagName: 'mistral-ocr', modelsKey: 'mistralOcrModels', model: 'mistral-ocr-4-0' },
+  { provider: 'mistral', flagName: 'mistral-ocr', modelsKey: 'mistralOcrModels', model: 'mistral-ocr-4-1' },
   { provider: 'openai', flagName: 'openai-ocr', modelsKey: 'openaiOcrModels', model: 'gpt-6-luna' },
-  { provider: 'grok', flagName: 'grok-ocr', modelsKey: 'grokOcrModels', model: 'grok-4.5' },
+  { provider: 'grok', flagName: 'grok-ocr', modelsKey: 'grokOcrModels', model: 'grok-4.7' },
   { provider: 'anthropic', flagName: 'anthropic-ocr', modelsKey: 'anthropicOcrModels', model: 'claude-sonnet-5-5' },
-  { provider: 'gemini', flagName: 'gemini-ocr', modelsKey: 'geminiOcrModels', model: 'gemini-3.5-flash-lite' },
-  { provider: 'deepinfra', flagName: 'deepinfra-ocr', modelsKey: 'deepinfraOcrModels', model: 'google/gemma-4-31B-it' }
+  { provider: 'gemini', flagName: 'gemini-ocr', modelsKey: 'geminiOcrModels', model: 'gemini-3.8-flash' }
 ] as const
 
-export const DEEPINFRA_OCR_PROVIDER_CASE = HOSTED_OCR_PROVIDER_CASES[HOSTED_OCR_PROVIDER_CASES.length - 1]!
+export const GROK_OCR_PROVIDER_CASE = HOSTED_OCR_PROVIDER_CASES[2]!
 
 export const expectedOcrProcessingMs = (
   provider: string,

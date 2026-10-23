@@ -1,6 +1,6 @@
 import type { ExtractStepEstimate, HostedOcrTokenReasoningPolicy, TokenPricedOcrProvider } from '~/types'
 
-export type HostedOcrPricingService = Exclude<TokenPricedOcrProvider, 'glm' | 'kimi'> | 'mistral'
+export type HostedOcrPricingService = Exclude<TokenPricedOcrProvider, 'glm' | 'kimi' | 'deepinfra'> | 'mistral'
 
 export type LocalOcrService = 'tesseract'
 

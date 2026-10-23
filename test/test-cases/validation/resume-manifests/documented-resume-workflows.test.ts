@@ -93,10 +93,13 @@ test('documented local item, batch and PDF commands produce genuine manifests an
   await w.success(['resume', batch])
   expect(await Bun.file(join(article, 'manifest.json')).text()).toBe(originalArticle)
   expect(await Bun.file(join(document, 'extraction.txt')).text()).toBe(originalDocument)
-  for (const selection of [['--provider', 'deepinfra=google/gemma-4-31B-it'], ['--all-providers']]) {
+  for (const selection of [['--provider', 'openai=gpt-6-luna'], ['--all-providers']]) {
     const result = await w.success(['resume', document, ...selection, '--price'])
-    expect(result.data.estimate.steps.some((step: { provider: string }) => step.provider === 'deepinfra')).toBe(true)
+    expect(result.data.estimate.steps.some((step: { provider: string }) => step.provider === 'openai')).toBe(true)
+    expect(result.data.estimate.steps.some((step: { provider: string }) => step.provider === 'deepinfra')).toBe(false)
   }
+  const retiredOcr = await w.cli(['resume', document, '--provider', 'deepinfra', '--price'])
+  expect(retiredOcr.code).not.toBe(0)
   expect(await w.calls()).toEqual([])
   const incompatible = await w.cli(['resume', article, '--provider', 'deepinfra', '--price'])
   expect(incompatible.code).not.toBe(0)

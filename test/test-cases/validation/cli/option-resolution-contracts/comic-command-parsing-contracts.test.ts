@@ -101,7 +101,7 @@ describe('option resolution contracts', () => {
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--no-qa'])).toThrow('--qa-only cannot be combined with --no-qa')
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--max-repairs', '1'])).toThrow('--qa-only requires --max-repairs 0')
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--force'])).toThrow('--qa-only cannot be combined with --force')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--provider', 'openai=gpt-image-2'])).toThrow('--qa-only does not accept image-generation options')
+    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--provider', 'openai=gpt-image-2.5-flare'])).toThrow('--qa-only does not accept image-generation options')
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--target', 'both'])).toThrow('--qa-only requires --target images')
   })
   test('comic generate-images continuity audit flags layer inside QA-only mode', () => {
@@ -124,12 +124,12 @@ describe('option resolution contracts', () => {
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--labels', 'qa/continuity-labels.json'])).toThrow('--labels requires --continuity-qa')
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--trusted-anchor-panel', '2'])).toThrow('--trusted-anchor-panel requires --continuity-qa')
     expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--trusted-anchor-panel', '0'])).toThrow('Invalid trusted anchor panel "0"')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--provider', 'openai=gpt-image-2'])).toThrow('--qa-only does not accept image-generation options')
+    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--provider', 'openai=gpt-image-2.5-flare'])).toThrow('--qa-only does not accept image-generation options')
   })
   test('comic generate-images revision evaluation requires the exact bounded mode contract', () => {
     const opts = parseGenerateImagesArgs(['script.md', '--revision-plan', 'output/plan.json', '--comparison-passes', '2', '--promote', 'clear-winners', '--max-repairs', '0'])
     expect(opts.revisionPlan).toBe('output/plan.json')
-    expect(opts.imageModels).toEqual(['gpt-image-2'])
+    expect(opts.imageModels).toEqual(['gpt-image-2.5-flare'])
     expect(opts.qaModel).toBe('gpt-6.1-sol')
     expect(opts.comparisonPasses).toBe(2)
     expect(opts.promote).toBe('clear-winners')
@@ -143,7 +143,7 @@ describe('option resolution contracts', () => {
   test('comic generate-images args parse page image options', () => {
       const opts = parseGenerateImagesArgs([
         'input/scripts/02-script/01-co-work-smarter.md',
-        '--provider', 'openai=gpt-image-2', '--provider', 'gemini=gemini-3.1-flash-lite-image',
+        '--provider', 'openai=gpt-image-2.5-flare', '--provider', 'gemini=gemini-3.1-flash-lite-image',
         '--panels', '1-4,9',
         '--panels-per-image', String(DEFAULT_SKETCH_PANELS_PER_IMAGE),
         '--variation', 'animation-polish,cinematic-depth',
@@ -153,7 +153,7 @@ describe('option resolution contracts', () => {
       ])
 
       expect(opts.scriptPath).toBe('input/scripts/02-script/01-co-work-smarter.md')
-      expect(opts.imageModels).toEqual(['gpt-image-2', 'gemini-3.1-flash-lite-image'])
+      expect(opts.imageModels).toEqual(['gpt-image-2.5-flare', 'gemini-3.1-flash-lite-image'])
       expect(opts.panels).toEqual([1, 2, 3, 4, 9])
       expect(opts.panelsPerImage).toBe(DEFAULT_SKETCH_PANELS_PER_IMAGE)
       expect(opts.variations).toEqual(['animation-polish', 'cinematic-depth'])
@@ -238,7 +238,7 @@ describe('option resolution contracts', () => {
         '--target', 'images',
         '--panels', '1-6',
         '--panels-per-image', String(DEFAULT_SKETCH_PANELS_PER_IMAGE),
-        '--provider', 'openai=gpt-image-2',
+        '--provider', 'openai=gpt-image-2.5-flare',
         '--size', '1536x1024',
         '--quality', 'high',
         '--force'
@@ -248,7 +248,7 @@ describe('option resolution contracts', () => {
       expect(opts.target).toBe('images')
       expect(opts.panels).toEqual([1, 2, 3, 4, 5, 6])
       expect(opts.panelsPerImage).toBe(DEFAULT_SKETCH_PANELS_PER_IMAGE)
-      expect(opts.imageModels).toEqual(['gpt-image-2'])
+      expect(opts.imageModels).toEqual(['gpt-image-2.5-flare'])
       expect(opts.size).toBe('1536x1024')
       expect(opts.quality).toBe('high')
       expect(opts.force).toBe(true)

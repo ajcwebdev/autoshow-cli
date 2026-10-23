@@ -13,10 +13,12 @@ const pages = [{ pageNumber: 1, text: 'Synthetic document' }] as const
 
 describe('Flagship OCR additions', () => {
   test('new and existing OCR selectors resolve with the current cheapest bare default', () => {
-    for (const model of ['gpt-6-astra', 'gpt-6.1-sol']) {
+    for (const model of ['gpt-6.1-sol', 'gpt-6-luna']) {
       expect(buildOptsFromFlags({ 'openai-ocr': model }).openaiOcrModels).toEqual([model])
     }
-    for (const model of ['claude-fable-5-1', 'claude-fable-5', 'claude-sonnet-5-5']) {
+    expect(() => buildOptsFromFlags({ 'openai-ocr': 'gpt-6-astra' })).toThrow('Allowed values: gpt-6.1-sol, gpt-6-luna')
+    expect(() => buildOptsFromFlags({ 'anthropic-ocr': 'claude-fable-5-1' })).toThrow('Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5')
+    for (const model of ['claude-opus-5-5', 'claude-fable-5', 'claude-sonnet-5-5']) {
       expect(buildOptsFromFlags({ 'anthropic-ocr': model }).anthropicOcrModels).toEqual([model])
     }
     expect(buildOptsFromFlags({ 'anthropic-ocr': true }).anthropicOcrModels).toEqual(['claude-haiku-5-5'])
@@ -24,7 +26,7 @@ describe('Flagship OCR additions', () => {
 
   for (const format of ['png', 'pdf'] as const) {
     for (const effort of ['default', 'low', 'medium', 'high', 'xhigh', 'max'] as const) {
-      test(`Fable 5.1 ${format} preserves Messages construction and ${effort} reasoning`, async () => {
+      test(`Opus 5.5 ${format} preserves Messages construction and ${effort} reasoning`, async () => {
         process.env['ANTHROPIC_API_KEY'] = 'test-key'
         const calls = installMockFetch((call) => {
           if (call.method === 'DELETE') return Response.json({ id: 'file_synthetic', type: 'file_deleted' })
@@ -34,11 +36,11 @@ describe('Flagship OCR additions', () => {
         await lifecycle.withDir(async (dir) => {
           const path = join(dir, `synthetic.${format}`)
           await Bun.write(path, new Uint8Array([1, 2, 3]))
-          const result = await runAnthropicOcr(path, { slug: 'synthetic', format, pageCount: 1, fileSize: 3 }, 'claude-fable-5-1', { reasoningEffort: effort })
+          const result = await runAnthropicOcr(path, { slug: 'synthetic', format, pageCount: 1, fileSize: 3 }, 'claude-opus-5-5', { reasoningEffort: effort })
           expect(result.pages).toEqual([{ ...pages[0], method: 'ocr' }])
           expect(result).toMatchObject({ promptTokens: 100, completionTokens: 20, effectiveReasoningEffort: effort })
           const request = calls.find((call) => call.url.endsWith('/messages'))
-          expect(request?.bodyJson?.['model']).toBe('claude-fable-5-1')
+          expect(request?.bodyJson?.['model']).toBe('claude-opus-5-5')
           expect(request?.bodyJson).not.toHaveProperty('thinking')
           expect(request?.bodyJson).not.toHaveProperty('tool_choice')
           expect(request?.bodyJson).not.toHaveProperty('cache_control')
@@ -57,13 +59,13 @@ describe('Flagship OCR additions', () => {
       })
     }
     for (const effort of ['default', 'low', 'medium', 'high', 'xhigh', 'max'] as const) {
-      test(`Astra ${format} preserves single-page text and ${effort} reasoning`, async () => {
+      test(`GPT-6.1 Sol ${format} preserves single-page text and ${effort} reasoning`, async () => {
         process.env['OPENAI_API_KEY'] = 'test-key'
         const calls = installMockFetch(() => Response.json({ output_text: 'Synthetic document', usage: { input_tokens: 100, output_tokens: 20, input_tokens_details: { cached_tokens: 80 } } }))
         await lifecycle.withDir(async (dir) => {
           const path = join(dir, `synthetic.${format}`)
           await Bun.write(path, new Uint8Array([1, 2, 3]))
-          const result = await runOpenAIOcr(path, { slug: 'synthetic', format, pageCount: 1, fileSize: 3 }, 'gpt-6-astra', { reasoningEffort: effort })
+          const result = await runOpenAIOcr(path, { slug: 'synthetic', format, pageCount: 1, fileSize: 3 }, 'gpt-6.1-sol', { reasoningEffort: effort })
           expect(result).toMatchObject({ pages: [{ ...pages[0], method: 'ocr' }], promptTokens: 100, completionTokens: 20 })
           const body = calls[0]?.bodyJson
           expect(body?.['text']).toEqual({ verbosity: 'low' })
@@ -81,31 +83,31 @@ describe('Flagship OCR additions', () => {
     const calls = installMockFetch(() => { throw new Error('Unexpected HTTP') })
     const metadata = { slug: 'synthetic', format: 'png' as const, pageCount: 1, fileSize: 3 }
     for (const reasoningEffort of ['disabled', 'minimal'] as const) {
-      await expect(runOpenAIOcr('/missing', metadata, 'gpt-6-astra', { reasoningEffort })).rejects.toThrow('does not support')
-      await expect(runAnthropicOcr('/missing', metadata, 'claude-fable-5-1', { reasoningEffort })).rejects.toThrow('does not support')
+      await expect(runOpenAIOcr('/missing', metadata, 'gpt-6.1-sol', { reasoningEffort })).rejects.toThrow('does not support')
+      await expect(runAnthropicOcr('/missing', metadata, 'claude-opus-5-5', { reasoningEffort })).rejects.toThrow('does not support')
     }
     expect(calls).toHaveLength(0)
   })
 
-  test('Astra prices the whole request at the context boundary with separate cache metadata', () => {
-    const pricing = getExtractPricing('openai', 'gpt-6-astra')
-    expect(pricing.cachedInputCostPer1MCents).toBe(100)
-    expect(getModelRegistry().extract['openai']?.models['gpt-6-astra']?.tokenPricingBands).toMatchObject([
-      { maxInputTokens: 272000, cachedInputCostPer1MCents: 100 },
-      { minInputTokens: 272001, cachedInputCostPer1MCents: 200 }
+  test('GPT-6.1 Sol prices the whole request at the context boundary with separate cache metadata', () => {
+    const pricing = getExtractPricing('openai', 'gpt-6.1-sol')
+    expect(pricing.cachedInputCostPer1MCents).toBe(10)
+    expect(getModelRegistry().extract['openai']?.models['gpt-6.1-sol']?.tokenPricingBands).toMatchObject([
+      { maxInputTokens: 272000, cachedInputCostPer1MCents: 10 },
+      { minInputTokens: 272001, cachedInputCostPer1MCents: 20 }
     ])
     for (const input of [0, 271999, 272000, 272001, 1050000]) {
       const cost = computeOcrTokenCost(pricing, 0, 0, input, 1000)
       const long = input > 272000
-      expect(cost.inputCostPer1MCents).toBe(long ? 2000 : 1000)
-      expect(cost.outputCostPer1MCents).toBe(long ? 7500 : 5000)
-      expect(cost.totalCost).toBeCloseTo(input / 1000000 * (long ? 2000 : 1000) + (long ? 7.5 : 5), 6)
+      expect(cost.inputCostPer1MCents).toBe(long ? 400 : 200)
+      expect(cost.outputCostPer1MCents).toBe(long ? 1500 : 1000)
+      expect(cost.totalCost).toBeCloseTo(input / 1000000 * (long ? 400 : 200) + (long ? 1.5 : 1), 6)
     }
   })
 
-  test('Fable cache-read metadata never discounts uncached OCR estimates', () => {
-    const pricing = getExtractPricing('anthropic', 'claude-fable-5-1')
-    expect(pricing.cachedInputCostPer1MCents).toBe(25)
-    expect(computeOcrTokenCost(pricing, 0, 0, 1000000, 1000000).totalCost).toBe(6000)
+  test('Opus 5.5 cache-read metadata never discounts uncached OCR estimates', () => {
+    const pricing = getExtractPricing('anthropic', 'claude-opus-5-5')
+    expect(pricing.cachedInputCostPer1MCents).toBe(20)
+    expect(computeOcrTokenCost(pricing, 0, 0, 1000000, 1000000).totalCost).toBe(2400)
   })
 })

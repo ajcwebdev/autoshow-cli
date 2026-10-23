@@ -41,17 +41,17 @@ No local providers were found.
 
 ### Price
 
-| Rank | Provider                                 | Evidence |
-| ---: | ---------------------------------------- | -------- |
-| 1    | <code>grok/grok-imagine-video-1.5</code> | $0.6400  |
-| 2    | <code>fal/minimax/h3</code>              | $1.3000  |
+| Rank | Provider                                  | Evidence |
+| ---: | ----------------------------------------- | -------- |
+| 1    | <code>grok/grok-imagine-video-1.5</code>  | $0.6400  |
+| 2    | <code>gemini/gemini-omni-1.1-flash</code> | $1.0000  |
 
 ### Speed
 
-| Rank | Provider                                 | Evidence |
-| ---: | ---------------------------------------- | -------- |
-| 1    | <code>grok/grok-imagine-video-1.5</code> | 32.37s   |
-| 2    | <code>fal/minimax/h3</code>              | 183.58s  |
+| Rank | Provider                                  | Evidence |
+| ---: | ----------------------------------------- | -------- |
+| 1    | <code>grok/grok-imagine-video-1.5</code>  | 32.37s   |
+| 2    | <code>gemini/gemini-omni-1.1-flash</code> | 41.03s   |
 
 ### Automated Quality
 
@@ -63,10 +63,10 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider                                 | Quality Evidence | Processing Time | Monetary Cost |
-| ---------------------------------------- | ---------------- | --------------: | ------------: |
-| <code>fal/minimax/h3</code>              | n/a              | 183.58s         | $1.3000       |
-| <code>grok/grok-imagine-video-1.5</code> | n/a              | 32.37s          | $0.6400       |
+| Provider                                  | Quality Evidence | Processing Time | Monetary Cost |
+| ----------------------------------------- | ---------------- | --------------: | ------------: |
+| <code>gemini/gemini-omni-1.1-flash</code> | n/a              | 41.03s          | $1.0000       |
+| <code>grok/grok-imagine-video-1.5</code>  | n/a              | 32.37s          | $0.6400       |
 
 ## Notes
 

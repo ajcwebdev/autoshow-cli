@@ -33,7 +33,7 @@ export const createOcrCostDiagnosticsMetadata = (): WriteManifestMetadata => ({
     languages: 'eng',
     tokenEstimate: 5000,
     ocrService: 'openai',
-    ocrModel: 'gpt-5.6-luna',
+    ocrModel: 'gpt-6-luna',
     promptTokens: 6000,
     completionTokens: 1500
   } satisfies OcrStepFixture,
@@ -42,7 +42,7 @@ export const createOcrCostDiagnosticsMetadata = (): WriteManifestMetadata => ({
     [{
       step: 'extract',
       provider: 'openai',
-      model: 'gpt-5.6-luna',
+      model: 'gpt-6-luna',
       cost: 0.58044,
       pageCount: 2,
       promptTokens: 5972,
@@ -55,7 +55,7 @@ export const createOcrCostDiagnosticsMetadata = (): WriteManifestMetadata => ({
     [{
       step: 'extract',
       provider: 'openai',
-      model: 'gpt-5.6-luna',
+      model: 'gpt-6-luna',
       cost: 0.3075,
       inputMetric: 'tokens',
       inputValue: 7500,
@@ -65,7 +65,7 @@ export const createOcrCostDiagnosticsMetadata = (): WriteManifestMetadata => ({
     [
       createOcrDiagnostic({
         provider: 'openai',
-        model: 'gpt-5.6-luna',
+        model: 'gpt-6-luna',
         pages: 2,
         predictedCostInputs: {
           costCents: 0.58044,
@@ -144,12 +144,12 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
     languages: 'eng',
     tokenEstimate: 200000,
     ocrService: 'gemini',
-    ocrModel: 'gemini-3.5-flash',
+    ocrModel: 'gemini-3.8-flash',
     promptTokens: 800000,
     completionTokens: 100000
   } satisfies OcrStepFixture],
   partialStep2: [{
-    extractionMethod: 'deepinfra-ocr',
+    extractionMethod: 'grok-ocr',
     totalPages: 228,
     ocrPages: 227,
     textPages: 0,
@@ -157,17 +157,17 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
     dpi: 300,
     languages: 'eng',
     tokenEstimate: 190000,
-    ocrService: 'deepinfra',
-    ocrModel: 'deepinfra-latest',
+    ocrService: 'grok',
+    ocrModel: 'grok-4.7',
     promptTokens: 971207,
     completionTokens: 107681,
     providerCostSource: 'partial_provider_usage',
     status: 'failed_partial',
-    artifactDir: 'providers/deepinfra-deepinfra-latest',
+    artifactDir: 'providers/grok-grok-4.7',
     completedPages: 227,
     failedPages: 1,
     failure: {
-      message: 'DeepInfra OCR page 9 timed out after 10m',
+      message: 'Grok OCR page 9 timed out after 10m',
       category: 'timeout',
       failureKind: 'timeout',
       retryable: true
@@ -178,15 +178,15 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
     [{
       step: 'extract',
       provider: 'gemini',
-      model: 'gemini-3.5-flash',
+      model: 'gemini-3.8-flash',
       cost: 0.25,
       pageCount: 228,
       promptTokens: 800000,
       completionTokens: 100000
     }, {
       step: 'extract',
-      provider: 'deepinfra',
-      model: 'deepinfra-latest',
+      provider: 'grok',
+      model: 'grok-4.7',
       cost: 0.75,
       pageCount: 228,
       promptTokens: 1000000,
@@ -196,7 +196,7 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
     [{
       step: 'extract',
       provider: 'gemini',
-      model: 'gemini-3.5-flash',
+      model: 'gemini-3.8-flash',
       cost: 0.2,
       costSource: 'provider_usage',
       inputMetric: 'tokens',
@@ -205,8 +205,8 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
       completionTokens: 100000
     }, {
       step: 'extract',
-      provider: 'deepinfra',
-      model: 'deepinfra-latest',
+      provider: 'grok',
+      model: 'grok-4.7',
       cost: 0.7,
       costSource: 'partial_provider_usage',
       inputMetric: 'tokens',
@@ -217,7 +217,7 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
     [
       createOcrDiagnostic({
         provider: 'gemini',
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
         pages: 228,
         predictedCostInputs: {
           costCents: 0.25,
@@ -237,8 +237,8 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
         delta: { costCents: -0.05 }
       }),
       createOcrDiagnostic({
-        provider: 'deepinfra',
-        model: 'deepinfra-latest',
+        provider: 'grok',
+        model: 'grok-4.7',
         status: 'failed_partial',
         pages: 228,
         completedPages: 227,
@@ -271,14 +271,14 @@ export const createPartialOcrDiagnosticsMetadata = (): WriteManifestMetadata => 
       steps: [{
         step: 'extract',
         provider: 'gemini',
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
         processingTimeMs: 180000,
         inputMetric: 'pages',
         inputValue: 228
       }, {
         step: 'extract',
-        provider: 'deepinfra',
-        model: 'deepinfra-latest',
+        provider: 'grok',
+        model: 'grok-4.7',
         processingTimeMs: 600000,
         inputMetric: 'pages',
         inputValue: 227

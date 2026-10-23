@@ -16,7 +16,7 @@ describe('PDF fallback failure diagnostics contracts', () => {
     expect(shouldFallbackToOcrPdfChunks(new Error('OpenAI OCR returned malformed JSON.'))).toBe(true)
     expect(shouldFallbackToOcrPdfChunks(new Error('OPENAI_API_KEY environment variable is required for OpenAI OCR'))).toBe(false)
     expect(shouldFallbackToOcrPdfChunks(new Error('Output blocked by content filtering policy'))).toBe(false)
-    expect(shouldFallbackToOcrPdfChunks(ProviderError('DeepInfra OCR request failed (429): insufficient balance', { status: 429 }))).toBe(false)
+    expect(shouldFallbackToOcrPdfChunks(ProviderError('Mistral OCR request failed (429): insufficient balance', { status: 429 }))).toBe(false)
   })
 
   test('PDF chunk render failures are concise and persist raw stderr diagnostics', async () => {
@@ -56,7 +56,7 @@ describe('PDF fallback failure diagnostics contracts', () => {
       const traceparent = '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
       const cloudTrace = '105445aa7843bc8bf206b12000100000/123456789;o=1'
       const cfRay = '8f7b3c2d1a0e9f12-DFW'
-      const error = ProviderError('DeepInfra OCR request failed (429): insufficient account balance for account acct_live_secret1234', { status: 429, headers: new Headers({
+      const error = ProviderError('Mistral OCR request failed (429): insufficient account balance for account acct_live_secret1234', { status: 429, headers: new Headers({
           'x-request-id': 'req_headersecret123456',
           traceparent,
           traceresponse: traceparent,

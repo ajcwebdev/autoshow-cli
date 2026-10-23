@@ -67,12 +67,12 @@ describe('resume target-aware provider selectors', () => {
 
     const image = normalizeResumeSelectorFlagsForTarget(
       target('image'),
-      { provider: ['openai=gpt-image-2'] },
+      { provider: ['openai=gpt-image-2.5-flare'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'openai=gpt-image-2']
+      ['resume', 'out', '--provider', 'openai=gpt-image-2.5-flare']
     )
-    expect(image.flags['openai-image']).toBe('gpt-image-2')
-    expect(buildOpts(image.flags, image.explicitFlags, image.flagOccurrences).openaiImageModels).toEqual(['gpt-image-2'])
+    expect(image.flags['openai-image']).toBe('gpt-image-2.5-flare')
+    expect(buildOpts(image.flags, image.explicitFlags, image.flagOccurrences).openaiImageModels).toEqual(['gpt-image-2.5-flare'])
 
     const grokVideo = normalizeResumeSelectorFlagsForTarget(
       target('video'),
@@ -113,18 +113,24 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--provider', 'deepgram=nova-3']
     )
     expect(stt.flags['deepgram-stt']).toBe('nova-3')
-    expect(stt.flags['deepinfra-ocr']).toBeUndefined()
+    expect(stt.flags['openai-ocr']).toBeUndefined()
     expect(buildOpts(stt.flags, stt.explicitFlags, stt.flagOccurrences).deepgramSttModels).toEqual(['nova-3'])
 
     const ocr = normalizeResumeSelectorFlagsForTarget(
       target('extract', '/tmp/autoshow-resume-document', 'document'),
-      { provider: ['deepinfra=google/gemma-4-31B-it'] },
+      { provider: ['openai=gpt-6-luna'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'deepinfra=google/gemma-4-31B-it']
+      ['resume', 'out', '--provider', 'openai=gpt-6-luna']
     )
-    expect(ocr.flags['deepinfra-ocr']).toBe('google/gemma-4-31B-it')
+    expect(ocr.flags['openai-ocr']).toBe('gpt-6-luna')
     expect(ocr.flags['deepgram-stt']).toBeUndefined()
-    expect(buildOpts(ocr.flags, ocr.explicitFlags, ocr.flagOccurrences).deepinfraOcrModels).toEqual(['google/gemma-4-31B-it'])
+    expect(buildOpts(ocr.flags, ocr.explicitFlags, ocr.flagOccurrences).openaiOcrModels).toEqual(['gpt-6-luna'])
+    expect(() => normalizeResumeSelectorFlagsForTarget(
+      target('extract', '/tmp/autoshow-resume-document', 'document'),
+      { provider: ['deepinfra'] },
+      new Set(['provider']),
+      ['resume', 'out', '--provider', 'deepinfra']
+    )).toThrow('--provider deepinfra does not apply to document/image extract inputs.')
 
     const article = normalizeResumeSelectorFlagsForTarget(
       target('extract', '/tmp/autoshow-resume-article', 'article'),
@@ -189,9 +195,9 @@ describe('resume target-aware provider selectors', () => {
   test('rejects providers that do not apply to the resolved target', () => {
     expect(() => normalizeResumeSelectorFlagsForTarget(
       target('video'),
-      { provider: ['openai=gpt-image-2'] },
+      { provider: ['openai=gpt-image-2.5-flare'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'openai=gpt-image-2']
+      ['resume', 'out', '--provider', 'openai=gpt-image-2.5-flare']
     )).toThrow('Unknown provider "openai" for --provider')
   })
 })

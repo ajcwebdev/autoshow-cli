@@ -179,8 +179,8 @@ describe('historical model rate contracts', () => {
   })
 
   test('retired image selectors retain exact rates and refresh-report replacements', () => {
-    expect(getImageCost('fal', 'microsoft/mai-image-2.5')).toBe(0.21)
-    expect(getImageCost('fal', 'microsoft/mai-image-2.5-pro')).toBe(150)
+    expect(getImageCost('bfl', 'flux-2-pro')).toBe(3)
+    expect(getRetiredModelReplacement('image', 'bfl', 'flux-2-pro')).toBe('gpt-image-2.5-flare')
     expect(getImageCost('recraft', 'recraftv4_1')).toBe(4)
     expect(getImageCost('recraft', 'recraftv4_1_utility')).toBe(4)
     expect(getImageCost('recraft', 'recraftv4_1_pro')).toBe(25)
@@ -209,9 +209,11 @@ describe('historical model rate contracts', () => {
     expect(getRetiredModelReplacement('stt', 'rev', 'machine')).toBeUndefined()
   })
 
-  test('retired fal OCR selectors retain exact per-1k-page rates', () => {
-    expect(getExtractPricing('fal', 'fal-ai/got-ocr/v2')).toMatchObject({ costPer1kPagesCents: 5000 })
-    expect(getExtractPricing('fal', 'fal-ai/florence-2-large/ocr')).toMatchObject({ costPer1kPagesCents: 755 })
-    expect(getRetiredModelReplacement('extract', 'fal', 'fal-ai/got-ocr/v2')).toBeUndefined()
+  test('fal leaves no retired rates or replacements in any category', () => {
+    expect(Object.values(RETIRED_MODEL_RATES).flatMap(category => Object.keys(category)).filter(key => key.startsWith('fal:'))).toEqual([])
+    expect(getExtractPricing('fal', 'fal-ai/got-ocr/v2')).toEqual({})
+    expect(getVideoModelMeta('fal', 'fal-ai/pixverse/c1')).toBeUndefined()
+    expect(getRetiredModelReplacement('image', 'fal', 'microsoft/mai-image-2.5')).toBeUndefined()
+    expect(getRetiredModelReplacement('video', 'fal', 'fal-ai/pixverse/c1')).toBeUndefined()
   })
 })

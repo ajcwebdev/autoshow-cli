@@ -182,7 +182,7 @@ describe('adaptive provider group parser', () => {
       'src/cli/create-cli.ts',
       'extract',
       'input/examples/document/1-document.pdf',
-      '--provider=mistral=mistral-ocr-4-0',
+      '--provider=mistral=mistral-ocr-4-1',
       '--provider',
       'tesseract'
     ])).toEqual(['extract/mistral'])

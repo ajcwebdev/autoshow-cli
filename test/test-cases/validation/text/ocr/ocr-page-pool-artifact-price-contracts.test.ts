@@ -16,8 +16,8 @@ import { runPool } from '../../../../test-utils/ocr-page-pool-fixture'
 describe('pooled OCR page scheduler contracts', () => {
 
   test('attempt artifact paths are isolated and path-contained', () => {
-    const path = getOcrPoolAttemptRelativeDir(7, { service: 'deepinfra', model: 'google/gemma-4-31B-it' }, 3)
-    expect(path).toBe('providers/deepinfra-google-gemma-4-31B-it/attempts/page-000007/attempt-003')
+    const path = getOcrPoolAttemptRelativeDir(7, { service: 'openai', model: 'fixture/model' }, 3)
+    expect(path).toBe('providers/openai-fixture-model/attempts/page-000007/attempt-003')
     expect(path.startsWith('/')).toBe(false)
     expect(path.split('/')).not.toContain('..')
   })

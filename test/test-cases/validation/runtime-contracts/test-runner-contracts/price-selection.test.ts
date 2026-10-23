@@ -91,7 +91,7 @@ describe('test-runner contracts', () => {
 
   test('price mode uses e2e path selections', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/text/ocr/mistral-ocr-4-0.test.ts',
+        'test/test-cases/e2e/service/text/ocr/mistral-ocr-4-1.test.ts',
         'test/test-cases/e2e/service/text/url/url-spider.test.ts',
         'test/test-cases/e2e/service/text/url/url-zyte.test.ts'
       ]
@@ -100,7 +100,7 @@ describe('test-runner contracts', () => {
       const keys = selected.commands.map((command) => command.key)
 
       expect(selected.suiteName).toBe('Selected paths: service/text/ocr')
-      expect(keys).toContain('extract-mistral-mistral-ocr-4-0')
+      expect(keys).toContain('extract-mistral-mistral-ocr-4-1')
       expect(keys).not.toContain('extract-spider-url')
 
       const urlSelection = resolvePriceSelection(allFiles, ['test/test-cases/e2e/service/text/url/'])
@@ -144,18 +144,18 @@ describe('test-runner contracts', () => {
 
   test('specific e2e files resolve only their mapped price commands', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/text/ocr/mistral-ocr-4-0.test.ts',
+        'test/test-cases/e2e/service/text/ocr/mistral-ocr-4-1.test.ts',
         'test/test-cases/e2e/service/text/url/url-spider.test.ts'
       ]
 
       const serviceModelKeys = resolvePriceSelection(allFiles, [
-        'test/test-cases/e2e/service/text/ocr/mistral-ocr-4-0.test.ts'
+        'test/test-cases/e2e/service/text/ocr/mistral-ocr-4-1.test.ts'
       ]).commands.map((command) => command.key)
       const spiderKeys = resolvePriceSelection(allFiles, [
         'test/test-cases/e2e/service/text/url/url-spider.test.ts'
       ]).commands.map((command) => command.key)
 
-      expect(serviceModelKeys).toContain('extract-mistral-mistral-ocr-4-0')
+      expect(serviceModelKeys).toContain('extract-mistral-mistral-ocr-4-1')
       expect(serviceModelKeys).not.toContain('extract-spider-url')
       expect(spiderKeys).toEqual(['extract-spider-url'])
     })

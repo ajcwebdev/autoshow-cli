@@ -185,7 +185,6 @@ const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
   const estimate = estimateVideoCost({
     ...(entry.videoGenService === 'gemini' ? { geminiVideoModels: [entry.videoGenModel] } : {}),
     ...(entry.videoGenService === 'grok' ? { grokVideoModels: [entry.videoGenModel] } : {}),
-    ...(entry.videoGenService === 'fal' ? { falVideoModels: [entry.videoGenModel], falVideoReferenceVideoCount: entry.referenceVideos?.length ?? 0, falInputVideoDurationSeconds: entry.inputVideoDurationSeconds } : {}),
     ...(typeof entry.videoDuration === 'number' ? { videoDuration: entry.videoDuration } : {}),
     ...(typeof entry.videoAspectRatio === 'string' ? { videoAspectRatio: entry.videoAspectRatio } : {}),
     ...(typeof entry.videoResolution === 'string' ? { videoResolution: entry.videoResolution } : {}),
@@ -204,7 +203,7 @@ const computeImageFallbackCost = (
 ): number => {
   if (
     metadata.imageService === 'openai'
-    && (metadata.imageModel === 'gpt-image-2' || isOpenAIImage25Model(metadata.imageModel))
+    && isOpenAIImage25Model(metadata.imageModel)
   ) {
     const estimate = estimateImageCosts({
       openaiImageModels: [metadata.imageModel],

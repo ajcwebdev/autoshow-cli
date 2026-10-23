@@ -55,7 +55,7 @@ const item = (
 
 describe('OCR batch diagnostics', () => {
   test('derives deterministic blocker, retry, partial-cost, unknown-cost, and drift rollups without raw diagnostics', () => {
-    const blocker = (attempts: number): PipelineProviderState => providerState('deepinfra', 'google/gemma-4-31B-it', {
+    const blocker = (attempts: number): PipelineProviderState => providerState('anthropic', 'claude-haiku-5-5', {
       status: 'failed',
       attempts,
       metadata: {},
@@ -70,8 +70,8 @@ describe('OCR batch diagnostics', () => {
       }
     })
     const manifest = createManifest('extract', 'batch', [
-      item(blocker(2), costMetadata('deepinfra', 'google/gemma-4-31B-it', 1, undefined), 'incomplete'),
-      item(blocker(1), costMetadata('deepinfra', 'google/gemma-4-31B-it', 1, undefined), 'incomplete'),
+      item(blocker(2), costMetadata('anthropic', 'claude-haiku-5-5', 1, undefined), 'incomplete'),
+      item(blocker(1), costMetadata('anthropic', 'claude-haiku-5-5', 1, undefined), 'incomplete'),
       item(providerState('gemini', 'gemini-3.8-flash'), costMetadata('gemini', 'gemini-3.8-flash', 1, 2, 'partial_provider_usage'), 'incomplete')
     ])
 
@@ -84,8 +84,8 @@ describe('OCR batch diagnostics', () => {
     ])
     expect(report?.targets).toEqual([
       expect.objectContaining({
-        provider: 'deepinfra',
-        model: 'google/gemma-4-31B-it',
+        provider: 'anthropic',
+        model: 'claude-haiku-5-5',
         affectedItems: 2,
         attemptedItems: 2,
         blockers: [{ category: 'insufficient_balance', affectedItems: 2 }],
@@ -122,7 +122,7 @@ describe('OCR batch diagnostics', () => {
   test('keeps clean batches quiet and removes a stale derived report when canonical state becomes clean', async () => {
     await withTempDir('autoshow-ocr-batch-diagnostics-', async (dir) => {
       const driftManifest = createManifest('extract', 'batch', [
-        item(providerState('deepinfra', 'google/gemma-4-31B-it'), costMetadata('deepinfra', 'google/gemma-4-31B-it', 1, 2))
+        item(providerState('anthropic', 'claude-haiku-5-5'), costMetadata('anthropic', 'claude-haiku-5-5', 1, 2))
       ])
       const writtenDriftManifest = await writeManifest(dir, driftManifest)
       expect(await writeOcrBatchDiagnostics(dir)).toBeDefined()
@@ -130,7 +130,7 @@ describe('OCR batch diagnostics', () => {
 
       const cleanManifest = {
         ...writtenDriftManifest,
-        items: [item(providerState('deepinfra', 'google/gemma-4-31B-it'), costMetadata('deepinfra', 'google/gemma-4-31B-it', 1, 1))]
+        items: [item(providerState('anthropic', 'claude-haiku-5-5'), costMetadata('anthropic', 'claude-haiku-5-5', 1, 1))]
       }
       await writeManifest(dir, cleanManifest)
       expect(await writeOcrBatchDiagnostics(dir)).toBeUndefined()
@@ -140,7 +140,7 @@ describe('OCR batch diagnostics', () => {
 
   test('treats token metadata without an actual cost row as unknown actual cost', () => {
     const manifest = createManifest('extract', 'batch', [
-      item(providerState('deepinfra', 'google/gemma-4-31B-it'), costMetadata('deepinfra', 'google/gemma-4-31B-it', 1, undefined))
+      item(providerState('anthropic', 'claude-haiku-5-5'), costMetadata('anthropic', 'claude-haiku-5-5', 1, undefined))
     ])
 
     const report = deriveOcrBatchDiagnostics(manifest, 'b'.repeat(64))

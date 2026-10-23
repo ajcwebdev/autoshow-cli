@@ -17,7 +17,7 @@ describe('Gemini 3.8 Flash contracts', () => {
   test('all workflow validators accept the addition and preserve defaults', () => {
     expect(() => validateGeminiModel(model)).not.toThrow()
     expect(() => validateGeminiOcrModel(model)).not.toThrow()
-    expect(() => validateGeminiOcrModel('gemini-3.6-flash')).not.toThrow()
+    expect(() => validateGeminiOcrModel('gemini-3.6-flash')).toThrow('Invalid model "gemini-3.6-flash" for --provider/--ocr gemini[=model]. Allowed values: gemini-3.8-flash')
     expect(() => validateGeminiModel('gemini-3.6-flash')).toThrow('Invalid model "gemini-3.6-flash" for --llm gemini[=model]. Allowed values: gemini-4-argon, gemini-3.8-flash')
     expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.8-flash')
   })

@@ -54,7 +54,7 @@ export const buildThroughputProfile = (
   overrides: Partial<HostedOcrThroughputProfile> = {}
 ): HostedOcrThroughputProfile => ({
   provider: 'gemini',
-  model: 'gemini-3.5-flash',
+  model: 'gemini-3.8-flash',
   scopeClass: 'env-api-key',
   pageCountBand: '201-1000',
   ocrConcurrencyMode: 'auto',
@@ -85,9 +85,9 @@ export const withThroughputProfile = async <T>(
 export const buildTargetTelemetry = (
   overrides: Partial<HostedOcrSchedulerTargetTelemetry> = {}
 ): HostedOcrSchedulerTargetTelemetry => ({
-  targetKey: 'gemini:gemini-3.5-flash',
+  targetKey: 'gemini:gemini-3.8-flash',
   service: 'gemini',
-  model: 'gemini-3.5-flash',
+  model: 'gemini-3.8-flash',
   status: 'succeeded',
   submittedPages: 12,
   completedPages: 12,

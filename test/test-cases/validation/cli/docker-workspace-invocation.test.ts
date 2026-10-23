@@ -20,7 +20,7 @@ async function invoke(args: string[], linux = false, unavailable = false) {
   } finally { await rm(dir, { recursive: true, force: true }) }
 }
 test('documented container invocation preserves arguments, mounts, policy environment, image override and bridge default', async () => {
-  const args = ['image', 'literal spaces $() `text` --help', '--provider', 'openai=gpt-image-2', '--price']
+  const args = ['image', 'literal spaces $() `text` --help', '--provider', 'openai=gpt-image-2.5-flare', '--price']
   const result = await invoke(args)
   expect(result.code).toBe(0)
   expect(result.args.slice(-args.length)).toEqual(args)
@@ -29,7 +29,7 @@ test('documented container invocation preserves arguments, mounts, policy enviro
   expect(result.args).toContain('type=bind,src=/project with spaces/.autoshow/home,dst=/home/bun')
   expect(result.args).toContain('/project with spaces/.env')
   expect(result.args).toContain('/workspace')
-  expect(result.args).toContain('AUTOSHOW_REQUIRED_IMAGE_MODEL=gpt-image-2')
+  expect(result.args).toContain('AUTOSHOW_REQUIRED_IMAGE_MODEL=gpt-image-2.5-flare')
   expect(result.args).toContain('autoshow-cli:test')
   expect(result.args).not.toContain('--network')
   expect(result.args.join(' ')).not.toContain('docker.sock')

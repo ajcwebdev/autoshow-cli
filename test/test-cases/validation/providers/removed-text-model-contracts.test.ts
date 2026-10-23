@@ -18,10 +18,8 @@ import { collectLlmTargets, runLlmTargetsForStructuredPrompt } from '~/cli/comma
 const removed = [
   ['anthropic', 'claude-opus-4-8'], ['anthropic', 'claude-sonnet-4-6'], ['anthropic', 'claude-haiku-4-5'],
   ['grok', 'grok-4.3'], ['openai', 'gpt-5.5'], ['openai', 'gpt-5.4-mini'], ['openai', 'gpt-5.4-nano'],
-  ['together', 'kimi-k2.6'], ['minimax', 'MiniMax-M3'], ['glm', 'glm-5.1'], ['together', 'glm-5.1'],
-  ['gemini', 'gemini-3.1-pro-preview'],
-  ['glm', 'glm-5.3'], ['glm', 'glm-5.3-flash'], ['kimi', 'kimi-k3'],
-  ['together', 'kimi-k3'], ['together', 'glm-5.3'], ['together', 'glm-5.3-flash'],
+  ['together', 'removed-kimi-model'], ['minimax', 'MiniMax-M3'], ['glm', 'glm-5.1'], ['together', 'glm-5.1'],
+  ['gemini', 'gemini-3.1-pro-preview'], ['kimi', 'removed-kimi-model'],
 ] as const
 
 const parseWrite = (provider: string, model: string) => {
@@ -75,25 +73,30 @@ describe('removed text selections reject before dispatch', () => {
     const saved = await loadConfig(path)
     const merged = mergeConfigIntoRawFlags({}, saved, new Set())
     expect(buildOptsFromFlags(merged).openaiModels).toEqual(['gpt-6.1-sol'])
-    expect(buildOptsFromFlags(mergeConfigIntoRawFlags({ openai: 'gpt-5.6-terra' }, saved, new Set(['openai']))).openaiModels).toEqual(['gpt-5.6-terra'])
+    expect(buildOptsFromFlags(mergeConfigIntoRawFlags({ openai: 'gpt-6-luna' }, saved, new Set(['openai']))).openaiModels).toEqual(['gpt-6-luna'])
     await Bun.write(path, '{}')
     expect(await loadConfig(path)).toEqual({})
     expect(buildOptsFromFlags({ openai: true }).openaiModels).toEqual(['gpt-6-luna'])
   }))
 })
 
+const fullyRemoved = [
+  ['gemini', 'gemini-3.6-flash', 'gemini-4-argon, gemini-3.8-flash', 'gemini-3.8-flash'],
+  ['gemini', 'gemini-3.5-flash', 'gemini-4-argon, gemini-3.8-flash', 'gemini-3.8-flash'],
+  ['grok', 'grok-4.5', 'grok-4.7', 'grok-4.7'],
+  ['openai', 'gpt-6-astra', 'gpt-6.1-sol, gpt-6-luna', 'gpt-6.1-sol, gpt-6-luna'],
+  ['openai', 'gpt-5.6-terra', 'gpt-6.1-sol, gpt-6-luna', 'gpt-6.1-sol, gpt-6-luna'],
+  ['anthropic', 'claude-fable-5-1', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5'],
+] as const
+
 const writeRemoved = [
-  ['gemini', 'gemini-3.5-flash-lite', 'gemini-4-argon, gemini-3.8-flash'],
-  ['gemini', 'gemini-3.6-flash', 'gemini-4-argon, gemini-3.8-flash'],
-  ['gemini', 'gemini-3.5-flash', 'gemini-4-argon, gemini-3.8-flash'],
-  ['grok', 'grok-4.5', 'grok-4.7'],
-  ['anthropic', 'claude-fable-5', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-1'],
+  ['anthropic', 'claude-fable-5', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5'],
 ] as const
 
 const ocrFlag = (provider: string) => `${provider}-ocr`
 const ocrConfigKey = (provider: string) => `${provider}Ocr`
 
-describe('write-only catalog removals stay valid for OCR and Gemini 3.6 Flash STT', () => {
+describe('write-only catalog removals stay valid for OCR; fully removed IDs reject everywhere', () => {
   for (const [provider, model, allowed] of writeRemoved) {
     test(`${provider}/${model}: write parse, config and resume reject; OCR parse and config still accept`, async () => await withLocalTestDir('write-only-removed-selection', async root => {
       const writeMessage = `Invalid model "${model}" for --llm ${provider}[=model]. Allowed values: ${allowed}`
@@ -119,7 +122,21 @@ describe('write-only catalog removals stay valid for OCR and Gemini 3.6 Flash ST
     }))
   }
 
-  test('Gemini 3.6 Flash is rejected for write and STT while OCR keeps it', () => {
+  for (const [provider, model, writeAllowed, ocrAllowed] of fullyRemoved) {
+    test(`${provider}/${model}: write and OCR selections, OCR config and resume all reject locally`, async () => await withLocalTestDir('fully-removed-selection', async root => {
+      expect(() => parseWrite(provider, model)).toThrow(`Invalid model "${model}" for --llm ${provider}[=model]. Allowed values: ${writeAllowed}`)
+      expect(() => buildOptsFromFlags({ [ocrFlag(provider)]: model })).toThrow(`Invalid model "${model}" for --provider/--ocr ${provider}[=model]. Allowed values: ${ocrAllowed}`)
+      expect(() => buildConfigPatchFromFlags({ [ocrFlag(provider)]: model }, new Set([ocrFlag(provider)]))).toThrow()
+      const configPath = join(root, 'config.json')
+      await Bun.write(configPath, JSON.stringify({ defaults: { extract: { ocr: { [ocrConfigKey(provider)]: [model] } } } }))
+      await expect(loadConfig(configPath)).rejects.toThrow()
+      expect(getModelRegistry().llm[provider]?.models[model]).toBeUndefined()
+      expect(getModelRegistry().extract[provider]?.models[model]).toBeUndefined()
+    }))
+  }
+
+  test('Gemini 3.6 Flash is rejected for write, OCR and STT', () => {
+    expect(() => buildOptsFromFlags({ 'gemini-ocr': 'gemini-3.6-flash' })).toThrow('Allowed values: gemini-3.8-flash')
     expect(() => parseWrite('gemini', 'gemini-3.6-flash')).toThrow(
       'Invalid model "gemini-3.6-flash" for --llm gemini[=model]. Allowed values: gemini-4-argon, gemini-3.8-flash'
     )
@@ -137,7 +154,7 @@ describe('write-only catalog removals stay valid for OCR and Gemini 3.6 Flash ST
     }
     expect(llmOpts.geminiModels).toEqual(['gemini-4-argon', 'gemini-3.8-flash'])
     expect(llmOpts.grokModels).toEqual(['grok-4.7'])
-    expect(llmOpts.anthropicModels).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1'])
+    expect(llmOpts.anthropicModels).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'])
   })
 })
 
@@ -147,7 +164,7 @@ test('removed writing providers reject stale options, empty saved keys and forge
   const fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(blockedFetch)
   let dispatches = 0
   try {
-    for (const [provider, model] of [['glm', 'glm-5.3'], ['glm', 'glm-5.3-flash'], ['kimi', 'kimi-k3'], ['together', 'kimi-k3'], ['together', 'glm-5.3'], ['together', 'glm-5.3-flash']] as const) {
+    for (const [provider, model] of [['glm', 'glm-5.1'], ['kimi', 'removed-kimi-model'], ['together', 'removed-kimi-model'], ['together', 'glm-5.1']] as const) {
       for (const value of [true, model, []]) {
         expect(() => buildOptsFromFlags({ [provider]: value })).toThrow(/no longer supported/i)
         expect(() => buildConfigPatchFromFlags({ [provider]: value }, new Set([provider]))).toThrow(/no longer supported/i)

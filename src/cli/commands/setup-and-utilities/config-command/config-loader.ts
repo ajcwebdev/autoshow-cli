@@ -28,9 +28,13 @@ const validateRemovedLlmOcrConfigAuthority = (parsed: unknown): void => {
   const defaults = asRecord(asRecord(parsed)?.['defaults'])
   const llm = asRecord(defaults?.['llm'])
   const ocr = asRecord(asRecord(defaults?.['extract'])?.['ocr'])
+  const image = asRecord(defaults?.['image'])
+  const video = asRecord(defaults?.['video'])
   const removedPaths = [
     ...['glm', 'kimi', 'together'].filter(key => llm && key in llm).map(key => `defaults.llm.${key}`),
-    ...['glmOcr', 'kimiOcr'].filter(key => ocr && key in ocr).map(key => `defaults.extract.ocr.${key}`)
+    ...['glmOcr', 'kimiOcr', 'deepinfraOcr'].filter(key => ocr && key in ocr).map(key => `defaults.extract.ocr.${key}`),
+    ...['falImage'].filter(key => image && key in image).map(key => `defaults.image.${key}`),
+    ...['falVideo', 'generateAudio', 'referenceAudios'].filter(key => video && key in video).map(key => `defaults.video.${key}`)
   ]
   if (removedPaths.length > 0) {
     throw ValidationError(`Provider configuration ${removedPaths.join(', ')} is no longer supported. Remove it and select an active provider explicitly. AutoShow will not silently substitute a different model identity.`, { stage: 'config:load' })

@@ -6,13 +6,13 @@ import { withTempDir } from '../../../test-utils/temp-dirs'
 
 test('bundled OCR calibration applies only to exact image/page/policy context and preserves other components', async () => {
   await withTempDir('autoshow-bundled-ocr-calibration-', async dir => {
-    const base = { provider: 'openai' as const, model: 'gpt-6-astra', pageCount: 1, ocrMode: 'image',
+    const base = { provider: 'gemini' as const, model: 'gemini-3.8-flash', pageCount: 1, ocrMode: 'image',
       profilePath: join(dir, 'missing.json'), effectiveReasoningEffort: 'low' as const,
-      registryPromptTokensPerPage: 1625, registryCompletionTokensPerPage: 940 }
+      registryPromptTokensPerPage: 1157, registryCompletionTokensPerPage: 1626 }
     const estimate = resolveHostedOcrTokenUsageEstimate(base)
     expect(estimate.tokenEstimateSource).toBe('calibrated-registry')
-    expect(estimate.promptTokens).toBe(1625) // Input misses the material-error gate.
-    expect(estimate.completionTokens).toBe(294)
+    expect(estimate.promptTokens).toBe(1157) // No bundled prompt component for this context.
+    expect(estimate.completionTokens).toBe(340)
     for (const override of [{ ocrMode: 'pdf' }, { pageCount: 2 }, { effectiveReasoningEffort: 'medium' as const }]) {
       expect(resolveHostedOcrTokenUsageEstimate({ ...base, ...override }).tokenEstimateSource).toBe('registry')
     }

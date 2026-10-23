@@ -33,38 +33,6 @@
       "maxInputs": 16
     },
     "models": {
-      "gpt-image-2": {
-        "description": "GPT Image 2 \u2014 state-of-the-art image generation",
-        "displayName": "GPT Image 2",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/guides/image-generation#calculating-costs",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Standard pay-as-you-go",
-        "pricingNotes": "Default registry rate is the published GPT Image 2 1024x1024 medium output-image estimate. Flexible size/quality estimates are handled in the OpenAI image pricing helper; image input units are modeled locally at 1,000 per reference image and priced only when imageInputCostPer1MCents is set; text input tokens are not estimated locally.",
-        "costPerImageCents": 5.3,
-        "supportsFlexibleSizes": true,
-        "costPerImageBySizeQualityCents": {
-          "1024x1024": {
-            "low": 0.6,
-            "medium": 5.3,
-            "high": 21.1
-          },
-          "1024x1536": {
-            "low": 0.5,
-            "medium": 4.1,
-            "high": 16.5
-          },
-          "1536x1024": {
-            "low": 0.5,
-            "medium": 4.1,
-            "high": 16.5
-          }
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 21594
-        }
-      },
       "gpt-image-2.5-flare": {
         "description": "GPT Image 2.5 Flare \u2014 fast everyday generation, reference-led variations, and editing",
         "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-image-2.5-flare",
@@ -137,50 +105,6 @@
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 6080
-        }
-      }
-    }
-  },
-  "fal": {
-    "description": "fal.ai queued image generation and editing",
-    "type": "api",
-    "referenceImages": {
-      "supported": true,
-      "maxInputs": 9
-    },
-    "models": {
-      "fal-ai/hidream-o1-image": {
-        "referenceImages": {
-          "supported": true,
-          "maxInputs": 9
-        },
-        "description": "HiDream O1 image generation, editing, and personalization via fal.ai",
-        "pricingSourceUrl": "https://api.fal.ai/v1/models/pricing?endpoint_id=fal-ai/hidream-o1-image",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "fal.ai per-output-megapixel pricing",
-        "pricingNotes": "fal.ai reports $0.01 per output megapixel. The registry default assumes a 1024x1024 output.",
-        "costPerImageCents": 1,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 60000
-        }
-      },
-      "alibaba/qwen-image-3": {
-        "referenceImages": {
-          "supported": true,
-          "maxInputs": 3
-        },
-        "description": "Qwen Image 3 text-to-image and image editing via fal.ai",
-        "pricingSourceUrl": "https://api.fal.ai/v1/models/pricing?endpoint_id=alibaba/qwen-image-3/text-to-image",
-        "pricingCheckedAt": "2026-08-06",
-        "pricingCurrency": "USD",
-        "pricingTier": "fal.ai compute-second pricing",
-        "pricingNotes": "fal.ai reports $0.00017 per compute second. The provisional default assumes 30 compute seconds; actual billing varies with runtime.",
-        "costPerImageCents": 0.51,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 30000
         }
       }
     }

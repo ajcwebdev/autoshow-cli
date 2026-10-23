@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, spyOn, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import ts from 'typescript'
 import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
+import * as imageReferenceCapabilities from '~/cli/commands/setup-and-utilities/models/image-reference-capabilities'
 import { locationReferenceSketchCommand, resolveLocationQaProvider } from '~/cli/commands/visuals/comic/comic-commands/reference-sketch/location-reference-command'
 import {
   LOCATION_PROMOTION_TRANSACTION_BOUNDARIES,
@@ -235,12 +236,16 @@ describe('canonical location reference registration', () => {
     await Bun.write(getLocationReferencePath(), JSON.stringify({ schemaVersion: 1, styleImage: 'input/characters/style-guide.webp', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }))
     await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha256Bytes(specification), views: [{ view: 'establishing', generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha256Bytes(image), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }))
     let imageCalls = 0
-    await expect(locationReferenceSketchCommand({ location: 'cargo-bay', view: 'reverse', imageModels: ['alibaba/qwen-image-3'], qa: false }, {
-      requestImage: async () => {
-        imageCalls++
-        return { mode: 'generate', result: { imageBase64: image.toString('base64') } }
-      },
-    })).rejects.toThrow('requires 2 reference images, but alibaba/qwen-image-3 supports 1')
+    // No active image model accepts a single reference, so the registry lookup is narrowed for this guard.
+    const capabilities = spyOn(imageReferenceCapabilities, 'getImageReferenceCapabilities').mockReturnValue({ supported: true, maxInputs: 1 })
+    try {
+      await expect(locationReferenceSketchCommand({ location: 'cargo-bay', view: 'reverse', imageModels: ['grok-imagine-image-2.0'], qa: false }, {
+        requestImage: async () => {
+          imageCalls++
+          return { mode: 'generate', result: { imageBase64: image.toString('base64') } }
+        },
+      })).rejects.toThrow('requires 2 reference images, but grok-imagine-image-2.0 supports 1')
+    } finally { capabilities.mockRestore() }
     expect(imageCalls).toBe(0)
   })
 

@@ -51,7 +51,7 @@ test('tts rejects ambiguous generic TTS options with multiple providers', () => 
 })
 
 test('tts rejects retired generic selectors with actionable guidance and exposes no compatibility flags', () => {
-  for (const provider of ['minimax', 'deepgram', 'fal', 'fish', 'deepinfra']) {
+  for (const provider of ['minimax', 'deepgram', 'fish', 'deepinfra']) {
     const parsed = parseCommandInvocation(
       ['tts', 'input/examples/tts/01-tts-short.md', '--provider', `${provider}=historical-model`],
       commandNamed('tts'),

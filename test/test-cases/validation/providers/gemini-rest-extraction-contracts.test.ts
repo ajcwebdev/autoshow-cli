@@ -206,7 +206,7 @@ describe('Gemini REST contracts', () => {
     })
   })
 
-  for (const model of ['gemini-3.5-flash-lite', 'gemini-3.8-flash']) {
+  for (const model of ['gemini-3.8-flash']) {
     test(`Gemini OCR sends inline document content parts and structured schema (${model})`, async () => {
       process.env['GEMINI_API_KEY'] = 'gemini-key'
       await withTempDir(async (dir) => {
@@ -266,7 +266,7 @@ describe('Gemini REST contracts', () => {
     })
   }
 
-  for (const model of ['gemini-3.5-flash-lite', 'gemini-3.8-flash']) {
+  for (const model of ['gemini-3.8-flash']) {
     test(`Gemini OCR caps multi-page max output tokens (${model})`, async () => {
       process.env['GEMINI_API_KEY'] = 'gemini-key'
       await withTempDir(async (dir) => {
@@ -334,7 +334,7 @@ describe('Gemini REST contracts', () => {
         pageCount: 1,
         format: 'png',
         fileSize: 3
-      }, 'gemini-3.5-flash'))
+      }, 'gemini-3.8-flash'))
 
       expect(result.promptTokens).toBe(30)
       expect(result.completionTokens).toBe(18)

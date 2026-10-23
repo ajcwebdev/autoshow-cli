@@ -1,3 +1,0 @@
-## Episode Description
-
-James Berkins shares how his network helped him land a new developer relations role just 12 hours after getting laid off.

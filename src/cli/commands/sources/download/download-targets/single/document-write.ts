@@ -67,9 +67,6 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: D
   if (opts.geminiOcrModels) {
     extractionOpts.geminiOcrModels = opts.geminiOcrModels
   }
-  if (opts.deepinfraOcrModels) {
-    extractionOpts.deepinfraOcrModels = opts.deepinfraOcrModels
-  }
   if (typeof opts.chapterFiles === 'boolean') {
     extractionOpts.chapterFiles = opts.chapterFiles
   }

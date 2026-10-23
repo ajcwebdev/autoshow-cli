@@ -9,7 +9,6 @@ import { runOpenAIOcr } from '~/cli/commands/text/ocr/ocr-services/openai-ocr/ru
 import { runAnthropicOcr } from '~/cli/commands/text/ocr/ocr-services/anthropic-ocr/run-anthropic-ocr'
 import { runGeminiOcr } from '~/cli/commands/text/ocr/ocr-services/gemini-ocr/run-gemini-ocr'
 import { runGrokOcr } from '~/cli/commands/text/ocr/ocr-services/grok-ocr/run-grok-ocr'
-import { runDeepinfraOcr } from '~/cli/commands/text/ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr'
 import { runMistralOcr } from '~/cli/commands/text/ocr/ocr-services/mistral-ocr/run-mistral-ocr'
 import { redDotPng } from '../../../../test-utils/media-fixtures'
 
@@ -70,10 +69,10 @@ describe('category D fixed-scope dispatch and native JPEG handling', () => {
     expect(JSON.stringify(await f.ledger())).not.toContain('test-secret')
   })
   test('all six actual native adapters preserve original JPEG bytes and decode mocked output through the D guard', async () => {
-    const keys = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'DEEPINFRA_API_KEY', 'MISTRAL_API_KEY'], prior = Object.fromEntries(keys.map(k => [k, process.env[k]])), nativeFetch = globalThis.fetch
+    const keys = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'MISTRAL_API_KEY'], prior = Object.fromEntries(keys.map(k => [k, process.env[k]])), nativeFetch = globalThis.fetch
     const text = 'Synthetic advertisement contract text.', envelope = JSON.stringify({ pages: [{ pageNumber: 1, text }] })
     try { for (const key of keys) process.env[key] = 'nonbillable-mock-key'
-      for (const [provider, model, run] of [['openai', 'gpt-6-luna', runOpenAIOcr], ['anthropic', 'claude-haiku-5-5', runAnthropicOcr], ['gemini', 'gemini-3.5-flash-lite', runGeminiOcr], ['grok', 'grok-4.7', runGrokOcr], ['deepinfra', 'google/gemma-4-31B-it', runDeepinfraOcr], ['mistral', 'mistral-ocr-4-1', runMistralOcr]] as const) {
+      for (const [provider, model, run] of [['openai', 'gpt-6-luna', runOpenAIOcr], ['anthropic', 'claude-haiku-5-5', runAnthropicOcr], ['gemini', 'gemini-3.5-flash', runGeminiOcr], ['grok', 'grok-4.7', runGrokOcr], ['mistral', 'mistral-ocr-4-1', runMistralOcr]] as const) {
         const f = await fixture(provider, model); await mkdir(join(f.root, base, 'pages'), { recursive: true }); const image = join(f.root, f.plan.pages[0]!.input); await Bun.write(image, jpeg)
         f.respond(async () => json(provider === 'openai' ? { ...usage(provider) as object, status: 'completed', output_text: text, output: [{ type: 'message', content: [{ type: 'output_text', text }] }] }
           : provider === 'anthropic' ? { ...usage(provider) as object, content: [{ type: 'text', text: envelope }], stop_reason: 'end_turn' }

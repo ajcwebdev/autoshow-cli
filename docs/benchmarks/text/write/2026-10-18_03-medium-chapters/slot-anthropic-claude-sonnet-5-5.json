@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "planFingerprint": "aea7d87bbdaf1b4e32608c10a1ae909d903863e1f0260a0359acfe3dc07c414a",
   "caseId": "03-medium-chapters",
   "provider": "anthropic",
   "model": "claude-sonnet-5-5",

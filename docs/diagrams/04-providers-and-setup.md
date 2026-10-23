@@ -33,12 +33,12 @@ Selectors use `provider[=model]`. Repeat a flag to run more than one provider. F
 | Step  | Providers                                                                                                                                                                                   |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | STT   | Local: `whisperfile`. Hosted: `cloudflare`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `grok`, `mistral`, `assemblyai`, `gladia`, `scrapecreators`, `gemini`, `together`, `openai`. |
-| OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`.                                                         |
+| OCR   | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `openai`, `grok`, `anthropic`, `gemini`.                                                                      |
 | URL   | Local: `defuddle`. Hosted: `spider`, `zyte`.                                                                                                                                                |
 | LLM   | Hosted: `openai`, `gemini`, `anthropic`, `grok`. Write has no local LLM.                                                                                                                    |
 | TTS   | Hosted: `gemini`, `elevenlabs`, `soniox`, `grok`, `openai`, `inworld`.                                                                                                                      |
-| Image | `gemini`, `openai`, `grok`, `fal`.                                                                                                                                                          |
-| Video | `gemini`, `grok`, `fal`.                                                                                                                                                                    |
+| Image | `gemini`, `openai`, `grok`.                                                                                                                                                                 |
+| Video | `gemini`, `grok`.                                                                                                                                                                           |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                          |
 
 ## Setup Pipeline
@@ -75,9 +75,8 @@ Hosted commands require the matching environment variable:
 | `XAI_API_KEY`            | Grok write/STT/OCR/TTS/image/video     |
 | `GEMINI_API_KEY`         | Gemini write/STT/OCR/image/video/music |
 | `MISTRAL_API_KEY`        | Mistral STT/OCR                        |
-| `FAL_API_KEY`            | fal.ai image/video                     |
 | `ANTHROPIC_API_KEY`      | Anthropic write/OCR                    |
-| `DEEPINFRA_API_KEY`      | DeepInfra STT/OCR                      |
+| `DEEPINFRA_API_KEY`      | DeepInfra STT                          |
 | `MINIMAX_API_KEY`        | MiniMax music                          |
 | `ELEVENLABS_API_KEY`     | ElevenLabs TTS/music                   |
 | `ASSEMBLYAI_API_KEY`     | AssemblyAI STT                         |

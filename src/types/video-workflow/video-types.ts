@@ -25,11 +25,9 @@ export type VideoCostEstimate = CostEstimateBase<VideoProvider> & {
 export type EstimateVideoCostOptions = Partial<Pick<VideoRuntimeOptions,
   | 'geminiVideoModels'
   | 'grokVideoModels'
-  | 'falVideoModels' | 'videoDuration'
-  | 'videoAspectRatio' | 'videoResolution' | 'videoMode' | 'videoGenerateAudio'
+  | 'videoDuration'
+  | 'videoAspectRatio' | 'videoResolution' | 'videoMode'
 >> & {
   grokInputImageCount?: number | undefined
   grokInputVideoDurationSeconds?: number | undefined
-  falVideoReferenceVideoCount?: number | undefined
-  falInputVideoDurationSeconds?: number | undefined
 }

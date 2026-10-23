@@ -2,13 +2,11 @@ import type { VideoGenOptions, VideoMode, VideoProvider, VideoProviderEntry, Vid
 import { VIDEO_MODEL_ENTRIES } from '~/cli/commands/command-shared/generation-routing/generation-model-registry'
 import { collectGeminiVideoTargets } from '../video-services/video-gemini/gemini-video-targets'
 import { collectGrokVideoTargets } from '../video-services/video-grok/grok-video-targets'
-import { collectFalVideoTargets } from '../video-services/fal-video-service/fal-video-targets'
 
 // Exhaustive by type: a new video provider in the selection registry must land a collector here.
 const VIDEO_TARGET_COLLECTORS = {
   gemini: collectGeminiVideoTargets,
-  grok: collectGrokVideoTargets,
-  fal: collectFalVideoTargets
+  grok: collectGrokVideoTargets
 } as const satisfies Record<VideoProvider, (options: VideoGenOptions, mode: VideoMode) => VideoTarget[]>
 
 export const VIDEO_PROVIDER_REGISTRY: readonly VideoProviderEntry[] = VIDEO_MODEL_ENTRIES.map(entry => ({

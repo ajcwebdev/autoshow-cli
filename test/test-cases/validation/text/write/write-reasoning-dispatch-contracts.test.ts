@@ -11,10 +11,10 @@ for (const effort of [undefined, 'low', 'xhigh', 'default'] as const) {
   test(`text input carries ${effort ?? 'omitted'} reasoning through dispatch and the manifest`, async () => {
     await withTempDir(async dir => {
       process.env['OPENAI_API_KEY'] = 'test'
-      const calls = installFetch(() => jsonResponse({ model: 'gpt-6-astra', output_text: '{"episodeDescription":"A workshop repairs bicycles."}', usage: { input_tokens: 40, output_tokens: 12 } }))
+      const calls = installFetch(() => jsonResponse({ model: 'gpt-6.1-sol', output_text: '{"episodeDescription":"A workshop repairs bicycles."}', usage: { input_tokens: 40, output_tokens: 12 } }))
       const input = join(dir, 'source.txt')
       await Bun.write(input, 'A workshop repairs bicycles for residents.')
-      const flags = { openai: 'gpt-6-astra', prompt: ['shortSummary'], ...(effort ? { 'reasoning-effort': effort } : {}) }
+      const flags = { openai: 'gpt-6.1-sol', prompt: ['shortSummary'], ...(effort ? { 'reasoning-effort': effort } : {}) }
       const opts = { ...buildOptsFromFlags(flags, {}, new Set(Object.keys(flags)), { scope: 'write' }), configPath: undefined } as WriteRuntimeOptions
       const { outputDir } = await runTextWrite(input, dir, opts)
       expect(calls).toHaveLength(1)

@@ -47,14 +47,14 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 ### Advanced Options
 
-| Flag                            | Description                                                                                                                                       | Default                 |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| `--provider <provider[=model]>` | Use one or more supported image models (see [Supported Models](./00-comic-overview.md#supported-models))                                          | `openai=gpt-image-2`    |
-| `--variation <name[,name...]>`  | Generate final images with a comma-separated list of prompt variations: `canonical`, `animation-polish`, `cinematic-depth`                        | `canonical`             |
-| `--size <size>`                 | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for `gpt-image-2` or GPT Image 2.5 (Flare/Sunburst)    | `1536x1024`             |
-| `--quality <quality>`           | `low`, `medium`, `high`, or `auto`; Image 2.5 also supports `xhigh` and `max`. Only OpenAI applies this flag; other providers use their defaults. | `high`                  |
-| `--panels-per-image <n>`        | Number of ordered panels per generated image; overrides both stage defaults                                                                       | final `1`; sketches `6` |
-| `--grid <columns>x<rows>`       | Compose generated individual final panels into local page grids, such as `2x3`; requires `--panels-per-image 1` and `--size 1536x1024`            | none                    |
+| Flag                            | Description                                                                                                                                       | Default                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `--provider <provider[=model]>` | Use one or more supported image models (see [Supported Models](./00-comic-overview.md#supported-models))                                          | `openai=gpt-image-2.5-flare` |
+| `--variation <name[,name...]>`  | Generate final images with a comma-separated list of prompt variations: `canonical`, `animation-polish`, `cinematic-depth`                        | `canonical`                  |
+| `--size <size>`                 | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for GPT Image 2.5 (Flare/Sunburst)                     | `1536x1024`                  |
+| `--quality <quality>`           | `low`, `medium`, `high`, or `auto`; Image 2.5 also supports `xhigh` and `max`. Only OpenAI applies this flag; other providers use their defaults. | `high`                       |
+| `--panels-per-image <n>`        | Number of ordered panels per generated image; overrides both stage defaults                                                                       | final `1`; sketches `6`      |
+| `--grid <columns>x<rows>`       | Compose generated individual final panels into local page grids, such as `2x3`; requires `--panels-per-image 1` and `--size 1536x1024`            | none                         |
 
 ### Examples
 
@@ -63,13 +63,13 @@ Use the variables and fresh workspace from the [Harborlight setup](./00-comic-ov
 Prerequisite: reviewed four-panel `scene.json`, current reference snapshots and complete panel prompt bundles from the walkthrough. Execute only the chosen image mode after the cumulative estimate. `sketches` followed by `images` is the main route; `both` is its combined alternative, not an extra required purchase.
 
 ```bash
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target sketches --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target both --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 1,3 --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --grid 2x2 --panels-per-image 1 --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --provider openai=gpt-image-2 --provider gemini=gemini-3.1-flash-lite-image --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --variation animation-polish,cinematic-depth --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target sketches --provider openai=gpt-image-2.5-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --provider openai=gpt-image-2.5-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target both --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 1,3 --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --grid 2x2 --panels-per-image 1 --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --provider openai=gpt-image-2.5-flare --provider gemini=gemini-3.1-flash-lite-image --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --variation animation-polish,cinematic-depth --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 Grid, subset, multiple-model, and variation commands are optional price-only comparisons. Select at most the accepted alternatives; variation/page outputs are not automatically canonical slideshow panels. The four-panel scene has no panels 5–7.
@@ -93,7 +93,7 @@ bun --no-env-file autoshow comic generate-images "$SCRIPT" --qa-only --max-repai
 Revision evaluation additionally needs `$RUN/qa/revision-plan.json` with this scene's fingerprint and actual script, panel, contract, references and prior-QA hashes, frozen issues and correction notes for panels 2 and 4. See [revision evaluation mode](#revision-evaluation-mode) and its [validated plan schema/fingerprint helper](../../../../src/cli/commands/visuals/comic/comic-commands/generate-images/revision-plan-validation.ts). An empty template or another scene's plan is rejected. This bounded experiment reserves an edit and two comparisons per pending panel, and belongs in the cumulative estimate.
 
 ```bash
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 2,4 --provider openai=gpt-image-2 --qa-provider openai=gpt-6.1-sol --revision-plan "$RUN/qa/revision-plan.json" --max-repairs 0 --promote clear-winners --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 2,4 --provider openai=gpt-image-2.5-flare --qa-provider openai=gpt-6.1-sol --revision-plan "$RUN/qa/revision-plan.json" --max-repairs 0 --promote clear-winners --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 `--force` is a separate deliberate regeneration policy. Preserve the reviewed run and choose a copied compatible workspace before using it; it does not update the script or prompt bundle.
@@ -132,7 +132,7 @@ Grouped page repairs retry up to `--max-repairs` without that confidence gate. I
 
 `--revision-plan` tests whether one targeted edit should replace an existing canonical panel. The plan fingerprint must match the selected scene and panels. It freezes the panels, the issue, the correction note, and the hashes of the script, prior QA, original panel, reviewed contract, and canonical references.
 
-Revision mode requires `--target images`, `--panels-per-image 1`, `--provider openai=gpt-image-2`, `--qa-provider openai=gpt-6.1-sol`, and `--max-repairs 0`; these values are inferred when omitted. Promotion requires explicit `--promote clear-winners` authorization. Revision mode rejects `--force`, `--qa-only`, `--no-qa`, sketches, grouped pages, grids, variations, multiple image models, and the normal repair loop.
+Revision mode requires `--target images`, `--panels-per-image 1`, `--provider openai=gpt-image-2.5-flare`, `--qa-provider openai=gpt-6.1-sol`, and `--max-repairs 0`; these values are inferred when omitted. Promotion requires explicit `--promote clear-winners` authorization. Revision mode rejects `--force`, `--qa-only`, `--no-qa`, sketches, grouped pages, grids, variations, multiple image models, and the normal repair loop.
 
 Revision comparisons always use two order-swapped judgments, inferred without a flag. The hidden `--comparison-passes 2` compatibility setting remains accepted; other values are rejected.
 

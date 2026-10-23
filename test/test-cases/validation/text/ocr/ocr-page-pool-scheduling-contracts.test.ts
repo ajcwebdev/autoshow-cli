@@ -33,8 +33,8 @@ describe('pooled OCR page scheduler contracts', () => {
   test('uses one shared queue, preserves page order, and shares same-account lane caps', async () => {
     const targets: OcrTarget[] = [
       { service: 'openai', model: 'gpt-6.1-sol' },
-      { service: 'openai', model: 'gpt-5.6-terra' },
-      { service: 'gemini', model: 'gemini-3.6-flash' },
+      { service: 'openai', model: 'gpt-6-luna' },
+      { service: 'gemini', model: 'gemini-3.8-flash' },
       { service: 'tesseract', model: 'tesseract' }
     ]
     const activeByLane = new Map<string, number>()
@@ -88,7 +88,7 @@ describe('pooled OCR page scheduler contracts', () => {
   test('hands a transient or ambiguous failure to another eligible target and records paid attempts', async () => {
     const targets: OcrTarget[] = [
       { service: 'openai', model: 'gpt-6.1-sol' },
-      { service: 'mistral', model: 'mistral-ocr-4-0' }
+      { service: 'mistral', model: 'mistral-ocr-4-1' }
     ]
     const ledger = await runPool({
       totalPages: 1,
@@ -134,8 +134,8 @@ describe('pooled OCR page scheduler contracts', () => {
   test('retires target and account lanes without discarding accepted pages', async () => {
     const targets: OcrTarget[] = [
       { service: 'openai', model: 'gpt-6.1-sol' },
-      { service: 'openai', model: 'gpt-5.6-terra' },
-      { service: 'mistral', model: 'mistral-ocr-4-0' }
+      { service: 'openai', model: 'gpt-6-luna' },
+      { service: 'mistral', model: 'mistral-ocr-4-1' }
     ]
     const ledger = await runPool({
       totalPages: 5,
@@ -167,7 +167,7 @@ describe('pooled OCR page scheduler contracts', () => {
     expect(ledger.telemetry.duplicateCommitsPrevented).toBeGreaterThan(0)
     expect(ledger.pages.flatMap((page) => page.attempts).some((attempt) =>
       attempt.provider === 'openai'
-      && attempt.model === 'gpt-5.6-terra'
+      && attempt.model === 'gpt-6-luna'
       && attempt.status === 'interrupted'
       && attempt.providerCostCents === 0.75
     )).toBe(true)

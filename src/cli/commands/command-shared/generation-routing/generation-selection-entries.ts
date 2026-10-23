@@ -8,14 +8,12 @@ import type { GenerationModality, GenerationSelectionEntry, ImageProvider, Music
 export const IMAGE_SELECTION_ENTRIES = [
   { modality: 'image', service: 'gemini', flagName: 'gemini-image', runtimeModelsKey: 'geminiImageModels', credentialDescription: 'Gemini image generation' },
   { modality: 'image', service: 'openai', flagName: 'openai-image', runtimeModelsKey: 'openaiImageModels', credentialDescription: 'OpenAI image generation' },
-  { modality: 'image', service: 'grok', flagName: 'grok-image', runtimeModelsKey: 'grokImageModels', credentialDescription: 'Grok image generation' },
-  { modality: 'image', service: 'fal', flagName: 'fal-image', runtimeModelsKey: 'falImageModels', credentialDescription: 'fal.ai image generation' }
+  { modality: 'image', service: 'grok', flagName: 'grok-image', runtimeModelsKey: 'grokImageModels', credentialDescription: 'Grok image generation' }
 ] as const satisfies readonly GenerationSelectionEntry<ImageProvider>[]
 
 export const VIDEO_SELECTION_ENTRIES = [
   { modality: 'video', service: 'gemini', flagName: 'gemini-video', runtimeModelsKey: 'geminiVideoModels', credentialDescription: 'Gemini video generation' },
-  { modality: 'video', service: 'grok', flagName: 'grok-video', runtimeModelsKey: 'grokVideoModels', credentialDescription: 'Grok video generation' },
-  { modality: 'video', service: 'fal', flagName: 'fal-video', runtimeModelsKey: 'falVideoModels', credentialDescription: 'fal.ai video generation' }
+  { modality: 'video', service: 'grok', flagName: 'grok-video', runtimeModelsKey: 'grokVideoModels', credentialDescription: 'Grok video generation' }
 ] as const satisfies readonly GenerationSelectionEntry<VideoProvider>[]
 
 export const MUSIC_SELECTION_ENTRIES = [

@@ -63,7 +63,7 @@ test('example selection includes continuations, aliases and inline commands with
   expect(concreteExamples([
     '```sh',
     'bun autoshow image "a mug" \\',
-    '  --provider openai=gpt-image-2 --price',
+    '  --provider openai=gpt-image-2.5-flare --price',
     'bun autoshow extract <input> --provider tesseract',
     'bun autoshow image "$(cat secret.txt)" --price',
     'bun autoshow setup --show | cat',
@@ -73,7 +73,7 @@ test('example selection includes continuations, aliases and inline commands with
     'bun autoshow invalid-command',
     '```'
   ].join('\n'))).toEqual([
-    'bun autoshow image "a mug" --provider openai=gpt-image-2 --price',
+    'bun autoshow image "a mug" --provider openai=gpt-image-2.5-flare --price',
     'bun as --version',
     'bun --no-env-file autoshow --help'
   ])
@@ -84,10 +84,12 @@ test('example validation rejects stale commands, flags, models and mismatched mo
     'bun autoshow removed-command',
     'bun autoshow image "a mug" --removed-option',
     'bun autoshow image "a mug" --provider openai=removed-model',
-    'bun autoshow image "a mug" --provider=openai=gpt-4o-mini-tts-2025-12-15'
+    'bun autoshow image "a mug" --provider=openai=gpt-4o-mini-tts-2025-12-15',
+    'bun autoshow image "a mug" --provider openai=gpt-image-2 --price',
+    'bun autoshow image "a mug" --provider fal=alibaba/qwen-image-3 --price'
   ]) expect(() => validateExample(command)).toThrow()
   for (const command of [
-    'bun as image "a mug" --provider=openai=gpt-image-2 --price',
-    'bun --no-env-file autoshow image "a mug" --provider openai=gpt-image-2 --price'
+    'bun as image "a mug" --provider=openai=gpt-image-2.5-flare --price',
+    'bun --no-env-file autoshow image "a mug" --provider openai=gpt-image-2.5-flare --price'
   ]) expect(() => validateExample(command)).not.toThrow()
 })

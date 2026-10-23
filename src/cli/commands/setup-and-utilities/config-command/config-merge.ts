@@ -292,11 +292,9 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'gemini-image':      ['defaults', 'image', 'geminiImage'],
   'openai-image':      ['defaults', 'image', 'openaiImage'],
   'grok-image':        ['defaults', 'image', 'grokImage'],
-  'fal-image':         ['defaults', 'image', 'falImage'],
   'image-provider-concurrency': ['defaults', 'image', 'providerConcurrency'],
   'gemini-video':      ['defaults', 'video', 'geminiVideo'],
   'grok-video':        ['defaults', 'video', 'grokVideo'],
-  'fal-video':         ['defaults', 'video', 'falVideo'],
   'video-provider-concurrency': ['defaults', 'video', 'providerConcurrency'],
   'elevenlabs-music':  ['defaults', 'music', 'elevenlabsMusic'],
   'minimax-music':     ['defaults', 'music', 'minimaxMusic'],
@@ -337,9 +335,7 @@ const SCOPED_FLAG_TO_CONFIG_PATHS: Partial<Record<ConfigInjectionScope, Record<s
     'last-frame': ['defaults', 'video', 'lastFrame'],
     'reference-image': ['defaults', 'video', 'referenceImages'],
     'input-video': ['defaults', 'video', 'inputVideo'],
-    'generate-audio': ['defaults', 'video', 'generateAudio'],
-    'reference-video': ['defaults', 'video', 'referenceVideos'],
-    'reference-audio': ['defaults', 'video', 'referenceAudios']
+    'reference-video': ['defaults', 'video', 'referenceVideos']
   },
   music: {
     duration: ['defaults', 'music', 'duration'],
@@ -416,7 +412,7 @@ export const buildConfigPatchFromFlags = (
   explicitFlags: Set<string>,
   flagOccurrences: readonly CliFlagOccurrence[] = []
 ): Record<string, unknown> => {
-  const removedFlags = ['glm', 'kimi', 'together', 'glm-ocr', 'kimi-ocr'].filter(flag => explicitFlags.has(flag))
+  const removedFlags = ['glm', 'kimi', 'together', 'glm-ocr', 'kimi-ocr', 'deepinfra-ocr', 'fal-image', 'fal-video'].filter(flag => explicitFlags.has(flag))
   if (removedFlags.length > 0) {
     throw UsageError(`Provider selections ${removedFlags.join(', ')} are no longer supported. Remove them and select an active provider explicitly.`)
   }

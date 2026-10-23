@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `docs/benchmarks/text/ocr/01-handwriting`
-- Providers with page result files: 30
+- Providers with page result files: 9
 - Pages: 1
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.
@@ -21,7 +21,7 @@
 | blankOutputPages      | 0          |
 | repeatedTextPages     | 0          |
 | majorLengthDriftPages | 0          |
-| highDisagreementPages | 1          |
+| highDisagreementPages | 0          |
 | werCerDivergencePages | 1          |
 | lowConfidencePages    | 0          |
 
@@ -29,7 +29,7 @@
 
 - Candidate pages: 1
 - Low-confidence threshold: 0.72
-- High-disagreement threshold: 0.189058
+- High-disagreement threshold: 0.18
 
 ## Variant Distances
 
