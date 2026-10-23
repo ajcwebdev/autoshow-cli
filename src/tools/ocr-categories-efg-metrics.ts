@@ -1,3 +1,4 @@
+import { AppValidationError } from '~/utils/error-handler'
 import * as v from 'valibot'
 import { isDeepStrictEqual } from 'node:util'
 import { canonicalizeTable, serializeTableReference } from './ocr-preparation/prepare-code-tables'
@@ -32,7 +33,7 @@ export const validateEfgOcrStructure = (category: EfgOcrCategory, source: unknow
     const rebuilt = canonicalizeTable({ filename: table.filename, html: { structure: { tokens: table.structureTokens },
       cells: table.cells.map(cell => ({ tokens: cell.rawTokens, ...(cell.bbox ? { bbox: cell.bbox } : {}),
         span: { rowspan: cell.rowSpan, colspan: cell.columnSpan }, is_header: cell.isHeader })) } })
-    if (!isDeepStrictEqual(rebuilt, table) || serializeTableReference(rebuilt) !== reference) throw new Error('Table structure or row-major reference serialization changed')
+    if (!isDeepStrictEqual(rebuilt, table) || serializeTableReference(rebuilt) !== reference) throw new AppValidationError('Table structure or row-major reference serialization changed')
     return { referenceStructureKind: table.kind, referenceCellCount: table.cells.length, referenceRows: table.rowCount, referenceColumns: table.columnCount,
       referenceMergedCells: table.cells.filter(cell => cell.rowSpan > 1 || cell.columnSpan > 1).length,
       referenceBlankAnchorCells: table.cells.filter(cell => !cell.text).length }
@@ -43,13 +44,13 @@ export const validateEfgOcrStructure = (category: EfgOcrCategory, source: unknow
   }
   const parsed = v.parse(v.union([manuscriptSchema, whiteboardTableSchema, flowchartSchema, proseSchema]), source)
   if (parsed.kind === 'reviewed-manuscript') {
-    if (!isDeepStrictEqual(parsed.originalEditorialNotation, parsed.deletedWordsRetained.map(word => `[${word}]`))) throw new Error('Manuscript deletion notation changed')
+    if (!isDeepStrictEqual(parsed.originalEditorialNotation, parsed.deletedWordsRetained.map(word => `[${word}]`))) throw new AppValidationError('Manuscript deletion notation changed')
     return { referenceStructureKind: parsed.kind, retainedDeletedWordCount: parsed.deletedWordsRetained.length,
       publisherHeadingCaseConvention: parsed.includesPrintedHeadings }
   }
   if (parsed.kind === 'table') {
     if (parsed.cells.length !== parsed.rows || parsed.cells.some(row => row.length !== parsed.columns)
-      || `${parsed.headings.join('\n\n')}\n\n${parsed.cells.map(row => row.join('\t')).join('\n')}\n` !== reference) throw new Error('Handwriting table reference serialization changed')
+      || `${parsed.headings.join('\n\n')}\n\n${parsed.cells.map(row => row.join('\t')).join('\n')}\n` !== reference) throw new AppValidationError('Handwriting table reference serialization changed')
     return { referenceStructureKind: parsed.kind, referenceCellCount: parsed.rows * parsed.columns,
       referenceRows: parsed.rows, referenceColumns: parsed.columns }
   }
@@ -58,7 +59,7 @@ export const validateEfgOcrStructure = (category: EfgOcrCategory, source: unknow
     const question = parsed.nodes.find(node => node.id === 'question'), yes = parsed.nodes.find(node => node.id === 'yes'), no = parsed.nodes.find(node => node.id === 'no')
     if (ids.length !== 3 || new Set(ids).size !== 3 || !question || !yes || !no
       || !isDeepStrictEqual(parsed.edges, [{ from: 'question', to: 'yes', label: 'Y' }, { from: 'question', to: 'no', label: 'N' }])
-      || `${parsed.title}\n\n${parsed.heading}\n\n${question.text}\n\nY\tN\n${yes.text}\t${no.text}\n` !== reference) throw new Error('Flowchart reference label/order serialization changed')
+      || `${parsed.title}\n\n${parsed.heading}\n\n${question.text}\n\nY\tN\n${yes.text}\t${no.text}\n` !== reference) throw new AppValidationError('Flowchart reference label/order serialization changed')
     return { referenceStructureKind: parsed.kind, referenceNodeCount: parsed.nodes.length, referenceEdgeCount: parsed.edges.length }
   }
   return { referenceStructureKind: parsed.kind, literalArrowIncludedInLexicalTarget: true }

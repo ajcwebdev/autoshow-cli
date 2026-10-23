@@ -1,3 +1,6 @@
+import { AppValidationError, AppUsageError, AppInfrastructureError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
+import { sleepWithAbortSignal } from '~/utils/retry-abortable-delay'
 import { mkdir, open, readdir, realpath, rename } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -69,34 +72,34 @@ export const readCategoriesBcPlan = async (scope: Readonly<BenchmarkScope> = bcS
     || plan.approval.budgetCents !== scope.budgetCents || plan.approval.evidence !== scope.approvalEvidence
     || plan.cases.length !== scope.cases || plan.pages.length !== scope.pages || plan.targets.length !== scope.targets
     || new Set(plan.cases.map(row => row.id)).size !== scope.cases || new Set(plan.pages.map(row => row.id)).size !== scope.pages
-    || new Set(plan.targets.map(row => `${row.provider}/${row.model}`)).size !== scope.targets) throw new Error('Unexpected approved OCR benchmark plan')
+    || new Set(plan.targets.map(row => `${row.provider}/${row.model}`)).size !== scope.targets) throw new AppValidationError('Unexpected approved OCR benchmark plan')
   const local = plan.targets.filter(row => row.provider === 'tesseract')
-  if (local.length !== 1 || local[0]!.model !== 'tesseract') throw new Error('Expected exactly one local Tesseract target')
+  if (local.length !== 1 || local[0]!.model !== 'tesseract') throw new AppValidationError('Expected exactly one local Tesseract target')
   for (const entry of plan.cases) {
     for (const [path, expected] of [[entry.input, entry.inputSha256], [entry.reference, entry.referenceSha256]]) {
-      if (!path || !expected || isAbsolute(path) || path.split('/').includes('..')) throw new Error('Nonportable source path')
+      if (!path || !expected || isAbsolute(path) || path.split('/').includes('..')) throw new AppValidationError('Nonportable source path')
       const actual = await realpath(resolve(PROJECT_ROOT, path))
-      if (relative(PROJECT_ROOT, actual).startsWith('..') || hash(new Uint8Array(await Bun.file(actual).arrayBuffer())) !== expected) throw new Error(`Pinned source changed: ${entry.id}`)
+      if (relative(PROJECT_ROOT, actual).startsWith('..') || hash(new Uint8Array(await Bun.file(actual).arrayBuffer())) !== expected) throw new AppValidationError(`Pinned source changed: ${entry.id}`)
     }
     const pages = plan.pages.filter(page => page.caseId === entry.id).sort((a, b) => a.pageNumber - b.pageNumber)
-    if (JSON.stringify(pages) !== JSON.stringify([...entry.pages].sort((a, b) => a.pageNumber - b.pageNumber))) throw new Error(`Document/page mapping differs: ${entry.id}`)
+    if (JSON.stringify(pages) !== JSON.stringify([...entry.pages].sort((a, b) => a.pageNumber - b.pageNumber))) throw new AppValidationError(`Document/page mapping differs: ${entry.id}`)
     for (const [index, page] of pages.entries()) {
-      if (page.pageNumber !== index + 1 || page.id !== `${entry.id}-page-${String(index + 1).padStart(2, '0')}` || isAbsolute(page.input) || page.input.split('/').includes('..')) throw new Error('Invalid page identity')
+      if (page.pageNumber !== index + 1 || page.id !== `${entry.id}-page-${String(index + 1).padStart(2, '0')}` || isAbsolute(page.input) || page.input.split('/').includes('..')) throw new AppValidationError('Invalid page identity')
       const actual = await realpath(resolve(PROJECT_ROOT, page.input))
-      if (relative(PROJECT_ROOT, actual).startsWith('..')) throw new Error('Page escaped project root')
+      if (relative(PROJECT_ROOT, actual).startsWith('..')) throw new AppValidationError('Page escaped project root')
       const imageBytes = new Uint8Array(await Bun.file(actual).arrayBuffer())
       const image = new Bun.Image(imageBytes), metadata = await image.metadata()
       const format = scope.imageFormat === 'mixed' ? page.format === 'jpg' ? 'jpeg' : page.format === 'png' ? 'png' : undefined : scope.imageFormat
       const declaration = scope.kind === 'ocr-categories-efg-execution-plan' && page.caseId === 'efg-rerun-1-page-declaration'
         && page.format === 'jpg' && page.width === 3923 && page.height === 4656
-      if (!format || hash(imageBytes) !== page.inputSha256 || metadata.format !== format || metadata.width !== page.width || metadata.height !== page.height || !declaration && Math.max(page.width, page.height) > 4096 || !(await image.png().bytes()).length) throw new Error(`Invalid pinned page: ${page.id}`)
+      if (!format || hash(imageBytes) !== page.inputSha256 || metadata.format !== format || metadata.width !== page.width || metadata.height !== page.height || !declaration && Math.max(page.width, page.height) > 4096 || !(await image.png().bytes()).length) throw new AppValidationError(`Invalid pinned page: ${page.id}`)
     }
   }
   return { plan, sha256: hash(bytes) }
 }
 const snapshotCli = async (scope: Readonly<BenchmarkScope>) => {
   const built = await Bun.build({ entrypoints: [resolve(PROJECT_ROOT, 'src/cli/create-cli.ts')], target: 'bun', format: 'esm' })
-  if (!built.success || built.outputs.length !== 1) throw new Error('CLI snapshot build failed before provider dispatch')
+  if (!built.success || built.outputs.length !== 1) throw new AppInfrastructureError('CLI snapshot build failed before provider dispatch')
   const bytes = new Uint8Array(await built.outputs[0]!.arrayBuffer()), sha256 = hash(bytes)
   const path = `output/benchmark-cache/ocr-${scope.label}-cli-${sha256}.js`
   await Bun.write(path, bytes)
@@ -104,7 +107,7 @@ const snapshotCli = async (scope: Readonly<BenchmarkScope>) => {
 }
 const snapshotGuard = async (scope: Readonly<BenchmarkScope>) => {
   const built = await Bun.build({ entrypoints: [resolve(PROJECT_ROOT, scope.guardPath)], target: 'bun', format: 'esm' })
-  if (!built.success || built.outputs.length !== 1) throw new Error('Spending-guard snapshot build failed before provider dispatch')
+  if (!built.success || built.outputs.length !== 1) throw new AppInfrastructureError('Spending-guard snapshot build failed before provider dispatch')
   const bytes = new Uint8Array(await built.outputs[0]!.arrayBuffer()), sha256 = hash(bytes)
   const path = `output/benchmark-cache/ocr-${scope.label}-guard-${sha256}.js`
   await Bun.write(path, bytes)
@@ -114,11 +117,11 @@ const pricePages = async (plan: CategoriesBcPlan, cliEntry: string, scope: Reado
   const expected = plan.targets.map(row => `${row.provider}/${row.model}`).sort()
   const results = await Promise.all(plan.pages.map(async page => {
     const result = await child([process.execPath, cliEntry, 'extract', page.input, '--all-providers', '--all-local', '--price', '--json'])
-    if (result.exitCode) throw new Error(`Price preflight failed: ${page.id}: ${stripProjectRoot(result.stderr || result.stdout)}`)
+    if (result.exitCode) throw new AppInfrastructureError(`Price preflight failed: ${page.id}: ${stripProjectRoot(result.stderr || result.stdout)}`)
     const row = result.stdout.trim().split('\n').map(line => JSON.parse(line)).find(item => item.type === 'result')?.data
     const configuredSteps = row?.estimate?.steps as CategoriesBcPriceStep[] | undefined
     const steps = configuredSteps?.filter(step => !scope.excludedTargets.includes(`${step.provider}/${step.model}`))
-    if (row?.dryRun !== true || !steps || !configuredSteps || JSON.stringify(configuredSteps.map(step => `${step.provider}/${step.model}`).sort()) !== JSON.stringify([...expected, ...scope.excludedTargets].sort()) || JSON.stringify(steps.map(step => `${step.provider}/${step.model}`).sort()) !== JSON.stringify(expected)) throw new Error('Price target inventory differs from the approved batch')
+    if (row?.dryRun !== true || !steps || !configuredSteps || JSON.stringify(configuredSteps.map(step => `${step.provider}/${step.model}`).sort()) !== JSON.stringify([...expected, ...scope.excludedTargets].sort()) || JSON.stringify(steps.map(step => `${step.provider}/${step.model}`).sort()) !== JSON.stringify(expected)) throw new AppValidationError('Price target inventory differs from the approved batch')
     return { pageId: page.id, estimate: row.estimate, selectedSteps: steps, ...estimateCategoriesBcPlanningCost(steps) }
   }))
   return { mode: 'price', pages: results, ...estimateCategoriesBcPlanningCost(results.flatMap(row => row.selectedSteps)) }
@@ -128,7 +131,7 @@ const unreconciledHold = async (ledger: Awaited<ReturnType<typeof readLedger>>, 
   const covered = new Set<string>()
   for (const link of ledger.reconciliations ?? []) {
     const bytes = new Uint8Array(await Bun.file(link.path).arrayBuffer())
-    if (hash(bytes) !== link.sha256) throw new Error('Recovery record checksum changed')
+    if (hash(bytes) !== link.sha256) throw new AppValidationError('Recovery record checksum changed')
     const record = JSON.parse(new TextDecoder().decode(bytes))
     const receipt = ledger.receipts.find(row => row.id === record.receiptId)
     if (scope.kind === 'ocr-newspaper-expansion-execution-plan' && record.kind === 'ocr-newspaper-expansion-final-breach-accounting-review') {
@@ -145,7 +148,7 @@ const unreconciledHold = async (ledger: Awaited<ReturnType<typeof readLedger>>, 
       || (receipt.httpStatus === undefined ? record.transportReview !== 'socket-closed-no-reported-usage'
         && !(['ocr-categories-efg-execution-plan', 'ocr-newspaper-expansion-execution-plan'].includes(scope.kind) && record.transportReview === 'timeout-no-reported-usage') : ![200, 503].includes(receipt.httpStatus))
       || receipt.chargedCents !== record.chargedCents
-      || receipt.status === 'breach' && (receipt.provider !== 'grok' || record.reviewedPolicy !== 'grok-visible-4096-plus-unmeasured-reasoning-32768')) throw new Error('Invalid retained-reservation recovery record')
+      || receipt.status === 'breach' && (receipt.provider !== 'grok' || record.reviewedPolicy !== 'grok-visible-4096-plus-unmeasured-reasoning-32768')) throw new AppValidationError('Invalid retained-reservation recovery record')
     covered.add(receipt.id)
   }
   return ledger.receipts.some(row => ['breach', 'ambiguous'].includes(row.status) && !covered.has(row.id))
@@ -160,7 +163,6 @@ const inventory = async (directory: string): Promise<Array<{ path: string, sha25
   }
   return result
 }
-const pause = async (ms: number) => await new Promise<void>(resolve => setTimeout(resolve, ms))
 /** Only a pre-dispatch reservation rejection can wait for other requests to settle. */
 export const shouldDeferOcrBudgetReservation = (
   failure: string, slotReceipts: ReadonlyArray<{ status: string, chargedCents: number }>, ledgerReceipts: ReadonlyArray<{ status: string }>
@@ -174,7 +176,7 @@ export const newspaperFirstPassWithinBudget = (costs: CategoriesBcPlan['planning
 /** Reserve lanes synchronously before journal I/O, so workers cannot race past provider limits. */
 export const createOcrBenchmarkLanes = (concurrency: number, providerConcurrency: Readonly<Record<string, number>> = {}, modelConcurrency: Readonly<Record<string, number>> = {}) => {
   if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > 12
-    || [...Object.values(providerConcurrency), ...Object.values(modelConcurrency)].some(value => !Number.isSafeInteger(value) || value < 1 || value > concurrency)) throw new Error('Invalid benchmark concurrency')
+    || [...Object.values(providerConcurrency), ...Object.values(modelConcurrency)].some(value => !Number.isSafeInteger(value) || value < 1 || value > concurrency)) throw new AppValidationError('Invalid benchmark concurrency')
   const activeByProvider = new Map<string, number>(), activeByModel = new Map<string, number>(), pendingGroups = new Set<string>(), nextGemini = new Map<string, number>()
   let active = 0, peak = 0
   const group = (target: Target): string | undefined => target.provider !== 'gemini' ? undefined
@@ -187,7 +189,7 @@ export const createOcrBenchmarkLanes = (concurrency: number, providerConcurrency
   }
   return { canStart, state: () => ({ active, peak, activeByProvider: Object.fromEntries(activeByProvider), activeByModel: Object.fromEntries(activeByModel) }),
     acquire(target: Target, now = Date.now()) {
-      if (!canStart(target, now)) throw new Error('Benchmark lane is unavailable')
+      if (!canStart(target, now)) throw new AppValidationError('Benchmark lane is unavailable')
       const alias = group(target)
       active++; peak = Math.max(peak, active)
       activeByProvider.set(target.provider, (activeByProvider.get(target.provider) ?? 0) + 1)
@@ -195,7 +197,7 @@ export const createOcrBenchmarkLanes = (concurrency: number, providerConcurrency
       if (alias) pendingGroups.add(alias)
       let committed = false, released = false
       return { commit(at = Date.now()) {
-        if (released || committed) throw new Error('Benchmark lane cannot be started twice')
+        if (released || committed) throw new AppValidationError('Benchmark lane cannot be started twice')
         committed = true
         if (alias) { nextGemini.set(alias, at + 15_500); pendingGroups.delete(alias) }
       }, release() {
@@ -230,7 +232,7 @@ export const runCategoriesBcBenchmark = async (plan: CategoriesBcPlan, planSha25
   const worker = async () => {
     while (jobs.length && !blockedReason) {
       const now = Date.now(), index = jobs.findIndex(job => job.readyAt <= now && lanes.canStart(job.target, now))
-      if (index < 0) { await pause(500); continue }
+      if (index < 0) { await sleepWithAbortSignal(500); continue }
       const job = jobs.splice(index, 1)[0]!, { page, target } = job
       const lane = lanes.acquire(target, now)
       try {
@@ -239,11 +241,11 @@ export const runCategoriesBcBenchmark = async (plan: CategoriesBcPlan, planSha25
         const prior = await Bun.file(path).json() as Journal
         const parent = plan.cases.find(entry => entry.id === page.caseId)!
         if (prior.caseId !== page.id || prior.documentCaseId !== page.caseId || prior.referenceSha256 !== parent.referenceSha256
-          || prior.directory !== directory || prior.provider !== target.provider || prior.model !== target.model || prior.inputSha256 !== page.inputSha256) throw new Error(`Prior slot identity differs: ${path}`)
+          || prior.directory !== directory || prior.provider !== target.provider || prior.model !== target.model || prior.inputSha256 !== page.inputSha256) throw new AppValidationError(`Prior slot identity differs: ${path}`)
         if (prior.status === 'dispatch-started') { blockedReason = `Interrupted slot requires reconciliation: ${path}`; jobs.unshift(job); break }
         if (!['succeeded', 'failed'].includes(prior.status) || !prior.artifactHashes?.length
-          || prior.status === 'succeeded' && (!prior.manifestSha256 || !prior.artifactHashes.some(row => row.path === `${directory}/manifest.json` && row.sha256 === prior.manifestSha256))) throw new Error(`Prior slot lacks pinned completion evidence: ${path}`)
-        for (const artifact of prior.artifactHashes ?? []) if (hash(new Uint8Array(await Bun.file(artifact.path).arrayBuffer())) !== artifact.sha256) throw new Error(`Saved artifact changed: ${artifact.path}`)
+          || prior.status === 'succeeded' && (!prior.manifestSha256 || !prior.artifactHashes.some(row => row.path === `${directory}/manifest.json` && row.sha256 === prior.manifestSha256))) throw new AppValidationError(`Prior slot lacks pinned completion evidence: ${path}`)
+        for (const artifact of prior.artifactHashes ?? []) if (hash(new Uint8Array(await Bun.file(artifact.path).arrayBuffer())) !== artifact.sha256) throw new AppValidationError(`Saved artifact changed: ${artifact.path}`)
         results.set(key(page, target), { ...prior, reused: true }); continue
       }
       lane.commit()
@@ -278,7 +280,7 @@ export const runCategoriesBcBenchmark = async (plan: CategoriesBcPlan, planSha25
         const archive = `${scope.root}/zero-dispatch-reservation-deferrals/${page.id}/${stem(`${target.provider}-${target.model}`)}/${randomUUID()}`
         await mkdir(dirname(archive), { recursive: true }); await rename(directory, archive)
         results.delete(key(page, target)); jobs.push({ ...job, budgetDeferrals: job.budgetDeferrals + 1, readyAt: Date.now() + 2_000 })
-        console.log(JSON.stringify({ page: page.id, provider: target.provider, model: target.model, status: 'waiting-for-in-flight-reservations', budgetDeferrals: job.budgetDeferrals + 1 }))
+        writeCommandPayload((JSON.stringify({ page: page.id, provider: target.provider, model: target.model, status: 'waiting-for-in-flight-reservations', budgetDeferrals: job.budgetDeferrals + 1 })) + '\n')
         await persist(); continue
       }
       if (!blockedReason && journal.status === 'failed' && job.retries < 2 && receipts.length > 0
@@ -288,8 +290,8 @@ export const runCategoriesBcBenchmark = async (plan: CategoriesBcPlan, planSha25
         await mkdir(dirname(archive), { recursive: true }); await rename(directory, archive)
         results.delete(key(page, target)); jobs.push({ ...job, retries: job.retries + 1, readyAt: Date.now() + 65_000 })
       }
-      console.log(JSON.stringify({ page: page.id, provider: target.provider, model: target.model, status: journal.status,
-        completed: results.size, remaining: jobs.length, accountedCents: ledger.receipts.reduce((sum, row) => sum + row.chargedCents, 0), blockedReason }))
+      writeCommandPayload((JSON.stringify({ page: page.id, provider: target.provider, model: target.model, status: journal.status,
+        completed: results.size, remaining: jobs.length, accountedCents: ledger.receipts.reduce((sum, row) => sum + row.chargedCents, 0), blockedReason })) + '\n')
       await persist()
       } catch (error) {
         blockedReason = error instanceof Error ? stripProjectRoot(error.message) : String(error)
@@ -310,21 +312,21 @@ export const runCategoriesBcBenchmark = async (plan: CategoriesBcPlan, planSha25
 export const categoriesBcBenchmarkMain = async (scope: Readonly<BenchmarkScope> = bcScope): Promise<void> => {
   try {
     const args = Bun.argv.slice(2)
-    if (args.length > 1 || args.some(arg => !['--help', '--price', '--run'].includes(arg))) throw new Error(`Usage: bun src/tools/ocr-${scope.label}-benchmark.ts [--price | --run]`)
-    if (args[0] === '--help') { console.log(`Price or execute the exact approved ${scope.cases}-file / ${scope.pages}-page / ${scope.targets}-target OCR batch. Default is price-only. --run requires recorded USD ${scope.budgetCents / 100} approval and the cumulative guard. At most ${scope.concurrency ?? 3} concurrent jobs. Existing journals are preserved and reused.`); process.exit(0) }
+    if (args.length > 1 || args.some(arg => !['--help', '--price', '--run'].includes(arg))) throw new AppUsageError(`Usage: bun src/tools/ocr-${scope.label}-benchmark.ts [--price | --run]`)
+    if (args[0] === '--help') { writeCommandPayload((`Price or execute the exact approved ${scope.cases}-file / ${scope.pages}-page / ${scope.targets}-target OCR batch. Default is price-only. --run requires recorded USD ${scope.budgetCents / 100} approval and the cumulative guard. At most ${scope.concurrency ?? 3} concurrent jobs. Existing journals are preserved and reused.`) + '\n'); return }
     const { plan, sha256 } = await readCategoriesBcPlan(scope), cliSnapshot = await snapshotCli(scope)
     const prices = await pricePages(plan, cliSnapshot.path, scope)
     await atomicJson(`${scope.root}/price-preflight.json`, { generatedAt: new Date().toISOString(), planSha256: sha256, cliSnapshot, ...prices })
-    if (args[0] !== '--run') console.log(JSON.stringify({ ...prices,
-      pages: prices.pages.map(({ pageId, nativeCents, adjustedCents, twoRepairCents }) => ({ pageId, nativeCents, adjustedCents, twoRepairCents })) }, null, 2))
+    if (args[0] !== '--run') writeCommandPayload((JSON.stringify({ ...prices,
+      pages: prices.pages.map(({ pageId, nativeCents, adjustedCents, twoRepairCents }) => ({ pageId, nativeCents, adjustedCents, twoRepairCents })) }, null, 2)) + '\n')
     else {
-      if (prices.twoRepairCents > plan.approval.budgetCents) throw new Error(`Fresh retry planning exceeds the approved USD ${scope.budgetCents / 100} ceiling; no dispatch`)
+      if (prices.twoRepairCents > plan.approval.budgetCents) throw new AppValidationError(`Fresh retry planning exceeds the approved USD ${scope.budgetCents / 100} ceiling; no dispatch`)
       if (scope.kind === 'ocr-newspaper-expansion-execution-plan'
-        && !newspaperFirstPassWithinBudget(plan.planningCostCents, plan.approval.budgetCents)) throw new Error('Newspaper reference-length planning is absent or exceeds approval; no dispatch')
+        && !newspaperFirstPassWithinBudget(plan.planningCostCents, plan.approval.budgetCents)) throw new AppValidationError('Newspaper reference-length planning is absent or exceeds approval; no dispatch')
       const summary = await runCategoriesBcBenchmark(plan, sha256, cliSnapshot, scope)
-      console.log(JSON.stringify({ ...summary, slots: undefined }, null, 2))
+      writeCommandPayload((JSON.stringify({ ...summary, slots: undefined }, null, 2)) + '\n')
     }
-  } catch (error) { console.error(error instanceof Error ? stripProjectRoot(error.message) : String(error)); process.exitCode = 1 }
+  } catch (error) { writeCommandPayload((error instanceof Error ? stripProjectRoot(error.message) : String(error)) + '\n', 'stderr'); process.exitCode = 1 }
 }
 
 if (import.meta.main) await categoriesBcBenchmarkMain()

@@ -1,3 +1,5 @@
+import { AppValidationError, AppUsageError, AppInfrastructureError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { realpath } from 'node:fs/promises'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
@@ -13,7 +15,7 @@ export const normalizeHistoricalReference = (text: string): string => text.norma
   .replace(/[“”„]/g, '"').replace(/[‘’]/g, "'").replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim() + '\n'
 
 export const serializeValidatedWikisource = (raw: string): string => {
-  if (!/<pagequality\s+level="4"/.test(raw)) throw new Error('Wikisource page must have validated level 4')
+  if (!/<pagequality\s+level="4"/.test(raw)) throw new AppValidationError('Wikisource page must have validated level 4')
   let text = raw.replace(/<!--[^]*?-->/g, '').replace(/<pagequality[^>]*\/\s*>/g, '')
     .replace(/<\/?noinclude>/g, '\n').replace(/<references\s*\/>/g, '')
     .replace(/<\/?nowiki>/g, '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/?i>/g, '')
@@ -32,9 +34,9 @@ export const serializeValidatedWikisource = (raw: string): string => {
       if (name === 'rh' || name === 'running header') return args.filter(a => a.trim()).join('\n') + '\n'
       if (name === 'ppoem') return args.filter(a => !/^(start|end)=/.test(a)).join('|')
       if (name === 'pline') return `\uFFF0${args[0]}\uFFF1`
-      throw new Error(`Unreviewed Wikisource template: ${name}`)
+      throw new AppValidationError(`Unreviewed Wikisource template: ${name}`)
     })
-    if (text === previous || ++passes > 30) throw new Error('Unbalanced Wikisource templates')
+    if (text === previous || ++passes > 30) throw new AppValidationError('Unbalanced Wikisource templates')
   }
   text = text.replace(/'''|''/g, '').replace(/<<</g, '').replace(/^:+/gm, '')
     .split('\n').map(line => {
@@ -42,37 +44,37 @@ export const serializeValidatedWikisource = (raw: string): string => {
       const body = line.replace(/\uFFF0[^\uFFF1]+\uFFF1/g, '').trim()
       return number ? `${number[1]} ${body}` : body
     }).join('\n').replace(/\n{3,}/g, '\n\n').trim()
-  if (/\{\{|\}\}|\[\[|\]\]|<\/?[A-Za-z]/.test(text)) throw new Error('Unserialized reference markup')
+  if (/\{\{|\}\}|\[\[|\]\]|<\/?[A-Za-z]/.test(text)) throw new AppValidationError('Unserialized reference markup')
   return xmlText(text) + '\n'
 }
 
 interface PageRegion { id: string, type: string, text: string, bounds: { x: number, y: number, width: number, height: number } }
 export const serializeImpactPage = (xml: string, expectedPageId = 'pc-00667895') => {
-  if (!xml.includes(`pcGtsId="${expectedPageId}"`)) throw new Error('Wrong IMPACT source page identity')
+  if (!xml.includes(`pcGtsId="${expectedPageId}"`)) throw new AppValidationError('Wrong IMPACT source page identity')
   const regions: PageRegion[] = [...xml.matchAll(/<TextRegion\b([^>]*)>([^]*?)<\/TextRegion>/g)].map(match => {
     const attrs = match[1] ?? '', body = match[2] ?? ''
     const id = /\bid="([^"]+)"/.exec(attrs)?.[1], type = /\btype="([^"]+)"/.exec(attrs)?.[1]
     const text = /<Unicode>([^]*?)<\/Unicode>/.exec(body)?.[1]
     const points = [...body.matchAll(/<Point x="(\d+)" y="(\d+)"/g)].map(p => [Number(p[1]), Number(p[2])])
-    if (!id || !type || text === undefined || !points.length) throw new Error('Incomplete IMPACT text region')
+    if (!id || !type || text === undefined || !points.length) throw new AppValidationError('Incomplete IMPACT text region')
     const xs = points.map(p => p[0]!), ys = points.map(p => p[1]!)
     return { id, type, text: xmlText(text), bounds: { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) } }
   })
   const byId = new Map(regions.map(region => [region.id, region]))
-  if (byId.size !== regions.length) throw new Error('Duplicate IMPACT region ID')
+  if (byId.size !== regions.length) throw new AppValidationError('Duplicate IMPACT region ID')
   const refs = [...xml.matchAll(/<RegionRefIndexed regionRef="([^"]+)" index="(\d+)"/g)]
     .map(m => ({ id: m[1]!, index: Number(m[2]) })).sort((a, b) => a.index - b.index)
-  if (new Set(refs.map(r => r.id)).size !== refs.length || refs.some((r, i) => r.index !== i)) throw new Error('Invalid IMPACT reading order')
-  const ordered = refs.map(ref => { const region = byId.get(ref.id); if (!region) throw new Error('Missing IMPACT ordered region'); return region })
+  if (new Set(refs.map(r => r.id)).size !== refs.length || refs.some((r, i) => r.index !== i)) throw new AppValidationError('Invalid IMPACT reading order')
+  const ordered = refs.map(ref => { const region = byId.get(ref.id); if (!region) throw new AppValidationError('Missing IMPACT ordered region'); return region })
   const unordered = regions.filter(region => !refs.some(ref => ref.id === region.id))
-  if (unordered.some(region => !['header', 'page-number'].includes(region.type))) throw new Error('Unordered IMPACT body region')
+  if (unordered.some(region => !['header', 'page-number'].includes(region.type))) throw new AppValidationError('Unordered IMPACT body region')
   const all = [...unordered.sort((a, b) => a.type === b.type ? a.bounds.x - b.bounds.x : a.type === 'header' ? -1 : 1), ...ordered]
   const blocks: string[] = []
   for (let i = 0; i < all.length; i++) {
     const region = all[i]!
     if (region.type === 'drop-capital') {
       const next = all[++i]
-      if (!next || next.type !== 'paragraph') throw new Error('Orphan IMPACT drop capital')
+      if (!next || next.type !== 'paragraph') throw new AppValidationError('Orphan IMPACT drop capital')
       blocks.push(region.text + next.text)
     } else blocks.push(region.text)
   }
@@ -123,7 +125,7 @@ const json = (value: unknown): string => JSON.stringify(value, null, 2) + '\n'
 
 export const assertHistoricalSourceBytes = (id: string, imageBytes: Uint8Array, referenceBytes: Uint8Array): void => {
   const pins = sourceHashes[id]
-  if (!pins || hash(imageBytes) !== pins[0] || hash(referenceBytes) !== pins[1]) throw new Error(`Pinned image/reference bytes differ: ${id}`)
+  if (!pins || hash(imageBytes) !== pins[0] || hash(referenceBytes) !== pins[1]) throw new AppValidationError(`Pinned image/reference bytes differ: ${id}`)
 }
 
 const reviewNotes: Record<string, string[]> = {
@@ -141,16 +143,16 @@ const reviewNotes: Record<string, string[]> = {
 }
 
 export const deriveReference = (spec: HistoricalSourceSpec, raw: string): string => {
-  if (spec.id === 'G1') throw new Error('G1 has known reference errors and must remain blocked')
+  if (spec.id === 'G1') throw new AppValidationError('G1 has known reference errors and must remain blocked')
   if (spec.id === 'C5') return serializeImpactPage(raw).text
   if (spec.file) return serializeValidatedWikisource(raw)
   let text = raw.replaceAll('\r\n', '\n').trim() + '\n'
   if (spec.id === 'G3') {
-    if (!text.includes('non sequilur')) throw new Error('G3 erratum anchor changed')
+    if (!text.includes('non sequilur')) throw new AppValidationError('G3 erratum anchor changed')
     text = text.replace('non sequilur', 'non sequitur')
   }
   if (spec.id === 'G4') {
-    if (!text.includes('tho often')) throw new Error('G4 erratum anchor changed')
+    if (!text.includes('tho often')) throw new AppValidationError('G4 erratum anchor changed')
     text = text.replace('tho often', 'the often')
   }
   return text
@@ -158,7 +160,7 @@ export const deriveReference = (spec: HistoricalSourceSpec, raw: string): string
 
 export const assertSourceIdentity = (spec: HistoricalSourceSpec, metadata: { revision: string, leaf?: number, sourceImageName: string }) => {
   if (metadata.revision !== spec.revision || metadata.leaf !== spec.leaf || metadata.sourceImageName !== (spec.file ? `${spec.file}/${spec.leaf}` : spec.imageMember ?? impactImageFilename)) {
-    throw new Error(`Source leaf/revision/member identity mismatch: ${spec.id}`)
+    throw new AppValidationError(`Source leaf/revision/member identity mismatch: ${spec.id}`)
   }
 }
 
@@ -187,7 +189,7 @@ const prepare = async () => {
     if (spec.crop) {
       const c = spec.crop
       const proc = Bun.spawn(['magick', resolve(PROJECT_ROOT, sourceImage), '-crop', `${c.width}x${c.height}+${c.x}+${c.y}`, '+repage', '-strip', `PNG32:${resolve(PROJECT_ROOT, input)}`], { stdout: 'pipe', stderr: 'pipe' })
-      if (await proc.exited !== 0) throw new Error(await new Response(proc.stderr).text())
+      if (await proc.exited !== 0) throw new AppInfrastructureError(await new Response(proc.stderr).text())
     } else await Bun.write(resolve(PROJECT_ROOT, input), await new Bun.Image(imageBytes).png().bytes())
     const inputBytes = await localRead(input), metadata = await new Bun.Image(inputBytes).metadata()
     const sourceMetadata = await new Bun.Image(imageBytes).metadata()
@@ -208,7 +210,7 @@ const prepare = async () => {
       const commonsPath = `${original}.commons.json`, commonsBytes = await localRead(commonsPath)
       const commons = JSON.parse(new TextDecoder().decode(commonsBytes)) as { query: { pages: Record<string, { imageinfo: Array<{ timestamp: string, sha1: string, descriptionurl: string }> }> } }
       const info = Object.values(commons.query.pages)[0]?.imageinfo[0]
-      if (!info) throw new Error(`Missing Commons source image revision ${spec.id}`)
+      if (!info) throw new AppValidationError(`Missing Commons source image revision ${spec.id}`)
       imageFileRevision = { timestamp: info.timestamp, sha1: info.sha1, descriptionURL: info.descriptionurl }
       originalReferences.push({ path: commonsPath, sha256: hash(commonsBytes), url: `https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&titles=${encodeURIComponent(`File:${spec.file}`)}&iiprop=timestamp|url|sha1|size|extmetadata&format=json`, revision: info.timestamp })
       originalReferences[0]!['revision'] = info.timestamp
@@ -228,7 +230,7 @@ const prepare = async () => {
         ['ncse-ground-truth.zip', 'c698461e74c78a0e077fd952ec859724', spec.referenceURL]
       ]) {
         const archivePath = `${base}/originals/${name}`, bytes = await localRead(archivePath)
-        if (new Bun.CryptoHasher('md5').update(bytes).digest('hex') !== expectedMD5) throw new Error('NCSE archive differs from release checksum')
+        if (new Bun.CryptoHasher('md5').update(bytes).digest('hex') !== expectedMD5) throw new AppValidationError('NCSE archive differs from release checksum')
         originalReferences.push({ path: archivePath, sha256: hash(bytes), md5: expectedMD5, url, revision: spec.revision })
       }
     }
@@ -258,20 +260,20 @@ const prepare = async () => {
 }
 
 const objectRecord = (value: unknown, label: string): Record<string, unknown> => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Expected object: ${label}`)
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new AppValidationError(`Expected object: ${label}`)
   return value as Record<string, unknown>
 }
 const requireMatch = (actual: unknown, expected: unknown, label: string): void => {
-  if (!isDeepStrictEqual(actual, JSON.parse(json(expected)))) throw new Error(`Validation mismatch: ${label}`)
+  if (!isDeepStrictEqual(actual, JSON.parse(json(expected)))) throw new AppValidationError(`Validation mismatch: ${label}`)
 }
 
 /** Read-only source admission. Rebuilds derived text/layout and PNGs in memory; never downloads or runs OCR. */
 export const validateHistoricalNewspaperBundles = async (projectRoot = PROJECT_ROOT) => {
   const root = await realpath(projectRoot), cache = new Map<string, Uint8Array>()
   const boundedPath = async (path: unknown): Promise<string> => {
-    if (typeof path !== 'string' || isAbsolute(path) || /[:\\\x00]/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('Expected repository-relative artifact path')
+    if (typeof path !== 'string' || isAbsolute(path) || /[:\\\x00]/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..')) throw new AppValidationError('Expected repository-relative artifact path')
     const actual = await realpath(resolve(root, path)), rel = relative(root, actual)
-    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error('Artifact path escapes project root')
+    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new AppValidationError('Artifact path escapes project root')
     return actual
   }
   const read = async (path: string): Promise<Uint8Array> => {
@@ -287,7 +289,7 @@ export const validateHistoricalNewspaperBundles = async (projectRoot = PROJECT_R
     const base = `input/examples/document/ocr-${category}`, bundle = objectRecord(JSON.parse(await text(`${base}/bundle.json`)), 'bundle')
     const expectedSources = HISTORICAL_NEWSPAPER_SOURCES.filter(spec => spec.category === category)
     for (const [key, expected] of Object.entries({ schemaVersion: 1, kind: 'ocr-canonical-input-bundle', category, language: 'en', status: 'prepared-not-run', caseCount: expectedSources.length, readyCaseCount: 5 })) requireMatch(bundle[key], expected, `bundle ${category}.${key}`)
-    if (!Array.isArray(bundle['cases']) || bundle['cases'].length !== expectedSources.length) throw new Error(`Wrong case population: ${category}`)
+    if (!Array.isArray(bundle['cases']) || bundle['cases'].length !== expectedSources.length) throw new AppValidationError(`Wrong case population: ${category}`)
     const caseEntries = bundle['cases'].map(value => objectRecord(value, 'case'))
     requireMatch(caseEntries.map(entry => entry['sourceId']).sort(), expectedSources.map(spec => spec.id).sort(), `source ID population ${category}`)
     for (const spec of expectedSources) {
@@ -301,12 +303,12 @@ export const validateHistoricalNewspaperBundles = async (projectRoot = PROJECT_R
       const imageBytes = await read(sourceImage), referenceBytes = await read(sourceReference), sourceText = new TextDecoder('utf-8', { fatal: true }).decode(referenceBytes)
       assertHistoricalSourceBytes(spec.id, imageBytes, referenceBytes)
       const expectedExtraPaths = spec.file ? [`${original}.commons.json`] : spec.id === 'C5' ? [`${base}/originals/finebooks-README.md`, `${base}/originals/impact-README.md`] : [`${base}/originals/ncse-release.json`, `${base}/originals/ncse-images.zip`, `${base}/originals/ncse-ground-truth.zip`]
-      if (!Array.isArray(entry['originalReferences'])) throw new Error('Missing original source provenance')
+      if (!Array.isArray(entry['originalReferences'])) throw new AppValidationError('Missing original source provenance')
       const originals = entry['originalReferences'].map(value => objectRecord(value, 'original reference'))
       requireMatch(originals.map(value => value['path']), [sourceImage, sourceReference, ...expectedExtraPaths], `${spec.id} original provenance population`)
       for (const artifact of originals) {
         const path = String(artifact['path']), bytes = await read(path), expectedHash = path === sourceImage ? sourceHashes[spec.id]![0] : path === sourceReference ? sourceHashes[spec.id]![1] : provenanceHashes[path]
-        if (!expectedHash || hash(bytes) !== expectedHash || artifact['sha256'] !== expectedHash) throw new Error(`Pinned provenance hash mismatch: ${path}`)
+        if (!expectedHash || hash(bytes) !== expectedHash || artifact['sha256'] !== expectedHash) throw new AppValidationError(`Pinned provenance hash mismatch: ${path}`)
         provenanceHashesVerified++
       }
       requireMatch(originals[0]!['url'], spec.imageURL, `${spec.id} image URL`)
@@ -318,23 +320,23 @@ export const validateHistoricalNewspaperBundles = async (projectRoot = PROJECT_R
       if (spec.file) {
         const commons = JSON.parse(await text(`${original}.commons.json`)) as { query: { pages: Record<string, { imageinfo: Array<{ timestamp: string, sha1: string, descriptionurl: string }> }> } }
         const info = Object.values(commons.query.pages)[0]?.imageinfo[0]
-        if (!info) throw new Error('Missing pinned Commons metadata')
+        if (!info) throw new AppValidationError('Missing pinned Commons metadata')
         imageFileRevision = { timestamp: info.timestamp, sha1: info.sha1, descriptionURL: info.descriptionurl }
         requireMatch(entry['imageFileRevision'], imageFileRevision, `${spec.id} Commons image revision`)
         requireMatch(originals[0]!['revision'], info.timestamp, `${spec.id} thumbnail source revision`)
       }
       const bytes = await read(input), image = new Bun.Image(bytes), metadata = await image.metadata(), sourceMetadata = await new Bun.Image(imageBytes).metadata()
       const decoded = await image.png().bytes()
-      if (!decoded.length || hash(bytes) !== entry['inputSha256'] || metadata.format !== 'png' || metadata.width !== entry['width'] || metadata.height !== entry['height']) throw new Error(`Invalid prepared PNG: ${spec.id}`)
+      if (!decoded.length || hash(bytes) !== entry['inputSha256'] || metadata.format !== 'png' || metadata.width !== entry['width'] || metadata.height !== entry['height']) throw new AppValidationError(`Invalid prepared PNG: ${spec.id}`)
       let regenerated: Uint8Array
       if (spec.crop) {
         const c = spec.crop
         const process = Bun.spawn(['magick', await boundedPath(sourceImage), '-crop', `${c.width}x${c.height}+${c.x}+${c.y}`, '+repage', '-strip', 'PNG32:-'], { stdout: 'pipe', stderr: 'pipe' })
         const result = await new Response(process.stdout).arrayBuffer()
-        if (await process.exited !== 0) throw new Error(await new Response(process.stderr).text())
+        if (await process.exited !== 0) throw new AppInfrastructureError(await new Response(process.stderr).text())
         regenerated = new Uint8Array(result)
       } else regenerated = await new Bun.Image(imageBytes).png().bytes()
-      if (hash(await new Bun.Image(regenerated).png().bytes()) !== hash(decoded)) throw new Error(`Prepared image differs from pinned source/recorded crop: ${spec.id}`)
+      if (hash(await new Bun.Image(regenerated).png().bytes()) !== hash(decoded)) throw new AppValidationError(`Prepared image differs from pinned source/recorded crop: ${spec.id}`)
       imagesFullyDecoded++
       requireMatch(JSON.parse(await text(structuredReference)), referenceStructure(spec, sourceText, metadata, sourceMetadata, imageFileRevision), `${spec.id} structured reference`)
       const review = objectRecord(entry['review'], 'review')
@@ -359,11 +361,11 @@ export const validateHistoricalNewspaperBundles = async (projectRoot = PROJECT_R
 }
 
 export const parseHistoricalPreparationMode = (args: readonly string[]): '--validate' | '--prepare-local' => {
-  if (args.length !== 1 || (args[0] !== '--validate' && args[0] !== '--prepare-local')) throw new Error('Usage: bun src/tools/ocr-preparation/prepare-historical-newspapers.ts --validate|--prepare-local (local source preparation/validation only; no OCR, downloads or provider execution)')
+  if (args.length !== 1 || (args[0] !== '--validate' && args[0] !== '--prepare-local')) throw new AppUsageError('Usage: bun src/tools/ocr-preparation/prepare-historical-newspapers.ts --validate|--prepare-local (local source preparation/validation only; no OCR, downloads or provider execution)')
   return args[0]
 }
 
 if (import.meta.main) {
   const mode = parseHistoricalPreparationMode(Bun.argv.slice(2))
-  console.log(json(mode === '--validate' ? await validateHistoricalNewspaperBundles() : await prepare()))
+  writeCommandPayload((json(mode === '--validate' ? await validateHistoricalNewspaperBundles() : await prepare())) + '\n')
 }

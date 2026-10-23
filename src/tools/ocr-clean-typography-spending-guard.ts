@@ -1,3 +1,4 @@
+import { AppValidationError } from '~/utils/error-handler'
 import { randomUUID } from 'node:crypto'
 import { mkdir, open, readFile, realpath, rename, unlink } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
@@ -101,7 +102,7 @@ export interface CleanTypographySpendingGuardOptions {
   planPath?: string
 }
 
-function fail(message: string): never { throw new Error(`OCR spending guard: ${message}`) }
+function fail(message: string): never { throw new AppValidationError(`OCR spending guard: ${message}`) }
 const finiteNonnegative = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0
 const tokenCount = (value: unknown): value is number => finiteNonnegative(value) && Number.isSafeInteger(value)
 const roundedCents = (value: number): number => Math.ceil(value * 1_000_000) / 1_000_000

@@ -1,3 +1,5 @@
+import { AppValidationError, AppUsageError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { isDeepStrictEqual } from 'node:util'
 import { resolve } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/project-root'
@@ -44,28 +46,28 @@ export interface CanonicalTable {
 
 /** Preserve every source character except platform line endings and the final newline convention. */
 export const serializeCodeReference = (source: string): string => {
-  if (!source.trim() || source.includes('\0')) throw new Error('Source code must be nonempty UTF-8 text')
+  if (!source.trim() || source.includes('\0')) throw new AppValidationError('Source code must be nonempty UTF-8 text')
   return source.replace(/\r\n?/g, '\n').replace(/\n*$/, '\n')
 }
 
 export const assertCodeReferenceMatchesSource = (source: string, reference: string): void => {
-  if (serializeCodeReference(source) !== reference) throw new Error('Code reference differs from exact visible source fragment')
+  if (serializeCodeReference(source) !== reference) throw new AppValidationError('Code reference differs from exact visible source fragment')
 }
 
 /** Formatting belongs in rawTokens; visible characters, including signs and superscript text, remain. */
 export const tableTokenText = (tokens: string[]): string => {
-  if (!Array.isArray(tokens) || tokens.some(token => typeof token !== 'string')) throw new Error('Cell tokens must be strings')
+  if (!Array.isArray(tokens) || tokens.some(token => typeof token !== 'string')) throw new AppValidationError('Cell tokens must be strings')
   let text = tokens.join('').replace(/<br\s*\/?\s*>/gi, ' ').replace(/<\/?(?:b|i|sup|sub|strong|em)>/gi, '')
-  if (/<\/?[a-z][^>]*>/i.test(text)) throw new Error('Unknown table cell markup')
+  if (/<\/?[a-z][^>]*>/i.test(text)) throw new AppValidationError('Unknown table cell markup')
   const entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
   text = text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (_all, entity: string) => {
     if (entity.startsWith('#')) {
       const value = entity.toLowerCase().startsWith('#x') ? Number.parseInt(entity.slice(2), 16) : Number.parseInt(entity.slice(1), 10)
-      if (!Number.isSafeInteger(value) || value < 1 || value > 0x10ffff || (value >= 0xd800 && value <= 0xdfff)) throw new Error('Invalid numeric HTML entity')
+      if (!Number.isSafeInteger(value) || value < 1 || value > 0x10ffff || (value >= 0xd800 && value <= 0xdfff)) throw new AppValidationError('Invalid numeric HTML entity')
       return String.fromCodePoint(value)
     }
     const decoded = entities[entity.toLowerCase()]
-    if (decoded === undefined) throw new Error(`Unsupported HTML entity: ${entity}`)
+    if (decoded === undefined) throw new AppValidationError(`Unsupported HTML entity: ${entity}`)
     return decoded
   })
   return text.replace(/\s+/g, ' ').trim()
@@ -73,11 +75,11 @@ export const tableTokenText = (tokens: string[]): string => {
 
 /** Map official row-major structure onto source cells without deleting blank or merged cells. */
 export const canonicalizeTable = (source: TableSourceRecord): CanonicalTable => {
-  if (!source.filename || !Array.isArray(source.html?.cells) || !Array.isArray(source.html.structure?.tokens)) throw new Error('Invalid table source record')
-  if (source.html.structure.tokens.some(token => typeof token !== 'string')) throw new Error('Structure tokens must be strings')
+  if (!source.filename || !Array.isArray(source.html?.cells) || !Array.isArray(source.html.structure?.tokens)) throw new AppValidationError('Invalid table source record')
+  if (source.html.structure.tokens.some(token => typeof token !== 'string')) throw new AppValidationError('Structure tokens must be strings')
   const structure = source.html.structure.tokens.join('')
   const tags = structure.match(/<[^>]*>/g) ?? []
-  if (tags.join('') !== structure) throw new Error('Unexpected text in table structure')
+  if (tags.join('') !== structure) throw new AppValidationError('Unexpected text in table structure')
   const occupied = new Set<string>()
   const cells: CanonicalTableCell[] = []
   let row = -1
@@ -91,30 +93,30 @@ export const canonicalizeTable = (source: TableSourceRecord): CanonicalTable => 
     if (tag === '</thead>') { header = false; continue }
     if (['<tbody>', '</tbody>', '<table>', '</table>'].includes(tag)) continue
     if (tag === '<tr>') {
-      if (inRow || cellOpen) throw new Error('Nested table row')
+      if (inRow || cellOpen) throw new AppValidationError('Nested table row')
       row++; inRow = true; column = 0; continue
     }
     if (tag === '</tr>') {
-      if (!inRow || cellOpen) throw new Error('Unclosed table cell')
+      if (!inRow || cellOpen) throw new AppValidationError('Unclosed table cell')
       inRow = false; continue
     }
     if (tag === '</td>' || tag === '</th>') {
-      if (!cellOpen) throw new Error('Unmatched closing table cell')
+      if (!cellOpen) throw new AppValidationError('Unmatched closing table cell')
       cellOpen = false; continue
     }
     const opening = /^<(td|th)((?:\s+(?:rowspan|colspan)="[1-9]\d*")*)>$/.exec(tag)
-    if (!opening || !inRow || cellOpen) throw new Error(`Invalid table structure tag: ${tag}`)
+    if (!opening || !inRow || cellOpen) throw new AppValidationError(`Invalid table structure tag: ${tag}`)
     const attrs = opening[2] ?? ''
     const rowSpan = Number(/rowspan="(\d+)"/.exec(attrs)?.[1] ?? '1')
     const columnSpan = Number(/colspan="(\d+)"/.exec(attrs)?.[1] ?? '1')
-    if ((attrs.match(/rowspan=/g)?.length ?? 0) > 1 || (attrs.match(/colspan=/g)?.length ?? 0) > 1 || rowSpan > 1000 || columnSpan > 1000) throw new Error('Invalid table span')
+    if ((attrs.match(/rowspan=/g)?.length ?? 0) > 1 || (attrs.match(/colspan=/g)?.length ?? 0) > 1 || rowSpan > 1000 || columnSpan > 1000) throw new AppValidationError('Invalid table span')
     while (occupied.has(`${row}:${column}`)) column++
     const sourceCell = source.html.cells[cells.length]
-    if (!sourceCell) throw new Error('Structure has more cells than annotations')
-    if (sourceCell.span && (sourceCell.span.rowspan !== rowSpan || sourceCell.span.colspan !== columnSpan)) throw new Error('Cell span disagrees with structure')
+    if (!sourceCell) throw new AppValidationError('Structure has more cells than annotations')
+    if (sourceCell.span && (sourceCell.span.rowspan !== rowSpan || sourceCell.span.colspan !== columnSpan)) throw new AppValidationError('Cell span disagrees with structure')
     for (let r = row; r < row + rowSpan; r++) for (let c = column; c < column + columnSpan; c++) {
       const key = `${r}:${c}`
-      if (occupied.has(key)) throw new Error('Overlapping table cells')
+      if (occupied.has(key)) throw new AppValidationError('Overlapping table cells')
       occupied.add(key)
     }
     cells.push({ index: cells.length, row, column, rowSpan, columnSpan,
@@ -122,8 +124,8 @@ export const canonicalizeTable = (source: TableSourceRecord): CanonicalTable => 
       ...(sourceCell.bbox ? { bbox: [...sourceCell.bbox] } : {}), isHeader: sourceCell.is_header ?? (header || opening[1] === 'th') })
     column += columnSpan; columns = Math.max(columns, column); cellOpen = true
   }
-  if (inRow || cellOpen || cells.length !== source.html.cells.length || row < 0) throw new Error('Table structure/reference cell mismatch')
-  if (cells.some(cell => cell.row + cell.rowSpan > row + 1)) throw new Error('Row span extends beyond table')
+  if (inRow || cellOpen || cells.length !== source.html.cells.length || row < 0) throw new AppValidationError('Table structure/reference cell mismatch')
+  if (cells.some(cell => cell.row + cell.rowSpan > row + 1)) throw new AppValidationError('Row span extends beyond table')
   return { schemaVersion: 1, kind: 'ocr-table-canonical', filename: source.filename, rowCount: row + 1,
     columnCount: columns, cells, structureTokens: [...source.html.structure.tokens] }
 }
@@ -133,7 +135,7 @@ export const serializeTableReference = (table: CanonicalTable): string => {
   const grid = Array.from({ length: table.rowCount }, () => Array<string>(table.columnCount).fill(''))
   for (const cell of table.cells) {
     const target = grid[cell.row]
-    if (!target || cell.column < 0 || cell.column >= table.columnCount) throw new Error('Cell outside table bounds')
+    if (!target || cell.column < 0 || cell.column >= table.columnCount) throw new AppValidationError('Cell outside table bounds')
     target[cell.column] = cell.text
   }
   return grid.map(row => row.join('\t')).join('\n') + '\n'
@@ -141,8 +143,8 @@ export const serializeTableReference = (table: CanonicalTable): string => {
 
 export const assertTableReferenceMatchesSource = (source: TableSourceRecord, actual: CanonicalTable, text: string): void => {
   const expected = canonicalizeTable(source)
-  if (!isDeepStrictEqual(actual, expected)) throw new Error('Structured table reference differs from source cells, text or spans')
-  if (serializeTableReference(expected) !== text) throw new Error('Table text reference differs from canonical row-major view')
+  if (!isDeepStrictEqual(actual, expected)) throw new AppValidationError('Structured table reference differs from source cells, text or spans')
+  if (serializeTableReference(expected) !== text) throw new AppValidationError('Table text reference differs from canonical row-major view')
 }
 
 const codePins = [
@@ -164,18 +166,18 @@ const tablePins = [
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n'
 const pinnedRead = async (path: string, expectedHash?: string) => {
   const bytes = new Uint8Array(await Bun.file(resolve(PROJECT_ROOT, path)).arrayBuffer())
-  if (expectedHash && hash(bytes) !== expectedHash) throw new Error(`Source hash mismatch: ${path}`)
+  if (expectedHash && hash(bytes) !== expectedHash) throw new AppValidationError(`Source hash mismatch: ${path}`)
   return bytes
 }
 const dimensions = async (bytes: Uint8Array) => {
   const image = new Bun.Image(bytes)
   const metadata = await image.metadata()
-  if (!(await image.png().bytes()).length) throw new Error('Empty decoded PNG')
+  if (!(await image.png().bytes()).length) throw new AppValidationError('Empty decoded PNG')
   return { width: metadata.width, height: metadata.height }
 }
 const output = async (path: string, text: string, write: boolean) => {
   if (write) await Bun.write(resolve(PROJECT_ROOT, path), text)
-  else if (utf8(await pinnedRead(path)) !== text) throw new Error(`Prepared artifact differs from deterministic source conversion: ${path}`)
+  else if (utf8(await pinnedRead(path)) !== text) throw new AppValidationError(`Prepared artifact differs from deterministic source conversion: ${path}`)
 }
 const original = async (path: string, url: string, revision: string, selector?: string) => ({
   path, sha256: hash(await pinnedRead(path)), url, revision, ...(selector ? { selector } : {})
@@ -218,10 +220,10 @@ export const prepareCodeAndTableBundles = async (write = false) => {
     const source = `${tableRoot}/source/${sourceName}`
     const records = utf8(await pinnedRead(source, sourceHash)).trim().split('\n').map(line => JSON.parse(line) as TableSourceRecord)
     const matching = records.filter(record => record.filename === filename)
-    if (matching.length !== 1) throw new Error(`Expected one exact table filename: ${filename}`)
+    if (matching.length !== 1) throw new AppValidationError(`Expected one exact table filename: ${filename}`)
     const record = matching[0]!
     const canonical = canonicalizeTable(record)
-    if (canonical.cells.length !== expectedCells) throw new Error(`Unexpected table cell count: ${filename}`)
+    if (canonical.cells.length !== expectedCells) throw new AppValidationError(`Unexpected table cell count: ${filename}`)
     const reference = `${tableRoot}/references/${id}.txt`
     const structuredReference = `${tableRoot}/references/${id}.json`
     const text = serializeTableReference(canonical)
@@ -261,6 +263,6 @@ export const prepareCodeAndTableBundles = async (write = false) => {
 
 if (import.meta.main) {
   const args = process.argv.slice(2)
-  if (args.length !== 1 || !['--prepare', '--validate'].includes(args[0]!)) throw new Error('Usage: bun src/tools/ocr-preparation/prepare-code-tables.ts --prepare|--validate (local files only; never runs OCR)')
-  console.log(json(await prepareCodeAndTableBundles(args[0] === '--prepare')))
+  if (args.length !== 1 || !['--prepare', '--validate'].includes(args[0]!)) throw new AppUsageError('Usage: bun src/tools/ocr-preparation/prepare-code-tables.ts --prepare|--validate (local files only; never runs OCR)')
+  writeCommandPayload((json(await prepareCodeAndTableBundles(args[0] === '--prepare'))) + '\n')
 }

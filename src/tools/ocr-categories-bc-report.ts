@@ -1,3 +1,5 @@
+import { AppValidationError, AppUsageError, AppInfrastructureError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { mkdir, realpath, rename } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -86,7 +88,7 @@ export interface BcOcrReportOptions {
 }
 
 const portable = (path: string): void => {
-  if (isAbsolute(path) || /[:\\\x00]/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('Expected a normalized project-relative artifact path')
+  if (isAbsolute(path) || /[:\\\x00]/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..')) throw new AppValidationError('Expected a normalized project-relative artifact path')
 }
 const safeStem = (value: string): string => value.replace(/[^a-zA-Z0-9_.-]/g, '-')
 export const bcOcrReportArtifactDir = (provider: string, model: string): string => `providers/${encodeURIComponent(`${provider}-${model}`)}`
@@ -108,14 +110,14 @@ export const assertNewspaperOcrResultComplete = (result: Record<string, unknown>
   const records = [result, ...(record(metadata) ? [metadata] : [])]
   for (const value of records) {
     if (value['truncated'] === true || value['incomplete'] === true || value['outputLimitReached'] === true
-      || value['status'] === 'incomplete') throw new Error('Newspaper result has an explicit incomplete-output flag')
+      || value['status'] === 'incomplete') throw new AppValidationError('Newspaper result has an explicit incomplete-output flag')
     for (const key of ['finishReason', 'finish_reason', 'nativeFinishReason', 'stop_reason']) {
       const reason = value[key]
       if (typeof reason === 'string' && ['length', 'max_tokens', 'max_output_tokens', 'max_output_limit'].includes(reason.toLowerCase())) {
-        throw new Error('Newspaper result reached a native output limit')
+        throw new AppValidationError('Newspaper result reached a native output limit')
       }
     }
-    if (record(value['incomplete_details']) && value['incomplete_details']['reason'] === 'max_output_tokens') throw new Error('Newspaper result reached a native output limit')
+    if (record(value['incomplete_details']) && value['incomplete_details']['reason'] === 'max_output_tokens') throw new AppValidationError('Newspaper result reached a native output limit')
   }
 }
 
@@ -269,7 +271,7 @@ const advertisementScopeReason = 'Primary word-region recognition/localization a
 /** A limited text-presence diagnostic, never a region accuracy or full-image precision score. */
 export const scoreAnnotatedTokenCoverage = (reference: string, candidate: string) => {
   const referenceTokens = tokenize(reference), candidateTokens = tokenize(candidate)
-  if (!referenceTokens.length) throw new Error('Annotated reference has no tokens under the declared normalization')
+  if (!referenceTokens.length) throw new AppValidationError('Annotated reference has no tokens under the declared normalization')
   const expected = new Map<string, number>(), observed = new Map<string, number>()
   for (const token of referenceTokens) expected.set(token, (expected.get(token) ?? 0) + 1)
   for (const token of candidateTokens) observed.set(token, (observed.get(token) ?? 0) + 1)
@@ -307,9 +309,9 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
   const root = await realpath(options.projectRoot ?? PROJECT_ROOT)
   const within = (path: string): string => { portable(path); return resolve(root, path) }
   const existing = async (path: string): Promise<string> => {
-    const pathOnDisk = await realpath(within(path)).catch(() => { throw new Error(`Missing local artifact: ${path}`) })
+    const pathOnDisk = await realpath(within(path)).catch(() => { throw new AppValidationError(`Missing local artifact: ${path}`) })
     const rel = relative(root, pathOnDisk)
-    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error('Artifact escapes project root')
+    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new AppValidationError('Artifact escapes project root')
     return pathOnDisk
   }
   const bytes = async (path: string): Promise<Uint8Array> => new Uint8Array(await Bun.file(await existing(path)).arrayBuffer())
@@ -319,21 +321,21 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
   const ledgerPath = options.ledgerPath ?? `${localRoot}/spending-ledger.json`
   const ledger = v.parse(ledgerSchema, await readJson(ledgerPath))
   if (plan.kind !== profile.planKind || plan.approval.budgetCents !== profile.budgetCents || plan.approval.evidence !== profile.approvalEvidence
-    || ledger.kind !== profile.ledgerKind || ledger.budgetCents !== profile.budgetCents) throw new Error('Plan or ledger differs from the selected report profile')
-  if (hash(await bytes(planPath)) !== ledger.planSha256) throw new Error('Execution plan differs from spending-ledger authorization')
+    || ledger.kind !== profile.ledgerKind || ledger.budgetCents !== profile.budgetCents) throw new AppValidationError('Plan or ledger differs from the selected report profile')
+  if (hash(await bytes(planPath)) !== ledger.planSha256) throw new AppValidationError('Execution plan differs from spending-ledger authorization')
   if (new Set(plan.cases.map(row => row.id)).size !== plan.cases.length || new Set(plan.pages.map(row => row.id)).size !== plan.pages.length
     || new Set(plan.targets.map(row => `${row.provider}/${row.model}`)).size !== plan.targets.length
     || plan.targets.filter(row => row.provider === 'tesseract' && row.model === 'tesseract').length !== 1
-    || new Set(ledger.receipts.map(row => row.id)).size !== ledger.receipts.length) throw new Error('Duplicate or invalid batch identities')
+    || new Set(ledger.receipts.map(row => row.id)).size !== ledger.receipts.length) throw new AppValidationError('Duplicate or invalid batch identities')
   if (options.buildCaseIds && (options.reportProfile !== 'newspapers' || !options.buildCaseIds.length || new Set(options.buildCaseIds).size !== options.buildCaseIds.length
-    || options.buildCaseIds.some(id => !plan.cases.some(entry => entry.id === id)))) throw new Error('Report rebuild filter must name distinct authorized cases')
+    || options.buildCaseIds.some(id => !plan.cases.some(entry => entry.id === id)))) throw new AppValidationError('Report rebuild filter must name distinct authorized cases')
   for (const receipt of ledger.receipts) {
     const page = plan.pages.find(row => row.id === receipt.caseId)
     if (!page || receipt.inputSha256 !== page.inputSha256 || receipt.documentCaseId !== undefined && receipt.documentCaseId !== page.caseId
       || !plan.targets.some(row => row.provider === receipt.provider && row.model === receipt.model)
       || receipt.status === 'rejected' && receipt.chargedCents !== 0
       || ['reserved', 'ambiguous'].includes(receipt.status) && receipt.chargedCents !== receipt.reservedCents
-      || !Number.isFinite(Date.parse(receipt.createdAt))) throw new Error('Receipt differs from approved page or target')
+      || !Number.isFinite(Date.parse(receipt.createdAt))) throw new AppValidationError('Receipt differs from approved page or target')
   }
   const prepared = []
   const usedPages = new Set<string>()
@@ -343,77 +345,77 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
     const efgCategory = entry.category === 'numeric-tables' || entry.category === 'handwriting' || entry.category === 'newspapers' ? entry.category : undefined
     if (entry.runDir !== `docs/benchmarks/ocr/${entry.id}` || entry.referenceKind === 'existing-consensus' && !entry.id.startsWith(profile.rerunPrefix)
       || (efg ? !efgCategory : options.reportProfile === 'advertisements' ? entry.category !== 'advertisements' : entry.category !== 'technical-code' && entry.category !== 'historical-print')
-      || newspapers && (entry.category !== 'newspapers' || entry.referenceKind !== 'publisher-canonical' || !entry.id.startsWith('newspapers-expansion-') || entry.id.includes('north-star') || !entry.normalizedReference)) throw new Error('Case report destination or reference provenance is invalid')
-    if (hash(await bytes(entry.input)) !== entry.inputSha256 || hash(await bytes(entry.reference)) !== entry.referenceSha256) throw new Error(`Source/reference hash changed: ${entry.id}`)
+      || newspapers && (entry.category !== 'newspapers' || entry.referenceKind !== 'publisher-canonical' || !entry.id.startsWith('newspapers-expansion-') || entry.id.includes('north-star') || !entry.normalizedReference)) throw new AppValidationError('Case report destination or reference provenance is invalid')
+    if (hash(await bytes(entry.input)) !== entry.inputSha256 || hash(await bytes(entry.reference)) !== entry.referenceSha256) throw new AppValidationError(`Source/reference hash changed: ${entry.id}`)
     const referenceText = new TextDecoder('utf-8', { fatal: true }).decode(await bytes(entry.reference))
-    if (!referenceText.trim()) throw new Error('Reference text is empty')
+    if (!referenceText.trim()) throw new AppValidationError('Reference text is empty')
     let regionCount: number | undefined
     const partialReference = entry.category === 'advertisements' && entry.referenceKind === 'publisher-canonical'
     if (partialReference) {
-      if (entry.evaluationScope !== 'dataset-annotated-word-regions' || !entry.structuredReference || !entry.structuredReferenceSha256) throw new Error('Advertisement annotation scope/provenance is missing')
+      if (entry.evaluationScope !== 'dataset-annotated-word-regions' || !entry.structuredReference || !entry.structuredReferenceSha256) throw new AppValidationError('Advertisement annotation scope/provenance is missing')
       const structuredBytes = await bytes(entry.structuredReference)
-      if (hash(structuredBytes) !== entry.structuredReferenceSha256) throw new Error('Advertisement structured-reference hash changed')
+      if (hash(structuredBytes) !== entry.structuredReferenceSha256) throw new AppValidationError('Advertisement structured-reference hash changed')
       const structure = v.parse(advertisementReferenceSchema, JSON.parse(new TextDecoder().decode(structuredBytes)))
       const regions = new Map(structure.regions.filter(region => !region.ignore).map(region => [region.id, region.text]))
       const ids = structure.reviewedReadingOrder.lines.flat()
       if (new Set(structure.regions.map(region => region.id)).size !== structure.regions.length || new Set(ids).size !== regions.size
         || ids.length !== regions.size || ids.some(id => !regions.has(id))
-        || structure.reviewedReadingOrder.lines.map(line => line.map(id => regions.get(id)).join(' ')).join('\n') + '\n' !== referenceText) throw new Error('Advertisement region text/order differs from the publisher reference')
+        || structure.reviewedReadingOrder.lines.map(line => line.map(id => regions.get(id)).join(' ')).join('\n') + '\n' !== referenceText) throw new AppValidationError('Advertisement region text/order differs from the publisher reference')
       regionCount = regions.size
     }
     if (entry.normalizedReference) {
       const normalized = await bytes(entry.normalizedReference)
       if (!entry.normalizedReferenceSha256 || hash(normalized) !== entry.normalizedReferenceSha256
-        || new TextDecoder().decode(normalized) !== normalizeHistoricalReference(referenceText)) throw new Error('Historical normalized reference differs from its declared conversion')
+        || new TextDecoder().decode(normalized) !== normalizeHistoricalReference(referenceText)) throw new AppValidationError('Historical normalized reference differs from its declared conversion')
     }
     let readingReferenceText: string | undefined
     let efgStructure: ReturnType<typeof validateEfgOcrStructure> | undefined
     if (efg && entry.referenceKind === 'publisher-canonical') {
-      if (!efgCategory || !entry.scope || !['full-page', 'region-crop'].includes(entry.scope) || !entry.serializationPolicy || !entry.structuredReference || !entry.structuredReferenceSha256) throw new Error('EFG reference scope/serialization provenance is missing')
+      if (!efgCategory || !entry.scope || !['full-page', 'region-crop'].includes(entry.scope) || !entry.serializationPolicy || !entry.structuredReference || !entry.structuredReferenceSha256) throw new AppValidationError('EFG reference scope/serialization provenance is missing')
       const structureBytes = await bytes(entry.structuredReference)
-      if (hash(structureBytes) !== entry.structuredReferenceSha256) throw new Error('EFG structured-reference hash changed')
+      if (hash(structureBytes) !== entry.structuredReferenceSha256) throw new AppValidationError('EFG structured-reference hash changed')
       efgStructure = validateEfgOcrStructure(efgCategory, JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(structureBytes)), referenceText)
-      if (efgCategory === 'newspapers' && !entry.normalizedReference || efgStructure.referenceStructureKind === 'reviewed-manuscript' && !entry.readingReference) throw new Error('Declared historical/manuscript companion reference is missing')
+      if (efgCategory === 'newspapers' && !entry.normalizedReference || efgStructure.referenceStructureKind === 'reviewed-manuscript' && !entry.readingReference) throw new AppValidationError('Declared historical/manuscript companion reference is missing')
     }
     if (entry.readingReference) {
       const reading = await bytes(entry.readingReference)
-      if (!efg || efgStructure?.referenceStructureKind !== 'reviewed-manuscript' || !entry.readingReferenceSha256 || hash(reading) !== entry.readingReferenceSha256) throw new Error('Manuscript reading-companion provenance/hash changed')
+      if (!efg || efgStructure?.referenceStructureKind !== 'reviewed-manuscript' || !entry.readingReferenceSha256 || hash(reading) !== entry.readingReferenceSha256) throw new AppValidationError('Manuscript reading-companion provenance/hash changed')
       readingReferenceText = new TextDecoder('utf-8', { fatal: true }).decode(reading)
-      if (!readingReferenceText.trim()) throw new Error('Manuscript reading companion is empty')
+      if (!readingReferenceText.trim()) throw new AppValidationError('Manuscript reading companion is empty')
     }
-    if (!entry.readingReference && entry.readingReferenceSha256 || !entry.normalizedReference && entry.normalizedReferenceSha256) throw new Error('Reference companion path/hash pairing is incomplete')
+    if (!entry.readingReference && entry.readingReferenceSha256 || !entry.normalizedReference && entry.normalizedReferenceSha256) throw new AppValidationError('Reference companion path/hash pairing is incomplete')
     let referenceAdjudication: Record<string, unknown> | undefined
     if (newspapers && includeFidelity && entry.id === 'newspapers-expansion-bln-era-burglars') {
       const path = `${localRoot}/reference-adjudication-evidence.json`, proofBytes = await bytes(path), proof: unknown = JSON.parse(new TextDecoder().decode(proofBytes))
-      if (!record(proof) || proof['kind'] !== 'ocr-newspaper-reference-adjudication-evidence' || proof['goldChangesApplied'] !== false || proof['primaryScoresChanged'] !== false || !Array.isArray(proof['entries'])) throw new Error('ERA source-spacing adjudication provenance is invalid')
+      if (!record(proof) || proof['kind'] !== 'ocr-newspaper-reference-adjudication-evidence' || proof['goldChangesApplied'] !== false || proof['primaryScoresChanged'] !== false || !Array.isArray(proof['entries'])) throw new AppValidationError('ERA source-spacing adjudication provenance is invalid')
       const matches = proof['entries'].filter(value => record(value) && value['caseId'] === entry.id)
       const item: unknown = matches[0]
       if (matches.length !== 1 || !record(item) || item['input'] !== entry.input || item['inputSha256'] !== entry.inputSha256
         || item['canonicalReference'] !== entry.reference || item['canonicalReferenceSha256'] !== entry.referenceSha256
         || item['printedReading'] !== 'some one' || item['frozenReferenceReading'] !== 'someone' || item['wordingInferredFromModelAgreement'] !== false
         || typeof item['evidenceImage'] !== 'string' || !item['evidenceImage'].startsWith(`${localRoot}/originals/`)
-        || typeof item['evidenceImageSha256'] !== 'string' || !record(item['sourceCrop']) || !record(item['imageTransform']) || item['imageTransform']['resampling'] !== false) throw new Error('ERA source-spacing adjudication differs from the pinned input/reference')
+        || typeof item['evidenceImageSha256'] !== 'string' || !record(item['sourceCrop']) || !record(item['imageTransform']) || item['imageTransform']['resampling'] !== false) throw new AppValidationError('ERA source-spacing adjudication differs from the pinned input/reference')
       const evidenceBytes = await bytes(item['evidenceImage'])
-      if (hash(evidenceBytes) !== item['evidenceImageSha256']) throw new Error('ERA source-spacing evidence image checksum changed')
+      if (hash(evidenceBytes) !== item['evidenceImageSha256']) throw new AppValidationError('ERA source-spacing evidence image checksum changed')
       const source = decodePngRgba8(await bytes(entry.input)), crop = decodePngRgba8(evidenceBytes)
       const box = item['sourceCrop'], x = box['x'], y = box['y'], width = box['width'], height = box['height']
       if (typeof x !== 'number' || typeof y !== 'number' || typeof width !== 'number' || typeof height !== 'number'
         || ![x, y, width, height].every(Number.isSafeInteger) || x < 0 || y < 0 || width < 1 || height < 1
-        || x + width > source.width || y + height > source.height || crop.width !== width || crop.height !== height) throw new Error('ERA source-spacing evidence crop bounds changed')
+        || x + width > source.width || y + height > source.height || crop.width !== width || crop.height !== height) throw new AppValidationError('ERA source-spacing evidence crop bounds changed')
       for (let row = 0; row < height; row++) for (let column = 0; column < width * 4; column++) {
-        if (source.pixels[((y + row) * source.width + x) * 4 + column] !== crop.pixels[row * width * 4 + column]) throw new Error('ERA source-spacing evidence pixels differ from the pinned input')
+        if (source.pixels[((y + row) * source.width + x) * 4 + column] !== crop.pixels[row * width * 4 + column]) throw new AppValidationError('ERA source-spacing evidence pixels differ from the pinned input')
       }
       referenceAdjudication = { path, sha256: hash(proofBytes), evidenceImage: item['evidenceImage'], evidenceImageSha256: item['evidenceImageSha256'],
         policy: 'Independent visual review of a pixel-identical crop of the pinned input; frozen primary gold and scores remain unchanged.' }
     }
     const pages = entry.pages.map(value => {
       const found = plan.pages.find(page => page.id === (typeof value === 'string' ? value : value.id))
-      if (!found || found.caseId !== entry.id || typeof value !== 'string' && !isDeepStrictEqual(value, found) || usedPages.has(found.id)) throw new Error('Case/page membership differs from approved plan')
+      if (!found || found.caseId !== entry.id || typeof value !== 'string' && !isDeepStrictEqual(value, found) || usedPages.has(found.id)) throw new AppValidationError('Case/page membership differs from approved plan')
       usedPages.add(found.id)
       return found
     }).sort((a, b) => a.pageNumber - b.pageNumber)
-    if (!pages.every((page, index) => page.pageNumber === index + 1)) throw new Error('Case page numbering must be complete and contiguous')
-    for (const page of pages) if (hash(await bytes(page.input)) !== page.inputSha256) throw new Error('Approved rendered page bytes changed')
+    if (!pages.every((page, index) => page.pageNumber === index + 1)) throw new AppValidationError('Case page numbering must be complete and contiguous')
+    for (const page of pages) if (hash(await bytes(page.input)) !== page.inputSha256) throw new AppValidationError('Approved rendered page bytes changed')
     const providers: PreparedProvider[] = []
     for (const target of plan.targets) {
       const savedPages: SavedPage[] = []
@@ -425,41 +427,41 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
         const journal = v.parse(journalSchema, await readJson(journalPath))
         if (journal.caseId !== page.id || journal.documentCaseId !== entry.id || journal.provider !== target.provider || journal.model !== target.model
           || journal.inputSha256 !== page.inputSha256 || journal.referenceSha256 !== entry.referenceSha256 || journal.directory !== directory
-          || !Number.isFinite(Date.parse(journal.startedAt))) throw new Error('Page dispatch journal identity changed')
+          || !Number.isFinite(Date.parse(journal.startedAt))) throw new AppValidationError('Page dispatch journal identity changed')
         if (newspapers && journal.status !== 'dispatch-started') {
-          if (!journal.artifactHashes?.length || new Set(journal.artifactHashes.map(pin => pin.path)).size !== journal.artifactHashes.length) throw new Error('Newspaper journal lacks unique completed artifact pins')
+          if (!journal.artifactHashes?.length || new Set(journal.artifactHashes.map(pin => pin.path)).size !== journal.artifactHashes.length) throw new AppValidationError('Newspaper journal lacks unique completed artifact pins')
           for (const pin of journal.artifactHashes) {
             portable(pin.path)
-            if (!pin.path.startsWith(`${directory}/`) || hash(await bytes(pin.path)) !== pin.sha256) throw new Error('Saved newspaper artifact checksum changed')
+            if (!pin.path.startsWith(`${directory}/`) || hash(await bytes(pin.path)) !== pin.sha256) throw new AppValidationError('Saved newspaper artifact checksum changed')
           }
           for (const name of ['manifest.json', 'result.json', 'failure.txt']) {
             const path = `${directory}/${name}`
-            if (await Bun.file(within(path)).exists() && !journal.artifactHashes.some(pin => pin.path === path)) throw new Error('Saved newspaper result or failure evidence is not journal-pinned')
+            if (await Bun.file(within(path)).exists() && !journal.artifactHashes.some(pin => pin.path === path)) throw new AppValidationError('Saved newspaper result or failure evidence is not journal-pinned')
           }
         }
         const status = journal.status === 'dispatch-started' ? 'running' : journal.status
         if (!journal.manifestSha256) {
-          if (status === 'succeeded' || await Bun.file(within(`${directory}/manifest.json`)).exists()) throw new Error('Saved page manifest is not journal-pinned')
+          if (status === 'succeeded' || await Bun.file(within(`${directory}/manifest.json`)).exists()) throw new AppValidationError('Saved page manifest is not journal-pinned')
           const failurePath = `${directory}/failure.txt`
           const failureKind = newspapers && status === 'failed' && await Bun.file(within(failurePath)).exists()
             ? classifyNewspaperFailureLog(new TextDecoder('utf-8', { fatal: true }).decode(await bytes(failurePath))) : undefined
           savedPages.push({ page, status, journalPath, receipts, ...(failureKind ? { failureKind } : {}) }); continue
         }
         const manifestBytes = await bytes(`${directory}/manifest.json`)
-        if (hash(manifestBytes) !== journal.manifestSha256) throw new Error('Saved page manifest checksum changed')
+        if (hash(manifestBytes) !== journal.manifestSha256) throw new AppValidationError('Saved page manifest checksum changed')
         const manifest: unknown = JSON.parse(new TextDecoder().decode(manifestBytes))
-        if (!record(manifest) || manifest['command'] !== 'extract' || manifest['scope'] !== 'single' || !Array.isArray(manifest['items']) || manifest['items'].length !== 1) throw new Error('Invalid saved page manifest')
+        if (!record(manifest) || manifest['command'] !== 'extract' || manifest['scope'] !== 'single' || !Array.isArray(manifest['items']) || manifest['items'].length !== 1) throw new AppValidationError('Invalid saved page manifest')
         const item: unknown = manifest['items'][0]
         if (!record(item) || item['extractRoute'] !== 'document' || !record(item['metadata']) || !record(item['metadata']['source'])
-          || item['metadata']['source']['filePath'] !== page.input || !Array.isArray(item['providers']) || item['providers'].length !== 1) throw new Error('Saved page source differs from approved image')
+          || item['metadata']['source']['filePath'] !== page.input || !Array.isArray(item['providers']) || item['providers'].length !== 1) throw new AppValidationError('Saved page source differs from approved image')
         const state: unknown = item['providers'][0]
-        if (!record(state) || state['service'] !== target.provider || state['model'] !== target.model || state['status'] !== journal.status || typeof state['artifactDir'] !== 'string') throw new Error('Saved page provider differs from journal')
+        if (!record(state) || state['service'] !== target.provider || state['model'] !== target.model || state['status'] !== journal.status || typeof state['artifactDir'] !== 'string') throw new AppValidationError('Saved page provider differs from journal')
         const artifact = state['artifactDir'] === '.' ? directory : `${directory}/${state['artifactDir']}`
         await existing(artifact)
         let result: unknown = state['result']
         if (await Bun.file(within(`${artifact}/result.json`)).exists()) {
           const sidecar = await readJson(`${artifact}/result.json`)
-          if (result !== undefined && !isDeepStrictEqual(result, sidecar)) throw new Error('Saved inline and sidecar page results disagree')
+          if (result !== undefined && !isDeepStrictEqual(result, sidecar)) throw new AppValidationError('Saved inline and sidecar page results disagree')
           result = sidecar
         }
         let pageText: string | undefined
@@ -467,16 +469,16 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
         if (status === 'succeeded') {
           if (!record(result) || !Array.isArray(result['pages']) || result['pages'].length !== 1 || !record(result['pages'][0])
             || !(result['pages'][0]['pageNumber'] === 1 || target.provider === 'mistral' && result['pages'][0]['pageNumber'] === 0)
-            || typeof result['pages'][0]['text'] !== 'string' || !efg && entry.category !== 'advertisements' && !result['pages'][0]['text'].trim()) throw new Error('Successful saved result lacks exactly one nonempty page')
+            || typeof result['pages'][0]['text'] !== 'string' || !efg && entry.category !== 'advertisements' && !result['pages'][0]['text'].trim()) throw new AppValidationError('Successful saved result lacks exactly one nonempty page')
           if (newspapers) assertNewspaperOcrResultComplete(result, state['metadata'])
           // Mistral OCR returns zero-based page indices. This single-page adapter only
           // reads the text; assembled page numbers always come from the approved plan.
           pageText = result['pages'][0]['text']
           if (journal.offlineResponseReview) {
-            if (!efg || target.provider !== 'grok' || target.model !== 'grok-4.7' || !record(state['metadata'])) throw new Error('Offline response review is outside its approved EFG Grok scope')
+            if (!efg || target.provider !== 'grok' || target.model !== 'grok-4.7' || !record(state['metadata'])) throw new AppValidationError('Offline response review is outside its approved EFG Grok scope')
             offlineResponseRecovery = await admitEfgOfflineReplayArtifact(journal, pageText, state['metadata']['processingTime'], root)
-            if (!receipts.some(row => row.id === offlineResponseRecovery!.receiptId && row.status === 'breach')) throw new Error('Offline response receipt is not retained in this exact page/model accounting')
-          } else if (target.provider !== 'tesseract' && !receipts.some(row => row.status === 'settled' && Date.parse(row.createdAt) >= Date.parse(journal.startedAt))) throw new Error(`Successful page has no settled current-attempt receipt: ${page.id}/${target.provider}/${target.model}; live inspection may require a fresh stable snapshot`)
+            if (!receipts.some(row => row.id === offlineResponseRecovery!.receiptId && row.status === 'breach')) throw new AppValidationError('Offline response receipt is not retained in this exact page/model accounting')
+          } else if (target.provider !== 'tesseract' && !receipts.some(row => row.status === 'settled' && Date.parse(row.createdAt) >= Date.parse(journal.startedAt))) throw new AppValidationError(`Successful page has no settled current-attempt receipt: ${page.id}/${target.provider}/${target.model}; live inspection may require a fresh stable snapshot`)
         }
         const metadata = state['metadata']
         const processingTimeMs = record(metadata) && typeof metadata['processingTime'] === 'number' && Number.isFinite(metadata['processingTime']) && metadata['processingTime'] >= 0 ? metadata['processingTime'] : undefined
@@ -578,7 +580,7 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
       pageInputs: pages.map(page => ({ id: page.id, path: page.input, sha256: page.inputSha256, width: page.width, height: page.height })) }
     prepared.push({ entry, referenceText, privateDirectory, manifest, metadata, providers, coverage, fidelity, partialReference, evaluation, diagnosticFileName, efg, newspapers })
   }
-  if (usedPages.size !== plan.pages.length) throw new Error('Unassigned plan pages cannot be silently excluded')
+  if (usedPages.size !== plan.pages.length) throw new AppValidationError('Unassigned plan pages cannot be silently excluded')
   return { root, within, prepared, ledger, profile, overview: { mode: 'local-read-only-no-provider-calls', cases: prepared.map(row => ({ id: row.entry.id, ...row.coverage })), spending: summarizeBcOcrReceipts(ledger.receipts) } }
 }
 
@@ -591,30 +593,30 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
   const selectedCases = context.prepared.filter(row => !options.buildCaseIds || options.buildCaseIds.includes(row.entry.id))
   if (options.reportProfile === 'newspapers') for (const row of selectedCases) {
     if (!row.providers.some(provider => provider.result) && await Bun.file(context.within(`${row.entry.runDir}/provider-comparison-report.json`)).exists()) {
-      throw new Error('Zero-completion newspaper case has an existing comparison; preserve and reconcile it before replacing coverage')
+      throw new AppValidationError('Zero-completion newspaper case has an existing comparison; preserve and reconcile it before replacing coverage')
     }
   }
   if (context.prepared.some(row => row.coverage.pendingModels > 0)) {
-    if (options.reportProfile !== 'newspapers') throw new Error('Page slots are missing or running; report assembly is deferred')
+    if (options.reportProfile !== 'newspapers') throw new AppValidationError('Page slots are missing or running; report assembly is deferred')
     const pages = context.prepared.flatMap(row => row.providers.flatMap(provider => provider.pages.map(page => ({ ...page, provider: provider.target.provider, model: provider.target.model }))))
     const missing = pages.filter(page => page.status === 'missing')
-    if (pages.some(page => page.status === 'running') || missing.some(page => page.receipts.length)) throw new Error('Missing newspaper slots are not confirmed terminal and unattempted')
+    if (pages.some(page => page.status === 'running') || missing.some(page => page.receipts.length)) throw new AppValidationError('Missing newspaper slots are not confirmed terminal and unattempted')
     const executionPath = await realpath(context.within(`${localRoot}/execution.json`))
     const rel = relative(context.root, executionPath)
-    if (isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) throw new Error('Terminal execution evidence escapes project root')
+    if (isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) throw new AppValidationError('Terminal execution evidence escapes project root')
     const execution: unknown = await Bun.file(executionPath).json()
     if (!record(execution) || !['completed', 'completed-with-provider-failure', 'blocked-retained-evidence'].includes(String(execution['status']))
       || execution['planSha256'] !== context.ledger.planSha256 || typeof execution['completedAt'] !== 'string' || !Number.isFinite(Date.parse(execution['completedAt']))
       || !record(execution['lanes']) || execution['lanes']['active'] !== 0
       || execution['intendedSlots'] !== pages.length || execution['pendingSlots'] !== missing.length || execution['completedSlots'] !== pages.length - missing.length
-      || !Array.isArray(execution['slots'])) throw new Error('Missing newspaper slots lack a matching terminal execution snapshot')
+      || !Array.isArray(execution['slots'])) throw new AppValidationError('Missing newspaper slots lack a matching terminal execution snapshot')
     for (const key of ['activeByProvider', 'activeByModel']) {
       const active = execution['lanes'][key]
-      if (!record(active) || Object.values(active).some(value => value !== 0)) throw new Error('Newspaper execution still has active provider work')
+      if (!record(active) || Object.values(active).some(value => value !== 0)) throw new AppValidationError('Newspaper execution still has active provider work')
     }
     const expected = pages.filter(page => page.status !== 'missing').map(page => `${page.page.id}/${page.provider}/${page.model}/${page.status}`).sort()
     const actual = execution['slots'].map(value => record(value) ? `${String(value['caseId'])}/${String(value['provider'])}/${String(value['model'])}/${String(value['status'])}` : '').sort()
-    if (!isDeepStrictEqual(actual, expected)) throw new Error('Terminal newspaper slot inventory differs from saved dispatch journals')
+    if (!isDeepStrictEqual(actual, expected)) throw new AppValidationError('Terminal newspaper slot inventory differs from saved dispatch journals')
     for (const row of context.prepared) if (row.coverage.pendingModels) {
       row.coverage.status = 'terminal-not-fully-dispatched'
       row.coverage.qualityCoverage = 'The matching terminal execution snapshot confirms these selected slots were not dispatched and have no admitted receipts. Their scores remain unavailable; they are not fabricated provider failures.'
@@ -625,10 +627,10 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
   const runConsensus = options.runConsensus ?? (async (argv: readonly string[], caseId: string): Promise<void> => {
     const child = Bun.spawn([process.execPath, 'scripts/run.ts', ...argv], { cwd: resolve(PROJECT_ROOT, '.codex/skills/consensus'), env: { ...process.env, AUTOSHOW_PROJECT_ROOT: context.root }, stdout: 'pipe', stderr: 'pipe' })
     const [stdout, stderr, exit] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
-    if (exit !== 0) throw new Error(`Local consensus report failed for ${caseId} (exit ${exit}): ${(stderr || stdout).slice(-1200)}`)
+    if (exit !== 0) throw new AppInfrastructureError(`Local consensus report failed for ${caseId} (exit ${exit}): ${(stderr || stdout).slice(-1200)}`)
   })
   for (const row of selectedCases) {
-    if (!row.fidelity) throw new Error('Supplemental fidelity metrics were not prepared for report assembly')
+    if (!row.fidelity) throw new AppValidationError('Supplemental fidelity metrics were not prepared for report assembly')
     const stage = `${localRoot}/benchmark-runs/.${row.entry.id}.assembly-${randomUUID()}`
     await mkdir(context.within(stage), { recursive: true })
     writeJson(`${stage}/manifest.json`, row.manifest)
@@ -666,14 +668,14 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
     await runConsensus(['ocr', 'build-report', context.within(row.privateDirectory), '--markdown-out', context.within(`${row.entry.runDir}/provider-comparison-report.md`), '--json-out', context.within(`${row.entry.runDir}/provider-comparison-report.json`)], row.entry.id)
     const path = `${row.entry.runDir}/provider-comparison-report.json`
     const generatedReport: unknown = await Bun.file(context.within(path)).json()
-    if (!record(generatedReport)) throw new Error('Generated metric report is invalid')
+    if (!record(generatedReport)) throw new AppValidationError('Generated metric report is invalid')
     let report: Record<string, unknown> = generatedReport
     if (row.partialReference) {
       const orderedDiagnostics: Array<Record<string, unknown>> = []
       if (record(report['providerGroups'])) for (const group of Object.values(report['providerGroups'])) {
         if (!record(group) || !Array.isArray(group['providers'])) continue
         for (const provider of group['providers']) {
-          if (!record(provider) || !record(provider['metrics'])) throw new Error('Generated provider metrics are invalid')
+          if (!record(provider) || !record(provider['metrics'])) throw new AppValidationError('Generated provider metrics are invalid')
           orderedDiagnostics.push({ providerKey: provider['providerKey'], normalizedWER: provider['metrics']['wer'] ?? null,
             normalizedCER: provider['metrics']['cer'] ?? null, werEditBreakdown: provider['werBreakdown'] ?? null, cerEditBreakdown: provider['cerBreakdown'] ?? null })
           provider['metrics'] = { ...provider['metrics'], wer: null, cer: null, score: null }
@@ -697,9 +699,9 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
         resolve(PROJECT_ROOT, '.codex/skills/consensus/scripts/shared/report_surfaces.ts'), context.within(path), context.within(`${row.entry.runDir}/provider-comparison-report.md`)],
         { env: { ...process.env, AUTOSHOW_PROJECT_ROOT: context.root }, stdout: 'pipe', stderr: 'pipe' })
       const [, stderr, exit] = await Promise.all([new Response(rewrite.stdout).text(), new Response(rewrite.stderr).text(), rewrite.exited])
-      if (exit !== 0) throw new Error(`Local partial-reference report rewrite failed: ${stderr.slice(-1200)}`)
+      if (exit !== 0) throw new AppInfrastructureError(`Local partial-reference report rewrite failed: ${stderr.slice(-1200)}`)
       const rewritten: unknown = await Bun.file(context.within(path)).json()
-      if (!record(rewritten)) throw new Error('Rewritten partial-reference report is invalid')
+      if (!record(rewritten)) throw new AppValidationError('Rewritten partial-reference report is invalid')
       report = rewritten
       report['evaluation'] = row.evaluation
       report['primaryQualityUnavailableReason'] = advertisementScopeReason
@@ -710,7 +712,7 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
         referenceOrdering: 'Reviewed derived convention, not official dataset gold order' }
       for (const name of ['page-metrics.json', 'outliers.json', 'selective-adjudication-pages.json', 'variant-comparison-summary.json']) {
         const artifactPath = `${row.entry.runDir}/${name}`, artifact: unknown = await Bun.file(context.within(artifactPath)).json()
-        if (!record(artifact)) throw new Error('Generated analysis sidecar is invalid')
+        if (!record(artifact)) throw new AppValidationError('Generated analysis sidecar is invalid')
         writeJson(artifactPath, { ...artifact, evaluation: row.evaluation, primaryQualityUnavailableReason: advertisementScopeReason })
       }
       const summaryPath = `${row.entry.runDir}/ocr-benchmark-summary.md`
@@ -727,7 +729,7 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
         structureAccuracyAvailable: false, primaryLexicalAccuracyAvailable: true }
       for (const name of ['page-metrics.json', 'outliers.json', 'selective-adjudication-pages.json', 'variant-comparison-summary.json']) {
         const artifactPath = `${row.entry.runDir}/${name}`, artifact: unknown = await Bun.file(context.within(artifactPath)).json()
-        if (!record(artifact)) throw new Error('Generated analysis sidecar is invalid')
+        if (!record(artifact)) throw new AppValidationError('Generated analysis sidecar is invalid')
         writeJson(artifactPath, { ...artifact, evaluation: row.evaluation })
       }
       const summaryPath = `${row.entry.runDir}/ocr-benchmark-summary.md`, summary = await Bun.file(context.within(summaryPath)).text()
@@ -785,8 +787,8 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
 if (import.meta.main) {
   try {
     const args = Bun.argv.slice(2)
-    if (args.length > 1 || args.some(arg => !['--help', '--build'].includes(arg))) throw new Error('Usage: bun src/tools/ocr-categories-bc-report.ts [--build]')
-    if (args[0] === '--help') console.log('Usage: bun src/tools/ocr-categories-bc-report.ts [--build]\nDefault: read-only coverage/spending inspection. --build assembles saved page evidence and metric-only consensus reports. No network, OCR reruns or provider calls.')
-    else console.log(JSON.stringify(args[0] === '--build' ? await buildBcOcrReports() : await inspectBcOcrReports(), null, 2))
-  } catch (error) { console.error(error instanceof Error ? error.message : 'Local B/C report assembly failed'); process.exitCode = 1 }
+    if (args.length > 1 || args.some(arg => !['--help', '--build'].includes(arg))) throw new AppUsageError('Usage: bun src/tools/ocr-categories-bc-report.ts [--build]')
+    if (args[0] === '--help') writeCommandPayload(('Usage: bun src/tools/ocr-categories-bc-report.ts [--build]\nDefault: read-only coverage/spending inspection. --build assembles saved page evidence and metric-only consensus reports. No network, OCR reruns or provider calls.') + '\n')
+    else writeCommandPayload((JSON.stringify(args[0] === '--build' ? await buildBcOcrReports() : await inspectBcOcrReports(), null, 2)) + '\n')
+  } catch (error) { writeCommandPayload((error instanceof Error ? error.message : 'Local B/C report assembly failed') + '\n', 'stderr'); process.exitCode = 1 }
 }

@@ -1,3 +1,5 @@
+import { AppValidationError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { isDeepStrictEqual } from 'node:util'
 import { resolve } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/project-root'
@@ -30,13 +32,13 @@ export const parseLocCsv = (text: string): string[][] => {
         if (text[i + 1] === '"') { field += '"'; i++ } else { quoted = false; closed = true }
       } else field += char
     } else if (char === '"') {
-      if (field || closed) throw new Error('Unexpected quote in LOC CSV field')
+      if (field || closed) throw new AppValidationError('Unexpected quote in LOC CSV field')
       quoted = true
     } else if (char === ',') { row.push(field); field = ''; closed = false }
     else if (char === '\r' || char === '\n') { if (char === '\r' && text[i + 1] === '\n') i++; pushRow() }
-    else { if (closed) throw new Error('Trailing characters after quoted LOC CSV field'); field += char }
+    else { if (closed) throw new AppValidationError('Trailing characters after quoted LOC CSV field'); field += char }
   }
-  if (quoted) throw new Error('Unclosed LOC CSV quoted field')
+  if (quoted) throw new AppValidationError('Unclosed LOC CSV quoted field')
   if (field.length || row.length || closed) pushRow()
   return rows
 }
@@ -44,22 +46,22 @@ export const parseLocCsv = (text: string): string[][] => {
 export const selectReviewedLocAsset = (csv: string, asset: string, assetId: string): LocReviewedAsset => {
   const rows = parseLocCsv(csv.replace(/^\uFEFF/, ''))
   const header = rows.shift()
-  if (!header || new Set(header).size !== header.length || !['Asset', 'AssetId', 'AssetStatus', 'DownloadUrl', 'Transcription'].every(key => header.includes(key))) throw new Error('Missing or duplicate LOC CSV columns')
+  if (!header || new Set(header).size !== header.length || !['Asset', 'AssetId', 'AssetStatus', 'DownloadUrl', 'Transcription'].every(key => header.includes(key))) throw new AppValidationError('Missing or duplicate LOC CSV columns')
   const assetColumn = header.indexOf('Asset')
   const matches = rows.filter(row => row[assetColumn] === asset)
-  if (matches.length !== 1 || matches[0]!.length !== header.length) throw new Error('Expected exactly one complete LOC asset row')
+  if (matches.length !== 1 || matches[0]!.length !== header.length) throw new AppValidationError('Expected exactly one complete LOC asset row')
   const record = Object.fromEntries(header.map((key, i) => [key, matches[0]![i]!])) as LocReviewedAsset
-  if (record.AssetId !== assetId || record.AssetStatus !== 'completed' || !record.Transcription.trim() || !/^https?:\/\/tile\.loc\.gov\//.test(record.DownloadUrl)) throw new Error('LOC asset identity, review status or transcription is invalid')
+  if (record.AssetId !== assetId || record.AssetStatus !== 'completed' || !record.Transcription.trim() || !/^https?:\/\/tile\.loc\.gov\//.test(record.DownloadUrl)) throw new AppValidationError('LOC asset identity, review status or transcription is invalid')
   return record
 }
 
 const lineText = (text: string): string => text.replace(/\r\n?/g, '\n').split('\n').map(line => line.replace(/[ \t]+$/, '')).join('\n').replace(/\n*$/, '\n')
 
 export const canonicalizeLocHandwriting = (record: LocReviewedAsset) => {
-  if (!record.Transcription.trim() || record.AssetStatus !== 'completed') throw new Error('A completed LOC transcription is required')
+  if (!record.Transcription.trim() || record.AssetStatus !== 'completed') throw new AppValidationError('A completed LOC transcription is required')
   const original = record.Transcription
   const deleted = [...original.matchAll(/\[([^\]]+)\]/g)].map(match => match[1]!)
-  if (deleted.length && (record.Asset !== 'mss35634001-41' || JSON.stringify(deleted) !== JSON.stringify(['there', 'from']))) throw new Error('Unreviewed LOC editorial notation')
+  if (deleted.length && (record.Asset !== 'mss35634001-41' || JSON.stringify(deleted) !== JSON.stringify(['there', 'from']))) throw new AppValidationError('Unreviewed LOC editorial notation')
   const diplomatic = lineText(original.replace(/\[([^\]]+)\]/g, '$1'))
   const reading = lineText(original.replace(/\[([^\]]+)\]/g, '').replace(/ +(?= )/g, ''))
   return { text: diplomatic, readingText: reading, structure: { kind: 'reviewed-manuscript', asset: record.Asset,
@@ -69,37 +71,37 @@ export const canonicalizeLocHandwriting = (record: LocReviewedAsset) => {
 export const selectWhiteboardRecord = (jsonl: string, id: string): WhiteboardRecord => {
   const rows = jsonl.trim().split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line) as WhiteboardRecord)
   const matches = rows.filter(row => row.id === id)
-  if (matches.length !== 1 || matches[0]!.file_name !== `${id}.webp` || typeof matches[0]!.transcription !== 'string' || !matches[0]!.transcription.trim()) throw new Error('Wrong or ambiguous Whiteboards image/transcription pair')
+  if (matches.length !== 1 || matches[0]!.file_name !== `${id}.webp` || typeof matches[0]!.transcription !== 'string' || !matches[0]!.transcription.trim()) throw new AppValidationError('Wrong or ambiguous Whiteboards image/transcription pair')
   return matches[0]!
 }
 
 /** Drawing characters are structure; labels originate only in the author's transcription. */
 export const canonicalizeWhiteboard = (record: WhiteboardRecord) => {
-  if (record.file_name !== `${record.id}.webp` || !record.transcription.trim()) throw new Error('Wrong Whiteboards pair')
+  if (record.file_name !== `${record.id}.webp` || !record.transcription.trim()) throw new AppValidationError('Wrong Whiteboards pair')
   if (record.id === '01' && record.category === 'prose') return { text: lineText(record.transcription), structure: { kind: 'prose', literalArrowInHeading: true } }
   const lines = record.transcription.replace(/\r\n?/g, '\n').split('\n')
   if (record.id === '07' && record.category === 'table') {
     const headings = lines.filter(line => line.trim() && !line.includes('|') && !/^[-+ ]+$/.test(line)).map(line => line.trim())
     const cells = lines.filter(line => line.includes('|')).map(line => line.split('|').map(cell => cell.trim()))
-    if (headings.length !== 2 || cells.length !== 4 || cells.some(row => row.length !== 2 || row.some(cell => !cell))) throw new Error('Whiteboard table requires two headings and a complete 4-by-2 grid')
+    if (headings.length !== 2 || cells.length !== 4 || cells.some(row => row.length !== 2 || row.some(cell => !cell))) throw new AppValidationError('Whiteboard table requires two headings and a complete 4-by-2 grid')
     return { text: `${headings.join('\n\n')}\n\n${cells.map(row => row.join('\t')).join('\n')}\n`,
       structure: { kind: 'table', headings, rows: 4, columns: 2, cells, readingOrder: 'row-major; drawing separators excluded' } }
   }
   if (record.id === '08' && record.category === 'flowchart') {
     const plain = lines.map(line => line.trim()).filter(line => line && /[a-z]/i.test(line) && !line.includes('│'))
     const labels = [...record.transcription.matchAll(/│([^│\n]*)│/g)].map(match => match[1]!.trim())
-    if (plain.length !== 4 || plain[3] !== 'Y             N' || labels.length !== 2 || labels.some(label => !label)) throw new Error('Whiteboard flowchart does not match its reviewed two-branch structure')
+    if (plain.length !== 4 || plain[3] !== 'Y             N' || labels.length !== 2 || labels.some(label => !label)) throw new AppValidationError('Whiteboard flowchart does not match its reviewed two-branch structure')
     const [title, heading, question] = plain
     return { text: `${title}\n\n${heading}\n\n${question}\n\nY\tN\n${labels.join('\t')}\n`,
       structure: { kind: 'flowchart', title, heading, nodes: [{ id: 'question', text: question, shape: 'unboxed' }, { id: 'yes', text: labels[0], shape: 'rectangle' }, { id: 'no', text: labels[1], shape: 'rectangle' }],
         edges: [{ from: 'question', to: 'yes', label: 'Y' }, { from: 'question', to: 'no', label: 'N' }], readingOrder: 'top to bottom, then left to right; box and arrow drawing characters excluded from lexical text' } }
   }
-  throw new Error('Unreviewed Whiteboards record/category')
+  throw new AppValidationError('Unreviewed Whiteboards record/category')
 }
 
 export const assertHandwritingReference = (actual: string, expected: string, actualStructure: unknown, expectedStructure: unknown): void => {
-  if (actual !== expected) throw new Error('Handwriting lexical reference differs from its independent source')
-  if (!isDeepStrictEqual(actualStructure, expectedStructure)) throw new Error('Handwriting structure, cell association or branch topology differs')
+  if (actual !== expected) throw new AppValidationError('Handwriting lexical reference differs from its independent source')
+  if (!isDeepStrictEqual(actualStructure, expectedStructure)) throw new AppValidationError('Handwriting structure, cell association or branch topology differs')
 }
 
 const ROOT = 'input/examples/document/ocr-handwriting'
@@ -120,7 +122,7 @@ const pins: Readonly<Record<string, string>> = {
   'cases/handwriting-marker-flowchart/original.webp': '4cdca8f6e8fdb238859364570b27ca93f79fcc2cb25aa21d5b59de4f95685c25'
 }
 export const assertHandwritingSourceBytes = (path: string, bytes: Uint8Array): void => {
-  if (!pins[path] || hash(bytes) !== pins[path]) throw new Error(`Unreviewed handwriting source bytes: ${path}`)
+  if (!pins[path] || hash(bytes) !== pins[path]) throw new AppValidationError(`Unreviewed handwriting source bytes: ${path}`)
 }
 const specs = [
   { id: 'handwriting-washington-receipt', asset: 'mgw500029-5', assetId: '367462', csv: 'ordinary-lives-in-george-washingtons-papers-the-revolutionary-war_2023-07-18.csv', dataset: '2020446971', date: '2023-07-18', imageUrl: 'https://tile.loc.gov/storage-services/master/mss/mgw/mgw5/117/0500/0553.jpg', crop: [0, 0, 1989, 950], mask: [1230, 603, 1460, 783] },
@@ -150,7 +152,7 @@ const deriveInputImage = async (spec: typeof specs[number]): Promise<Uint8Array>
   args.push('-strip', 'PNG32:-')
   const proc = Bun.spawn(args, { stdout: 'pipe', stderr: 'pipe' })
   const [output, stderr, code] = await Promise.all([new Response(proc.stdout).arrayBuffer(), new Response(proc.stderr).text(), proc.exited])
-  if (code !== 0) throw new Error(stderr)
+  if (code !== 0) throw new AppValidationError(stderr)
   return new Uint8Array(output)
 }
 
@@ -202,24 +204,24 @@ export const prepareHandwritingLocally = async () => {
 export const validateHandwritingPreparation = async () => {
   await pinnedSources()
   const bundle = await Bun.file(resolve(PROJECT_ROOT, `${ROOT}/bundle.json`)).json()
-  if (bundle.cases.length !== specs.length) throw new Error('Handwriting bundle must contain exactly five reviewed cases')
+  if (bundle.cases.length !== specs.length) throw new AppValidationError('Handwriting bundle must contain exactly five reviewed cases')
   for (const spec of specs) {
     const matches = bundle.cases.filter((entry: { id: string }) => entry.id === spec.id)
-    if (matches.length !== 1) throw new Error(`Missing or duplicated handwriting case: ${spec.id}`)
+    if (matches.length !== 1) throw new AppValidationError(`Missing or duplicated handwriting case: ${spec.id}`)
     const entry = matches[0], { source } = await derive(spec)
     const expectedSelector = 'asset' in spec ? { kind: 'loc', csv: `${ROOT}/source/${spec.csv}`, asset: spec.asset, assetId: spec.assetId } : { kind: 'whiteboards', id: spec.whiteboardId }
-    if (!isDeepStrictEqual(entry.sourceSelector, expectedSelector)) throw new Error(`Wrong handwriting source selector: ${spec.id}`)
+    if (!isDeepStrictEqual(entry.sourceSelector, expectedSelector)) throw new AppValidationError(`Wrong handwriting source selector: ${spec.id}`)
     assertHandwritingReference(await Bun.file(resolve(PROJECT_ROOT, entry.reference)).text(), source.text, await Bun.file(resolve(PROJECT_ROOT, entry.structuredReference)).json(), source.structure)
-    if ('readingText' in source && await Bun.file(resolve(PROJECT_ROOT, entry.readingReference)).text() !== source.readingText) throw new Error(`Wrong deleted-word reading companion: ${spec.id}`)
+    if ('readingText' in source && await Bun.file(resolve(PROJECT_ROOT, entry.readingReference)).text() !== source.readingText) throw new AppValidationError(`Wrong deleted-word reading companion: ${spec.id}`)
     const actual = await new Bun.Image(await read(entry.input)).png().bytes()
     const expected = await new Bun.Image(await deriveInputImage(spec)).png().bytes()
-    if (hash(actual) !== hash(expected)) throw new Error(`Wrong prepared handwriting image/crop/mask pixels: ${spec.id}`)
+    if (hash(actual) !== hash(expected)) throw new AppValidationError(`Wrong prepared handwriting image/crop/mask pixels: ${spec.id}`)
   }
   return { category: 'handwriting', cases: bundle.cases.length, imagesFullyDecoded: specs.length, status: 'prepared-not-run', modelInvocations: 0, writes: 0 }
 }
 
 if (import.meta.main) {
   const args = Bun.argv.slice(2)
-  if (args.length > 1 || (args.length === 1 && !['--validate', '--prepare-local'].includes(args[0]!))) { console.error('Usage: bun src/tools/ocr-preparation/prepare-handwriting.ts [--validate|--prepare-local] (local preparation only; no model execution)'); process.exitCode = 1 }
-  else console.log(JSON.stringify(await (args[0] === '--prepare-local' ? prepareHandwritingLocally() : validateHandwritingPreparation())))
+  if (args.length > 1 || (args.length === 1 && !['--validate', '--prepare-local'].includes(args[0]!))) { writeCommandPayload(('Usage: bun src/tools/ocr-preparation/prepare-handwriting.ts [--validate|--prepare-local] (local preparation only; no model execution)') + '\n', 'stderr'); process.exitCode = 1 }
+  else writeCommandPayload((JSON.stringify(await (args[0] === '--prepare-local' ? prepareHandwritingLocally() : validateHandwritingPreparation()))) + '\n')
 }

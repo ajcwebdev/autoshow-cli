@@ -1,3 +1,5 @@
+import { AppValidationError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { inflateRawSync } from 'node:zlib'
@@ -41,38 +43,38 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 
 /** Select only the exact source page. No OCR, inferred words, or inferred reading order. */
 export const selectTextOcrRecord = (source: unknown, imageId: string): TextOcrRecord => {
-  if (!/^[0-9a-f]{16}$/.test(imageId)) throw new Error('Expected an exact Open Images ID')
+  if (!/^[0-9a-f]{16}$/.test(imageId)) throw new AppValidationError('Expected an exact Open Images ID')
   if (!isObject(source) || !isObject(source['imgs']) || !isObject(source['anns']) || !isObject(source['imgToAnns'])) {
-    throw new Error('TextOCR source needs imgs, anns and imgToAnns maps')
+    throw new AppValidationError('TextOCR source needs imgs, anns and imgToAnns maps')
   }
   const image = v.parse(imageSchema, source['imgs'][imageId])
-  if (image.id !== imageId || image.file_name !== `train/${imageId}.jpg`) throw new Error('Image selector mismatch')
+  if (image.id !== imageId || image.file_name !== `train/${imageId}.jpg`) throw new AppValidationError('Image selector mismatch')
   const annotationIds = v.parse(v.pipe(v.array(nonempty), v.minLength(1)), source['imgToAnns'][imageId])
-  if (new Set(annotationIds).size !== annotationIds.length) throw new Error('Duplicate source annotation ID')
+  if (new Set(annotationIds).size !== annotationIds.length) throw new AppValidationError('Duplicate source annotation ID')
   const sourceAnnotations = source['anns']
   const annotations = annotationIds.map(id => {
     const annotation = v.parse(annotationSchema, sourceAnnotations[id])
     if (annotation.id !== id || annotation.image_id !== imageId || !id.startsWith(`${imageId}_`)) {
-      throw new Error('Word/image pair mismatch')
+      throw new AppValidationError('Word/image pair mismatch')
     }
     if (annotation.utf8_string.trim() !== annotation.utf8_string || /[\r\n]/.test(annotation.utf8_string)) {
-      throw new Error('Word annotation contains boundary whitespace')
+      throw new AppValidationError('Word annotation contains boundary whitespace')
     }
-    if (annotation.points.length < 6 || annotation.points.length % 2 !== 0) throw new Error('Invalid word polygon')
+    if (annotation.points.length < 6 || annotation.points.length % 2 !== 0) throw new AppValidationError('Invalid word polygon')
     for (let i = 0; i < annotation.points.length; i += 2) {
       const x = annotation.points[i]!
       const y = annotation.points[i + 1]!
-      if (x < 0 || y < 0 || x > image.width || y > image.height) throw new Error('Word polygon escapes image')
+      if (x < 0 || y < 0 || x > image.width || y > image.height) throw new AppValidationError('Word polygon escapes image')
     }
     const [x, y, width, height] = annotation.bbox as [number, number, number, number]
     if (x < 0 || y < 0 || width <= 0 || height <= 0 || x + width > image.width + 0.02 || y + height > image.height + 0.02) {
-      throw new Error('Word bounding box escapes image')
+      throw new AppValidationError('Word bounding box escapes image')
     }
     const polygonXs = annotation.points.filter((_, i) => i % 2 === 0)
     const polygonYs = annotation.points.filter((_, i) => i % 2 === 1)
     if (Math.abs(Math.min(...polygonXs) - x) > 0.02 || Math.abs(Math.max(...polygonXs) - x - width) > 0.02 ||
         Math.abs(Math.min(...polygonYs) - y) > 0.02 || Math.abs(Math.max(...polygonYs) - y - height) > 0.02) {
-      throw new Error('Word polygon and bounding box disagree')
+      throw new AppValidationError('Word polygon and bounding box disagree')
     }
     return annotation
   })
@@ -83,19 +85,19 @@ export const selectTextOcrRecord = (source: unknown, imageId: string): TextOcrRe
 export const serializeTextOcrReference = (record: TextOcrRecord, reviewedLines: readonly (readonly string[])[]): string => {
   const eligible = new Map(record.annotations.filter(annotation => annotation.utf8_string !== '.')
     .map(annotation => [annotation.id, annotation.utf8_string]))
-  if (!eligible.size || !reviewedLines.length) throw new Error('No reviewed nonignored word order')
+  if (!eligible.size || !reviewedLines.length) throw new AppValidationError('No reviewed nonignored word order')
   const seen = new Set<string>()
   const lines = reviewedLines.map(line => {
-    if (!line.length) throw new Error('Empty reading-order line')
+    if (!line.length) throw new AppValidationError('Empty reading-order line')
     return line.map(id => {
       const text = eligible.get(id)
-      if (text === undefined) throw new Error('Reading order includes unknown or ignored word')
-      if (seen.has(id)) throw new Error('Reading order repeats word')
+      if (text === undefined) throw new AppValidationError('Reading order includes unknown or ignored word')
+      if (seen.has(id)) throw new AppValidationError('Reading order repeats word')
       seen.add(id)
       return text
     }).join(' ')
   })
-  if (seen.size !== eligible.size) throw new Error('Reading order omits annotated word')
+  if (seen.size !== eligible.size) throw new AppValidationError('Reading order omits annotated word')
   return `${lines.join('\n')}\n`
 }
 
@@ -133,9 +135,9 @@ export const assertAdvertisementReference = (
   actualStructure: unknown,
   reviewedLines: readonly (readonly string[])[]
 ): void => {
-  if (actualText !== serializeTextOcrReference(record, reviewedLines)) throw new Error('Advertisement text differs from canonical source and reviewed order')
+  if (actualText !== serializeTextOcrReference(record, reviewedLines)) throw new AppValidationError('Advertisement text differs from canonical source and reviewed order')
   if (!isDeepStrictEqual(actualStructure, makeTextOcrStructuredReference(record, reviewedLines))) {
-    throw new Error('Advertisement region mapping or reviewed order differs from its independent source')
+    throw new AppValidationError('Advertisement region mapping or reviewed order differs from its independent source')
   }
 }
 
@@ -166,30 +168,30 @@ export const validateAdvertisementPreparation = async () => {
   const read = async (path: string): Promise<Uint8Array> => new Uint8Array(await Bun.file(resolve(PROJECT_ROOT, path)).arrayBuffer())
   const bundle = v.parse(preparedBundleSchema, JSON.parse(decode(await read(`${ROOT}/bundle.json`))) as unknown)
   const annotations = await read(`${ROOT}/source/TextOCR_0.1_train.json`)
-  if (hash(annotations) !== TEXT_OCR_ANNOTATION_SHA256) throw new Error('Unreviewed official TextOCR annotation bytes')
+  if (hash(annotations) !== TEXT_OCR_ANNOTATION_SHA256) throw new AppValidationError('Unreviewed official TextOCR annotation bytes')
   const source: unknown = JSON.parse(decode(annotations))
   const photoMetadata = await read(`${ROOT}/source/open-images-selected-original-rows.csv`)
-  if (hash(photoMetadata) !== PHOTO_METADATA_SHA256) throw new Error('Unreviewed Open Images photograph attribution bytes')
+  if (hash(photoMetadata) !== PHOTO_METADATA_SHA256) throw new AppValidationError('Unreviewed Open Images photograph attribution bytes')
   let words = 0
   for (const pin of ADVERTISEMENT_SOURCE_PINS) {
     const matches = bundle.cases.filter(entry => entry.id === pin.id)
-    if (matches.length !== 1) throw new Error(`Missing or duplicated advertisement case: ${pin.id}`)
+    if (matches.length !== 1) throw new AppValidationError(`Missing or duplicated advertisement case: ${pin.id}`)
     const entry = matches[0]!
     const folder = `${ROOT}/cases/${pin.id}`
     if (entry.input !== `${folder}/input.jpg` || entry.reference !== `${folder}/canonical-reference.txt` ||
         entry.structuredReference !== `${folder}/structured-reference.json` || entry.sourceRecord !== `${folder}/original.annotation.json`) {
-      throw new Error(`Unexpected advertisement artifact path: ${pin.id}`)
+      throw new AppValidationError(`Unexpected advertisement artifact path: ${pin.id}`)
     }
     if (entry.width !== pin.width || entry.height !== pin.height || entry.words !== pin.words ||
         entry.inputSha256 !== pin.inputSha256 || entry.sourceImageName !== `train_images/${pin.imageId}.jpg`) {
-      throw new Error(`Advertisement source pin mismatch: ${pin.id}`)
+      throw new AppValidationError(`Advertisement source pin mismatch: ${pin.id}`)
     }
     const record = selectTextOcrRecord(source, pin.imageId)
     if (record.image.width !== pin.width || record.image.height !== pin.height || record.annotations.length !== pin.words ||
-        record.annotations.some(annotation => annotation.utf8_string === '.')) throw new Error(`Unexpected source word coverage: ${pin.id}`)
+        record.annotations.some(annotation => annotation.utf8_string === '.')) throw new AppValidationError(`Unexpected source word coverage: ${pin.id}`)
     const selectedBytes = await read(entry.sourceRecord)
     if (hash(selectedBytes) !== entry.sourceRecordSha256 || !isDeepStrictEqual(JSON.parse(decode(selectedBytes)) as unknown, record)) {
-      throw new Error(`Selected advertisement annotations differ from official source: ${pin.id}`)
+      throw new AppValidationError(`Selected advertisement annotations differ from official source: ${pin.id}`)
     }
     const canonicalBytes = await read(entry.reference)
     const structuredBytes = await read(entry.structuredReference)
@@ -197,15 +199,15 @@ export const validateAdvertisementPreparation = async () => {
     const reviewedLines = reviewedWordNumbers[pin.imageId]!.map(line => line.map(word => `${pin.imageId}_${word}`))
     assertAdvertisementReference(record, canonicalText, JSON.parse(decode(structuredBytes)) as unknown, reviewedLines)
     if (hash(canonicalBytes) !== entry.referenceSha256 || hash(structuredBytes) !== entry.structuredReferenceSha256 || canonicalText.length !== entry.chars) {
-      throw new Error(`Advertisement reference hash or character count mismatch: ${pin.id}`)
+      throw new AppValidationError(`Advertisement reference hash or character count mismatch: ${pin.id}`)
     }
     const inputBytes = await read(entry.input)
     const originalBytes = await read(`${ROOT}/source/${pin.imageId}.jpg`)
-    if (hash(inputBytes) !== pin.inputSha256 || hash(originalBytes) !== pin.inputSha256) throw new Error(`Unreviewed advertisement image bytes: ${pin.id}`)
+    if (hash(inputBytes) !== pin.inputSha256 || hash(originalBytes) !== pin.inputSha256) throw new AppValidationError(`Unreviewed advertisement image bytes: ${pin.id}`)
     const image = new Bun.Image(inputBytes)
     const dimensions = await image.metadata()
     if (dimensions.width !== pin.width || dimensions.height !== pin.height || !(await image.png().bytes()).length) {
-      throw new Error(`Advertisement image decode or dimensions mismatch: ${pin.id}`)
+      throw new AppValidationError(`Advertisement image decode or dimensions mismatch: ${pin.id}`)
     }
     const expectedOriginals = [
       { path: `${ROOT}/source/TextOCR_0.1_train.json`, url: TEXT_OCR_ANNOTATION_URL, bytes: annotations,
@@ -219,15 +221,15 @@ export const validateAdvertisementPreparation = async () => {
       const originals = entry.originalReferences.filter(original => original.path === expected.path)
       if (originals.length !== 1 || originals[0]!.url !== expected.url || originals[0]!.sha256 !== hash(expected.bytes) ||
           originals[0]!.selector !== expected.selector || originals[0]!.revision !== expected.revision) {
-        throw new Error(`Advertisement original-source evidence mismatch: ${pin.id}`)
+        throw new AppValidationError(`Advertisement original-source evidence mismatch: ${pin.id}`)
       }
     }
     const zip = Buffer.from(expectedOriginals[2]!.bytes)
-    if (zip.length < 30 || zip.readUInt32LE(0) !== 0x04034b50 || zip.readUInt16LE(8) !== 8) throw new Error(`Invalid original ZIP record: ${pin.id}`)
+    if (zip.length < 30 || zip.readUInt32LE(0) !== 0x04034b50 || zip.readUInt16LE(8) !== 8) throw new AppValidationError(`Invalid original ZIP record: ${pin.id}`)
     const nameEnd = 30 + zip.readUInt16LE(26)
     const dataStart = nameEnd + zip.readUInt16LE(28)
     if (zip.subarray(30, nameEnd).toString() !== entry.sourceImageName || dataStart + zip.readUInt32LE(18) !== zip.length ||
-        hash(inflateRawSync(zip.subarray(dataStart))) !== pin.inputSha256) throw new Error(`Original ZIP member differs from image: ${pin.id}`)
+        hash(inflateRawSync(zip.subarray(dataStart))) !== pin.inputSha256) throw new AppValidationError(`Original ZIP member differs from image: ${pin.id}`)
     words += pin.words
   }
   return { category: 'advertisements', cases: bundle.cases.length, canonicalWordRegions: words, status: 'prepared-not-run', modelInvocations: 0, providerSpendUSD: 0 }
@@ -236,7 +238,7 @@ export const validateAdvertisementPreparation = async () => {
 if (import.meta.main) {
   const args = Bun.argv.slice(2)
   if (args.length !== 1 || args[0] !== '--validate') {
-    console.error('Usage: bun src/tools/ocr-preparation/prepare-advertisements.ts --validate (read-only local validation; no model execution)')
+    writeCommandPayload(('Usage: bun src/tools/ocr-preparation/prepare-advertisements.ts --validate (read-only local validation; no model execution)') + '\n', 'stderr')
     process.exitCode = 1
-  } else console.log(JSON.stringify(await validateAdvertisementPreparation()))
+  } else writeCommandPayload((JSON.stringify(await validateAdvertisementPreparation())) + '\n')
 }

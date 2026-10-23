@@ -1,3 +1,5 @@
+import { AppValidationError } from '~/utils/error-handler'
+import { sleepWithAbortSignal } from '~/utils/retry-abortable-delay'
 import { randomUUID } from 'node:crypto'
 import { mkdir, open, readFile, realpath, rename, unlink } from 'node:fs/promises'
 import { dirname, relative, resolve } from 'node:path'
@@ -35,11 +37,11 @@ export const verifyOcrLosslessPngTransport = (
   original: Uint8Array, candidate: Uint8Array, expected: Readonly<OcrLosslessPngTransportPin>
 ): { transportInputSha256: string, transportPolicy: string } => {
   if (hash(original) !== expected.originalSha256 || hash(candidate) !== expected.transportSha256
-    || candidate.length > 5 * 1024 * 1024) throw new Error('OCR spending guard: unapproved lossless PNG transport bytes')
+    || candidate.length > 5 * 1024 * 1024) throw new AppValidationError('OCR spending guard: unapproved lossless PNG transport bytes')
   const source = decodePngRgba8(original), transport = decodePngRgba8(candidate)
   if (source.width !== expected.width || source.height !== expected.height || transport.width !== source.width || transport.height !== source.height
     || source.pixelSha256 !== expected.pixelSha256 || transport.pixelSha256 !== expected.pixelSha256
-    || source.pixels.length !== transport.pixels.length || !source.pixels.every((value, i) => value === transport.pixels[i])) throw new Error('OCR spending guard: lossless PNG transport decoded pixels changed')
+    || source.pixels.length !== transport.pixels.length || !source.pixels.every((value, i) => value === transport.pixels[i])) throw new AppValidationError('OCR spending guard: lossless PNG transport decoded pixels changed')
   return { transportInputSha256: expected.transportSha256, transportPolicy: expected.policy }
 }
 
@@ -205,7 +207,7 @@ export interface NewspaperFinalBreachAccountingProof {
   continueOnly: NewspaperFinalBreachAccountingReview['continueOnly']
 }
 const newspaperRoot = 'input/examples/document/ocr-newspaper-expansion/'
-function finalReviewFailure(message: string): never { throw new Error(`OCR spending guard: final accounting review ${message}`) }
+function finalReviewFailure(message: string): never { throw new AppValidationError(`OCR spending guard: final accounting review ${message}`) }
 const sha256Value = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)
 const validCents = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0
 const knownNewspaperFinalUsage = { inputTokens: 3758, visibleOutputTokens: 4096, reasoningOutputTokens: 46749, outputTokens: 50845 } as const
@@ -422,7 +424,7 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
     return plan
   }
 
-  function fail(message: string): never { throw new Error(`OCR spending guard: ${message}`) }
+  function fail(message: string): never { throw new AppValidationError(`OCR spending guard: ${message}`) }
   const finiteNonnegative = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0
   const tokenCount = (value: unknown): value is number => finiteNonnegative(value) && Number.isSafeInteger(value)
   const roundedCents = (value: number): number => Math.ceil(value * 1_000_000) / 1_000_000
@@ -811,7 +813,7 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
           try { return await open(`${path}.lock`, 'wx', 0o600) } catch (error) {
             if (!isRecord(error) || error['code'] !== 'EEXIST') throw error
             if (performance.now() >= deadline) fail('ledger remained locked for 10 seconds; an interrupted writer requires reconciliation')
-            await new Promise(resolveWait => setTimeout(resolveWait, 25 + Math.floor(Math.random() * 10)))
+            await sleepWithAbortSignal(25 + Math.floor(Math.random() * 10))
           }
         }
       })()
@@ -982,13 +984,13 @@ export const createApprovedOcrBenchmarkSpendingGuard = (
   if (profile === 'category-d') return categoryDProfileGuard(options)
   if (profile === 'categories-efg') return categoriesEfgProfileGuard(options)
   if (profile === 'newspaper-expansion') return newspaperExpansionProfileGuard(options)
-  throw new Error('OCR spending guard: unknown approved benchmark profile')
+  throw new AppValidationError('OCR spending guard: unknown approved benchmark profile')
 }
 export const createCategoriesBcSpendingGuard = (options: CategoriesBcSpendingGuardOptions): typeof fetch =>
   createApprovedOcrBenchmarkSpendingGuard('categories-bc', options)
 
 if (process.env['AUTOSHOW_OCR_BC_GUARD'] === '1') {
-  const required = (name: string): string => process.env[name]?.trim() || (() => { throw new Error(`OCR spending guard: missing ${name}`) })()
+  const required = (name: string): string => process.env[name]?.trim() || (() => { throw new AppValidationError(`OCR spending guard: missing ${name}`) })()
   globalThis.fetch = createCategoriesBcSpendingGuard({
     planPath: required('AUTOSHOW_OCR_BC_PLAN'), planSha256: required('AUTOSHOW_OCR_BC_PLAN_SHA256'),
     ledgerPath: required('AUTOSHOW_OCR_BC_LEDGER'), pageId: required('AUTOSHOW_OCR_BC_PAGE'),

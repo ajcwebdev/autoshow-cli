@@ -1,3 +1,5 @@
+import { AppValidationError, AppUsageError, AppInfrastructureError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { mkdir, readdir, realpath, rename } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -59,7 +61,7 @@ export interface CleanTypographyReportOptions {
 }
 
 const portable = (path: string): void => {
-  if (isAbsolute(path) || /[:\\\x00]/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('Expected a normalized project-relative artifact path')
+  if (isAbsolute(path) || /[:\\\x00]/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..')) throw new AppValidationError('Expected a normalized project-relative artifact path')
 }
 const safeStem = (value: string): string => value.replace(/[^a-zA-Z0-9_.-]/g, '-')
 /** A flat directory is required by the consensus loader; model slashes are encoded, never directory separators. */
@@ -100,53 +102,53 @@ const prepareReports = async (options: CleanTypographyReportOptions) => {
   const root = await realpath(options.projectRoot ?? PROJECT_ROOT)
   const within = (path: string): string => { portable(path); return resolve(root, path) }
   const existing = async (path: string): Promise<string> => {
-    const absolute = await realpath(within(path)).catch(() => { throw new Error(`Missing local artifact: ${path}`) })
+    const absolute = await realpath(within(path)).catch(() => { throw new AppValidationError(`Missing local artifact: ${path}`) })
     const rel = relative(root, absolute)
-    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error('Source artifact escapes project root')
+    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new AppValidationError('Source artifact escapes project root')
     return absolute
   }
   const read = async (path: string): Promise<Uint8Array> => new Uint8Array(await Bun.file(await existing(path)).arrayBuffer())
   const readJson = async (path: string): Promise<unknown> => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await read(path))) as unknown
   const plan = v.parse(planSchema, await readJson(options.planPath ?? defaultPlan))
-  if (new Set(plan.cases.map(entry => entry.id)).size !== 5) throw new Error('Duplicate planned case ID')
+  if (new Set(plan.cases.map(entry => entry.id)).size !== 5) throw new AppValidationError('Duplicate planned case ID')
   const targets = plan.quote.models
   if (targets.length !== plan.targetCount || new Set(targets.map(row => `${row.provider}/${row.model}`)).size !== targets.length
     || targets.filter(row => row.provider === 'tesseract' && row.model === 'tesseract').length !== 1
-    || targets.some(row => row.provider === 'tesseract' && row.model !== 'tesseract')) throw new Error('Invalid quoted target inventory')
+    || targets.some(row => row.provider === 'tesseract' && row.model !== 'tesseract')) throw new AppValidationError('Invalid quoted target inventory')
   const bundleBytes = await read(plan.bundle)
-  if (hash(bundleBytes) !== plan.bundleSha256) throw new Error('Prepared bundle hash changed')
+  if (hash(bundleBytes) !== plan.bundleSha256) throw new AppValidationError('Prepared bundle hash changed')
   const bundle: unknown = JSON.parse(new TextDecoder().decode(bundleBytes))
-  if (!record(bundle) || !Array.isArray(bundle['cases']) || bundle['cases'].length !== 5) throw new Error('Invalid prepared input bundle')
+  if (!record(bundle) || !Array.isArray(bundle['cases']) || bundle['cases'].length !== 5) throw new AppValidationError('Invalid prepared input bundle')
   const ledgerPath = options.ledgerPath ?? defaultLedger
   const ledger = v.parse(ledgerSchema, await readJson(ledgerPath))
-  if (new Set(ledger.receipts.map(row => row.id)).size !== ledger.receipts.length) throw new Error('Duplicate spending receipt ID')
+  if (new Set(ledger.receipts.map(row => row.id)).size !== ledger.receipts.length) throw new AppValidationError('Duplicate spending receipt ID')
   for (const receipt of ledger.receipts) {
     const source = plan.cases.find(entry => entry.id === receipt.caseId)
     if (!source || source.inputSha256 !== receipt.inputSha256 || !targets.some(target => target.provider === receipt.provider && target.model === receipt.model)
       || receipt.status === 'rejected' && receipt.chargedCents !== 0
       || ['reserved', 'ambiguous'].includes(receipt.status) && receipt.chargedCents !== receipt.reservedCents
-      || !Number.isFinite(Date.parse(receipt.createdAt))) throw new Error('Spending receipt does not match the declared batch')
+      || !Number.isFinite(Date.parse(receipt.createdAt))) throw new AppValidationError('Spending receipt does not match the declared batch')
   }
   const loadSaved = async (directory: string, provider: string, model: string, entry: Entry, manifestSha256?: string): Promise<SavedProvider> => {
     const bytes = await read(`${directory}/manifest.json`)
-    if (manifestSha256 && hash(bytes) !== manifestSha256) throw new Error(`Saved manifest hash changed: ${entry.id}/${provider}/${model}`)
+    if (manifestSha256 && hash(bytes) !== manifestSha256) throw new AppValidationError(`Saved manifest hash changed: ${entry.id}/${provider}/${model}`)
     const value: unknown = JSON.parse(new TextDecoder().decode(bytes))
-    if (!record(value) || value['command'] !== 'extract' || value['scope'] !== 'single' || !Array.isArray(value['items']) || value['items'].length !== 1) throw new Error('Invalid saved OCR manifest')
+    if (!record(value) || value['command'] !== 'extract' || value['scope'] !== 'single' || !Array.isArray(value['items']) || value['items'].length !== 1) throw new AppValidationError('Invalid saved OCR manifest')
     const item: unknown = value['items'][0]
-    if (!record(item) || item['extractRoute'] !== 'document' || !Array.isArray(item['providers']) || item['providers'].length !== 1 || !record(item['metadata'])) throw new Error('Invalid saved OCR item')
+    if (!record(item) || item['extractRoute'] !== 'document' || !Array.isArray(item['providers']) || item['providers'].length !== 1 || !record(item['metadata'])) throw new AppValidationError('Invalid saved OCR item')
     const source = item['metadata']['source']
-    if (!record(source) || source['filePath'] !== entry.input) throw new Error('Saved manifest source input differs from planned pair')
+    if (!record(source) || source['filePath'] !== entry.input) throw new AppValidationError('Saved manifest source input differs from planned pair')
     const state: unknown = item['providers'][0]
-    if (!record(state) || state['service'] !== provider || state['model'] !== model || typeof state['artifactDir'] !== 'string' || !record(state['metadata'])) throw new Error('Saved provider identity differs from slot')
+    if (!record(state) || state['service'] !== provider || state['model'] !== model || typeof state['artifactDir'] !== 'string' || !record(state['metadata'])) throw new AppValidationError('Saved provider identity differs from slot')
     const artifact = state['artifactDir'] === '.' ? directory : `${directory}/${state['artifactDir']}`
     await existing(artifact)
     let resultBytes: Uint8Array | null = null
     if (await Bun.file(within(`${artifact}/result.json`)).exists()) resultBytes = await read(`${artifact}/result.json`)
     const inline = state['result']
     const sidecar: unknown = resultBytes ? JSON.parse(new TextDecoder().decode(resultBytes)) : undefined
-    if (record(inline) && sidecar !== undefined && !isDeepStrictEqual(inline, sidecar)) throw new Error('Saved inline and sidecar OCR results disagree')
+    if (record(inline) && sidecar !== undefined && !isDeepStrictEqual(inline, sidecar)) throw new AppValidationError('Saved inline and sidecar OCR results disagree')
     const result = sidecar ?? inline
-    if (state['status'] === 'succeeded' && (!record(result) || typeof result['text'] !== 'string' && !Array.isArray(result['pages']))) throw new Error('Successful slot is missing an OCR result artifact')
+    if (state['status'] === 'succeeded' && (!record(result) || typeof result['text'] !== 'string' && !Array.isArray(result['pages']))) throw new AppValidationError('Successful slot is missing an OCR result artifact')
     return { directory, manifest: value, manifestSha256: hash(bytes), sourceArtifactDirectory: artifact, result, resultBytes,
       state: { service: provider, model, local: provider === 'tesseract', artifactDir: cleanTypographyReportArtifactDir(provider, model),
         status: String(state['status']), attempts: typeof state['attempts'] === 'number' ? state['attempts'] : 1,
@@ -154,16 +156,16 @@ const prepareReports = async (options: CleanTypographyReportOptions) => {
   }
   const prepared = []
   for (const entry of plan.cases) {
-    if (entry.runDir !== `docs/benchmarks/ocr/${entry.id}` || entry.localPilot.directory !== `${localRoot}/local-pilot/${entry.id}`) throw new Error('Case destination differs from clean-typography scope')
+    if (entry.runDir !== `docs/benchmarks/ocr/${entry.id}` || entry.localPilot.directory !== `${localRoot}/local-pilot/${entry.id}`) throw new AppValidationError('Case destination differs from clean-typography scope')
     const pair = bundle['cases'].find((item: unknown) => record(item) && item['id'] === entry.id)
-    if (!record(pair) || ['input', 'reference', 'inputSha256', 'referenceSha256'].some(key => pair[key] !== entry[key as keyof Entry])) throw new Error('Plan differs from immutable prepared input pair')
-    if (hash(await read(entry.input)) !== entry.inputSha256 || hash(await read(entry.reference)) !== entry.referenceSha256) throw new Error('Input or publisher reference hash changed')
+    if (!record(pair) || ['input', 'reference', 'inputSha256', 'referenceSha256'].some(key => pair[key] !== entry[key as keyof Entry])) throw new AppValidationError('Plan differs from immutable prepared input pair')
+    if (hash(await read(entry.input)) !== entry.inputSha256 || hash(await read(entry.reference)) !== entry.referenceSha256) throw new AppValidationError('Input or publisher reference hash changed')
     const publicManifest = await readJson(`${entry.runDir}/manifest.json`)
     const source = record(publicManifest) && record(publicManifest['source']) ? publicManifest['source'] : undefined
     const pilotPin = source?.['localPilotManifestSha256']
-    if (typeof pilotPin !== 'string' || !/^[a-f0-9]{64}$/.test(pilotPin)) throw new Error('Original local pilot manifest pin is missing')
+    if (typeof pilotPin !== 'string' || !/^[a-f0-9]{64}$/.test(pilotPin)) throw new AppValidationError('Original local pilot manifest pin is missing')
     const pilot = await loadSaved(entry.localPilot.directory, 'tesseract', 'tesseract', entry, pilotPin)
-    if (pilot.state.status !== 'succeeded') throw new Error('Saved local pilot is not successful')
+    if (pilot.state.status !== 'succeeded') throw new AppValidationError('Saved local pilot is not successful')
     const providers: Array<{ state: ProviderState, saved: SavedProvider | null, receipts: Receipt[] }> = []
     for (const target of targets) {
       if (target.provider === 'tesseract') {
@@ -180,16 +182,16 @@ const prepareReports = async (options: CleanTypographyReportOptions) => {
       if (hasJournal) {
         const journal = v.parse(journalSchema, await readJson(dispatchPath))
         if (journal.caseId !== entry.id || journal.provider !== target.provider || journal.model !== target.model || journal.inputSha256 !== entry.inputSha256
-          || journal.referenceSha256 !== entry.referenceSha256 || journal.directory !== directory) throw new Error('Dispatch journal identity differs from the planned pair')
+          || journal.referenceSha256 !== entry.referenceSha256 || journal.directory !== directory) throw new AppValidationError('Dispatch journal identity differs from the planned pair')
         const started = Date.parse(journal.startedAt)
-        if (!Number.isFinite(started)) throw new Error('Dispatch journal start time is invalid')
+        if (!Number.isFinite(started)) throw new AppValidationError('Dispatch journal start time is invalid')
         currentReceipts = receipts.filter(receipt => Date.parse(receipt.createdAt) >= started)
         status = journal.status === 'dispatch-started' ? 'running' : journal.status
         if (journal.manifestSha256) {
           saved = await loadSaved(directory, target.provider, target.model, entry, journal.manifestSha256)
-          if (saved.state.status !== journal.status) throw new Error('Dispatch and saved provider completion disagree')
-        } else if (status === 'succeeded' || await Bun.file(within(`${directory}/manifest.json`)).exists()) throw new Error('Saved slot manifest is not journal-pinned')
-        if (status === 'succeeded' && !currentReceipts.some(receipt => receipt.status !== 'rejected')) throw new Error('Successful saved slot has no admitted current-attempt spending receipt')
+          if (saved.state.status !== journal.status) throw new AppValidationError('Dispatch and saved provider completion disagree')
+        } else if (status === 'succeeded' || await Bun.file(within(`${directory}/manifest.json`)).exists()) throw new AppValidationError('Saved slot manifest is not journal-pinned')
+        if (status === 'succeeded' && !currentReceipts.some(receipt => receipt.status !== 'rejected')) throw new AppValidationError('Successful saved slot has no admitted current-attempt spending receipt')
       }
       const accounting = summarizeCleanTypographyReceipts(receipts)
       const state: ProviderState = { service: target.provider, model: target.model, local: false,
@@ -248,12 +250,12 @@ export const inspectCleanTypographyReports = async (options: CleanTypographyRepo
 /** Assemble and score existing local artifacts only. Never invokes extraction or a provider. */
 export const buildCleanTypographyReports = async (options: CleanTypographyReportOptions = {}) => {
   const context = await prepareReports(options)
-  if (context.prepared.some(row => row.coverage.pendingHostedModels > 0)) throw new Error('Hosted slots are still missing or running; report assembly is deferred')
+  if (context.prepared.some(row => row.coverage.pendingHostedModels > 0)) throw new AppValidationError('Hosted slots are still missing or running; report assembly is deferred')
   const copyArtifacts = async (source: string, destination: string): Promise<void> => {
     await mkdir(context.within(destination), { recursive: true })
     for (const entry of await readdir(await context.existing(source), { withFileTypes: true })) {
       if (entry.name === '.DS_Store' || ['manifest.json', 'dispatch.json', 'failure.txt'].includes(entry.name)) continue
-      if (entry.isSymbolicLink()) throw new Error('Provider artifact directories may not contain symlinks')
+      if (entry.isSymbolicLink()) throw new AppValidationError('Provider artifact directories may not contain symlinks')
       const from = `${source}/${entry.name}`, to = `${destination}/${entry.name}`
       if (entry.isDirectory()) await copyArtifacts(from, to)
       else if (entry.isFile()) await Bun.write(context.within(to), Bun.file(await context.existing(from)))
@@ -264,7 +266,7 @@ export const buildCleanTypographyReports = async (options: CleanTypographyReport
   const runConsensus = options.runConsensus ?? (async (argv: readonly string[], caseId: string): Promise<void> => {
     const child = Bun.spawn([process.execPath, 'scripts/run.ts', ...argv], { cwd: consensusRoot, env: { ...process.env, AUTOSHOW_PROJECT_ROOT: context.root }, stdout: 'pipe', stderr: 'pipe' })
     const [, , exit] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
-    if (exit !== 0) throw new Error(`Local consensus report command failed for ${caseId} (exit ${exit}); source artifacts are preserved`)
+    if (exit !== 0) throw new AppInfrastructureError(`Local consensus report command failed for ${caseId} (exit ${exit}); source artifacts are preserved`)
   })
   for (const row of context.prepared) {
     const stage = `${localRoot}/benchmark-runs/.${row.entry.id}.assembly-${randomUUID()}`
@@ -289,7 +291,7 @@ export const buildCleanTypographyReports = async (options: CleanTypographyReport
     await runConsensus(['ocr', 'build-report', context.within(row.privateDirectory), '--markdown-out', context.within(`${row.entry.runDir}/provider-comparison-report.md`), '--json-out', context.within(`${row.entry.runDir}/provider-comparison-report.json`)], row.entry.id)
     const reportPath = `${row.entry.runDir}/provider-comparison-report.json`
     const report: unknown = await Bun.file(context.within(reportPath)).json()
-    if (!record(report)) throw new Error('Generated metric report is invalid')
+    if (!record(report)) throw new AppValidationError('Generated metric report is invalid')
     const costs = new Map(row.providers.map(provider => {
       const spending = summarizeCleanTypographyReceipts(provider.receipts)
       return [`${provider.state.service}/${provider.state.model}`, { ...spending, costSource: provider.state.local ? 'local_zero'
@@ -329,11 +331,11 @@ export const buildCleanTypographyReports = async (options: CleanTypographyReport
 if (import.meta.main) {
   try {
     const args = Bun.argv.slice(2)
-    if (args.length > 1 || args.some(arg => !['--help', '--build'].includes(arg))) throw new Error('Usage: bun src/tools/ocr-clean-typography-report.ts [--build]')
-    if (args[0] === '--help') console.log('Usage: bun src/tools/ocr-clean-typography-report.ts [--build]\nDefaults to a read-only coverage/spending overview. --build assembles saved private OCR artifacts and generates metric-only public reports with the consensus skill. No network, OCR reruns or provider calls. Prior private assemblies are preserved.')
-    else console.log(JSON.stringify(args[0] === '--build' ? await buildCleanTypographyReports() : await inspectCleanTypographyReports(), null, 2))
+    if (args.length > 1 || args.some(arg => !['--help', '--build'].includes(arg))) throw new AppUsageError('Usage: bun src/tools/ocr-clean-typography-report.ts [--build]')
+    if (args[0] === '--help') writeCommandPayload(('Usage: bun src/tools/ocr-clean-typography-report.ts [--build]\nDefaults to a read-only coverage/spending overview. --build assembles saved private OCR artifacts and generates metric-only public reports with the consensus skill. No network, OCR reruns or provider calls. Prior private assemblies are preserved.') + '\n')
+    else writeCommandPayload((JSON.stringify(args[0] === '--build' ? await buildCleanTypographyReports() : await inspectCleanTypographyReports(), null, 2)) + '\n')
   } catch (error) {
-    console.error(error instanceof Error ? error.message : 'Local report assembly failed')
+    writeCommandPayload((error instanceof Error ? error.message : 'Local report assembly failed') + '\n', 'stderr')
     process.exitCode = 1
   }
 }

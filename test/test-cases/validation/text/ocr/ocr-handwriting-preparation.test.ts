@@ -45,7 +45,7 @@ test('handwritten table excludes drawing characters while retaining every cell a
   expect(() => assertHandwritingReference(result.text, result.text, changed, result.structure)).toThrow('cell association')
 })
 test('flowchart lexical labels exclude boxes and independently preserve branch topology', () => {
-  const transcription = 'Title\n\n   Heading\n\n   Question?\n      /   \\\n          Y             N\n          ↓             ↓\n  ┌──┐ ┌──┐\n  │YES│ │NO!│\n  └──┘ └──┘'
+  const transcription = 'Title\n\n   Heading\n\n   Question?\n      /   \\\n          Y             N\n          ↓             ↓\n  \u250c──\u2510 \u250c──\u2510\n  │YES│ │NO!│\n  \u2514──\u2518 \u2514──\u2518'
   const result = canonicalizeWhiteboard({ id: '08', file_name: '08.webp', category: 'flowchart', transcription })
   expect(result.text).toBe('Title\n\nHeading\n\nQuestion?\n\nY\tN\nYES\tNO!\n')
   const changed = structuredClone(result.structure) as { edges: Array<{ to: string }> }

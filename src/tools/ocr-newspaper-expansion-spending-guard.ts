@@ -1,3 +1,4 @@
+import { AppValidationError } from '~/utils/error-handler'
 import { createApprovedOcrBenchmarkSpendingGuard, CATEGORIES_BC_SPENDING_RATES } from './ocr-categories-bc-spending-guard'
 import type {
   CategoriesBcExecutionPlan, CategoriesBcManualReconciliation, CategoriesBcPagePin,
@@ -29,7 +30,7 @@ export const createNewspaperExpansionSpendingGuard = (options: NewspaperExpansio
   createApprovedOcrBenchmarkSpendingGuard('newspaper-expansion', options)
 
 if (process.env['AUTOSHOW_OCR_NEWSPAPER_GUARD'] === '1') {
-  const required = (name: string): string => process.env[name]?.trim() || (() => { throw new Error(`OCR spending guard: missing ${name}`) })()
+  const required = (name: string): string => process.env[name]?.trim() || (() => { throw new AppValidationError(`OCR spending guard: missing ${name}`) })()
   globalThis.fetch = createNewspaperExpansionSpendingGuard({
     planPath: required('AUTOSHOW_OCR_NEWSPAPER_PLAN'), planSha256: required('AUTOSHOW_OCR_NEWSPAPER_PLAN_SHA256'),
     ledgerPath: required('AUTOSHOW_OCR_NEWSPAPER_LEDGER'), pageId: required('AUTOSHOW_OCR_NEWSPAPER_PAGE'),

@@ -1,3 +1,4 @@
+import { AppValidationError } from '~/utils/error-handler'
 import { createApprovedOcrBenchmarkSpendingGuard, CATEGORIES_BC_SPENDING_RATES } from './ocr-categories-bc-spending-guard'
 import type {
   CategoriesBcExecutionPlan, CategoriesBcManualReconciliation, CategoriesBcPagePin,
@@ -26,7 +27,7 @@ export const createCategoriesEfgSpendingGuard = (options: CategoriesEfgSpendingG
   createApprovedOcrBenchmarkSpendingGuard('categories-efg', options)
 
 if (process.env['AUTOSHOW_OCR_EFG_GUARD'] === '1') {
-  const required = (name: string): string => process.env[name]?.trim() || (() => { throw new Error(`OCR spending guard: missing ${name}`) })()
+  const required = (name: string): string => process.env[name]?.trim() || (() => { throw new AppValidationError(`OCR spending guard: missing ${name}`) })()
   globalThis.fetch = createCategoriesEfgSpendingGuard({
     planPath: required('AUTOSHOW_OCR_EFG_PLAN'), planSha256: required('AUTOSHOW_OCR_EFG_PLAN_SHA256'),
     ledgerPath: required('AUTOSHOW_OCR_EFG_LEDGER'), pageId: required('AUTOSHOW_OCR_EFG_PAGE'),

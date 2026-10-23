@@ -1,3 +1,5 @@
+import { AppValidationError, AppUsageError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { realpath } from 'node:fs/promises'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
@@ -47,14 +49,14 @@ export const newspaperChallengePanel = (id: string, scope: string): NewspaperPan
 /** Compare scores on common source inputs; never fill a missing result with zero. */
 export const summarizeNewspaperPanels = (cases: readonly NewspaperScoredCase[], targets: readonly NewspaperTarget[]) => {
   const targetKeys = targets.map(key)
-  if (!targetKeys.length || new Set(targetKeys).size !== targetKeys.length || new Set(cases.map(row => row.id)).size !== cases.length) throw new Error('Duplicate or empty newspaper cohort identities')
+  if (!targetKeys.length || new Set(targetKeys).size !== targetKeys.length || new Set(cases.map(row => row.id)).size !== cases.length) throw new AppValidationError('Duplicate or empty newspaper cohort identities')
   for (const row of cases) {
     if (!panels.includes(row.panel) || row.outcomes.length !== targets.length || new Set(row.outcomes.map(outcome => outcome.providerKey)).size !== targets.length
-      || row.outcomes.some(outcome => !targetKeys.includes(outcome.providerKey))) throw new Error('Newspaper outcomes differ from the selected matrix')
+      || row.outcomes.some(outcome => !targetKeys.includes(outcome.providerKey))) throw new AppValidationError('Newspaper outcomes differ from the selected matrix')
     for (const outcome of row.outcomes) {
       if (!['succeeded', 'failed', 'missing', 'running'].includes(outcome.status)
         || outcome.status === 'succeeded' && (outcome.score === null || !Number.isFinite(outcome.score) || outcome.score < 0 || outcome.score > 100)
-        || outcome.status !== 'succeeded' && outcome.score !== null) throw new Error('Incomplete newspaper output cannot receive a quality score')
+        || outcome.status !== 'succeeded' && outcome.score !== null) throw new AppValidationError('Incomplete newspaper output cannot receive a quality score')
     }
   }
   const outcome = (row: NewspaperScoredCase, providerKey: string): NewspaperOutcome => row.outcomes.find(value => value.providerKey === providerKey)!
@@ -104,9 +106,9 @@ export const summarizeNewspaperPanels = (cases: readonly NewspaperScoredCase[], 
 }
 
 const within = async (projectRoot: string, path: string): Promise<string> => {
-  if (isAbsolute(path) || /[:\\\x00]/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('Expected a normalized project-relative newspaper path')
+  if (isAbsolute(path) || /[:\\\x00]/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..')) throw new AppValidationError('Expected a normalized project-relative newspaper path')
   const file = await realpath(resolve(projectRoot, path)), rel = relative(projectRoot, file)
-  if (isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) throw new Error('Newspaper report evidence escapes project root')
+  if (isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) throw new AppValidationError('Newspaper report evidence escapes project root')
   return file
 }
 
@@ -120,44 +122,44 @@ export const analyzeNewspaperExpansionReports = async (options: NewspaperReportO
   const secondarySourceConventions: Array<{ caseId: string, providerKey: string } & v.InferOutput<typeof secondarySchema>> = []
   for (const entry of plan.cases) {
     const manifest: unknown = await Bun.file(await within(root, `${entry.runDir}/manifest.json`)).json()
-    if (!record(manifest) || !Array.isArray(manifest['items']) || manifest['items'].length !== 1 || !record(manifest['items'][0]) || !Array.isArray(manifest['items'][0]['providers'])) throw new Error('Public newspaper manifest has no selected-provider matrix')
+    if (!record(manifest) || !Array.isArray(manifest['items']) || manifest['items'].length !== 1 || !record(manifest['items'][0]) || !Array.isArray(manifest['items'][0]['providers'])) throw new AppValidationError('Public newspaper manifest has no selected-provider matrix')
     const states = manifest['items'][0]['providers']
     if (states.length !== plan.targets.length || !record(manifest['reference']) || manifest['reference']['path'] !== entry.normalizedReference
       || manifest['reference']['sha256'] !== entry.normalizedReferenceSha256 || !record(manifest['source'])
       || !record(manifest['source']['originalCanonicalReference']) || manifest['source']['originalCanonicalReference']['path'] !== entry.reference
-      || manifest['source']['originalCanonicalReference']['sha256'] !== entry.referenceSha256) throw new Error('Public newspaper reference or target inventory differs from the authorized source')
+      || manifest['source']['originalCanonicalReference']['sha256'] !== entry.referenceSha256) throw new AppValidationError('Public newspaper reference or target inventory differs from the authorized source')
     const reportPath = `${entry.runDir}/provider-comparison-report.json`
     const diagnostics: unknown = await Bun.file(await within(root, `${entry.runDir}/evaluation-diagnostics.json`)).json()
-    if (!record(diagnostics) || !Array.isArray(diagnostics['providers'])) throw new Error('Newspaper diagnostic coverage is missing')
+    if (!record(diagnostics) || !Array.isArray(diagnostics['providers'])) throw new AppValidationError('Newspaper diagnostic coverage is missing')
     const diagnosticProviders = diagnostics['providers']
     let details: Record<string, unknown>[] = []
     if (await Bun.file(resolve(root, reportPath)).exists()) {
       const report: unknown = await Bun.file(await within(root, reportPath)).json()
       if (!record(report) || !record(report['providerGroups']) || !record(report['referenceProvenance'])
-        || report['referenceProvenance']['path'] !== entry.normalizedReference || report['referenceProvenance']['sha256'] !== entry.normalizedReferenceSha256) throw new Error('Invalid newspaper metric report or scoring reference')
+        || report['referenceProvenance']['path'] !== entry.normalizedReference || report['referenceProvenance']['sha256'] !== entry.normalizedReferenceSha256) throw new AppValidationError('Invalid newspaper metric report or scoring reference')
       for (const group of Object.values(report['providerGroups'])) {
-        if (!record(group) || !Array.isArray(group['providers'])) throw new Error('Invalid newspaper metric group')
-        for (const detail of group['providers']) { if (!record(detail)) throw new Error('Invalid newspaper metric row'); details.push(detail) }
+        if (!record(group) || !Array.isArray(group['providers'])) throw new AppValidationError('Invalid newspaper metric group')
+        for (const detail of group['providers']) { if (!record(detail)) throw new AppValidationError('Invalid newspaper metric row'); details.push(detail) }
       }
-      if (details.some(detail => !plan.targets.some(target => key(target) === detail['providerKey']))) throw new Error('Metric report contains an unselected newspaper target')
+      if (details.some(detail => !plan.targets.some(target => key(target) === detail['providerKey']))) throw new AppValidationError('Metric report contains an unselected newspaper target')
     }
     const outcomes = plan.targets.map(target => {
       const providerKey = key(target)
       const matching = states.filter(state => record(state) && state['service'] === target.provider && state['model'] === target.model)
-      if (matching.length !== 1 || !record(matching[0])) throw new Error('Public newspaper selected-target identity changed')
+      if (matching.length !== 1 || !record(matching[0])) throw new AppValidationError('Public newspaper selected-target identity changed')
       const state = matching[0], status = state['status']
-      if (!['succeeded', 'failed', 'missing', 'running'].includes(String(status))) throw new Error('Invalid newspaper selected-target status')
+      if (!['succeeded', 'failed', 'missing', 'running'].includes(String(status))) throw new AppValidationError('Invalid newspaper selected-target status')
       const scored = details.filter(detail => detail['providerKey'] === providerKey)
-      if (scored.length > 1 || status !== 'succeeded' && scored.length) throw new Error('Failed newspaper output has a stale quality row')
+      if (scored.length > 1 || status !== 'succeeded' && scored.length) throw new AppValidationError('Failed newspaper output has a stale quality row')
       const metrics = scored[0]?.['metrics'], score = record(metrics) ? metrics['score'] : null
-      if (status === 'succeeded' && (typeof score !== 'number' || !Number.isFinite(score))) throw new Error('Completed newspaper output lacks its quality score')
+      if (status === 'succeeded' && (typeof score !== 'number' || !Number.isFinite(score))) throw new AppValidationError('Completed newspaper output lacks its quality score')
       const metadata = state['metadata'], evidence = record(metadata) && Array.isArray(metadata['pageEvidence']) ? metadata['pageEvidence'] : []
       const failure = evidence.find(value => record(value) && typeof value['failureKind'] === 'string')
       const diagnostic = diagnosticProviders.filter(value => record(value) && value['providerKey'] === providerKey)
-      if (diagnostic.length > 1 || status !== 'succeeded' && diagnostic.length) throw new Error('Newspaper token diagnostic differs from completed coverage')
+      if (diagnostic.length > 1 || status !== 'succeeded' && diagnostic.length) throw new AppValidationError('Newspaper token diagnostic differs from completed coverage')
       const multiset = status === 'succeeded' && record(diagnostic[0]) ? v.parse(multisetSchema, diagnostic[0]['tokenMultiset']) : undefined
       const repetition = status === 'succeeded' && record(diagnostic[0]) ? v.parse(repetitionSchema, diagnostic[0]['repetition']) : undefined
-      if (status === 'succeeded' && !multiset) throw new Error('Completed newspaper output lacks its token multiset diagnostic')
+      if (status === 'succeeded' && !multiset) throw new AppValidationError('Completed newspaper output lacks its token multiset diagnostic')
       return { providerKey, status: status as Status, score: status === 'succeeded' ? score as number : null,
         ...(multiset ? { tokenMultiset: multiset } : {}),
         ...(repetition ? { repetition } : {}),
@@ -166,7 +168,7 @@ export const analyzeNewspaperExpansionReports = async (options: NewspaperReportO
     cases.push({ id: entry.id, panel: newspaperChallengePanel(entry.id, entry.scope), outcomes })
     if (entry.id === 'newspapers-expansion-bln-era-burglars') {
       for (const provider of diagnosticProviders) {
-        if (!record(provider) || typeof provider['providerKey'] !== 'string' || !outcomes.some(outcome => outcome.providerKey === provider['providerKey'] && outcome.status === 'succeeded')) throw new Error('ERA diagnostic differs from completed provider coverage')
+        if (!record(provider) || typeof provider['providerKey'] !== 'string' || !outcomes.some(outcome => outcome.providerKey === provider['providerKey'] && outcome.status === 'succeeded')) throw new AppValidationError('ERA diagnostic differs from completed provider coverage')
         const value = v.parse(secondarySchema, provider['sourceSpacingConvention'])
         secondarySourceConventions.push({ caseId: entry.id, providerKey: provider['providerKey'], ...value })
       }
@@ -257,7 +259,7 @@ export const updateNewspaperExecutionSection = async (analysis: Awaited<ReturnTy
   const root = await realpath(options.projectRoot ?? PROJECT_ROOT)
   const path = await within(root, NEWSPAPER_EXECUTION_REPORT), existing = await Bun.file(path).text()
   const start = '<!-- newspaper-execution:start -->', end = '<!-- newspaper-execution:end -->'
-  if (existing.includes(start) !== existing.includes(end) || existing.split(start).length > 2 || existing.split(end).length > 2) throw new Error('Invalid newspaper execution report markers')
+  if (existing.includes(start) !== existing.includes(end) || existing.split(start).length > 2 || existing.split(end).length > 2) throw new AppValidationError('Invalid newspaper execution report markers')
   const section = `${start}\n\n${newspaperExecutionMarkdown(analysis)}\n\n${end}`
   const updated = existing.includes(start) ? existing.slice(0, existing.indexOf(start)) + section + existing.slice(existing.indexOf(end) + end.length) : existing.trimEnd() + '\n\n' + section + '\n'
   writePortableFileSync(path, updated)
@@ -271,11 +273,11 @@ export const buildNewspaperExpansionReports = async (options: NewspaperReportOpt
 export const parseNewspaperReportArguments = (args: readonly string[]) => {
   const usage = 'Usage: bun src/tools/ocr-newspaper-expansion-report.ts [--generate [--case <authorized-case-id> ...] | --analyze | --help]'
   const action = args[0] ?? '--analyze'
-  if (!['--help', '--generate', '--analyze'].includes(action) || action !== '--generate' && args.length > 1) throw new Error(usage)
+  if (!['--help', '--generate', '--analyze'].includes(action) || action !== '--generate' && args.length > 1) throw new AppUsageError(usage)
   const buildCaseIds: string[] = []
   for (let index = 1; index < args.length; index += 2) {
     const id = args[index + 1]
-    if (args[index] !== '--case' || !id || !/^newspapers-expansion-[a-z0-9-]+$/.test(id) || buildCaseIds.includes(id)) throw new Error(usage)
+    if (args[index] !== '--case' || !id || !/^newspapers-expansion-[a-z0-9-]+$/.test(id) || buildCaseIds.includes(id)) throw new AppUsageError(usage)
     buildCaseIds.push(id)
   }
   return { action, ...(buildCaseIds.length ? { buildCaseIds } : {}), usage }
@@ -284,11 +286,11 @@ export const parseNewspaperReportArguments = (args: readonly string[]) => {
 if (import.meta.main) {
   try {
     const args = parseNewspaperReportArguments(Bun.argv.slice(2))
-    if (args.action === '--help') console.log(args.usage + '\nDefault/--analyze: read-only saved-cohort analysis. --generate: build metric-only reports from pinned saved outputs and update the marked execution section. Repeated --case rebuilds only those cases, validates all batch evidence, then analyzes all saved reports. No OCR/provider calls.')
+    if (args.action === '--help') writeCommandPayload((args.usage + '\nDefault/--analyze: read-only saved-cohort analysis. --generate: build metric-only reports from pinned saved outputs and update the marked execution section. Repeated --case rebuilds only those cases, validates all batch evidence, then analyzes all saved reports. No OCR/provider calls.') + '\n')
     else if (args.action === '--generate') {
       const analysis = await buildNewspaperExpansionReports({ ...(args.buildCaseIds ? { buildCaseIds: args.buildCaseIds } : {}) })
       await updateNewspaperExecutionSection(analysis)
-      console.log(JSON.stringify(analysis, null, 2))
-    } else console.log(JSON.stringify(await analyzeNewspaperExpansionReports(), null, 2))
-  } catch (error) { console.error(error instanceof Error ? error.message : 'Newspaper report integration failed'); process.exitCode = 1 }
+      writeCommandPayload((JSON.stringify(analysis, null, 2)) + '\n')
+    } else writeCommandPayload((JSON.stringify(await analyzeNewspaperExpansionReports(), null, 2)) + '\n')
+  } catch (error) { writeCommandPayload((error instanceof Error ? error.message : 'Newspaper report integration failed') + '\n', 'stderr'); process.exitCode = 1 }
 }

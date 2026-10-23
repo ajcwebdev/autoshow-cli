@@ -1,3 +1,5 @@
+import { AppValidationError, AppUsageError, AppInfrastructureError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { lstat, mkdir, realpath, stat } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
@@ -39,29 +41,29 @@ const json = (value: unknown): string => JSON.stringify(value, null, 2) + '\n'
 const decode = (bytes: Uint8Array): string => new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)
 const relativePath = (path: string): void => {
   if (isAbsolute(path) || /[:\\\x00]/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..')) {
-    throw new Error('Expected a normalized repository-relative path')
+    throw new AppValidationError('Expected a normalized repository-relative path')
   }
 }
 const inside = (root: string, path: string): void => {
   const rel = relative(root, path)
-  if (isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) throw new Error('Artifact escapes project root')
+  if (isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) throw new AppValidationError('Artifact escapes project root')
 }
 const originalPath = (path: string): void => {
   relativePath(path)
-  if (!path.startsWith(`${NEWSPAPER_EXPANSION_ROOT}/originals/`)) throw new Error('Original source must be inside the expansion originals directory')
+  if (!path.startsWith(`${NEWSPAPER_EXPANSION_ROOT}/originals/`)) throw new AppValidationError('Original source must be inside the expansion originals directory')
 }
 const https = (url: string): void => {
-  if (new URL(url).protocol !== 'https:') throw new Error('Source provenance requires an HTTPS URL')
+  if (new URL(url).protocol !== 'https:') throw new AppValidationError('Source provenance requires an HTTPS URL')
 }
 const assertSingleFrameTiff = (bytes: Uint8Array): void => {
   const little = bytes[0] === 73 && bytes[1] === 73, big = bytes[0] === 77 && bytes[1] === 77
-  if ((!little && !big) || bytes.length < 8) throw new Error('Invalid standard TIFF header')
+  if ((!little && !big) || bytes.length < 8) throw new AppValidationError('Invalid standard TIFF header')
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  if (view.getUint16(2, little) !== 42) throw new Error('Only standard single-frame TIFF sources are admitted')
+  if (view.getUint16(2, little) !== 42) throw new AppValidationError('Only standard single-frame TIFF sources are admitted')
   const offset = view.getUint32(4, little)
-  if (offset < 8 || offset + 2 > bytes.length) throw new Error('Invalid TIFF image-directory bounds')
+  if (offset < 8 || offset + 2 > bytes.length) throw new AppValidationError('Invalid TIFF image-directory bounds')
   const end = offset + 2 + view.getUint16(offset, little) * 12
-  if (end + 4 > bytes.length || view.getUint32(end, little) !== 0) throw new Error('Multipage or truncated TIFF sources are not admitted')
+  if (end + 4 > bytes.length || view.getUint32(end, little) !== 0) throw new AppValidationError('Multipage or truncated TIFF sources are not admitted')
 }
 
 // This reviewed frame has two empty decorative cells; it is not a data table.
@@ -70,7 +72,7 @@ const editorialFrame = `<div style="border:2px solid black; padding:1px">\n{| st
 /** Additional reviewed presentation templates; semantic/unknown templates fail closed. */
 export const serializeNewspaperWikisource = (raw: string): string => {
   const reviewed = raw.replace(/<!--[^]*?-->/g, '').replace(editorialFrame, '\n&#58;&#58; Editorials &#58;&#58;\n')
-  if (/\{\||\|\}/.test(reviewed)) throw new Error('Unreviewed Wikisource table markup')
+  if (/\{\||\|\}/.test(reviewed)) throw new AppValidationError('Unreviewed Wikisource table markup')
   let text = reviewed.replace(/<section\s+(?:begin|end)="[^"]*"\s*\/\s*>/gi, '')
     .replace(/<\/?noinclude>/g, '\n')
     .replace(/<span style="border-bottom: 3px double; vertical-align: top;">([^]*?)<\/span>/g, '$1')
@@ -85,17 +87,17 @@ export const serializeNewspaperWikisource = (raw: string): string => {
       const args = rawArgs.map((arg, index) => index === 0 ? arg.replace(/^\s*1=/, '') : arg).filter(arg => {
         if (!/^\s*[a-z][a-z0-9_-]*\s*=/i.test(arg)) return true
         if (!/^\s*(?:style|class|offset|gutter|width|maxwidth|height|align|font-size|hanging-indent|margin_tb|start|end)\s*=/i.test(arg)) {
-          throw new Error(`Unreviewed newspaper template option: ${name}`)
+          throw new AppValidationError(`Unreviewed newspaper template option: ${name}`)
         }
         return false
       })
       if (['sic'].includes(name)) {
-        if (!args.length || args.length > 3 || args[2] !== undefined && args[2] !== 'nodash') throw new Error('Unreviewed SIC template arguments')
+        if (!args.length || args.length > 3 || args[2] !== undefined && args[2] !== 'nodash') throw new AppValidationError('Unreviewed SIC template arguments')
         return args[0]!
       }
       if (name === 'mc' && args.length === 0) return 'Mc'
       if (name === 'continues') {
-        if (args.length !== 1) throw new Error('Unreviewed continues template arguments')
+        if (args.length !== 1) throw new AppValidationError('Unreviewed continues template arguments')
         return `\n${args[0]}\n`
       }
       if (['gap'].includes(name)) return ' '
@@ -105,19 +107,19 @@ export const serializeNewspaperWikisource = (raw: string): string => {
       if (name === 'style') return args.slice(1).join('|')
       if (['sc', 'small-caps', 'uc'].includes(name)) return args.join('|').toUpperCase()
       if (name === 'lsp' || name === 'fs') {
-        if (args.length < 2 || !/^\s*\d+(?:\.\d+)?(?:em|rem|px|pt|%)\s*$/.test(args[0]!)) throw new Error(`Unreviewed ${name} size argument`)
+        if (args.length < 2 || !/^\s*\d+(?:\.\d+)?(?:em|rem|px|pt|%)\s*$/.test(args[0]!)) throw new AppValidationError(`Unreviewed ${name} size argument`)
         return args.slice(1).join('')
       }
       if (['larger', 'x-larger', 'xx-larger', 'xxx-larger', 'smaller', 'center', 'c', 'right', 'hi', 'dropinitial', 'di', 'sp', 'sup', 'nowrap', 'block center', 'block right', 'float right', 'float left', 'frame', 'border'].includes(name) || /^fs\d+$/.test(name)) return args.join('|')
       if (name === 'rh' || name === 'running header' || name === 'runningheader') return args.filter(arg => arg.trim()).join('\n') + '\n'
       if (name === 'ppoem') return args.join('|')
       if (name === 'pline') return `{{pline|${args.join('|')}}}`
-      throw new Error(`Unreviewed newspaper template: ${name}`)
+      throw new AppValidationError(`Unreviewed newspaper template: ${name}`)
     })
     // pline remains for the existing checked marginal-line-number converter.
     const unfinished = text.replace(/\{\{pline\|[^{}]*\}\}/g, '')
     if (!unfinished.includes('{{')) break
-    if (text === before || ++passes > 40) throw new Error('Unbalanced newspaper template markup')
+    if (text === before || ++passes > 40) throw new AppValidationError('Unbalanced newspaper template markup')
   }
   return serializeValidatedWikisource(text)
 }
@@ -127,7 +129,7 @@ export const applyNewspaperReferenceErrata = (text: string, errata: readonly { s
   let result = text
   for (const entry of errata) {
     if (!entry.source || !entry.corrected || !entry.basis.trim() || entry.source === entry.corrected
-      || result.split(entry.source).length !== 2) throw new Error('Reference erratum requires an exact unique source anchor and review basis')
+      || result.split(entry.source).length !== 2) throw new AppValidationError('Reference erratum requires an exact unique source anchor and review basis')
     result = result.replace(entry.source, entry.corrected)
   }
   return result
@@ -136,10 +138,10 @@ export const applyNewspaperReferenceErrata = (text: string, errata: readonly { s
 /** A reviewed crop selects one exact contiguous publisher-text span; it never rewrites the source. */
 export const selectNewspaperReferenceSpan = (text: string, span: { start: string, end: string, basis: string }): string => {
   if (!span.start || !span.end || !span.basis.trim() || text.split(span.start).length !== 2 || text.split(span.end).length !== 2) {
-    throw new Error('Reference span requires unique start/end anchors and a review basis')
+    throw new AppValidationError('Reference span requires unique start/end anchors and a review basis')
   }
   const start = text.indexOf(span.start), end = text.indexOf(span.end)
-  if (end < start + span.start.length) throw new Error('Reference span end must follow the complete start anchor')
+  if (end < start + span.start.length) throw new AppValidationError('Reference span end must follow the complete start anchor')
   return text.slice(start, end + span.end.length)
 }
 
@@ -157,28 +159,28 @@ const collect = async (options: NewspaperExpansionOptions) => {
   const seen = { id: new Set<string>(), source: new Set<string>(), identity: new Set<string>(), image: new Set<string>(), pixels: new Set<string>(), reference: new Set<string>(), text: new Set<string>() }
   const outputs = new Map<string, Uint8Array | string>()
   const cases: Record<string, unknown>[] = []
-  const remember = (set: Set<string>, value: string, label: string) => { if (set.has(value)) throw new Error(`Duplicate ${label}`); set.add(value) }
+  const remember = (set: Set<string>, value: string, label: string) => { if (set.has(value)) throw new AppValidationError(`Duplicate ${label}`); set.add(value) }
   for (const entry of selection.cases) {
     remember(seen.id, entry.id, 'case ID'); remember(seen.source, entry.sourceId, 'source ID')
-    if (entry.sourceImage.identity !== entry.sourceReference.identity) throw new Error('Image and gold source identity mismatch')
+    if (entry.sourceImage.identity !== entry.sourceReference.identity) throw new AppValidationError('Image and gold source identity mismatch')
     remember(seen.identity, entry.sourceImage.identity, 'source image/reference identity')
-    if (entry.sourceReference.coverage !== entry.scope) throw new Error('Gold reference coverage differs from the input scope')
-    if (entry.referenceSpan && (entry.scope !== 'region-crop' || !entry.imageCrop)) throw new Error('A reference span requires a declared image crop and matching region-crop scope')
-    if (entry.status === 'reviewed-ready' ? entry.review.status !== 'approved' : entry.review.status !== 'blocked') throw new Error('Case status and checked review approval differ')
+    if (entry.sourceReference.coverage !== entry.scope) throw new AppValidationError('Gold reference coverage differs from the input scope')
+    if (entry.referenceSpan && (entry.scope !== 'region-crop' || !entry.imageCrop)) throw new AppValidationError('A reference span requires a declared image crop and matching region-crop scope')
+    if (entry.status === 'reviewed-ready' ? entry.review.status !== 'approved' : entry.review.status !== 'blocked') throw new AppValidationError('Case status and checked review approval differ')
     for (const pin of [entry.sourceImage, entry.sourceReference]) { originalPath(pin.path); https(pin.url) }
     if (entry.rights.attributionURL) https(entry.rights.attributionURL)
     const imageBytes = await read(entry.sourceImage.path), referenceBytes = await read(entry.sourceReference.path)
-    if (hash(imageBytes) !== entry.sourceImage.sha256 || hash(referenceBytes) !== entry.sourceReference.sha256) throw new Error(`Pinned original image/reference changed: ${entry.id}`)
+    if (hash(imageBytes) !== entry.sourceImage.sha256 || hash(referenceBytes) !== entry.sourceReference.sha256) throw new AppValidationError(`Pinned original image/reference changed: ${entry.id}`)
     remember(seen.image, entry.sourceImage.sha256, 'source image bytes'); remember(seen.reference, entry.sourceReference.sha256, 'original reference bytes')
     if (imageBytes[0] === 73 && imageBytes[1] === 73 || imageBytes[0] === 77 && imageBytes[1] === 77) assertSingleFrameTiff(imageBytes)
     const source = new Bun.Image(imageBytes, { autoOrient: false, maxPixels: 64 * 1024 * 1024 }), metadata = await source.metadata()
-    if (!['png', 'jpeg', 'webp', 'tiff'].includes(metadata.format ?? '') || metadata.width !== entry.sourceImage.width || metadata.height !== entry.sourceImage.height) throw new Error('Source image dimensions or format differ from the pinned identity')
+    if (!['png', 'jpeg', 'webp', 'tiff'].includes(metadata.format ?? '') || metadata.width !== entry.sourceImage.width || metadata.height !== entry.sourceImage.height) throw new AppValidationError('Source image dimensions or format differ from the pinned identity')
     const sourcePng = metadata.format === 'png' ? imageBytes : await source.png().bytes()
     const originalPixels = decodePngRgba8(sourcePng)
     let before = originalPixels, preparedPng = sourcePng
     if (entry.imageCrop) {
       const crop = entry.imageCrop
-      if (crop.x + crop.width > originalPixels.width || crop.y + crop.height > originalPixels.height) throw new Error('Declared publication crop escapes source image bounds')
+      if (crop.x + crop.width > originalPixels.width || crop.y + crop.height > originalPixels.height) throw new AppValidationError('Declared publication crop escapes source image bounds')
       const pixels = new Uint8Array(crop.width * crop.height * 4)
       for (let row = 0; row < crop.height; row++) {
         const offset = ((crop.y + row) * originalPixels.width + crop.x) * 4
@@ -187,13 +189,13 @@ const collect = async (options: NewspaperExpansionOptions) => {
       const process = Bun.spawn(['magick', 'png:-', '-crop', `${crop.width}x${crop.height}+${crop.x}+${crop.y}`, '+repage', '-strip', 'PNG32:-'], { stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' })
       process.stdin.write(sourcePng); process.stdin.end()
       const [bytes, stderr, exitCode] = await Promise.all([new Response(process.stdout).arrayBuffer(), new Response(process.stderr).text(), process.exited])
-      if (exitCode) throw new Error(`Publication crop failed: ${stderr}`)
+      if (exitCode) throw new AppInfrastructureError(`Publication crop failed: ${stderr}`)
       preparedPng = new Uint8Array(bytes)
       before = { width: crop.width, height: crop.height, pixels, pixelSha256: hash(pixels) }
     }
     const compressed = await losslesslyCompressPng(preparedPng)
     const png = compressed.bytes, after = decodePngRgba8(png)
-    if (before.width !== after.width || before.height !== after.height || before.pixelSha256 !== after.pixelSha256) throw new Error('Derived PNG changed decoded pixels')
+    if (before.width !== after.width || before.height !== after.height || before.pixelSha256 !== after.pixelSha256) throw new AppValidationError('Derived PNG changed decoded pixels')
     remember(seen.pixels, before.pixelSha256, 'decoded source image pixels')
     const base = `${NEWSPAPER_EXPANSION_ROOT}/cases/${entry.id}`, ready = entry.status === 'reviewed-ready'
     const input = `${base}/input.png`, structuredReference = `${base}/reference.json`
@@ -204,12 +206,12 @@ const collect = async (options: NewspaperExpansionOptions) => {
       canonical = entry.sourceReference.kind === 'wikisource-validated' ? serializeNewspaperWikisource(originalText) : originalText
       if (entry.referenceSpan) canonical = selectNewspaperReferenceSpan(canonical, entry.referenceSpan)
       canonical = applyNewspaperReferenceErrata(canonical, entry.referenceErrata ?? [])
-      if (!canonical.trim()) throw new Error('Canonical gold text is empty')
+      if (!canonical.trim()) throw new AppValidationError('Canonical gold text is empty')
       remember(seen.text, normalizeHistoricalReference(canonical).toLowerCase(), 'canonical reference text')
       outputs.set(reference!, canonical); outputs.set(normalizedReference!, normalizeHistoricalReference(canonical))
     } else {
       for (const path of [`${base}/canonical-reference.txt`, `${base}/normalized-reference.txt`]) {
-        if (await Bun.file(resolve(root, path)).exists()) throw new Error('Blocked case has stale scoring references; preserve and reconcile before preparation')
+        if (await Bun.file(resolve(root, path)).exists()) throw new AppValidationError('Blocked case has stale scoring references; preserve and reconcile before preparation')
       }
     }
     const structure = {
@@ -270,10 +272,10 @@ export const prepareNewspaperExpansion = async (options: NewspaperExpansionOptio
     let parent = dirname(absolute)
     while (true) { try { await stat(parent); break } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; parent = dirname(parent) } }
     const actualParent = await realpath(parent); inside(context.root, actualParent)
-    if (actualParent !== parent) throw new Error('Output directory symlinks are not permitted')
+    if (actualParent !== parent) throw new AppValidationError('Output directory symlinks are not permitted')
     await mkdir(dirname(absolute), { recursive: true })
     // Existing output symlinks must never redirect a write outside the checkout.
-    if (await Bun.file(absolute).exists() && (await lstat(absolute)).isSymbolicLink()) throw new Error('Output file symlinks are not permitted')
+    if (await Bun.file(absolute).exists() && (await lstat(absolute)).isSymbolicLink()) throw new AppValidationError('Output file symlinks are not permitted')
     if (typeof content === 'string' && path.endsWith('.json')) writePortableFileSync(absolute, content)
     else await Bun.write(absolute, content)
   }
@@ -285,18 +287,18 @@ export const validateNewspaperExpansion = async (options: NewspaperExpansionOpti
   const context = await collect(options)
   for (const [path, expected] of context.outputs) {
     const actual = await context.read(path), expectedBytes = typeof expected === 'string' ? new TextEncoder().encode(expected) : expected
-    if (hash(actual) !== hash(expectedBytes)) throw new Error(`Derived artifact differs from pinned source reconstruction: ${path}`)
+    if (hash(actual) !== hash(expectedBytes)) throw new AppValidationError(`Derived artifact differs from pinned source reconstruction: ${path}`)
   }
   return { ...context.summary, derivedArtifactsVerified: context.outputs.size, writes: 0 }
 }
 
 export const parseNewspaperExpansionMode = (args: readonly string[]): '--prepare-local' | '--validate' => {
-  if (args.length !== 1 || !['--prepare-local', '--validate'].includes(args[0]!)) throw new Error('Usage: bun src/tools/ocr-preparation/prepare-newspaper-expansion.ts --prepare-local|--validate (local-only; no downloads, OCR or provider execution)')
+  if (args.length !== 1 || !['--prepare-local', '--validate'].includes(args[0]!)) throw new AppUsageError('Usage: bun src/tools/ocr-preparation/prepare-newspaper-expansion.ts --prepare-local|--validate (local-only; no downloads, OCR or provider execution)')
   return args[0] as '--prepare-local' | '--validate'
 }
 if (import.meta.main) {
   try {
     const mode = parseNewspaperExpansionMode(Bun.argv.slice(2))
-    console.log(json(mode === '--validate' ? await validateNewspaperExpansion() : await prepareNewspaperExpansion()))
-  } catch (error) { console.error(error instanceof Error ? stripProjectRoot(error.message) : 'Newspaper source preparation failed'); process.exitCode = 1 }
+    writeCommandPayload((json(mode === '--validate' ? await validateNewspaperExpansion() : await prepareNewspaperExpansion())) + '\n')
+  } catch (error) { writeCommandPayload((error instanceof Error ? stripProjectRoot(error.message) : 'Newspaper source preparation failed') + '\n', 'stderr'); process.exitCode = 1 }
 }
