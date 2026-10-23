@@ -89,7 +89,7 @@ It does not apply to:
 
 ### Registry consumers
 
-Comic resolves LLM, image, QA, dialogue, and sound-effect models, prices, and hosted generation through these registries and keeps no private model list. Image selections omit fal, text selections match `write`, and QA selections are the vision-capable OpenAI and Gemini models. `--provider` and role-scoped `--<role>-provider` validate central registry IDs; comic domain rules such as target values, grid combinations, and reference-sheet modes are unchanged by registry resolution.
+Comic resolves LLM, image, QA, dialogue, and sound-effect models, prices, and hosted generation through these registries and keeps no private model list. Image selections match `image`, text selections match `write`, and QA selections are the vision-capable OpenAI and Gemini models. `--provider` and role-scoped `--<role>-provider` validate central registry IDs; comic domain rules such as target values, grid combinations, and reference-sheet modes are unchanged by registry resolution.
 
 ### Concrete selector identity
 
@@ -161,9 +161,13 @@ Bare-provider selection uses the cheapest active default-eligible model unless a
 
 Retired names are rejected for new runs and omitted from defaults, help, current config, and `--all-*`. When a concrete successor exists, the error names it and leaves the stored identity unchanged. Finished manifests and benchmark artifacts keep the model they stored; an unfinished retired target cannot run under the old name, and choosing the successor adds a new target. Historical pricing keeps the rates of removed models so committed runs can be repriced, and the cost recorded on a run remains the authority for that run.
 
-On October 18, 2026, the user retired six selectors from both write and OCR: `gemini-3.7-flash` → `gemini-3.8-flash`, `claude-sonnet-5` → `claude-sonnet-5-5`, `claude-opus-5` → `claude-opus-5-5`, `grok-4.6` → `grok-4.7`, `gpt-5.6-sol` → `gpt-6.1-sol`, and `gpt-5.6-luna` → `gpt-6-luna`. Gemini 3.7 Flash was officially deprecated and routed to 3.8; the remaining five removals were project decisions to use already implemented newer options. GPT-5.6 Terra remains active. Comic drafting, QA, and revision comparisons now default to GPT-6.1 Sol. Historical rates retain cache rates, context bands, and pricing provenance; existing calibration and purchased benchmark evidence retain the original model identity. The active catalog has 17 write routes and 24 hosted OCR routes.
+On October 18, 2026, the user retired six write and OCR selectors in favor of already implemented newer options, then removed Kimi and GLM from all active workflows, including Together-hosted writing. Their adapters, model selectors, defaults, config keys, setup credentials, provider links, examples, and live verification definitions are removed, including chapter extraction and comic LLM dispatch. Together STT remains supported. Comic drafting, QA, and revision comparisons default to GPT-6.1 Sol. The active catalog has 11 write routes and 21 hosted OCR routes. Old selections fail locally without dispatch or substitution. Provider-level metadata readers remain so older local manifests stay readable; they do not enable new requests. The dashboard defaults to its current CLI-supported model view, with historical results available through its toggle.
 
-Later on October 18, 2026, the user removed Kimi and GLM from all active workflows. This removes direct write routes `kimi/kimi-k3`, `glm/glm-5.3`, and `glm/glm-5.3-flash`; Together write routes `together/kimi-k3`, `together/glm-5.3`, and `together/glm-5.3-flash`; and OCR routes `kimi/kimi-k2.6`, `kimi/kimi-k3`, and `glm/glm-5.3-flash`. Their adapters, model selectors, defaults, config keys, setup credentials, provider links, examples, and live verification definitions are removed, including chapter extraction and comic LLM dispatch. Together STT remains supported. The active catalog now has 11 write routes and 21 hosted OCR routes. Old selections fail locally without dispatch or substitution. Purchased outputs, benchmark reports, frozen rates, and metadata readers retain historical identities; they do not enable new requests. The dashboard defaults to its current CLI-supported model view, with historical results available through its toggle.
+On October 23, 2026, the user removed every remaining trace of those retired write and OCR models, as an exception to the historical-pricing rule above: committed benchmark outputs, receipts, plan entries, report rows, and evidence-archive entries; frozen rates and successor hints; bundled calibration profiles; and their rows in the calibration record below. The write benchmark plan and its remaining receipts were re-pinned to a new fingerprint, so cumulative benchmark costs now cover only retained routes.
+
+Later on October 23, 2026, the user removed six more OCR routes from the implementation and from every benchmark, including all DeepInfra OCR models; DeepInfra remains an STT provider. Bare Mistral OCR now resolves to its newer model and bare Gemini OCR to the cheapest remaining Gemini model. Removed selections fail locally before dispatch, and 15 hosted OCR routes remain. Their OCR calibration profiles and their rows in the calibration record below were removed the same way. Five more OCR routes were removed the same way later that day, leaving one Gemini and one Grok OCR model, which are now their bare-provider defaults, and 10 hosted OCR routes remain. Three more models were then removed from write and OCR entirely, with their calibration rows, leaving 8 write routes and 9 hosted OCR routes.
+
+Also on October 23, 2026, the user removed fal entirely: its image and video models, client, `FAL_API_KEY` credential, frozen rates, the fal-only `--generate-audio` and `--reference-audio` video controls, and its benchmark results. OpenAI `gpt-image-2` was removed from image the same day; comic image generation and revision plans now default to `gpt-image-2.5-flare`. Removed fal selections fail locally before dispatch.
 
 ### Pricing provenance
 
@@ -237,23 +241,19 @@ All 345 planned cases completed, 341 qualified, and 50 OCR policy profiles passe
 
 #### Provider-contract decisions
 
-Before paid execution, the CLI refreshed 39 primary documents for OpenAI, Anthropic, Kimi, Grok and then 33 for Gemini, GLM, DeepInfra and Together. The dated review found no justified ninth public reasoning value. The eight-value definition was centralized across parsing, schemas, persisted profiles and audits; documented Anthropic/Grok xhigh support was added and unsupported direct Kimi K3 medium was removed. These findings describe the September 23 catalog, not a continuing monitoring service.
+Before paid execution, the CLI refreshed 72 primary documents across the reviewed providers. The dated review found no justified ninth public reasoning value. The eight-value definition was centralized across parsing, schemas, persisted profiles and audits, and documented Anthropic/Grok xhigh support was added. These findings describe the September 23 catalog, not a continuing monitoring service.
 
-| Provider                   | Documented contract and decision                                                                                                                                          | Primary source                                                                                                                                                                       |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| OpenAI                     | Astra accepts low through max including xhigh. No ultra effort is documented for these API models. Provider `none` is represented by existing `disabled` where supported. | [Astra](https://developers.openai.com/api/docs/models/gpt-6-astra), [reasoning](https://developers.openai.com/api/docs/guides/reasoning)                                             |
-| Anthropic                  | Fable 5.1, Fable 5, Sonnet 5 and Opus 5 accept xhigh. Adaptive is a thinking mode, not another effort value. Sonnet 5 standard rates remain $2/$10.                       | [Effort](https://platform.claude.com/docs/en/build-with-claude/effort), [pricing](https://platform.claude.com/docs/en/about-claude/pricing)                                          |
-| xAI                        | Grok 4.6 accepts xhigh; Grok 4.5 does not.                                                                                                                                | [Reasoning](https://docs.x.ai/developers/model-capabilities/text/reasoning)                                                                                                          |
-| Kimi                       | K3 accepts low, high and max, excluding medium. Explicit default delegates to upstream; omitted CLI effort selects low.                                                   | [Reasoning effort](https://platform.kimi.ai/docs/guide/use-reasoning-effort.md), [K3 repository](https://github.com/MoonshotAI/Kimi-K3/blob/main/README.md)                          |
-| Gemini                     | Existing minimal/low/medium/high vocabulary covers documented model levels; budget and thinking configuration fields are separate controls.                               | [Thinking](https://ai.google.dev/gemini-api/docs/thinking)                                                                                                                           |
-| GLM / Together / DeepInfra | Reviewed thinking modes, hosted IDs and effort controls; no additional public enum value is substantiated for the selected models.                                        | [GLM thinking](https://docs.z.ai/guides/capabilities/thinking-mode), [Together reasoning](https://docs.together.ai/docs/reasoning), [DeepInfra models](https://deepinfra.com/models) |
-
-Anthropic had canceled its scheduled September price increase, so Sonnet 5 retained standard rates of $2/$10 per million input/output tokens and the stale price explanation was corrected.
+| Provider  | Documented contract and decision                                                                                                                                                       | Primary source                                                              |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| OpenAI    | The reviewed models accept low through max including xhigh. No ultra effort is documented for these API models. Provider `none` is represented by existing `disabled` where supported. | [reasoning](https://developers.openai.com/api/docs/guides/reasoning)        |
+| Anthropic | Fable 5 accepts xhigh. Adaptive is a thinking mode, not another effort value.                                                                                                          | [Effort](https://platform.claude.com/docs/en/build-with-claude/effort)      |
+| xAI       | Grok 4.5 does not accept xhigh.                                                                                                                                                        | [Reasoning](https://docs.x.ai/developers/model-capabilities/text/reasoning) |
+| Gemini    | Existing minimal/low/medium/high vocabulary covers documented model levels; budget and thinking configuration fields are separate controls.                                            | [Thinking](https://ai.google.dev/gemini-api/docs/thinking)                  |
 
 #### Implementation lessons
 
 - Forward the reasoning option through the actual `write` and image-document OCR entry points. Live diagnostic runs exposed both handoffs dropping the option, despite accurate price-plan identity and working direct adapter tests.
-- Carry Anthropic and Grok xhigh through real adapters. Kimi medium fails locally before credentials or dispatch. Tests cover omitted, override and explicit default/reset behavior.
+- Carry Anthropic and Grok xhigh through real adapters. Tests cover omitted, override and explicit default/reset behavior.
 - Include Gemini's separately reported thought tokens in billed write completion usage exactly once. Providers whose output totals already include reasoning retain their totals.
 - Read xhigh from persisted OCR token profiles and evidence audits. The previous profile reader rejected its own xhigh output.
 - Bundle qualified OCR component medians in `src/cli/commands/setup-and-utilities/models/ocr-calibration-profiles.json`. With no learned local profile, an exact provider/model/image/page-band/policy match uses these values and reports `tokenEstimateSource: calibrated-registry`. Components that fail the gate retain their registry estimates. Other contexts do not borrow these profiles. Learned local profiles retain precedence.
@@ -269,7 +269,7 @@ Write qualification establishes transport, identity, usage and structured-artifa
 
 For each OCR component, promotion requires at least three distinct healthy sources in the same provider/model/mode/page-band/policy group, every observation on the same side of the registry estimate, and median absolute percentage error greater than 20%, using the observation as denominator. The promoted value is the observed median. Timing measurements include wall-clock variability; this run does not promote scheduler or global latency settings. Published prices and `costMultiplier: 1` remain separate from token-shape calibration.
 
-Four original OCR outputs were excluded: Gemma 4 default/high changed “downloaded” to “download” in Meadow; Terra low changed Harbor's 7600 to 3600; Terra max changed Summit's “could” to “can”. The corresponding groups remain below the three-source gate. Errors were retained rather than replaced with favorable reruns.
+Four original OCR outputs were excluded for transcription errors; all four belonged to OCR routes removed on October 23, 2026, and their groups remained below the three-source gate. Errors were retained rather than replaced with favorable reruns.
 
 #### Execution and spending
 
@@ -285,125 +285,20 @@ The complete policy medians are retained because they explain which components c
 <summary>September 23 measurements by route, provider, model and policy</summary>
 
 <!-- reasoning-calibration:start -->
-341 of 345 planned samples qualify. Recorded current-plan cost: $4.0946 (includes disqualified completed outputs; excludes earlier diagnostic runs).
+341 of 345 planned samples qualify. Recorded current-plan cost: $4.0946 (includes disqualified completed outputs; excludes earlier diagnostic runs). Rows for write and OCR routes removed on October 23, 2026 were deleted; the counts and cost above still include them.
 
-| Route / provider / model                              | Policy  | Qualified | Median input | Median output | Median ms | Promoted OCR input / output |
-| ----------------------------------------------------- | ------- | --------- | ------------ | ------------- | --------- | --------------------------- |
-| write / openai / gpt-6-astra                          | default | 3/3       | 427          | 41            | 2120      | — / —                       |
-| write / openai / gpt-6-astra                          | low     | 3/3       | 427          | 43            | 2394      | — / —                       |
-| write / openai / gpt-6-astra                          | max     | 3/3       | 427          | 673           | 9446      | — / —                       |
-| write / openai / gpt-5.6-sol                          | default | 3/3       | 427          | 42            | 1527      | — / —                       |
-| write / openai / gpt-5.6-sol                          | low     | 3/3       | 427          | 41            | 1845      | — / —                       |
-| write / openai / gpt-5.6-sol                          | max     | 3/3       | 427          | 137           | 2298      | — / —                       |
-| write / openai / gpt-5.6-terra                        | default | 3/3       | 427          | 43            | 1528      | — / —                       |
-| write / openai / gpt-5.6-terra                        | low     | 3/3       | 427          | 44            | 1553      | — / —                       |
-| write / openai / gpt-5.6-terra                        | max     | 3/3       | 427          | 124           | 1928      | — / —                       |
-| write / openai / gpt-5.6-luna                         | default | 3/3       | 427          | 111           | 1692      | — / —                       |
-| write / openai / gpt-5.6-luna                         | low     | 3/3       | 427          | 105           | 1709      | — / —                       |
-| write / openai / gpt-5.6-luna                         | max     | 3/3       | 427          | 181           | 2116      | — / —                       |
-| write / gemini / gemini-3.8-flash                     | default | 3/3       | 437          | 421           | 2496      | — / —                       |
-| write / gemini / gemini-3.8-flash                     | low     | 3/3       | 437          | 38            | 839       | — / —                       |
-| write / gemini / gemini-3.8-flash                     | high    | 3/3       | 437          | 639           | 3334      | — / —                       |
-| write / gemini / gemini-3.7-flash                     | default | 3/3       | 437          | 309           | 2553      | — / —                       |
-| write / gemini / gemini-3.7-flash                     | low     | 3/3       | 437          | 34            | 2112      | — / —                       |
-| write / gemini / gemini-3.7-flash                     | high    | 3/3       | 437          | 549           | 2721      | — / —                       |
-| write / anthropic / claude-fable-5-1                  | default | 3/3       | 888          | 68            | 4290      | — / —                       |
-| write / anthropic / claude-fable-5-1                  | low     | 3/3       | 888          | 65            | 3925      | — / —                       |
-| write / anthropic / claude-fable-5-1                  | max     | 3/3       | 888          | 1052          | 12548     | — / —                       |
-| write / anthropic / claude-fable-5-1                  | xhigh   | 3/3       | 888          | 530           | 10248     | — / —                       |
-| write / anthropic / claude-sonnet-5                   | default | 3/3       | 886          | 60            | 1936      | — / —                       |
-| write / anthropic / claude-sonnet-5                   | low     | 3/3       | 886          | 60            | 3066      | — / —                       |
-| write / anthropic / claude-sonnet-5                   | max     | 3/3       | 886          | 66            | 2130      | — / —                       |
-| write / anthropic / claude-sonnet-5                   | xhigh   | 3/3       | 886          | 60            | 2409      | — / —                       |
-| write / anthropic / claude-opus-5                     | default | 3/3       | 886          | 76            | 2558      | — / —                       |
-| write / anthropic / claude-opus-5                     | low     | 3/3       | 886          | 71            | 2435      | — / —                       |
-| write / anthropic / claude-opus-5                     | max     | 3/3       | 886          | 80            | 2404      | — / —                       |
-| write / anthropic / claude-opus-5                     | xhigh   | 3/3       | 886          | 90            | 2210      | — / —                       |
-| write / grok / grok-4.6                               | default | 3/3       | 1102         | 39            | 37823     | — / —                       |
-| write / grok / grok-4.6                               | low     | 3/3       | 1102         | 41            | 4138      | — / —                       |
-| write / grok / grok-4.6                               | xhigh   | 3/3       | 1103         | 37            | 44650     | — / —                       |
-| write / glm / glm-5.3                                 | default | 3/3       | 472          | 1083          | 22459     | — / —                       |
-| write / glm / glm-5.3                                 | low     | 3/3       | 472          | 42            | 3400      | — / —                       |
-| write / glm / glm-5.3                                 | max     | 3/3       | 472          | 995           | 17651     | — / —                       |
-| write / glm / glm-5.3-flash                           | default | 3/3       | 472          | 1305          | 35559     | — / —                       |
-| write / glm / glm-5.3-flash                           | low     | 3/3       | 472          | 48            | 1693      | — / —                       |
-| write / glm / glm-5.3-flash                           | max     | 3/3       | 472          | 1184          | 10878     | — / —                       |
-| write / kimi / kimi-k3                                | default | 3/3       | 529          | 665           | 20304     | — / —                       |
-| write / kimi / kimi-k3                                | low     | 3/3       | 530          | 159           | 7518      | — / —                       |
-| write / kimi / kimi-k3                                | max     | 3/3       | 529          | 264           | 10578     | — / —                       |
-| write / together / kimi-k3                            | default | 3/3       | 577          | 210           | 2215      | — / —                       |
-| write / together / kimi-k3                            | low     | 3/3       | 578          | 139           | 1718      | — / —                       |
-| write / together / kimi-k3                            | max     | 3/3       | 577          | 532           | 4680      | — / —                       |
-| write / together / glm-5.3                            | default | 3/3       | 411          | 39            | 978       | — / —                       |
-| write / together / glm-5.3                            | low     | 3/3       | 411          | 37            | 570       | — / —                       |
-| write / together / glm-5.3                            | max     | 3/3       | 411          | 36            | 338       | — / —                       |
-| write / together / glm-5.3-flash                      | default | 3/3       | 411          | 1096          | 17408     | — / —                       |
-| write / together / glm-5.3-flash                      | low     | 3/3       | 411          | 44            | 1042      | — / —                       |
-| write / together / glm-5.3-flash                      | max     | 3/3       | 411          | 1110          | 21600     | — / —                       |
-| extract / anthropic / claude-fable-5-1                | default | 3/3       | 2034         | 519           | 8987      | — / 519                     |
-| extract / anthropic / claude-fable-5-1                | low     | 3/3       | 2034         | 519           | 8963      | — / 519                     |
-| extract / anthropic / claude-fable-5-1                | max     | 3/3       | 2034         | 519           | 9409      | — / 519                     |
-| extract / anthropic / claude-fable-5-1                | xhigh   | 3/3       | 2034         | 519           | 9149      | — / 519                     |
-| extract / anthropic / claude-fable-5                  | default | 3/3       | 2032         | 519           | 8169      | — / 519                     |
-| extract / anthropic / claude-fable-5                  | low     | 3/3       | 2032         | 519           | 8357      | — / 519                     |
-| extract / anthropic / claude-fable-5                  | max     | 3/3       | 2032         | 1881          | 19788     | — / 1881                    |
-| extract / anthropic / claude-fable-5                  | xhigh   | 3/3       | 2032         | 519           | 8426      | — / 519                     |
-| extract / anthropic / claude-sonnet-5                 | default | 3/3       | 2032         | 481           | 5874      | — / —                       |
-| extract / anthropic / claude-sonnet-5                 | low     | 3/3       | 2032         | 481           | 5701      | — / —                       |
-| extract / anthropic / claude-sonnet-5                 | max     | 3/3       | 2032         | 1089          | 9544      | — / 1089                    |
-| extract / anthropic / claude-sonnet-5                 | xhigh   | 3/3       | 2032         | 516           | 5795      | — / —                       |
-| extract / anthropic / claude-opus-5                   | default | 3/3       | 2032         | 498           | 7511      | — / —                       |
-| extract / anthropic / claude-opus-5                   | low     | 3/3       | 2032         | 498           | 8365      | — / —                       |
-| extract / anthropic / claude-opus-5                   | max     | 3/3       | 2032         | 498           | 8049      | — / —                       |
-| extract / anthropic / claude-opus-5                   | xhigh   | 3/3       | 2032         | 498           | 8329      | — / —                       |
-| extract / deepinfra / google/gemma-4-31B-it           | default | 2/3       | 338          | 308           | 10952     | — / —                       |
-| extract / deepinfra / google/gemma-4-31B-it           | low     | 3/3       | 341          | 812           | 22077     | 341 / —                     |
-| extract / deepinfra / google/gemma-4-31B-it           | high    | 2/3       | 341          | 896           | 24499     | — / —                       |
-| extract / deepinfra / Qwen/Qwen3.8-27B                | default | 3/3       | 1383         | 307           | 9579      | 1383 / 307                  |
-| extract / deepinfra / Qwen/Qwen3.8-27B                | low     | 3/3       | 1411         | 353           | 11623     | 1411 / 353                  |
-| extract / deepinfra / Qwen/Qwen3.8-27B                | high    | 3/3       | 1423         | 328           | 9078      | 1423 / 328                  |
-| extract / deepinfra / deepseek-ai/DeepSeek-V4.1-Flash | default | 3/3       | 898          | 294           | 3635      | 898 / 294                   |
-| extract / deepinfra / deepseek-ai/DeepSeek-V4.1-Flash | low     | 3/3       | 924          | 366           | 6080      | — / 366                     |
-| extract / deepinfra / deepseek-ai/DeepSeek-V4.1-Flash | high    | 3/3       | 924          | 402           | 4366      | — / 402                     |
-| extract / gemini / gemini-3.8-flash                   | default | 3/3       | 1179         | 1118          | 3406      | — / 1118                    |
-| extract / gemini / gemini-3.8-flash                   | low     | 3/3       | 1179         | 340           | 2054      | — / 340                     |
-| extract / gemini / gemini-3.8-flash                   | high    | 3/3       | 1179         | 4778          | 17491     | — / —                       |
-| extract / gemini / gemini-3.7-flash                   | default | 3/3       | 1179         | 1073          | 4516      | — / 1073                    |
-| extract / gemini / gemini-3.7-flash                   | low     | 3/3       | 1179         | 656           | 2564      | — / 656                     |
-| extract / gemini / gemini-3.7-flash                   | high    | 3/3       | 1179         | 1224          | 4101      | — / 1224                    |
-| extract / gemini / gemini-3.5-flash                   | default | 3/3       | 1179         | 1738          | 7390      | — / 1738                    |
-| extract / gemini / gemini-3.5-flash                   | low     | 3/3       | 1179         | 340           | 2040      | — / 340                     |
-| extract / gemini / gemini-3.5-flash                   | high    | 3/3       | 1179         | 1855          | 6525      | — / 1855                    |
-| extract / gemini / gemini-3.6-flash                   | default | 3/3       | 1179         | 2038          | 8990      | — / 2038                    |
-| extract / gemini / gemini-3.6-flash                   | low     | 3/3       | 1179         | 324           | 2266      | — / 324                     |
-| extract / gemini / gemini-3.6-flash                   | high    | 3/3       | 1179         | 2377          | 10286     | — / 2377                    |
-| extract / gemini / gemini-3.5-flash-lite              | default | 3/3       | 1179         | 340           | 1670      | — / 340                     |
-| extract / gemini / gemini-3.5-flash-lite              | low     | 3/3       | 1179         | 294           | 1639      | — / 294                     |
-| extract / gemini / gemini-3.5-flash-lite              | high    | 3/3       | 1179         | 1054          | 3224      | — / —                       |
-| extract / glm / glm-5.3-flash                         | default | 3/3       | 1828         | 309           | 6405      | 1828 / 309                  |
-| extract / glm / glm-5.3-flash                         | low     | 3/3       | 1828         | 280           | 6692      | 1828 / 280                  |
-| extract / glm / glm-5.3-flash                         | max     | 3/3       | 1828         | 318           | 6130      | 1828 / 318                  |
-| extract / grok / grok-4.5                             | default | 3/3       | 1934         | 277           | 5172      | 1934 / 277                  |
-| extract / grok / grok-4.5                             | low     | 3/3       | 1934         | 295           | 14662     | 1934 / 295                  |
-| extract / grok / grok-4.5                             | high    | 3/3       | 1934         | 277           | 10739     | 1934 / 277                  |
-| extract / grok / grok-4.6                             | default | 3/3       | 2076         | 295           | 25855     | 2076 / 295                  |
-| extract / grok / grok-4.6                             | low     | 3/3       | 2076         | 284           | 10399     | 2076 / 284                  |
-| extract / grok / grok-4.6                             | xhigh   | 3/3       | 2077         | 295           | 27887     | 2077 / 295                  |
-| extract / kimi / kimi-k3                              | default | 3/3       | 1957         | 920           | 30026     | 1957 / 920                  |
-| extract / kimi / kimi-k3                              | low     | 3/3       | 1958         | 664           | 21640     | 1958 / 664                  |
-| extract / kimi / kimi-k3                              | max     | 3/3       | 1957         | 731           | 20627     | 1957 / 731                  |
-| extract / openai / gpt-6-astra                        | default | 3/3       | 1682         | 294           | 3985      | — / 294                     |
-| extract / openai / gpt-6-astra                        | low     | 3/3       | 1682         | 294           | 4467      | — / 294                     |
-| extract / openai / gpt-6-astra                        | max     | 3/3       | 1682         | 820           | 9051      | — / —                       |
-| extract / openai / gpt-5.6-sol                        | default | 3/3       | 1682         | 294           | 3360      | — / 294                     |
-| extract / openai / gpt-5.6-sol                        | low     | 3/3       | 1682         | 294           | 2270      | — / 294                     |
-| extract / openai / gpt-5.6-sol                        | max     | 3/3       | 1682         | 727           | 4487      | — / 727                     |
-| extract / openai / gpt-5.6-terra                      | default | 3/3       | 1682         | 294           | 2330      | — / 294                     |
-| extract / openai / gpt-5.6-terra                      | low     | 2/3       | 1682         | 296.5         | 2253      | — / —                       |
-| extract / openai / gpt-5.6-terra                      | max     | 2/3       | 1682         | 1318          | 8362      | — / —                       |
-| extract / openai / gpt-5.6-luna                       | default | 3/3       | 1682         | 638           | 4237      | — / 638                     |
-| extract / openai / gpt-5.6-luna                       | low     | 3/3       | 1682         | 291           | 3074      | — / 291                     |
-| extract / openai / gpt-5.6-luna                       | max     | 3/3       | 1682         | 1278          | 5739      | — / 1278                    |
+| Route / provider / model             | Policy  | Qualified | Median input | Median output | Median ms | Promoted OCR input / output |
+| ------------------------------------ | ------- | --------- | ------------ | ------------- | --------- | --------------------------- |
+| write / gemini / gemini-3.8-flash    | default | 3/3       | 437          | 421           | 2496      | — / —                       |
+| write / gemini / gemini-3.8-flash    | low     | 3/3       | 437          | 38            | 839       | — / —                       |
+| write / gemini / gemini-3.8-flash    | high    | 3/3       | 437          | 639           | 3334      | — / —                       |
+| extract / anthropic / claude-fable-5 | default | 3/3       | 2032         | 519           | 8169      | — / 519                     |
+| extract / anthropic / claude-fable-5 | low     | 3/3       | 2032         | 519           | 8357      | — / 519                     |
+| extract / anthropic / claude-fable-5 | max     | 3/3       | 2032         | 1881          | 19788     | — / 1881                    |
+| extract / anthropic / claude-fable-5 | xhigh   | 3/3       | 2032         | 519           | 8426      | — / 519                     |
+| extract / gemini / gemini-3.8-flash  | default | 3/3       | 1179         | 1118          | 3406      | — / 1118                    |
+| extract / gemini / gemini-3.8-flash  | low     | 3/3       | 1179         | 340           | 2054      | — / 340                     |
+| extract / gemini / gemini-3.8-flash  | high    | 3/3       | 1179         | 4778          | 17491     | — / —                       |
 <!-- reasoning-calibration:end -->
 
 </details>
@@ -441,7 +336,7 @@ Verification is local and no-cost.
 ## Follow-up Actions
 
 - [x] Calibrate materially different reasoning levels and provisional model heuristics — September 23: 345 completed cases, 341 qualified samples, 50 scoped OCR token profiles. Write usage and timing are recorded by policy; general write and unmeasured-context heuristics remain explicitly provisional. The [historical calibration record](#reasoning-calibration-and-provider-vocabulary-review-2026-09-23) preserves exclusions, spending, provenance and measurements.
-- [x] Evaluate provider-specific reasoning levels outside the eight-value surface through explicit public-enum expansion — September 23: primary-source review found no justified ninth value for registered models. Retain the eight-value enum, centralize its consumers, expose documented Anthropic/Grok xhigh support, and reject unsupported Kimi K3 medium. See the [dated evaluation](#provider-contract-decisions) and [expansion gate](#normalized-reasoning).
+- [x] Evaluate provider-specific reasoning levels outside the eight-value surface through explicit public-enum expansion — September 23: primary-source review found no justified ninth value for registered models. Retain the eight-value enum, centralize its consumers, and expose documented Anthropic/Grok xhigh support. See the [dated evaluation](#provider-contract-decisions) and [expansion gate](#normalized-reasoning).
 
 ## References
 

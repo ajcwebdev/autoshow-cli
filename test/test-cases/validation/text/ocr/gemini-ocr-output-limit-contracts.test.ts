@@ -16,9 +16,7 @@ const tempDirs = setupContractSuiteLifecycle({
 })
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64')
 const models = [
-  { model: 'gemini-3.5-flash-lite', nativeCap: 8_192 },
-  { model: 'gemini-3.8-flash', nativeCap: 8_192 },
-  { model: 'gemini-4-argon', nativeCap: 32_768 }
+  { model: 'gemini-3.8-flash', nativeCap: 8_192 }
 ]
 
 const input = async () => {

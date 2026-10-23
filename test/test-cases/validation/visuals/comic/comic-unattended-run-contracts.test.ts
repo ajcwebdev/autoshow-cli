@@ -114,7 +114,7 @@ describe('unattended comic image runs', () => {
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [request.pageNumber], issues: [] }, panels: [{ panelNumber: request.pageNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, blockingMatch: true, axisSideMatch: true, blockingAudit: [], dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '' }], summary: 'Pass.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
-    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2, 3], qa: true, maxRepairs: 0, stopOnProviderError: true }, {
+    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2, 3], qa: true, maxRepairs: 0, stopOnProviderError: true }, {
       requestImage: async input => {
         const panelNumber = Number(/Sub-panel (\d+)/.exec(input.normalizedPrompt)?.[1] ?? 0)
         requestedPanels.push(panelNumber)

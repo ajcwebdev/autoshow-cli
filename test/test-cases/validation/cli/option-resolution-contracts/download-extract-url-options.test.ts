@@ -24,7 +24,7 @@ import {
 describe('option resolution contracts', () => {
   test('buildOptsFromFlags maps representative CLI flags to runtime options', () => {
       const opts = buildOptsFromFlags({
-        openai: 'gpt-5.6-terra',
+        openai: 'gpt-6.1-sol',
         grok: 'grok-4.7',
         'mistral-stt': 'voxtral-mini-2602',
         'grok-stt': 'grok-voice-transcribe-2.0',
@@ -49,8 +49,8 @@ describe('option resolution contracts', () => {
         'tts-seed': 'elevenlabs=12345',
         'tts-pronunciation-dictionary': ['elevenlabs=dict_1:version_2', 'elevenlabs=dict_3'],
         'openai-ocr': 'gpt-6.1-sol',
-        'grok-ocr': 'grok-4.5',
-        'deepinfra-ocr': 'google/gemma-4-31B-it',
+        'grok-ocr': 'grok-4.7',
+        'anthropic-ocr': 'claude-haiku-5-5',
         'tesseract-ocr': true,
         'youtube-captions': true,
         'best-quality': true,
@@ -62,7 +62,7 @@ describe('option resolution contracts', () => {
         'llm-local-concurrency': '3'
       })
 
-      expect(opts.openaiModels?.[0]).toBe('gpt-5.6-terra')
+      expect(opts.openaiModels?.[0]).toBe('gpt-6.1-sol')
       expect(opts.grokModels?.[0]).toBe('grok-4.7')
       expect(opts.mistralSttModels?.[0]).toBe('voxtral-mini-2602')
       expect(opts.grokSttModels?.[0]).toBe('grok-voice-transcribe-2.0')
@@ -83,8 +83,8 @@ describe('option resolution contracts', () => {
       expect(opts.elevenlabsTtsTextNormalization).toBe('on')
       expect(opts.elevenlabsTtsPronunciationDictionaryLocators).toEqual(['dict_1:version_2', 'dict_3'])
       expect(opts.openaiOcrModels?.[0]).toBe('gpt-6.1-sol')
-      expect(opts.grokOcrModels?.[0]).toBe('grok-4.5')
-      expect(opts.deepinfraOcrModels?.[0]).toBe('google/gemma-4-31B-it')
+      expect(opts.grokOcrModels?.[0]).toBe('grok-4.7')
+      expect(opts.anthropicOcrModels?.[0]).toBe('claude-haiku-5-5')
       expect(opts.useTesseract).toBe(true)
       expect(opts.youtubeCaptions).toBe(true)
       expect(opts.bestQuality).toBe(true)
@@ -138,7 +138,7 @@ describe('option resolution contracts', () => {
       const opts = buildOptsFromFlags({
         'ocr-provider-mode': 'pool',
         'openai-ocr': 'gpt-6.1-sol',
-        'mistral-ocr': 'mistral-ocr-4-0',
+        'mistral-ocr': 'mistral-ocr-4-1',
         format: 'text'
       })
 
@@ -157,17 +157,17 @@ describe('option resolution contracts', () => {
   test('buildOptsFromFlags only accepts canonical flag keys', () => {
       const camelCaseFlags = buildOptsFromFlags({
         mistralStt: 'voxtral-mini-2602',
-        deepinfraOcr: 'google/gemma-4-31B-it'
+        mistralOcr: 'mistral-ocr-4-1'
       })
       const canonicalFlags = buildOptsFromFlags({
         'mistral-stt': 'voxtral-mini-2602',
-        'deepinfra-ocr': 'google/gemma-4-31B-it'
+        'mistral-ocr': 'mistral-ocr-4-1'
       })
 
       expect(camelCaseFlags.mistralSttModels?.[0]).toBeUndefined()
-      expect(camelCaseFlags.deepinfraOcrModels?.[0]).toBeUndefined()
+      expect(camelCaseFlags.mistralOcrModels?.[0]).toBeUndefined()
       expect(canonicalFlags.mistralSttModels?.[0]).toBe('voxtral-mini-2602')
-      expect(canonicalFlags.deepinfraOcrModels?.[0]).toBe('google/gemma-4-31B-it')
+      expect(canonicalFlags.mistralOcrModels?.[0]).toBe('mistral-ocr-4-1')
     })
 
   test('buildOptsFromFlags accepts URL article backend names', () => {

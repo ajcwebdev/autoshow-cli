@@ -133,9 +133,13 @@ describe('Claude 5.5 Messages and native JSON contracts', () => {
   test('oversize OCR images are rejected before dispatch while a base64 image stays within budget', async () => {
     const calls = installMockFetch(() => { throw new Error('Unexpected dispatch') })
     await lifecycle.withDir(async dir => {
-      const path = join(dir, 'oversize.png')
-      await Bun.write(path, new Uint8Array(5 * 1024 * 1024 + 1))
-      await expect(runAnthropicOcr(path, metadata, 'claude-haiku-5-5')).rejects.toThrow('5 MB')
+      const jpegPath = join(dir, 'oversize.jpg')
+      await Bun.write(jpegPath, new Uint8Array(5 * 1024 * 1024 + 1))
+      await expect(runAnthropicOcr(jpegPath, { ...metadata, format: 'jpg' }, 'claude-haiku-5-5')).rejects.toThrow('5 MB')
+      // Oversized PNGs get one lossless normalization attempt; undecodable bytes still reject locally.
+      const pngPath = join(dir, 'oversize.png')
+      await Bun.write(pngPath, new Uint8Array(5 * 1024 * 1024 + 1))
+      await expect(runAnthropicOcr(pngPath, metadata, 'claude-haiku-5-5')).rejects.toThrow('could not losslessly normalize oversized PNG')
     })
     expect(calls).toHaveLength(0)
     expect(Math.ceil(5 * 1024 * 1024 / 3) * 4).toBeLessThan(10 * 1000 * 1000)

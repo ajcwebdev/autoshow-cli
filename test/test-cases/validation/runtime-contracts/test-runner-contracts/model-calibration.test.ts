@@ -90,7 +90,7 @@ describe('test-runner contracts', () => {
           description: 'OpenAI image generation',
           type: 'api',
           models: {
-            'gpt-image-2': {
+            'gpt-image-2.5-flare': {
               description: 'GPT Image 2',
               costPerImageCents: 8,
               estimation: {
@@ -112,7 +112,7 @@ describe('test-runner contracts', () => {
               steps: [{
                 step: 'image',
                 provider: 'openai',
-                model: 'gpt-image-2',
+                model: 'gpt-image-2.5-flare',
                 cost: 2,
                 costMultiplier: 1
               }]
@@ -121,7 +121,7 @@ describe('test-runner contracts', () => {
               steps: [{
                 step: 'image',
                 provider: 'openai',
-                model: 'gpt-image-2',
+                model: 'gpt-image-2.5-flare',
                 cost: 2,
                 inputMetric: 'images',
                 inputValue: 1
@@ -133,7 +133,7 @@ describe('test-runner contracts', () => {
               steps: [{
                 step: 'image',
                 provider: 'openai',
-                model: 'gpt-image-2',
+                model: 'gpt-image-2.5-flare',
                 processingTimeMs: 3000,
                 msPerUnit: 1800,
                 timingScope: 'wall',
@@ -303,7 +303,7 @@ describe('test-runner contracts', () => {
           description: 'Mistral OCR',
           type: 'api',
           models: {
-            'mistral-ocr-4-0': {
+            'mistral-ocr-4-1': {
               description: 'Mistral OCR 4.0',
               costPer1kPagesCents: 100,
               estimation: {
@@ -343,7 +343,7 @@ describe('test-runner contracts', () => {
               steps: [{
                 step: 'extract',
                 provider: 'mistral',
-                model: 'mistral-ocr-4-0',
+                model: 'mistral-ocr-4-1',
                 processingTimeMs: 4500,
                 inputMetric: 'pages',
                 inputValue: 3
@@ -354,12 +354,12 @@ describe('test-runner contracts', () => {
         extractRoute: 'document',
         providers: [{
           service: 'mistral',
-          model: 'mistral-ocr-4-0',
-          artifactDir: 'providers/mistral-mistral-ocr-4-0',
+          model: 'mistral-ocr-4-1',
+          artifactDir: 'providers/mistral-mistral-ocr-4-1',
           status: 'succeeded',
           attempts: 1,
           options: {},
-          metadata: { ocrService: 'mistral', ocrModel: 'mistral-ocr-4-0', processingTime: 4500 }
+          metadata: { ocrService: 'mistral', ocrModel: 'mistral-ocr-4-1', processingTime: 4500 }
         }]
       }), null, 2)}\n`)
 
@@ -372,7 +372,7 @@ describe('test-runner contracts', () => {
       expect(await readFile(openaiConfigPath, 'utf8')).toBe(originalOpenaiConfig)
       expect(report.recommendations[0]?.kind).toBe('extract')
       expect(report.recommendations[0]?.service).toBe('mistral')
-      expect(report.recommendations[0]?.model).toBe('mistral-ocr-4-0')
+      expect(report.recommendations[0]?.model).toBe('mistral-ocr-4-1')
       expect(report.recommendations[0]?.oldTimeValue).toBe(1000)
       expect(report.recommendations[0]?.medianTimeValue).toBe(1500)
       expect(report.recommendations[0]?.recommendedTimeValue).toBe(1175)

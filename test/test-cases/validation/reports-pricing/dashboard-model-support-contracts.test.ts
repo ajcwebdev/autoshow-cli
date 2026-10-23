@@ -15,27 +15,33 @@ function dashboard(pairs: readonly (readonly [string, string])[], group = 'servi
 
 const routePairs = (service: string, models: readonly string[]): Array<[string, string]> => models.map(model => [`${service}/${model}`, model])
 const removedWrite = [
-  ...routePairs('openai', ['gpt-5.6-sol', 'gpt-5.6-luna']),
-  ...routePairs('anthropic', ['claude-opus-5', 'claude-sonnet-5']),
-  ...routePairs('gemini', ['gemini-3.7-flash']),
-  ...routePairs('grok', ['grok-4.6']),
-  ...routePairs('glm', ['glm-5.3', 'glm-5.3-flash']),
-  ...routePairs('kimi', ['kimi-k3']),
-  ...routePairs('together', ['kimi-k3', 'glm-5.3', 'glm-5.3-flash']),
+  ...routePairs('openai', ['gpt-5.5', 'gpt-5.4-mini', 'removed-openai-model']),
+  ...routePairs('anthropic', ['claude-opus-4-8', 'claude-sonnet-4-6', 'removed-anthropic-model']),
+  ...routePairs('gemini', ['gemini-3.1-flash-lite']),
+  ...routePairs('grok', ['grok-4.3']),
+  ...routePairs('glm', ['glm-5.1']),
+  ...routePairs('kimi', ['removed-kimi-model']),
+  ...routePairs('together', ['removed-kimi-model', 'glm-5.1']),
 ]
 const activeWrite = [
-  ...routePairs('openai', ['gpt-6.1-sol', 'gpt-6-luna', 'gpt-6-astra', 'gpt-5.6-terra']),
-  ...routePairs('anthropic', ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1']),
+  ...routePairs('openai', ['gpt-6.1-sol', 'gpt-6-luna']),
+  ...routePairs('anthropic', ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5']),
   ...routePairs('gemini', ['gemini-4-argon', 'gemini-3.8-flash']),
   ...routePairs('grok', ['grok-4.7']),
 ]
+// Gemini 4 Argon remains a write route only.
+const writeOnly = new Set(['gemini/gemini-4-argon'])
 const activeOcr = [
-  ...activeWrite,
-  ...routePairs('mistral', ['mistral-ocr-4-0', 'mistral-ocr-4-1']),
+  ...activeWrite.filter(([key]) => !writeOnly.has(key)),
+  ...routePairs('mistral', ['mistral-ocr-4-1']),
   ...routePairs('anthropic', ['claude-fable-5']),
-  ...routePairs('gemini', ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite']),
-  ...routePairs('grok', ['grok-4.5']),
-  ...routePairs('deepinfra', ['google/gemma-4-31B-it', 'Qwen/Qwen3.8-27B', 'deepseek-ai/DeepSeek-V4.1-Flash']),
+]
+const removedOcr = [
+  ...routePairs('openai', ['removed-openai-ocr-model']),
+  ...routePairs('gemini', ['gemini-4-argon', 'removed-gemini-ocr-model']),
+  ...routePairs('grok', ['removed-grok-ocr-model']),
+  ...routePairs('mistral', ['removed-mistral-ocr-model']),
+  ...routePairs('deepinfra', ['removed/deepinfra-ocr-model']),
 ]
 const removedStt = [
   ...routePairs('happyscribe', ['auto']),
@@ -67,7 +73,7 @@ const activeTts = [
 describe('benchmark dashboard live CLI availability snapshot', () => {
   const mappings = [
     { tab: 'write', active: activeWrite, retired: removedWrite },
-    { tab: 'ocr', active: activeOcr, retired: [...removedWrite, ...routePairs('kimi', ['kimi-k2.6'])] },
+    { tab: 'ocr', active: activeOcr, retired: [...removedWrite, ...removedOcr, ...routePairs('kimi', ['removed-kimi-ocr-model'])] },
     { tab: 'stt-local', active: localStt, retired: [...removedStt, ...diarizedStt] },
     { tab: 'stt-with-speakers', active: diarizedStt, retired: [...removedStt, ...localStt] },
     { tab: 'stt-without-speakers', active: nonDiarizedStt, retired: [...removedStt, ...localStt] },
@@ -99,12 +105,12 @@ describe('benchmark dashboard live CLI availability snapshot', () => {
 
   test('matches complete slash-bearing identities and fails closed for mismatched models and unknown tabs', () => {
     const model = dashboard([
-      ['deepinfra/Qwen/Qwen3.8-27B', 'Qwen/Qwen3.8-27B'],
-      ['deepinfra/Qwen/Qwen3.8-27B', 'not-implemented'],
-      ['deepinfra/Qwen', 'Qwen3.8-27B'],
+      ['deepinfra/openai/whisper-large-v3', 'openai/whisper-large-v3'],
+      ['deepinfra/openai/whisper-large-v3', 'not-implemented'],
+      ['deepinfra/openai', 'whisper-large-v3'],
       ['openai/gpt-6-luna', 'not-implemented'],
     ])
-    expect(supportedDashboardProviderKeys('ocr', model)).toEqual(['deepinfra/Qwen/Qwen3.8-27B'])
+    expect(supportedDashboardProviderKeys('stt-without-speakers', model)).toEqual(['deepinfra/openai/whisper-large-v3'])
     expect(supportedDashboardProviderKeys('write', dashboard([['openai/gpt-6-luna', 'not-implemented']]))).toEqual([])
     expect(supportedDashboardProviderKeys('unknown', model)).toEqual([])
     expect(supportedDashboardProviderKeys('url', dashboard([['spider/spider', 'spider'], ['spider', 'unknown']]))).toEqual([])
@@ -113,10 +119,10 @@ describe('benchmark dashboard live CLI availability snapshot', () => {
   test('explicit deprecated lifecycle entries are excluded even while still selectable and registered', () => {
     const registry = structuredClone(getModelRegistry()) as DashboardModelSupportRegistry
     Object.assign(registry.llm['openai']!.models['gpt-6-luna'] as object, { lifecycle: { status: 'deprecated' } })
-    Object.assign(registry.extract['grok']!.models['grok-4.5'] as object, { lifecycle: { status: 'deprecated' } })
+    Object.assign(registry.extract['grok']!.models['grok-4.7'] as object, { lifecycle: { status: 'deprecated' } })
     Object.assign(registry.tts['soniox']!.models['tts-rt-v2'] as object, { lifecycle: { status: 'deprecated' } })
     expect(supportedDashboardProviderKeys('write', dashboard(activeWrite), registry)).not.toContain('openai/gpt-6-luna')
-    expect(supportedDashboardProviderKeys('ocr', dashboard(activeOcr), registry)).not.toContain('grok/grok-4.5')
+    expect(supportedDashboardProviderKeys('ocr', dashboard(activeOcr), registry)).not.toContain('grok/grok-4.7')
     expect(supportedDashboardProviderKeys('tts', dashboard(activeTts), registry)).not.toContain('soniox/tts-rt-v2')
     expect(supportedDashboardProviderKeys('write', dashboard(activeWrite))).toContain('openai/gpt-6-luna')
   })
@@ -136,10 +142,10 @@ describe('benchmark dashboard live CLI availability snapshot', () => {
     const original = getModelRegistry()
     const registry = {
       ...original,
-      llm: { ...original.llm, openai: { ...original.llm['openai']!, models: { 'gpt-5.6-sol': {} } } },
+      llm: { ...original.llm, openai: { ...original.llm['openai']!, models: { 'gpt-5.5': {} } } },
     }
     expect(supportedDashboardProviderKeys('write', dashboard([...activeWrite, ...removedWrite]), registry)).toEqual(activeWrite.filter(([key]) => !key.startsWith('openai/')).map(([key]) => key).sort((a, b) => a.localeCompare(b)))
-    expect(activeWrite).toHaveLength(11)
-    expect(activeOcr).toHaveLength(21)
+    expect(activeWrite).toHaveLength(8)
+    expect(activeOcr).toHaveLength(9)
   })
 })

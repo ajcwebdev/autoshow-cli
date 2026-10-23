@@ -1,5 +1,5 @@
 
-export const REVISION_IMAGE_MODEL = 'gpt-image-2'
+export const REVISION_IMAGE_MODEL = 'gpt-image-2.5-flare'
 
 export const REVISION_COMPARISON_PROVIDER = 'openai'
 

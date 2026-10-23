@@ -10,6 +10,11 @@ import { createJsonProfileStore } from '~/utils/json-profile-store'
 import { NORMALIZED_REASONING_EFFORTS } from '~/cli/commands/setup-and-utilities/models/reasoning-efforts'
 import calibration from '~/cli/commands/setup-and-utilities/models/ocr-calibration-profiles.json'
 
+// Bundled profiles may promote either component, so both stay optional regardless of the current JSON contents.
+const CALIBRATION_PROFILES: ReadonlyArray<{
+  provider: string, model: string, ocrMode: string, pageCountBand: string, effectiveReasoningEffort: string,
+  sampleCount: number, promptTokensPerPage?: number, completionTokensPerPage?: number
+}> = calibration.profiles
 const TOKEN_PROFILE_STORE_VERSION = 2
 const MAX_TOKEN_PROFILE_ENTRIES = 500
 const MAX_TOKEN_PROFILE_SAMPLES = 100
@@ -310,7 +315,7 @@ export const resolveHostedOcrTokenUsageEstimate = (
   // Curated evidence applies only to its exact route, page band and policy.
   // A learned local profile still takes precedence. Never blend this small
   // single-image corpus into PDF, CBZ, batch or unspecified-policy estimates.
-  const calibrated = !profile ? calibration.profiles.find(row => row.provider === input.provider
+  const calibrated = !profile ? CALIBRATION_PROFILES.find(row => row.provider === input.provider
     && row.model === input.model && row.ocrMode === ocrMode && row.pageCountBand === pageCountBand
     && row.effectiveReasoningEffort === effectiveReasoningEffort) : undefined
   if (calibrated) {

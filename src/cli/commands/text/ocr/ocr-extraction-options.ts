@@ -40,8 +40,6 @@ export const resolveOcrExtractionOptions = (
       ...(rawOpts.anthropicOcrModels ? { anthropicOcrModels: rawOpts.anthropicOcrModels } : {}),
       ...(rawOpts.geminiOcrModel ? { geminiOcrModel: rawOpts.geminiOcrModel } : {}),
       ...(rawOpts.geminiOcrModels ? { geminiOcrModels: rawOpts.geminiOcrModels } : {}),
-      ...(rawOpts.deepinfraOcrModel ? { deepinfraOcrModel: rawOpts.deepinfraOcrModel } : {}),
-      ...(rawOpts.deepinfraOcrModels ? { deepinfraOcrModels: rawOpts.deepinfraOcrModels } : {}),
       ...(rawOpts.configPath ? { configPath: rawOpts.configPath } : {}),
       ...(rawOpts.primaryOcr ? { primaryOcr: rawOpts.primaryOcr } : {}),
       ...(typeof rawOpts.chapterFiles === 'boolean' ? { chapterFiles: rawOpts.chapterFiles } : {}),

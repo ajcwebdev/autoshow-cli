@@ -97,7 +97,7 @@ bun autoshow resume output/resume-example/document --all-local --price
 `--all-local` selects the registered local document engines, currently Tesseract. It does not install tools or download models, and a zero provider price does not measure extraction quality. Local HTML always uses Defuddle and skips hosted article backends. The following document plans add hosted OCR and can cost money when executed. Inspect them without dispatch first:
 
 ```bash
-bun autoshow resume output/resume-example/document --provider deepinfra=google/gemma-4-31B-it --price
+bun autoshow resume output/resume-example/document --provider openai=gpt-6-luna --price
 bun autoshow resume output/resume-example/document --all-providers --price
 ```
 

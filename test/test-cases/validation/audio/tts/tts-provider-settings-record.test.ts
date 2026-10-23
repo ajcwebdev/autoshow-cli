@@ -60,7 +60,7 @@ describe('provider settings record envelope', () => {
     expect(parseProviderSettingsRecord({ schemaVersion: 2, settingsSchema: 'x.y.v2', request: {} })).toBeUndefined()
     expect(parseProviderSettingsRecord({ schemaVersion: 1, settingsSchema: 'x.y.v1', request: {}, extra: true })).toBeUndefined()
     expect(parseProviderSettingsRecord({ schemaVersion: 1, settingsSchema: 'x.y.v1', request: {}, ignored: [1] })).toBeUndefined()
-    const state = { service: 'openai', model: 'gpt-image-2', artifactDir: '.', status: 'succeeded', attempts: 1, options: {}, metadata: {} }
+    const state = { service: 'openai', model: 'gpt-image-2.5-flare', artifactDir: '.', status: 'succeeded', attempts: 1, options: {}, metadata: {} }
     expect(parseProviderState('/tmp/run', { ...state, settings: { schemaVersion: 1, settingsSchema: 'openai.image.v1', request: { size: 'auto' } } })?.settings?.request).toEqual({ size: 'auto' })
     expect(parseProviderState('/tmp/run', { ...state, settings: { schemaVersion: 1, request: {} } })).toBeUndefined()
   })

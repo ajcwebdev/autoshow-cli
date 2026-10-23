@@ -113,7 +113,7 @@ test('voice capability sets match the active provider policy and reject retired 
   expect(VOICE_LIFECYCLE_PROVIDERS).toEqual(VOICE_CATALOG_PROVIDERS)
   expect(DESIGN_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'inworld'])
   expect(CLONE_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'grok', 'inworld'])
-  for (const provider of ['minimax', 'deepgram', 'fal', 'fish', 'deepinfra', 'mistral']) {
+  for (const provider of ['minimax', 'deepgram', 'fish', 'deepinfra', 'mistral']) {
     await rejectVoice(
       ['voice', 'import', 'hero', '--provider', provider, '--model', 'retired-model', '--voice-id', 'retired-voice', '--provenance-ref', 'project:casting', '--price'],
       `${provider} is no longer supported for TTS or voice management.`

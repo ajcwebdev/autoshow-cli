@@ -143,8 +143,7 @@ export const videoCommand = defineCliCommand({
       ['bun autoshow video input/ajc.png --provider grok=grok-imagine-video-1.5 --price', 'Estimate image-to-video for one explicit target'],
       ['bun autoshow video "a cinematic mountain sunrise"', 'Generate text-to-video with the cheapest default target'],
       ['bun autoshow video "a cinematic mountain sunrise" --provider gemini=gemini-omni-1.1-flash', 'Generate video with Gemini Omni'],
-      ['bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video-1.5', 'Generate video with Grok'],
-      ['bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k', 'Generate video with fal.ai MiniMax H3']
+      ['bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video-1.5', 'Generate video with Grok']
     ]
   }
 }, async (ctx) => {
@@ -173,7 +172,7 @@ export const videoCommand = defineCliCommand({
   const videoOpts: StandaloneVideoCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'video' })
   let videoTargets = collectVideoTargets(videoOpts)
   if (videoTargets.length === 0) {
-    throw UsageError('Specify a video generation provider with --provider gemini|grok|fal[=model]')
+    throw UsageError('Specify a video generation provider with --provider gemini|grok[=model]')
   }
 
   let pricingVideoOpts = buildPricingOptionsForTargets(videoOpts, videoTargets)
@@ -216,7 +215,6 @@ export const videoCommand = defineCliCommand({
     videoAspectRatio: videoOpts.videoAspectRatio,
     videoResolution: videoOpts.videoResolution,
     videoMode: videoOpts.videoMode,
-    falVideoReferenceVideoCount: videoOpts.videoReferenceVideos?.length ?? 0,
     grokInputImageCount: countGrokInputImages(videoOpts),
     grokInputVideoDurationSeconds: metadata.find((entry) => entry.videoGenService === 'grok' && typeof entry.inputVideoDurationSeconds === 'number')?.inputVideoDurationSeconds
   })

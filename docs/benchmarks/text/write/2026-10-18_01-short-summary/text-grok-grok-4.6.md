@@ -1,3 +1,0 @@
-## Episode Description
-
-James Berkins discusses being laid off during a recession and landing a developer job within 12 hours through his professional connections.

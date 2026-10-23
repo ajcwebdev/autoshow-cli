@@ -18,10 +18,10 @@ describe('provider selection contracts', () => {
       provider: ['openai=gpt-4o-mini-tts-2025-12-15', 'elevenlabs=eleven_v3']
     }, new Set(['provider']), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, { allProvidersTarget: 'all-tts' })
     const imageNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['openai=gpt-image-2', 'grok=grok-imagine-image-2.0', 'fal=alibaba/qwen-image-3']
+      provider: ['openai=gpt-image-2.5-flare', 'grok=grok-imagine-image-2.0', 'gemini=gemini-3.1-flash-lite-image']
     }, new Set(['provider']), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, { allProvidersTarget: 'all-image' })
     const videoNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['gemini=gemini-omni-1.1-flash', 'grok=grok-imagine-video-1.5', 'fal=bytedance/seedance-2.5/text-to-video']
+      provider: ['gemini=gemini-omni-1.1-flash', 'grok=grok-imagine-video-1.5']
     }, new Set(['provider']), 'provider', STANDALONE_VIDEO_PROVIDER_TARGETS, { allProvidersTarget: 'all-video' })
     const musicNormalized = normalizeGenericProviderSelectorFlags({
       provider: ['minimax=music-3.0', 'gemini=lyria-3.5']
@@ -45,14 +45,13 @@ describe('provider selection contracts', () => {
     expect(ttsOpts.openaiTtsModels).toEqual(['gpt-4o-mini-tts-2025-12-15'])
     expect(ttsOpts.elevenlabsTtsModels).toEqual(['eleven_v3'])
     expect(collectImageTargets(imageOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'openai:gpt-image-2',
-      'grok:grok-imagine-image-2.0',
-      'fal:alibaba/qwen-image-3'
+      'gemini:gemini-3.1-flash-lite-image',
+      'openai:gpt-image-2.5-flare',
+      'grok:grok-imagine-image-2.0'
     ])
     expect(collectVideoTargets(videoOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'gemini:gemini-omni-1.1-flash',
-      'grok:grok-imagine-video-1.5',
-      'fal:bytedance/seedance-2.5/text-to-video'
+      'grok:grok-imagine-video-1.5'
     ])
     expect(collectMusicTargets(musicOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'minimax:music-3.0',
@@ -62,7 +61,7 @@ describe('provider selection contracts', () => {
 
     const imageArgNormalized = normalizeGenericProviderSelectorFlags(
       {
-        provider: ['openai=gpt-image-2', 'gemini=gemini-3.1-flash-lite-image', 'fal=alibaba/qwen-image-3']
+        provider: ['openai=gpt-image-2.5-flare', 'gemini=gemini-3.1-flash-lite-image', 'grok=grok-imagine-image-2.0']
       },
       new Set(['provider']),
       'provider',
@@ -70,21 +69,24 @@ describe('provider selection contracts', () => {
       { allProvidersTarget: 'all-image' }
     )
     expect(imageArgNormalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
-      { name: 'openai-image', value: 'gpt-image-2' },
+      { name: 'openai-image', value: 'gpt-image-2.5-flare' },
       { name: 'gemini-image', value: 'gemini-3.1-flash-lite-image' },
-      { name: 'fal-image', value: 'alibaba/qwen-image-3' }
+      { name: 'grok-image', value: 'grok-imagine-image-2.0' }
     ])
 
     const videoArgNormalized = normalizeGenericProviderSelectorFlags(
-      { provider: ['fal=bytedance/seedance-2.5/text-to-video'] },
+      { provider: ['grok=grok-imagine-video-1.5'] },
       new Set(['provider']),
       'provider',
       STANDALONE_VIDEO_PROVIDER_TARGETS,
       { allProvidersTarget: 'all-video' }
     )
     expect(videoArgNormalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
-      { name: 'fal-video', value: 'bytedance/seedance-2.5/text-to-video' }
+      { name: 'grok-video', value: 'grok-imagine-video-1.5' }
     ])
+    for (const [targets, allProvidersTarget, value] of [[STANDALONE_IMAGE_PROVIDER_TARGETS, 'all-image', 'fal=alibaba/qwen-image-3'], [STANDALONE_VIDEO_PROVIDER_TARGETS, 'all-video', 'fal=minimax/h3']] as const) {
+      expect(() => normalizeGenericProviderSelectorFlags({ provider: [value] }, new Set(['provider']), 'provider', targets, { allProvidersTarget })).toThrow('Unknown provider "fal" for --provider.')
+    }
   })
 
   test('canonical occurrences close the three former map-versus-argv selector drifts', () => {

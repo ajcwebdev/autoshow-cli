@@ -1,6 +1,6 @@
 # OCR Tests
 
-Local Tesseract and EPUB coverage, plus hosted PDF and image OCR for Anthropic, DeepInfra, Gemini, Mistral, and OpenAI. Grok coverage is image extraction.
+Local Tesseract and EPUB coverage, plus hosted PDF and image OCR for Anthropic, Gemini, Mistral, and OpenAI. Grok coverage is image extraction.
 
 These `bun t` commands may call paid or quota-limited providers.
 

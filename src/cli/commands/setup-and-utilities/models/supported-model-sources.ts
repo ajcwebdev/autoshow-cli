@@ -4,12 +4,9 @@ import {
   SUPPORTED_ANTHROPIC_OCR_MODELS,
   SUPPORTED_ASSEMBLYAI_STT_MODELS,
   SUPPORTED_DEEPGRAM_STT_MODELS,
-  SUPPORTED_DEEPINFRA_OCR_MODELS,
   SUPPORTED_DEEPINFRA_STT_MODELS,
   SUPPORTED_ELEVENLABS_MUSIC_MODELS,
   SUPPORTED_ELEVENLABS_TTS_MODELS,
-  SUPPORTED_FAL_IMAGE_MODELS,
-  SUPPORTED_FAL_VIDEO_MODELS,
   SUPPORTED_GEMINI_IMAGE_MODELS,
   SUPPORTED_GEMINI_MODELS,
   SUPPORTED_GEMINI_MUSIC_MODELS,
@@ -68,7 +65,6 @@ export const SUPPORTED_MODEL_SOURCES = [
   { step: 'extract', service: 'grok', arrayName: 'SUPPORTED_GROK_OCR_MODELS', models: SUPPORTED_GROK_OCR_MODELS },
   { step: 'extract', service: 'anthropic', arrayName: 'SUPPORTED_ANTHROPIC_OCR_MODELS', models: SUPPORTED_ANTHROPIC_OCR_MODELS },
   { step: 'extract', service: 'gemini', arrayName: 'SUPPORTED_GEMINI_OCR_MODELS', models: SUPPORTED_GEMINI_OCR_MODELS },
-  { step: 'extract', service: 'deepinfra', arrayName: 'SUPPORTED_DEEPINFRA_OCR_MODELS', models: SUPPORTED_DEEPINFRA_OCR_MODELS },
 
   { step: 'llm', service: 'openai', arrayName: 'SUPPORTED_OPENAI_MODELS', models: SUPPORTED_OPENAI_MODELS },
   { step: 'llm', service: 'gemini', arrayName: 'SUPPORTED_GEMINI_MODELS', models: SUPPORTED_GEMINI_MODELS },
@@ -85,11 +81,9 @@ export const SUPPORTED_MODEL_SOURCES = [
   { step: 'image', service: 'gemini', arrayName: 'SUPPORTED_GEMINI_IMAGE_MODELS', models: SUPPORTED_GEMINI_IMAGE_MODELS },
   { step: 'image', service: 'openai', arrayName: 'SUPPORTED_OPENAI_IMAGE_MODELS', models: SUPPORTED_OPENAI_IMAGE_MODELS },
   { step: 'image', service: 'grok', arrayName: 'SUPPORTED_GROK_IMAGE_MODELS', models: SUPPORTED_GROK_IMAGE_MODELS },
-  { step: 'image', service: 'fal', arrayName: 'SUPPORTED_FAL_IMAGE_MODELS', models: SUPPORTED_FAL_IMAGE_MODELS },
 
   { step: 'video', service: 'gemini', arrayName: 'SUPPORTED_GEMINI_VIDEO_MODELS', models: SUPPORTED_GEMINI_VIDEO_MODELS },
   { step: 'video', service: 'grok', arrayName: 'SUPPORTED_GROK_VIDEO_MODELS', models: SUPPORTED_GROK_VIDEO_MODELS },
-  { step: 'video', service: 'fal', arrayName: 'SUPPORTED_FAL_VIDEO_MODELS', models: SUPPORTED_FAL_VIDEO_MODELS },
 
   { step: 'music', service: 'elevenlabs', arrayName: 'SUPPORTED_ELEVENLABS_MUSIC_MODELS', models: SUPPORTED_ELEVENLABS_MUSIC_MODELS },
   { step: 'music', service: 'minimax', arrayName: 'SUPPORTED_MINIMAX_MUSIC_MODELS', models: SUPPORTED_MINIMAX_MUSIC_MODELS },

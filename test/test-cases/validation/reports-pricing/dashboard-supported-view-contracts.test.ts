@@ -7,10 +7,21 @@ import type {
   DashboardProviderRow,
 } from "../../../../.codex/skills/consensus/scripts/shared/combined_report_html";
 
-const removedKeys = [
-  "anthropic/claude-sonnet-5", "anthropic/claude-opus-5", "gemini/gemini-3.7-flash",
-  "grok/grok-4.6", "openai/gpt-5.6-sol", "openai/gpt-5.6-luna",
-];
+// The committed archive holds only current routes, so synthetic retired rows exercise the projection.
+const removedKeys = ["retired/write-model-a", "retired/write-model-b"];
+
+function withRetiredRows(current: CombinedDashboardModel): CombinedDashboardModel {
+  const archive = structuredClone(current);
+  for (const section of archive.groups) {
+    section.providers.push(...removedKeys.map(providerKey => ({ ...structuredClone(section.providers[0]!), providerKey, display: providerKey, model: providerKey })));
+  }
+  for (const table of archive.sampleTables ?? []) {
+    const column = table.providerKeyColumn!;
+    table.rows.push(...removedKeys.map(key => table.rows[0]!.map((cell, index) => index === column ? { ...cell, display: key } : { ...cell })));
+  }
+  for (const stat of archive.summaryStats) if (stat.label === "Model / provider routes") stat.value = String(Number(stat.value) + removedKeys.length);
+  return archive;
+}
 
 function provider(providerKey: string, rank: number | null = 1): DashboardProviderRow {
   return {
@@ -57,22 +68,24 @@ function writeModel(): CombinedDashboardModel {
 }
 
 describe("Current CLI dashboard projection", () => {
-  test("removes all six retired write routes from every ranking and evidence table without changing the archive", () => {
+  test("removes retired write routes from every ranking and evidence table without changing the archive", () => {
     const data = JSON.parse(readFileSync("docs/benchmarks/combined-comparison-dashboard.json", "utf8"));
-    const original = data.tabs.find((tab: { key: string }) => tab.key === "write").model as CombinedDashboardModel;
-    for (const table of original.sampleTables ?? []) table.providerKeyColumn = 1;
+    const current = data.tabs.find((tab: { key: string }) => tab.key === "write").model as CombinedDashboardModel;
+    for (const table of current.sampleTables ?? []) table.providerKeyColumn = 1;
+    const original = withRetiredRows(current);
     const originalBytes = JSON.stringify(original);
     const keys = original.groups[0]!.providers.map(row => row.providerKey).filter(key => !removedKeys.includes(key));
     const view = buildSupportedDashboardModel(original, keys);
-    expect(keys).toHaveLength(17);
+    expect(keys).toHaveLength(8);
     for (const retired of removedKeys) {
       expect(original.groups[0]!.providers.some(row => row.providerKey === retired)).toBe(true);
       for (const section of view.groups) expect(section.providers.some(row => row.providerKey === retired)).toBe(false);
       for (const table of view.sampleTables ?? []) expect(table.rows.some(row => row[1]?.display === retired)).toBe(false);
     }
-    expect(stats(view)["Model / provider routes"]).toBe("17");
+    expect(stats(view)["Model / provider routes"]).toBe("8");
     expect(JSON.stringify(original)).toBe(originalBytes);
-    expect(original.groups[0]!.providers).toHaveLength(23);
+    expect(original.groups[0]!.providers).toHaveLength(10);
+    expect(stats(original)["Model / provider routes"]).toBe("10");
     expect(original.sampleTables![0]!.rows.length).toBeGreaterThan(view.sampleTables![0]!.rows.length);
   });
 

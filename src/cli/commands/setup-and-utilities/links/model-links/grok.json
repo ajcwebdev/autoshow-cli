@@ -16,7 +16,6 @@
     ],
     "Models": [
       "https://docs.x.ai/developers/models.md",
-      "https://docs.x.ai/developers/models/grok-4.5.md",
       "https://docs.x.ai/developers/models/grok-4.7.md",
       "https://docs.x.ai/developers/grok-4-7.md",
       "https://docs.x.ai/developers/rest-api-reference/inference/models.md"

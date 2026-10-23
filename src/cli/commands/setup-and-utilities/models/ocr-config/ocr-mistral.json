@@ -3,25 +3,6 @@
     "description": "Mistral cloud OCR",
     "type": "api",
     "models": {
-      "mistral-ocr-4-0": {
-        "description": "Mistral OCR 4.0",
-        "pricingSourceUrl": "https://docs.mistral.ai/models/ocr-4-0",
-        "pricingCheckedAt": "2026-06-30",
-        "pricingCurrency": "USD",
-        "pricingTier": "Mistral La Plateforme public pricing",
-        "pricingNotes": "Mistral OCR 4 public model-card pricing is $4 per 1,000 pages and $5 per 1,000 annotated pages. AutoShow plain OCR estimates use the non-annotated page rate; annotated mode is not billed because AutoShow does not request document or bbox annotations.",
-        "costPer1kPagesCents": 400,
-        "limits": {
-          "notes": "https://docs.mistral.ai/api/endpoint/ocr documents the Mistral OCR API and OCR 4 model card. AutoShow does not enforce a numeric Mistral OCR file-size or page-count cap from that source."
-        },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerPage": 2957
-        },
-        "reasoning": {
-          "support": "unsupported"
-        }
-      },
       "mistral-ocr-4-1": {
         "description": "Mistral OCR 4.1",
         "pricingSourceUrl": "https://docs.mistral.ai/models/ocr-4-1",

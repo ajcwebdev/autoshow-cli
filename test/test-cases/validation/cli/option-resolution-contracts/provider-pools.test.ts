@@ -7,10 +7,10 @@ describe('option resolution contracts', () => {
   test('OCR provider pools enforce hosted and local limits independently', async () => {
       const targets: OcrTarget[] = [
         { service: 'tesseract', model: 'tesseract' },
-        { service: 'mistral', model: 'mistral-ocr-4-0' },
+        { service: 'mistral', model: 'mistral-ocr-4-1' },
         { service: 'openai', model: 'gpt-6-luna' },
         { service: 'anthropic', model: 'claude-sonnet-5-5' },
-        { service: 'gemini', model: 'gemini-3.5-flash-lite' }
+        { service: 'gemini', model: 'gemini-3.5-flash' }
       ]
       const active = { local: 0, hosted: 0, total: 0 }
       const max = { local: 0, hosted: 0, total: 0 }

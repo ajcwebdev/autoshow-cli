@@ -32,26 +32,29 @@ const structuredOpts: StructuredRequestOptions = {
 }
 
 describe('Anthropic REST contracts', () => {
-  test('Fable 5.1 resolves alongside Fable 5 with documented pricing', () => {
-    expect(buildOptsFromFlags({ anthropic: 'claude-fable-5-1' }).anthropicModels).toEqual(['claude-fable-5-1'])
-    expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5' })).toThrow('Invalid model "claude-fable-5" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-1')
-    expect(getModelRegistry().llm['anthropic']?.models['claude-fable-5-1']).toMatchObject({
-      inputCostPer1MCents: 1000,
-      outputCostPer1MCents: 5000,
+  test('Opus 5.5 resolves with documented pricing while removed Fable write models reject locally', () => {
+    expect(buildOptsFromFlags({ anthropic: 'claude-opus-5-5' }).anthropicModels).toEqual(['claude-opus-5-5'])
+    for (const model of ['claude-fable-5', 'claude-fable-5-1']) {
+      expect(() => buildOptsFromFlags({ anthropic: model })).toThrow(`Invalid model "${model}" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5`)
+    }
+    expect(getModelRegistry().llm['anthropic']?.models['claude-fable-5-1']).toBeUndefined()
+    expect(getModelRegistry().llm['anthropic']?.models['claude-opus-5-5']).toMatchObject({
+      inputCostPer1MCents: 400,
+      outputCostPer1MCents: 2000,
       reasoning: { support: 'required', allowDisabled: false }
     })
   })
 
   for (const effort of ['default', 'low', 'medium', 'high', 'xhigh', 'max'] as const) {
-    test(`Fable 5.1 sends native lyric JSON with ${effort} reasoning and no forced tools`, async () => {
+    test(`Opus 5.5 sends native lyric JSON with ${effort} reasoning and no forced tools`, async () => {
       process.env['ANTHROPIC_API_KEY'] = 'anthropic-key'
       const schema = await resolveStructuredSchema(['rapSongChapter'])
       const calls = installMockFetch(() => Response.json({
-        model: 'claude-fable-5-1',
+        model: 'claude-opus-5-5',
         content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: '{"title":"A file"}' }],
         usage: { input_tokens: 100, output_tokens: 20 }
       }))
-      const result = await runAnthropicModel('Adapt the transcript.', 'claude-fable-5-1', {
+      const result = await runAnthropicModel('Adapt the transcript.', 'claude-opus-5-5', {
         ...structuredOpts,
         schema: schema.jsonSchema,
         ...(effort === 'default' ? {} : { requestedReasoningEffort: effort })
@@ -78,10 +81,10 @@ describe('Anthropic REST contracts', () => {
     })
   }
 
-  test('Fable 5.1 rejects disabled and unsupported reasoning before HTTP', async () => {
+  test('Opus 5.5 rejects disabled and unsupported reasoning before HTTP', async () => {
     const calls = installMockFetch(() => { throw new Error('Unexpected provider call') })
     for (const effort of ['disabled', 'minimal'] as const) {
-      await expect(runAnthropicModel('Adapt the transcript.', 'claude-fable-5-1', {
+      await expect(runAnthropicModel('Adapt the transcript.', 'claude-opus-5-5', {
         ...structuredOpts, requestedReasoningEffort: effort
       })).rejects.toThrow('does not support')
     }

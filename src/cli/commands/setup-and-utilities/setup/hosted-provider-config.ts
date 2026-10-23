@@ -64,17 +64,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     ]
   },
   {
-    providerId: 'fal',
-    envVar: 'FAL_API_KEY',
-    label: 'fal.ai image/video',
-    hintUrl: 'https://fal.ai/dashboard/keys',
-    stages: ['image', 'video'],
-    configPaths: [
-      'defaults.image.falImage',
-      'defaults.video.falVideo'
-    ]
-  },
-  {
     providerId: 'anthropic',
     envVar: 'ANTHROPIC_API_KEY',
     label: 'Anthropic write/OCR',
@@ -85,13 +74,10 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'deepinfra',
     envVar: 'DEEPINFRA_API_KEY',
-    label: 'DeepInfra STT/OCR',
+    label: 'DeepInfra STT',
     hintUrl: 'https://deepinfra.com/',
-    stages: ['stt', 'ocr'],
-    configPaths: [
-      'defaults.extract.stt.deepinfraStt',
-      'defaults.extract.ocr.deepinfraOcr'
-    ]
+    stages: ['stt'],
+    configPaths: ['defaults.extract.stt.deepinfraStt']
   },
   {
     providerId: 'minimax',

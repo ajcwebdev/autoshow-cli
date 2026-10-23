@@ -30,7 +30,6 @@ import {
   OcrStructuredResponseError,
   writeOcrProviderError
 } from '~/cli/commands/text/ocr/ocr-structured-response-error'
-import { runDeepinfraOcr } from '~/cli/commands/text/ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr'
 import { runAnthropicOcr } from '~/cli/commands/text/ocr/ocr-services/anthropic-ocr/run-anthropic-ocr'
 import { l } from '~/utils/app-logger/app-logger'
 import { pagesForOcrRange as pagesForRange } from '../../../../../test-utils/ocr-page-fixtures'
@@ -126,7 +125,6 @@ export {
   rm,
   runHostedOcrWithPdfChunkFallback,
   runAnthropicOcr,
-  runDeepinfraOcr,
   shouldFallbackToOcrPdfChunks,
   stitchHostedOcrChunkRuns,
   withOcrPageRequestRetry,

@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `docs/benchmarks/text/ocr/04-pages-don-quixote`
-- Providers with page result files: 30
+- Providers with page result files: 9
 - Pages: 4
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.
@@ -12,8 +12,7 @@
 
 | Selected Provider          | Pages |
 | -------------------------- | ----: |
-| `anthropic/claude-opus-5`  | 2     |
-| `anthropic/claude-fable-5` | 1     |
+| `anthropic/claude-fable-5` | 3     |
 | `mistral/mistral-ocr-4-1`  | 1     |
 
 ## Outlier Signals
@@ -23,7 +22,7 @@
 | blankOutputPages      | 0          |
 | repeatedTextPages     | 0          |
 | majorLengthDriftPages | 1          |
-| highDisagreementPages | 0          |
+| highDisagreementPages | 1          |
 | werCerDivergencePages | 0          |
 | lowConfidencePages    | 0          |
 
@@ -31,7 +30,7 @@
 
 - Candidate pages: 1
 - Low-confidence threshold: 0.72
-- High-disagreement threshold: 0.18
+- High-disagreement threshold: 0.231978
 
 ## Variant Distances
 

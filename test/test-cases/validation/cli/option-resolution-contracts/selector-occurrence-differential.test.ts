@@ -51,8 +51,8 @@ const selectorCases = (): SelectorCase[] => {
 describe('selector occurrence differential', () => {
   test('preserves the flag-map and ordered-argv projections for selector spellings', () => {
     const cases = selectorCases()
-    // 20 active provider selections, each tested in four spelling forms.
-    expect(cases).toHaveLength(80)
+    // 18 active provider selections, each tested in four spelling forms.
+    expect(cases).toHaveLength(72)
 
     for (const entry of cases) {
       const argv = ['probe', ...entry.args]

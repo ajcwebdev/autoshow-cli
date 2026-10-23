@@ -14,7 +14,6 @@ export const hasValue = (value: unknown): boolean =>
 export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): void => {
   const referenceImages = options.videoReferenceImages ?? []
   const referenceVideos = options.videoReferenceVideos ?? []
-  const referenceAudios = options.videoReferenceAudios ?? []
 
   const unexpected: string[] = []
   const addUnexpected = (condition: boolean, flagName: string): void => {
@@ -28,7 +27,6 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
     addUnexpected(hasValue(options.videoInputVideo), '--input-video')
     addUnexpected(hasValue(options.videoPreviousInteractionId), '--previous-interaction-id')
     addUnexpected(referenceVideos.length > 0, '--reference-video')
-    addUnexpected(referenceAudios.length > 0, '--reference-audio')
   } else if (mode === 'image-to-video') {
     if (!options.videoInputImage) throw UsageError('--mode image-to-video requires --input-image.')
     addUnexpected(hasValue(options.videoLastFrame), '--last-frame')
@@ -36,10 +34,9 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
     addUnexpected(hasValue(options.videoInputVideo), '--input-video')
     addUnexpected(hasValue(options.videoPreviousInteractionId), '--previous-interaction-id')
     addUnexpected(referenceVideos.length > 0, '--reference-video')
-    addUnexpected(referenceAudios.length > 0, '--reference-audio')
   } else if (mode === 'reference-to-video') {
-    if (referenceImages.length === 0 && referenceVideos.length === 0 && referenceAudios.length === 0) {
-      throw UsageError('--mode reference-to-video requires at least one image, video, or audio reference.')
+    if (referenceImages.length === 0 && referenceVideos.length === 0) {
+      throw UsageError('--mode reference-to-video requires at least one image or video reference.')
     }
     addUnexpected(hasValue(options.videoInputImage), '--input-image')
     addUnexpected(hasValue(options.videoLastFrame), '--last-frame')
@@ -52,7 +49,6 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
     addUnexpected(hasValue(options.videoInputVideo), '--input-video')
     addUnexpected(hasValue(options.videoPreviousInteractionId), '--previous-interaction-id')
     addUnexpected(referenceVideos.length > 0, '--reference-video')
-    addUnexpected(referenceAudios.length > 0, '--reference-audio')
   } else if (mode === 'edit' || mode === 'extend') {
     const hasPrevious = hasValue(options.videoPreviousInteractionId)
     const hasInputVideo = hasValue(options.videoInputVideo)
@@ -62,7 +58,6 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
     addUnexpected(hasValue(options.videoInputImage), '--input-image')
     addUnexpected(hasValue(options.videoLastFrame), '--last-frame')
     addUnexpected(referenceVideos.length > 0, '--reference-video')
-    addUnexpected(referenceAudios.length > 0, '--reference-audio')
     if (mode === 'edit') {
       addUnexpected(referenceImages.length > 0, '--reference-image')
     }

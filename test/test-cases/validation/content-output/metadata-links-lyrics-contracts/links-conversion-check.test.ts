@@ -50,10 +50,10 @@ const entry = (
 })
 
 test('identifiers are field names, camelCase names, hyphenated IDs that carry a digit, and dollar prices', () => {
-  const text = 'Send voice_id and responseFormat to voxtral-mini-2602 or gpt-5.6-luna for $0.30, or $1,250.50 yearly. ' +
+  const text = 'Send voice_id and responseFormat to voxtral-mini-2602 or gpt-6-luna for $0.30, or $1,250.50 yearly. ' +
     'A low-latency, real-time, end-of-line answer on 2026-07-16 takes 3-5 minutes.'
 
-  expect([...collectIdentifiers(text)]).toEqual(['voice_id', 'responseFormat', 'voxtral-mini-2602', 'gpt-5.6-luna', '$0.30', '$1,250.50'])
+  expect([...collectIdentifiers(text)]).toEqual(['voice_id', 'responseFormat', 'voxtral-mini-2602', 'gpt-6-luna', '$0.30', '$1,250.50'])
 })
 
 test('page text ignores chrome and scripts but keeps elements a stylesheet would hide', () => {

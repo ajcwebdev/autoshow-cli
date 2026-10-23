@@ -28,7 +28,7 @@ describe('write batch terminal results', () => {
       await Bun.write(join(input, 'first.txt'), 'A workshop repairs bicycles.')
       await Bun.write(join(input, 'second.txt'), 'A library lends books.')
       const calls = installMockFetch(() => jsonResponse({
-        model: 'gpt-6-astra',
+        model: 'gpt-6.1-sol',
         output_text: '{"episodeDescription":"A brief synthetic summary."}',
         usage: { input_tokens: 40, output_tokens: 12 }
       }))
@@ -36,7 +36,7 @@ describe('write batch terminal results', () => {
 
       try {
         const captured = await captureProcessOutput(() => runCliInProcess([
-          'write', input, '--provider', 'openai=gpt-6-astra', '--prompt', 'shortSummary',
+          'write', input, '--provider', 'openai=gpt-6.1-sol', '--prompt', 'shortSummary',
           '--batch-limit', 'all', '--batch-concurrency', String(concurrency), '--output-dir', output,
           '--config-path', join(root, 'absent-config.json'), '--json'
         ]))
@@ -70,7 +70,7 @@ describe('write batch terminal results', () => {
 
     try {
       const captured = await captureProcessOutput(() => runCliInProcess([
-        'write', input, '--provider', 'openai=gpt-6-astra', '--prompt', 'shortSummary',
+        'write', input, '--provider', 'openai=gpt-6.1-sol', '--prompt', 'shortSummary',
         '--batch-limit', 'all', '--output-dir', output, '--config-path', join(root, 'absent-config.json'), '--json'
       ]))
       const results = captured.stdout.trim().split('\n').map(line => JSON.parse(line))

@@ -2,7 +2,6 @@ import type { ResolvedFlagContext, VideoRuntimeOptions } from '~/types'
 import { VIDEO_PRICING_MODEL_KEYS } from '~/cli/commands/visuals/video/video-utils/video-pricing'
 import {
   parseOptionalIntFlag,
-  readOptionalBooleanFlag,
   readOptionalStringFlag,
   readOptionalStringListFlag
 } from './flag-readers'
@@ -25,8 +24,6 @@ export const buildVideoOptions = (ctx: ResolvedFlagContext): VideoRuntimeOptions
     videoReferenceImages: readOptionalStringListFlag(mergedFlags, 'reference-image'),
     videoInputVideo: readOptionalStringFlag(mergedFlags, 'input-video'),
     videoPreviousInteractionId: readOptionalStringFlag(mergedFlags, 'previous-interaction-id'),
-    videoGenerateAudio: readOptionalBooleanFlag(mergedFlags, 'generate-audio'),
-    videoReferenceVideos: readOptionalStringListFlag(mergedFlags, 'reference-video'),
-    videoReferenceAudios: readOptionalStringListFlag(mergedFlags, 'reference-audio')
+    videoReferenceVideos: readOptionalStringListFlag(mergedFlags, 'reference-video')
   }
 }

@@ -288,7 +288,7 @@ describe('blocking-aware page QA and the blocking-class restart lane', () => {
         : {}))
       return { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: request.model, hardFailure: hasHardPageQaFailure(result, { blockingHardKeys: request.blockingHardKeys ?? [] }), result, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     }
-    await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1, blockingHardKeys: ['side-swapped'] }, {
+    await generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1, blockingHardKeys: ['side-swapped'] }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: Buffer.from(`attempt-${calls.length}`).toString('base64') } } },
       writeImage: async (outputPath, imageBase64) => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, Buffer.from(imageBase64, 'base64')) },
       judgePage,
@@ -296,7 +296,7 @@ describe('blocking-aware page QA and the blocking-class restart lane', () => {
     })
 
     expect(calls).toHaveLength(2)
-    expect(calls[1]?.model).toBe('gpt-image-2')
+    expect(calls[1]?.model).toBe('gpt-image-2.5-flare')
     expect(calls[1]?.referenceImages.some(path => path.includes('attempt-0.png'))).toBe(false)
     expect(calls[1]?.normalizedPrompt).toContain('Generate a completely new image from the canonical references')
     expect(calls[1]?.normalizedPrompt).toContain('The reviewed blocking ledger is authoritative for this panel:')
@@ -323,7 +323,7 @@ describe('blocking-aware page QA and the blocking-class restart lane', () => {
         : { setContinuityMatch: false, issues: ['The loading door is misplaced.'], editInstructions: 'Restore the loading door screen-left.' }))
       return { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: request.model, hardFailure: hasHardPageQaFailure(result, { blockingHardKeys: request.blockingHardKeys ?? [] }), result, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     }
-    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 4, blockingHardKeys: ['side-swapped'] }, {
+    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 4, blockingHardKeys: ['side-swapped'] }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: Buffer.from(`attempt-${calls.length}`).toString('base64') } } },
       writeImage: async (outputPath, imageBase64) => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, Buffer.from(imageBase64, 'base64')) },
       judgePage,
@@ -355,7 +355,7 @@ describe('blocking-aware page QA and the blocking-class restart lane', () => {
       result: failedResult,
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
-    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 4 }, {
+    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 4 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: Buffer.from(`attempt-${calls.length}`).toString('base64') } } },
       writeImage: async (outputPath, imageBase64) => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, Buffer.from(imageBase64, 'base64')) },
       judgePage,
@@ -391,7 +391,7 @@ describe('blocking-aware page QA and the blocking-class restart lane', () => {
         : {}))
       return { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: request.model, hardFailure: hasHardPageQaFailure(result, { blockingHardKeys: request.blockingHardKeys ?? [] }), result, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     }
-    await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1, blockingHardKeys: ['side-swapped'] }, {
+    await generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 1, blockingHardKeys: ['side-swapped'] }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: Buffer.from(`attempt-${calls.length}`).toString('base64') } } },
       writeImage: async (outputPath, imageBase64) => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, Buffer.from(imageBase64, 'base64')) },
       judgePage,

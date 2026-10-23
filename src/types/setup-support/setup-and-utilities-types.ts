@@ -1,6 +1,5 @@
 import type { InferOutput } from 'valibot'
 import {
-SUPPORTED_FAL_IMAGE_MODELS,
 SUPPORTED_GEMINI_IMAGE_MODELS,
 SUPPORTED_GROK_IMAGE_MODELS,
 SUPPORTED_OPENAI_IMAGE_MODELS,
@@ -19,7 +18,6 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import {
 SUPPORTED_GEMINI_VIDEO_MODELS,
-SUPPORTED_FAL_VIDEO_MODELS,
 SUPPORTED_GROK_VIDEO_MODELS,
 } from '~/cli/commands/setup-and-utilities/models/video-models'
 import type { AutoshowConfigSchema, CommandResultBase } from '~/types'
@@ -51,10 +49,8 @@ export type GeminiMusicModel = typeof SUPPORTED_GEMINI_MUSIC_MODELS[number]
 export type GeminiImageModel = typeof SUPPORTED_GEMINI_IMAGE_MODELS[number]
 export type OpenAIImageModel = typeof SUPPORTED_OPENAI_IMAGE_MODELS[number]
 export type GrokImageModel = typeof SUPPORTED_GROK_IMAGE_MODELS[number]
-export type FalImageModel = typeof SUPPORTED_FAL_IMAGE_MODELS[number]
 export type GeminiVideoModel = typeof SUPPORTED_GEMINI_VIDEO_MODELS[number]
 export type GrokVideoModel = typeof SUPPORTED_GROK_VIDEO_MODELS[number]
-export type FalVideoModel = typeof SUPPORTED_FAL_VIDEO_MODELS[number]
 
 export type SttBilling = {
   diarizationCostPerHourCents?: number
@@ -63,7 +59,7 @@ export type SttBilling = {
 }
 
 export type CheapestVideoSelection = {
-  provider: 'gemini' | 'grok' | 'fal'
+  provider: 'gemini' | 'grok'
   model: string
   duration: number
   size?: string | undefined

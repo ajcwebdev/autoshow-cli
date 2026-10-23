@@ -23,12 +23,7 @@ const lifecycle = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'ANT
 // Historical uncached tariffs in USD cents per million tokens, pinned by the finished runs.
 // These are deliberately independent of the active catalog and replacement prices.
 const retired = [
-  { service: 'openai', model: 'gpt-5.6-sol', replacement: 'gpt-6.1-sol', input: 400, output: 2000, cents: 60 },
-  { service: 'openai', model: 'gpt-5.6-luna', replacement: 'gpt-6-luna', input: 20, output: 120, cents: 3.2 },
-  { service: 'gemini', model: 'gemini-3.7-flash', replacement: 'gemini-3.8-flash', input: 150, output: 750, cents: 22.5 },
-  { service: 'anthropic', model: 'claude-sonnet-5', replacement: 'claude-sonnet-5-5', input: 200, output: 1000, cents: 30 },
-  { service: 'anthropic', model: 'claude-opus-5', replacement: 'claude-opus-5-5', input: 500, output: 2500, cents: 75 },
-  { service: 'grok', model: 'grok-4.6', replacement: 'grok-4.7', input: 200, output: 600, cents: 26 }
+  { service: 'gemini', model: 'gemini-3.1-flash-lite', replacement: { llm: 'gemini-3.8-flash', extract: 'gemini-3.8-flash' }, input: 25, output: 150, cents: 4 }
 ] as const
 const writeRunners = { openai: runOpenAIModel, anthropic: runAnthropicModel, gemini: runGeminiModel, grok: runGrokModel }
 const metadata = { slug: 'missing', format: 'png' as const, pageCount: 1, fileSize: 1 }
@@ -42,8 +37,8 @@ const ocrRunners = {
 describe('superseded write and OCR identities are retired without rewriting history', () => {
   for (const { service, model, replacement, input, output, cents } of retired) {
     test(`${service}/${model}: selectors, setup, saved config and resume reject with an active replacement`, async () => lifecycle.withDir(async dir => {
-      for (const flag of [service, `${service}-ocr`]) {
-        expect(() => buildOptsFromFlags({ [flag]: model })).toThrow(`Use "${replacement}" instead`)
+      for (const [flag, successor] of [[service, replacement.llm], [`${service}-ocr`, replacement.extract]] as const) {
+        expect(() => buildOptsFromFlags({ [flag]: model })).toThrow(`Use "${successor}" instead`)
         expect(() => buildConfigPatchFromFlags({ [flag]: model }, new Set([flag]))).toThrow('Unsupported configured')
       }
       const path = join(dir, 'config.json')
@@ -57,21 +52,21 @@ describe('superseded write and OCR identities are retired without rewriting hist
       const registry = getModelRegistry()
       for (const category of ['llm', 'extract'] as const) {
         expect(registry[category][service]?.models[model]).toBeUndefined()
-        expect(registry[category][service]?.models[replacement]).toBeDefined()
-        expect(getRetiredModelReplacement(category, service, model)).toBe(replacement)
+        expect(registry[category][service]?.models[replacement[category]]).toBeDefined()
+        expect(getRetiredModelReplacement(category, service, model)).toBe(replacement[category])
       }
       const all = buildOptsFromFlags({ 'all-llm': true, 'all-ocr': true })
       expect(Reflect.get(all, `${service}Models`)).not.toContain(model)
       expect(Reflect.get(all, `${service}OcrModels`)).not.toContain(model)
-      expect(Reflect.get(all, `${service}Models`)).toContain(replacement)
-      expect(Reflect.get(all, `${service}OcrModels`)).toContain(replacement)
+      expect(Reflect.get(all, `${service}Models`)).toContain(replacement.llm)
+      expect(Reflect.get(all, `${service}OcrModels`)).toContain(replacement.extract)
     }))
 
     test(`${service}/${model}: direct write and OCR reject before credentials, file reads or network dispatch`, async () => {
       for (const key of ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY']) delete process.env[key]
       const calls = installMockFetch(() => { throw new Error('Retired identities must never dispatch') })
       await expect(writeRunners[service]('Synthetic prompt.', model)).rejects.toThrow('Unsupported write model')
-      await expect(ocrRunners[service](model)).rejects.toThrow(`Use "${replacement}" instead`)
+      await expect(ocrRunners[service](model)).rejects.toThrow(`Use "${replacement.extract}" instead`)
       expect(calls).toHaveLength(0)
     })
 
@@ -85,13 +80,13 @@ describe('superseded write and OCR identities are retired without rewriting hist
     })
   }
 
-  test('historical context bands survive replacement boundaries and GPT-5.6 Terra remains active', () => {
-    const sol = getLlmCost('openai', 'gpt-5.6-sol')!
-    expect(computeTokenCost(sol, 272000, 1)).toMatchObject({ inputCostPer1MCents: 400, outputCostPer1MCents: 2000 })
-    expect(computeTokenCost(sol, 272001, 1)).toMatchObject({ inputCostPer1MCents: 800, outputCostPer1MCents: 3000 })
-    const grok = getLlmCost('grok', 'grok-4.6')!
+  test('historical context bands survive replacement boundaries and removed OpenAI models reject locally', () => {
+    const grok = getLlmCost('grok', 'grok-4.5')!
     expect(computeTokenCost(grok, 200000, 1)).toMatchObject({ inputCostPer1MCents: 200, outputCostPer1MCents: 600 })
     expect(computeTokenCost(grok, 200001, 1)).toMatchObject({ inputCostPer1MCents: 400, outputCostPer1MCents: 1200 })
-    expect(buildOptsFromFlags({ openai: 'gpt-5.6-terra', 'openai-ocr': 'gpt-5.6-terra' })).toMatchObject({ openaiModels: ['gpt-5.6-terra'], openaiOcrModels: ['gpt-5.6-terra'] })
+    for (const model of ['gpt-6-astra', 'gpt-5.6-terra']) {
+      expect(() => buildOptsFromFlags({ openai: model })).toThrow('Allowed values: gpt-6.1-sol, gpt-6-luna')
+      expect(() => buildOptsFromFlags({ 'openai-ocr': model })).toThrow('Allowed values: gpt-6.1-sol, gpt-6-luna')
+    }
   })
 })

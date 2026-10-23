@@ -35,7 +35,7 @@ describe('hosted OCR throughput profile persistence contracts', () => {
       const profile = store.profiles[0]
       expect(profile).toMatchObject({
         provider: 'gemini',
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
         scopeClass: 'env-api-key',
         pageCountBand: '11-50',
         ocrConcurrencyMode: 'auto',
@@ -76,7 +76,7 @@ describe('hosted OCR throughput profile persistence contracts', () => {
 
       const estimate = findHostedOcrThroughputProfile({
         provider: 'gemini',
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
         pageCount: 12,
         ocrConcurrencyMode: 'auto',
         profilePath
@@ -107,8 +107,8 @@ describe('hosted OCR throughput profile persistence contracts', () => {
                 pagesPerMinute: 300
               }),
               buildTargetTelemetry({
-                targetKey: 'gemini:lite',
-                model: 'gemini-3.5-flash-lite',
+                targetKey: 'gemini:three-six',
+                model: 'gemini-fixture-lite',
                 submittedPages: 228,
                 completedPages: 228,
                 share: 0.5,
@@ -117,8 +117,8 @@ describe('hosted OCR throughput profile persistence contracts', () => {
             ]
           }),
           buildLaneTelemetry({
-            laneKey: 'deepinfra:env-api-key',
-            service: 'deepinfra',
+            laneKey: 'openai:env-api-key',
+            service: 'openai',
             currentCap: 16,
             maxCap: 16,
             activePeak: 16,
@@ -126,17 +126,17 @@ describe('hosted OCR throughput profile persistence contracts', () => {
             completedPages: 228,
             pagesPerMinute: 38,
             targets: [buildTargetTelemetry({
-              targetKey: 'deepinfra:mistral-small-ocr',
-              service: 'deepinfra',
-              model: 'mistral-small-ocr',
+              targetKey: 'openai:gpt-6.1-sol',
+              service: 'openai',
+              model: 'gpt-6.1-sol',
               submittedPages: 228,
               completedPages: 228,
               pagesPerMinute: 38
             })]
           }),
           buildLaneTelemetry({
-            laneKey: 'deepinfra:env-api-key',
-            service: 'deepinfra',
+            laneKey: 'openai:env-api-key',
+            service: 'openai',
             status: 'failed',
             currentCap: 1,
             maxCap: 16,
@@ -147,9 +147,9 @@ describe('hosted OCR throughput profile persistence contracts', () => {
             failedPages: 1,
             pagesPerMinute: 22.7,
             targets: [buildTargetTelemetry({
-              targetKey: 'deepinfra:google/gemma-4-31B-it',
-              service: 'deepinfra',
-              model: 'google/gemma-4-31B-it',
+              targetKey: 'openai:gpt-6-luna',
+              service: 'openai',
+              model: 'gpt-6-luna',
               status: 'failed',
               submittedPages: 228,
               completedPages: 227,
@@ -169,10 +169,10 @@ describe('hosted OCR throughput profile persistence contracts', () => {
         profiles: Array<Record<string, unknown>>
       }
       const byModel = new Map(store.profiles.map((profile) => [profile['model'], profile]))
-      expect(byModel.get('gemini-3.5-flash')?.['completionStatus']).toBe('full')
-      expect(byModel.get('gemini-3.5-flash-lite')?.['completionStatus']).toBe('full')
-      expect(byModel.get('mistral-small-ocr')?.['completionStatus']).toBe('full')
-      expect(byModel.get('google/gemma-4-31B-it')?.['completionStatus']).toBe('incomplete')
+      expect(byModel.get('gemini-3.8-flash')?.['completionStatus']).toBe('full')
+      expect(byModel.get('gemini-fixture-lite')?.['completionStatus']).toBe('full')
+      expect(byModel.get('gpt-6.1-sol')?.['completionStatus']).toBe('full')
+      expect(byModel.get('gpt-6-luna')?.['completionStatus']).toBe('incomplete')
     })
   })
 })

@@ -5,8 +5,7 @@ const OCR_MODEL_FIELDS = [
   { method: 'openai-ocr', field: 'openaiOcrModel' },
   { method: 'grok-ocr', field: 'grokOcrModel' },
   { method: 'anthropic-ocr', field: 'anthropicOcrModel' },
-  { method: 'gemini-ocr', field: 'geminiOcrModel' },
-  { method: 'deepinfra-ocr', field: 'deepinfraOcrModel' }
+  { method: 'gemini-ocr', field: 'geminiOcrModel' }
 ] as const
 
 export const buildOcrProviderMetadata = (

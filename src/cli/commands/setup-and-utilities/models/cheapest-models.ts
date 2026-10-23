@@ -6,7 +6,6 @@ import { filterModelNamesByLifecycle } from './model-loader/model-lifecycle'
 import { InternalError } from '~/utils/error-handler'
 import type { CheapestLlmSelection, CheapestTtsSelection, CheapestVideoSelection, Step3Metadata, TtsProvider } from '~/types'
 import { STANDALONE_TTS_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { DEFAULT_DEEPINFRA_OCR_MODEL } from './ocr-models'
 import { DEFAULT_WHISPERFILE_MODEL } from './stt-models'
 import {
   selectCheapestDefaultTextVideoCandidate,
@@ -103,7 +102,7 @@ const selectCheapestSttModel = (service: string): string => {
   return selectCheapestRegistryModel(serviceConfig.models, sttHourlyCost)
 }
 
-export const selectCheapestExtractModel = (service: 'mistral' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'): string => {
+export const selectCheapestExtractModel = (service: 'mistral' | 'openai' | 'grok' | 'anthropic' | 'gemini'): string => {
   const serviceConfig = getModelRegistry().extract[service]
   if (!serviceConfig) {
     throw InternalError(`Missing extract service config: ${service}`, { stage: 'models:cheapest' })
@@ -213,11 +212,11 @@ const selectCheapestMusicModel = (service: string): string => {
 }
 
 export const selectCheapestVideoSelection = (
-  provider: 'gemini' | 'grok' | 'fal'
+  provider: 'gemini' | 'grok'
 ): CheapestVideoSelection => selectCheapestVideoCandidateSelection(provider)
 
 const selectCheapestVideoModel = (
-  provider: 'gemini' | 'grok' | 'fal'
+  provider: 'gemini' | 'grok'
 ): string => selectCheapestVideoSelection(provider).model
 
 export const selectCheapestDefaultTextVideoSelection = (): CheapestVideoSelection =>
@@ -323,7 +322,6 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'grok-ocr': () => selectCheapestExtractModel('grok'),
   'anthropic-ocr': () => selectCheapestExtractModel('anthropic'),
   'gemini-ocr': () => selectCheapestExtractModel('gemini'),
-  'deepinfra-ocr': () => DEFAULT_DEEPINFRA_OCR_MODEL,
   openai: () => selectCheapestLlmModel('openai'),
   gemini: () => selectCheapestLlmModel('gemini'),
   anthropic: () => selectCheapestLlmModel('anthropic'),
@@ -333,13 +331,11 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'gemini-image': () => selectCheapestImageModel('gemini'),
   'openai-image': () => selectCheapestImageModel('openai'),
   'grok-image': () => 'grok-imagine-image-2.0',
-  'fal-image': () => selectCheapestImageModel('fal'),
   'elevenlabs-music': () => selectCheapestMusicModel('elevenlabs'),
   'minimax-music': () => selectCheapestMusicModel('minimax'),
   'gemini-music': () => 'lyria-3.5',
   'gemini-video': () => selectCheapestVideoModel('gemini'),
-  'grok-video': () => selectCheapestVideoModel('grok'),
-  'fal-video': () => selectCheapestVideoModel('fal')
+  'grok-video': () => selectCheapestVideoModel('grok')
 }
 
 export const resolveCheapestModelForFlag = (flagName: string): string | undefined => {

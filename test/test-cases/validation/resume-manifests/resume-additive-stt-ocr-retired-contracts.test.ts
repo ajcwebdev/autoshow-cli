@@ -100,7 +100,7 @@ describe('additive resume provider selection', () => {
   test('OCR resume blocks an unfinished retired target until its replacement is selected explicitly', async () => {
     await withTempDir('autoshow-ocr-retired-model-resume-', async (dir) => {
       const retired: OcrTarget = { service: 'gemini', model: 'gemini-3.1-flash-lite' }
-      const replacement: OcrTarget = { service: 'gemini', model: 'gemini-3.5-flash-lite' }
+      const replacement: OcrTarget = { service: 'gemini', model: 'gemini-3.8-flash' }
       await writeSingleManifestFixture(dir, 'extract', {
         source: { filePath: join(process.cwd(), 'input/examples/document/1-document.pdf') },
         completionStatus: 'incomplete',
@@ -120,13 +120,13 @@ describe('additive resume provider selection', () => {
 
       const rejection = await rejectionOf(priceOcrTarget(resumeTarget, opts))
       expect(rejection.message).toContain('Stored OCR target gemini/gemini-3.1-flash-lite is incomplete, but that model is no longer in the active registry.')
-      expect(rejection.message).toContain('Re-run with --provider gemini=gemini-3.5-flash-lite to add the replacement as a distinct target.')
+      expect(rejection.message).toContain('Re-run with --provider gemini=gemini-3.8-flash to add the replacement as a distinct target.')
 
       const estimate = await priceOcrTarget(resumeTarget, opts, [replacement])
       expect(estimate.steps).toHaveLength(1)
       expect(estimate.steps[0]).toMatchObject({
         provider: 'gemini',
-        model: 'gemini-3.5-flash-lite'
+        model: 'gemini-3.8-flash'
       })
 
       const record = await readCanonicalRecord(dir)

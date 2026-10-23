@@ -211,7 +211,7 @@ describe('hosted concurrency coordinator', () => {
     const ocrCoordinator = createHostedConcurrencyCoordinator({ mode: 'immediate', now: ocrClock.now, random: () => 1, setTimer: ocrClock.setTimer, clearTimer: ocrClock.clearTimer })
     const ocrScheduler = createHostedOcrScheduler({ mode: 'fixed', fixedCap: 2, pageCount: 1, concurrencyMode: 'immediate', hostedConcurrencyCoordinator: ocrCoordinator })
     let ocrAttempts = 0
-    const ocrRun = ocrScheduler.run({ service: 'gemini', model: 'gemini-3.5-flash', pageNumber: 1 }, async ({ onRetryable }) =>
+    const ocrRun = ocrScheduler.run({ service: 'gemini', model: 'gemini-3.8-flash', pageNumber: 1 }, async ({ onRetryable }) =>
       await withOcrPageRequestRetry('hosted OCR exact recovery', async () => {
         ocrAttempts += 1
         if (ocrAttempts === 1) throw ProviderError('rate limited', { status: 429 })

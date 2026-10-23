@@ -366,15 +366,6 @@ describe('the retry policy table', () => {
     })
   })
 
-  test('already-paid result retrieval is more persistent than an ordinary HTTP read', () => {
-    const read = getRetryPolicyForClass('runtime_http_read')
-    const paidResult = getRetryPolicyForClass('runtime_http_paid_result')
-
-    expect(read).toEqual({ maxAttempts: 4, baseDelayMs: 1_000, maxDelayMs: 15_000, jitter: true, exponential: true })
-    expect(paidResult).toEqual({ maxAttempts: 8, baseDelayMs: 1_000, maxDelayMs: 15_000, jitter: true, exponential: true })
-    expect(paidResult).not.toBe(read)
-  })
-
   test('the returned policy is a copy, so a caller cannot mutate the table', () => {
     const policy = getRetryPolicyForClass('runtime_http_read')
     policy.maxAttempts = 99

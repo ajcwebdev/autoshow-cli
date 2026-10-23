@@ -5,7 +5,7 @@
 - Run directory: `input/examples/document/ocr-category-d-run/benchmark-runs/advertisement-newtown-cruise`
 - Publisher canonical reference: `canonical-reference.txt`.
 - Primary region accuracy: unavailable. Primary word-region recognition/localization accuracy is unavailable: outputs contain text without coordinates, and the publisher annotations are not an exhaustive full-image transcription. Text presence can match incidental duplicates outside annotated regions.
-- Total providers: 21 (1 local, 20 third-party service)
+- Total providers: 10 (1 local, 9 third-party service)
 - Local and third-party service providers are ranked separately for price, speed, and quality score.
 - Annotated-token coverage and ordered-reference WER/CER are secondary diagnostics; they are not primary accuracy scores.
 - OCR consensus skill artifacts are emitted beside this report: `page-metrics.json`, `outliers.json`, `selective-adjudication-pages.json`, `variant-comparison-summary.json`, and `ocr-benchmark-summary.md`.
@@ -25,125 +25,81 @@
 
 #### Price
 
-| Rank | Provider | Value | Score / 100 | WER | CER | Processing Time | Accounted Cost |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | <code>tesseract</code> | $0.00 local monetary cost | n/a | n/a | n/a | 0.22s | $0.00 |
+| Rank | Provider               | Value                     | Score / 100 | WER | CER | Processing Time | Accounted Cost |
+| ---: | ---------------------- | ------------------------: | ----------: | --: | --: | --------------: | -------------: |
+| 1    | <code>tesseract</code> | $0.00 local monetary cost | n/a         | n/a | n/a | 0.22s           | $0.00          |
 
 #### Speed
 
-| Rank | Provider | Value | Score / 100 | WER | CER | Processing Time | Accounted Cost |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | <code>tesseract</code> | 0.22s | n/a | n/a | n/a | 0.22s | $0.00 |
+| Rank | Provider               | Value | Score / 100 | WER | CER | Processing Time | Accounted Cost |
+| ---: | ---------------------- | ----: | ----------: | --: | --: | --------------: | -------------: |
+| 1    | <code>tesseract</code> | 0.22s | n/a         | n/a | n/a | 0.22s           | $0.00          |
 
 #### Quality Score
 
-| Rank | Provider | Value | Score / 100 | WER | CER | Processing Time | Accounted Cost |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | <code>tesseract</code> | n/a | n/a | n/a | n/a | 0.22s | $0.00 |
+| Rank | Provider               | Value | Score / 100 | WER | CER | Processing Time | Accounted Cost |
+| ---: | ---------------------- | ----: | ----------: | --: | --: | --------------: | -------------: |
+| 1    | <code>tesseract</code> | n/a   | n/a         | n/a | n/a | 0.22s           | $0.00          |
 
 ### Third-Party Service
 
 #### Price
 
-| Rank | Provider | Value | Score / 100 | WER | CER | Processing Time | Accounted Cost |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | <code>deepinfra/google/gemma-4-31B-it</code> | $0.0001 | n/a | n/a | n/a | 4.68s | $0.0001 |
-| 2 | <code>deepinfra/deepseek-ai/DeepSeek-V4.1-Flash</code> | $0.0002 | n/a | n/a | n/a | 2.32s | $0.0002 |
-| 3 | <code>anthropic/claude-haiku-5-5</code> | $0.0003 | n/a | n/a | n/a | 2.58s | $0.0003 |
-| 4 | <code>openai/gpt-6-luna</code> | $0.0003 | n/a | n/a | n/a | 5.92s | $0.0003 |
-| 5 | <code>deepinfra/Qwen/Qwen3.8-27B</code> | $0.0005 | n/a | n/a | n/a | 5.02s | $0.0005 |
-| 6 | <code>gemini/gemini-3.5-flash-lite</code> | $0.0008 | n/a | n/a | n/a | 1.34s | $0.0008 |
-| 7 | <code>gemini/gemini-3.8-flash</code> | $0.0030 | n/a | n/a | n/a | 3.03s | $0.0030 |
-| 8 | <code>gemini/gemini-3.6-flash</code> | $0.0031 | n/a | n/a | n/a | 1.87s | $0.0031 |
-| 9 | <code>gemini/gemini-3.5-flash</code> | $0.0034 | n/a | n/a | n/a | 1.90s | $0.0034 |
-| 10 | <code>mistral/mistral-ocr-4-1</code> | $0.0040 | n/a | n/a | n/a | 2.48s | $0.0040 |
-| 11 | <code>openai/gpt-6.1-sol</code> | $0.0041 | n/a | n/a | n/a | 5.58s | $0.0041 |
-| 12 | <code>grok/grok-4.5</code> | $0.0053 | n/a | n/a | n/a | 5.33s | $0.0053 |
-| 13 | <code>anthropic/claude-sonnet-5-5</code> | $0.0059 | n/a | n/a | n/a | 2.99s | $0.0059 |
-| 14 | <code>grok/grok-4.7</code> | $0.0078 | n/a | n/a | n/a | 6.00s | $0.0078 |
-| 15 | <code>openai/gpt-5.6-terra</code> | $0.0093 | n/a | n/a | n/a | 6.77s | $0.0093 |
-| 16 | <code>gemini/gemini-4-argon</code> | $0.0098 | n/a | n/a | n/a | 6.24s | $0.0098 |
-| 17 | <code>anthropic/claude-opus-5-5</code> | $0.0120 | n/a | n/a | n/a | 3.31s | $0.0120 |
-| 18 | <code>openai/gpt-6-astra</code> | $0.0161 | n/a | n/a | n/a | 2.59s | $0.0161 |
-| 19 | <code>anthropic/claude-fable-5</code> | $0.0292 | n/a | n/a | n/a | 5.14s | $0.0292 |
-| 20 | <code>anthropic/claude-fable-5-1</code> | $0.0294 | n/a | n/a | n/a | 3.30s | $0.0294 |
+| Rank | Provider                                 | Value   | Score / 100 | WER | CER | Processing Time | Accounted Cost |
+| ---: | ---------------------------------------- | ------: | ----------: | --: | --: | --------------: | -------------: |
+| 1    | <code>anthropic/claude-haiku-5-5</code>  | $0.0003 | n/a         | n/a | n/a | 2.58s           | $0.0003        |
+| 2    | <code>openai/gpt-6-luna</code>           | $0.0003 | n/a         | n/a | n/a | 5.92s           | $0.0003        |
+| 3    | <code>gemini/gemini-3.8-flash</code>     | $0.0030 | n/a         | n/a | n/a | 3.03s           | $0.0030        |
+| 4    | <code>mistral/mistral-ocr-4-1</code>     | $0.0040 | n/a         | n/a | n/a | 2.48s           | $0.0040        |
+| 5    | <code>openai/gpt-6.1-sol</code>          | $0.0041 | n/a         | n/a | n/a | 5.58s           | $0.0041        |
+| 6    | <code>anthropic/claude-sonnet-5-5</code> | $0.0059 | n/a         | n/a | n/a | 2.99s           | $0.0059        |
+| 7    | <code>grok/grok-4.7</code>               | $0.0078 | n/a         | n/a | n/a | 6.00s           | $0.0078        |
+| 8    | <code>anthropic/claude-opus-5-5</code>   | $0.0120 | n/a         | n/a | n/a | 3.31s           | $0.0120        |
+| 9    | <code>anthropic/claude-fable-5</code>    | $0.0292 | n/a         | n/a | n/a | 5.14s           | $0.0292        |
 
 #### Speed
 
-| Rank | Provider | Value | Score / 100 | WER | CER | Processing Time | Accounted Cost |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | <code>gemini/gemini-3.5-flash-lite</code> | 1.34s | n/a | n/a | n/a | 1.34s | $0.0008 |
-| 2 | <code>gemini/gemini-3.6-flash</code> | 1.87s | n/a | n/a | n/a | 1.87s | $0.0031 |
-| 3 | <code>gemini/gemini-3.5-flash</code> | 1.90s | n/a | n/a | n/a | 1.90s | $0.0034 |
-| 4 | <code>deepinfra/deepseek-ai/DeepSeek-V4.1-Flash</code> | 2.32s | n/a | n/a | n/a | 2.32s | $0.0002 |
-| 5 | <code>mistral/mistral-ocr-4-1</code> | 2.48s | n/a | n/a | n/a | 2.48s | $0.0040 |
-| 6 | <code>anthropic/claude-haiku-5-5</code> | 2.58s | n/a | n/a | n/a | 2.58s | $0.0003 |
-| 7 | <code>openai/gpt-6-astra</code> | 2.59s | n/a | n/a | n/a | 2.59s | $0.0161 |
-| 8 | <code>anthropic/claude-sonnet-5-5</code> | 2.99s | n/a | n/a | n/a | 2.99s | $0.0059 |
-| 9 | <code>gemini/gemini-3.8-flash</code> | 3.03s | n/a | n/a | n/a | 3.03s | $0.0030 |
-| 10 | <code>anthropic/claude-fable-5-1</code> | 3.30s | n/a | n/a | n/a | 3.30s | $0.0294 |
-| 11 | <code>anthropic/claude-opus-5-5</code> | 3.31s | n/a | n/a | n/a | 3.31s | $0.0120 |
-| 12 | <code>deepinfra/google/gemma-4-31B-it</code> | 4.68s | n/a | n/a | n/a | 4.68s | $0.0001 |
-| 13 | <code>deepinfra/Qwen/Qwen3.8-27B</code> | 5.02s | n/a | n/a | n/a | 5.02s | $0.0005 |
-| 14 | <code>anthropic/claude-fable-5</code> | 5.14s | n/a | n/a | n/a | 5.14s | $0.0292 |
-| 15 | <code>grok/grok-4.5</code> | 5.33s | n/a | n/a | n/a | 5.33s | $0.0053 |
-| 16 | <code>openai/gpt-6.1-sol</code> | 5.58s | n/a | n/a | n/a | 5.58s | $0.0041 |
-| 17 | <code>openai/gpt-6-luna</code> | 5.92s | n/a | n/a | n/a | 5.92s | $0.0003 |
-| 18 | <code>grok/grok-4.7</code> | 6.00s | n/a | n/a | n/a | 6.00s | $0.0078 |
-| 19 | <code>gemini/gemini-4-argon</code> | 6.24s | n/a | n/a | n/a | 6.24s | $0.0098 |
-| 20 | <code>openai/gpt-5.6-terra</code> | 6.77s | n/a | n/a | n/a | 6.77s | $0.0093 |
+| Rank | Provider                                 | Value | Score / 100 | WER | CER | Processing Time | Accounted Cost |
+| ---: | ---------------------------------------- | ----: | ----------: | --: | --: | --------------: | -------------: |
+| 1    | <code>mistral/mistral-ocr-4-1</code>     | 2.48s | n/a         | n/a | n/a | 2.48s           | $0.0040        |
+| 2    | <code>anthropic/claude-haiku-5-5</code>  | 2.58s | n/a         | n/a | n/a | 2.58s           | $0.0003        |
+| 3    | <code>anthropic/claude-sonnet-5-5</code> | 2.99s | n/a         | n/a | n/a | 2.99s           | $0.0059        |
+| 4    | <code>gemini/gemini-3.8-flash</code>     | 3.03s | n/a         | n/a | n/a | 3.03s           | $0.0030        |
+| 5    | <code>anthropic/claude-opus-5-5</code>   | 3.31s | n/a         | n/a | n/a | 3.31s           | $0.0120        |
+| 6    | <code>anthropic/claude-fable-5</code>    | 5.14s | n/a         | n/a | n/a | 5.14s           | $0.0292        |
+| 7    | <code>openai/gpt-6.1-sol</code>          | 5.58s | n/a         | n/a | n/a | 5.58s           | $0.0041        |
+| 8    | <code>openai/gpt-6-luna</code>           | 5.92s | n/a         | n/a | n/a | 5.92s           | $0.0003        |
+| 9    | <code>grok/grok-4.7</code>               | 6.00s | n/a         | n/a | n/a | 6.00s           | $0.0078        |
 
 #### Quality Score
 
-| Rank | Provider | Value | Score / 100 | WER | CER | Processing Time | Accounted Cost |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | <code>anthropic/claude-fable-5</code> | n/a | n/a | n/a | n/a | 5.14s | $0.0292 |
-| 2 | <code>anthropic/claude-fable-5-1</code> | n/a | n/a | n/a | n/a | 3.30s | $0.0294 |
-| 3 | <code>anthropic/claude-haiku-5-5</code> | n/a | n/a | n/a | n/a | 2.58s | $0.0003 |
-| 4 | <code>anthropic/claude-opus-5-5</code> | n/a | n/a | n/a | n/a | 3.31s | $0.0120 |
-| 5 | <code>anthropic/claude-sonnet-5-5</code> | n/a | n/a | n/a | n/a | 2.99s | $0.0059 |
-| 6 | <code>deepinfra/deepseek-ai/DeepSeek-V4.1-Flash</code> | n/a | n/a | n/a | n/a | 2.32s | $0.0002 |
-| 7 | <code>deepinfra/google/gemma-4-31B-it</code> | n/a | n/a | n/a | n/a | 4.68s | $0.0001 |
-| 8 | <code>deepinfra/Qwen/Qwen3.8-27B</code> | n/a | n/a | n/a | n/a | 5.02s | $0.0005 |
-| 9 | <code>gemini/gemini-3.5-flash</code> | n/a | n/a | n/a | n/a | 1.90s | $0.0034 |
-| 10 | <code>gemini/gemini-3.5-flash-lite</code> | n/a | n/a | n/a | n/a | 1.34s | $0.0008 |
-| 11 | <code>gemini/gemini-3.6-flash</code> | n/a | n/a | n/a | n/a | 1.87s | $0.0031 |
-| 12 | <code>gemini/gemini-3.8-flash</code> | n/a | n/a | n/a | n/a | 3.03s | $0.0030 |
-| 13 | <code>gemini/gemini-4-argon</code> | n/a | n/a | n/a | n/a | 6.24s | $0.0098 |
-| 14 | <code>grok/grok-4.5</code> | n/a | n/a | n/a | n/a | 5.33s | $0.0053 |
-| 15 | <code>grok/grok-4.7</code> | n/a | n/a | n/a | n/a | 6.00s | $0.0078 |
-| 16 | <code>mistral/mistral-ocr-4-1</code> | n/a | n/a | n/a | n/a | 2.48s | $0.0040 |
-| 17 | <code>openai/gpt-5.6-terra</code> | n/a | n/a | n/a | n/a | 6.77s | $0.0093 |
-| 18 | <code>openai/gpt-6-astra</code> | n/a | n/a | n/a | n/a | 2.59s | $0.0161 |
-| 19 | <code>openai/gpt-6-luna</code> | n/a | n/a | n/a | n/a | 5.92s | $0.0003 |
-| 20 | <code>openai/gpt-6.1-sol</code> | n/a | n/a | n/a | n/a | 5.58s | $0.0041 |
+| Rank | Provider                                 | Value | Score / 100 | WER | CER | Processing Time | Accounted Cost |
+| ---: | ---------------------------------------- | ----: | ----------: | --: | --: | --------------: | -------------: |
+| 1    | <code>anthropic/claude-fable-5</code>    | n/a   | n/a         | n/a | n/a | 5.14s           | $0.0292        |
+| 2    | <code>anthropic/claude-haiku-5-5</code>  | n/a   | n/a         | n/a | n/a | 2.58s           | $0.0003        |
+| 3    | <code>anthropic/claude-opus-5-5</code>   | n/a   | n/a         | n/a | n/a | 3.31s           | $0.0120        |
+| 4    | <code>anthropic/claude-sonnet-5-5</code> | n/a   | n/a         | n/a | n/a | 2.99s           | $0.0059        |
+| 5    | <code>gemini/gemini-3.8-flash</code>     | n/a   | n/a         | n/a | n/a | 3.03s           | $0.0030        |
+| 6    | <code>grok/grok-4.7</code>               | n/a   | n/a         | n/a | n/a | 6.00s           | $0.0078        |
+| 7    | <code>mistral/mistral-ocr-4-1</code>     | n/a   | n/a         | n/a | n/a | 2.48s           | $0.0040        |
+| 8    | <code>openai/gpt-6-luna</code>           | n/a   | n/a         | n/a | n/a | 5.92s           | $0.0003        |
+| 9    | <code>openai/gpt-6.1-sol</code>          | n/a   | n/a         | n/a | n/a | 5.58s           | $0.0041        |
 
 
 ## Provider Detail
 
-| Provider | Group | Score / 100 | WER | CER | Processing Time | Accounted Cost |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| <code>tesseract</code> | Local | n/a | n/a | n/a | 0.22s | $0.00 |
-| <code>anthropic/claude-fable-5</code> | Third-Party Service | n/a | n/a | n/a | 5.14s | $0.0292 |
-| <code>anthropic/claude-fable-5-1</code> | Third-Party Service | n/a | n/a | n/a | 3.30s | $0.0294 |
-| <code>anthropic/claude-haiku-5-5</code> | Third-Party Service | n/a | n/a | n/a | 2.58s | $0.0003 |
-| <code>anthropic/claude-opus-5-5</code> | Third-Party Service | n/a | n/a | n/a | 3.31s | $0.0120 |
-| <code>anthropic/claude-sonnet-5-5</code> | Third-Party Service | n/a | n/a | n/a | 2.99s | $0.0059 |
-| <code>deepinfra/deepseek-ai/DeepSeek-V4.1-Flash</code> | Third-Party Service | n/a | n/a | n/a | 2.32s | $0.0002 |
-| <code>deepinfra/google/gemma-4-31B-it</code> | Third-Party Service | n/a | n/a | n/a | 4.68s | $0.0001 |
-| <code>deepinfra/Qwen/Qwen3.8-27B</code> | Third-Party Service | n/a | n/a | n/a | 5.02s | $0.0005 |
-| <code>gemini/gemini-3.5-flash</code> | Third-Party Service | n/a | n/a | n/a | 1.90s | $0.0034 |
-| <code>gemini/gemini-3.5-flash-lite</code> | Third-Party Service | n/a | n/a | n/a | 1.34s | $0.0008 |
-| <code>gemini/gemini-3.6-flash</code> | Third-Party Service | n/a | n/a | n/a | 1.87s | $0.0031 |
-| <code>gemini/gemini-3.8-flash</code> | Third-Party Service | n/a | n/a | n/a | 3.03s | $0.0030 |
-| <code>gemini/gemini-4-argon</code> | Third-Party Service | n/a | n/a | n/a | 6.24s | $0.0098 |
-| <code>grok/grok-4.5</code> | Third-Party Service | n/a | n/a | n/a | 5.33s | $0.0053 |
-| <code>grok/grok-4.7</code> | Third-Party Service | n/a | n/a | n/a | 6.00s | $0.0078 |
-| <code>mistral/mistral-ocr-4-1</code> | Third-Party Service | n/a | n/a | n/a | 2.48s | $0.0040 |
-| <code>openai/gpt-5.6-terra</code> | Third-Party Service | n/a | n/a | n/a | 6.77s | $0.0093 |
-| <code>openai/gpt-6-astra</code> | Third-Party Service | n/a | n/a | n/a | 2.59s | $0.0161 |
-| <code>openai/gpt-6-luna</code> | Third-Party Service | n/a | n/a | n/a | 5.92s | $0.0003 |
-| <code>openai/gpt-6.1-sol</code> | Third-Party Service | n/a | n/a | n/a | 5.58s | $0.0041 |
+| Provider                                 | Group               | Score / 100 | WER | CER | Processing Time | Accounted Cost |
+| ---------------------------------------- | ------------------- | ----------: | --: | --: | --------------: | -------------: |
+| <code>tesseract</code>                   | Local               | n/a         | n/a | n/a | 0.22s           | $0.00          |
+| <code>anthropic/claude-fable-5</code>    | Third-Party Service | n/a         | n/a | n/a | 5.14s           | $0.0292        |
+| <code>anthropic/claude-haiku-5-5</code>  | Third-Party Service | n/a         | n/a | n/a | 2.58s           | $0.0003        |
+| <code>anthropic/claude-opus-5-5</code>   | Third-Party Service | n/a         | n/a | n/a | 3.31s           | $0.0120        |
+| <code>anthropic/claude-sonnet-5-5</code> | Third-Party Service | n/a         | n/a | n/a | 2.99s           | $0.0059        |
+| <code>gemini/gemini-3.8-flash</code>     | Third-Party Service | n/a         | n/a | n/a | 3.03s           | $0.0030        |
+| <code>grok/grok-4.7</code>               | Third-Party Service | n/a         | n/a | n/a | 6.00s           | $0.0078        |
+| <code>mistral/mistral-ocr-4-1</code>     | Third-Party Service | n/a         | n/a | n/a | 2.48s           | $0.0040        |
+| <code>openai/gpt-6-luna</code>           | Third-Party Service | n/a         | n/a | n/a | 5.92s           | $0.0003        |
+| <code>openai/gpt-6.1-sol</code>          | Third-Party Service | n/a         | n/a | n/a | 5.58s           | $0.0041        |
 
 ## Primary region accuracy unavailable
 
@@ -154,9 +110,6 @@ Primary word-region recognition/localization accuracy is unavailable: outputs co
 
 - WER tokenizes normalized text as ASCII [a-z0-9] runs and excludes non-ASCII glyphs, including Japanese. The WER-derived headline quality score does not measure complete Japanese or other non-Latin OCR accuracy.
 - CER retains normalized Unicode letters and numbers as supporting evidence. Review CER and the source images when assessing non-Latin extraction quality.
-- The cheapest cloud provider was `deepinfra/google/gemma-4-31B-it` at 0.0124¢ ($0.0001).
-- Fastest local model: `tesseract/tesseract` at 0.22s.
-- Fastest cloud service: `gemini/gemini-3.5-flash-lite` at 1.34s.
 
 ## Annotated-token coverage diagnostic
 
@@ -164,29 +117,18 @@ Primary word-region recognition/localization accuracy is unavailable: outputs co
 
 Unmatched output can be valid unannotated image text; the counts below are not false-positive counts. Duplicate targets count separately under the declared lexical normalization. These unranked text-presence diagnostics do not establish where a word was read.
 
-| Provider                                    | Annotated-token coverage | Matched / reference | Missing tokens | Unmatched output tokens |
-| ------------------------------------------- | ------------------------ | ------------------- | -------------- | ----------------------- |
-| `tesseract/tesseract`                       | 77.78%                   | 56 / 72             | 16             | 6                       |
-| `mistral/mistral-ocr-4-1`                   | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `openai/gpt-6.1-sol`                        | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `openai/gpt-6-luna`                         | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `openai/gpt-6-astra`                        | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `openai/gpt-5.6-terra`                      | 98.61%                   | 71 / 72             | 1              | 1                       |
-| `grok/grok-4.7`                             | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `grok/grok-4.5`                             | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `anthropic/claude-opus-5-5`                 | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `anthropic/claude-sonnet-5-5`               | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `anthropic/claude-haiku-5-5`                | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `anthropic/claude-fable-5-1`                | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `anthropic/claude-fable-5`                  | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `gemini/gemini-4-argon`                     | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `gemini/gemini-3.8-flash`                   | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `gemini/gemini-3.5-flash`                   | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `gemini/gemini-3.6-flash`                   | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `gemini/gemini-3.5-flash-lite`              | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `deepinfra/google/gemma-4-31B-it`           | 100.00%                  | 72 / 72             | 0              | 0                       |
-| `deepinfra/Qwen/Qwen3.8-27B`                | 98.61%                   | 71 / 72             | 1              | 1                       |
-| `deepinfra/deepseek-ai/DeepSeek-V4.1-Flash` | 100.00%                  | 72 / 72             | 0              | 0                       |
+| Provider                      | Annotated-token coverage | Matched / reference | Missing tokens | Unmatched output tokens |
+| ----------------------------- | ------------------------ | ------------------- | -------------- | ----------------------- |
+| `tesseract/tesseract`         | 77.78%                   | 56 / 72             | 16             | 6                       |
+| `mistral/mistral-ocr-4-1`     | 100.00%                  | 72 / 72             | 0              | 0                       |
+| `openai/gpt-6.1-sol`          | 100.00%                  | 72 / 72             | 0              | 0                       |
+| `openai/gpt-6-luna`           | 100.00%                  | 72 / 72             | 0              | 0                       |
+| `grok/grok-4.7`               | 100.00%                  | 72 / 72             | 0              | 0                       |
+| `anthropic/claude-opus-5-5`   | 100.00%                  | 72 / 72             | 0              | 0                       |
+| `anthropic/claude-sonnet-5-5` | 100.00%                  | 72 / 72             | 0              | 0                       |
+| `anthropic/claude-haiku-5-5`  | 100.00%                  | 72 / 72             | 0              | 0                       |
+| `anthropic/claude-fable-5`    | 100.00%                  | 72 / 72             | 0              | 0                       |
+| `gemini/gemini-3.8-flash`     | 100.00%                  | 72 / 72             | 0              | 0                       |
 
 [Evaluation policy and secondary ordered-text diagnostics](evaluation-diagnostics.json).
 

@@ -5,36 +5,36 @@
 ## Summary
 
 - Run directory: `input/examples/document/ocr-categories-efg-run/benchmark-runs/efg-rerun-01-handwriting`
-- Providers with page result files: 21
+- Providers with page result files: 10
 - Pages: 1
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.
 
 ## Page-Level Hybrid Sources
 
-| Selected Provider | Pages |
-| --- | ---: |
-| `gemini/gemini-3.5-flash-lite` | 1 |
+| Selected Provider           | Pages |
+| --------------------------- | ----: |
+| `anthropic/claude-opus-5-5` | 1     |
 
 ## Outlier Signals
 
-| Signal | Page Count |
-| --- | ---: |
-| blankOutputPages | 0 |
-| repeatedTextPages | 0 |
-| majorLengthDriftPages | 1 |
-| highDisagreementPages | 1 |
-| werCerDivergencePages | 1 |
-| lowConfidencePages | 1 |
+| Signal                | Page Count |
+| --------------------- | ---------: |
+| blankOutputPages      | 0          |
+| repeatedTextPages     | 0          |
+| majorLengthDriftPages | 1          |
+| highDisagreementPages | 1          |
+| werCerDivergencePages | 1          |
+| lowConfidencePages    | 1          |
 
 ## Selective Adjudication
 
 - Candidate pages: 1
 - Low-confidence threshold: 0.72
-- High-disagreement threshold: 0.528138
+- High-disagreement threshold: 0.796507
 
 ## Variant Distances
 
-| Reference | Candidate | WER | CER | Word Edits |
-| --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 8.87% | 2.77% | 18 |
+| Reference              | Candidate           | WER    | CER   | Word Edits |
+| ---------------------- | ------------------- | -----: | ----: | ---------: |
+| `status-quo-consensus` | `page-level-hybrid` | 12.32% | 3.99% | 25         |

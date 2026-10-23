@@ -28,7 +28,7 @@ const fixture = async () => {
   }
   const read = async (path: string) => Bun.file(join(root, path)).json()
   const targets = [{ provider: 'tesseract', model: 'tesseract' }, { provider: 'anthropic', model: 'claude-sonnet-5-5' },
-    { provider: 'gemini', model: 'gemini-3.6-flash' }, { provider: 'deepinfra', model: 'google/gemma-4-31B-it' }]
+    { provider: 'gemini', model: 'gemini-3.8-flash' }, { provider: 'grok', model: 'grok-4.7' }]
   const specs = [
     { id: 'newspapers-expansion-layout-fixture', scope: 'full-page', text: `${secret} ſhort ﬁeld “text”—12.\n` },
     { id: 'newspapers-expansion-bln-era-burglars', scope: 'region-crop', text: `${secret} saw someone here.\n` },
@@ -53,7 +53,7 @@ const fixture = async () => {
     cases.push(entry); pages.push(page)
     for (const target of targets) {
       const directory = `${base}/slots/${page.id}/${`${target.provider}-${target.model}`.replace(/[^a-zA-Z0-9_.-]/g, '-')}`
-      const failed = spec.id.includes('new-york-times') && target.provider === 'deepinfra'
+      const failed = spec.id.includes('new-york-times') && target.provider === 'grok'
       const body = target.provider === 'tesseract' ? spec.text : normalizeHistoricalReference(spec.text).replace('someone', 'some one')
       const result = { text: `Page 1\n${body}`, pages: [{ pageNumber: 1, method: 'ocr', text: body }], totalPages: 1 }
       const manifest = { command: 'extract', scope: 'single', items: [{ extractRoute: 'document', metadata: { source: { filePath: input } },
@@ -121,10 +121,10 @@ describe('Newspaper matched-input arithmetic, with explicit completion coverage'
     for (const args of [['--case', 'newspapers-expansion-first'], ['--analyze', '--case', 'newspapers-expansion-first'], ['--generate', '--case'], ['--generate', '--case', '../escape'], ['--generate', '--case', 'newspapers-expansion-first', '--case', 'newspapers-expansion-first']]) expect(() => parseNewspaperReportArguments(args)).toThrow('Usage:')
   })
   test('compares the same common inputs and preserves a valid zero score without giving failures a zero', () => {
-    const targets = [{ provider: 'anthropic', model: 'claude-sonnet-5-5' }, { provider: 'gemini', model: 'gemini-3.6-flash' }]
+    const targets = [{ provider: 'anthropic', model: 'claude-sonnet-5-5' }, { provider: 'gemini', model: 'gemini-3.8-flash' }]
     const panels = summarizeNewspaperPanels([
-      { id: 'easy', panel: 'whole-page-layout', outcomes: [{ providerKey: 'anthropic/claude-sonnet-5-5', status: 'succeeded', score: 100 }, { providerKey: 'gemini/gemini-3.6-flash', status: 'succeeded', score: 90 }] },
-      { id: 'hard', panel: 'whole-page-layout', outcomes: [{ providerKey: 'anthropic/claude-sonnet-5-5', status: 'succeeded', score: 0 }, { providerKey: 'gemini/gemini-3.6-flash', status: 'failed', score: null }] }
+      { id: 'easy', panel: 'whole-page-layout', outcomes: [{ providerKey: 'anthropic/claude-sonnet-5-5', status: 'succeeded', score: 100 }, { providerKey: 'gemini/gemini-3.8-flash', status: 'succeeded', score: 90 }] },
+      { id: 'hard', panel: 'whole-page-layout', outcomes: [{ providerKey: 'anthropic/claude-sonnet-5-5', status: 'succeeded', score: 0 }, { providerKey: 'gemini/gemini-3.8-flash', status: 'failed', score: null }] }
     ], targets)
     const group = panels[0]!.groups.find(group => group.group === 'thirdPartyService')!
     expect(group.matchedCaseIds).toEqual(['easy'])
@@ -133,14 +133,14 @@ describe('Newspaper matched-input arithmetic, with explicit completion coverage'
     expect(panels[0]!.comparisons[0]).toMatchObject({ commonInputs: 1, meanScoreDifferenceAminusB: 10, modelAWins: 1 })
   })
   test('rejects incomplete/duplicate matrices, out-of-range scores and any invented failed-output score', () => {
-    const targets = [{ provider: 'gemini', model: 'gemini-3.6-flash' }]
-    for (const score of [0, 100]) expect(() => summarizeNewspaperPanels([{ id: 'case', panel: 'region-recognition', outcomes: [{ providerKey: 'gemini/gemini-3.6-flash', status: 'failed', score }] }], targets)).toThrow('cannot receive')
+    const targets = [{ provider: 'gemini', model: 'gemini-3.8-flash' }]
+    for (const score of [0, 100]) expect(() => summarizeNewspaperPanels([{ id: 'case', panel: 'region-recognition', outcomes: [{ providerKey: 'gemini/gemini-3.8-flash', status: 'failed', score }] }], targets)).toThrow('cannot receive')
     expect(() => summarizeNewspaperPanels([{ id: 'case', panel: 'region-recognition', outcomes: [] }], targets)).toThrow('matrix')
     expect(() => summarizeNewspaperPanels([], [...targets, ...targets])).toThrow('identities')
-    expect(() => summarizeNewspaperPanels([{ id: 'case', panel: 'region-recognition', outcomes: [{ providerKey: 'gemini/gemini-3.6-flash', status: 'succeeded', score: 101 }] }], targets)).toThrow('cannot receive')
+    expect(() => summarizeNewspaperPanels([{ id: 'case', panel: 'region-recognition', outcomes: [{ providerKey: 'gemini/gemini-3.8-flash', status: 'succeeded', score: 101 }] }], targets)).toThrow('cannot receive')
   })
   test('identical matched scores share a rank rather than presenting alphabetical order as a quality gap', () => {
-    const targets = [{ provider: 'anthropic', model: 'claude-sonnet-5-5' }, { provider: 'gemini', model: 'gemini-3.6-flash' }]
+    const targets = [{ provider: 'anthropic', model: 'claude-sonnet-5-5' }, { provider: 'gemini', model: 'gemini-3.8-flash' }]
     const result = summarizeNewspaperPanels([{ id: 'case', panel: 'region-recognition', outcomes: targets.map(target => ({ providerKey: `${target.provider}/${target.model}`, status: 'succeeded' as const, score: 100 })) }], targets)
     expect(result[1]!.groups.find(group => group.group === 'thirdPartyService')!.models.map(model => model.matchedRank)).toEqual([1, 1])
   })
@@ -223,7 +223,7 @@ describe('Newspaper saved-artifact report integration, without provider calls', 
     const capacity = analysis.panels.find(panel => panel.panel === 'very-long-page-capacity')!
     const hosted = capacity.groups.find(group => group.group === 'thirdPartyService')!
     expect(hosted.matchedCaseIds).toEqual([])
-    expect(hosted.models.find(model => model.providerKey.startsWith('deepinfra/'))).toMatchObject({ completedInputs: 0, failedInputs: 1, matchedMeanScore: null, meanScoreOnCompletedInputs: null, failureKinds: { 'output-limit': 1 } })
+    expect(hosted.models.find(model => model.providerKey.startsWith('grok/'))).toMatchObject({ completedInputs: 0, failedInputs: 1, matchedMeanScore: null, meanScoreOnCompletedInputs: null, failureKinds: { 'output-limit': 1 } })
     for (const c of f.cases) for (const file of ['manifest.json', 'case-metadata.json', 'evaluation-diagnostics.json', 'provider-comparison-report.json', 'provider-comparison-report.md', 'page-metrics.json', 'outliers.json', 'selective-adjudication-pages.json', 'variant-comparison-summary.json', 'ocr-benchmark-summary.md']) {
       const text = await Bun.file(join(f.root, `${c.runDir}/${file}`)).text()
       expect(text).not.toContain(secret); expect(text).not.toContain('apiKey'); expect(text).not.toContain('rawResponse')
@@ -272,13 +272,13 @@ describe('Newspaper saved-artifact report integration, without provider calls', 
       { name: 'RequestTimeoutError', message: `Socket timed out ${secret}`, expected: 'transport' }
     ]
     for (const error of errors) {
-      const f = await fixture(), slot = await f.removeSlot(f.cases[2]!.id, 'deepinfra')
+      const f = await fixture(), slot = await f.removeSlot(f.cases[2]!.id, 'grok')
       const failurePath = `${slot.directory}/failure.txt`, payload = JSON.stringify({ type: 'error', error }, null, 2)
       await f.write(failurePath, payload)
       slot.manifestSha256 = null; slot.artifactHashes = [{ path: failurePath, sha256: hash(payload) }]
       await f.write(`${slot.directory}/dispatch.json`, slot)
       const analysis = await buildNewspaperExpansionReports(f.options)
-      expect(analysis.cases[2]!.outcomes.find(row => row.providerKey.startsWith('deepinfra/'))).toMatchObject({ status: 'failed', score: null, failureKind: error.expected })
+      expect(analysis.cases[2]!.outcomes.find(row => row.providerKey.startsWith('grok/'))).toMatchObject({ status: 'failed', score: null, failureKind: error.expected })
       expect(await Bun.file(join(f.root, `${f.cases[2]!.runDir}/manifest.json`)).text()).not.toContain(secret)
     }
   })
@@ -333,7 +333,7 @@ describe('Newspaper saved-artifact report integration, without provider calls', 
   test('analysis rejects stale failed-output quality rows and execution markers reject partial edits', async () => {
     const f = await fixture(); const analysis = await buildNewspaperExpansionReports(f.options)
     const c = f.cases[2]!, report = await f.read(`${c.runDir}/provider-comparison-report.json`)
-    report.providerGroups.thirdPartyService.providers.push({ providerKey: 'deepinfra/google/gemma-4-31B-it', metrics: { score: 0 } })
+    report.providerGroups.thirdPartyService.providers.push({ providerKey: 'grok/grok-4.7', metrics: { score: 0 } })
     await f.write(`${c.runDir}/provider-comparison-report.json`, report)
     await expect(analyzeNewspaperExpansionReports(f.options)).rejects.toThrow('stale quality')
     await f.write('docs/reports/ocr-newspaper-expansion-2026-10-23.md', '<!-- newspaper-execution:start -->')

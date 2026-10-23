@@ -2356,7 +2356,6 @@
     ],
     "remainingUnexecutedPreparedCount": 20,
     "completedPreparedCount": 10,
-    "failedOnlyTarget": "mistral/mistral-ocr-4-0",
     "cases": [
       {
         "id": "technical-code-nbitcoin",

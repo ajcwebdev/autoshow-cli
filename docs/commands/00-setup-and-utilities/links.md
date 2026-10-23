@@ -82,9 +82,8 @@ Accepted provider selectors are the lowercase names below. Fetch other documenta
 | `--provider claude`         | `general`, `llmstxt`, `models`, `ocr`, `text`                                          |
 | `--provider cloudflare`     | `general`, `llmstxt`, `models`, `stt`                                                  |
 | `--provider deepgram`       | `general`, `llmstxt`, `stt`                                                            |
-| `--provider deepinfra`      | `general`, `llmstxt`, `models`, `ocr`, `stt`                                           |
+| `--provider deepinfra`      | `general`, `llmstxt`, `models`, `stt`                                                  |
 | `--provider elevenlabs`     | `general`, `llmstxt`, `models`, `music`, `tts`                                         |
-| `--provider fal`            | `general`, `image`, `llmstxt`, `video`                                                 |
 | `--provider gemini`         | `general`, `image`, `llmstxt`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
 | `--provider gladia`         | `general`, `llmstxt`, `models`, `stt`                                                  |
 | `--provider grok`           | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`, `video`          |
@@ -138,7 +137,7 @@ bun autoshow links --provider gemini tts
 
 bun autoshow links --provider gemini general models tts
 
-bun autoshow links tts --provider openai general text --provider fal video
+bun autoshow links tts --provider openai general text --provider grok video
 
 bun autoshow links --refresh
 

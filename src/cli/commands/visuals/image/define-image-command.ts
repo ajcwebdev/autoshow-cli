@@ -45,7 +45,7 @@ const runImageCommand = async (
   const excludedTargets = configureModelCostFilter(imageOpts, [unfilteredEstimate])
   const imageTargets = collectImageTargets(imageOpts)
   if (imageTargets.length === 0) {
-    throw UsageError('No image provider specified. Use --provider gemini|openai|grok|fal[=model].')
+    throw UsageError('No image provider specified. Use --provider gemini|openai|grok[=model].')
   }
 
   const { estimate: preflightEstimate, shouldExit: imageShouldExit } = evaluatePreflightEstimate(
@@ -132,15 +132,13 @@ export const imageCommand = defineCliCommand({
   help: {
     beforeFlags: ['Select --provider provider[=model], use --all-providers, or configure defaults.image. Without a saved selection, a provider is required.'],
     notes: [
-      'OpenAI flexible WIDTHxHEIGHT sizes require multiples of 16, a maximum edge of 3840, an aspect ratio at most 3:1, and 655360-8294400 total pixels.',
-      'fal.ai Qwen custom sizes require 512-2048 pixels per edge (at most 1440 for edits). HiDream requires 256-2048 pixels per edge in multiples of 32.'
+      'OpenAI flexible WIDTHxHEIGHT sizes require multiples of 16, a maximum edge of 3840, an aspect ratio at most 3:1, and 655360-8294400 total pixels.'
     ],
     examples: [
       ['bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2.5-flare --size 1024x1024 --quality medium --format png --output-dir output/mug-base', 'Generate a base product image with Flare'],
       ['bun autoshow image "make only the mug matte black; preserve the logo, camera angle, lighting, and background" --provider openai=gpt-image-2.5-sunburst --input output/mug-base/generated-image.png --quality xhigh --format webp --compression 80 --output-dir output/mug-edit', 'Make a focused edit with Sunburst'],
       ['bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini', 'Use the generated image as a Gemini reference'],
-      ['bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-2.0 --size 1K --count 4', 'Generate multiple Grok outputs'],
-      ['bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2', 'Generate with fal.ai']
+      ['bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-2.0 --size 1K --count 4', 'Generate multiple Grok outputs']
     ]
   }
 }, async (ctx) => {

@@ -14,7 +14,7 @@ const missingProfilePath = (): string =>
 describe('hosted OCR timing estimate contracts', () => {
   test('hosted OCR estimates use adaptive auto caps and explicit fixed caps', () => {
       const pageCount = 1024
-      const model = 'gemini-3.5-flash'
+      const model = 'gemini-3.8-flash'
       const autoTiming = computeEstimatedProcessingTimes({
         extractTargets: [{ provider: 'gemini', model, pageCount }],
         hostedOcrProfilePath: missingProfilePath()
@@ -52,8 +52,8 @@ describe('hosted OCR timing estimate contracts', () => {
   test('same-provider hosted OCR targets share provider lane capacity in total estimates', () => {
       const sameProviderTiming = computeEstimatedProcessingTimes({
         extractTargets: [
-          { provider: 'gemini', model: 'gemini-3.5-flash', pageCount: 20 },
-          { provider: 'gemini', model: 'gemini-3.5-flash-lite', pageCount: 20 }
+          { provider: 'openai', model: 'gpt-6.1-sol', pageCount: 20 },
+          { provider: 'openai', model: 'gpt-6-luna', pageCount: 20 }
         ],
         ocrConcurrency: 1,
         ocrConcurrencyMode: 'fixed',
@@ -62,7 +62,7 @@ describe('hosted OCR timing estimate contracts', () => {
       })
       const differentProviderTiming = computeEstimatedProcessingTimes({
         extractTargets: [
-          { provider: 'gemini', model: 'gemini-3.5-flash', pageCount: 20 },
+          { provider: 'gemini', model: 'gemini-3.8-flash', pageCount: 20 },
           { provider: 'openai', model: 'gpt-6-luna', pageCount: 20 }
         ],
         ocrConcurrency: 1,
@@ -80,7 +80,7 @@ describe('hosted OCR timing estimate contracts', () => {
       )).toBe(true)
       expect(sameProviderTiming.likelyGatingTargets?.[0]).toMatchObject({
         step: 'extract',
-        provider: 'gemini'
+        provider: 'openai'
       })
     })
 
@@ -94,8 +94,8 @@ describe('hosted OCR timing estimate contracts', () => {
           version: 2,
           profiles: [
             {
-              provider: 'gemini',
-              model: 'gemini-3.5-flash',
+              provider: 'openai',
+              model: 'gpt-6.1-sol',
               scopeClass: 'env-api-key',
               pageCountBand: '201-1000',
               ocrConcurrencyMode: 'auto',
@@ -114,8 +114,8 @@ describe('hosted OCR timing estimate contracts', () => {
               sourceConfidence: 'healthy'
             },
             {
-              provider: 'gemini',
-              model: 'gemini-3.8-flash',
+              provider: 'openai',
+              model: 'gpt-6-luna',
               scopeClass: 'env-api-key',
               pageCountBand: '201-1000',
               ocrConcurrencyMode: 'auto',
@@ -137,15 +137,15 @@ describe('hosted OCR timing estimate contracts', () => {
 
         const timing = computeEstimatedProcessingTimes({
           extractTargets: [
-            { provider: 'gemini', model: 'gemini-3.5-flash', pageCount },
-            { provider: 'gemini', model: 'gemini-3.8-flash', pageCount }
+            { provider: 'openai', model: 'gpt-6.1-sol', pageCount },
+            { provider: 'openai', model: 'gpt-6-luna', pageCount }
           ],
           hostedOcrProfilePath: profilePath
         })
-        const flash = timing.steps.find((step) => step.model === 'gemini-3.5-flash')
-        const pro = timing.steps.find((step) => step.model === 'gemini-3.8-flash')
+        const profiled = timing.steps.find((step) => step.model === 'gpt-6.1-sol')
+        const unprofiled = timing.steps.find((step) => step.model === 'gpt-6-luna')
 
-        expect(flash).toMatchObject({
+        expect(profiled).toMatchObject({
           processingTimeMs: 312_000,
           timingAdjustment: {
             estimateConfidence: 'profile',
@@ -153,8 +153,8 @@ describe('hosted OCR timing estimate contracts', () => {
             profileLaneTargetCount: 2
           }
         })
-        expect(flash?.timingAdjustment?.['sharedProviderLaneScale']).toBeUndefined()
-        expect(pro).toMatchObject({
+        expect(profiled?.timingAdjustment?.['sharedProviderLaneScale']).toBeUndefined()
+        expect(unprofiled).toMatchObject({
           processingTimeMs: 624_000,
           timingAdjustment: {
             estimateConfidence: 'profile',
@@ -178,8 +178,8 @@ describe('hosted OCR timing estimate contracts', () => {
           version: 2,
           profiles: [
             {
-              provider: 'gemini',
-              model: 'gemini-3.5-flash',
+              provider: 'openai',
+              model: 'gpt-6.1-sol',
               scopeClass: 'env-api-key',
               pageCountBand: '11-50',
               ocrConcurrencyMode: 'auto',
@@ -193,8 +193,8 @@ describe('hosted OCR timing estimate contracts', () => {
               sampleCount: 3
             },
             {
-              provider: 'gemini',
-              model: 'gemini-3.5-flash-lite',
+              provider: 'openai',
+              model: 'gpt-6-luna',
               scopeClass: 'env-api-key',
               pageCountBand: '11-50',
               ocrConcurrencyMode: 'auto',
@@ -211,15 +211,15 @@ describe('hosted OCR timing estimate contracts', () => {
         }, null, 2))
 
         const healthyTiming = computeEstimatedProcessingTimes({
-          extractTargets: [{ provider: 'gemini', model: 'gemini-3.5-flash', pageCount }],
+          extractTargets: [{ provider: 'openai', model: 'gpt-6.1-sol', pageCount }],
           hostedOcrProfilePath: profilePath
         })
         const sparseTiming = computeEstimatedProcessingTimes({
-          extractTargets: [{ provider: 'gemini', model: 'gemini-3.5-flash-lite', pageCount }],
+          extractTargets: [{ provider: 'openai', model: 'gpt-6-luna', pageCount }],
           hostedOcrProfilePath: profilePath
         })
         const registryMs = estimateHostedConcurrencyWallTimeMs(
-          Array.from({ length: pageCount }, () => getExtractEstimation('gemini', 'gemini-3.5-flash-lite').msPerPage),
+          Array.from({ length: pageCount }, () => getExtractEstimation('openai', 'gpt-6-luna').msPerPage),
           resolveHostedOcrEstimateCap(pageCount, 'auto')
         )
 
@@ -234,8 +234,8 @@ describe('hosted OCR timing estimate contracts', () => {
         })
         expect(healthyTiming.likelyGatingTargets?.[0]).toMatchObject({
           step: 'extract',
-          provider: 'gemini',
-          model: 'gemini-3.5-flash',
+          provider: 'openai',
+          model: 'gpt-6.1-sol',
           processingTimeMs: 2000
         })
         expect(sparseTiming.estimateConfidence).toBe('blended')

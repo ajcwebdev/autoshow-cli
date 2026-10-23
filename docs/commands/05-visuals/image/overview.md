@@ -13,7 +13,6 @@ Generate images from a text prompt with hosted image providers.
   - [Gemini](#gemini)
   - [OpenAI](#openai)
   - [Grok](#grok)
-  - [fal.ai](#falai)
 - [Output](#output)
 - [Provider Capabilities](#provider-capabilities)
 
@@ -29,7 +28,6 @@ bun autoshow setup --doctor
 OPENAI_API_KEY=...
 GEMINI_API_KEY=...
 XAI_API_KEY=...
-FAL_API_KEY=...
 ```
 
 ## Usage
@@ -58,7 +56,7 @@ The `image` and `resume` commands use the same short option names, including `--
 | `--quality <q>`                        | OpenAI quality: `low`, `medium`, `high`, or `auto`; GPT Image 2.5 also accepts `xhigh` and `max`. Grok Image 2.0: `low`, `medium`, or `auto` |
 | `--format <fmt>`                       | Output format: `png`, `jpeg`, or `webp` depending on provider                                                                                |
 | `--background <bg>`                    | OpenAI background mode: `transparent`, `opaque`, or `auto`                                                                                   |
-| `--count <n>`                          | Number of images per request (OpenAI/Grok: `1-10`, fal.ai: `1-4`)                                                                            |
+| `--count <n>`                          | Number of images per request (OpenAI/Grok: `1-10`)                                                                                           |
 | `--input <path-or-url>`                | Repeatable source/reference image for edits or image-to-image workflows                                                                      |
 | `--mask <path>`                        | OpenAI mask image for inpainting                                                                                                             |
 | `--compression <0-100>`                | OpenAI JPEG/WebP output compression                                                                                                          |
@@ -136,7 +134,7 @@ bun autoshow image "restyle this teal camping mug illustration as a 1960s harbor
 | Option            | Value                                                                                |
 | ----------------- | ------------------------------------------------------------------------------------ |
 | Selector          | `--provider openai[=<model>]`                                                        |
-| Models            | `gpt-image-2.5-flare` (bare default), `gpt-image-2.5-sunburst`, `gpt-image-2`        |
+| Models            | `gpt-image-2.5-flare` (bare default), `gpt-image-2.5-sunburst`                       |
 | Size              | `auto`, `1024x1024`, `1536x1024`, `1024x1536`, or custom `WIDTHxHEIGHT`              |
 | Quality           | `--quality low\|medium\|high\|xhigh\|max\|auto`; `xhigh` and `max` require Image 2.5 |
 | Format/background | `--format png\|jpeg\|webp`, `--background transparent\|opaque\|auto`                 |
@@ -151,7 +149,7 @@ bun autoshow image "A clean cutout of a red camping mug with no background" --pr
 
 Flare suits rapid drafts and everyday generation; Sunburst suits precise edits and polished assets. For successive edits, pass the previous output back through `--input`, describe the change, and state what should stay consistent.
 
-Image 2.5 supports transparency with PNG or WebP; JPEG with transparency is rejected. `gpt-image-2` rejects transparency. Custom dimensions must be multiples of 16, within a 3:1 aspect ratio, at most 3840 pixels per edge, and between 655,360 and 8,294,400 total pixels.
+Image 2.5 supports transparency with PNG or WebP; JPEG with transparency is rejected. Custom dimensions must be multiples of 16, within a 3:1 aspect ratio, at most 3840 pixels per edge, and between 655,360 and 8,294,400 total pixels.
 
 At 1024×1024, Image 2.5 output estimates are $0.00588 (low), $0.01317 (medium), $0.05268 (high), $0.09366 (xhigh), and $0.21072 (max). Omitted or `auto` size and quality are estimated as 1024×1024 medium.
 
@@ -175,20 +173,6 @@ bun autoshow image "turn the teal camping mug reference into a magazine ad on a 
 bun autoshow image "a geometric lighthouse poster" --provider grok=grok-imagine-image-2.0 --quality medium --size 2K
 ```
 
-### fal.ai
-
-| Option     | Value                                             |
-| ---------- | ------------------------------------------------- |
-| Selector   | `--provider fal[=<model>]`                        |
-| Models     | `fal-ai/hidream-o1-image`, `alibaba/qwen-image-3` |
-| Count      | `--count 1-4`; default `1`                        |
-| Format     | `--format png\|jpeg\|webp`; default `png`         |
-| References | HiDream (up to 9), Qwen (up to 3)                 |
-
-```bash
-bun autoshow image "a technical cutaway illustration of a lunar greenhouse" --provider fal=fal-ai/hidream-o1-image --size 1024x1024
-bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2
-```
 
 ## Output
 
@@ -200,12 +184,9 @@ bun autoshow image "a launch poster with crisp typography" --provider fal=alibab
 
 Outputs are the per-image estimate. Inputs are extra billed reference or edit cost when published separately; `Included` means the published rate is per output image, and `Not estimated` means the provider may bill inputs but AutoShow does not include them in the local estimate. Output pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first (1 = cheapest); ties share a rank. Rows are newest first. Released dates are provider announcement or model-origin dates. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. References: ❌ none, ⚠️ up to 3, ✅ 4 or more. Max resolution: ✅ 3K/4K/custom, ⚠️ 2K, ❌ 1K/unpublished. Aspect ratio: ✅ size/14+, ⚠️ 10–13, ❌ 9 or fewer. Count: ✅ 1–10, ⚠️ 1–4, ❌ 1. Formats: ✅ png/jpeg/webp, ⚠️ png/jpeg, ❌ single format.
 
-| Provider                             | Released     | References | Max resolution           | Aspect ratio   | Count  | Formats         | Inputs                | Outputs                          | Cost rank |
-| ------------------------------------ | ------------ | ---------- | ------------------------ | -------------- | ------ | --------------- | --------------------- | -------------------------------- | --------- |
-| OpenAI `gpt-image-2.5-flare`         | ✅ 2026-09-08 | ✅ Up to 16 | ✅ Custom ≤3840           | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | $5/M text; $8/M image | ✅ $0.01317 at 1024-square medium | 3/7       |
-| OpenAI `gpt-image-2.5-sunburst`      | ✅ 2026-09-08 | ✅ Up to 16 | ✅ Custom ≤3840           | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | $5/M text; $8/M image | ✅ $0.01317 at 1024-square medium | 3/7       |
-| Grok `grok-imagine-image-2.0`        | ✅ 2026-08-07 | ✅ Up to 5  | ⚠️ 2K                    | ✅ 16 ratios    | ✅ 1–10 | ❌ JPEG          | $0.01/image           | ❌ $0.04–$0.08                    | 6/7       |
-| fal.ai `alibaba/qwen-image-3`        | ✅ 2026-07-21 | ⚠️ Up to 3 | ⚠️ 2048 text / 1440 edit | ✅ Use `--size` | ⚠️ 1–4 | ✅ png/jpeg/webp | Included              | ✅ $0.0051/image                  | 1/7       |
-| Gemini `gemini-3.1-flash-lite-image` | ✅ 2026-06-30 | ✅ Up to 14 | ❌ 1K                     | ⚠️ 10 ratios   | ❌ 1    | ❌ PNG           | Not estimated         | ⚠️ $0.0336/image                 | 5/7       |
-| fal.ai `fal-ai/hidream-o1-image`     | ✅ 2026-05-08 | ✅ Up to 9  | ⚠️ Custom 256–2048       | ✅ Use `--size` | ⚠️ 1–4 | ✅ png/jpeg/webp | Included              | ✅ $0.01/image                    | 2/7       |
-| OpenAI `gpt-image-2`                 | ✅ 2026-04-21 | ✅ Up to 16 | ✅ Custom ≤3840           | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | Not estimated         | ❌ $0.053 at 1024-square medium   | 7/7       |
+| Provider                             | Released     | References | Max resolution | Aspect ratio   | Count  | Formats         | Inputs                | Outputs                          | Cost rank |
+| ------------------------------------ | ------------ | ---------- | -------------- | -------------- | ------ | --------------- | --------------------- | -------------------------------- | --------- |
+| OpenAI `gpt-image-2.5-flare`         | ✅ 2026-09-08 | ✅ Up to 16 | ✅ Custom ≤3840 | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | $5/M text; $8/M image | ✅ $0.01317 at 1024-square medium | 1/4       |
+| OpenAI `gpt-image-2.5-sunburst`      | ✅ 2026-09-08 | ✅ Up to 16 | ✅ Custom ≤3840 | ✅ Use `--size` | ✅ 1–10 | ✅ png/jpeg/webp | $5/M text; $8/M image | ✅ $0.01317 at 1024-square medium | 1/4       |
+| Grok `grok-imagine-image-2.0`        | ✅ 2026-08-07 | ✅ Up to 5  | ⚠️ 2K          | ✅ 16 ratios    | ✅ 1–10 | ❌ JPEG          | $0.01/image           | ❌ $0.04–$0.08                    | 4/4       |
+| Gemini `gemini-3.1-flash-lite-image` | ✅ 2026-06-30 | ✅ Up to 14 | ❌ 1K           | ⚠️ 10 ratios   | ❌ 1    | ❌ PNG           | Not estimated         | ⚠️ $0.0336/image                 | 3/4       |

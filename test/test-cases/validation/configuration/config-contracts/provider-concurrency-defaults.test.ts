@@ -11,23 +11,23 @@ describe('config provider and concurrency default contracts', () => {
 
   test('buildConfigPatchFromFlags maps explicit provider, OCR, batch, and pricing defaults', () => {
     expect(buildConfigPatchFromFlags({
-      openai: 'gpt-5.6-terra',
+      openai: 'gpt-6.1-sol',
       grok: 'grok-4.7',
       'llm-provider-concurrency': '3',
       'llm-local-concurrency': '1',
       'tesseract-ocr': true,
       'openai-ocr': ['gpt-6.1-sol'],
-      'grok-ocr': ['grok-4.5'],
-      'deepinfra-ocr': ['google/gemma-4-31B-it'],
+      'grok-ocr': ['grok-4.7'],
+      'mistral-ocr': ['mistral-ocr-4-1'],
       'ocr-dpi': '450',
       'ocr-provider-concurrency': '4',
       'ocr-local-concurrency': '2',
       'batch-limit': '7',
       'max-cents': '25'
-    }, new Set(['openai', 'grok', 'llm-provider-concurrency', 'llm-local-concurrency', 'tesseract-ocr', 'openai-ocr', 'grok-ocr', 'deepinfra-ocr', 'ocr-dpi', 'ocr-provider-concurrency', 'ocr-local-concurrency', 'batch-limit', 'max-cents']))).toEqual({
+    }, new Set(['openai', 'grok', 'llm-provider-concurrency', 'llm-local-concurrency', 'tesseract-ocr', 'openai-ocr', 'grok-ocr', 'mistral-ocr', 'ocr-dpi', 'ocr-provider-concurrency', 'ocr-local-concurrency', 'batch-limit', 'max-cents']))).toEqual({
       defaults: {
         llm: {
-          openai: ['gpt-5.6-terra'],
+          openai: ['gpt-6.1-sol'],
           grok: ['grok-4.7'],
           providerConcurrency: 3,
           localConcurrency: 1
@@ -36,8 +36,8 @@ describe('config provider and concurrency default contracts', () => {
           ocr: {
             tesseract: true,
             openaiOcr: ['gpt-6.1-sol'],
-            grokOcr: ['grok-4.5'],
-            deepinfraOcr: ['google/gemma-4-31B-it'],
+            grokOcr: ['grok-4.7'],
+            mistralOcr: ['mistral-ocr-4-1'],
             dpi: 450,
             providerConcurrency: 4,
             localConcurrency: 2
@@ -51,6 +51,10 @@ describe('config provider and concurrency default contracts', () => {
         maxCents: 25
       }
     })
+  })
+
+  test('buildConfigPatchFromFlags rejects the retired DeepInfra OCR selector', () => {
+    expect(() => buildConfigPatchFromFlags({ 'deepinfra-ocr': ['retired-deepinfra-ocr-model'] }, new Set(['deepinfra-ocr']))).toThrow('Provider selections deepinfra-ocr are no longer supported.')
   })
 
   test('buildConfigPatchFromFlags saves generation provider concurrency defaults', () => {

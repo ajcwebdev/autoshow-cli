@@ -36,7 +36,7 @@ describe('test-runner contracts', () => {
         models: [\`gpt-template\`, 'gpt-escaped\\'quote'],
       }))
       defineImageServiceTest({
-        imageService: 'fal',
+        imageService: 'grok',
         models: [{ model: 'owner/model-a' }, { model: \`owner/model-b\` }],
       })
       defineOCRServiceTest({
@@ -56,8 +56,8 @@ describe('test-runner contracts', () => {
       "write-open\"ai-gpt-escaped'quote",
       'extract-fallback-provider-ocr-model',
       'extract-fallback-provider-ocr-model-image',
-      'image-fal-owner/model-a',
-      'image-fal-owner/model-b',
+      'image-grok-owner/model-a',
+      'image-grok-owner/model-b',
     ])
     expect(inspected.issues).toEqual([])
   })
@@ -85,7 +85,7 @@ describe('test-runner contracts', () => {
         models: ['literal-model', dynamicModel],
       })
       defineImageServiceTest({
-        imageService: 'fal',
+        imageService: 'grok',
         models: [{ model: \`model-\${suffix}\` }],
       })
       budgetedTest(dynamicKey, 'dynamic', () => {})
@@ -130,8 +130,8 @@ describe('test-runner contracts', () => {
           budgetSkippable: true
         },
         {
-          name: 'write-openai-gpt-5.6-terra',
-          key: 'write-openai-gpt-5.6-terra',
+          name: 'write-anthropic-claude-haiku-5-5',
+          key: 'write-anthropic-claude-haiku-5-5',
           args: ['cmd-b'],
           exitCode: 0,
           durationMs: 10,

@@ -20,10 +20,10 @@ describe('provider selection contracts', () => {
       provider: ['mistral=voxtral-mini-2602']
     }, new Set(['provider']), { media: true, document: false })
     const documentNormalized = normalizeExtractGenericSelectorFlags({
-      provider: ['mistral=mistral-ocr-4-0']
+      provider: ['mistral=mistral-ocr-4-1']
     }, new Set(['provider']), { media: false, document: true })
     const grokDocumentNormalized = normalizeExtractGenericSelectorFlags({
-      provider: ['grok=grok-4.5']
+      provider: ['grok=grok-4.7']
     }, new Set(['provider']), { media: false, document: true })
     const mixedDefaultNormalized = normalizeExtractGenericSelectorFlags({
       provider: ['mistral']
@@ -36,14 +36,14 @@ describe('provider selection contracts', () => {
     }, new Set(['all-local']), { media: true, document: true, article: true })
 
     expect(buildOptsFromFlags(mediaNormalized.flags, {}, mediaNormalized.explicitFlags).mistralSttModels).toEqual(['voxtral-mini-2602'])
-    expect(buildOptsFromFlags(documentNormalized.flags, {}, documentNormalized.explicitFlags).mistralOcrModels).toEqual(['mistral-ocr-4-0'])
-    expect(buildOptsFromFlags(grokDocumentNormalized.flags, {}, grokDocumentNormalized.explicitFlags).grokOcrModels).toEqual(['grok-4.5'])
+    expect(buildOptsFromFlags(documentNormalized.flags, {}, documentNormalized.explicitFlags).mistralOcrModels).toEqual(['mistral-ocr-4-1'])
+    expect(buildOptsFromFlags(grokDocumentNormalized.flags, {}, grokDocumentNormalized.explicitFlags).grokOcrModels).toEqual(['grok-4.7'])
     const mixedDefaultOpts = buildOptsFromFlags(mixedDefaultNormalized.flags, {}, mixedDefaultNormalized.explicitFlags)
     expect(mixedDefaultOpts.mistralSttModels).toEqual(['voxtral-mini-2602'])
-    expect(mixedDefaultOpts.mistralOcrModels).toEqual(['mistral-ocr-4-0'])
+    expect(mixedDefaultOpts.mistralOcrModels).toEqual(['mistral-ocr-4-1'])
     const grokMixedDefaultOpts = buildOptsFromFlags(grokMixedDefaultNormalized.flags, {}, grokMixedDefaultNormalized.explicitFlags)
     expect(grokMixedDefaultOpts.grokSttModels).toEqual(['grok-voice-transcribe-2.0'])
-    expect(grokMixedDefaultOpts.grokOcrModels).toEqual(['grok-4.5'])
+    expect(grokMixedDefaultOpts.grokOcrModels).toEqual(['grok-4.7'])
     expect(localMixedNormalized.flags).toMatchObject({
       'all-local-stt': true,
       'all-local-ocr': true,
@@ -70,23 +70,23 @@ describe('provider selection contracts', () => {
       'extract',
       'input/examples/document/1-document.pdf',
       '--provider',
-      'mistral=mistral-ocr-4-0',
+      'mistral=mistral-ocr-4-1',
       '--price'
     ], { media: false, document: true })
     expect(routeAwareDocumentArgs).toEqual([
       '--mistral-ocr',
-      'mistral-ocr-4-0',
+      'mistral-ocr-4-1',
       '--price'
     ])
     expect(normalizeExtractGenericSelectorArgs([
       'extract',
       'input/examples/document/1-document.pdf',
       '--provider',
-      'grok=grok-4.5',
+      'grok=grok-4.7',
       '--price'
     ], { media: false, document: true })).toEqual([
       '--grok-ocr',
-      'grok-4.5',
+      'grok-4.7',
       '--price'
     ])
     expect(normalizeExtractGenericSelectorArgs([
@@ -137,11 +137,11 @@ describe('provider selection contracts', () => {
     ])
 
     const routeAwareDocumentOpts = buildOptsFromFlags(documentNormalized.flags, {}, documentNormalized.explicitFlags, { flagOccurrences: documentNormalized.flagOccurrences })
-    expect(routeAwareDocumentOpts.mistralOcrModels).toEqual(['mistral-ocr-4-0'])
+    expect(routeAwareDocumentOpts.mistralOcrModels).toEqual(['mistral-ocr-4-1'])
     expect('mistralModels' in routeAwareDocumentOpts).toBe(false)
 
     expect(() => normalizeExtractGenericSelectorFlags({
-      provider: ['mistral=mistral-ocr-4-0']
+      provider: ['mistral=mistral-ocr-4-1']
     }, new Set(['provider']), { media: true, document: true })).toThrow('--provider mistral=<model> is ambiguous')
   })
 })

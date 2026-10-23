@@ -1,22 +1,20 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectVideoTargets, getVideoArtifactFileName } from '~/cli/commands/visuals/video/video-targets'
+import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
+import { parseCommandInvocation } from '~/cli/native/native-parser'
+import { commandNamed } from '../../../../test-utils/cli-assertions'
 
 describe('option resolution contracts', () => {
-  test('video audio and reference controls reject targets that would ignore their values', () => {
-    for (const [selector, model] of [
-      ['gemini-video', 'gemini-omni-1.1-flash'], ['grok-video', 'grok-imagine-video-1.5'],
-      ['fal-video', 'minimax/h3']
-    ] as const) {
-      for (const value of [true, false]) {
-        expect(() => collectVideoTargets(buildOptsFromFlags({ [selector]: model, 'generate-audio': value }))).toThrow('--generate-audio is not configurable')
-      }
+  test('removed audio controls are unknown flags and reference video rejects targets that would ignore it', () => {
+    for (const args of [['--generate-audio'], ['--reference-audio', 'https://fixtures.example/reference.mp3']]) {
+      expect(() => parseCommandInvocation(['video', 'a prompt', ...args], commandNamed('video'), GLOBAL_FLAG_DEFINITIONS)).toThrow(`Unexpected flag: ${args[0]}`)
+    }
+    for (const [selector, model] of [['gemini-video', 'gemini-omni-1.1-flash'], ['grok-video', 'grok-imagine-video-1.5']] as const) {
       expect(collectVideoTargets(buildOptsFromFlags({ [selector]: model }))).toHaveLength(1)
     }
     const image = 'https://fixtures.example/reference.png'
-    for (const [flag, value] of [['reference-video', 'https://fixtures.example/reference.mp4'], ['reference-audio', 'https://fixtures.example/reference.mp3']] as const) {
-      expect(() => collectVideoTargets(buildOptsFromFlags({ 'grok-video': 'grok-imagine-video-1.5', mode: 'reference-to-video', 'reference-image': image, [flag]: value }))).toThrow(`--${flag} is not supported by grok`)
-    }
+    expect(() => collectVideoTargets(buildOptsFromFlags({ 'grok-video': 'grok-imagine-video-1.5', mode: 'reference-to-video', 'reference-image': image, 'reference-video': 'https://fixtures.example/reference.mp4' }))).toThrow('--reference-video is not supported by grok')
   })
 
   test('retired video selectors fail with replacement guidance', () => {
@@ -78,9 +76,7 @@ describe('option resolution contracts', () => {
       }))
       expect(allReferenceTargets.map(target => `${target.service}/${target.model}`)).toEqual([
         'gemini/gemini-omni-1.1-flash',
-        'grok/grok-imagine-video-1.5',
-        'fal/bytedance/seedance-2.5/reference-to-video',
-        'fal/minimax/h3'
+        'grok/grok-imagine-video-1.5'
       ])
     })
 
@@ -116,11 +112,6 @@ describe('option resolution contracts', () => {
         'aspect-ratio': '1:1'
       }))).toThrow('Expected 16:9 or 9:16')
 
-      expect(() => collectVideoTargets(buildOptsFromFlags({
-        'gemini-video': 'gemini-omni-1.1-flash',
-        'mode': 'reference-to-video',
-        'reference-audio': [`data:audio/mpeg;base64,${Buffer.from([7, 8, 9]).toString('base64')}`]
-      }))).toThrow('--reference-audio is not supported by gemini/gemini-omni-1.1-flash')
     })
 
   test('Grok Imagine Video 1.5 rejects 1080p for reference-to-video', () => {

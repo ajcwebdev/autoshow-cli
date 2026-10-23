@@ -1,7 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import { runDeepinfraOcr } from '~/cli/commands/text/ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr'
 import { runGrokOcr } from '~/cli/commands/text/ocr/ocr-services/grok-ocr/run-grok-ocr'
 import { runOpenAIOcr } from '~/cli/commands/text/ocr/ocr-services/openai-ocr/run-openai-ocr'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, withOcrDocumentFixture } from './shared'
@@ -13,7 +10,7 @@ const CHAT_OCR_OPTIONS = { dpi: 300, password: undefined, outputDir: '', ocrPrep
 const dataUrl = (mime: string, bytes: Uint8Array): string =>
   `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`
 
-const STRUCTURED_OUTPUT_MODELS = ['gpt-6-astra', 'gpt-6.1-sol', 'gpt-5.6-terra'] as const
+const STRUCTURED_OUTPUT_MODELS = ['gpt-6-luna', 'gpt-6.1-sol'] as const
 
 describe('OpenAI REST OCR contracts', () => {
   test('OpenAI OCR sends data URLs and returns response usage token metadata', async () => {
@@ -53,7 +50,7 @@ describe('OpenAI REST OCR contracts', () => {
         usage: { input_tokens: 234, output_tokens: 56 }
       }))
 
-      await withOcrDocumentFixture({ slug: 'document', format: model === 'gpt-6-astra' ? 'pdf' : 'png', pageCount: 2 }, async ({ path, metadata }) => {
+      await withOcrDocumentFixture({ slug: 'document', format: model === 'gpt-6-luna' ? 'pdf' : 'png', pageCount: 2 }, async ({ path, metadata }) => {
         const result = await runOpenAIOcr(path, metadata, model, OPENAI_BASE)
 
         expect(result.pages).toEqual([
@@ -74,16 +71,15 @@ describe('OpenAI REST OCR contracts', () => {
     })
   }
 
-  test('Grok and DeepInfra OCR preserve their provider-specific chat image payloads', async () => {
+  test('Grok OCR preserves its provider-specific chat image payload', async () => {
     process.env['XAI_API_KEY'] = 'xai-key'
-    process.env['DEEPINFRA_API_KEY'] = 'deepinfra-key'
     const calls = installFetch(() => jsonResponse({
       choices: [{ message: { content: 'Grok OCR text' } }],
       usage: { prompt_tokens: 4000, completion_tokens: 1000 }
     }))
 
     await withOcrDocumentFixture({ slug: 'page', format: 'png' }, async ({ dir, path, bytes, metadata }) => {
-      const result = await runGrokOcr(path, metadata, 'grok-4.5', {
+      const result = await runGrokOcr(path, metadata, 'grok-4.7', {
         ...CHAT_OCR_OPTIONS,
         outputDir: dir
       }, 'https://mock.x.ai/v1/chat/completions')
@@ -98,29 +94,13 @@ describe('OpenAI REST OCR contracts', () => {
       })
       expect(calls[0]?.headers.get('authorization')).toBe('Bearer xai-key')
       const body = calls[0]?.bodyJson
-      expect(body?.['model']).toBe('grok-4.5')
+      expect(body?.['model']).toBe('grok-4.7')
       const messages = body?.['messages'] as Array<Record<string, unknown>>
       const content = messages[0]?.['content'] as Array<Record<string, unknown>>
       expect(content[0]?.['type']).toBe('text')
       expect(content[1]).toMatchObject({
         type: 'image_url',
         image_url: { url: dataUrl('image/png', bytes) }
-      })
-
-      const webpBytes = new Uint8Array([4, 5, 6])
-      const webpPath = join(dir, 'page.webp')
-      await writeFile(webpPath, webpBytes)
-      await runDeepinfraOcr(webpPath, { ...metadata, format: 'webp' }, 'google/gemma-4-31B-it', {
-        ...CHAT_OCR_OPTIONS,
-        outputDir: dir
-      })
-      expect(calls[1]?.bodyJson?.['max_tokens']).toBe(8192)
-      expect(calls[1]?.bodyJson).not.toHaveProperty('max_completion_tokens')
-      const deepinfraMessages = calls[1]?.bodyJson?.['messages'] as Array<Record<string, unknown>>
-      const deepinfraContent = deepinfraMessages[0]?.['content'] as Array<Record<string, unknown>>
-      expect(deepinfraContent[1]).toEqual({
-        type: 'image_url',
-        image_url: { url: dataUrl('image/webp', webpBytes) }
       })
     })
   })

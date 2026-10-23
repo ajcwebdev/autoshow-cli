@@ -34,15 +34,10 @@
       "openai": 4,
       "gemini": 4,
       "grok": 3,
-      "deepinfra": 4,
       "mistral": 3,
       "tesseract": 2
     },
     "geminiIntervalMs": 15500,
-    "geminiSharedAliases": [
-      "gemini-3.5-flash",
-      "gemini-3.6-flash"
-    ],
     "geminiBackloaded": false,
     "preserveAllAttempts": true,
     "reuseCompleted": true
@@ -71,20 +66,8 @@
       "model": "gpt-6-luna"
     },
     {
-      "provider": "openai",
-      "model": "gpt-6-astra"
-    },
-    {
-      "provider": "openai",
-      "model": "gpt-5.6-terra"
-    },
-    {
       "provider": "grok",
       "model": "grok-4.7"
-    },
-    {
-      "provider": "grok",
-      "model": "grok-4.5"
     },
     {
       "provider": "anthropic",
@@ -100,50 +83,13 @@
     },
     {
       "provider": "anthropic",
-      "model": "claude-fable-5-1"
-    },
-    {
-      "provider": "anthropic",
       "model": "claude-fable-5"
     },
     {
       "provider": "gemini",
-      "model": "gemini-4-argon"
-    },
-    {
-      "provider": "gemini",
       "model": "gemini-3.8-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.5-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.6-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.5-flash-lite"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "google/gemma-4-31B-it"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "Qwen/Qwen3.8-27B"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "deepseek-ai/DeepSeek-V4.1-Flash"
     }
   ],
-  "excludedTarget": {
-    "provider": "mistral",
-    "model": "mistral-ocr-4-0",
-    "reason": "Unavailable during prior runs/model-catalog review; not dispatched."
-  },
   "inputProtocol": "Fifteen original prepared PNGs and three original baseline JPEGs; original newspaper PDF preserved with a separate300DPI/max3072 renderedPNGvariant. Declaration JPEG retained3923x4656 under its exact-case exception.",
   "evaluationPolicy": "Lexical WER/CER uses independent canonical text within declared image/crop scope, or archived consensus for four baseline variants. Literal numeric/punctuation/reading diagnostics are separate. Common text-only outputs do not establish table cell/column/span mapping, flowchart branch topology or newspaper layout geometry.",
   "cases": [
@@ -733,21 +679,10 @@
     "originalNativeDispatchAttempts": 409,
     "offlineResponseReconstructions": 1
   },
-  "failedTargets": [
-    {
-      "caseId": "efg-rerun-1-page-newspaper",
-      "provider": "deepinfra",
-      "model": "google/gemma-4-31B-it",
-      "reason": "Native output-token limit reached after HTTP200",
-      "outputTokens": 8192,
-      "qualityScoreAvailable": false,
-      "partialOutputRetainedPrivately": true
-    }
-  ],
+  "failedTargets": [],
   "recoveryPolicy": {
     "initialPageRequestDeadlineMs": 300000,
     "finalPageRequestDeadlineMs": 900000,
-    "gemmaModelConcurrency": 1,
     "timeoutReviewCount": 5,
     "originalReceiptsAndChargesPreserved": true,
     "losslessTransport": {

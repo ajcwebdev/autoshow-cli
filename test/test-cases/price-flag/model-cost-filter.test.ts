@@ -11,14 +11,14 @@ describe('--max-model-cents', () => {
       {
         steps: [
           { step: 'image', provider: 'openai', model: 'expensive', imageCount: 1, totalCost: 250 },
-          { step: 'image', provider: 'fal', model: 'cheap', imageCount: 1, totalCost: 100 }
+          { step: 'image', provider: 'grok', model: 'cheap', imageCount: 1, totalCost: 100 }
         ],
         totalEstimatedCost: 350
       },
       {
         steps: [
           { step: 'image', provider: 'openai', model: 'expensive', imageCount: 1, totalCost: 250 },
-          { step: 'image', provider: 'fal', model: 'cheap', imageCount: 1, totalCost: 100 }
+          { step: 'image', provider: 'grok', model: 'cheap', imageCount: 1, totalCost: 100 }
         ],
         totalEstimatedCost: 350
       }
@@ -28,8 +28,8 @@ describe('--max-model-cents', () => {
 
     expect(filterModelCostTargets([
       { service: 'openai', model: 'expensive' },
-      { service: 'fal', model: 'cheap' }
-    ], options, 'image')).toEqual([{ service: 'fal', model: 'cheap' }])
+      { service: 'grok', model: 'cheap' }
+    ], options, 'image')).toEqual([{ service: 'grok', model: 'cheap' }])
   })
 
   test('filters TTS price output and expected artifacts without provider calls', async () => {
@@ -57,15 +57,17 @@ describe('--max-model-cents', () => {
       'a test image',
       '--all-providers',
       '--max-model-cents',
-      '1',
+      '2',
       '--price', '--json'
     ])
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
     expect(result.exitCode).toBe(0)
-    expect(output).toContain('fal-ai-hidream-o1-image')
-    expect(output).toContain('alibaba-qwen-image-3')
-    expect(output).not.toContain('generated-image-openai-gpt-image-2.png')
+    expect(output).toContain('Excluded 2 provider/model targets')
+    expect(output).toContain('generated-image-openai-gpt-image-2.5-flare.png')
+    expect(output).toContain('generated-image-openai-gpt-image-2.5-sunburst.png')
+    expect(output).not.toContain('generated-image-gemini-gemini-3.1-flash-lite-image')
+    expect(output).not.toContain('generated-image-grok-grok-imagine-image-2.0')
   })
 
   test('filters video targets and expected artifacts in price mode', async () => {
@@ -75,15 +77,15 @@ describe('--max-model-cents', () => {
       'a test video',
       '--all-providers',
       '--max-model-cents',
-      '100',
+      '80',
       '--price', '--json'
     ])
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
     expect(result.exitCode).toBe(0)
-    expect(output).toContain('generated-video-gemini-gemini-omni-1.1-flash.mp4')
-    expect(output).not.toContain('generated-video-gemini-veo-3.1-generate-preview.mp4')
-    expect(output).not.toContain('generated-video-fal-minimax-h3.mp4')
+    expect(output).toContain('Excluded 1 provider/model target over 80.000¢: gemini/gemini-omni-1.1-flash')
+    expect(output).toContain('generated-video.mp4')
+    expect(output).not.toContain('generated-video-gemini-gemini-omni-1.1-flash.mp4')
   })
 
   test('filters music targets and expected artifacts in price mode', async () => {

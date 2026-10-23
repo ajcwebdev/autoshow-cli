@@ -1,5 +1,6 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, spyOn, test } from 'bun:test'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import * as extractLoader from '~/cli/commands/setup-and-utilities/models/model-loader/extract'
 import { collectEstimatedExtractTargets } from '~/cli/commands/text/ocr/ocr-costs'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
@@ -9,26 +10,26 @@ import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-
 describe('price mode contracts', () => {
   test('OCR timing estimates use default page concurrency and explicit serial overrides', () => {
       const pageCount = 21
-      const model = 'google/gemma-4-31B-it'
-      const msPerPage = getExtractEstimation('deepinfra', model).msPerPage
+      const model = 'grok-4.7'
+      const msPerPage = getExtractEstimation('grok', model).msPerPage
       const defaultTiming = computeEstimatedProcessingTimes({
-        extractTargets: [{ provider: 'deepinfra', model, pageCount }],
+        extractTargets: [{ provider: 'grok', model, pageCount }],
         hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
       const serialTiming = computeEstimatedProcessingTimes({
-        extractTargets: [{ provider: 'deepinfra', model, pageCount }],
+        extractTargets: [{ provider: 'grok', model, pageCount }],
         ocrConcurrency: 1,
         hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
 
       expect(defaultTiming.steps[0]).toMatchObject({
-        provider: 'deepinfra',
+        provider: 'grok',
         model,
         inputValue: pageCount,
         processingTimeMs: estimateHostedConcurrencyWallTimeMs(Array.from({ length: pageCount }, () => msPerPage), DEFAULT_OCR_CONCURRENCY)
       })
       expect(serialTiming.steps[0]).toMatchObject({
-        provider: 'deepinfra',
+        provider: 'grok',
         model,
         inputValue: pageCount,
         processingTimeMs: Math.round(pageCount * msPerPage)
@@ -39,10 +40,10 @@ describe('price mode contracts', () => {
   test('OCR timing estimates adjust rasterized single-page PDF fallback pages', () => {
       const pageCount = 4
       const rasterizedPages = 2
-      const model = 'google/gemma-4-31B-it'
-      const msPerPage = getExtractEstimation('deepinfra', model).msPerPage
+      const model = 'grok-4.7'
+      const msPerPage = getExtractEstimation('grok', model).msPerPage
       const metadata = buildOcrTimingMetadata({
-        service: 'deepinfra',
+        service: 'grok',
         model,
         pageCount,
         preparation: {
@@ -57,8 +58,9 @@ describe('price mode contracts', () => {
       })
       const extractTargets = collectEstimatedExtractTargets(metadata)
       const normalTiming = computeEstimatedProcessingTimes({
-        extractTargets: [{ provider: 'deepinfra', model, pageCount }],
-        ocrConcurrency: 2
+        extractTargets: [{ provider: 'grok', model, pageCount }],
+        ocrConcurrency: 2,
+        hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
       const rasterTiming = computeEstimatedProcessingTimes({
         extractTargets: extractTargets.map((target) => ({
@@ -67,12 +69,13 @@ describe('price mode contracts', () => {
           ...(typeof target.pageCount === 'number' ? { pageCount: target.pageCount } : {}),
           ...(typeof target.rasterizedPages === 'number' ? { rasterizedPages: target.rasterizedPages } : {})
         })),
-        ocrConcurrency: 2
+        ocrConcurrency: 2,
+        hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
 
       expect(extractTargets[0]?.rasterizedPages).toBe(rasterizedPages)
       expect(rasterTiming.steps[0]).toMatchObject({
-        provider: 'deepinfra',
+        provider: 'grok',
         model,
         inputValue: pageCount,
         processingTimeMs: estimateHostedConcurrencyWallTimeMs([msPerPage, msPerPage, msPerPage * 2, msPerPage * 2], 2),
@@ -88,63 +91,70 @@ describe('price mode contracts', () => {
       expect(rasterTiming.steps[0]?.processingTimeMs ?? 0).toBeGreaterThan(normalTiming.steps[0]?.processingTimeMs ?? 0)
     })
 
-  test('Gemini 3.5 Flash timing uses single-page PDF fallback calibration from chunk metadata', () => {
+  test('single-page PDF fallback timing uses a model calibrated fallback rate from chunk metadata', () => {
       const pageCount = 4
-      const model = 'gemini-3.5-flash'
-      const fallbackMsPerPage = getExtractEstimation('gemini', model).singlePagePdfFallbackMsPerPage
-      const metadata = buildOcrTimingMetadata({
-        service: 'gemini',
-        model,
-        pageCount,
-        preparation: {
-          strategy: 'direct',
-          directPageAttempts: pageCount,
-          directSuccesses: pageCount,
-          directFailures: 0,
-          rasterizedPages: 0,
-          directSplittingDisabled: false,
-          tools: [{ tool: 'mutool', attempts: pageCount, exitCodes: { '0': pageCount } }]
-        }
-      })
-      const extractTargets = collectEstimatedExtractTargets(metadata)
-      const normalTiming = computeEstimatedProcessingTimes({
-        extractTargets: [{ provider: 'gemini', model, pageCount }],
-        ocrConcurrency: 2,
-        hostedOcrProfilePath: missingHostedOcrProfilePath()
-      })
-      const fallbackTiming = computeEstimatedProcessingTimes({
-        extractTargets: extractTargets.map((target) => ({
-          provider: target.provider,
-          model: target.model,
-          ...(typeof target.pageCount === 'number' ? { pageCount: target.pageCount } : {}),
-          ...(typeof target.singlePagePdfFallbackPages === 'number' ? { singlePagePdfFallbackPages: target.singlePagePdfFallbackPages } : {})
-        })),
-        ocrConcurrency: 2,
-        hostedOcrProfilePath: missingHostedOcrProfilePath()
-      })
+      const model = 'gemini-3.8-flash'
+      // No bundled OCR model currently records a fallback rate, so the registry value is injected.
+      const original = extractLoader.getExtractEstimation
+      const estimation = spyOn(extractLoader, 'getExtractEstimation').mockImplementation((service, requested) => service === 'gemini' && requested === model
+        ? { ...original(service, requested), singlePagePdfFallbackMsPerPage: 16700 }
+        : original(service, requested))
+      try {
+        const fallbackMsPerPage = getExtractEstimation('gemini', model).singlePagePdfFallbackMsPerPage
+        const metadata = buildOcrTimingMetadata({
+          service: 'gemini',
+          model,
+          pageCount,
+          preparation: {
+            strategy: 'direct',
+            directPageAttempts: pageCount,
+            directSuccesses: pageCount,
+            directFailures: 0,
+            rasterizedPages: 0,
+            directSplittingDisabled: false,
+            tools: [{ tool: 'mutool', attempts: pageCount, exitCodes: { '0': pageCount } }]
+          }
+        })
+        const extractTargets = collectEstimatedExtractTargets(metadata)
+        const normalTiming = computeEstimatedProcessingTimes({
+          extractTargets: [{ provider: 'gemini', model, pageCount }],
+          ocrConcurrency: 2,
+          hostedOcrProfilePath: missingHostedOcrProfilePath()
+        })
+        const fallbackTiming = computeEstimatedProcessingTimes({
+          extractTargets: extractTargets.map((target) => ({
+            provider: target.provider,
+            model: target.model,
+            ...(typeof target.pageCount === 'number' ? { pageCount: target.pageCount } : {}),
+            ...(typeof target.singlePagePdfFallbackPages === 'number' ? { singlePagePdfFallbackPages: target.singlePagePdfFallbackPages } : {})
+          })),
+          ocrConcurrency: 2,
+          hostedOcrProfilePath: missingHostedOcrProfilePath()
+        })
 
-      expect(fallbackMsPerPage).toBe(16700)
-      expect(extractTargets[0]?.singlePagePdfFallbackPages).toBe(pageCount)
-      expect(fallbackTiming.steps[0]).toMatchObject({
-        provider: 'gemini',
-        model,
-        inputValue: pageCount,
-        processingTimeMs: estimateHostedConcurrencyWallTimeMs(Array.from({ length: pageCount }, () => fallbackMsPerPage ?? 0), 2),
-        timingAdjustment: {
-          kind: 'single-page-pdf-fallback',
-          singlePagePdfFallbackPages: pageCount,
-          directPdfPages: 0,
-          singlePagePdfFallbackMsPerPage: 16700,
-          pageConcurrency: 2
-        }
-      })
-      expect(fallbackTiming.steps[0]?.timingNote).toContain('single-page PDF OCR fallback')
-      expect(fallbackTiming.steps[0]?.processingTimeMs ?? 0).toBeGreaterThan(normalTiming.steps[0]?.processingTimeMs ?? 0)
+        expect(fallbackMsPerPage).toBe(16700)
+        expect(extractTargets[0]?.singlePagePdfFallbackPages).toBe(pageCount)
+        expect(fallbackTiming.steps[0]).toMatchObject({
+          provider: 'gemini',
+          model,
+          inputValue: pageCount,
+          processingTimeMs: estimateHostedConcurrencyWallTimeMs(Array.from({ length: pageCount }, () => fallbackMsPerPage ?? 0), 2),
+          timingAdjustment: {
+            kind: 'single-page-pdf-fallback',
+            singlePagePdfFallbackPages: pageCount,
+            directPdfPages: 0,
+            singlePagePdfFallbackMsPerPage: 16700,
+            pageConcurrency: 2
+          }
+        })
+        expect(fallbackTiming.steps[0]?.timingNote).toContain('single-page PDF OCR fallback')
+        expect(fallbackTiming.steps[0]?.processingTimeMs ?? 0).toBeGreaterThan(normalTiming.steps[0]?.processingTimeMs ?? 0)
+      } finally { estimation.mockRestore() }
     })
 
   test('OCR timing estimates use hosted provider-pool concurrency for total time', () => {
       const extractTargets = [
-        { provider: 'deepinfra' as const, model: 'google/gemma-4-31B-it', pageCount: 4 },
+        { provider: 'grok' as const, model: 'grok-4.7', pageCount: 4 },
         { provider: 'openai' as const, model: 'gpt-6-luna', pageCount: 4 }
       ]
       const serialPool = computeEstimatedProcessingTimes({

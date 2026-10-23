@@ -8,6 +8,9 @@ export const assertNoRemovedOcrSelections = (options: object): void => {
   if (removedKeys.length > 0) {
     throw UsageError('GLM and Kimi OCR models are no longer supported. Remove the obsolete selection and choose an active OCR provider explicitly.')
   }
+  if (['deepinfraOcrModel', 'deepinfraOcrModels'].some(key => values[key] !== undefined && values[key] !== null)) {
+    throw UsageError('DeepInfra OCR models are no longer supported. Remove the obsolete selection and choose an active OCR provider explicitly.')
+  }
 }
 
 export const hasMistralOcr = (opts: ExtractionOptions): boolean =>
@@ -25,9 +28,6 @@ export const hasAnthropicOcr = (opts: ExtractionOptions): boolean =>
 export const hasGeminiOcr = (opts: ExtractionOptions): boolean =>
   typeof opts.geminiOcrModel === 'string' && opts.geminiOcrModel.length > 0
 
-export const hasDeepinfraOcr = (opts: ExtractionOptions): boolean =>
-  typeof opts.deepinfraOcrModel === 'string' && opts.deepinfraOcrModel.length > 0
-
 export const hasHostedOcr = (opts: ExtractionOptions): boolean => {
   assertNoRemovedOcrSelections(opts)
   return hasMistralOcr(opts)
@@ -35,7 +35,6 @@ export const hasHostedOcr = (opts: ExtractionOptions): boolean => {
     || hasGrokOcr(opts)
     || hasAnthropicOcr(opts)
     || hasGeminiOcr(opts)
-    || hasDeepinfraOcr(opts)
 }
 
 export const hasOcrFlag = (opts: ExtractionOptions): boolean => {
@@ -53,8 +52,7 @@ export const countSelectedOcrEngines = (opts: ExtractionOptions): number => {
     hasOpenAIOcr(opts),
     hasGrokOcr(opts),
     hasAnthropicOcr(opts),
-    hasGeminiOcr(opts),
-    hasDeepinfraOcr(opts)
+    hasGeminiOcr(opts)
   ].filter(Boolean).length
 }
 
@@ -65,6 +63,5 @@ export const getHostedOcrEngine = (opts: ExtractionOptions): HostedExtractOcrEng
   if (hasGrokOcr(opts)) return 'grok-ocr'
   if (hasAnthropicOcr(opts)) return 'anthropic-ocr'
   if (hasGeminiOcr(opts)) return 'gemini-ocr'
-  if (hasDeepinfraOcr(opts)) return 'deepinfra-ocr'
   return undefined
 }

@@ -7,7 +7,7 @@ import type { ActualCostBreakdown, AggregatedPriceEstimate, CollectEstimatedExtr
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { toArray } from '~/utils/text-utils'
 import { computeObservedEstimateCosts, computePriceAlignedEstimatedCosts, preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
-import { ANTHROPIC_OCR_PRICE_NOTE, DEEPINFRA_OCR_PRICE_NOTE, GEMINI_OCR_PRICE_NOTE, GROK_OCR_PRICE_NOTE, OPENAI_OCR_PRICE_NOTE } from './ocr-pricing/ocr-estimates'
+import { ANTHROPIC_OCR_PRICE_NOTE, GEMINI_OCR_PRICE_NOTE, GROK_OCR_PRICE_NOTE, OPENAI_OCR_PRICE_NOTE } from './ocr-pricing/ocr-estimates'
 import { resolveHostedOcrModeFromExtractionMethod } from './ocr-utils/hosted-ocr-token-profiles'
 import { getUsageNumber } from './ocr-utils/hosted-ocr-utils'
 import { groupRowsByKey } from '~/utils/pricing/group-rows-by-key'
@@ -150,13 +150,13 @@ type TokenOcrEstimateDescriptor = Readonly<{
 
 // Recorded metadata keeps retired providers for historical cost reconciliation only.
 const TOKEN_OCR_ESTIMATE_DESCRIPTORS = {
-  glm: { fallbackModel: () => 'glm-5.3-flash', note: 'Archived GLM OCR token usage; this provider is no longer implemented.' },
+  glm: { fallbackModel: () => 'glm-ocr', note: 'Archived GLM OCR token usage; this provider is no longer implemented.' },
   kimi: { fallbackModel: () => 'kimi-ocr', note: 'Archived Kimi OCR token usage; this provider is no longer implemented.' },
   openai: { fallbackModel: opts => opts.openaiOcrModels?.[0] || 'openai-ocr', note: OPENAI_OCR_PRICE_NOTE },
   grok: { fallbackModel: opts => opts.grokOcrModels?.[0] || resolveCheapestModelForFlag('grok-ocr')!, note: GROK_OCR_PRICE_NOTE },
   anthropic: { fallbackModel: opts => opts.anthropicOcrModels?.[0] || 'anthropic-ocr', note: ANTHROPIC_OCR_PRICE_NOTE },
   gemini: { fallbackModel: opts => opts.geminiOcrModels?.[0] || 'gemini-ocr', note: GEMINI_OCR_PRICE_NOTE },
-  deepinfra: { fallbackModel: opts => opts.deepinfraOcrModels?.[0] || 'deepinfra-ocr', note: DEEPINFRA_OCR_PRICE_NOTE },
+  deepinfra: { fallbackModel: () => 'deepinfra-ocr', note: 'Archived DeepInfra OCR token usage; this provider is no longer implemented.' },
 } satisfies Record<TokenOcrEstimateProvider, TokenOcrEstimateDescriptor>
 
 const isTokenEstimateProvider = (provider: string): provider is TokenOcrEstimateProvider =>
@@ -222,7 +222,6 @@ const hostedOcrTarget = (
   const { provider, model } = resolveExtractionProviderModel(entry)
   const pageCount = Math.max(1, entry.totalPages)
   if (provider === 'mistral') return withPdfChunkTiming(entry, { provider, model: model || opts.mistralOcrModels?.[0] || 'mistral-ocr', pageCount, estimateType: 'exact' })
-  if (provider === 'fal') return withPdfChunkTiming(entry, { provider, model: model || 'fal-ai/got-ocr/v2', pageCount, estimateType: 'exact' })
   if (!isTokenEstimateProvider(provider)) return undefined
   const descriptor = TOKEN_OCR_ESTIMATE_DESCRIPTORS[provider]
   const target = buildTokenTarget(

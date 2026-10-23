@@ -22,7 +22,7 @@ describe('hosted OCR lane identity and cross-document contracts', () => {
     const starts: string[] = []
     const runs = [
       ...Array.from({ length: 3 }, (_, index) =>
-        scheduler.run(admission('gemini', 'gemini-3.5-flash', 'flash'), async () => {
+        scheduler.run(admission('gemini', 'gemini-3.8-flash', 'flash'), async () => {
           starts.push(`flash-${index}`)
           await gate.promise
           await clock.advance(1)
@@ -30,7 +30,7 @@ describe('hosted OCR lane identity and cross-document contracts', () => {
         })
       ),
       ...Array.from({ length: 3 }, (_, index) =>
-        scheduler.run(admission('gemini', 'gemini-3.5-flash-lite', 'lite'), async () => {
+        scheduler.run(admission('gemini', 'gemini-fixture-lite', 'lite'), async () => {
           starts.push(`lite-${index}`)
           await gate.promise
           await clock.advance(1)
@@ -83,13 +83,13 @@ describe('hosted OCR lane identity and cross-document contracts', () => {
     const runs = [
       ...Array.from({ length: 4 }, (_, index) =>
         firstDocument.run(
-          admission('gemini', 'gemini-3.5-flash'),
+          admission('gemini', 'gemini-3.8-flash'),
           async () => await runPage(`a-${index}`)
         )
       ),
       ...Array.from({ length: 6 }, (_, index) =>
         secondDocument.run(
-          admission('gemini', 'gemini-3.5-flash'),
+          admission('gemini', 'gemini-3.8-flash'),
           async () => await runPage(`b-${index}`)
         )
       )
@@ -111,7 +111,7 @@ describe('hosted OCR lane identity and cross-document contracts', () => {
     await Promise.all(runs)
     expect(maxActive).toBe(2)
     expect(scheduler.snapshot().lanes[0]?.targets.map((target) => target.targetKey))
-      .toEqual(['gemini:gemini-3.5-flash'])
+      .toEqual(['gemini:gemini-3.8-flash'])
     expect(firstDocument.snapshot()).toMatchObject({
       lifetime: 'run',
       documentCount: 1,
@@ -140,7 +140,7 @@ describe('hosted OCR lane identity and cross-document contracts', () => {
     const starts: string[] = []
     const runs = [
       ...Array.from({ length: 3 }, (_, index) =>
-        scheduler.run(admission('gemini', 'gemini-3.5-flash', 'gemini'), async () => {
+        scheduler.run(admission('gemini', 'gemini-3.8-flash', 'gemini'), async () => {
           starts.push(`gemini-${index}`)
           await gate.promise
           return index
@@ -170,15 +170,15 @@ describe('hosted OCR lane identity and cross-document contracts', () => {
 describe('hosted OCR fairness and partial gating contracts', () => {
   test('likely gating target includes failed partial targets by projected observed duration', async () => {
     const scheduler = createHostedOcrScheduler({ mode: 'fixed', fixedCap: 16, pageCount: 228 })
-    const deepinfraFailure = new Error('DeepInfra OCR page 9 timed out after 10m')
+    const openaiFailure = new Error('OpenAI OCR page 9 timed out after 10m')
     const results = await Promise.allSettled([
-      scheduler.run(admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it', 227), async () => {
+      scheduler.run(admission('openai', 'gpt-6-luna', 'openai:gpt-6-luna', 227), async () => {
         await sleep(5)
-        return 'deepinfra-success-pages'
+        return 'openai-success-pages'
       }),
-      scheduler.run(admission('deepinfra', 'google/gemma-4-31B-it', 'deepinfra:google/gemma-4-31B-it', 1), async () => {
+      scheduler.run(admission('openai', 'gpt-6-luna', 'openai:gpt-6-luna', 1), async () => {
         await sleep(30)
-        throw deepinfraFailure
+        throw openaiFailure
       }),
       scheduler.run(
         admission('mistral', 'mistral-ocr', 'mistral:mistral-ocr', 228),
@@ -192,18 +192,18 @@ describe('hosted OCR fairness and partial gating contracts', () => {
 
     const snapshot = scheduler.snapshot()
     expect(snapshot.likelyGatingTarget).toMatchObject({
-      service: 'deepinfra',
-      model: 'google/gemma-4-31B-it',
+      service: 'openai',
+      model: 'gpt-6-luna',
       status: 'failed',
       submittedPages: 228,
       completedPages: 227,
       failedPages: 1
     })
-    const deepinfraLane = snapshot.lanes.find((lane) => lane.service === 'deepinfra')
+    const openaiLane = snapshot.lanes.find((lane) => lane.service === 'openai')
     const mistralLane = snapshot.lanes.find((lane) => lane.service === 'mistral')
-    expect(deepinfraLane?.status).toBe('failed')
+    expect(openaiLane?.status).toBe('failed')
     expect(mistralLane?.status).toBe('succeeded')
-    expect(deepinfraLane?.targets[0]?.projectedObservedDurationMs ?? 0)
+    expect(openaiLane?.targets[0]?.projectedObservedDurationMs ?? 0)
       .toBeGreaterThan(mistralLane?.targets[0]?.projectedObservedDurationMs ?? 0)
   })
 
@@ -218,18 +218,18 @@ describe('hosted OCR fairness and partial gating contracts', () => {
     })
     const starts: string[] = []
 
-    scheduler.recordRetryPressure(admission('gemini', 'gemini-3.5-flash'), {
+    scheduler.recordRetryPressure(admission('gemini', 'gemini-3.8-flash'), {
       reason: 'retry-after',
       status: 429,
       retryAfterMs: 100
     })
     await clock.advance(25)
-    scheduler.recordRetryPressure(admission('gemini', 'gemini-3.5-flash'), {
+    scheduler.recordRetryPressure(admission('gemini', 'gemini-3.8-flash'), {
       reason: 'retry-after-extension',
       status: 429,
       retryAfterMs: 100
     })
-    const geminiRun = scheduler.run(admission('gemini', 'gemini-3.5-flash'), async () => {
+    const geminiRun = scheduler.run(admission('gemini', 'gemini-3.8-flash'), async () => {
       starts.push('gemini')
       return 'gemini'
     })
@@ -264,12 +264,12 @@ describe('hosted OCR fairness and partial gating contracts', () => {
     const followGate = defer()
     const starts: string[] = []
     const runs = [
-      scheduler.run(admission('gemini', 'gemini-3.5-flash', 'a'), async () => {
+      scheduler.run(admission('gemini', 'gemini-3.8-flash', 'a'), async () => {
         starts.push('a1')
         await initialGate.promise
         return 'a1'
       }),
-      scheduler.run(admission('gemini', 'gemini-3.5-flash-lite', 'b'), async () => {
+      scheduler.run(admission('gemini', 'gemini-fixture-lite', 'b'), async () => {
         starts.push('b1')
         await initialGate.promise
         return 'b1'
@@ -279,12 +279,12 @@ describe('hosted OCR fairness and partial gating contracts', () => {
     try {
       await waitFor(() => starts.length === 2)
       runs.push(
-        scheduler.run(admission('gemini', 'gemini-3.5-flash', 'a'), async () => {
+        scheduler.run(admission('gemini', 'gemini-3.8-flash', 'a'), async () => {
           starts.push('a2')
           await followGate.promise
           return 'a2'
         }),
-        scheduler.run(admission('gemini', 'gemini-3.5-flash-lite', 'b'), async () => {
+        scheduler.run(admission('gemini', 'gemini-fixture-lite', 'b'), async () => {
           starts.push('b2')
           await followGate.promise
           return 'b2'
@@ -318,8 +318,8 @@ describe('hosted OCR fairness and partial gating contracts', () => {
           admission(
             'gemini',
             target === 'a'
-              ? 'gemini-3.5-flash'
-              : 'gemini-3.5-flash-lite',
+              ? 'gemini-3.8-flash'
+              : 'gemini-fixture-lite',
             target
           ),
           async () => {
@@ -360,7 +360,7 @@ describe('hosted OCR lane telemetry contracts', () => {
       setTimer: clock.setTimer
     })
     await scheduler.run(
-      admission('gemini', 'gemini-3.5-flash', 'flash', 2),
+      admission('gemini', 'gemini-3.8-flash', 'flash', 2),
       async () => {
         await clock.advance(100)
         return 'ok'
@@ -402,7 +402,7 @@ describe('hosted OCR lane telemetry contracts', () => {
         targets: [{
           targetKey: 'flash',
           service: 'gemini',
-          model: 'gemini-3.5-flash',
+          model: 'gemini-3.8-flash',
           status: 'succeeded',
           submittedPages: 2,
           completedPages: 2,
@@ -417,7 +417,7 @@ describe('hosted OCR lane telemetry contracts', () => {
         laneKey: 'gemini:env-api-key',
         targetKey: 'flash',
         service: 'gemini',
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
         status: 'succeeded',
         submittedPages: 2,
         completedPages: 2,

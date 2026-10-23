@@ -37,8 +37,8 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 | Flag                                | Description                                                                                                                                       | Default                                                     |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `--provider <provider[=model]>`     | Use exactly one supported image model (see [Supported Models](./00-comic-overview.md#supported-models))                                           | `gpt-image-2`                                               |
-| `--size <size>`                     | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for `gpt-image-2` or GPT Image 2.5 (Flare/Sunburst)    | `1024x1536` for `--character`; `1536x1024` for `--location` |
+| `--provider <provider[=model]>`     | Use exactly one supported image model (see [Supported Models](./00-comic-overview.md#supported-models))                                           | `gpt-image-2.5-flare`                                       |
+| `--size <size>`                     | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for GPT Image 2.5 (Flare/Sunburst)                     | `1024x1536` for `--character`; `1536x1024` for `--location` |
 | `--quality <quality>`               | `low`, `medium`, `high`, or `auto`; Image 2.5 also supports `xhigh` and `max`. Only OpenAI applies it, and other providers use their own defaults | `medium` for `--character`; `high` for `--location`         |
 | `--llm-provider <provider[=model]>` | Text model that writes the location specification when the key is absent from the catalog                                                         | `gpt-6.1-sol`                                               |
 | `--qa-provider <provider[=model]>`  | QA model for location views; QA requires an OpenAI or Gemini vision-capable LLM                                                                   | `gpt-6.1-sol`                                               |
@@ -61,16 +61,16 @@ CONFIG="$ROOT/empty-config.json"
 Generate Papa Bear's optional turnaround, quote Mira's equivalent, or deliberately revise the generated Papa Bear sheet. The revision example requires the first generation to have completed and been inspected; it is not a required second purchase.
 
 ```bash
-bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic reference-sketch --character mira --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2 --revise --notes "Keep the original adult human face, gray beard, and rust-orange coat consistent across all three views" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2.5-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --character mira --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2.5-flare --revise --notes "Keep the original adult human face, gray beard, and rust-orange coat consistent across all three views" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 The original establishing view is already registered, so a plain establishing request would reuse it for $0. To price a deliberate hosted replacement, use `--revise`; a reverse view can use the original establishing reference directly. A reverse generated from `existing-canonical-art` has mixed lineage, which is retained in metadata. Neither command proves a new camera view exists until actual generation, validation and registration succeed.
 
 ```bash
-bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --provider openai=gpt-image-2 --revise --notes "Preserve the fixed fire ring, bench, north path, and two pine trees; keep the campsite empty" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --view reverse --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --provider openai=gpt-image-2.5-flare --revise --notes "Preserve the fixed fire ring, bench, north path, and two pine trees; keep the campsite empty" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --view reverse --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 After accepting any replacement, inspect it and rebuild scene reference snapshots/panel prompts in that variant workspace. Return all five variables to the main setup before continuing the main walkthrough.

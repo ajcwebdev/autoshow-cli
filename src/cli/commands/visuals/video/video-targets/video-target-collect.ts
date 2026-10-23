@@ -15,17 +15,8 @@ export const collectVideoTargets = (options: VideoGenOptions): VideoTarget[] => 
     'video'
   )
   for (const target of targets) {
-    const nativeAudioControl = target.service === 'fal' && target.model.startsWith('bytedance/seedance-2.5/')
-    if (options.videoGenerateAudio !== undefined && !nativeAudioControl) {
-      throw UsageError(`--generate-audio is not configurable for ${target.service}/${target.model}; omit the flag to use its fixed provider audio behavior.`)
-    }
     if (target.service === 'grok') {
-      const unsupportedReferences = [
-        [(options.videoReferenceVideos?.length ?? 0) > 0, '--reference-video'],
-        [(options.videoReferenceAudios?.length ?? 0) > 0, '--reference-audio']
-      ] as const
-      const references = unsupportedReferences.filter(([present]) => present).map(([, flag]) => flag)
-      if (references.length > 0) throw UsageError(`${references.join(', ')} ${references.length === 1 ? 'is' : 'are'} not supported by grok/${target.model}.`)
+      if ((options.videoReferenceVideos?.length ?? 0) > 0) throw UsageError(`--reference-video is not supported by grok/${target.model}.`)
     }
   }
   return targets

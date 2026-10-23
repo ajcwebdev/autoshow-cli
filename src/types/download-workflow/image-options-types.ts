@@ -3,7 +3,6 @@ export type ImageRuntimeOptions = {
   geminiImageModels: string[] | undefined
   openaiImageModels: string[] | undefined
   grokImageModels: string[] | undefined
-  falImageModels: string[] | undefined
   imageAspectRatio: string | undefined
   imageSize: string | undefined
   imageQuality: string | undefined

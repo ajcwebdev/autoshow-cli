@@ -36,7 +36,7 @@ describe('P1 text routing, artifact integrity and saved identity', () => {
         await writeSingleManifestFixture(dir, 'write', {
           title: 'Bicycle workshop',
           source: { kind: 'text-input', inputPath: 'source.txt', slug: 'bicycles', snapshot: { path: 'source.txt', sha256: new Bun.CryptoHasher('sha256').update(source).digest('hex') } },
-          step3: { llmService: 'openai', llmModel: 'gpt-5.6-sol', processingTime: 1, inputTokenCount: 10, outputTokenCount: 2, outputFileName: 'historical.json', outputFormat: 'json', structuredMode: 'native', structuredPresetNames: ['shortSummary'] } satisfies Step3Metadata
+          step3: { llmService: 'gemini', llmModel: 'gemini-3.8-flash', processingTime: 1, inputTokenCount: 10, outputTokenCount: 2, outputFileName: 'historical.json', outputFormat: 'json', structuredMode: 'native', structuredPresetNames: ['shortSummary'] } satisfies Step3Metadata
         })
         await Bun.write(join(dir, 'source.txt'), source)
         await Bun.write(join(dir, 'prompt.md'), 'Summarize the bicycle workshop.')
@@ -53,7 +53,7 @@ describe('P1 text routing, artifact integrity and saved identity', () => {
         const entries = (Array.isArray(raw) ? raw : [raw]) as Step3Metadata[]
         const current = entries.find(entry => entry.llmService === provider && entry.llmModel === model)
         expect(current).toMatchObject({ validationFailed: false, inputTokenCount: 40, outputTokenCount: 12 })
-        expect(entries.some(entry => entry.llmModel === 'gpt-5.6-sol')).toBe(true)
+        expect(entries.some(entry => entry.llmModel === 'gemini-3.8-flash')).toBe(true)
         expect(await Bun.file(join(dir, current!.outputFileName)).json()).toMatchObject({ episodeDescription: 'A workshop repairs bicycles.' })
         expect(await Bun.file(join(dir, 'historical.json')).text()).toBe(historical)
         await expect(handler.resume(target, opts, normalized.explicitFlags)).resolves.toEqual({ full: 1, incomplete: 0, failed: 0 })

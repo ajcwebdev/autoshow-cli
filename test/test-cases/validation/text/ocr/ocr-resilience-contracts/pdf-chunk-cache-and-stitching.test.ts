@@ -47,7 +47,7 @@ const malformedPageRun: NonNullable<RunHostedOcrPdfChunkFallbackOptions['buildMa
 }], { totalPages: 1 })
 
 describe('PDF chunk cache and stitching contracts', () => {
-  for (const provider of ['DeepInfra', 'Grok']) {
+  for (const provider of ['OpenAI', 'Grok']) {
     test(`${provider} token-truncated artifacts remain failures and never become cached page text`, async () => {
       await withLocalTestDir('ocr-page-token-limit', async (dir) => {
         const attemptedPages: number[] = []
@@ -123,7 +123,7 @@ describe('PDF chunk cache and stitching contracts', () => {
         runChunk: async (_chunkPath, _chunkMetadata, range) => {
           attemptedPages.push(range.startPage)
           if (range.startPage === 1) {
-            throw new OcrStructuredResponseError('DeepInfra OCR returned no text output.', '')
+            throw new OcrStructuredResponseError('Gemini OCR returned no text output.', '')
           }
           return hostedRun(pagesForRange(range.startPage, range.endPage), { totalPages: 1 })
         },

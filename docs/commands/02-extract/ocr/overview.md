@@ -18,7 +18,6 @@ Documents and images route through hosted OCR or native text extraction dependin
   - [Grok OCR](#grok-ocr)
   - [Anthropic OCR](#anthropic-ocr)
   - [Gemini OCR](#gemini-ocr)
-  - [DeepInfra OCR](#deepinfra-ocr)
 - [OCR Notes](#ocr-notes)
 - [Incomplete Runs and Blocked Providers](#incomplete-runs-and-blocked-providers)
 - [Provider Capabilities](#provider-capabilities)
@@ -62,7 +61,6 @@ Calibre `ebook-convert` converts those formats to EPUB before extraction.
 | Grok      | `XAI_API_KEY`       |
 | Anthropic | `ANTHROPIC_API_KEY` |
 | Gemini    | `GEMINI_API_KEY`    |
-| DeepInfra | `DEEPINFRA_API_KEY` |
 
 ## OCR Routing
 
@@ -121,8 +119,8 @@ OCR estimates can use bundled, reasoning-specific token profiles for single-page
 
 ```bash
 bun autoshow extract input/examples/document/harborlight-field-notes.pdf \
-  --provider grok=grok-4.5 \
-  --provider mistral=mistral-ocr-4-0 \
+  --provider grok=grok-4.7 \
+  --provider mistral=mistral-ocr-4-1 \
   --ocr-provider-mode pool \
   --step-concurrency ocr-page=10
 ```
@@ -157,15 +155,15 @@ Local detection uses PDF bookmarks, TOC pages, and headings. Automatic detection
 
 ### Mistral OCR
 
-| Option   | Value                                |
-| -------- | ------------------------------------ |
-| Selector | `--provider mistral[=<model>]`       |
-| Models   | `mistral-ocr-4-0`, `mistral-ocr-4-1` |
+| Option   | Value                          |
+| -------- | ------------------------------ |
+| Selector | `--provider mistral[=<model>]` |
+| Models   | `mistral-ocr-4-1`              |
 
 ```bash
-bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider mistral=mistral-ocr-4-0
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider mistral=mistral-ocr-4-1
 ```
-Bare `--provider mistral` defaults to `mistral-ocr-4-0`.
+Bare `--provider mistral` defaults to `mistral-ocr-4-1`.
 
 ### OpenAI OCR
 
@@ -179,7 +177,7 @@ bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provi
 ```
 Bare `--provider openai` defaults to `gpt-6-luna`. GPT-6.1 Sol and GPT-6 Luna use Responses with native JSON pages, 1,050,000 context tokens and 128,000 maximum output tokens. PDFs are limited to 50 MB per file and per request; images use PNG/JPEG/WEBP/non-animated GIF. Both accept `low`, `medium`, `high`, `xhigh`, and `max`; omitted effort or `default` delegates to native `medium`. Sol requires reasoning; Luna also accepts `disabled`. Both reject `minimal`. [Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna).
 
-Their standard input/output rates are `$2 / $10` and `$0.10 / $0.50` per 1M tokens respectively. Above 272,000 input tokens the full request uses `$4 / $15` for Sol or `$0.20 / $0.75` for Luna. Retained `gpt-6-astra` requires reasoning and uses `$10 / $50`, rising to `$20 / $75` above the same boundary.
+Their standard input/output rates are `$2 / $10` and `$0.10 / $0.50` per 1M tokens respectively. Above 272,000 input tokens the full request uses `$4 / $15` for Sol or `$0.20 / $0.75` for Luna.
 
 ### Grok OCR
 
@@ -190,7 +188,7 @@ Their standard input/output rates are `$2 / $10` and `$0.10 / $0.50` per 1M toke
 ```bash
 bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider grok=grok-4.7 --reasoning-effort high
 ```
-Bare `--provider grok` defaults to retained `grok-4.5`. Grok 4.7 renders PDFs to PNG, accepts PNG/JPEG images up to 20 MiB, and uses a 500,000-token context. AutoShow caps visible OCR text at 4,096 tokens per page; this application cap is separate from reasoning and the provider's uncapped model text output. Its `low`, `medium`, `high`, and `xhigh` efforts default natively to `high` when omitted or reset to `default`; `disabled`, `minimal`, and `max` are rejected. Grok 4.5 rejects `xhigh`. [Model](https://docs.x.ai/developers/models/grok-4.7).
+Bare `--provider grok` defaults to `grok-4.7`. It renders PDFs to PNG, accepts PNG/JPEG images up to 20 MiB, and uses a 500,000-token context. AutoShow caps visible OCR text at 4,096 tokens per page; this application cap is separate from reasoning and the provider's uncapped model text output. Its `low`, `medium`, `high`, and `xhigh` efforts default natively to `high` when omitted or reset to `default`; `disabled`, `minimal`, and `max` are rejected. [Model](https://docs.x.ai/developers/models/grok-4.7).
 
 Grok 4.7 input/output costs are `$2 / $6` per 1M tokens below 200,000 input tokens, then `$4 / $12` for the entire request at 200,000 or more. Reasoning tokens are billable output. [Pricing](https://docs.x.ai/developers/pricing).
 
@@ -207,7 +205,7 @@ bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provi
 ```
 Bare `--provider anthropic` defaults to `claude-haiku-5-5`. The 5.5 tiers use native JSON pages, 1M context and 128K ordinary provider output; AutoShow OCR requests cap thinking plus text at 64,000 tokens. Images use PNG/JPEG/GIF/WEBP with a conservative 5 MiB raw-image cap; PDF Files uploads allow 500 MB, subject to context limits. Encrypted PDFs are rejected. Opus requires adaptive thinking. Sonnet's `between_tools` mode does not mean disabled and is not exposed here; both Opus and Sonnet reject `disabled`. Haiku accepts it. All three accept `low`, `medium`, `high`, `xhigh`, and `max`, reject `minimal`, and delegate omitted/reset effort to native defaults: Opus/Haiku `medium`, Sonnet `high`. [Opus](https://platform.claude.com/docs/en/models/opus-5-5/overview), [Sonnet](https://platform.claude.com/docs/en/models/sonnet-5-5/overview), [Haiku](https://platform.claude.com/docs/en/models/haiku-5-5/overview).
 
-Haiku uses `$0.10 / $0.50` per 1M input/output tokens through 100,000 prompt tokens; above that threshold the whole request, including output, costs `$0.50 / $2.50`. Opus uses `$4 / $20` and Sonnet `$2 / $10`. New page estimates are uncalibrated planning heuristics. Retained Fable 5 requires 30-day retention and is unavailable under ZDR; Fable 5.1 requires reasoning. [Pricing](https://platform.claude.com/docs/en/about-claude/pricing).
+Haiku uses `$0.10 / $0.50` per 1M input/output tokens through 100,000 prompt tokens; above that threshold the whole request, including output, costs `$0.50 / $2.50`. Opus uses `$4 / $20` and Sonnet `$2 / $10`. New page estimates are uncalibrated planning heuristics. Retained Fable 5 requires 30-day retention and is unavailable under ZDR. [Pricing](https://platform.claude.com/docs/en/about-claude/pricing).
 
 ### Gemini OCR
 
@@ -216,29 +214,9 @@ Haiku uses `$0.10 / $0.50` per 1M input/output tokens through 100,000 prompt tok
 | Selector | `--provider gemini[=<model>]` |
 
 ```bash
-bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider gemini=gemini-3.5-flash-lite
-bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider gemini=gemini-3.6-flash
-bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider gemini=gemini-4-argon --reasoning-effort medium
+bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider gemini=gemini-3.8-flash --reasoning-effort medium
 ```
-Bare `--provider gemini` defaults to `gemini-3.5-flash-lite`. PNG/JPEG/WEBP images are sent directly; GIF/BMP images are normalized to PNG. Flash caps include 50 MB inline PDFs, 2 GB uploads and 1,000 PDF pages. Flash 3.8 accepts `low`, `medium`, and `high`, rejecting `minimal` and `disabled`; its standard `$1.50 / $7.50` rates overstate the introductory `$0.75 / $3.75` prices through 2026-12-31. [Pricing](https://ai.google.dev/gemini-api/docs/pricing).
-
-Gemini 4 Argon uses synchronous GenerateContent and native JSON pages. PDFs are capped at 50 MiB and 1,000 pages, including uploads; the image transport permits 100 MiB inline or 2 GiB uploaded, subject to model context capacity. Input, thinking and output share 1,048,576 tokens. OCR requests budget at least 32,768 and at most 65,536 thinking/output tokens. `low`, `medium`, and `high` are accepted; omitted effort or `default` delegates to native `medium`. `minimal` and `disabled` are rejected. Long decode/background/continuation are outside this implementation. [Model](https://ai.google.dev/gemini-api/docs/models/gemini-4-argon), [PDF limits](https://ai.google.dev/gemini-api/docs/document-processing).
-
-Argon estimates conservatively use standard `$4 / $20` per 1M input/output tokens, overstating introductory `$2 / $10` pricing through 2026-11-30. Standard prices start 2026-12-01; explicit caching is unsupported. Output usage includes thought tokens once. [Pricing](https://ai.google.dev/gemini-api/docs/pricing).
-
-### DeepInfra OCR
-
-| Option   | Value                                                                          |
-| -------- | ------------------------------------------------------------------------------ |
-| Selector | `--provider deepinfra[=<model>]`                                               |
-| Models   | `google/gemma-4-31B-it`, `Qwen/Qwen3.8-27B`, `deepseek-ai/DeepSeek-V4.1-Flash` |
-
-```bash
-bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider deepinfra=google/gemma-4-31B-it
-bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider deepinfra=Qwen/Qwen3.8-27B
-bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider deepinfra=deepseek-ai/DeepSeek-V4.1-Flash
-```
-Bare `--provider deepinfra` defaults to `google/gemma-4-31B-it`. All three models accept one image per request, at most 20 MB. Reasoning defaults to disabled; optional `low|medium|high` effort is supported on each.
+Bare `--provider gemini` defaults to `gemini-3.8-flash`, the only Gemini OCR model. PNG/JPEG/WEBP images are sent directly; GIF/BMP images are normalized to PNG. Caps include 50 MB inline PDFs, 2 GB uploads and 1,000 PDF pages. It accepts `low`, `medium`, and `high`, rejecting `minimal` and `disabled`; its standard `$1.50 / $7.50` rates overstate the introductory `$0.75 / $3.75` prices through 2026-12-31. [Pricing](https://ai.google.dev/gemini-api/docs/pricing).
 
 ## OCR Notes
 
@@ -254,30 +232,18 @@ If at least one selected provider succeeds and another does not, the item stays 
 
 ## Provider Capabilities
 
-Marks: ✅ supported, ⚠️ partial or qualified, ❌ not supported. All 21 active hosted OCR models are listed; local Tesseract is documented above. Rows are newest first. Released dates are provider announcement or model-origin dates. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Token-priced models show input and output per 1M tokens plus an approximate cost per 1,000 pages. These page estimates use registry token heuristics and the lower prompt-price band, and are not provider page tariffs or measured model quality. Mistral bills per page; Inputs is `Included`. Input pricing: ✅ cheapest third of token-priced models, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first on the per-1k-page estimate (1 = cheapest); ties share a rank.
+Marks: ✅ supported, ⚠️ partial or qualified, ❌ not supported. All 9 active hosted OCR models are listed; local Tesseract is documented above. Rows are newest first. Released dates are provider announcement or model-origin dates. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Token-priced models show input and output per 1M tokens plus an approximate cost per 1,000 pages. These page estimates use registry token heuristics and the lower prompt-price band, and are not provider page tariffs or measured model quality. Mistral bills per page; Inputs is `Included`. Input pricing: ✅ cheapest third of token-priced models, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first on the per-1k-page estimate (1 = cheapest); ties share a rank.
 
 Tesseract and rendered-page providers apply `--password` locally. Anthropic rejects encrypted PDFs. Mistral, OpenAI, and Gemini upload the PDF as provided; if the upload falls back to per-page OCR, those pages are rendered locally with the password. Mistral returns per-page markdown and keeps layout in the markup.
 
-| Provider                                    | Released   | Native PDF                    | Images              | Image cap       | PDF cap          | Pages          | Structured pages  | Reasoning                 | Inputs           | Outputs                          | Cost rank |
-| ------------------------------------------- | ---------- | ----------------------------- | ------------------- | --------------- | ---------------- | -------------- | ----------------- | ------------------------- | ---------------- | -------------------------------- | --------- |
-| Gemini `gemini-4-argon`                     | ✅ 2026-10 | ✅ Native PDF                 | ✅ PNG JPG WEBP     | ✅ 2 GiB upload | ⚠️ 50 MiB        | ✅ 1000 pages  | ✅ JSON pages     | ✅ Required through high  | ❌ $4.00 per 1M  | $20.00 per 1M (≈$37.15/1k pages) | 17/21     |
-| Anthropic `claude-haiku-5-5`                | ✅ 2026-10 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MiB        | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages     | ✅ Optional through max   | ✅ $0.10 per 1M  | $0.50 per 1M (≈$1.10/1k pages)   | 4/21      |
-| OpenAI `gpt-6.1-sol`                        | ✅ 2026-09 | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages     | ✅ Required through max   | ⚠️ $2.00 per 1M  | $10.00 per 1M (≈$12.65/1k pages) | 11/21     |
-| Anthropic `claude-sonnet-5-5`               | ✅ 2026-09 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MiB        | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages     | ✅ Optional through max   | ⚠️ $2.00 per 1M  | $10.00 per 1M (≈$22.00/1k pages) | 16/21     |
-| OpenAI `gpt-6-luna`                         | ✅ 2026-09 | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages     | ✅ Optional through max   | ✅ $0.10 per 1M  | $0.50 per 1M (≈$0.59/1k pages)   | 2/21      |
-| Anthropic `claude-opus-5-5`                 | ✅ 2026-09 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MiB        | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages     | ✅ Required through max   | ❌ $4.00 per 1M  | $20.00 per 1M (≈$44.00/1k pages) | 18/21     |
-| Grok `grok-4.7`                             | ✅ 2026-09 | ⚠️ Rendered PNG pages         | ✅ PNG JPG          | ❌ 20 MiB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text     | ✅ Required through xhigh | ⚠️ $2.00 per 1M  | $6.00 per 1M (≈$14.00/1k pages)  | 14/21     |
-| Mistral `mistral-ocr-4-1`                   | ✅ 2026-09 | ✅ Native PDF upload          | ✅ PNG JPG TIF      | ⚠️ Unpublished  | ⚠️ Unpublished   | ⚠️ Unpublished | ⚠️ Markdown pages | ❌ No                     | Included         | ✅ $4.00/1k pages                | 6/21      |
-| Gemini `gemini-3.8-flash`                   | ✅ 2026-09 | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP     | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages     | ✅ Optional               | ⚠️ $1.50 per 1M  | $7.50 per 1M (≈$13.93/1k pages)  | 12/21     |
-| OpenAI `gpt-6-astra`                        | ✅ 2026-09 | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages     | ✅ Required               | ❌ $10.00 per 1M | $50.00 per 1M (≈$63.25/1k pages) | 19/21     |
-| Anthropic `claude-fable-5-1`                | ✅ 2026-09 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages     | ✅ Required               | ❌ $10.00 per 1M | $50.00 per 1M (≈$63.69/1k pages) | 20/21     |
-| DeepInfra `deepseek-ai/DeepSeek-V4.1-Flash` | ✅ 2026-09 | ⚠️ Rendered PNG pages         | ✅ PNG JPG WEBP     | ❌ 20 MB        | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text     | ⚠️ Optional               | ✅ $0.20 per 1M  | $0.60 per 1M (≈$0.54/1k pages)   | 1/21      |
-| OpenAI `gpt-5.6-terra`                      | ✅ 2026-08 | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages     | ✅ Optional               | ⚠️ $2.00 per 1M  | $12.00 per 1M (≈$12.17/1k pages) | 10/21     |
-| DeepInfra `Qwen/Qwen3.8-27B`                | ✅ 2026-08 | ⚠️ Rendered PNG pages         | ✅ PNG JPG WEBP     | ❌ 20 MB        | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text     | ⚠️ Optional               | ✅ $0.20 per 1M  | $2.50 per 1M (≈$2.94/1k pages)   | 5/21      |
-| Gemini `gemini-3.6-flash`                   | ✅ 2026-07 | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP     | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages     | ✅ Optional               | ⚠️ $1.50 per 1M  | $7.50 per 1M (≈$13.93/1k pages)  | 12/21     |
-| Grok `grok-4.5`                             | ✅ 2026-07 | ⚠️ Rendered PNG pages         | ✅ PNG JPG          | ❌ 20 MiB       | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text     | ✅ Required               | ⚠️ $2.00 per 1M  | $6.00 per 1M (≈$14.00/1k pages)  | 14/21     |
-| Anthropic `claude-fable-5`                  | ✅ 2026-07 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages     | ✅ Required               | ❌ $10.00 per 1M | $50.00 per 1M (≈$63.69/1k pages) | 20/21     |
-| Mistral `mistral-ocr-4-0`                   | ✅ 2026-06 | ✅ Native PDF upload          | ✅ PNG JPG TIF      | ⚠️ Unpublished  | ⚠️ Unpublished   | ⚠️ Unpublished | ⚠️ Markdown pages | ❌ No                     | Included         | ✅ $4.00/1k pages                | 6/21      |
-| Gemini `gemini-3.5-flash-lite`              | ✅ 2026-06 | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP     | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages     | ✅ Optional               | ✅ $0.30 per 1M  | $2.50 per 1M (≈$4.41/1k pages)   | 8/21      |
-| Gemini `gemini-3.5-flash`                   | ✅ 2026-06 | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP     | ✅ 2 GB         | ✅ 2 GB          | ✅ 1000 pages  | ✅ JSON pages     | ✅ Optional               | ⚠️ $1.50 per 1M  | $9.00 per 1M (≈$7.31/1k pages)   | 9/21      |
-| DeepInfra `google/gemma-4-31B-it`           | ✅ 2026-04 | ⚠️ Rendered PNG pages         | ✅ PNG JPG WEBP     | ❌ 20 MB        | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text     | ⚠️ Optional               | ✅ $0.13 per 1M  | $0.38 per 1M (≈$0.92/1k pages)   | 3/21      |
+| Provider                      | Released  | Native PDF                   | Images             | Image cap       | PDF cap          | Pages          | Structured pages  | Reasoning                | Inputs          | Outputs                          | Cost rank |
+| ----------------------------- | --------- | ---------------------------- | ------------------ | --------------- | ---------------- | -------------- | ----------------- | ------------------------ | --------------- | -------------------------------- | --------- |
+| Anthropic `claude-haiku-5-5`  | ✅ 2026-10 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MiB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages      | ✅ Optional through max   | ✅ $0.10 per 1M  | $0.50 per 1M (≈$1.10/1k pages)   | 2/9       |
+| OpenAI `gpt-6.1-sol`          | ✅ 2026-09 | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages      | ✅ Required through max   | ⚠️ $2.00 per 1M | $10.00 per 1M (≈$12.65/1k pages) | 4/9       |
+| Anthropic `claude-sonnet-5-5` | ✅ 2026-09 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MiB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages      | ✅ Optional through max   | ⚠️ $2.00 per 1M | $10.00 per 1M (≈$22.00/1k pages) | 7/9       |
+| OpenAI `gpt-6-luna`           | ✅ 2026-09 | ✅ Native PDF                 | ✅ PNG JPG WEBP GIF | ⚠️ Request size | ⚠️ 50 MB         | ⚠️ Unpublished | ✅ JSON pages      | ✅ Optional through max   | ✅ $0.10 per 1M  | $0.50 per 1M (≈$0.59/1k pages)   | 1/9       |
+| Anthropic `claude-opus-5-5`   | ✅ 2026-09 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MiB         | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages      | ✅ Required through max   | ❌ $4.00 per 1M  | $20.00 per 1M (≈$44.00/1k pages) | 8/9       |
+| Grok `grok-4.7`               | ✅ 2026-09 | ⚠️ Rendered PNG pages        | ✅ PNG JPG          | ❌ 20 MiB        | ⚠️ N/A           | ⚠️ N/A         | ❌ Plain text      | ✅ Required through xhigh | ⚠️ $2.00 per 1M | $6.00 per 1M (≈$14.00/1k pages)  | 6/9       |
+| Mistral `mistral-ocr-4-1`     | ✅ 2026-09 | ✅ Native PDF upload          | ✅ PNG JPG TIF      | ⚠️ Unpublished  | ⚠️ Unpublished   | ⚠️ Unpublished | ⚠️ Markdown pages | ❌ No                     | Included        | ✅ $4.00/1k pages                 | 3/9       |
+| Gemini `gemini-3.8-flash`     | ✅ 2026-09 | ✅ 50 MB inline / 2 GB upload | ✅ PNG JPG WEBP     | ✅ 2 GB          | ✅ 2 GB           | ✅ 1000 pages   | ✅ JSON pages      | ✅ Optional               | ✅ $1.50 per 1M  | $7.50 per 1M (≈$13.93/1k pages)  | 5/9       |
+| Anthropic `claude-fable-5`    | ✅ 2026-07 | ✅ Unencrypted PDF upload     | ✅ PNG JPG WEBP GIF | ❌ 5 MB          | ⚠️ 500 MB upload | ⚠️ Unpublished | ✅ JSON pages      | ✅ Required               | ❌ $10.00 per 1M | $50.00 per 1M (≈$63.69/1k pages) | 9/9       |

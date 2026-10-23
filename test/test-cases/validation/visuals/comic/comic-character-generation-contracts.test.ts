@@ -31,7 +31,7 @@ describe('comic character handling flat-reference contracts', () => {
 
   test('reference-sketch character parsing rejects --image and enforces one model', () => {
     expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image', 'hero.webp'])).toThrow(/Unexpected flag: --image/)
-    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--provider', 'openai=gpt-image-2', '--provider', 'grok=grok-imagine-image-2.0'])).toThrow(/exactly one/)
+    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--provider', 'openai=gpt-image-2.5-flare', '--provider', 'grok=grok-imagine-image-2.0'])).toThrow(/exactly one/)
     expect(() => parseReferenceSketchArgs(['--character', 'hero', '--force'])).toThrow(/Unexpected flag: --force|Unknown argument/)
     expect(parseReferenceSketchArgs(['--character', 'hero', '--revise', '--notes', 'Fix eyes']).character).toBe('hero')
   })
@@ -45,7 +45,7 @@ describe('comic character handling flat-reference contracts', () => {
       await writeFile(selection.outputPath, 'composed-sheet')
       return { width: 3, height: 1 }
     }
-    await characterSketchCommand({ character: 'hero', imageModels: ['gpt-image-2'], concurrency: 1 }, {
+    await characterSketchCommand({ character: 'hero', imageModels: ['gpt-image-2.5-flare'], concurrency: 1 }, {
       createGenerationId: () => 'successful-generation',
       requestImage: async (_prompt, references) => { requestedReferences.push(references); return { mode: 'edit', result: { imageBase64: 'ignored' } } },
       writeImage,
@@ -58,7 +58,7 @@ describe('comic character handling flat-reference contracts', () => {
     expect((await Array.fromAsync(new Bun.Glob('front.png').scan({ cwd: charactersRoot })))).toEqual([])
 
     let calls = 0
-    await expect(characterSketchCommand({ character: 'hero', imageModels: ['gpt-image-2'], concurrency: 1 }, {
+    await expect(characterSketchCommand({ character: 'hero', imageModels: ['gpt-image-2.5-flare'], concurrency: 1 }, {
       createGenerationId: () => 'failed-generation',
       requestImage: async () => {
         calls++
@@ -81,7 +81,7 @@ describe('comic character handling flat-reference contracts', () => {
     })
     configureCharactersRoot(charactersRoot)
     const referenceCalls: string[][] = []
-    await characterSketchCommand({ character: 'hero', imageModels: ['gpt-image-2'], concurrency: 1 }, {
+    await characterSketchCommand({ character: 'hero', imageModels: ['gpt-image-2.5-flare'], concurrency: 1 }, {
       createGenerationId: () => 'single-image-generation',
       requestImage: async (_prompt, references) => {
         referenceCalls.push(references)
@@ -119,7 +119,7 @@ describe('comic character handling flat-reference contracts', () => {
     configureCharactersRoot(charactersRoot)
     const prompts: string[] = []
     const references: string[][] = []
-    await characterSketchCommand({ character: 'new-alien', imageModels: ['gpt-image-2'], concurrency: 1 }, {
+    await characterSketchCommand({ character: 'new-alien', imageModels: ['gpt-image-2.5-flare'], concurrency: 1 }, {
       createGenerationId: () => 'bootstrap-generation',
       requestImage: async (prompt, refs) => {
         prompts.push(prompt)

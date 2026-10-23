@@ -47,20 +47,8 @@
       "model": "gpt-6-luna"
     },
     {
-      "provider": "openai",
-      "model": "gpt-6-astra"
-    },
-    {
-      "provider": "openai",
-      "model": "gpt-5.6-terra"
-    },
-    {
       "provider": "grok",
       "model": "grok-4.7"
-    },
-    {
-      "provider": "grok",
-      "model": "grok-4.5"
     },
     {
       "provider": "anthropic",
@@ -76,50 +64,13 @@
     },
     {
       "provider": "anthropic",
-      "model": "claude-fable-5-1"
-    },
-    {
-      "provider": "anthropic",
       "model": "claude-fable-5"
     },
     {
       "provider": "gemini",
-      "model": "gemini-4-argon"
-    },
-    {
-      "provider": "gemini",
       "model": "gemini-3.8-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.5-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.6-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.5-flash-lite"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "google/gemma-4-31B-it"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "Qwen/Qwen3.8-27B"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "deepseek-ai/DeepSeek-V4.1-Flash"
     }
   ],
-  "excludedTarget": {
-    "provider": "mistral",
-    "model": "mistral-ocr-4-0",
-    "reason": "Unavailable: invalid-model responses and absent from provider model catalog during categories1–3; no D request dispatched."
-  },
   "evaluation": {
     "fiveNewFiles": "Full original images, independently annotated word targets, text-only native OCR; annotated-target token coverage is a diagnostic. Region localization and exhaustive full-page accuracy unavailable. Flat WER/CER only secondary, excluded from primary rankings.",
     "baseline": "Fresh original-JPEG rerun evaluated against archived multi-provider consensus; original run preserved."

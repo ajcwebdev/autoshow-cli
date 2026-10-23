@@ -86,16 +86,8 @@ export const pickProviderTargets = <T extends Readonly<Record<string, string>>, 
   keys: readonly K[]
 ): Pick<T, K> => Object.fromEntries(keys.map((key) => [key, targets[key]])) as Pick<T, K>
 
-export const omitProviderTargets = <T extends Readonly<Record<string, string>>, K extends keyof T & string>(
-  targets: T,
-  keys: readonly K[]
-): Omit<T, K> => Object.fromEntries(
-  Object.entries(targets).filter(([key]) => !(keys as readonly string[]).includes(key))
-) as Omit<T, K>
-
-// Comic selects one image target per run and has no fal.ai path, so its image provider list is the
-// standalone list minus fal rather than a hand-written copy.
-export const COMIC_IMAGE_PROVIDER_TARGETS = omitProviderTargets(STANDALONE_IMAGE_PROVIDER_TARGETS, ['fal'])
+// Comic selects one image target per run from the standalone image providers.
+export const COMIC_IMAGE_PROVIDER_TARGETS = STANDALONE_IMAGE_PROVIDER_TARGETS
 
 export const WRITE_STT_PROVIDER_TARGETS = {
   deepinfra: 'deepinfra-stt',
@@ -120,8 +112,7 @@ export const WRITE_OCR_PROVIDER_TARGETS = {
   openai: 'openai-ocr',
   grok: 'grok-ocr',
   anthropic: 'anthropic-ocr',
-  gemini: 'gemini-ocr',
-  deepinfra: 'deepinfra-ocr'
+  gemini: 'gemini-ocr'
 } as const satisfies Record<string, string>
 
 export const WRITE_LLM_PROVIDER_TARGETS = {

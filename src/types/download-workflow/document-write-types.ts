@@ -15,7 +15,6 @@ export type WriteDocumentOutputMetadataOptions = {
   grokOcrModel: string | undefined
   anthropicOcrModel: string | undefined
   geminiOcrModel: string | undefined
-  deepinfraOcrModel: string | undefined
   llmService: string
   llmModel: string
   llmInputTokenCount: number

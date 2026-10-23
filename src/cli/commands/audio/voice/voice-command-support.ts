@@ -120,7 +120,7 @@ export const parameter = (ctx: CliCommandContext, name: string): string => {
 
 export const providerFlag = (ctx: CliCommandContext): VoiceProviderName => {
   const provider = requiredFlag(ctx, 'provider')
-  if (['minimax', 'deepgram', 'fal', 'fish', 'deepinfra', 'mistral'].includes(provider)) throw UsageError(`${provider} is no longer supported for TTS or voice management. Select one of: ${VOICE_PROVIDERS.join(', ')}.`)
+  if (['minimax', 'deepgram', 'fish', 'deepinfra', 'mistral'].includes(provider)) throw UsageError(`${provider} is no longer supported for TTS or voice management. Select one of: ${VOICE_PROVIDERS.join(', ')}.`)
   if (!isVoiceProvider(provider as TtsProvider)) throw UsageError(`Unknown voice provider ${provider}. Expected: ${VOICE_PROVIDERS.join(', ')}.`)
   return provider as VoiceProviderName
 }

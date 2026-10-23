@@ -112,18 +112,6 @@
       {
         "step": "extract",
         "provider": "mistral",
-        "model": "mistral-ocr-4-0",
-        "costPer1kPagesCents": 400,
-        "pages": 1,
-        "effectiveReasoningEffort": "default",
-        "estimateType": "exact",
-        "totalCostCents": 0.4,
-        "caseCount": 5,
-        "totalForAllCasesCents": 2
-      },
-      {
-        "step": "extract",
-        "provider": "mistral",
         "model": "mistral-ocr-4-1",
         "costPer1kPagesCents": 400,
         "pages": 1,
@@ -171,42 +159,6 @@
       },
       {
         "step": "extract",
-        "provider": "openai",
-        "model": "gpt-6-astra",
-        "inputCostPer1MCents": 1000,
-        "outputCostPer1MCents": 5000,
-        "pages": 1,
-        "promptTokens": 1286,
-        "completionTokens": 655,
-        "effectiveReasoningEffort": "default",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "pricingBand": "standard-short-context",
-        "estimateType": "heuristic",
-        "totalCostCents": 4.561,
-        "caseCount": 5,
-        "totalForAllCasesCents": 22.805
-      },
-      {
-        "step": "extract",
-        "provider": "openai",
-        "model": "gpt-5.6-terra",
-        "inputCostPer1MCents": 200,
-        "outputCostPer1MCents": 1200,
-        "pages": 1,
-        "promptTokens": 1458,
-        "completionTokens": 1133,
-        "effectiveReasoningEffort": "default",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "pricingBand": "standard-short-context",
-        "estimateType": "heuristic",
-        "totalCostCents": 1.6512,
-        "caseCount": 5,
-        "totalForAllCasesCents": 8.256
-      },
-      {
-        "step": "extract",
         "provider": "grok",
         "model": "grok-4.7",
         "inputCostPer1MCents": 200,
@@ -222,24 +174,6 @@
         "totalCostCents": 0.9307999999999998,
         "caseCount": 5,
         "totalForAllCasesCents": 4.653999999999999
-      },
-      {
-        "step": "extract",
-        "provider": "grok",
-        "model": "grok-4.5",
-        "inputCostPer1MCents": 200,
-        "outputCostPer1MCents": 600,
-        "pages": 1,
-        "promptTokens": 1710,
-        "completionTokens": 494,
-        "effectiveReasoningEffort": "default",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "pricingBand": "standard-up-to-200k",
-        "estimateType": "heuristic",
-        "totalCostCents": 0.6384,
-        "caseCount": 5,
-        "totalForAllCasesCents": 3.1919999999999997
       },
       {
         "step": "extract",
@@ -296,23 +230,6 @@
       {
         "step": "extract",
         "provider": "anthropic",
-        "model": "claude-fable-5-1",
-        "inputCostPer1MCents": 1000,
-        "outputCostPer1MCents": 5000,
-        "pages": 1,
-        "promptTokens": 1838,
-        "completionTokens": 854,
-        "effectiveReasoningEffort": "default",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "estimateType": "heuristic",
-        "totalCostCents": 6.1080000000000005,
-        "caseCount": 5,
-        "totalForAllCasesCents": 30.540000000000003
-      },
-      {
-        "step": "extract",
-        "provider": "anthropic",
         "model": "claude-fable-5",
         "inputCostPer1MCents": 1000,
         "outputCostPer1MCents": 5000,
@@ -330,23 +247,6 @@
       {
         "step": "extract",
         "provider": "gemini",
-        "model": "gemini-4-argon",
-        "inputCostPer1MCents": 400,
-        "outputCostPer1MCents": 2000,
-        "pages": 1,
-        "promptTokens": 1424,
-        "completionTokens": 613,
-        "effectiveReasoningEffort": "default",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "estimateType": "heuristic",
-        "totalCostCents": 1.7956000000000003,
-        "caseCount": 5,
-        "totalForAllCasesCents": 8.978000000000002
-      },
-      {
-        "step": "extract",
-        "provider": "gemini",
         "model": "gemini-3.8-flash",
         "inputCostPer1MCents": 150,
         "outputCostPer1MCents": 750,
@@ -360,108 +260,6 @@
         "totalCostCents": 0.5847,
         "caseCount": 5,
         "totalForAllCasesCents": 2.9234999999999998
-      },
-      {
-        "step": "extract",
-        "provider": "gemini",
-        "model": "gemini-3.5-flash",
-        "inputCostPer1MCents": 150,
-        "outputCostPer1MCents": 900,
-        "pages": 1,
-        "promptTokens": 1164,
-        "completionTokens": 603,
-        "effectiveReasoningEffort": "low",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "estimateType": "heuristic",
-        "totalCostCents": 0.7173,
-        "caseCount": 5,
-        "totalForAllCasesCents": 3.5865
-      },
-      {
-        "step": "extract",
-        "provider": "gemini",
-        "model": "gemini-3.6-flash",
-        "inputCostPer1MCents": 150,
-        "outputCostPer1MCents": 750,
-        "pages": 1,
-        "promptTokens": 1164,
-        "completionTokens": 585,
-        "effectiveReasoningEffort": "low",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "estimateType": "heuristic",
-        "totalCostCents": 0.6133500000000001,
-        "caseCount": 5,
-        "totalForAllCasesCents": 3.0667500000000003
-      },
-      {
-        "step": "extract",
-        "provider": "gemini",
-        "model": "gemini-3.5-flash-lite",
-        "inputCostPer1MCents": 30,
-        "outputCostPer1MCents": 250,
-        "pages": 1,
-        "promptTokens": 1149,
-        "completionTokens": 601,
-        "effectiveReasoningEffort": "low",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "estimateType": "heuristic",
-        "totalCostCents": 0.18472,
-        "caseCount": 5,
-        "totalForAllCasesCents": 0.9236
-      },
-      {
-        "step": "extract",
-        "provider": "deepinfra",
-        "model": "google/gemma-4-31B-it",
-        "inputCostPer1MCents": 13,
-        "outputCostPer1MCents": 38,
-        "pages": 1,
-        "promptTokens": 338,
-        "completionTokens": 430,
-        "effectiveReasoningEffort": "disabled",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "estimateType": "heuristic",
-        "totalCostCents": 0.020734,
-        "caseCount": 5,
-        "totalForAllCasesCents": 0.10367
-      },
-      {
-        "step": "extract",
-        "provider": "deepinfra",
-        "model": "Qwen/Qwen3.8-27B",
-        "inputCostPer1MCents": 20,
-        "outputCostPer1MCents": 250,
-        "pages": 1,
-        "promptTokens": 2083,
-        "completionTokens": 479,
-        "effectiveReasoningEffort": "default",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "estimateType": "heuristic",
-        "totalCostCents": 0.16141,
-        "caseCount": 5,
-        "totalForAllCasesCents": 0.80705
-      },
-      {
-        "step": "extract",
-        "provider": "deepinfra",
-        "model": "deepseek-ai/DeepSeek-V4.1-Flash",
-        "inputCostPer1MCents": 20,
-        "outputCostPer1MCents": 60,
-        "pages": 1,
-        "promptTokens": 622,
-        "completionTokens": 432,
-        "effectiveReasoningEffort": "default",
-        "tokenEstimateSource": "profile",
-        "tokenEstimateConfidence": "healthy",
-        "estimateType": "heuristic",
-        "totalCostCents": 0.03836,
-        "caseCount": 5,
-        "totalForAllCasesCents": 0.1918
       }
     ]
   },
@@ -553,9 +351,7 @@
         "hostedSucceeded": 20,
         "hostedFailed": 1,
         "pending": 0,
-        "failedTargets": [
-          "mistral/mistral-ocr-4-0"
-        ]
+        "failedTargets": []
       },
       "spending": {
         "requestCount": 43,
@@ -644,9 +440,7 @@
         "hostedSucceeded": 20,
         "hostedFailed": 1,
         "pending": 0,
-        "failedTargets": [
-          "mistral/mistral-ocr-4-0"
-        ]
+        "failedTargets": []
       },
       "spending": {
         "requestCount": 44,
@@ -736,9 +530,7 @@
         "hostedSucceeded": 20,
         "hostedFailed": 1,
         "pending": 0,
-        "failedTargets": [
-          "mistral/mistral-ocr-4-0"
-        ]
+        "failedTargets": []
       },
       "spending": {
         "requestCount": 43,
@@ -827,9 +619,7 @@
         "hostedSucceeded": 20,
         "hostedFailed": 1,
         "pending": 0,
-        "failedTargets": [
-          "mistral/mistral-ocr-4-0"
-        ]
+        "failedTargets": []
       },
       "spending": {
         "requestCount": 44,
@@ -918,9 +708,7 @@
         "hostedSucceeded": 20,
         "hostedFailed": 1,
         "pending": 0,
-        "failedTargets": [
-          "mistral/mistral-ocr-4-0"
-        ]
+        "failedTargets": []
       },
       "spending": {
         "requestCount": 44,
@@ -1081,15 +869,7 @@
     "hostedSlotsAttempted": 105,
     "hostedSucceeded": 100,
     "hostedFailed": 5,
-    "failedTargets": [
-      {
-        "provider": "mistral",
-        "model": "mistral-ocr-4-0",
-        "cases": 5,
-        "httpStatus": 400,
-        "reason": "Model unavailable in the current API catalog; no invented OCR output."
-      }
-    ],
+    "failedTargets": [],
     "localSucceeded": 5,
     "localResultsReused": 5,
     "hostedRequestsThisExecution": 5,
@@ -1197,22 +977,7 @@
       "hostedSlotsAttempted": 105,
       "hostedSucceeded": 95,
       "hostedFailed": 10,
-      "failedTargets": [
-        {
-          "provider": "gemini",
-          "model": "gemini-4-argon",
-          "cases": 5,
-          "httpStatus": 429,
-          "reason": "Account returned a zero free-tier quota; no OCR output or quality score."
-        },
-        {
-          "provider": "mistral",
-          "model": "mistral-ocr-4-0",
-          "cases": 5,
-          "httpStatus": 400,
-          "reason": "Provider returned Invalid model: mistral-ocr-4-0; no OCR output or quality score."
-        }
-      ],
+      "failedTargets": [],
       "localSucceeded": 5,
       "localResultsReused": 5,
       "hostedRequestsThisExecution": 108,

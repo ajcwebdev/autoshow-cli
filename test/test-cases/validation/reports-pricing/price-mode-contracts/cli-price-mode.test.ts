@@ -29,7 +29,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'image',
-    args: ['image', 'a sunset over a lake', '--provider', 'openai=gpt-image-2', '--price', '--json'],
+    args: ['image', 'a sunset over a lake', '--provider', 'openai=gpt-image-2.5-flare', '--price', '--json'],
     expected: 'generated-image'
   },
   {
@@ -84,7 +84,7 @@ describe('price mode contracts', () => {
         'extract',
         'input/examples/document/3-document.pdf',
         '--provider',
-        'deepinfra=google/gemma-4-31B-it',
+        'openai=gpt-6-luna',
         '--price', '--json'
       ])
 

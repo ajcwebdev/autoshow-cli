@@ -105,7 +105,6 @@ const ImageDefaultsSchema = v.strictObject({
   geminiImage: ModelArraySchema,
   openaiImage: ModelArraySchema,
   grokImage: ModelArraySchema,
-  falImage: ModelArraySchema,
   aspectRatio: v.optional(v.string(), undefined),
   size: v.optional(v.string(), undefined),
   quality: v.optional(v.string(), undefined),
@@ -118,8 +117,7 @@ const ImageDefaultsSchema = v.strictObject({
 const VideoDefaultsSchema = v.strictObject({
   geminiVideo: ModelArraySchema,
   grokVideo: ModelArraySchema,
-  falVideo: v.optional(ModelArraySchema, undefined),
-  duration: v.optional(v.pipe(v.number(), v.integer(), v.minValue(-1)), undefined),
+  duration: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   aspectRatio: v.optional(v.string(), undefined),
   resolution: v.optional(v.string(), undefined),
   mode: v.optional(v.string(), undefined),
@@ -127,9 +125,7 @@ const VideoDefaultsSchema = v.strictObject({
   lastFrame: v.optional(v.string(), undefined),
   referenceImages: v.optional(v.array(v.string()), undefined),
   inputVideo: v.optional(v.string(), undefined),
-  generateAudio: v.optional(v.boolean(), undefined),
   referenceVideos: v.optional(v.array(v.string()), undefined),
-  referenceAudios: v.optional(v.array(v.string()), undefined),
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
 
@@ -155,7 +151,6 @@ const ExtractOcrDefaultsSchema = v.strictObject({
   grokOcr: ModelArraySchema,
   anthropicOcr: ModelArraySchema,
   geminiOcr: ModelArraySchema,
-  deepinfraOcr: ModelArraySchema,
   chapters: v.optional(v.boolean(), undefined),
   length: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   pdfChapterMode: v.optional(v.picklist(['local', 'auto', 'llm']), undefined),

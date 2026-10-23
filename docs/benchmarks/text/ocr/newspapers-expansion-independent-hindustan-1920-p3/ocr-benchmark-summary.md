@@ -5,7 +5,7 @@
 ## Summary
 
 - Run directory: `input/examples/document/ocr-newspaper-expansion/benchmark-runs/newspapers-expansion-independent-hindustan-1920-p3`
-- Providers with page result files: 21
+- Providers with page result files: 10
 - Pages: 1
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - The publisher canonical reference is immutable; provider agreement diagnostics guide output review only.
@@ -13,19 +13,19 @@
 ## Page-Level Hybrid Sources
 
 | Selected Provider | Pages |
-| --- | ---: |
-| `grok/grok-4.7` | 1 |
+| ----------------- | ----: |
+| `grok/grok-4.7`   | 1     |
 
 ## Outlier Signals
 
-| Signal | Page Count |
-| --- | ---: |
-| blankOutputPages | 0 |
-| repeatedTextPages | 0 |
-| majorLengthDriftPages | 0 |
-| highDisagreementPages | 0 |
-| werCerDivergencePages | 0 |
-| lowConfidencePages | 0 |
+| Signal                | Page Count |
+| --------------------- | ---------: |
+| blankOutputPages      | 0          |
+| repeatedTextPages     | 0          |
+| majorLengthDriftPages | 0          |
+| highDisagreementPages | 0          |
+| werCerDivergencePages | 0          |
+| lowConfidencePages    | 0          |
 
 ## Selective Adjudication
 
@@ -35,6 +35,6 @@
 
 ## Variant Distances
 
-| Reference | Candidate | WER | CER | Word Edits |
-| --- | --- | ---: | ---: | ---: |
-| `publisher-canonical` | `page-level-hybrid` | 0.43% | 0.18% | 3 |
+| Reference             | Candidate           | WER   | CER   | Word Edits |
+| --------------------- | ------------------- | ----: | ----: | ---------: |
+| `publisher-canonical` | `page-level-hybrid` | 0.43% | 0.18% | 3          |

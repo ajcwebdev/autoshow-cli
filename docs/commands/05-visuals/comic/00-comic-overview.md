@@ -73,8 +73,8 @@ The supplied references already satisfy the local reference prerequisite. [refer
 
 ```bash
 bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only panel-prompts --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target sketches --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target sketches --provider openai=gpt-image-2.5-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --provider openai=gpt-image-2.5-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 Generation retains candidates at `panels/<image-run-id>/panel-NN.png`. Review those actual four files first. Review sheets, QA-only, revision evaluation, and slideshow use canonical names at `panels/panel-NN.png`; they do not automatically choose a candidate run. Select the completed single-model, individual-panel run you reviewed, then publish local copies with the helper:
@@ -122,7 +122,7 @@ For recorded interrupted requests use [`resume <run-directory> --price`, then `r
 
 ## Supported Models
 
-Comic images accept OpenAI, Gemini, and Grok model IDs; fal.ai image models are unavailable here. Default image: `gpt-image-2`. Default text: `gpt-6.1-sol`; blocking and QA require a supported OpenAI or Gemini vision model. Audio defaults to the cheapest hosted TTS target, so this walkthrough selects its model explicitly. Model lists: [image](../image/overview.md), [write](../../03-write/overview.md), [TTS](../../04-audio/tts/overview.md).
+Comic images accept OpenAI, Gemini, and Grok model IDs. Default image: `gpt-image-2.5-flare`. Default text: `gpt-6.1-sol`; blocking and QA require a supported OpenAI or Gemini vision model. Audio defaults to the cheapest hosted TTS target, so this walkthrough selects its model explicitly. Model lists: [image](../image/overview.md), [write](../../03-write/overview.md), [TTS](../../04-audio/tts/overview.md).
 
 ## Command Docs
 

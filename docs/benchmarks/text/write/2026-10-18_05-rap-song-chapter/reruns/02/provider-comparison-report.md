@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `docs/benchmarks/text/write/2026-10-18_05-rap-song-chapter/reruns/02`
-- Total providers: 5 (0 local, 5 service)
+- Total providers: 1 (0 local, 1 service)
 - Local and service providers are intentionally not ranked against each other.
 - Reports expose complete price, speed, automated-quality, and human-quality rankings for each group.
 
@@ -41,23 +41,15 @@ No local providers were found.
 
 ### Price
 
-| Rank | Provider                            | Evidence |
-| ---: | ----------------------------------- | -------- |
-| 1    | <code>glm/glm-5.3-flash</code>      | $0.0085  |
-| 2    | <code>together/glm-5.3-flash</code> | $0.0118  |
-| 3    | <code>glm/glm-5.3</code>            | $0.0752  |
-| 4    | <code>grok/grok-4.6</code>          | $0.0787  |
-| 5    | <code>grok/grok-4.7</code>          | $0.2658  |
+| Rank | Provider                   | Evidence |
+| ---: | -------------------------- | -------- |
+| 1    | <code>grok/grok-4.7</code> | $0.2658  |
 
 ### Speed
 
-| Rank | Provider                            | Evidence               |
-| ---: | ----------------------------------- | ---------------------- |
-| 1    | <code>together/glm-5.3-flash</code> | 4205.430 ms/1K tokens  |
-| 2    | <code>glm/glm-5.3</code>            | 9428.711 ms/1K tokens  |
-| 3    | <code>glm/glm-5.3-flash</code>      | 11641.624 ms/1K tokens |
-| 4    | <code>grok/grok-4.6</code>          | 12381.577 ms/1K tokens |
-| 5    | <code>grok/grok-4.7</code>          | 13497.531 ms/1K tokens |
+| Rank | Provider                   | Evidence               |
+| ---: | -------------------------- | ---------------------- |
+| 1    | <code>grok/grok-4.7</code> | 13497.531 ms/1K tokens |
 
 ### Automated Quality
 
@@ -69,13 +61,9 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider                            | Tokens                | Speed                  | Monetary Cost | Output                           | Quality Evidence |
-| ----------------------------------- | --------------------: | ---------------------: | ------------: | -------------------------------- | ---------------- |
-| <code>glm/glm-5.3</code>            | 3,407 in / 16,000 out | 9428.711 ms/1K tokens  | $0.0752       | n/a                              | n/a              |
-| <code>glm/glm-5.3-flash</code>      | 3,407 in / 16,000 out | 11641.624 ms/1K tokens | $0.0085       | n/a                              | n/a              |
-| <code>grok/grok-4.6</code>          | 4,333 in / 11,669 out | 12381.577 ms/1K tokens | $0.0787       | text-grok-grok-4.6.json          | n/a              |
-| <code>grok/grok-4.7</code>          | 4,939 in / 42,650 out | 13497.531 ms/1K tokens | $0.2658       | text-grok-grok-4.7.json          | n/a              |
-| <code>together/glm-5.3-flash</code> | 3,407 in / 22,670 out | 4205.430 ms/1K tokens  | $0.0118       | text-together-glm-5.3-flash.json | n/a              |
+| Provider                   | Tokens                | Speed                  | Monetary Cost | Output                  | Quality Evidence |
+| -------------------------- | --------------------: | ---------------------: | ------------: | ----------------------- | ---------------- |
+| <code>grok/grok-4.7</code> | 4,939 in / 42,650 out | 13497.531 ms/1K tokens | $0.2658       | text-grok-grok-4.7.json | n/a              |
 
 ## Notes
 

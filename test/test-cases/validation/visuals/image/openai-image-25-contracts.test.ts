@@ -27,7 +27,7 @@ describe('GPT Image 2.5 contracts', () => {
   test('selection, registry, expansion, and resume share both models; bare OpenAI selects Flare', () => {
     expect(buildOptsFromFlags({ 'openai-image': true }).openaiImageModels).toEqual([models[0]])
     const all = collectImageTargets(buildOptsFromFlags({ 'all-image': true })).filter(target => target.service === 'openai')
-    expect(all.map(target => target.model)).toEqual(['gpt-image-2', ...models])
+    expect(all.map(target => target.model)).toEqual([...models])
     for (const model of models) {
       const options = buildOptsFromFlags({ 'openai-image': [model] })
       expect(collectImageTargets(options).map(target => target.model)).toEqual([model])
@@ -58,11 +58,10 @@ describe('GPT Image 2.5 contracts', () => {
       expect(collectImageTargets({ openaiImageModels: [model], imageInputs: Array(16).fill(reference) })).toHaveLength(1)
       expect(() => collectImageTargets({ openaiImageModels: [model], imageInputs: Array(17).fill(reference) })).toThrow('central image registry allows 16')
     }
-    for (const imageQuality of ['xhigh', 'max']) {
-      expect(() => collectImageTargets({ openaiImageModels: ['gpt-image-2'], imageQuality })).toThrow('Invalid --quality')
-      expect(() => estimateImageCosts({ openaiImageModels: ['gpt-image-2'], imageQuality })).toThrow('Invalid --quality')
-    }
-    expect(() => collectImageTargets({ openaiImageModels: ['gpt-image-2'], imageBackground: 'transparent' })).toThrow('not supported')
+    // The removed GPT Image 2 identity rejects before dispatch in selection, targeting and pricing.
+    expect(() => buildOptsFromFlags({ 'openai-image': ['gpt-image-2'] })).toThrow('Allowed values: gpt-image-2.5-flare, gpt-image-2.5-sunburst')
+    expect(() => collectImageTargets({ openaiImageModels: ['gpt-image-2' as never] })).toThrow('Invalid model "gpt-image-2"')
+    expect(() => estimateImageCosts({ openaiImageModels: ['gpt-image-2' as never] })).toThrow('Invalid model "gpt-image-2"')
     expect(calls).toHaveLength(0)
   })
 
@@ -71,7 +70,7 @@ describe('GPT Image 2.5 contracts', () => {
     const calls = installMockFetch(() => { throw new Error('Unexpected dispatch') })
     await tempDirs.withDir(async dir => {
       await expect(runOpenAIImageGen('Synthetic scene', dir, { model: models[0], background: 'transparent', outputFormat: 'jpeg' })).rejects.toThrow('requires --format png or webp')
-      await expect(runOpenAIImageGen('Synthetic scene', dir, { model: 'gpt-image-2', quality: 'max' })).rejects.toThrow('Invalid --quality')
+      await expect(runOpenAIImageGen('Synthetic scene', dir, { model: models[0], quality: 'ultra' })).rejects.toThrow('Invalid --quality')
     })
     expect(calls).toHaveLength(0)
   })

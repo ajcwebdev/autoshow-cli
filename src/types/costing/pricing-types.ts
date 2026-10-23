@@ -70,7 +70,7 @@ export type MusicStepEstimate = ProviderModelBase<MusicProvider> & {
   note?: string
 }
 
-export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'fal' | HistoricalHtmlArticleBackend> & TokenProfileEstimateFields & ReasoningEstimateFields & {
+export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HistoricalHtmlArticleBackend> & TokenProfileEstimateFields & ReasoningEstimateFields & {
   step: 'extract'
   costPer1kPagesCents?: number
   inputCostPer1MCents?: number
@@ -139,7 +139,7 @@ export type ComputeEstimatedCostsInput = {
   sourceUrl?: string | undefined
   sttTargets?: SttPricingTarget[] | undefined
   extractTargets?: Array<TokenProfileEstimateFields & {
-    provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'fal' | HistoricalHtmlArticleBackend
+    provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HistoricalHtmlArticleBackend
     model: string
     pageCount?: number
     rasterizedPages?: number
@@ -177,8 +177,6 @@ export type ComputeEstimatedCostsInput = {
   videoMode?: string | undefined
   grokInputImageCount?: number | undefined
   grokInputVideoDurationSeconds?: number | undefined
-  falVideoReferenceVideoCount?: number | undefined
-  falInputVideoDurationSeconds?: number | undefined
   musicTargets?: MusicPricingTarget[] | undefined
   musicDuration?: number | undefined
   musicLyricsFile?: string | undefined
@@ -189,7 +187,7 @@ export type ComputeEstimatedProcessingTimesInput = {
   concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   sttTargets?: SttPricingTarget[] | undefined
   audioDurationSeconds?: number | undefined
-  extractTargets?: Array<{ provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'fal' | HistoricalHtmlArticleBackend, model: string, pageCount?: number, rasterizedPages?: number, singlePagePdfFallbackPages?: number, ocrProviderMode?: 'fanout' | 'pool' }> | undefined
+  extractTargets?: Array<{ provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HistoricalHtmlArticleBackend, model: string, pageCount?: number, rasterizedPages?: number, singlePagePdfFallbackPages?: number, ocrProviderMode?: 'fanout' | 'pool' }> | undefined
   ocrConcurrency?: number | undefined
   ocrConcurrencyMode?: 'auto' | 'fixed' | undefined
   hostedOcrProfilePath?: string | undefined

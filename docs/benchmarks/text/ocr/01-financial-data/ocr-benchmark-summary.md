@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `docs/benchmarks/text/ocr/01-financial-data`
-- Providers with page result files: 30
+- Providers with page result files: 9
 - Pages: 1
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.
@@ -21,15 +21,15 @@
 | blankOutputPages      | 0          |
 | repeatedTextPages     | 0          |
 | majorLengthDriftPages | 0          |
-| highDisagreementPages | 1          |
-| werCerDivergencePages | 1          |
+| highDisagreementPages | 0          |
+| werCerDivergencePages | 0          |
 | lowConfidencePages    | 0          |
 
 ## Selective Adjudication
 
-- Candidate pages: 1
+- Candidate pages: 0
 - Low-confidence threshold: 0.72
-- High-disagreement threshold: 0.234319
+- High-disagreement threshold: 0.18
 
 ## Variant Distances
 

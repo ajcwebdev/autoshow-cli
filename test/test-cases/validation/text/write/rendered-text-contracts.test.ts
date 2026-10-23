@@ -27,7 +27,7 @@ test('rendered text track headers use model display names', () => {
     llmService: 'grok',
     llmModel: 'grok-4.7'
   })).toBe('Grok 4.7')
-  expect(formatRenderedLlmLabel({ llmService: 'grok', llmModel: 'grok-4.6' })).toBe('grok-4.6')
+  expect(formatRenderedLlmLabel({ llmService: 'grok', llmModel: 'grok-4.5' })).toBe('grok-4.5')
 })
 
 test('text input song titles use tracks.md before falling back to the filename stem', async () => {
@@ -217,7 +217,7 @@ test('external rendered text filenames use provider aliases only for single-targ
 
     const openaiMetadata = buildStep3Metadata({
       llmService: 'openai',
-      llmModel: 'gpt-5.6-sol'
+      llmModel: 'gpt-6.1-sol'
     })
     const qwenMetadata = buildStep3Metadata({
       llmService: 'gemini',
@@ -261,7 +261,7 @@ test('external rendered text filenames use provider aliases only for single-targ
 
     expect(multiArtifacts.externalFiles.map((file) => file.split('/').pop()).sort()).toEqual([
       '01-track-one-gemini-3.8-flash.md',
-      '01-track-one-gpt-5.6-sol.md'
+      '01-track-one-gpt-6.1-sol.md'
     ])
   } finally {
     await rm(tempDir, { recursive: true, force: true })

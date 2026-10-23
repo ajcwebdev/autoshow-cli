@@ -195,12 +195,12 @@ describe('comic audio phase 2 contracts', () => {
     await mkdir(join(sceneRunDir, 'metadata'), { recursive: true })
     await writeFile(join(sceneRunDir, structuredRef.path), structuredBytes)
     const initial = await writeInitialComicStructureManifest({ sceneRunDir, createdAt: CREATED_AT, sourceIdentity, structuredScript: structuredRef })
-    const oldTargetKey = canonicalTargetKey('comic-image', 'openai', 'gpt-image-2', 'hosted-api')
+    const oldTargetKey = canonicalTargetKey('comic-image', 'openai', 'gpt-image-2.5-flare', 'hosted-api')
     const imageState = (targetKey: string, model: string, status: PipelineProviderState['status']): PipelineProviderState => ({
       service: 'openai', model, local: false, operation: 'comic-image', targetKey, transport: 'hosted-api', artifactDir: '.', status,
       attempts: 1, options: {}, metadata: {}, ...(status === 'succeeded' ? { result: {} } : {}),
     })
-    await updateComicImageManifest({ sceneRunDir, sourceIdentity, providers: [imageState(oldTargetKey, 'gpt-image-2', 'running')], artifactRefs: [] })
+    await updateComicImageManifest({ sceneRunDir, sourceIdentity, providers: [imageState(oldTargetKey, 'gpt-image-2.5-flare', 'running')], artifactRefs: [] })
     const afterImage = await readManifest(sceneRunDir)
     const initialComic = initial.items[0]!.metadata['comic'] as never as { audio: Record<string, unknown> }
     await updateComicAudioManifest({

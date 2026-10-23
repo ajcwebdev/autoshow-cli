@@ -241,7 +241,7 @@ export const writeBlockingFixtureInputRoot = async (root: string): Promise<{ cha
     const bytes = Buffer.concat([BLOCKING_FIXTURE_TINY_PNG, Buffer.from(location.key)])
     await Bun.write(imagePath, bytes)
     establishingImages[location.key] = imagePath
-    sketches.push({ locationKey: location.key, specificationSha256: specificationHash(location.specification), views: [{ view: 'establishing', generationId: `${location.key}-fixture`, image: `${location.key}--reference.png`, imageSha256: sha256Bytes(new Uint8Array(bytes)), model: 'gpt-image-2', createdAt: '2026-01-01T00:00:00.000Z' }] })
+    sketches.push({ locationKey: location.key, specificationSha256: specificationHash(location.specification), views: [{ view: 'establishing', generationId: `${location.key}-fixture`, image: `${location.key}--reference.png`, imageSha256: sha256Bytes(new Uint8Array(bytes)), model: 'gpt-image-2.5-flare', createdAt: '2026-01-01T00:00:00.000Z' }] })
   }
   await Bun.write(join(locationsRoot, 'locations-reference.json'), JSON.stringify({
     schemaVersion: 1,
