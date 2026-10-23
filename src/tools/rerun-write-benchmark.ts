@@ -12,7 +12,7 @@ import { finalizeWriteBenchmarkCase, installWriteBenchmarkFetchGuard, prepareWri
 import type { BenchmarkSlot, BenchmarkTarget, WriteBenchmarkCase, WriteBenchmarkPlan } from '~/tools/write-benchmark'
 import type { LLMOptions, LLMTarget, Step3Metadata } from '~/types'
 
-export const WRITE_BENCHMARK_RERUN_PLAN = 'docs/benchmarks/write/rerun-plan.json'
+export const WRITE_BENCHMARK_RERUN_PLAN = 'docs/benchmarks/text/write/rerun-plan.json'
 export const WRITE_BENCHMARK_RERUN_COMMAND = 'bun src/tools/rerun-write-benchmark.ts --run'
 const attempt = '02'
 const expectedFailures = 7

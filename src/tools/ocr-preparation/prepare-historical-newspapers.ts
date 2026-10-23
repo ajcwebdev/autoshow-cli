@@ -4,7 +4,7 @@ import { realpath } from 'node:fs/promises'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { PROJECT_ROOT } from '~/utils/project-root'
-import sourceCatalog from '../../../docs/benchmarks/ocr/source-catalog.json'
+import sourceCatalog from '../../../docs/benchmarks/text/ocr/source-catalog.json'
 
 /** These converters process published human references only; they never call an OCR engine. */
 const xmlText = (text: string): string => text.replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))

@@ -6,7 +6,7 @@ import { dirname, relative, resolve } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/project-root'
 import { isRecord, readJsonResponse } from '~/utils/rest-client'
 import { decodePngRgba8 } from '~/utils/lossless-png'
-import sourceCatalog from '../../docs/benchmarks/ocr/source-catalog.json'
+import sourceCatalog from '../../docs/benchmarks/text/ocr/source-catalog.json'
 import { CLEAN_TYPOGRAPHY_SPENDING_RATES as CATEGORIES_BC_SPENDING_RATES } from './ocr-clean-typography-spending-guard'
 export { CATEGORIES_BC_SPENDING_RATES }
 

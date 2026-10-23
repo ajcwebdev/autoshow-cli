@@ -2,4 +2,4 @@
 *.gz binary
 
 # Verbatim request snapshots retain whitespace covered by their recorded hashes.
-docs/benchmarks/write/**/prompt.md whitespace=-blank-at-eol
+docs/benchmarks/text/write/**/prompt.md whitespace=-blank-at-eol

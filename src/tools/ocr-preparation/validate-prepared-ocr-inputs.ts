@@ -4,15 +4,15 @@ import { realpath } from 'node:fs/promises'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { PROJECT_ROOT } from '~/utils/project-root'
-import sourceCatalog from '../../../docs/benchmarks/ocr/source-catalog.json'
+import sourceCatalog from '../../../docs/benchmarks/text/ocr/source-catalog.json'
 
-export const DEFAULT_PREPARED_OCR_INDEX = 'docs/benchmarks/ocr/prepared-inputs-plan.json'
+export const DEFAULT_PREPARED_OCR_INDEX = 'docs/benchmarks/text/ocr/prepared-inputs-plan.json'
 export const PREPARED_OCR_CATEGORY_COUNTS: Readonly<Record<string, number>> = {
   'technical-code': 5, 'historical-print': 5, advertisements: 5,
   'numeric-tables': 5, handwriting: 5, newspapers: 5
 }
 const oldReferences = sourceCatalog.existingReferenceIDs
-  .map(id => `docs/benchmarks/ocr/${id}/consensus-extraction.txt`)
+  .map(id => `docs/benchmarks/text/ocr/${id}/consensus-extraction.txt`)
 const sha256 = (bytes: Uint8Array | string) => new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
 const record = (value: unknown, label: string): Record<string, unknown> => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new AppValidationError(`Expected object: ${label}`)

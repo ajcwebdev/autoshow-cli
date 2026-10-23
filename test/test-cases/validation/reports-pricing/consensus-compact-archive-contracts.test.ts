@@ -391,13 +391,13 @@ describe('consensus compact-archive', () => {
 
   test('discovers nested category roots under docs/benchmarks-style parents', async () => {
     const root = await tracker.make()
-    writeRun(join(root, 'stt-with-speakers'), '1-audio')
-    writeRun(join(root, 'ocr'), '01-book')
+    writeRun(join(root, 'stt/with-speakers'), '1-audio')
+    writeRun(join(root, 'text/ocr'), '01-book')
 
     const runs = discoverArchiveRuns(root)
     expect(runs.map((path) => path.slice(root.length + 1)).sort()).toEqual([
-      'ocr/01-book',
-      'stt-with-speakers/1-audio',
+      'stt/with-speakers/1-audio',
+      'text/ocr/01-book',
     ])
 
     const stats = compactArchive(root)

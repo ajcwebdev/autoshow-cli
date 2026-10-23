@@ -1,0 +1,2444 @@
+{
+  "command": "write",
+  "scope": "single",
+  "createdAt": "2026-10-18T18:32:32.751Z",
+  "updatedAt": "2026-10-18T18:49:19.669Z",
+  "items": [
+    {
+      "status": "full",
+      "metadata": {
+        "title": "02-long-summary",
+        "source": {
+          "kind": "text-input",
+          "inputPath": "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes/consensus-transcription.txt",
+          "slug": "02-long-summary",
+          "snapshot": {
+            "path": "source.txt",
+            "sha256": "11bcf09318ef081e1dcc286f4fced41cffc6d30bce859ec334a273df5cef3da9"
+          }
+        },
+        "benchmark": {
+          "plan": "docs/benchmarks/text/write/benchmark-plan.json",
+          "fingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+          "caseId": "02-long-summary",
+          "prompt": "longSummary",
+          "repetitions": 1,
+          "qualityProxy": {
+            "method": "model-output-unit-price",
+            "label": "Price proxy ($ / 1M output tokens)",
+            "higherIsBetter": true
+          },
+          "priceNote": "Usage-derived registry cost; provider invoice is authoritative. Cached inputs and generated reasoning are retained in raw usage."
+        },
+        "step3": [
+          {
+            "llmService": "anthropic",
+            "llmModel": "claude-fable-5-1",
+            "providerReturnedModel": "claude-fable-5-1",
+            "processingTime": 7518,
+            "inputTokenCount": 14152,
+            "outputTokenCount": 475,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 14152,
+              "outputTokenCount": 475
+            },
+            "rawProviderUsage": {
+              "input_tokens": 14152,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 475,
+              "output_tokens_details": {
+                "thinking_tokens": 0
+              },
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "outputFileName": "text-anthropic-claude-fable-5-1.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "claude-fable-5-1",
+              "max_tokens": 16000,
+              "output_config": {
+                "format": {
+                  "type": "json_schema",
+                  "schemaSha256": "ca37e90a9657fd83a99636394f8cb2b7c900e3838c706b22389d5bb5eca98424"
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "anthropic",
+            "llmModel": "claude-haiku-5-5",
+            "providerReturnedModel": "claude-haiku-5-5",
+            "processingTime": 3554,
+            "inputTokenCount": 14152,
+            "outputTokenCount": 459,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 14152,
+              "outputTokenCount": 459
+            },
+            "rawProviderUsage": {
+              "input_tokens": 14152,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 459,
+              "output_tokens_details": {
+                "thinking_tokens": 0
+              },
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "outputFileName": "text-anthropic-claude-haiku-5-5.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "claude-haiku-5-5",
+              "max_tokens": 16000,
+              "output_config": {
+                "format": {
+                  "type": "json_schema",
+                  "schemaSha256": "ca37e90a9657fd83a99636394f8cb2b7c900e3838c706b22389d5bb5eca98424"
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "anthropic",
+            "llmModel": "claude-opus-5",
+            "providerReturnedModel": "claude-opus-5",
+            "processingTime": 8766,
+            "inputTokenCount": 14150,
+            "outputTokenCount": 540,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 14150,
+              "outputTokenCount": 540
+            },
+            "rawProviderUsage": {
+              "input_tokens": 14150,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 540,
+              "output_tokens_details": {
+                "thinking_tokens": 0
+              },
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "outputFileName": "text-anthropic-claude-opus-5.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "claude-opus-5",
+              "max_tokens": 16000,
+              "output_config": {
+                "format": {
+                  "type": "json_schema",
+                  "schemaSha256": "ca37e90a9657fd83a99636394f8cb2b7c900e3838c706b22389d5bb5eca98424"
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "anthropic",
+            "llmModel": "claude-opus-5-5",
+            "providerReturnedModel": "claude-opus-5-5",
+            "processingTime": 6471,
+            "inputTokenCount": 14152,
+            "outputTokenCount": 491,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 14152,
+              "outputTokenCount": 491
+            },
+            "rawProviderUsage": {
+              "input_tokens": 14152,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 491,
+              "output_tokens_details": {
+                "thinking_tokens": 0
+              },
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "outputFileName": "text-anthropic-claude-opus-5-5.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "claude-opus-5-5",
+              "max_tokens": 16000,
+              "output_config": {
+                "format": {
+                  "type": "json_schema",
+                  "schemaSha256": "ca37e90a9657fd83a99636394f8cb2b7c900e3838c706b22389d5bb5eca98424"
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "anthropic",
+            "llmModel": "claude-sonnet-5",
+            "providerReturnedModel": "claude-sonnet-5",
+            "processingTime": 5856,
+            "inputTokenCount": 14150,
+            "outputTokenCount": 497,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 14150,
+              "outputTokenCount": 497
+            },
+            "rawProviderUsage": {
+              "input_tokens": 14150,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 497,
+              "output_tokens_details": {
+                "thinking_tokens": 0
+              },
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "outputFileName": "text-anthropic-claude-sonnet-5.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "claude-sonnet-5",
+              "max_tokens": 16000,
+              "output_config": {
+                "format": {
+                  "type": "json_schema",
+                  "schemaSha256": "ca37e90a9657fd83a99636394f8cb2b7c900e3838c706b22389d5bb5eca98424"
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "anthropic",
+            "llmModel": "claude-sonnet-5-5",
+            "providerReturnedModel": "claude-sonnet-5-5",
+            "processingTime": 4570,
+            "inputTokenCount": 14152,
+            "outputTokenCount": 345,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 14152,
+              "outputTokenCount": 345
+            },
+            "rawProviderUsage": {
+              "input_tokens": 14152,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 345,
+              "output_tokens_details": {
+                "thinking_tokens": 0
+              },
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "outputFileName": "text-anthropic-claude-sonnet-5-5.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "claude-sonnet-5-5",
+              "max_tokens": 16000,
+              "output_config": {
+                "format": {
+                  "type": "json_schema",
+                  "schemaSha256": "ca37e90a9657fd83a99636394f8cb2b7c900e3838c706b22389d5bb5eca98424"
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "gemini",
+            "llmModel": "gemini-3.7-flash",
+            "providerReturnedModel": "gemini-3.8-flash",
+            "processingTime": 8424,
+            "inputTokenCount": 11103,
+            "outputTokenCount": 994,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 11103,
+              "outputTokenCount": 994,
+              "totalTokenCount": 12097
+            },
+            "rawProviderUsage": {
+              "promptTokenCount": 11103,
+              "candidatesTokenCount": 187,
+              "totalTokenCount": 12097,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 11103
+                }
+              ],
+              "thoughtsTokenCount": 807,
+              "serviceTier": "standard"
+            },
+            "outputFileName": "text-gemini-gemini-3.7-flash.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "gemini-3.7-flash",
+              "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseJsonSchemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599"
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "gemini",
+            "llmModel": "gemini-3.8-flash",
+            "providerReturnedModel": "gemini-3.8-flash",
+            "processingTime": 9153,
+            "inputTokenCount": 11103,
+            "outputTokenCount": 1220,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 11103,
+              "outputTokenCount": 1220,
+              "totalTokenCount": 12323
+            },
+            "rawProviderUsage": {
+              "promptTokenCount": 11103,
+              "candidatesTokenCount": 176,
+              "totalTokenCount": 12323,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 11103
+                }
+              ],
+              "thoughtsTokenCount": 1044,
+              "serviceTier": "standard"
+            },
+            "outputFileName": "text-gemini-gemini-3.8-flash.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "gemini-3.8-flash",
+              "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseJsonSchemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599"
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "gemini",
+            "llmModel": "gemini-4-argon",
+            "providerReturnedModel": "gemini-4-argon",
+            "processingTime": 5440,
+            "inputTokenCount": 11336,
+            "outputTokenCount": 207,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 11336,
+              "outputTokenCount": 207,
+              "totalTokenCount": 11543
+            },
+            "rawProviderUsage": {
+              "promptTokenCount": 11336,
+              "candidatesTokenCount": 207,
+              "totalTokenCount": 11543,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 11336
+                }
+              ],
+              "candidatesTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 207
+                }
+              ]
+            },
+            "outputFileName": "text-gemini-gemini-4-argon.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "gemini-4-argon",
+              "generationConfig": {
+                "maxOutputTokens": 65536,
+                "responseMimeType": "application/json",
+                "responseJsonSchemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599"
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "glm",
+            "llmModel": "glm-5.3",
+            "providerReturnedModel": "glm-5.3",
+            "processingTime": 44178,
+            "inputTokenCount": 10489,
+            "outputTokenCount": 2245,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "cachedInputTokenCount": 0,
+              "inputTokenCount": 10489,
+              "outputTokenCount": 2245,
+              "totalTokenCount": 12734
+            },
+            "rawProviderUsage": {
+              "completion_tokens": 2245,
+              "completion_tokens_details": {
+                "reasoning_tokens": 2029
+              },
+              "prompt_tokens": 10489,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 12734
+            },
+            "outputFileName": "text-glm-glm-5.3.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "glm-5.3",
+              "stream": false,
+              "max_tokens": 16000,
+              "thinking": {
+                "type": "enabled"
+              },
+              "response_format": {
+                "type": "json_object"
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "glm",
+            "llmModel": "glm-5.3-flash",
+            "providerReturnedModel": "glm-5.3-flash",
+            "processingTime": 21045,
+            "inputTokenCount": 10489,
+            "outputTokenCount": 2003,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "cachedInputTokenCount": 0,
+              "inputTokenCount": 10489,
+              "outputTokenCount": 2003,
+              "totalTokenCount": 12492
+            },
+            "rawProviderUsage": {
+              "completion_tokens": 2003,
+              "completion_tokens_details": {
+                "reasoning_tokens": 1759
+              },
+              "prompt_tokens": 10489,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "total_tokens": 12492
+            },
+            "outputFileName": "text-glm-glm-5.3-flash.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "glm-5.3-flash",
+              "stream": false,
+              "max_tokens": 16000,
+              "thinking": {
+                "type": "enabled"
+              },
+              "response_format": {
+                "type": "json_object"
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "grok",
+            "llmModel": "grok-4.6",
+            "providerReturnedModel": "grok-4.6",
+            "processingTime": 75473,
+            "inputTokenCount": 10896,
+            "outputTokenCount": 4967,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "cachedInputTokenCount": 512,
+              "inputTokenCount": 10896,
+              "outputTokenCount": 4967,
+              "totalTokenCount": 15863
+            },
+            "rawProviderUsage": {
+              "prompt_tokens": 10896,
+              "completion_tokens": 225,
+              "total_tokens": 15863,
+              "prompt_tokens_details": {
+                "text_tokens": 10896,
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "cached_tokens": 512
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 4742,
+                "audio_tokens": 0,
+                "accepted_prediction_tokens": 0,
+                "rejected_prediction_tokens": 0
+              },
+              "num_sources_used": 0,
+              "cost_in_usd_ticks": 508260000
+            },
+            "outputFileName": "text-grok-grok-4.6.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "grok-4.6",
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "grok",
+            "llmModel": "grok-4.7",
+            "providerReturnedModel": "grok-4.7",
+            "processingTime": 11355,
+            "inputTokenCount": 11502,
+            "outputTokenCount": 854,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "cachedInputTokenCount": 1152,
+              "inputTokenCount": 11502,
+              "outputTokenCount": 854,
+              "totalTokenCount": 12356
+            },
+            "rawProviderUsage": {
+              "prompt_tokens": 11502,
+              "completion_tokens": 244,
+              "total_tokens": 12356,
+              "prompt_tokens_details": {
+                "text_tokens": 11502,
+                "audio_tokens": 0,
+                "image_tokens": 0,
+                "cached_tokens": 1152
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 610,
+                "audio_tokens": 0,
+                "accepted_prediction_tokens": 0,
+                "rejected_prediction_tokens": 0
+              },
+              "num_sources_used": 0,
+              "cost_in_usd_ticks": 264000000
+            },
+            "outputFileName": "text-grok-grok-4.7.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "grok-4.7",
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "kimi",
+            "llmModel": "kimi-k3",
+            "providerReturnedModel": "kimi-k3",
+            "processingTime": 12704,
+            "inputTokenCount": 10323,
+            "outputTokenCount": 300,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 10323,
+              "outputTokenCount": 300,
+              "totalTokenCount": 10623
+            },
+            "rawProviderUsage": {
+              "prompt_tokens": 10323,
+              "completion_tokens": 300,
+              "total_tokens": 10623,
+              "completion_tokens_details": {
+                "reasoning_tokens": 13
+              },
+              "prompt_tokens_details": {
+                "cache_write_tokens": 10240
+              }
+            },
+            "outputFileName": "text-kimi-kimi-k3.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "low",
+            "requestSettings": {
+              "model": "kimi-k3",
+              "stream": false,
+              "max_completion_tokens": 32768,
+              "reasoning_effort": "low",
+              "response_format": {
+                "type": "json_object"
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "openai",
+            "llmModel": "gpt-5.6-luna",
+            "providerReturnedModel": "gpt-5.6-luna",
+            "processingTime": 2436,
+            "inputTokenCount": 10205,
+            "outputTokenCount": 282,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 10205,
+              "outputTokenCount": 282,
+              "totalTokenCount": 10487
+            },
+            "rawProviderUsage": {
+              "input_tokens": 10205,
+              "input_tokens_details": {
+                "cache_write_tokens": 10202,
+                "cached_tokens": 0
+              },
+              "output_tokens": 282,
+              "output_tokens_details": {
+                "reasoning_tokens": 60
+              },
+              "total_tokens": 10487
+            },
+            "outputFileName": "text-openai-gpt-5.6-luna.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "gpt-5.6-luna",
+              "stream": false,
+              "text": {
+                "format": {
+                  "type": "json_schema",
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "openai",
+            "llmModel": "gpt-5.6-sol",
+            "providerReturnedModel": "gpt-5.6-sol",
+            "processingTime": 4021,
+            "inputTokenCount": 10205,
+            "outputTokenCount": 262,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 10205,
+              "outputTokenCount": 262,
+              "totalTokenCount": 10467
+            },
+            "rawProviderUsage": {
+              "input_tokens": 10205,
+              "input_tokens_details": {
+                "cache_write_tokens": 10202,
+                "cached_tokens": 0
+              },
+              "output_tokens": 262,
+              "output_tokens_details": {
+                "reasoning_tokens": 43
+              },
+              "total_tokens": 10467
+            },
+            "outputFileName": "text-openai-gpt-5.6-sol.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "gpt-5.6-sol",
+              "stream": false,
+              "text": {
+                "format": {
+                  "type": "json_schema",
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "openai",
+            "llmModel": "gpt-5.6-terra",
+            "providerReturnedModel": "gpt-5.6-terra",
+            "processingTime": 3866,
+            "inputTokenCount": 10205,
+            "outputTokenCount": 253,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 10205,
+              "outputTokenCount": 253,
+              "totalTokenCount": 10458
+            },
+            "rawProviderUsage": {
+              "input_tokens": 10205,
+              "input_tokens_details": {
+                "cache_write_tokens": 10202,
+                "cached_tokens": 0
+              },
+              "output_tokens": 253,
+              "output_tokens_details": {
+                "reasoning_tokens": 36
+              },
+              "total_tokens": 10458
+            },
+            "outputFileName": "text-openai-gpt-5.6-terra.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "gpt-5.6-terra",
+              "stream": false,
+              "text": {
+                "format": {
+                  "type": "json_schema",
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "openai",
+            "llmModel": "gpt-6-astra",
+            "providerReturnedModel": "gpt-6-astra",
+            "processingTime": 3754,
+            "inputTokenCount": 10205,
+            "outputTokenCount": 202,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 10205,
+              "outputTokenCount": 202,
+              "totalTokenCount": 10407
+            },
+            "rawProviderUsage": {
+              "input_tokens": 10205,
+              "input_tokens_details": {
+                "cache_write_tokens": 10202,
+                "cached_tokens": 0
+              },
+              "output_tokens": 202,
+              "output_tokens_details": {
+                "reasoning_tokens": 0
+              },
+              "total_tokens": 10407
+            },
+            "outputFileName": "text-openai-gpt-6-astra.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "gpt-6-astra",
+              "stream": false,
+              "text": {
+                "format": {
+                  "type": "json_schema",
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "openai",
+            "llmModel": "gpt-6-luna",
+            "providerReturnedModel": "gpt-6-luna",
+            "processingTime": 2292,
+            "inputTokenCount": 10205,
+            "outputTokenCount": 249,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 10205,
+              "outputTokenCount": 249,
+              "totalTokenCount": 10454
+            },
+            "rawProviderUsage": {
+              "input_tokens": 10205,
+              "input_tokens_details": {
+                "cache_write_tokens": 10202,
+                "cached_tokens": 0
+              },
+              "output_tokens": 249,
+              "output_tokens_details": {
+                "reasoning_tokens": 47
+              },
+              "total_tokens": 10454
+            },
+            "outputFileName": "text-openai-gpt-6-luna.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "gpt-6-luna",
+              "stream": false,
+              "text": {
+                "format": {
+                  "type": "json_schema",
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "openai",
+            "llmModel": "gpt-6.1-sol",
+            "providerReturnedModel": "gpt-6.1-sol",
+            "processingTime": 3964,
+            "inputTokenCount": 10205,
+            "outputTokenCount": 200,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "inputTokenCount": 10205,
+              "outputTokenCount": 200,
+              "totalTokenCount": 10405
+            },
+            "rawProviderUsage": {
+              "input_tokens": 10205,
+              "input_tokens_details": {
+                "cache_write_tokens": 10202,
+                "cached_tokens": 0
+              },
+              "output_tokens": 200,
+              "output_tokens_details": {
+                "reasoning_tokens": 0
+              },
+              "total_tokens": 10405
+            },
+            "outputFileName": "text-openai-gpt-6.1-sol.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "gpt-6.1-sol",
+              "stream": false,
+              "text": {
+                "format": {
+                  "type": "json_schema",
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "together",
+            "llmModel": "glm-5.3",
+            "providerReturnedModel": "zai-org/GLM-5.3",
+            "processingTime": 7509,
+            "inputTokenCount": 10489,
+            "outputTokenCount": 419,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "cachedInputTokenCount": 0,
+              "inputTokenCount": 10489,
+              "outputTokenCount": 419,
+              "totalTokenCount": 10908
+            },
+            "rawProviderUsage": {
+              "prompt_tokens": 10489,
+              "completion_tokens": 419,
+              "total_tokens": 10908,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              }
+            },
+            "outputFileName": "text-together-glm-5.3.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "zai-org/GLM-5.3",
+              "stream": false,
+              "max_tokens": 32768,
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "together",
+            "llmModel": "glm-5.3-flash",
+            "providerReturnedModel": "zai-org/GLM-5.3-Flash",
+            "processingTime": 15812,
+            "inputTokenCount": 10489,
+            "outputTokenCount": 2438,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "cachedInputTokenCount": 0,
+              "inputTokenCount": 10489,
+              "outputTokenCount": 2438,
+              "totalTokenCount": 12927
+            },
+            "rawProviderUsage": {
+              "prompt_tokens": 10489,
+              "completion_tokens": 2438,
+              "total_tokens": 12927,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 2191
+              }
+            },
+            "outputFileName": "text-together-glm-5.3-flash.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "zai-org/GLM-5.3-Flash",
+              "stream": false,
+              "max_tokens": 32768,
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          },
+          {
+            "llmService": "together",
+            "llmModel": "kimi-k3",
+            "providerReturnedModel": "moonshotai/Kimi-K3",
+            "processingTime": 20417,
+            "inputTokenCount": 10371,
+            "outputTokenCount": 1248,
+            "tokenCountSource": "provider_usage",
+            "providerUsage": {
+              "cachedInputTokenCount": 0,
+              "inputTokenCount": 10371,
+              "outputTokenCount": 1248,
+              "totalTokenCount": 11619
+            },
+            "rawProviderUsage": {
+              "prompt_tokens": 10371,
+              "completion_tokens": 1248,
+              "total_tokens": 11619,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 997
+              }
+            },
+            "outputFileName": "text-together-kimi-k3.json",
+            "outputFormat": "json",
+            "structuredMode": "native",
+            "structuredPresetNames": [
+              "longSummary"
+            ],
+            "effectiveReasoningEffort": "default",
+            "requestSettings": {
+              "model": "moonshotai/Kimi-K3",
+              "stream": false,
+              "max_tokens": 131072,
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "prompt_longSummary",
+                  "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+                  "strict": true
+                }
+              }
+            },
+            "validationFailed": false
+          }
+        ],
+        "cost": {
+          "estimated": {
+            "totalCost": 88.801610792,
+            "steps": [
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6.1-sol",
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 1000,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "pricingBand": "standard-short-context",
+                "cost": 3.0206
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6-luna",
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 50,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "pricingBand": "standard-short-context",
+                "cost": 0.15103
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6-astra",
+                "inputCostPer1MCents": 1000,
+                "outputCostPer1MCents": 5000,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "pricingBand": "standard-short-context",
+                "cost": 15.103
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-sol",
+                "inputCostPer1MCents": 400,
+                "outputCostPer1MCents": 2000,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 0.7927,
+                "pricingBand": "standard-short-context",
+                "cost": 4.78885924
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-terra",
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 1200,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 0.7927,
+                "pricingBand": "standard-short-context",
+                "cost": 2.5212616199999998
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-luna",
+                "inputCostPer1MCents": 20,
+                "outputCostPer1MCents": 120,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 0.7927,
+                "pricingBand": "standard-short-context",
+                "cost": 0.252126162
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-4-argon",
+                "inputCostPer1MCents": 400,
+                "outputCostPer1MCents": 2000,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 6.0412
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-3.8-flash",
+                "inputCostPer1MCents": 150,
+                "outputCostPer1MCents": 750,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 0.8395,
+                "cost": 1.9018452750000001
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-3.7-flash",
+                "inputCostPer1MCents": 150,
+                "outputCostPer1MCents": 750,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 0.8395,
+                "cost": 1.9018452750000001
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-opus-5-5",
+                "inputCostPer1MCents": 400,
+                "outputCostPer1MCents": 2000,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 6.0412
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-sonnet-5-5",
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 1000,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 3.0206
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-haiku-5-5",
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 50,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "pricingBand": "standard-up-to-100k",
+                "cost": 0.15103
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-fable-5-1",
+                "inputCostPer1MCents": 1000,
+                "outputCostPer1MCents": 5000,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 15.103
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-sonnet-5",
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 1000,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 0.8487,
+                "cost": 2.56358322
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-opus-5",
+                "inputCostPer1MCents": 500,
+                "outputCostPer1MCents": 2500,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 7.5515
+              },
+              {
+                "step": "llm",
+                "provider": "grok",
+                "model": "grok-4.7",
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 600,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "pricingBand": "standard-below-200k",
+                "cost": 2.7006
+              },
+              {
+                "step": "llm",
+                "provider": "grok",
+                "model": "grok-4.6",
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 600,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "pricingBand": "standard-up-to-200k",
+                "cost": 2.7006
+              },
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3",
+                "inputCostPer1MCents": 140,
+                "outputCostPer1MCents": 440,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 1.90642
+              },
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3-flash",
+                "inputCostPer1MCents": 15,
+                "outputCostPer1MCents": 50,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 0.206545
+              },
+              {
+                "step": "llm",
+                "provider": "kimi",
+                "model": "kimi-k3",
+                "inputCostPer1MCents": 300,
+                "outputCostPer1MCents": 1500,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "low",
+                "costMultiplier": 1,
+                "cost": 4.5309
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "kimi-k3",
+                "inputCostPer1MCents": 300,
+                "outputCostPer1MCents": 1500,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 4.5309
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "glm-5.3",
+                "inputCostPer1MCents": 140,
+                "outputCostPer1MCents": 440,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 1.90642
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "glm-5.3-flash",
+                "inputCostPer1MCents": 15,
+                "outputCostPer1MCents": 50,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 800,
+                "effectiveReasoningEffort": "default",
+                "costMultiplier": 1,
+                "cost": 0.206545
+              }
+            ]
+          },
+          "observedEstimate": {
+            "totalCost": 90.10871000000002,
+            "steps": [
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-fable-5-1",
+                "cost": 16.527,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 1000,
+                "outputCostPer1MCents": 5000,
+                "estimatedInputTokens": 14152,
+                "estimatedOutputTokens": 475
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-haiku-5-5",
+                "cost": 0.16447,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 50,
+                "estimatedInputTokens": 14152,
+                "estimatedOutputTokens": 459,
+                "pricingBand": "standard-up-to-100k"
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-opus-5",
+                "cost": 8.424999999999999,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 500,
+                "outputCostPer1MCents": 2500,
+                "estimatedInputTokens": 14150,
+                "estimatedOutputTokens": 540
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-opus-5-5",
+                "cost": 6.6428,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 400,
+                "outputCostPer1MCents": 2000,
+                "estimatedInputTokens": 14152,
+                "estimatedOutputTokens": 491
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-sonnet-5",
+                "cost": 3.327,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 1000,
+                "estimatedInputTokens": 14150,
+                "estimatedOutputTokens": 497
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-sonnet-5-5",
+                "cost": 3.1754,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 1000,
+                "estimatedInputTokens": 14152,
+                "estimatedOutputTokens": 345
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-3.7-flash",
+                "cost": 2.41095,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 150,
+                "outputCostPer1MCents": 750,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 994
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-3.8-flash",
+                "cost": 2.58045,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 150,
+                "outputCostPer1MCents": 750,
+                "estimatedInputTokens": 11103,
+                "estimatedOutputTokens": 1220
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-4-argon",
+                "cost": 4.9484,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 400,
+                "outputCostPer1MCents": 2000,
+                "estimatedInputTokens": 11336,
+                "estimatedOutputTokens": 207
+              },
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3",
+                "cost": 2.4562600000000003,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 140,
+                "outputCostPer1MCents": 440,
+                "estimatedInputTokens": 10489,
+                "estimatedOutputTokens": 2245
+              },
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3-flash",
+                "cost": 0.257485,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 15,
+                "outputCostPer1MCents": 50,
+                "estimatedInputTokens": 10489,
+                "estimatedOutputTokens": 2003
+              },
+              {
+                "step": "llm",
+                "provider": "grok",
+                "model": "grok-4.6",
+                "cost": 5.1594,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 600,
+                "estimatedInputTokens": 10896,
+                "estimatedOutputTokens": 4967,
+                "pricingBand": "standard-up-to-200k"
+              },
+              {
+                "step": "llm",
+                "provider": "grok",
+                "model": "grok-4.7",
+                "cost": 2.8128,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 600,
+                "estimatedInputTokens": 11502,
+                "estimatedOutputTokens": 854,
+                "pricingBand": "standard-below-200k"
+              },
+              {
+                "step": "llm",
+                "provider": "kimi",
+                "model": "kimi-k3",
+                "cost": 3.5469,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 300,
+                "outputCostPer1MCents": 1500,
+                "estimatedInputTokens": 10323,
+                "estimatedOutputTokens": 300
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-luna",
+                "cost": 0.23794,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 20,
+                "outputCostPer1MCents": 120,
+                "estimatedInputTokens": 10205,
+                "estimatedOutputTokens": 282,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-sol",
+                "cost": 4.606,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 400,
+                "outputCostPer1MCents": 2000,
+                "estimatedInputTokens": 10205,
+                "estimatedOutputTokens": 262,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-terra",
+                "cost": 2.3446,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 1200,
+                "estimatedInputTokens": 10205,
+                "estimatedOutputTokens": 253,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6-astra",
+                "cost": 11.215,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 1000,
+                "outputCostPer1MCents": 5000,
+                "estimatedInputTokens": 10205,
+                "estimatedOutputTokens": 202,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6-luna",
+                "cost": 0.1145,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 50,
+                "estimatedInputTokens": 10205,
+                "estimatedOutputTokens": 249,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6.1-sol",
+                "cost": 2.241,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 200,
+                "outputCostPer1MCents": 1000,
+                "estimatedInputTokens": 10205,
+                "estimatedOutputTokens": 200,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "glm-5.3",
+                "cost": 1.6528200000000002,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 140,
+                "outputCostPer1MCents": 440,
+                "estimatedInputTokens": 10489,
+                "estimatedOutputTokens": 419
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "glm-5.3-flash",
+                "cost": 0.279235,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 15,
+                "outputCostPer1MCents": 50,
+                "estimatedInputTokens": 10489,
+                "estimatedOutputTokens": 2438
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "kimi-k3",
+                "cost": 4.9833,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 300,
+                "outputCostPer1MCents": 1500,
+                "estimatedInputTokens": 10371,
+                "estimatedOutputTokens": 1248
+              }
+            ]
+          },
+          "actual": {
+            "totalCost": 90.10871000000002,
+            "steps": [
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-fable-5-1",
+                "cost": 16.527,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 14627,
+                "promptTokens": 14152,
+                "completionTokens": 475
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-haiku-5-5",
+                "cost": 0.16447,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 14611,
+                "promptTokens": 14152,
+                "completionTokens": 459,
+                "pricingBand": "standard-up-to-100k"
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-opus-5",
+                "cost": 8.424999999999999,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 14690,
+                "promptTokens": 14150,
+                "completionTokens": 540
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-opus-5-5",
+                "cost": 6.6428,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 14643,
+                "promptTokens": 14152,
+                "completionTokens": 491
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-sonnet-5",
+                "cost": 3.327,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 14647,
+                "promptTokens": 14150,
+                "completionTokens": 497
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-sonnet-5-5",
+                "cost": 3.1754,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 14497,
+                "promptTokens": 14152,
+                "completionTokens": 345
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-3.7-flash",
+                "cost": 2.41095,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 12097,
+                "promptTokens": 11103,
+                "completionTokens": 994
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-3.8-flash",
+                "cost": 2.58045,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 12323,
+                "promptTokens": 11103,
+                "completionTokens": 1220
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-4-argon",
+                "cost": 4.9484,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 11543,
+                "promptTokens": 11336,
+                "completionTokens": 207
+              },
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3",
+                "cost": 2.4562600000000003,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 12734,
+                "promptTokens": 10489,
+                "completionTokens": 2245
+              },
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3-flash",
+                "cost": 0.257485,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 12492,
+                "promptTokens": 10489,
+                "completionTokens": 2003
+              },
+              {
+                "step": "llm",
+                "provider": "grok",
+                "model": "grok-4.6",
+                "cost": 5.1594,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 15863,
+                "promptTokens": 10896,
+                "completionTokens": 4967,
+                "pricingBand": "standard-up-to-200k"
+              },
+              {
+                "step": "llm",
+                "provider": "grok",
+                "model": "grok-4.7",
+                "cost": 2.8128,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 12356,
+                "promptTokens": 11502,
+                "completionTokens": 854,
+                "pricingBand": "standard-below-200k"
+              },
+              {
+                "step": "llm",
+                "provider": "kimi",
+                "model": "kimi-k3",
+                "cost": 3.5469,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 10623,
+                "promptTokens": 10323,
+                "completionTokens": 300
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-luna",
+                "cost": 0.23794,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 10487,
+                "promptTokens": 10205,
+                "completionTokens": 282,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-sol",
+                "cost": 4.606,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 10467,
+                "promptTokens": 10205,
+                "completionTokens": 262,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-terra",
+                "cost": 2.3446,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 10458,
+                "promptTokens": 10205,
+                "completionTokens": 253,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6-astra",
+                "cost": 11.215,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 10407,
+                "promptTokens": 10205,
+                "completionTokens": 202,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6-luna",
+                "cost": 0.1145,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 10454,
+                "promptTokens": 10205,
+                "completionTokens": 249,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6.1-sol",
+                "cost": 2.241,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 10405,
+                "promptTokens": 10205,
+                "completionTokens": 200,
+                "pricingBand": "standard-short-context"
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "glm-5.3",
+                "cost": 1.6528200000000002,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 10908,
+                "promptTokens": 10489,
+                "completionTokens": 419
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "glm-5.3-flash",
+                "cost": 0.279235,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 12927,
+                "promptTokens": 10489,
+                "completionTokens": 2438
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "kimi-k3",
+                "cost": 4.9833,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 11619,
+                "promptTokens": 10371,
+                "completionTokens": 1248
+              }
+            ]
+          }
+        },
+        "timing": {
+          "actual": {
+            "totalProcessingTimeMs": 288578,
+            "steps": [
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-fable-5-1",
+                "processingTimeMs": 7518,
+                "inputMetric": "tokens",
+                "inputValue": 14627,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 513.981,
+                "throughputValue": 1945.597,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-haiku-5-5",
+                "processingTimeMs": 3554,
+                "inputMetric": "tokens",
+                "inputValue": 14611,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 243.241,
+                "throughputValue": 4111.142,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-opus-5",
+                "processingTimeMs": 8766,
+                "inputMetric": "tokens",
+                "inputValue": 14690,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 596.732,
+                "throughputValue": 1675.793,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-opus-5-5",
+                "processingTimeMs": 6471,
+                "inputMetric": "tokens",
+                "inputValue": 14643,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 441.918,
+                "throughputValue": 2262.865,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-sonnet-5",
+                "processingTimeMs": 5856,
+                "inputMetric": "tokens",
+                "inputValue": 14647,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 399.809,
+                "throughputValue": 2501.195,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "anthropic",
+                "model": "claude-sonnet-5-5",
+                "processingTimeMs": 4570,
+                "inputMetric": "tokens",
+                "inputValue": 14497,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 315.238,
+                "throughputValue": 3172.21,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-3.7-flash",
+                "processingTimeMs": 8424,
+                "inputMetric": "tokens",
+                "inputValue": 12097,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 696.371,
+                "throughputValue": 1436.016,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-3.8-flash",
+                "processingTimeMs": 9153,
+                "inputMetric": "tokens",
+                "inputValue": 12323,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 742.757,
+                "throughputValue": 1346.335,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "gemini",
+                "model": "gemini-4-argon",
+                "processingTimeMs": 5440,
+                "inputMetric": "tokens",
+                "inputValue": 11543,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 471.281,
+                "throughputValue": 2121.875,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3",
+                "processingTimeMs": 44178,
+                "inputMetric": "tokens",
+                "inputValue": 12734,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 3469.295,
+                "throughputValue": 288.243,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "glm",
+                "model": "glm-5.3-flash",
+                "processingTimeMs": 21045,
+                "inputMetric": "tokens",
+                "inputValue": 12492,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 1684.678,
+                "throughputValue": 593.585,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "grok",
+                "model": "grok-4.6",
+                "processingTimeMs": 75473,
+                "inputMetric": "tokens",
+                "inputValue": 15863,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 4757.801,
+                "throughputValue": 210.181,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "grok",
+                "model": "grok-4.7",
+                "processingTimeMs": 11355,
+                "inputMetric": "tokens",
+                "inputValue": 12356,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 918.987,
+                "throughputValue": 1088.155,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "kimi",
+                "model": "kimi-k3",
+                "processingTimeMs": 12704,
+                "inputMetric": "tokens",
+                "inputValue": 10623,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 1195.896,
+                "throughputValue": 836.193,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-luna",
+                "processingTimeMs": 2436,
+                "inputMetric": "tokens",
+                "inputValue": 10487,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 232.288,
+                "throughputValue": 4305.008,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-sol",
+                "processingTimeMs": 4021,
+                "inputMetric": "tokens",
+                "inputValue": 10467,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 384.16,
+                "throughputValue": 2603.084,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-5.6-terra",
+                "processingTimeMs": 3866,
+                "inputMetric": "tokens",
+                "inputValue": 10458,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 369.669,
+                "throughputValue": 2705.122,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6-astra",
+                "processingTimeMs": 3754,
+                "inputMetric": "tokens",
+                "inputValue": 10407,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 360.719,
+                "throughputValue": 2772.243,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6-luna",
+                "processingTimeMs": 2292,
+                "inputMetric": "tokens",
+                "inputValue": 10454,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 219.246,
+                "throughputValue": 4561.082,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "openai",
+                "model": "gpt-6.1-sol",
+                "processingTimeMs": 3964,
+                "inputMetric": "tokens",
+                "inputValue": 10405,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 380.971,
+                "throughputValue": 2624.874,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "glm-5.3",
+                "processingTimeMs": 7509,
+                "inputMetric": "tokens",
+                "inputValue": 10908,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 688.394,
+                "throughputValue": 1452.657,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "glm-5.3-flash",
+                "processingTimeMs": 15812,
+                "inputMetric": "tokens",
+                "inputValue": 12927,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 1223.176,
+                "throughputValue": 817.544,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "llm",
+                "provider": "together",
+                "model": "kimi-k3",
+                "processingTimeMs": 20417,
+                "inputMetric": "tokens",
+                "inputValue": 11619,
+                "rateBasis": "1KTokens",
+                "msPerUnit": 1757.208,
+                "throughputValue": 569.085,
+                "throughputUnit": "tokensPerSecond",
+                "timingScope": "wall"
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "anthropic",
+          "model": "claude-fable-5-1",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "anthropic",
+          "model": "claude-haiku-5-5",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "anthropic",
+          "model": "claude-opus-5",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "anthropic",
+          "model": "claude-opus-5-5",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "anthropic",
+          "model": "claude-sonnet-5",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "anthropic",
+          "model": "claude-sonnet-5-5",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "gemini",
+          "model": "gemini-3.7-flash",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "gemini",
+          "model": "gemini-3.8-flash",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "gemini",
+          "model": "gemini-4-argon",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "glm",
+          "model": "glm-5.3",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "glm",
+          "model": "glm-5.3-flash",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "grok",
+          "model": "grok-4.6",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "grok",
+          "model": "grok-4.7",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "kimi",
+          "model": "kimi-k3",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "openai",
+          "model": "gpt-5.6-luna",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "openai",
+          "model": "gpt-5.6-sol",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "openai",
+          "model": "gpt-5.6-terra",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "openai",
+          "model": "gpt-6-astra",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "openai",
+          "model": "gpt-6-luna",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "openai",
+          "model": "gpt-6.1-sol",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "together",
+          "model": "glm-5.3",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "together",
+          "model": "glm-5.3-flash",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "together",
+          "model": "kimi-k3",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        }
+      ]
+    }
+  ]
+}

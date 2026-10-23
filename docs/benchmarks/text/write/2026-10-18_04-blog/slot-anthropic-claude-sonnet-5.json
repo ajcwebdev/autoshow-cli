@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "04-blog",
+  "provider": "anthropic",
+  "model": "claude-sonnet-5",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:35:37.464Z",
+  "artifactHashes": {
+    "raw-response-anthropic-claude-sonnet-5-attempt-1.json": "38061fd7482bfe3e16158602a19e9e7ff3cfbd89cce4c83c0e069acb85ee34a3",
+    "text-anthropic-claude-sonnet-5.json": "5fe9dd012630707b04a1eca37eb226d1d5d342445a66b9b9b9b2a7933cda6326",
+    "text-anthropic-claude-sonnet-5.md": "8d4c2920e086ba4d7eef86c46a0e8cf3c5d0185dc03a4dfe0e7030a9783e49cb"
+  },
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-sonnet-5",
+    "providerReturnedModel": "claude-sonnet-5",
+    "processingTime": 28233,
+    "inputTokenCount": 3658,
+    "outputTokenCount": 2223,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3658,
+      "outputTokenCount": 2223
+    },
+    "rawProviderUsage": {
+      "input_tokens": 3658,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2223,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "text-anthropic-claude-sonnet-5.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "blog"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-sonnet-5",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "9b4269f300a26357a404a2bb0e5180f38dc0bef1d551f375208170336361b72e"
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 2.9546
+  },
+  "completedAt": "2026-10-18T18:36:05.698Z",
+  "wallTimeMs": 28233,
+  "networkAttempts": 1
+}

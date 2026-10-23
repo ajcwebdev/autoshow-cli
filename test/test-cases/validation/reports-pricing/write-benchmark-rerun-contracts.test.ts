@@ -132,7 +132,7 @@ describe('targeted write benchmark rerun safety', () => {
 
   test('historical retired-model rerun receipts remain verifiable while paid execution of that plan is blocked', async () => {
     blockNetwork()
-    const historical = await Bun.file('docs/benchmarks/write/rerun-plan.json').json() as WriteBenchmarkRerunPlan
+    const historical = await Bun.file('docs/benchmarks/text/write/rerun-plan.json').json() as WriteBenchmarkRerunPlan
     const cached = await verifyWriteBenchmarkRerunCache(historical)
     expect(cached).toHaveLength(7)
     expect(cached.find(slot => slot.provider === 'grok' && slot.model === 'grok-4.6')?.status).toBe('completed')
@@ -146,7 +146,7 @@ describe('targeted write benchmark rerun safety', () => {
 
   test('historical rerun estimates require the original retired-route snapshot and preserve the pinned selection fingerprint', async () => {
     blockNetwork()
-    const saved = await Bun.file('docs/benchmarks/write/rerun-plan.json').json() as WriteBenchmarkRerunPlan
+    const saved = await Bun.file('docs/benchmarks/text/write/rerun-plan.json').json() as WriteBenchmarkRerunPlan
     const rebuilt = await buildWriteBenchmarkRerunPlan()
     expect(rebuilt.fingerprint).toBe(saved.fingerprint)
     expect(rebuilt.cases).toEqual(saved.cases)

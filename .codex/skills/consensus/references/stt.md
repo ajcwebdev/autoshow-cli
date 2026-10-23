@@ -51,7 +51,7 @@ Quality Score rankings use the existing speaker-aware WER-derived score from hig
 
 ## Compaction For Git
 
-On a category root such as `docs/benchmarks/stt-with-speakers`, run `compact-archive` so every run is compacted. After a provider has canonical `result.json`, it deletes the per-segment resume tree (`split-attempts/pass_*/segment-runs/segment_*/` plus sliced audio under `segments/`) and whisper sidecars (`transcription.words.json`, `transcription.json`) that duplicate that result. Failed providers without `result.json` keep those checkpoints, including `error.json` and `raw-response.json`. Keep `transcription.txt`. See `references/shared-conventions.md`.
+On a category root such as `docs/benchmarks/stt/with-speakers`, run `compact-archive` so every run is compacted. After a provider has canonical `result.json`, it deletes the per-segment resume tree (`split-attempts/pass_*/segment-runs/segment_*/` plus sliced audio under `segments/`) and whisper sidecars (`transcription.words.json`, `transcription.json`) that duplicate that result. Failed providers without `result.json` keep those checkpoints, including `error.json` and `raw-response.json`. Keep `transcription.txt`. See `references/shared-conventions.md`.
 
 Raw STT `providers/*/result.json` files carry large `result.evidence.words` arrays (per-word timing/confidence) and `result.evidence.rawResponse` blobs that can make a single run tens of megabytes — too large to commit. On a single run, compact them in place with:
 
@@ -77,7 +77,7 @@ To aggregate every per-run `reference-comparison-report.json` under a root direc
 bun scripts/run.ts stt build-combined-report "$ROOT_DIR"
 ```
 
-`$ROOT_DIR` is the parent directory holding the run subdirectories (for example `docs/benchmarks/stt-without-speakers` or `docs/benchmarks/stt-with-speakers`). The script discovers each subdirectory that contains a `reference-comparison-report.json`, matches providers by `providerKey`, and aggregates across the runs each provider appears in:
+`$ROOT_DIR` is the parent directory holding the run subdirectories (for example `docs/benchmarks/stt/without-speakers` or `docs/benchmarks/stt/with-speakers`). The script discovers each subdirectory that contains a `reference-comparison-report.json`, matches providers by `providerKey`, and aggregates across the runs each provider appears in:
 
 1. Quality score: mean of the per-run speaker-aware WER-derived score, ranked highest first.
 2. Price: mean per-run monetary cost, ranked lowest first, local providers at zero, missing cost last.

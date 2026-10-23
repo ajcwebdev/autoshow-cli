@@ -24,7 +24,7 @@ import { makeTempDirSync } from '../../../test-utils/temp-dirs'
 
 const tempRoots: string[] = []
 const renderUrlPanel = (model: CombinedDashboardModel): string =>
-  renderTabPanel({ key: 'url', label: 'URL', rootLabel: 'docs/benchmarks/url', model })
+  renderTabPanel({ key: 'url', label: 'URL', rootLabel: 'docs/benchmarks/text/url', model })
 
 afterEach(() => {
   for (const root of tempRoots.splice(0)) {
@@ -464,7 +464,7 @@ describe('URL combined-report aggregation', () => {
 
 describe('committed URL combined dashboard', () => {
   test('captures the seven-run URL schema v1 inventory', () => {
-    const artifactRoot = resolve(import.meta.dir, '../../../../docs/benchmarks/url')
+    const artifactRoot = resolve(import.meta.dir, '../../../../docs/benchmarks/text/url')
     const report = JSON.parse(readFileSync(join(artifactRoot, 'combined-comparison-report.json'), 'utf8')) as UrlCombinedArtifact<AggregatedUrlProvider, UrlMetricRankingEntry>
 
     expect(report.schemaVersion).toBe(2)
@@ -497,10 +497,10 @@ describe('committed URL combined dashboard', () => {
     expect(html).not.toContain('<table')
     expect(html).not.toContain('All weighted rankings')
 
-    expect(tab?.rootLabel).toBe('docs/benchmarks/url')
+    expect(tab?.rootLabel).toBe('docs/benchmarks/text/url')
     expect(JSON.stringify(tab)).not.toContain('All weighted rankings')
     const panel = renderTabPanel(tab!)
-    expect(panel).toContain('<code>docs/benchmarks/url</code>')
+    expect(panel).toContain('<code>docs/benchmarks/text/url</code>')
     expect(panel).toContain('<table class="providers">')
     expect(panel).toContain('<h3>Metric rankings</h3>')
     expect(panel).toContain('<h3>Per-run automated quality</h3>')

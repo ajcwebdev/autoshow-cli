@@ -9,7 +9,7 @@ import { writePortableFileSync } from '../../../.codex/skills/consensus/scripts/
 import { normalizeHistoricalReference, serializeValidatedWikisource } from './prepare-historical-newspapers'
 
 export const NEWSPAPER_EXPANSION_ROOT = 'input/examples/document/ocr-newspaper-expansion'
-export const NEWSPAPER_EXPANSION_PUBLIC_PLAN = 'docs/benchmarks/ocr/newspaper-expansion-plan.json'
+export const NEWSPAPER_EXPANSION_PUBLIC_PLAN = 'docs/benchmarks/text/ocr/newspaper-expansion-plan.json'
 const selectionPath = `${NEWSPAPER_EXPANSION_ROOT}/selection.json`
 const nonempty = v.pipe(v.string(), v.nonEmpty())
 const digest = v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/))

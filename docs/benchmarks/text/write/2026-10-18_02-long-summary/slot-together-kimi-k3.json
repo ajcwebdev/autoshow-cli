@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "02-long-summary",
+  "provider": "together",
+  "model": "kimi-k3",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:31:17.267Z",
+  "artifactHashes": {
+    "raw-response-together-kimi-k3-attempt-1.json": "2b0930e49fa46a50b1bdabb9607d93af7e423b9d03dac14a7f53735c7e7dba3d",
+    "text-together-kimi-k3.json": "c91703b341f4efb4fbf4ef0750dc81d49d94f8b32f3e8cd6e422f7a33d690aac",
+    "text-together-kimi-k3.md": "17341df64355cb366c522e7345ccc7224be6d3b9ea1df066c76ee3d5270f01cf"
+  },
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "kimi-k3",
+    "providerReturnedModel": "moonshotai/Kimi-K3",
+    "processingTime": 20417,
+    "inputTokenCount": 10371,
+    "outputTokenCount": 1248,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 10371,
+      "outputTokenCount": 1248,
+      "totalTokenCount": 11619
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 10371,
+      "completion_tokens": 1248,
+      "total_tokens": 11619,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 997
+      }
+    },
+    "outputFileName": "text-together-kimi-k3.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "longSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "moonshotai/Kimi-K3",
+      "stream": false,
+      "max_tokens": 131072,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_longSummary",
+          "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 4.9833
+  },
+  "completedAt": "2026-10-18T18:31:37.687Z",
+  "wallTimeMs": 20418,
+  "networkAttempts": 1
+}

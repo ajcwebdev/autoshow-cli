@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 
 import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 import { type ConsensusCategory, rewriteComparisonReports } from "./shared/report_surfaces.ts";
 import { runSyncCommand } from "../../../../src/utils/sync-subprocess.ts";
-import { DASHBOARD_TAB_DIRS, hasAllDashboardTabs } from "./shared/build_combined_dashboard";
+import { DASHBOARD_TAB_DIRS, dashboardRootForCategory, hasAllDashboardTabs } from "./shared/build_combined_dashboard";
 
 type CommandName = "build-packet" | "build-report" | "compact-results" | "compact-archive" | "build-combined-report";
 
@@ -315,7 +315,7 @@ function main(): number {
       throw new Error(`build-combined-report is not supported for ${parsed.category}`);
     }
     runScript(config.combinedReportScript, [parsed.runDir]);
-    const benchmarksRoot = dirname(parsed.runDir);
+    const benchmarksRoot = dashboardRootForCategory(parsed.runDir);
     if (hasAllDashboardTabs(benchmarksRoot)) {
       runScript(DASHBOARD_SCRIPT, [benchmarksRoot]);
     } else {

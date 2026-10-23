@@ -18,7 +18,7 @@ import {
   renderDashboard,
   renderTabPanel
 } from '../../../../.codex/skills/consensus/scripts/shared/dashboard_client.js'
-import { dashboardAssetNames } from '../../../../.codex/skills/consensus/scripts/shared/build_combined_dashboard'
+import { dashboardAssetNames, dashboardRootForCategory, DASHBOARD_TABS as DASHBOARD_SOURCES } from '../../../../.codex/skills/consensus/scripts/shared/build_combined_dashboard'
 import { buildTtsDashboard } from '../../../../.codex/skills/consensus/scripts/tts/build_tts_dashboard'
 import { buildTextDashboard } from '../../../../.codex/skills/consensus/scripts/text/build_text_dashboard'
 import type { ArtifactReport } from '~/types'
@@ -29,6 +29,7 @@ const dashboardPath = join(benchmarksRoot, 'combined-comparison-dashboard.html')
 const dataPath = join(benchmarksRoot, 'combined-comparison-dashboard.json')
 const stylesheetPath = join(benchmarksRoot, 'combined-comparison-dashboard.css')
 const scriptPath = join(benchmarksRoot, 'combined-comparison-dashboard.js')
+const tabDirectory = (key: string): string => DASHBOARD_SOURCES.find(tab => tab.key === key)!.directory
 const STYLESHEET_LINK = '<link rel="stylesheet" href="combined-comparison-dashboard.css">'
 const SCRIPT_TAG = '<script src="combined-comparison-dashboard.js"></script>'
 const DATA_SOURCE = 'data-source="combined-comparison-dashboard.json"'
@@ -147,12 +148,23 @@ const twoTabPage = () => ({
   title: 'AutoShow Benchmark Dashboard',
   generatedAt: '2026-09-16T00:00:00.000Z',
   tabs: [
-    { key: 'stt-local', label: 'STT local', rootLabel: 'docs/benchmarks/stt-local', model: localGroupModel('/tmp/stt-local', 'Combined STT Provider Comparison') },
-    { key: 'url', label: 'URL', rootLabel: 'docs/benchmarks/url', model: localGroupModel('/tmp/url', 'Combined URL Provider Comparison') }
+    { key: 'stt-local', label: 'STT local', rootLabel: 'docs/benchmarks/stt/local', model: localGroupModel('/tmp/stt-local', 'Combined STT Provider Comparison') },
+    { key: 'url', label: 'URL', rootLabel: 'docs/benchmarks/text/url', model: localGroupModel('/tmp/url', 'Combined URL Provider Comparison') }
   ]
 })
 
 describe('combined-report metric ranking contracts', () => {
+  test('finds the dashboard root for nested categories while retaining stable tab IDs', () => {
+    expect(DASHBOARD_SOURCES.map(tab => [tab.key, tab.directory])).toEqual([
+      ['ocr', 'text/ocr'], ['stt-local', 'stt/local'],
+      ['stt-with-speakers', 'stt/with-speakers'], ['stt-without-speakers', 'stt/without-speakers'],
+      ['url', 'text/url'], ['tts', 'tts'], ['write', 'text/write']
+    ])
+    for (const tab of DASHBOARD_SOURCES) {
+      expect(dashboardRootForCategory(join(benchmarksRoot, tab.directory))).toBe(benchmarksRoot)
+    }
+  })
+
   for (const [directory, schemaVersion, groups] of [
     ['ocr', 3, ['local', 'thirdPartyService']],
     ['stt-with-speakers', 4, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization']],
@@ -161,7 +173,7 @@ describe('combined-report metric ranking contracts', () => {
     ['url', 2, ['local', 'service']]
   ] as const) {
     test(`generated ${directory} artifacts rank cost, speed, and quality per group`, () => {
-      const artifactRoot = join(projectRoot, 'docs', 'benchmarks', directory)
+      const artifactRoot = join(projectRoot, 'docs', 'benchmarks', tabDirectory(directory))
       const jsonPath = join(artifactRoot, 'combined-comparison-report.json')
       expect(existsSync(jsonPath)).toBe(true)
       const jsonText = readFileSync(jsonPath, 'utf8')
@@ -420,12 +432,12 @@ describe('committed benchmark dashboard', () => {
 
     for (const [key, groups] of DASHBOARD_TABS) {
       const report = JSON.parse(
-        readFileSync(join(projectRoot, 'docs', 'benchmarks', key, 'combined-comparison-report.json'), 'utf8')
+        readFileSync(join(projectRoot, 'docs', 'benchmarks', tabDirectory(key), 'combined-comparison-report.json'), 'utf8')
       ) as ArtifactReport
       const qualityMetric = key === 'url' ? 'automatedQuality' : 'qualityScore'
       const tab = data.tabs.find((candidate) => candidate.key === key)
 
-      expect(tab?.rootLabel).toBe(`docs/benchmarks/${key}`)
+      expect(tab?.rootLabel).toBe(`docs/benchmarks/${tabDirectory(key)}`)
       expect(tab?.model.groups.map((group) => group.key)).toEqual([...groups])
       for (const group of groups) {
         const populated = (report.metricRankings[group]?.[qualityMetric] ?? []).length > 0
@@ -438,8 +450,8 @@ describe('committed benchmark dashboard', () => {
     expect(tts?.model).toEqual(buildTtsDashboard(join(benchmarksRoot, 'tts'), data.generatedAt).dashboardModel)
 
     const write = data.tabs.find((candidate) => candidate.key === 'write')
-    expect(write?.rootLabel).toBe('docs/benchmarks/write')
-    expect(write?.model).toEqual(buildTextDashboard(join(benchmarksRoot, 'write'), data.generatedAt).dashboardModel)
+    expect(write?.rootLabel).toBe('docs/benchmarks/text/write')
+    expect(write?.model).toEqual(buildTextDashboard(join(benchmarksRoot, 'text/write'), data.generatedAt).dashboardModel)
   })
 
   test('renders its data into tabbed panels with sortable metric tables', () => {
@@ -454,14 +466,14 @@ describe('committed benchmark dashboard', () => {
 
     for (const [key, groups] of DASHBOARD_TABS) {
       const report = JSON.parse(
-        readFileSync(join(projectRoot, 'docs', 'benchmarks', key, 'combined-comparison-report.json'), 'utf8')
+        readFileSync(join(projectRoot, 'docs', 'benchmarks', tabDirectory(key), 'combined-comparison-report.json'), 'utf8')
       ) as ArtifactReport
       const qualityMetric = key === 'url' ? 'automatedQuality' : 'qualityScore'
       const panel = panelFor(html, key)
 
       expect(html).toContain(`id="tab-${key}"`)
       expect(html).toContain(`id="panel-${key}"`)
-      expect(panel).toContain(`<code>docs/benchmarks/${key}</code>`)
+      expect(panel).toContain(`<code>docs/benchmarks/${tabDirectory(key)}</code>`)
       expect(panel).toContain('<table class="providers">')
       expect(panel).toContain('<h3>Metric rankings</h3>')
       expect(panel).toContain('value="quality" checked')

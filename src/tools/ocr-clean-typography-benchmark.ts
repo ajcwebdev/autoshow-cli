@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path'
 import { validateCleanTypographyBundleFile } from './ocr-clean-typography-admission'
 import { PROJECT_ROOT, stripProjectRoot } from '~/utils/project-root'
 
-export const CLEAN_TYPOGRAPHY_PLAN = 'docs/benchmarks/ocr/clean-typography-additions-plan.json'
+export const CLEAN_TYPOGRAPHY_PLAN = 'docs/benchmarks/text/ocr/clean-typography-additions-plan.json'
 const localRoot = 'input/examples/document/ocr-clean-typography'
 const ledgerPath = `${localRoot}/spending-ledger.json`
 const guardPath = 'src/tools/ocr-clean-typography-spending-guard.ts'

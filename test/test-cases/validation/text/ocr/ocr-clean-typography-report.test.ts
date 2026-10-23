@@ -31,7 +31,7 @@ const fixture = async () => {
     const referenceText = `${secret} publisher ${index}.\n`; await write(reference, referenceText)
     const entry = { id, input, reference, inputSha256: hash(redDotPng), referenceSha256: hash(referenceText),
       annotationURL: 'https://example.org/pinned-annotation', sourceURL: 'https://example.org/pinned-image', sourceRevision: 'fixture-pinned-revision',
-      runDir: `docs/benchmarks/ocr/${id}`, localPilot: { directory: `${rootPath}/local-pilot/${id}` },
+      runDir: `docs/benchmarks/text/ocr/${id}`, localPilot: { directory: `${rootPath}/local-pilot/${id}` },
       rights: { license: 'Synthetic private research fixture', notice: `${rootPath}/notice.txt`, redistributable: false } }
     cases.push(entry)
     const result = { text: `${secret} provider ${index}`, pages: [{ pageNumber: 1, method: 'ocr', text: `${secret} provider ${index}` }], totalPages: 1 }
@@ -66,7 +66,7 @@ const fixture = async () => {
   const bundle = { cases: cases.map(entry => ({ id: entry.id, input: entry.input, reference: entry.reference, inputSha256: entry.inputSha256, referenceSha256: entry.referenceSha256 })) }
   const bundleBytes = await write(`${rootPath}/bundle.json`, bundle)
   const plan = { schemaVersion: 1, category: 'clean-typography', caseCount: 5, targetCount: 3, bundle: `${rootPath}/bundle.json`, bundleSha256: hash(bundleBytes), quote: { models: targets }, cases }
-  await write('docs/benchmarks/ocr/clean-typography-additions-plan.json', plan)
+  await write('docs/benchmarks/text/ocr/clean-typography-additions-plan.json', plan)
   await write(`${rootPath}/spending-ledger.json`, { schemaVersion: 1, kind: 'ocr-clean-typography-spending-ledger', budgetCents: 500, receipts })
   const mutableCommands: string[][] = []
   const options: CleanTypographyReportOptions = { projectRoot: root, runConsensus: async argv => {

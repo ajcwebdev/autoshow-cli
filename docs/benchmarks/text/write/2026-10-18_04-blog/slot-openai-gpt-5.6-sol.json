@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "04-blog",
+  "provider": "openai",
+  "model": "gpt-5.6-sol",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:35:21.630Z",
+  "artifactHashes": {
+    "raw-response-openai-gpt-5.6-sol-attempt-1.json": "db94566a60486214097ed6a74e4175be4506aedd75ed8cae7ae3b0d094b3f514",
+    "text-openai-gpt-5.6-sol.json": "3839942e53429e167acf0966e9e73284e9daef3400019ffb84321e4f7d0bd73b",
+    "text-openai-gpt-5.6-sol.md": "61f95c9815de0ce5118499d9f3ff9b22674155044347f7229340326ed2b39dd5"
+  },
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-5.6-sol",
+    "providerReturnedModel": "gpt-5.6-sol",
+    "processingTime": 17055,
+    "inputTokenCount": 2409,
+    "outputTokenCount": 1915,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 2409,
+      "outputTokenCount": 1915,
+      "totalTokenCount": 4324
+    },
+    "rawProviderUsage": {
+      "input_tokens": 2409,
+      "input_tokens_details": {
+        "cache_write_tokens": 2406,
+        "cached_tokens": 0
+      },
+      "output_tokens": 1915,
+      "output_tokens_details": {
+        "reasoning_tokens": 82
+      },
+      "total_tokens": 4324
+    },
+    "outputFileName": "text-openai-gpt-5.6-sol.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "blog"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-5.6-sol",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_blog",
+          "schemaSha256": "6a7be88f6d1e36488bb5e1c39765f78161fadbb922b259a752e33273ca2ecc60",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 4.7936
+  },
+  "completedAt": "2026-10-18T18:35:38.687Z",
+  "wallTimeMs": 17056,
+  "networkAttempts": 1
+}

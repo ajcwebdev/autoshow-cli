@@ -5,7 +5,7 @@ import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import * as v from 'valibot'
 import { PROJECT_ROOT } from '~/utils/project-root'
-import sourceCatalog from '../../docs/benchmarks/ocr/source-catalog.json'
+import sourceCatalog from '../../docs/benchmarks/text/ocr/source-catalog.json'
 
 export const DEFAULT_CLEAN_TYPOGRAPHY_BUNDLE = 'input/examples/document/ocr-clean-typography/bundle.json'
 const sourceRoot = 'input/examples/document/ocr-clean-typography'
@@ -51,7 +51,7 @@ export const CLEAN_TYPOGRAPHY_SOURCE_PINS: readonly CleanTypographySourcePin[] =
 ]
 
 export const EXISTING_OCR_REFERENCE_PATHS = sourceCatalog.existingReferenceIDs
-  .map(id => `docs/benchmarks/ocr/${id}/consensus-extraction.txt`)
+  .map(id => `docs/benchmarks/text/ocr/${id}/consensus-extraction.txt`)
 
 const nonempty = v.pipe(v.string(), v.trim(), v.nonEmpty())
 const sha256 = v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/))

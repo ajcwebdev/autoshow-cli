@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { readCanonicalManifest, isRecord, type JsonObject } from "../shared/pipeline_manifest";
 import type { CombinedDashboardModel, DashboardGroup, DashboardProviderRow } from "../shared/combined_report_html";
 import { toProjectRelativePath } from "../../../../../src/utils/project-root";
@@ -73,9 +73,15 @@ function outputArtifact(runDir: string, providerKey: string, fileName: unknown, 
   return { valid: true, file, error: null };
 }
 
+/** Dashboard artifacts live above the text category grouping. */
+export function writeDashboardLinkRoot(rootDir: string): string {
+  const parent = dirname(resolve(rootDir));
+  return basename(parent) === "text" ? dirname(parent) : parent;
+}
+
 export function collectWriteDashboardAttempts(rootDir: string): WriteDashboardSample[] {
   const root = resolve(rootDir), samples: WriteDashboardSample[] = [];
-  const href = (path: string) => relative(dirname(root), path).split("\\").join("/");
+  const href = (path: string) => relative(writeDashboardLinkRoot(root), path).split("\\").join("/");
   const planPath = join(root, "benchmark-plan.json");
   const plan = existsSync(planPath) ? object(JSON.parse(readFileSync(planPath, "utf8"))) : {};
   const plannedProviders = records(plan["providers"]);
@@ -176,6 +182,7 @@ function rankProviders(providers: DashboardProviderRow[]): void {
 
 export function buildTextDashboard(rootDir: string, generatedAt = new Date().toISOString()): { dashboardModel: CombinedDashboardModel; samples: WriteDashboardSample[]; attempts: WriteDashboardSample[] } {
   const root = resolve(rootDir), attempts = collectWriteDashboardAttempts(root), samples = attempts.filter(sample => sample.selected);
+  const href = (path: string) => relative(writeDashboardLinkRoot(root), path).split("\\").join("/");
   const keys = [...new Set(samples.map(row => row.providerKey))].sort();
   const makeGroup = (key: string, label: string, cases: readonly string[]): DashboardGroup => {
     const providers: DashboardProviderRow[] = keys.map(providerKey => {
@@ -225,9 +232,9 @@ export function buildTextDashboard(rootDir: string, generatedAt = new Date().toI
       runName: benchmark.directory, shortLabel: `W${index + 1}`, detail: `${benchmark.label} (${benchmark.prompt})`,
       inventory: {
         manifest: existsSync(join(root, benchmark.directory, "manifest.json"))
-          ? { display: "Manifest", artifactHref: `write/${benchmark.directory}/manifest.json` } : { display: "Not run" },
+          ? { display: "Manifest", artifactHref: href(join(root, benchmark.directory, "manifest.json")) } : { display: "Not run" },
         report: existsSync(join(root, benchmark.directory, "provider-comparison-report.md"))
-          ? { display: "Results", artifactHref: `write/${benchmark.directory}/provider-comparison-report.md` } : { display: "Pending" },
+          ? { display: "Results", artifactHref: href(join(root, benchmark.directory, "provider-comparison-report.md")) } : { display: "Pending" },
       },
     })),
     runInventoryColumns: [{ key: "manifest", label: "Evidence" }, { key: "report", label: "Report" }], groups,

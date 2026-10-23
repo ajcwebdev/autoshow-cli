@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "05-rap-song-chapter",
+  "provider": "glm",
+  "model": "glm-5.3-flash",
+  "status": "failed",
+  "startedAt": "2026-10-18T19:14:33.694Z",
+  "artifactHashes": {
+    "failure-glm-glm-5.3-flash.json": "11b6ad4916d0caa499a366a17a0385207e04f5c5892c23e2b6769f0c92574d9f"
+  },
+  "error": "GLM returned no response text from model.",
+  "metadata": {
+    "llmService": "glm",
+    "llmModel": "glm-5.3-flash",
+    "providerReturnedModel": "glm-5.3-flash",
+    "processingTime": 225929,
+    "inputTokenCount": 3407,
+    "outputTokenCount": 16000,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 3407,
+      "outputTokenCount": 16000,
+      "totalTokenCount": 19407
+    },
+    "rawProviderUsage": {
+      "completion_tokens": 16000,
+      "completion_tokens_details": {
+        "reasoning_tokens": 15995
+      },
+      "prompt_tokens": 3407,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 19407
+    },
+    "outputFileName": "",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "rapSongChapterLyrics"
+    ],
+    "requestSettings": {
+      "model": "glm-5.3-flash",
+      "stream": false,
+      "max_tokens": 16000,
+      "thinking": {
+        "type": "enabled"
+      },
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "validationFailed": true
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.851105
+  },
+  "completedAt": "2026-10-18T19:18:19.637Z",
+  "wallTimeMs": 225940,
+  "networkAttempts": 1
+}

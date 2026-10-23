@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "02-long-summary",
+  "provider": "together",
+  "model": "glm-5.3",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:31:17.267Z",
+  "artifactHashes": {
+    "raw-response-together-glm-5.3-attempt-1.json": "da197d78e4d9a5ca3f9385b708dbb07ad50dc465d117fe999b3937d97647dbee",
+    "text-together-glm-5.3.json": "3c3765eb8262fdb88af0d52e2335e760edbd225418ff155fdd658e39da7151c8",
+    "text-together-glm-5.3.md": "edaa3cd2569365163694800470be9eee7ee624b0fb7200a48d6c3d84c7eaa8bf"
+  },
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "glm-5.3",
+    "providerReturnedModel": "zai-org/GLM-5.3",
+    "processingTime": 7509,
+    "inputTokenCount": 10489,
+    "outputTokenCount": 419,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 10489,
+      "outputTokenCount": 419,
+      "totalTokenCount": 10908
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 10489,
+      "completion_tokens": 419,
+      "total_tokens": 10908,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "outputFileName": "text-together-glm-5.3.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "longSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "zai-org/GLM-5.3",
+      "stream": false,
+      "max_tokens": 32768,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_longSummary",
+          "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 1.6528200000000002
+  },
+  "completedAt": "2026-10-18T18:31:24.777Z",
+  "wallTimeMs": 7509,
+  "networkAttempts": 1
+}

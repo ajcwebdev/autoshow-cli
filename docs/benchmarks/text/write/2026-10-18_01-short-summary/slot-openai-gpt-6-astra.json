@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "01-short-summary",
+  "provider": "openai",
+  "model": "gpt-6-astra",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:30:42.820Z",
+  "artifactHashes": {
+    "raw-response-openai-gpt-6-astra-attempt-1.json": "bda9ccad799d04df27c639a48ebb7e09175d88b3b243e34adacc516ed42ac1eb",
+    "text-openai-gpt-6-astra.json": "f1308705428701f2066d2e42adb9217f90431b7161bdac6d677a137097572732",
+    "text-openai-gpt-6-astra.md": "5d4e2694e78052ff0ad6c7c9e3e003f26309cfff3de79f3fb8eb06eb02e5e327"
+  },
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6-astra",
+    "providerReturnedModel": "gpt-6-astra",
+    "processingTime": 2957,
+    "inputTokenCount": 438,
+    "outputTokenCount": 96,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 438,
+      "outputTokenCount": 96,
+      "totalTokenCount": 534
+    },
+    "rawProviderUsage": {
+      "input_tokens": 438,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 96,
+      "output_tokens_details": {
+        "reasoning_tokens": 56
+      },
+      "total_tokens": 534
+    },
+    "outputFileName": "text-openai-gpt-6-astra.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "shortSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-6-astra",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_shortSummary",
+          "schemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.918
+  },
+  "completedAt": "2026-10-18T18:30:45.777Z",
+  "wallTimeMs": 2958,
+  "networkAttempts": 1
+}

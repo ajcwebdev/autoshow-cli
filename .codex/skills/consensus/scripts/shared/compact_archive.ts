@@ -56,7 +56,7 @@ export function isRunDirectory(dir: string): boolean {
 export function discoverArchiveRuns(rootDir: string): string[] {
   if (isRunDirectory(rootDir)) {
     throw new Error(
-      `compact-archive refuses a single run directory: ${rootDir}. Run it on a category root such as docs/benchmarks/image or docs/benchmarks/stt-with-speakers.`,
+      `compact-archive refuses a single run directory: ${rootDir}. Run it on a category root such as docs/benchmarks/image or docs/benchmarks/stt/with-speakers.`,
     );
   }
 
@@ -70,15 +70,16 @@ export function discoverArchiveRuns(rootDir: string): string[] {
   }
 
   const nestedRuns: string[] = [];
-  for (const child of children) {
-    const childDir = join(rootDir, child.name);
-    nestedRuns.push(
-      ...readdirSync(childDir, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => join(childDir, entry.name))
-        .filter(isRunDirectory),
-    );
-  }
+  const visit = (directory: string): void => {
+    if (isRunDirectory(directory)) {
+      nestedRuns.push(directory);
+      return;
+    }
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (entry.name !== ".DS_Store" && entry.isDirectory()) visit(join(directory, entry.name));
+    }
+  };
+  for (const child of children) visit(join(rootDir, child.name));
   nestedRuns.sort((left, right) => left.localeCompare(right));
   if (nestedRuns.length === 0) {
     throw new Error(`No run subdirectories with manifest.json found under ${rootDir}`);

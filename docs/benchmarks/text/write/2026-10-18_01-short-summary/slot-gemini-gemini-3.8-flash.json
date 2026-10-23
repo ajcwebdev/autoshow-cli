@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "01-short-summary",
+  "provider": "gemini",
+  "model": "gemini-3.8-flash",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:30:40.019Z",
+  "artifactHashes": {
+    "raw-response-gemini-gemini-3.8-flash-attempt-1.json": "ca6eeb032a67fb4f1b109c0b791dd9221c8dc95b67ecc8eecab46c2342080766",
+    "text-gemini-gemini-3.8-flash.json": "e07ddf6f8409d7ec1c25e2652b6f67b4e3d08bcae82853467794dfaf014ba139",
+    "text-gemini-gemini-3.8-flash.md": "b4f72e36dbd5ae18fd5d36a160016ee0773613263cd45c313f319d539a491db1"
+  },
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-3.8-flash",
+    "providerReturnedModel": "gemini-3.8-flash",
+    "processingTime": 3783,
+    "inputTokenCount": 468,
+    "outputTokenCount": 436,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 468,
+      "outputTokenCount": 436,
+      "totalTokenCount": 904
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 468,
+      "candidatesTokenCount": 34,
+      "totalTokenCount": 904,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 468
+        }
+      ],
+      "thoughtsTokenCount": 402,
+      "serviceTier": "standard"
+    },
+    "outputFileName": "text-gemini-gemini-3.8-flash.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "shortSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-3.8-flash",
+      "generationConfig": {
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c"
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.3972
+  },
+  "completedAt": "2026-10-18T18:30:43.808Z",
+  "wallTimeMs": 3783,
+  "networkAttempts": 1
+}

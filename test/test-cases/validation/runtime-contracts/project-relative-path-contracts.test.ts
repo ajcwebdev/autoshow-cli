@@ -79,21 +79,21 @@ test('serialized diagnostic stacks drop the project root', () => {
 
 test('consensus report text rewrites checkout paths but keeps sibling and outside paths', async () => {
   const markdown = [
-    `- Run directory: \`${insideProject('docs/benchmarks/ocr/01-book')}\``,
+    `- Run directory: \`${insideProject('docs/benchmarks/text/ocr/01-book')}\``,
     `- Root directory: \`${PROJECT_ROOT}\``,
     `url: "file://${insideProject('docs/a.mp3')}"`,
     `sibling: ${PROJECT_ROOT}-fork/docs`,
     `outside: ${OUTSIDE_PATH}`,
   ].join('\n')
   expect(toPortableText(markdown)).toBe([
-    '- Run directory: `docs/benchmarks/ocr/01-book`',
+    '- Run directory: `docs/benchmarks/text/ocr/01-book`',
     '- Root directory: `.`',
     'url: "docs/a.mp3"',
     `sibling: ${PROJECT_ROOT}-fork/docs`,
     `outside: ${OUTSIDE_PATH}`,
   ].join('\n'))
-  const json = JSON.stringify({ runDir: insideProject('docs/benchmarks/url/run'), rootDir: PROJECT_ROOT })
-  expect(JSON.parse(toPortableText(json))).toEqual({ runDir: 'docs/benchmarks/url/run', rootDir: '.' })
+  const json = JSON.stringify({ runDir: insideProject('docs/benchmarks/text/url/run'), rootDir: PROJECT_ROOT })
+  expect(JSON.parse(toPortableText(json))).toEqual({ runDir: 'docs/benchmarks/text/url/run', rootDir: '.' })
   await withTempDir('autoshow-portable-report-', async (dir) => {
     const reportPath = join(dir, 'provider-comparison-report.md')
     writePortableFileSync(reportPath, markdown)
