@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "04-blog",
+  "provider": "glm",
+  "model": "glm-5.3",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:34:56.574Z",
+  "artifactHashes": {
+    "raw-response-glm-glm-5.3-attempt-1.json": "2c6e1dd64412b479072da751878de3c867c5857f443e1686a855758d7a3605e8",
+    "text-glm-glm-5.3.json": "028d66bdea6f2458ffcc5b978c3eb86b75ff22b59818cc5214deb3d518933cb9",
+    "text-glm-glm-5.3.md": "ad343f82f2a1dc71342f6b0604b3155d5d95ea30f6cf2db18af6035632ad5895"
+  },
+  "metadata": {
+    "llmService": "glm",
+    "llmModel": "glm-5.3",
+    "providerReturnedModel": "glm-5.3",
+    "processingTime": 71987,
+    "inputTokenCount": 2434,
+    "outputTokenCount": 6626,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 2434,
+      "outputTokenCount": 6626,
+      "totalTokenCount": 9060
+    },
+    "rawProviderUsage": {
+      "completion_tokens": 6626,
+      "completion_tokens_details": {
+        "reasoning_tokens": 5296
+      },
+      "prompt_tokens": 2434,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 9060
+    },
+    "outputFileName": "text-glm-glm-5.3.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "blog"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "glm-5.3",
+      "stream": false,
+      "max_tokens": 16000,
+      "thinking": {
+        "type": "enabled"
+      },
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 3.2561999999999998
+  },
+  "completedAt": "2026-10-18T18:36:08.562Z",
+  "wallTimeMs": 71987,
+  "networkAttempts": 1
+}

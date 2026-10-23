@@ -317,7 +317,7 @@ describe('TTS dashboard metrics from archived audio', () => {
     await withTempDir('tts-dashboard-empty-', async checkout => {
       const root = join(checkout, 'tts')
       expect(hasAllDashboardTabs(checkout)).toBe(false)
-      for (const category of ['ocr', 'stt-local', 'stt-with-speakers', 'stt-without-speakers', 'url']) {
+      for (const category of ['text/ocr', 'stt/local', 'stt/with-speakers', 'stt/without-speakers', 'text/url']) {
         writeJson(join(checkout, category, 'combined-comparison-report.json'), {})
       }
       expect(hasAllDashboardTabs(checkout)).toBe(true)

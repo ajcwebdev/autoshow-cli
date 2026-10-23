@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "03-medium-chapters",
+  "provider": "together",
+  "model": "kimi-k3",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:32:32.757Z",
+  "artifactHashes": {
+    "raw-response-together-kimi-k3-attempt-1.json": "3c5990cfc024ba4ec9703354957a708318b19f0b63fd61c37fd41747503c250d",
+    "text-together-kimi-k3.json": "2fde9d84c9baa084d7f5d543d4c5928a59b3d90d9d346b54d610ae1329f14c4b",
+    "text-together-kimi-k3.md": "a888fbc3b3392174537c6095e78ca0503276c37231a191d1adba21cbd6d8a26f"
+  },
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "kimi-k3",
+    "providerReturnedModel": "moonshotai/Kimi-K3",
+    "processingTime": 40421,
+    "inputTokenCount": 2726,
+    "outputTokenCount": 2176,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 2726,
+      "outputTokenCount": 2176,
+      "totalTokenCount": 4902
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 2726,
+      "completion_tokens": 2176,
+      "total_tokens": 4902,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 1883
+      }
+    },
+    "outputFileName": "text-together-kimi-k3.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "mediumChapters"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "moonshotai/Kimi-K3",
+      "stream": false,
+      "max_tokens": 131072,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_mediumChapters",
+          "schemaSha256": "21fdcdb40e118404ed84283dc2e2153afca07f6360aea5c77a5d2b38632c29af",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 4.081799999999999
+  },
+  "completedAt": "2026-10-18T18:33:13.188Z",
+  "wallTimeMs": 40426,
+  "networkAttempts": 1
+}

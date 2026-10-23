@@ -49,7 +49,7 @@ const fixture = async () => {
       referenceKind: 'publisher-canonical', normalizedReference, normalizedReferenceSha256: hash(normalizeHistoricalReference(spec.text)),
       structuredReference, structuredReferenceSha256: hash(structureBytes), sourceURL: 'https://example.org/image-v1', sourceRevision: 'image-v1',
       annotationURL: 'https://example.org/gold-v2', annotationRevision: 'human-v2', scope: spec.scope, sourceFamily: 'Independent human fixture',
-      serializationPolicy: 'Reading normalization is applied to BOTH texts in private derivatives; raw source bytes retained.', runDir: `docs/benchmarks/ocr/${spec.id}`, pages: [page] }
+      serializationPolicy: 'Reading normalization is applied to BOTH texts in private derivatives; raw source bytes retained.', runDir: `docs/benchmarks/text/ocr/${spec.id}`, pages: [page] }
     cases.push(entry); pages.push(page)
     for (const target of targets) {
       const directory = `${base}/slots/${page.id}/${`${target.provider}-${target.model}`.replace(/[^a-zA-Z0-9_.-]/g, '-')}`

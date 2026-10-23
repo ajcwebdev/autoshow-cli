@@ -21,21 +21,31 @@ import {
 
 interface DashboardTabSource {
   key: string;
+  directory: string;
   label: string;
   build: (rootDir: string, generatedAt: string) => { dashboardModel: CombinedDashboardModel };
 }
 
 export const DASHBOARD_TABS: DashboardTabSource[] = [
-  { key: "ocr", label: "OCR", build: buildOcrCombinedReport },
-  { key: "stt-local", label: "STT local", build: buildSttCombinedReport },
-  { key: "stt-with-speakers", label: "STT with speakers", build: buildSttCombinedReport },
-  { key: "stt-without-speakers", label: "STT without speakers", build: buildSttCombinedReport },
-  { key: "url", label: "URL", build: buildUrlCombinedReport },
-  { key: "tts", label: "TTS", build: buildTtsDashboard },
-  { key: "write", label: "Write", build: buildTextDashboard },
+  { key: "ocr", directory: "text/ocr", label: "OCR", build: buildOcrCombinedReport },
+  { key: "stt-local", directory: "stt/local", label: "STT local", build: buildSttCombinedReport },
+  { key: "stt-with-speakers", directory: "stt/with-speakers", label: "STT with speakers", build: buildSttCombinedReport },
+  { key: "stt-without-speakers", directory: "stt/without-speakers", label: "STT without speakers", build: buildSttCombinedReport },
+  { key: "url", directory: "text/url", label: "URL", build: buildUrlCombinedReport },
+  { key: "tts", directory: "tts", label: "TTS", build: buildTtsDashboard },
+  { key: "write", directory: "text/write", label: "Write", build: buildTextDashboard },
 ];
 
-export const DASHBOARD_TAB_DIRS = DASHBOARD_TABS.filter(tab => tab.key !== "tts" && tab.key !== "write").map(tab => tab.key);
+export const DASHBOARD_TAB_DIRS = DASHBOARD_TABS.filter(tab => tab.key !== "tts" && tab.key !== "write").map(tab => tab.directory);
+
+export function dashboardRootForCategory(categoryRoot: string): string {
+  const root = resolve(categoryRoot);
+  for (const tab of DASHBOARD_TABS) {
+    const candidate = resolve(root, ...tab.directory.split("/").map(() => ".."));
+    if (join(candidate, tab.directory) === root) return candidate;
+  }
+  return dirname(root);
+}
 
 export function hasAllDashboardTabs(benchmarksRoot: string): boolean {
   // TTS and Write can render empty tabs before their first benchmark runs.
@@ -67,12 +77,12 @@ export function buildCombinedDashboard(
 ): BenchmarkDashboardBundle {
   const benchmarksRoot = resolve(benchmarksRootRaw);
   const tabs: BenchmarkDashboardTab[] = DASHBOARD_TABS.map((tab) => {
-    const tabRoot = join(benchmarksRoot, tab.key);
+    const tabRoot = join(benchmarksRoot, tab.directory);
     const { dashboardModel } = tab.build(tabRoot, generatedAt);
     return {
       key: tab.key,
       label: tab.label,
-      rootLabel: `docs/benchmarks/${tab.key}`,
+      rootLabel: `docs/benchmarks/${tab.directory}`,
       model: dashboardModel,
       supportedModel: buildSupportedDashboardModel(dashboardModel, supportedDashboardProviderKeys(tab.key, dashboardModel)),
     };

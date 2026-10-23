@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "01-short-summary",
+  "provider": "together",
+  "model": "kimi-k3",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:30:40.019Z",
+  "artifactHashes": {
+    "raw-response-together-kimi-k3-attempt-1.json": "6935085f6a410f654281d2b2d68936f9fd67dc0c69cf0050a37ebe8912fc5bd2",
+    "text-together-kimi-k3.json": "c781dc09fadb005b7c8508a0cc421059ca1da501c2790fb57783c17f95de88a6",
+    "text-together-kimi-k3.md": "e7e389c8fc1afa2a6ce156092d4123601d0139098391cffa03a50cbee590a38c"
+  },
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "kimi-k3",
+    "providerReturnedModel": "moonshotai/Kimi-K3",
+    "processingTime": 4620,
+    "inputTokenCount": 589,
+    "outputTokenCount": 147,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 589,
+      "outputTokenCount": 147,
+      "totalTokenCount": 736
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 589,
+      "completion_tokens": 147,
+      "total_tokens": 736,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 98
+      }
+    },
+    "outputFileName": "text-together-kimi-k3.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "shortSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "moonshotai/Kimi-K3",
+      "stream": false,
+      "max_tokens": 131072,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_shortSummary",
+          "schemaSha256": "106a8de886c3315301dc1c003e8f4f89803eca675006280023744cd5eb1af53c",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.3972
+  },
+  "completedAt": "2026-10-18T18:30:44.644Z",
+  "wallTimeMs": 4620,
+  "networkAttempts": 1
+}

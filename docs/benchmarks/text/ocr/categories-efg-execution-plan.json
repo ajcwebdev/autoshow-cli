@@ -1,0 +1,786 @@
+{
+  "schemaVersion": 1,
+  "kind": "ocr-categories-efg-benchmark-status",
+  "updatedAt": "2026-10-23T08:26:01.669Z",
+  "categoryNumbers": [
+    5,
+    6,
+    7
+  ],
+  "status": "completed-with-one-baseline-output-limit-failure",
+  "approval": {
+    "status": "approved",
+    "budgetCents": 3000,
+    "evidence": "User approved up to $30 for categories 5–7"
+  },
+  "privateExecutionPlan": "input/examples/document/ocr-categories-efg-run/execution-plan.json",
+  "planSha256": "211b236b5627ca280bd5998120cb07fd33b985f29c6fd4b9cce0bca96fdcc9a3",
+  "privateExecution": "input/examples/document/ocr-categories-efg-run/execution.json",
+  "spendingLedger": "input/examples/document/ocr-categories-efg-run/spending-ledger.json",
+  "executionCommand": "bun src/tools/ocr-categories-efg-benchmark.ts --run",
+  "scope": {
+    "files": 19,
+    "pages": 19,
+    "newFiles": 15,
+    "baselineVariants": 4,
+    "hostedTargets": 20,
+    "localTargets": 1,
+    "intendedSlots": 399
+  },
+  "executionPolicy": {
+    "concurrency": 12,
+    "providerConcurrency": {
+      "anthropic": 3,
+      "openai": 4,
+      "gemini": 4,
+      "grok": 3,
+      "deepinfra": 4,
+      "mistral": 3,
+      "tesseract": 2
+    },
+    "geminiIntervalMs": 15500,
+    "geminiSharedAliases": [
+      "gemini-3.5-flash",
+      "gemini-3.6-flash"
+    ],
+    "geminiBackloaded": false,
+    "preserveAllAttempts": true,
+    "reuseCompleted": true
+  },
+  "price": {
+    "nativeCents": 547.9728629999992,
+    "adjustedCents": 561.3014674999991,
+    "twoRepairCents": 1579.6612824999986,
+    "kind": "pre-execution-price-only"
+  },
+  "targets": [
+    {
+      "provider": "tesseract",
+      "model": "tesseract"
+    },
+    {
+      "provider": "mistral",
+      "model": "mistral-ocr-4-1"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-luna"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-terra"
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.7"
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5"
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-4-argon"
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash"
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.6-flash"
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite"
+    },
+    {
+      "provider": "deepinfra",
+      "model": "google/gemma-4-31B-it"
+    },
+    {
+      "provider": "deepinfra",
+      "model": "Qwen/Qwen3.8-27B"
+    },
+    {
+      "provider": "deepinfra",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash"
+    }
+  ],
+  "excludedTarget": {
+    "provider": "mistral",
+    "model": "mistral-ocr-4-0",
+    "reason": "Unavailable during prior runs/model-catalog review; not dispatched."
+  },
+  "inputProtocol": "Fifteen original prepared PNGs and three original baseline JPEGs; original newspaper PDF preserved with a separate300DPI/max3072 renderedPNGvariant. Declaration JPEG retained3923x4656 under its exact-case exception.",
+  "evaluationPolicy": "Lexical WER/CER uses independent canonical text within declared image/crop scope, or archived consensus for four baseline variants. Literal numeric/punctuation/reading diagnostics are separate. Common text-only outputs do not establish table cell/column/span mapping, flowchart branch topology or newspaper layout geometry.",
+  "cases": [
+    {
+      "id": "numeric-tables-practitioner-attitudes",
+      "category": "numeric-tables",
+      "input": "input/examples/document/ocr-numeric-tables/images/PMC1626454_002_00.png",
+      "inputSha256": "d34a3a312e57f9c2f3aba335729320ee3dd52ddf09b0c81b59d65746d910dac7",
+      "reference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-practitioner-attitudes.txt",
+      "referenceSha256": "e059378acc0c8f041887b0369ba021730fea47268af5e194ed66e0a7ed55fa80",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://raw.githubusercontent.com/ibm-aur-nlp/PubTabNet/8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5/examples/PMC1626454_002_00.png",
+      "sourceRevision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+      "annotationRevision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+      "runDir": "docs/benchmarks/text/ocr/numeric-tables-practitioner-attitudes",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "PubTabNet",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "numeric-tables-inflammatory-pathways",
+      "category": "numeric-tables",
+      "input": "input/examples/document/ocr-numeric-tables/images/PMC2838834_005_00.png",
+      "inputSha256": "bc562e84633962e9d0dcdbdecf0169980b42df376d350007520a788c43a57b80",
+      "reference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-inflammatory-pathways.txt",
+      "referenceSha256": "45235f27e5bb109fb0d61e218e79c6317940ba8018b2450f37f82d0d4bbac0a1",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://raw.githubusercontent.com/ibm-aur-nlp/PubTabNet/8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5/examples/PMC2838834_005_00.png",
+      "sourceRevision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+      "annotationRevision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+      "runDir": "docs/benchmarks/text/ocr/numeric-tables-inflammatory-pathways",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "PubTabNet",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "numeric-tables-program-implementation",
+      "category": "numeric-tables",
+      "input": "input/examples/document/ocr-numeric-tables/images/PMC4172848_007_00.png",
+      "inputSha256": "d15370b68ac5922badb07117a85e681047efc3d09c4a7d88d30c4e6fda5dd961",
+      "reference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-program-implementation.txt",
+      "referenceSha256": "953f6c47d8c316c7d920a001002ef15b72760d26cca51b99109505128053071e",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://raw.githubusercontent.com/ibm-aur-nlp/PubTabNet/8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5/examples/PMC4172848_007_00.png",
+      "sourceRevision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+      "annotationRevision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+      "runDir": "docs/benchmarks/text/ocr/numeric-tables-program-implementation",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "PubTabNet",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "numeric-tables-synthetic-financial",
+      "category": "numeric-tables",
+      "input": "input/examples/document/ocr-numeric-tables/images/image_000011_1634629328.535577.png",
+      "inputSha256": "317d8d94d524b4bf0edfdf4b4714a1dc4c2693b0b2bea328d5a76aaef7ad96f4",
+      "reference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-synthetic-financial.txt",
+      "referenceSha256": "c2e3e6a570084581986032775a83299239bb96ede8e4e31183d00dc23148d455",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://ds4sd-public-artifacts.s3.eu-de.cloud-object-storage.appdomain.cloud/datasets/synthtabnet_public/samples.zip",
+      "sourceRevision": "samples.zip SHA-256 0885b558e9eb7ef2bc1cc8dc6256a8bcf5387e8d8be5180794cf476b55fffa2f; documentation d4266dc3094e42e82f3b30060d22f3e4e394093c",
+      "annotationRevision": "d4266dc3094e42e82f3b30060d22f3e4e394093c",
+      "runDir": "docs/benchmarks/text/ocr/numeric-tables-synthetic-financial",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "SynthTabNet",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "numeric-tables-synthetic-marketing",
+      "category": "numeric-tables",
+      "input": "input/examples/document/ocr-numeric-tables/images/image_000002_1634629424.103172.png",
+      "inputSha256": "0a6de4c65dc6fb58c6d73594f1426803dfe8db589d7a8c7445cbc79bbe682079",
+      "reference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-synthetic-marketing.txt",
+      "referenceSha256": "b32dbf5c5a3c2371b9a85c1c025c723784f19e73ca5feedf6b7b444b9651bdef",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://ds4sd-public-artifacts.s3.eu-de.cloud-object-storage.appdomain.cloud/datasets/synthtabnet_public/samples.zip",
+      "sourceRevision": "samples.zip SHA-256 0885b558e9eb7ef2bc1cc8dc6256a8bcf5387e8d8be5180794cf476b55fffa2f; documentation d4266dc3094e42e82f3b30060d22f3e4e394093c",
+      "annotationRevision": "d4266dc3094e42e82f3b30060d22f3e4e394093c",
+      "runDir": "docs/benchmarks/text/ocr/numeric-tables-synthetic-marketing",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "SynthTabNet",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "handwriting-washington-receipt",
+      "category": "handwriting",
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-washington-receipt/input.png",
+      "inputSha256": "1934adcdca9f60aceb7793f54a1d10f8206e88f98fe8a9255932ccc52a4d9f92",
+      "reference": "input/examples/document/ocr-handwriting/cases/handwriting-washington-receipt/reference.txt",
+      "referenceSha256": "be10f813301d5c7aa64fbde1cdb314be58075e2cbfc695337ac946363dddb114",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://tile.loc.gov/storage-services/master/mss/mgw/mgw5/117/0500/0553.jpg",
+      "sourceRevision": "LOC dataset 2020446971, 2023-07-18",
+      "annotationRevision": "LOC dataset 2020446971, 2023-07-18",
+      "runDir": "docs/benchmarks/text/ocr/handwriting-washington-receipt",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "Library-of-Congress-By-the-People",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "handwriting-patton-travel",
+      "category": "handwriting",
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-patton-travel/input.png",
+      "inputSha256": "66f64fa9d592550f16cb21634886a09eed11f031bc776d68a314e3849f8fe233",
+      "reference": "input/examples/document/ocr-handwriting/cases/handwriting-patton-travel/reference.txt",
+      "referenceSha256": "1d968d2ba075a7b7f7661d55dfe8241328ec3f0040e720eb00d80586daf62011",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://tile.loc.gov/image-services/iiif/service:mss:mss35634:001:01:041/full/pct:50/0/default.jpg",
+      "sourceRevision": "LOC dataset 2021386762, 2023-04-26",
+      "annotationRevision": "LOC dataset 2021386762, 2023-04-26",
+      "runDir": "docs/benchmarks/text/ocr/handwriting-patton-travel",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "Library-of-Congress-By-the-People",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "handwriting-marker-prose",
+      "category": "handwriting",
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-marker-prose/input.png",
+      "inputSha256": "140b1bb674508c6e8107581fc641b2fe3118e76f81a4d01f7d2ba99706b81799",
+      "reference": "input/examples/document/ocr-handwriting/cases/handwriting-marker-prose/reference.txt",
+      "referenceSha256": "5bdb9cd588baebcd71a51e4014fc8d54b30ee64e413a209eeb926144d51b330d",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/01.webp",
+      "sourceRevision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+      "annotationRevision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+      "runDir": "docs/benchmarks/text/ocr/handwriting-marker-prose",
+      "baseline": false,
+      "scope": "full-page",
+      "sourceFamily": "Whiteboards-single-author",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "handwriting-marker-table",
+      "category": "handwriting",
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-marker-table/input.png",
+      "inputSha256": "f6a063cb5cccac90e3d6ed07db0bb8da88589a61e9bef6d34cf0b885e7b021d5",
+      "reference": "input/examples/document/ocr-handwriting/cases/handwriting-marker-table/reference.txt",
+      "referenceSha256": "21b46f03911b866916042379dc49f3c1179e01c28ac84aac5e1eb531994c0fb3",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/07.webp",
+      "sourceRevision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+      "annotationRevision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+      "runDir": "docs/benchmarks/text/ocr/handwriting-marker-table",
+      "baseline": false,
+      "scope": "full-page",
+      "sourceFamily": "Whiteboards-single-author",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "handwriting-marker-flowchart",
+      "category": "handwriting",
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-marker-flowchart/input.png",
+      "inputSha256": "6da4a8a818c5d4e07e71345388cde287c181acebe593cf0e0a3ba32fabfd0594",
+      "reference": "input/examples/document/ocr-handwriting/cases/handwriting-marker-flowchart/reference.txt",
+      "referenceSha256": "b033e75b1d542a51a1127747b82ce4974e39d5a03e42825a54db075cef7a5890",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/08.webp",
+      "sourceRevision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+      "annotationRevision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+      "runDir": "docs/benchmarks/text/ocr/handwriting-marker-flowchart",
+      "baseline": false,
+      "scope": "full-page",
+      "sourceFamily": "Whiteboards-single-author",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "newspapers-london-gazette",
+      "category": "newspapers",
+      "input": "input/examples/document/ocr-newspapers/newspapers-london-gazette.png",
+      "inputSha256": "9ba47a95ce1042c02b5b20aa944e61a61130c9be0e26fb3fd3d92551941e16cb",
+      "reference": "input/examples/document/ocr-newspapers/newspapers-london-gazette.txt",
+      "referenceSha256": "db8c828e442cf84097361112b36aad1c625a04dbc21b4601e996c62dd4d3a9d0",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/The%20London%20Gazette%2019345.djvu/page2-1920px-The%20London%20Gazette%2019345.djvu.jpg",
+      "sourceRevision": "13200057",
+      "annotationRevision": "2015-01-17T16:08:01Z",
+      "runDir": "docs/benchmarks/text/ocr/newspapers-london-gazette",
+      "baseline": false,
+      "scope": "full-page",
+      "sourceFamily": "Wikisource/Commons",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "newspapers-northern-star",
+      "category": "newspapers",
+      "input": "input/examples/document/ocr-newspapers/newspapers-northern-star.png",
+      "inputSha256": "9887ba595a6adb8b047c952dd8c10a67ba4da02d12af7804d7a28d537ce369f6",
+      "reference": "input/examples/document/ocr-newspapers/newspapers-northern-star.txt",
+      "referenceSha256": "09097e3430eb43b01572815b132575b1d728ae66c4976e441d4f6d5a41d80257",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://ndownloader.figshare.com/files/52256369",
+      "sourceRevision": "10.5522/04/28381610.v1",
+      "annotationRevision": "10.5522/04/28381610.v1",
+      "runDir": "docs/benchmarks/text/ocr/newspapers-northern-star",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "NCSE evaluation subset",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "newspapers-leader",
+      "category": "newspapers",
+      "input": "input/examples/document/ocr-newspapers/newspapers-leader.png",
+      "inputSha256": "f25837fe54d4d7b3d4feb7304a7bfb61a21b68eb661e74a2b783aa6189a511e3",
+      "reference": "input/examples/document/ocr-newspapers/newspapers-leader.txt",
+      "referenceSha256": "87cde1ccc10eb3cec39d04ca4385a49964d39b4c7e7d2df1fe043551f6d594ed",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://ndownloader.figshare.com/files/52256369",
+      "sourceRevision": "10.5522/04/28381610.v1",
+      "annotationRevision": "10.5522/04/28381610.v1",
+      "runDir": "docs/benchmarks/text/ocr/newspapers-leader",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "NCSE evaluation subset",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "newspapers-tomahawk",
+      "category": "newspapers",
+      "input": "input/examples/document/ocr-newspapers/newspapers-tomahawk.png",
+      "inputSha256": "a1d6be63885c8e8b279038513b6a8ef7982f783a0588b92e04f2f6b99eae8217",
+      "reference": "input/examples/document/ocr-newspapers/newspapers-tomahawk.txt",
+      "referenceSha256": "168cd7bb0c94116f673cdc2c576dfa45d5b22c22479d0bf333589e1cd33eb0c0",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://ndownloader.figshare.com/files/52256369",
+      "sourceRevision": "10.5522/04/28381610.v1",
+      "annotationRevision": "10.5522/04/28381610.v1",
+      "runDir": "docs/benchmarks/text/ocr/newspapers-tomahawk",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "NCSE evaluation subset",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "newspapers-monthly-repository",
+      "category": "newspapers",
+      "input": "input/examples/document/ocr-newspapers/newspapers-monthly-repository.png",
+      "inputSha256": "5c461abeb2fbabd9abf0d8da37f9f45bafe9131f083105edf90f209858e2379a",
+      "reference": "input/examples/document/ocr-newspapers/newspapers-monthly-repository.txt",
+      "referenceSha256": "538b051856a629c3dcd36d35a97a6b920c616659e09f237ed39d25049b9a7823",
+      "referenceKind": "publisher-canonical",
+      "sourceURL": "https://ndownloader.figshare.com/files/52256369",
+      "sourceRevision": "10.5522/04/28381610.v1",
+      "annotationRevision": "10.5522/04/28381610.v1",
+      "runDir": "docs/benchmarks/text/ocr/newspapers-monthly-repository",
+      "baseline": false,
+      "scope": "region-crop",
+      "sourceFamily": "NCSE evaluation subset",
+      "protocol": "original-pinned-image"
+    },
+    {
+      "id": "efg-rerun-01-financial-data",
+      "category": "numeric-tables",
+      "input": "input/examples/document/ocr-categories-efg-run/sources/01-financial-data.jpg",
+      "inputSha256": "82ae016f652e36a8b0721dca2e38f999c245c524dd1f2631968be8901123841d",
+      "reference": "input/examples/document/ocr-categories-efg-run/references/efg-rerun-01-financial-data.txt",
+      "referenceSha256": "3da8350112c8b931c377492fd2e1ed1cd56b692b419065f412fcb532da9b9949",
+      "referenceKind": "existing-consensus",
+      "sourceURL": "https://ajc.pics/autoshow/benchmarks/ocr/01-financial-data.jpg",
+      "sourceRevision": "archived-manifest-sha256:21532d0f6ef0b22dc5e8b7e646025323f8587e2b6e202f1ec514a54b11562b75",
+      "annotationRevision": "archived-manifest-sha256:21532d0f6ef0b22dc5e8b7e646025323f8587e2b6e202f1ec514a54b11562b75",
+      "runDir": "docs/benchmarks/text/ocr/efg-rerun-01-financial-data",
+      "baseline": true,
+      "scope": "full-page",
+      "sourceFamily": "retained-original-benchmark",
+      "protocol": "original-byte-image-rerun"
+    },
+    {
+      "id": "efg-rerun-01-handwriting",
+      "category": "handwriting",
+      "input": "input/examples/document/ocr-categories-efg-run/sources/01-handwriting.jpg",
+      "inputSha256": "f11f72489118b49bd0bf13d53d6a9aecb0c255ace6a6b2c7d1f401d8ff0711a6",
+      "reference": "input/examples/document/ocr-categories-efg-run/references/efg-rerun-01-handwriting.txt",
+      "referenceSha256": "c9b212d3da3c15337aa5544329fd2edfc080a77b96e27ee2f28c1202d78de4dd",
+      "referenceKind": "existing-consensus",
+      "sourceURL": "https://ajc.pics/autoshow/benchmarks/ocr/01-handwriting.jpg",
+      "sourceRevision": "archived-manifest-sha256:f0e689cab7c2260599f7439981b2f363d6250eb18b4948f276082ec827df1275",
+      "annotationRevision": "archived-manifest-sha256:f0e689cab7c2260599f7439981b2f363d6250eb18b4948f276082ec827df1275",
+      "runDir": "docs/benchmarks/text/ocr/efg-rerun-01-handwriting",
+      "baseline": true,
+      "scope": "full-page",
+      "sourceFamily": "retained-original-benchmark",
+      "protocol": "original-byte-image-rerun"
+    },
+    {
+      "id": "efg-rerun-1-page-declaration",
+      "category": "handwriting",
+      "input": "input/examples/document/ocr-categories-efg-run/sources/1-page-declaration.jpg",
+      "inputSha256": "1fa734854d1b8c617d73ed0a3d7c6cb22f253754ec7a618ff7e0e6c5f397f45e",
+      "reference": "input/examples/document/ocr-categories-efg-run/references/efg-rerun-1-page-declaration.txt",
+      "referenceSha256": "5d97a7711d7c4837f15f7278bf8796b7d0f221fd1a0b06025d541409b162f5b0",
+      "referenceKind": "existing-consensus",
+      "sourceURL": "https://ajc.pics/autoshow/benchmarks/ocr/1-page-declaration.jpg",
+      "sourceRevision": "archived-manifest-sha256:5757951d56bf35c4e2d542895468fb547a27ace05b58518a55b2351fc8cb7596",
+      "annotationRevision": "archived-manifest-sha256:5757951d56bf35c4e2d542895468fb547a27ace05b58518a55b2351fc8cb7596",
+      "runDir": "docs/benchmarks/text/ocr/efg-rerun-1-page-declaration",
+      "baseline": true,
+      "scope": "full-page",
+      "sourceFamily": "retained-original-benchmark",
+      "protocol": "original-byte-image-rerun"
+    },
+    {
+      "id": "efg-rerun-1-page-newspaper",
+      "category": "newspapers",
+      "input": "input/examples/document/ocr-categories-efg-run/sources/1-page-newspaper.pdf",
+      "inputSha256": "7ffc36e931634d8dc3acdbcb772d46fcb431193bf2eb99eeea3330651bc84f88",
+      "reference": "input/examples/document/ocr-categories-efg-run/references/efg-rerun-1-page-newspaper.txt",
+      "referenceSha256": "f1ec5da0e74478dc3780965fb1751a32d4eef9ce5147b342fbfbe0a093669da4",
+      "referenceKind": "existing-consensus",
+      "sourceURL": "https://ajc.pics/autoshow/benchmarks/ocr/1-page-newspaper.pdf",
+      "sourceRevision": "archived-manifest-sha256:dff1c38447afb1b67b53be8a75f22e910e4130d9e817b808ea9cdcdd70573f4c",
+      "annotationRevision": "archived-manifest-sha256:dff1c38447afb1b67b53be8a75f22e910e4130d9e817b808ea9cdcdd70573f4c",
+      "runDir": "docs/benchmarks/text/ocr/efg-rerun-1-page-newspaper",
+      "baseline": true,
+      "scope": "full-page",
+      "sourceFamily": "retained-original-benchmark",
+      "protocol": "rendered-page-rerun"
+    }
+  ],
+  "preservationSnapshot": "input/examples/document/ocr-categories-efg-run/before-execution.json",
+  "completedAt": "2026-10-23T09:06:03.208Z",
+  "coverage": {
+    "intendedSlots": 399,
+    "usableOutputs": 398,
+    "usableHostedOutputs": 379,
+    "usableLocalOutputs": 19,
+    "failedSlots": 1,
+    "pendingSlots": 0,
+    "newPreparedOutputs": 315,
+    "newPreparedIntendedOutputs": 315
+  },
+  "cost": {
+    "settledProviderUsageCents": 893.101545,
+    "unknownTimeoutReservationCents": 74.65984,
+    "reviewedResponseReservationCents": 34.9184,
+    "accountedCents": 1002.679785,
+    "budgetCents": 3000,
+    "invoiceReconciled": false
+  },
+  "pages": [
+    {
+      "id": "numeric-tables-practitioner-attitudes-page-01",
+      "caseId": "numeric-tables-practitioner-attitudes",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-numeric-tables/images/PMC1626454_002_00.png",
+      "inputSha256": "d34a3a312e57f9c2f3aba335729320ee3dd52ddf09b0c81b59d65746d910dac7",
+      "width": 503,
+      "height": 249,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "numeric-tables-practitioner-attitudes"
+    },
+    {
+      "id": "numeric-tables-inflammatory-pathways-page-01",
+      "caseId": "numeric-tables-inflammatory-pathways",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-numeric-tables/images/PMC2838834_005_00.png",
+      "inputSha256": "bc562e84633962e9d0dcdbdecf0169980b42df376d350007520a788c43a57b80",
+      "width": 486,
+      "height": 441,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "numeric-tables-inflammatory-pathways"
+    },
+    {
+      "id": "numeric-tables-program-implementation-page-01",
+      "caseId": "numeric-tables-program-implementation",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-numeric-tables/images/PMC4172848_007_00.png",
+      "inputSha256": "d15370b68ac5922badb07117a85e681047efc3d09c4a7d88d30c4e6fda5dd961",
+      "width": 486,
+      "height": 263,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "numeric-tables-program-implementation"
+    },
+    {
+      "id": "numeric-tables-synthetic-financial-page-01",
+      "caseId": "numeric-tables-synthetic-financial",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-numeric-tables/images/image_000011_1634629328.535577.png",
+      "inputSha256": "317d8d94d524b4bf0edfdf4b4714a1dc4c2693b0b2bea328d5a76aaef7ad96f4",
+      "width": 392,
+      "height": 512,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "numeric-tables-synthetic-financial"
+    },
+    {
+      "id": "numeric-tables-synthetic-marketing-page-01",
+      "caseId": "numeric-tables-synthetic-marketing",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-numeric-tables/images/image_000002_1634629424.103172.png",
+      "inputSha256": "0a6de4c65dc6fb58c6d73594f1426803dfe8db589d7a8c7445cbc79bbe682079",
+      "width": 335,
+      "height": 512,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "numeric-tables-synthetic-marketing"
+    },
+    {
+      "id": "handwriting-washington-receipt-page-01",
+      "caseId": "handwriting-washington-receipt",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-washington-receipt/input.png",
+      "inputSha256": "1934adcdca9f60aceb7793f54a1d10f8206e88f98fe8a9255932ccc52a4d9f92",
+      "width": 1989,
+      "height": 950,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "handwriting-washington-receipt"
+    },
+    {
+      "id": "handwriting-patton-travel-page-01",
+      "caseId": "handwriting-patton-travel",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-patton-travel/input.png",
+      "inputSha256": "66f64fa9d592550f16cb21634886a09eed11f031bc776d68a314e3849f8fe233",
+      "width": 780,
+      "height": 1270,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "handwriting-patton-travel"
+    },
+    {
+      "id": "handwriting-marker-prose-page-01",
+      "caseId": "handwriting-marker-prose",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-marker-prose/input.png",
+      "inputSha256": "140b1bb674508c6e8107581fc641b2fe3118e76f81a4d01f7d2ba99706b81799",
+      "width": 4096,
+      "height": 3072,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "handwriting-marker-prose"
+    },
+    {
+      "id": "handwriting-marker-table-page-01",
+      "caseId": "handwriting-marker-table",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-marker-table/input.png",
+      "inputSha256": "f6a063cb5cccac90e3d6ed07db0bb8da88589a61e9bef6d34cf0b885e7b021d5",
+      "width": 4096,
+      "height": 3072,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "handwriting-marker-table"
+    },
+    {
+      "id": "handwriting-marker-flowchart-page-01",
+      "caseId": "handwriting-marker-flowchart",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-marker-flowchart/input.png",
+      "inputSha256": "6da4a8a818c5d4e07e71345388cde287c181acebe593cf0e0a3ba32fabfd0594",
+      "width": 4096,
+      "height": 3072,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "handwriting-marker-flowchart"
+    },
+    {
+      "id": "newspapers-london-gazette-page-01",
+      "caseId": "newspapers-london-gazette",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-newspapers/newspapers-london-gazette.png",
+      "inputSha256": "9ba47a95ce1042c02b5b20aa944e61a61130c9be0e26fb3fd3d92551941e16cb",
+      "width": 1920,
+      "height": 2838,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "newspapers-london-gazette"
+    },
+    {
+      "id": "newspapers-northern-star-page-01",
+      "caseId": "newspapers-northern-star",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-newspapers/newspapers-northern-star.png",
+      "inputSha256": "9887ba595a6adb8b047c952dd8c10a67ba4da02d12af7804d7a28d537ce369f6",
+      "width": 670,
+      "height": 2576,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "newspapers-northern-star"
+    },
+    {
+      "id": "newspapers-leader-page-01",
+      "caseId": "newspapers-leader",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-newspapers/newspapers-leader.png",
+      "inputSha256": "f25837fe54d4d7b3d4feb7304a7bfb61a21b68eb661e74a2b783aa6189a511e3",
+      "width": 465,
+      "height": 1221,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "newspapers-leader"
+    },
+    {
+      "id": "newspapers-tomahawk-page-01",
+      "caseId": "newspapers-tomahawk",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-newspapers/newspapers-tomahawk.png",
+      "inputSha256": "a1d6be63885c8e8b279038513b6a8ef7982f783a0588b92e04f2f6b99eae8217",
+      "width": 747,
+      "height": 712,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "newspapers-tomahawk"
+    },
+    {
+      "id": "newspapers-monthly-repository-page-01",
+      "caseId": "newspapers-monthly-repository",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-newspapers/newspapers-monthly-repository.png",
+      "inputSha256": "5c461abeb2fbabd9abf0d8da37f9f45bafe9131f083105edf90f209858e2379a",
+      "width": 603,
+      "height": 2111,
+      "format": "png",
+      "protocol": "original-pinned-image",
+      "sourceCaseId": "newspapers-monthly-repository"
+    },
+    {
+      "id": "efg-rerun-01-financial-data-page-01",
+      "caseId": "efg-rerun-01-financial-data",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-categories-efg-run/sources/01-financial-data.jpg",
+      "inputSha256": "82ae016f652e36a8b0721dca2e38f999c245c524dd1f2631968be8901123841d",
+      "width": 626,
+      "height": 580,
+      "format": "jpg"
+    },
+    {
+      "id": "efg-rerun-01-handwriting-page-01",
+      "caseId": "efg-rerun-01-handwriting",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-categories-efg-run/sources/01-handwriting.jpg",
+      "inputSha256": "f11f72489118b49bd0bf13d53d6a9aecb0c255ace6a6b2c7d1f401d8ff0711a6",
+      "width": 527,
+      "height": 1122,
+      "format": "jpg"
+    },
+    {
+      "id": "efg-rerun-1-page-declaration-page-01",
+      "caseId": "efg-rerun-1-page-declaration",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-categories-efg-run/sources/1-page-declaration.jpg",
+      "inputSha256": "1fa734854d1b8c617d73ed0a3d7c6cb22f253754ec7a618ff7e0e6c5f397f45e",
+      "width": 3923,
+      "height": 4656,
+      "format": "jpg"
+    },
+    {
+      "id": "efg-rerun-1-page-newspaper-page-01",
+      "caseId": "efg-rerun-1-page-newspaper",
+      "pageNumber": 1,
+      "input": "input/examples/document/ocr-categories-efg-run/pages/efg-rerun-1-page-newspaper/page-01.png",
+      "inputSha256": "d4dd66697d461a41d4ab68a917bc9460f9d8f98b709382f78db002d5cbcb3937",
+      "width": 1985,
+      "height": 3072,
+      "format": "png",
+      "rawRenderedInput": "input/examples/document/ocr-categories-efg-run/rendered-300dpi/1-page-newspaper-page-01.png",
+      "rawRenderedSha256": "60dcb23f59ec9a1bf691f9d61b4e4b8c1eb4cf8f523e87f552fbe8a7105a3dd8",
+      "rawWidth": 2977,
+      "rawHeight": 4607,
+      "renderDpi": 300,
+      "downscaled": true,
+      "renderExitCode": 0
+    }
+  ],
+  "preparedPageManifest": "input/examples/document/ocr-categories-efg-run/prepared-pages.json",
+  "preparedPageManifestSha256": "c071e0f1330c884c742b35e9220d804052dee0e1ba4c0fd579896f8dd31a14c8",
+  "execution": {
+    "providerRequestReceipts": 385,
+    "settledReceipts": 379,
+    "ambiguousTimeoutReceipts": 5,
+    "retainedReviewedBreachReceipts": 1,
+    "observedPeakJobs": 12,
+    "observedPeakProviderRequests": 12,
+    "peakAccountedExposureCents": 1798.938905,
+    "originalNativeDispatchAttempts": 409,
+    "offlineResponseReconstructions": 1
+  },
+  "failedTargets": [
+    {
+      "caseId": "efg-rerun-1-page-newspaper",
+      "provider": "deepinfra",
+      "model": "google/gemma-4-31B-it",
+      "reason": "Native output-token limit reached after HTTP200",
+      "outputTokens": 8192,
+      "qualityScoreAvailable": false,
+      "partialOutputRetainedPrivately": true
+    }
+  ],
+  "recoveryPolicy": {
+    "initialPageRequestDeadlineMs": 300000,
+    "finalPageRequestDeadlineMs": 900000,
+    "gemmaModelConcurrency": 1,
+    "timeoutReviewCount": 5,
+    "originalReceiptsAndChargesPreserved": true,
+    "losslessTransport": {
+      "provider": "anthropic",
+      "caseId": "efg-rerun-1-page-newspaper",
+      "originalSha256": "d4dd66697d461a41d4ab68a917bc9460f9d8f98b709382f78db002d5cbcb3937",
+      "transportSha256": "0d93ec4f84037ad3b4a4af801cf6f11f374b4861a2b55a43f7dde6d4680edd2b",
+      "identicalDecodedPixels": true
+    },
+    "offlineSavedResponse": {
+      "provider": "grok",
+      "model": "grok-4.7",
+      "receiptId": "91f8c6cd-500d-4b0b-b933-90919ac8b081",
+      "newProviderCalls": 0,
+      "originalPaidRequestMs": 365858,
+      "localReplayMs": 57,
+      "nativeAdapterReplayMs": 26,
+      "originalLedgerUnchanged": true
+    }
+  },
+  "currentArchive": {
+    "updatedAt": "2026-10-23T09:31:01.357Z",
+    "archiveRunCount": 52,
+    "totalPageInstances": 84,
+    "uniqueDocumentCount": 44,
+    "uniqueSourcePages": 60,
+    "baselineVariantCount": 8,
+    "repeatedSourcePages": 24,
+    "usableOutputs": 1169,
+    "intendedSlots": 1191,
+    "primaryAccuracyScores": 1064,
+    "partialReferenceDiagnosticOutputs": 105,
+    "completedPreparedAdditions": 35,
+    "remainingPreparedAdditions": 0
+  }
+}

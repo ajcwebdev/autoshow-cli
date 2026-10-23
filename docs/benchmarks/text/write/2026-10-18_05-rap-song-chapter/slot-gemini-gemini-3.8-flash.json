@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "05-rap-song-chapter",
+  "provider": "gemini",
+  "model": "gemini-3.8-flash",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:37:09.340Z",
+  "artifactHashes": {
+    "raw-response-gemini-gemini-3.8-flash-attempt-1.json": "68ac56610f3d8b027199c7d5e7cce9d937677c7b2efa0b4f0ea1d300681187f3",
+    "text-gemini-gemini-3.8-flash.json": "291275e767d2dcccf9f1fa9d969fb47dd7dc09b5151846e2929662c17b5d1e1d",
+    "text-gemini-gemini-3.8-flash.md": "5b7ac9c8141e9b5d8ca83f7954cb375d9dfa0473a6a30515d5000a6fb94ed8e0"
+  },
+  "metadata": {
+    "llmService": "gemini",
+    "llmModel": "gemini-3.8-flash",
+    "providerReturnedModel": "gemini-3.8-flash",
+    "processingTime": 25127,
+    "inputTokenCount": 3523,
+    "outputTokenCount": 3258,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 3523,
+      "outputTokenCount": 3258,
+      "totalTokenCount": 6781
+    },
+    "rawProviderUsage": {
+      "promptTokenCount": 3523,
+      "candidatesTokenCount": 1066,
+      "totalTokenCount": 6781,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 3523
+        }
+      ],
+      "thoughtsTokenCount": 2192,
+      "serviceTier": "standard"
+    },
+    "outputFileName": "text-gemini-gemini-3.8-flash.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "rapSongChapterLyrics"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gemini-3.8-flash",
+      "generationConfig": {
+        "responseMimeType": "application/json",
+        "responseJsonSchemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6"
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 2.97195
+  },
+  "completedAt": "2026-10-18T18:37:34.470Z",
+  "wallTimeMs": 25128,
+  "networkAttempts": 1
+}

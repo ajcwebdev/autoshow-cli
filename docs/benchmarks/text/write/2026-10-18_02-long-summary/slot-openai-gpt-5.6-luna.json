@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "02-long-summary",
+  "provider": "openai",
+  "model": "gpt-5.6-luna",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:31:25.256Z",
+  "artifactHashes": {
+    "raw-response-openai-gpt-5.6-luna-attempt-1.json": "38fc04a1e1a37248ea9426a826664cf96ae0ef208ba8218fad1668f658d05fc1",
+    "text-openai-gpt-5.6-luna.json": "9537c5f9096330f0d15ba35abd7126ef05d18187b9461abf814f5d28c974606d",
+    "text-openai-gpt-5.6-luna.md": "42d50f5081bfc9bb4b6b431a4bfba36f971ab4704f9f15531451b69aee0d9198"
+  },
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-5.6-luna",
+    "providerReturnedModel": "gpt-5.6-luna",
+    "processingTime": 2436,
+    "inputTokenCount": 10205,
+    "outputTokenCount": 282,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 10205,
+      "outputTokenCount": 282,
+      "totalTokenCount": 10487
+    },
+    "rawProviderUsage": {
+      "input_tokens": 10205,
+      "input_tokens_details": {
+        "cache_write_tokens": 10202,
+        "cached_tokens": 0
+      },
+      "output_tokens": 282,
+      "output_tokens_details": {
+        "reasoning_tokens": 60
+      },
+      "total_tokens": 10487
+    },
+    "outputFileName": "text-openai-gpt-5.6-luna.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "longSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-5.6-luna",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_longSummary",
+          "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.23794
+  },
+  "completedAt": "2026-10-18T18:31:27.692Z",
+  "wallTimeMs": 2436,
+  "networkAttempts": 1
+}

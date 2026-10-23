@@ -50,7 +50,7 @@ async function workflow(name: string): Promise<Workflow> {
 
 test('report-style documentation and root agent guidance never trigger any job', async () => {
   expect(await classify([
-    'docs/benchmarks/ocr/combined-comparison-report.md',
+    'docs/benchmarks/text/ocr/combined-comparison-report.md',
     'docs/reports/x.md',
     'docs/todo/y.md',
     'docs/diagrams/05-x.md',

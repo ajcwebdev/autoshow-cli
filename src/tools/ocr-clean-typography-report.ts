@@ -9,7 +9,7 @@ import { PROJECT_ROOT } from '~/utils/project-root'
 import { writePortableFileSync } from '../../.codex/skills/consensus/scripts/shared/portable_paths'
 
 const localRoot = 'input/examples/document/ocr-clean-typography'
-const defaultPlan = 'docs/benchmarks/ocr/clean-typography-additions-plan.json'
+const defaultPlan = 'docs/benchmarks/text/ocr/clean-typography-additions-plan.json'
 const defaultLedger = `${localRoot}/spending-ledger.json`
 const hash = (bytes: Uint8Array | string): string => new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
 const record = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -156,7 +156,7 @@ const prepareReports = async (options: CleanTypographyReportOptions) => {
   }
   const prepared = []
   for (const entry of plan.cases) {
-    if (entry.runDir !== `docs/benchmarks/ocr/${entry.id}` || entry.localPilot.directory !== `${localRoot}/local-pilot/${entry.id}`) throw new AppValidationError('Case destination differs from clean-typography scope')
+    if (entry.runDir !== `docs/benchmarks/text/ocr/${entry.id}` || entry.localPilot.directory !== `${localRoot}/local-pilot/${entry.id}`) throw new AppValidationError('Case destination differs from clean-typography scope')
     const pair = bundle['cases'].find((item: unknown) => record(item) && item['id'] === entry.id)
     if (!record(pair) || ['input', 'reference', 'inputSha256', 'referenceSha256'].some(key => pair[key] !== entry[key as keyof Entry])) throw new AppValidationError('Plan differs from immutable prepared input pair')
     if (hash(await read(entry.input)) !== entry.inputSha256 || hash(await read(entry.reference)) !== entry.referenceSha256) throw new AppValidationError('Input or publisher reference hash changed')

@@ -363,7 +363,7 @@ export const createCleanTypographySpendingGuard = (options: CleanTypographySpend
   const expectedEndpoint = endpoint(options.provider, options.model)
   const originalFetch = options.fetchImplementation ?? globalThis.fetch
   const invocationId = randomUUID()
-  const planPath = options.planPath ?? 'docs/benchmarks/ocr/clean-typography-additions-plan.json'
+  const planPath = options.planPath ?? 'docs/benchmarks/text/ocr/clean-typography-additions-plan.json'
   if (isAbsolute(planPath) || planPath.split(/[\\/]/).includes('..')) fail('approval plan must use a project-relative path')
   const update = async <T>(operation: (ledger: CleanTypographySpendingLedger) => T | Promise<T>): Promise<T> => {
     await mkdir(dirname(path), { recursive: true })

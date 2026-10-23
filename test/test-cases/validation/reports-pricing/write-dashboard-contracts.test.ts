@@ -52,6 +52,19 @@ function fixture(root: string, index: number, options: {
 }
 
 describe('Write dashboard cost and wall-clock comparisons', () => {
+  test('nested Write outputs link from the shared dashboard and remain readable by the report', async () => {
+    await withTempDir('write-dashboard-grouped-', async benchmarks => {
+      const root = join(benchmarks, 'text/write')
+      fixture(root, 0, { invalid: 'schema' })
+      const samples = collectWriteDashboardSamples(root)
+      expect(samples[0]!.manifestHref).toBe(`text/write/${WRITE_BENCHMARK_CASES[0].directory}/manifest.json`)
+      expect(samples[0]!.outputHref).toBe(`text/write/${WRITE_BENCHMARK_CASES[0].directory}/cheap.json`)
+      expect(JSON.stringify(buildTextDashboard(root).dashboardModel)).toContain(`"artifactHref":"text/write/${WRITE_BENCHMARK_CASES[0].directory}/manifest.json"`)
+      expect(JSON.stringify(buildTextDashboard(root).dashboardModel)).not.toContain('"artifactHref":"write/')
+      expect(buildWriteBenchmarkMarkdown(root)).toContain('schema failed')
+    })
+  })
+
   test('selects seven targeted reruns while retaining invalid costs and five unknown original bills', async () => {
     await withTempDir('write-dashboard-seven-reruns-', async root => {
       writeJson(join(root, 'benchmark-plan.json'), { schemaVersion: 1, providers })
@@ -192,7 +205,7 @@ describe('Write dashboard cost and wall-clock comparisons', () => {
       expect(aggregate.metricDirections).toEqual({ quality: 'higher', speed: 'lower', cost: 'lower' })
       expect(model.methodParagraphs.join(' ')).toContain('not measured text quality')
       expect(model.notes.join(' ')).toContain('single-run measurements')
-      const html = renderTabPanel({ key: 'write', label: 'Write', rootLabel: 'docs/benchmarks/write', model })
+      const html = renderTabPanel({ key: 'write', label: 'Write', rootLabel: 'docs/benchmarks/text/write', model })
       expect(html).toContain('Price proxy ($ / 1M output tokens)')
       expect(html).toContain('Sorted by price proxy.')
       expect(html).toContain('>Price proxy</label>')

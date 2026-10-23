@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "02-long-summary",
+  "provider": "anthropic",
+  "model": "claude-sonnet-5-5",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:31:17.267Z",
+  "artifactHashes": {
+    "raw-response-anthropic-claude-sonnet-5-5-attempt-1.json": "ba7e9ef867afdb829792824ca1bbb4a807fa0ef5e3ffc3db02ab900019204012",
+    "text-anthropic-claude-sonnet-5-5.json": "4f739d69139ed5582c882384ab16e8bc027274dd99ae399d58fdce36be1d62ff",
+    "text-anthropic-claude-sonnet-5-5.md": "86691a1d18eb5040da5a07ca2391109b6dd6246303ffade8735a1f6f989f8690"
+  },
+  "metadata": {
+    "llmService": "anthropic",
+    "llmModel": "claude-sonnet-5-5",
+    "providerReturnedModel": "claude-sonnet-5-5",
+    "processingTime": 4570,
+    "inputTokenCount": 14152,
+    "outputTokenCount": 345,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 14152,
+      "outputTokenCount": 345
+    },
+    "rawProviderUsage": {
+      "input_tokens": 14152,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 345,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global",
+      "speed": "standard"
+    },
+    "outputFileName": "text-anthropic-claude-sonnet-5-5.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "longSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "claude-sonnet-5-5",
+      "max_tokens": 16000,
+      "output_config": {
+        "format": {
+          "type": "json_schema",
+          "schemaSha256": "ca37e90a9657fd83a99636394f8cb2b7c900e3838c706b22389d5bb5eca98424"
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 3.1754
+  },
+  "completedAt": "2026-10-18T18:31:21.838Z",
+  "wallTimeMs": 4570,
+  "networkAttempts": 1
+}

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "02-long-summary",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:31:17.267Z",
+  "artifactHashes": {
+    "raw-response-openai-gpt-6.1-sol-attempt-1.json": "5afa7020f63340a93e32b980188e303266d42b2bddb597f710d5c9d2c9a1f5d2",
+    "text-openai-gpt-6.1-sol.json": "223b8cafb32ca9b10b902b85f8ecfa35c161a55abf5350b56f33515d19b4a46e",
+    "text-openai-gpt-6.1-sol.md": "f856a9e486dd7a4714c529b5e8fc6783ccb1ad60e528facaabb076696e443999"
+  },
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6.1-sol",
+    "providerReturnedModel": "gpt-6.1-sol",
+    "processingTime": 3964,
+    "inputTokenCount": 10205,
+    "outputTokenCount": 200,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 10205,
+      "outputTokenCount": 200,
+      "totalTokenCount": 10405
+    },
+    "rawProviderUsage": {
+      "input_tokens": 10205,
+      "input_tokens_details": {
+        "cache_write_tokens": 10202,
+        "cached_tokens": 0
+      },
+      "output_tokens": 200,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 10405
+    },
+    "outputFileName": "text-openai-gpt-6.1-sol.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "longSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-6.1-sol",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_longSummary",
+          "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 2.241
+  },
+  "completedAt": "2026-10-18T18:31:21.233Z",
+  "wallTimeMs": 3965,
+  "networkAttempts": 1
+}

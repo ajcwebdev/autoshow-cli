@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { InfraError, UsageError, ValidationError } from '~/utils/error-handler'
 import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
-import { buildTextDashboard, WRITE_BENCHMARK_CASES, type WriteDashboardSample } from '../../.codex/skills/consensus/scripts/text/build_text_dashboard'
+import { buildTextDashboard, writeDashboardLinkRoot, WRITE_BENCHMARK_CASES, type WriteDashboardSample } from '../../.codex/skills/consensus/scripts/text/build_text_dashboard'
 import { writePortableFileSync } from '../../.codex/skills/consensus/scripts/shared/portable_paths'
 
 const dollars = (value: number | null): string => value === null ? 'unavailable' : `$${value.toFixed(6)}`
@@ -134,7 +134,8 @@ export function buildWriteBenchmarkMarkdown(rootDir: string): string {
     '',
   ]
   if (existsSync(join(rootDir, evidenceName))) {
-    parts.push(`The [checksummed response evidence](${evidenceName}) preserves original saved bytes, including each case’s decoded \`raw-response-*.json\`, failure evidence, durable \`slot-*.json\` receipts, source and prompt snapshots, canonical manifests, and pinned plans. Nested rerun evidence is included when present. \`SHA256SUMS\` identifies every archived file. Standalone request artifacts remain inputs to hash-checked cache reuse.`, '')
+    parts.push(`The [checksummed response evidence](${evidenceName}) preserves original saved bytes, including each case’s decoded \`raw-response-*.json\`, failure evidence, durable \`slot-*.json\` receipts, source and prompt snapshots, canonical manifests, and pinned plans. Nested rerun evidence is included when present. \`SHA256SUMS\` identifies every archived file. Standalone request artifacts remain inputs to hash-checked cache reuse.`, '',
+      'The directory relocation under `docs/benchmarks/text/write` updated standalone path references, prompt source paths, dependent checksums, and plan fingerprints. The existing evidence ZIP remains unchanged and retains the original request snapshots, fingerprints, and approval provenance. The relocated rerun plan has no execution authorization; moving these records does not approve another paid request.', '')
   }
   for (const benchmark of WRITE_BENCHMARK_CASES) {
     const rows = samples.filter(sample => sample.caseKey === benchmark.key)
@@ -156,7 +157,7 @@ export function buildWriteBenchmarkMarkdown(rootDir: string): string {
         const receipt = existsSync(join(rootDir, receiptPath)) ? JSON.parse(readFileSync(join(rootDir, receiptPath), 'utf8')) as { error?: string } : {}
         let diagnostic = receipt.error ?? sample.schema
         if (sample.outputHref && sample.schema === 'failed') {
-          const artifact = JSON.parse(readFileSync(resolve(dirname(rootDir), sample.outputHref), 'utf8')) as { _validationError?: string }
+          const artifact = JSON.parse(readFileSync(resolve(writeDashboardLinkRoot(rootDir), sample.outputHref), 'utf8')) as { _validationError?: string }
           diagnostic = artifact._validationError ?? diagnostic
         }
         const current = samples.find(row => row.caseKey === sample.caseKey && row.providerKey === sample.providerKey)
@@ -179,12 +180,12 @@ export function buildWriteBenchmarkMarkdown(rootDir: string): string {
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
   if (args.some(arg => !['--write', '--archive'].includes(arg))) throw UsageError('Usage: bun src/tools/write-benchmark-report.ts [--write] [--archive]')
-  const root = resolve('docs/benchmarks/write')
+  const root = resolve('docs/benchmarks/text/write')
   if (args.includes('--archive')) await archiveWriteBenchmarkEvidence(root)
   const markdown = buildWriteBenchmarkMarkdown(root)
   if (args.includes('--write')) {
     writePortableFileSync(join(root, 'benchmark-report.md'), markdown)
-    writeCommandPayload('Updated docs/benchmarks/write/benchmark-report.md' + '\n')
+    writeCommandPayload('Updated docs/benchmarks/text/write/benchmark-report.md' + '\n')
   } else writeCommandPayload(markdown)
 }
 

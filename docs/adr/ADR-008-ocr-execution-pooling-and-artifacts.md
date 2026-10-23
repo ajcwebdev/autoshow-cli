@@ -235,7 +235,7 @@ Bun 1.4 decodes TIFF on macOS and Windows only, so production TIFF routing stays
 
 ### Token-shape evidence collected on 2026-09-23
 
-The retained [OCR benchmark manifests](../benchmarks/ocr/) supply individual Kimi K2.6 samples with `effectiveReasoningEffort: disabled`. All 11 selected provider entries have full items, succeeded in one attempt, reported prompt and completion usage, and retained nonempty `result.json` and `extraction.txt` artifacts with matching page counts. The token-shape audit excludes incomplete entries and keeps image and PDF modes in separate buckets.
+The retained [OCR benchmark manifests](../benchmarks/text/ocr) supply individual Kimi K2.6 samples with `effectiveReasoningEffort: disabled`. All 11 selected provider entries have full items, succeeded in one attempt, reported prompt and completion usage, and retained nonempty `result.json` and `extraction.txt` artifacts with matching page counts. The token-shape audit excludes incomplete entries and keeps image and PDF modes in separate buckets.
 
 | Model     | OCR mode | Page band | Healthy samples | Eligible component | Registry tokens/page | Observed median tokens/page | Median absolute percentage error |
 | --------- | -------- | --------- | --------------- | ------------------ | -------------------- | --------------------------- | -------------------------------- |

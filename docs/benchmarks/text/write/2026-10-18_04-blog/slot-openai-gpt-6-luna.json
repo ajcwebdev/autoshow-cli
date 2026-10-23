@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "04-blog",
+  "provider": "openai",
+  "model": "gpt-6-luna",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:34:56.574Z",
+  "artifactHashes": {
+    "raw-response-openai-gpt-6-luna-attempt-1.json": "2d9bc1efc7a84feff5b1e677c1896791d4f01c0ab9ec00c6bfb1233590008f36",
+    "text-openai-gpt-6-luna.json": "8511b4503d8f6b159294560abbbc56e04c9dbe33f0d0ec95ba954d649e7c0c31",
+    "text-openai-gpt-6-luna.md": "08d9489d19cc8ded4b1ea6464aa7f0cee3e434df35d9b966c951fd74acbf9064"
+  },
+  "metadata": {
+    "llmService": "openai",
+    "llmModel": "gpt-6-luna",
+    "providerReturnedModel": "gpt-6-luna",
+    "processingTime": 9130,
+    "inputTokenCount": 2409,
+    "outputTokenCount": 1605,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "inputTokenCount": 2409,
+      "outputTokenCount": 1605,
+      "totalTokenCount": 4014
+    },
+    "rawProviderUsage": {
+      "input_tokens": 2409,
+      "input_tokens_details": {
+        "cache_write_tokens": 2406,
+        "cached_tokens": 0
+      },
+      "output_tokens": 1605,
+      "output_tokens_details": {
+        "reasoning_tokens": 149
+      },
+      "total_tokens": 4014
+    },
+    "outputFileName": "text-openai-gpt-6-luna.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "blog"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "gpt-6-luna",
+      "stream": false,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "prompt_blog",
+          "schemaSha256": "6a7be88f6d1e36488bb5e1c39765f78161fadbb922b259a752e33273ca2ecc60",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.10434
+  },
+  "completedAt": "2026-10-18T18:35:05.705Z",
+  "wallTimeMs": 9130,
+  "networkAttempts": 1
+}

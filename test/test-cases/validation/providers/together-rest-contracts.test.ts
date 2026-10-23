@@ -15,7 +15,7 @@ const WHISPER = 'openai/whisper-large-v3'
 const PARAKEET = 'nvidia/parakeet-tdt-0.6b-v3'
 // Together's batch transcription page lists this string as a serverless model, but on 2026-10-17 a multipart
 // POST /v1/audio/transcriptions request for it returned 400 "This model only supports WebSocket streaming."
-// (retained in docs/benchmarks/stt-without-speakers/1-audio/providers/together-nvidia_nemotron-3.5-asr-streaming-0.6b/).
+// (retained in docs/benchmarks/stt/without-speakers/1-audio/providers/together-nvidia_nemotron-3.5-asr-streaming-0.6b/).
 const NEMOTRON = 'nvidia/nemotron-3.5-asr-streaming-0.6b'
 
 describe('Together STT REST contracts', () => {

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "05-rap-song-chapter",
+  "provider": "together",
+  "model": "glm-5.3",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:37:09.340Z",
+  "artifactHashes": {
+    "raw-response-together-glm-5.3-attempt-1.json": "bc218f7b352cb0cf6716b2969f59d7f90f3ae93b00a6381d81a0de3a1d4d8d3e",
+    "text-together-glm-5.3.json": "90945483406f748449acb8cda921c9e8c60e45b967f0b533db07a1d9482a3000",
+    "text-together-glm-5.3.md": "0c0834a86ec0fd05b087fe4079b1d1b2fdc492cbec41c4dff80293c45d2fc73e"
+  },
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "glm-5.3",
+    "providerReturnedModel": "zai-org/GLM-5.3",
+    "processingTime": 9919,
+    "inputTokenCount": 3407,
+    "outputTokenCount": 970,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 3407,
+      "outputTokenCount": 970,
+      "totalTokenCount": 4377
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 3407,
+      "completion_tokens": 970,
+      "total_tokens": 4377,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "outputFileName": "text-together-glm-5.3.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "rapSongChapterLyrics"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "zai-org/GLM-5.3",
+      "stream": false,
+      "max_tokens": 32768,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_rapSongChapter",
+          "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.90378
+  },
+  "completedAt": "2026-10-18T18:37:19.261Z",
+  "wallTimeMs": 9920,
+  "networkAttempts": 1
+}

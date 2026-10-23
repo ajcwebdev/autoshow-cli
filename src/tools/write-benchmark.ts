@@ -25,12 +25,12 @@ import { normalizeGrokChatUsage } from '~/utils/openai/grok-chat-usage'
 import { isRecord } from '~/utils/value-helpers'
 import type { LLMOptions, LLMService, LLMTarget, ResolvedStructuredSchema, Step3Metadata, StructuredValidationContext } from '~/types'
 
-export const WRITE_BENCHMARK_PLAN = 'docs/benchmarks/write/benchmark-plan.json'
+export const WRITE_BENCHMARK_PLAN = 'docs/benchmarks/text/write/benchmark-plan.json'
 export const WRITE_BENCHMARK_CASES = [
-  { id: '01-short-summary', prompt: 'shortSummary', input: 'docs/benchmarks/write/2026-09-16_06-51-18-238_1-audio/transcription.txt' },
-  { id: '02-long-summary', prompt: 'longSummary', input: 'docs/benchmarks/stt-with-speakers/2022-09-30-widgets-fsjam-40-minutes/consensus-transcription.txt' },
-  { id: '03-medium-chapters', prompt: 'mediumChapters', input: 'docs/benchmarks/stt-with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt' },
-  { id: '04-blog', prompt: 'blog', input: 'docs/benchmarks/stt-with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt' },
+  { id: '01-short-summary', prompt: 'shortSummary', input: 'docs/benchmarks/text/write/2026-09-16_06-51-18-238_1-audio/transcription.txt' },
+  { id: '02-long-summary', prompt: 'longSummary', input: 'docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes/consensus-transcription.txt' },
+  { id: '03-medium-chapters', prompt: 'mediumChapters', input: 'docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt' },
+  { id: '04-blog', prompt: 'blog', input: 'docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt' },
   { id: '05-rap-song-chapter', prompt: 'rapSongChapter', input: 'input/examples/document/harborlight-field-notes.md' }
 ] as const
 
@@ -127,7 +127,7 @@ export const buildWriteBenchmarkPlan = async (approval: WriteBenchmarkPlan['appr
   for (const entry of WRITE_BENCHMARK_CASES) {
     const prepared = await prepareWriteBenchmarkCase(entry)
     const estimates = await buildLlmEstimates({ ...options, prompts: [entry.prompt] }, prepared.source)
-    cases.push({ ...entry, runDir: `docs/benchmarks/write/2026-10-18_${entry.id}`, estimatedCostCents: estimates.reduce((sum, estimate) => sum + estimate.totalCost, 0), sourceSha256: sha256Bytes(prepared.source), promptSha256: sha256Bytes(prepared.prompt), schemaSha256: sha256Bytes(JSON.stringify(prepared.schema.jsonSchema)) })
+    cases.push({ ...entry, runDir: `docs/benchmarks/text/write/2026-10-18_${entry.id}`, estimatedCostCents: estimates.reduce((sum, estimate) => sum + estimate.totalCost, 0), sourceSha256: sha256Bytes(prepared.source), promptSha256: sha256Bytes(prepared.prompt), schemaSha256: sha256Bytes(JSON.stringify(prepared.schema.jsonSchema)) })
   }
   const content = {
     schemaVersion: 1 as const, benchmarkDate: '2026-10-18', repetitions: 1 as const, providerConcurrency: 2 as const,

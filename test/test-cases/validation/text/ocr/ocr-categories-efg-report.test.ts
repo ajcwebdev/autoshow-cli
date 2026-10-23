@@ -63,7 +63,7 @@ const fixture = async () => {
     const page = { id: `${spec.id}-page-01`, caseId: spec.id, pageNumber: 1, input: pageInput, inputSha256: hash(pageBytes), width: 1, height: 1 }
     const entry = { id: spec.id, category: spec.category, input, inputSha256: hash(inputBytes), reference, referenceSha256: hash(referenceText),
       referenceKind: spec.structure ? 'publisher-canonical' : 'existing-consensus', sourceURL: 'https://example.org/image-v1', sourceRevision: 'image-v1',
-      annotationURL: 'https://example.org/annotation-v2', annotationRevision: 'annotation-v2', runDir: `docs/benchmarks/ocr/${spec.id}`, scope: spec.category === 'newspapers' ? 'region-crop' : 'full-page',
+      annotationURL: 'https://example.org/annotation-v2', annotationRevision: 'annotation-v2', runDir: `docs/benchmarks/text/ocr/${spec.id}`, scope: spec.category === 'newspapers' ? 'region-crop' : 'full-page',
       sourceFamily: 'Independent fixture publisher', synthetic: spec.category === 'numeric-tables', serializationPolicy: 'Declared lexical order; TSV/drawing layout is a separate representation.',
       ...(structureBytes ? { structuredReference, structuredReferenceSha256: hash(structureBytes) } : {}),
       ...(normalizedReference ? { normalizedReference, normalizedReferenceSha256: hash(normalizeHistoricalReference(referenceText)) } : {}),

@@ -34,7 +34,7 @@ const fixture = async (fixtureOptions: { blankLocal?: boolean } = {}) => {
     const page = { id: `${id}-page-01`, caseId: id, pageNumber: 1, input, inputSha256: hash(jpeg), width: 1, height: 1 }
     const entry = { id, category: 'advertisements', input, inputSha256: hash(jpeg), reference, referenceSha256: hash(referenceText),
       referenceKind: index === 0 ? 'publisher-canonical' : 'existing-consensus', sourceURL: 'https://example.org/pinned-image',
-      annotationURL: 'https://example.org/pinned-words', annotationRevision: 'annotation-fixture-v2', sourceRevision: 'image-fixture-v1', runDir: `docs/benchmarks/ocr/${id}`, pages: [page],
+      annotationURL: 'https://example.org/pinned-words', annotationRevision: 'annotation-fixture-v2', sourceRevision: 'image-fixture-v1', runDir: `docs/benchmarks/text/ocr/${id}`, pages: [page],
       ...(index === 0 ? { structuredReference, structuredReferenceSha256: hash(structureBytes), evaluationScope: 'dataset-annotated-word-regions' } : {}) }
     cases.push(entry); pages.push(page)
     for (const target of targets) {
@@ -138,7 +138,7 @@ describe('advertisement report scope and saved-output integrity', () => {
     }
     expect(await Bun.file(join(f.root, `${partial.runDir}/provider-comparison-report.md`)).text()).not.toContain('Ranking metric: word error rate')
     const modulePath = resolve('.codex/skills/consensus/scripts/ocr/build_combined_report.ts'), rendererPath = resolve('.codex/skills/consensus/scripts/shared/dashboard_client.js')
-    const child = Bun.spawn([process.execPath, '-e', 'const b=await import(process.argv[1]); const r=b.buildOcrCombinedReport(process.argv[2]); const c=await import(process.argv[3]); console.log(JSON.stringify({report:r.report,model:r.dashboardModel,html:c.renderDashboard({schemaVersion:1,title:"Fixture",generatedAt:"now",tabs:[{key:"ocr",label:"OCR",rootLabel:"fixture",model:r.dashboardModel}]})}));', modulePath, join(f.root, 'docs/benchmarks/ocr'), rendererPath], { env: f.env, stdout: 'pipe', stderr: 'pipe' })
+    const child = Bun.spawn([process.execPath, '-e', 'const b=await import(process.argv[1]); const r=b.buildOcrCombinedReport(process.argv[2]); const c=await import(process.argv[3]); console.log(JSON.stringify({report:r.report,model:r.dashboardModel,html:c.renderDashboard({schemaVersion:1,title:"Fixture",generatedAt:"now",tabs:[{key:"ocr",label:"OCR",rootLabel:"fixture",model:r.dashboardModel}]})}));', modulePath, join(f.root, 'docs/benchmarks/text/ocr'), rendererPath], { env: f.env, stdout: 'pipe', stderr: 'pipe' })
     const [stdout, stderr, exit] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
     if (exit !== 0) throw new Error(stderr)
     const combined = JSON.parse(stdout)

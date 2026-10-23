@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "05-rap-song-chapter",
+  "provider": "grok",
+  "model": "grok-4.6",
+  "status": "failed",
+  "startedAt": "2026-10-18T18:37:09.340Z",
+  "artifactHashes": {
+    "failure-grok-grok-4.6.json": "4c904fb4dccf8b669a701bd6df6ec5cc8e21f2c3294091e47f19ce370c25c022"
+  },
+  "error": "The socket connection was closed unexpectedly. For more information, pass `verbose: true` in the second argument to fetch()",
+  "billing": {
+    "status": "unresolved",
+    "note": "No complete provider token usage was returned; any charge for this attempted slot is unresolved."
+  },
+  "completedAt": "2026-10-18T18:39:09.459Z",
+  "wallTimeMs": 120117,
+  "networkAttempts": 1
+}

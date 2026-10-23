@@ -343,7 +343,7 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
     const newspapers = options.reportProfile === 'newspapers'
     const efg = options.reportProfile === 'efg' || newspapers
     const efgCategory = entry.category === 'numeric-tables' || entry.category === 'handwriting' || entry.category === 'newspapers' ? entry.category : undefined
-    if (entry.runDir !== `docs/benchmarks/ocr/${entry.id}` || entry.referenceKind === 'existing-consensus' && !entry.id.startsWith(profile.rerunPrefix)
+    if (entry.runDir !== `docs/benchmarks/text/ocr/${entry.id}` || entry.referenceKind === 'existing-consensus' && !entry.id.startsWith(profile.rerunPrefix)
       || (efg ? !efgCategory : options.reportProfile === 'advertisements' ? entry.category !== 'advertisements' : entry.category !== 'technical-code' && entry.category !== 'historical-print')
       || newspapers && (entry.category !== 'newspapers' || entry.referenceKind !== 'publisher-canonical' || !entry.id.startsWith('newspapers-expansion-') || entry.id.includes('north-star') || !entry.normalizedReference)) throw new AppValidationError('Case report destination or reference provenance is invalid')
     if (hash(await bytes(entry.input)) !== entry.inputSha256 || hash(await bytes(entry.reference)) !== entry.referenceSha256) throw new AppValidationError(`Source/reference hash changed: ${entry.id}`)

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "05-rap-song-chapter",
+  "provider": "together",
+  "model": "glm-5.3-flash",
+  "status": "failed",
+  "startedAt": "2026-10-18T18:37:19.262Z",
+  "artifactHashes": {
+    "failure-together-glm-5.3-flash.json": "13392ccb05b3ed9bd0d94c3a264b676bf03ddb9fb49b7ebba53232308e4a9a96"
+  },
+  "error": "No response text from model",
+  "billing": {
+    "status": "unresolved",
+    "note": "No complete provider token usage was returned; any charge for this attempted slot is unresolved."
+  },
+  "completedAt": "2026-10-18T18:39:22.295Z",
+  "wallTimeMs": 123033,
+  "networkAttempts": 1
+}

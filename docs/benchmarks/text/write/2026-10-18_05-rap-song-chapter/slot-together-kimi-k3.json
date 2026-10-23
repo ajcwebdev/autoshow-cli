@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "05-rap-song-chapter",
+  "provider": "together",
+  "model": "kimi-k3",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:37:09.340Z",
+  "artifactHashes": {
+    "raw-response-together-kimi-k3-attempt-1.json": "28f8ac244529a147f6f3a5d4095c26aadc391d472462f5a266d6c763fddff3d1",
+    "text-together-kimi-k3.json": "2c0d89f4c624c9fa66dda31842b10c48874e7f013527249285b51f16586eb62a",
+    "text-together-kimi-k3.md": "859428c21f5e9b3f02ca4a54615d58ee5145b12a3bbb02a0be8f55adcde0b1b3"
+  },
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "kimi-k3",
+    "providerReturnedModel": "moonshotai/Kimi-K3",
+    "processingTime": 145330,
+    "inputTokenCount": 3793,
+    "outputTokenCount": 6898,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 3793,
+      "outputTokenCount": 6898,
+      "totalTokenCount": 10691
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 3793,
+      "completion_tokens": 6898,
+      "total_tokens": 10691,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 5930
+      }
+    },
+    "outputFileName": "text-together-kimi-k3.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "rapSongChapterLyrics"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "moonshotai/Kimi-K3",
+      "stream": false,
+      "max_tokens": 131072,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_rapSongChapter",
+          "schemaSha256": "a5f0e0bf0e14732a1d9ed268b8e870ef4287b63952430268a3363406ac73d6f6",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 11.4849
+  },
+  "completedAt": "2026-10-18T18:39:34.673Z",
+  "wallTimeMs": 145331,
+  "networkAttempts": 1
+}

@@ -25,7 +25,7 @@ const fixture = async () => {
     { type: 'image_url', image_url: { url: `data:image/png;base64,${Buffer.from(redDotPng).toString('base64')}` } }] }] }
   const page = { id: pageId, caseId: id, pageNumber: 1, input, inputSha256: hash(redDotPng), width: 1, height: 1 }
   const referenceText = `--- Page 1 ---\n${text}\n`
-  const entry = { id, category: 'newspapers', input, inputSha256: page.inputSha256, reference, referenceSha256: hash(referenceText), referenceKind: 'existing-consensus', sourceURL: 'https://example.org/original', sourceRevision: 'original-fixture', runDir: `docs/benchmarks/ocr/${id}`, pages: [page] }
+  const entry = { id, category: 'newspapers', input, inputSha256: page.inputSha256, reference, referenceSha256: hash(referenceText), referenceKind: 'existing-consensus', sourceURL: 'https://example.org/original', sourceRevision: 'original-fixture', runDir: `docs/benchmarks/text/ocr/${id}`, pages: [page] }
   const plan = { schemaVersion: 1, kind: 'ocr-categories-efg-execution-plan', approval: { status: 'approved', budgetCents: 3000, evidence: 'User approved up to $30 for categories 5–7' }, cases: [entry], pages: [page], targets: [{ provider: 'grok', model: 'grok-4.7' }, { provider: 'tesseract', model: 'tesseract' }] }
   const planBytes = String(await write(`${base}/execution-plan.json`, plan)), planSha256 = hash(planBytes)
   await write(input, redDotPng); await write(reference, referenceText)

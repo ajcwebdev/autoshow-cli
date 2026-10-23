@@ -34,7 +34,7 @@ const fixture = async (fixtureOptions: { mistralZeroBased?: boolean } = {}) => {
     const entry = { id, category, input, inputSha256: hash(redDotPng), reference, referenceSha256: hash(referenceText),
       referenceKind: index === 2 ? 'existing-consensus' as const : 'publisher-canonical' as const,
       sourceURL: 'https://example.org/image', annotationURL: 'https://example.org/annotation', sourceRevision: 'pinned-fixture-v1',
-      runDir: `docs/benchmarks/ocr/${id}`, pages: [] as string[],
+      runDir: `docs/benchmarks/text/ocr/${id}`, pages: [] as string[],
       ...(index === 1 ? { normalizedReference: `${reference}.normalized`, normalizedReferenceSha256: hash(normalizeHistoricalReference(referenceText)) } : {}) }
     if (entry.normalizedReference) await write(entry.normalizedReference, normalizeHistoricalReference(referenceText))
     cases.push(entry)

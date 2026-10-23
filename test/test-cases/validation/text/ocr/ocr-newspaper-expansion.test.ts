@@ -117,7 +117,7 @@ describe('Newspaper expansion source admission and derived artifact integrity, w
     const publicPlan = await Bun.file(resolve(f.root, NEWSPAPER_EXPANSION_PUBLIC_PLAN)).json()
     expect(publicPlan.status).toBe('prepared-not-run'); expect(publicPlan.executionAuthorized).toBe(false)
     expect(publicPlan.cases[0].status).toBe('prepared-not-run'); expect(JSON.stringify(publicPlan)).not.toContain('Left column.')
-    expect(await Bun.file(resolve(f.root, 'docs/benchmarks/ocr/combined-comparison-report.json')).exists()).toBe(false)
+    expect(await Bun.file(resolve(f.root, 'docs/benchmarks/text/ocr/combined-comparison-report.json')).exists()).toBe(false)
     expect((await validateNewspaperExpansion(options(f))).writes).toBe(0)
   })
   test('reconstructs Wikisource gold deterministically and detects altered canonical or normalized text', async () => {

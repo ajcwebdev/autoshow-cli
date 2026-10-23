@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "planFingerprint": "b977edbf64000fd9f7f4e7e95b130698d08a0a5eeb90de42bbb47f86fe6426d7",
+  "caseId": "02-long-summary",
+  "provider": "together",
+  "model": "glm-5.3-flash",
+  "status": "completed",
+  "startedAt": "2026-10-18T18:31:24.778Z",
+  "artifactHashes": {
+    "raw-response-together-glm-5.3-flash-attempt-1.json": "92af655825c2394bbcefbacfc029860566b08563ad843236e855bba89077df39",
+    "text-together-glm-5.3-flash.json": "65081294185a647fb28d070a2238e163484b8ed235114f36f1d56db979e8ae9f",
+    "text-together-glm-5.3-flash.md": "aad6831c6ae4322b5b032c6c411c39912344d324761cd111f9ce9279a4784e9c"
+  },
+  "metadata": {
+    "llmService": "together",
+    "llmModel": "glm-5.3-flash",
+    "providerReturnedModel": "zai-org/GLM-5.3-Flash",
+    "processingTime": 15812,
+    "inputTokenCount": 10489,
+    "outputTokenCount": 2438,
+    "tokenCountSource": "provider_usage",
+    "providerUsage": {
+      "cachedInputTokenCount": 0,
+      "inputTokenCount": 10489,
+      "outputTokenCount": 2438,
+      "totalTokenCount": 12927
+    },
+    "rawProviderUsage": {
+      "prompt_tokens": 10489,
+      "completion_tokens": 2438,
+      "total_tokens": 12927,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 2191
+      }
+    },
+    "outputFileName": "text-together-glm-5.3-flash.json",
+    "outputFormat": "json",
+    "structuredMode": "native",
+    "structuredPresetNames": [
+      "longSummary"
+    ],
+    "effectiveReasoningEffort": "default",
+    "requestSettings": {
+      "model": "zai-org/GLM-5.3-Flash",
+      "stream": false,
+      "max_tokens": 32768,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "prompt_longSummary",
+          "schemaSha256": "338e9812dd67ffe7375a17096f6d73624a12f437e5fa0f7f893151636d0dc599",
+          "strict": true
+        }
+      }
+    },
+    "validationFailed": false
+  },
+  "billing": {
+    "status": "known",
+    "costCents": 0.279235
+  },
+  "completedAt": "2026-10-18T18:31:40.590Z",
+  "wallTimeMs": 15812,
+  "networkAttempts": 1
+}
