@@ -40,7 +40,7 @@ const VOICE_ORIGINS = new Set([
   'imported-custom', 'saved-reference', 'request-reference-audio', 'local-model-voice'
 ])
 const TTS_PROVIDERS = new Set<string>(ACTIVE_TTS_PROVIDERS)
-const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra'])
+const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'deepgram', 'fal', 'fish', 'deepinfra'])
 
 const assertSafeKey = (value: string, label: string): void => {
   if (!SAFE_KEY.test(value)) throw UsageError(`${label} must be a safe lowercase key.`)

@@ -11,18 +11,6 @@ export const grokImage = {
   imageExtension: 'jpg',
 } as const
 
-export const replicateImage = {
-  provider: 'replicate',
-  imageService: 'replicate',
-  envVarKey: 'REPLICATE_API_TOKEN',
-} as const
-
-export const lumalabsImage = {
-  provider: 'lumalabs',
-  imageService: 'lumalabs',
-  envVarKey: 'LUMA_AGENTS_API_KEY',
-} as const
-
 export const falImage = {
   provider: 'fal',
   imageService: 'fal',

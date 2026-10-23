@@ -26,13 +26,6 @@ describe('registry rate source contracts', () => {
       openaiImageModels: ['gpt-image-2'], imageSize: '1024x1536', imageQuality: 'high'
     } as never)[0]?.costPerImageCents).toBe(openaiRate as number)
 
-    const seedream = registry.image['replicate']?.models['bytedance/seedream-5-pro']
-    const seedreamRate = seedream?.costPerImageBySizeCents?.['2K']
-    expect(seedreamRate).toBeDefined()
-    expect(estimateImageCosts({
-      replicateImageModels: ['bytedance/seedream-5-pro'], imageSize: '2K'
-    } as never)[0]?.costPerImageCents).toBe(seedreamRate as number)
-
     const grokVideo = registry.video['grok']?.models['grok-imagine-video-1.5']
     const base = grokVideo?.baseCostPerSecondCents
     const multiplier = grokVideo?.resolutionMultiplier1080p
@@ -67,9 +60,9 @@ describe('registry rate source contracts', () => {
   })
 
   test('requireRegistryRate fails loudly instead of quoting a stale number', () => {
-    expect(requireRegistryRate(4.5, { category: 'image', service: 'replicate', model: 'm', field: 'costPerImageCents' })).toBe(4.5)
-    expect(() => requireRegistryRate(undefined, { category: 'image', service: 'replicate', model: 'm', field: 'costPerImageCents' }))
-      .toThrow(/Missing costPerImageCents for replicate\/m in the image model registry/)
+    expect(requireRegistryRate(4.5, { category: 'image', service: 'fal', model: 'm', field: 'costPerImageCents' })).toBe(4.5)
+    expect(() => requireRegistryRate(undefined, { category: 'image', service: 'fal', model: 'm', field: 'costPerImageCents' }))
+      .toThrow(/Missing costPerImageCents for fal\/m in the image model registry/)
   })
 
   test('retired model rates validate against the live registry schemas', () => {

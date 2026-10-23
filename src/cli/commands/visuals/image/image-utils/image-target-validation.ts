@@ -64,8 +64,6 @@ const IMAGE_OPTION_LABELS = {
   geminiImageModels: '--gemini-image',
   openaiImageModels: '--openai-image',
   grokImageModels: '--grok-image',
-  replicateImageModels: '--replicate-image',
-  lumalabsImageModels: '--lumalabs-image',
   falImageModels: '--fal-image',
   imageAspectRatio: '--aspect-ratio',
   imageSize: '--size',

@@ -1,0 +1,694 @@
+{
+  "schemaVersion": 1,
+  "kind": "ocr-newspaper-expansion-benchmark-status",
+  "updatedAt": "2026-10-23T11:29:46.430Z",
+  "status": "completed-with-six-incomplete-outputs",
+  "approval": {
+    "status": "approved",
+    "budgetCents": 3000,
+    "evidence": "User approved up to $30 for the 12-input newspaper expansion",
+    "userMessage": "i approve up to $30"
+  },
+  "acquisitionSnapshot": "docs/benchmarks/ocr/newspaper-expansion-plan.json",
+  "privateExecutionPlan": "input/examples/document/ocr-newspaper-expansion/execution-plan.json",
+  "planSha256": "b4e48a0b72d6d10895e2e7a921ed2f77d78af2314dee54c91c5793262ad20d7f",
+  "selectionSha256": "399bf91bbfb0399d4b3b3c67ce4b817ace5f293e231d13ca01005c48482746cc",
+  "privateExecution": "input/examples/document/ocr-newspaper-expansion/execution.json",
+  "spendingLedger": "input/examples/document/ocr-newspaper-expansion/spending-ledger.json",
+  "executionCommand": "bun src/tools/ocr-newspaper-expansion-benchmark.ts --run",
+  "report": "docs/reports/ocr-newspaper-expansion-2026-10-23.md",
+  "scope": {
+    "sourceInputs": 12,
+    "sourcePages": 12,
+    "fullPublicationPages": 6,
+    "regionExcerpts": 6,
+    "publicationTitles": 10,
+    "hostedTargets": 20,
+    "localTargets": 1,
+    "intendedSlots": 252,
+    "heldCandidates": 1
+  },
+  "executionPolicy": {
+    "concurrency": 12,
+    "providerConcurrency": {
+      "anthropic": 3,
+      "openai": 4,
+      "gemini": 4,
+      "grok": 3,
+      "deepinfra": 4,
+      "mistral": 3,
+      "tesseract": 2
+    },
+    "modelConcurrency": {
+      "deepinfra/google/gemma-4-31B-it": 1
+    },
+    "requestTimeoutMs": 900000,
+    "nyTimesLast": true,
+    "retainedHoldsCountAgainstBudget": true
+  },
+  "cliSnapshot": {
+    "path": "output/benchmark-cache/ocr-newspaper-expansion-cli-16713c94a34648fa9aab945cab2eb8fa776ca416a1455cc88a18325c23a513ce.js",
+    "sha256": "16713c94a34648fa9aab945cab2eb8fa776ca416a1455cc88a18325c23a513ce"
+  },
+  "guardSnapshot": {
+    "path": "output/benchmark-cache/ocr-newspaper-expansion-guard-f0c511f4b3d1d28bf69bb29e7a5b34200d23142f7a8d2983ad9a594271840a19.js",
+    "sha256": "f0c511f4b3d1d28bf69bb29e7a5b34200d23142f7a8d2983ad9a594271840a19"
+  },
+  "price": {
+    "kind": "pre-execution-price-only-planning",
+    "firstPassReferenceLength": 1291.47271,
+    "firstPassExpanded": 1518.57551,
+    "firstPassEmpirical": 1632.31671,
+    "threeAttemptsEachSlotReferenceLength": 3874.41813,
+    "threeAttemptsEachSlotEmpirical": 4896.95013,
+    "nativeProfileCents": 439.68310799999983,
+    "adjustedProfileCents": 447.51536999999985,
+    "caveat": "These are preserved pre-execution forecasts, not actual charges or invoice reconciliation. This completed batch used a dedicated guard under its own explicit $30 approval.",
+    "originalPlanningCaveat": "Planning scenarios, not hard billing ceilings. Fresh scoped guard and explicit output reservations are required before dispatch. Existing EFG approval and wrappers do not authorize or support this cohort."
+  },
+  "targets": [
+    {
+      "provider": "tesseract",
+      "model": "tesseract"
+    },
+    {
+      "provider": "mistral",
+      "model": "mistral-ocr-4-1"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-luna"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-terra"
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.7"
+    },
+    {
+      "provider": "grok",
+      "model": "grok-4.5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5"
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-4-argon"
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.8-flash"
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash"
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.6-flash"
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite"
+    },
+    {
+      "provider": "deepinfra",
+      "model": "google/gemma-4-31B-it"
+    },
+    {
+      "provider": "deepinfra",
+      "model": "Qwen/Qwen3.8-27B"
+    },
+    {
+      "provider": "deepinfra",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash"
+    }
+  ],
+  "excludedTargets": [
+    {
+      "provider": "mistral",
+      "model": "mistral-ocr-4-0",
+      "reason": "Unavailable in the preceding admitted runs; excluded from the latest21-target cohort."
+    }
+  ],
+  "cases": [
+    {
+      "id": "newspapers-expansion-bln-charter-aldermen",
+      "category": "newspapers",
+      "panel": "region-recognition",
+      "scope": "region-crop",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-charter-aldermen/input.png",
+      "inputSha256": "277a8dc3d6c9ad538bedd3aef748c40228be2571d65511744deca85438bc71c4",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-charter-aldermen/canonical-reference.txt",
+      "referenceSha256": "72536aeafb05b75e5cae48e4c9d5dab982b1c346c3bef534a67911dbf8b69e85",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-charter-aldermen/normalized-reference.txt",
+      "normalizedReferenceSha256": "19aa8edb678d15f72b93634fd5f84bcb9ee4d3bdf75d1c980e9784478dbbbccb",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-bln-charter-aldermen",
+      "selectedSlots": 21,
+      "scorableSlots": 21,
+      "failedSlots": 0,
+      "sourceURL": "https://ndownloader.figshare.com/files/49365928#Images%2F3205297646.tif",
+      "annotationURL": "https://ndownloader.figshare.com/files/49365928#Ground%20Truth%2F3205297646.txt",
+      "sourceRevision": "10.15131/shef.data.25439023.v2",
+      "annotationRevision": "10.15131/shef.data.25439023.v2",
+      "sourceFamily": "Publisher manual ground truth",
+      "rights": {
+        "license": "CC BY-NC-ND 4.0",
+        "imageLicense": "CC BY-NC-ND 4.0",
+        "referenceLicense": "CC BY-NC-ND 4.0",
+        "attributionURL": "https://orda.shef.ac.uk/articles/dataset/BLN600_A_Parallel_Corpus_of_Machine_Human_Transcribed_Nineteenth_Century_Newspaper_Texts/25439023/2"
+      },
+      "attribution": "Callum Booth, Alan Thomas, Robert Gaizauskas; BLN600 v2, DOI 10.15131/shef.data.25439023.v2; source Gale/British Library Newspapers."
+    },
+    {
+      "id": "newspapers-expansion-bln-era-burglars",
+      "category": "newspapers",
+      "panel": "region-recognition",
+      "scope": "region-crop",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-era-burglars/input.png",
+      "inputSha256": "8d2d5a8a0d52049b5c7c48ea18b6b1b052f0278162dacd7025dfde51995156b9",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-era-burglars/canonical-reference.txt",
+      "referenceSha256": "aaa6987a50599c9477f4a294ed4f4df3d378989c0a54f7e7f3822cb0eadf9973",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-era-burglars/normalized-reference.txt",
+      "normalizedReferenceSha256": "87a9802ff3ef8c81c2001f71d27f67c1101369279b02c82da0c87eeda296710f",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-bln-era-burglars",
+      "selectedSlots": 21,
+      "scorableSlots": 21,
+      "failedSlots": 0,
+      "sourceURL": "https://ndownloader.figshare.com/files/49365928#Images%2F3202448316.tif",
+      "annotationURL": "https://ndownloader.figshare.com/files/49365928#Ground%20Truth%2F3202448316.txt",
+      "sourceRevision": "10.15131/shef.data.25439023.v2",
+      "annotationRevision": "10.15131/shef.data.25439023.v2",
+      "sourceFamily": "Publisher manual ground truth",
+      "rights": {
+        "license": "CC BY-NC-ND 4.0",
+        "imageLicense": "CC BY-NC-ND 4.0",
+        "referenceLicense": "CC BY-NC-ND 4.0",
+        "attributionURL": "https://orda.shef.ac.uk/articles/dataset/BLN600_A_Parallel_Corpus_of_Machine_Human_Transcribed_Nineteenth_Century_Newspaper_Texts/25439023/2"
+      },
+      "attribution": "Callum Booth, Alan Thomas, Robert Gaizauskas; BLN600 v2, DOI 10.15131/shef.data.25439023.v2; source Gale/British Library Newspapers."
+    },
+    {
+      "id": "newspapers-expansion-bln-lloyds-bank-robbery",
+      "category": "newspapers",
+      "panel": "region-recognition",
+      "scope": "region-crop",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-lloyds-bank-robbery/input.png",
+      "inputSha256": "e69a5afb4018052853299b9993efd7c40af594133d7116260501e1ff6ab24324",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-lloyds-bank-robbery/canonical-reference.txt",
+      "referenceSha256": "91adaf63e7003acc381731d4b788326d8585379dd38971e1c5cfa8858b83b8cf",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-lloyds-bank-robbery/normalized-reference.txt",
+      "normalizedReferenceSha256": "aecf2cc157b5f82d2d77e7df91a2c9da22eeb9442e150d00d47396b0d6c33a97",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-bln-lloyds-bank-robbery",
+      "selectedSlots": 21,
+      "scorableSlots": 21,
+      "failedSlots": 0,
+      "sourceURL": "https://ndownloader.figshare.com/files/49365928#Images%2F3206277683.tif",
+      "annotationURL": "https://ndownloader.figshare.com/files/49365928#Ground%20Truth%2F3206277683.txt",
+      "sourceRevision": "10.15131/shef.data.25439023.v2",
+      "annotationRevision": "10.15131/shef.data.25439023.v2",
+      "sourceFamily": "Publisher manual ground truth",
+      "rights": {
+        "license": "CC BY-NC-ND 4.0",
+        "imageLicense": "CC BY-NC-ND 4.0",
+        "referenceLicense": "CC BY-NC-ND 4.0",
+        "attributionURL": "https://orda.shef.ac.uk/articles/dataset/BLN600_A_Parallel_Corpus_of_Machine_Human_Transcribed_Nineteenth_Century_Newspaper_Texts/25439023/2"
+      },
+      "attribution": "Callum Booth, Alan Thomas, Robert Gaizauskas; BLN600 v2, DOI 10.15131/shef.data.25439023.v2; source Gale/British Library Newspapers."
+    },
+    {
+      "id": "newspapers-expansion-bln-morning-chronicle-inquest",
+      "category": "newspapers",
+      "panel": "region-recognition",
+      "scope": "region-crop",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-morning-chronicle-inquest/input.png",
+      "inputSha256": "964132c22e0b6d78effc7cd87b6237b0f4f2bdf3b708e8abcdf4ea5c3c45639b",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-morning-chronicle-inquest/canonical-reference.txt",
+      "referenceSha256": "a8ffc1e131987a87b937f6988029318ad8e5f7104d4e6d8937c21fce24b6e0d2",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-morning-chronicle-inquest/normalized-reference.txt",
+      "normalizedReferenceSha256": "a40c232bb07cdc9b83fc1d337a15eeda7c051704d804af986fb8aacda6c42725",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-bln-morning-chronicle-inquest",
+      "selectedSlots": 21,
+      "scorableSlots": 21,
+      "failedSlots": 0,
+      "sourceURL": "https://ndownloader.figshare.com/files/49365928#Images%2F3207167129.tif",
+      "annotationURL": "https://ndownloader.figshare.com/files/49365928#Ground%20Truth%2F3207167129.txt",
+      "sourceRevision": "10.15131/shef.data.25439023.v2",
+      "annotationRevision": "10.15131/shef.data.25439023.v2",
+      "sourceFamily": "Publisher manual ground truth",
+      "rights": {
+        "license": "CC BY-NC-ND 4.0",
+        "imageLicense": "CC BY-NC-ND 4.0",
+        "referenceLicense": "CC BY-NC-ND 4.0",
+        "attributionURL": "https://orda.shef.ac.uk/articles/dataset/BLN600_A_Parallel_Corpus_of_Machine_Human_Transcribed_Nineteenth_Century_Newspaper_Texts/25439023/2"
+      },
+      "attribution": "Callum Booth, Alan Thomas, Robert Gaizauskas; BLN600 v2, DOI 10.15131/shef.data.25439023.v2; source Gale/British Library Newspapers."
+    },
+    {
+      "id": "newspapers-expansion-bln-police-news-putney",
+      "category": "newspapers",
+      "panel": "region-recognition",
+      "scope": "region-crop",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-police-news-putney/input.png",
+      "inputSha256": "026a8272efc4c91bee84ed07fce6022cd315f3bcbc86056492007b4e3e2dba15",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-police-news-putney/canonical-reference.txt",
+      "referenceSha256": "2e33535be3ca001c0a1e29661d6dc71e6d3af2abe3bd56b887e3327d313e070c",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-bln-police-news-putney/normalized-reference.txt",
+      "normalizedReferenceSha256": "f5d0e6164a3d32a9c3e6bc63aae9bb522f5331aa8ec13be8ae1c9e5388638d31",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-bln-police-news-putney",
+      "selectedSlots": 21,
+      "scorableSlots": 21,
+      "failedSlots": 0,
+      "sourceURL": "https://ndownloader.figshare.com/files/49365928#Images%2F3200810876.tif",
+      "annotationURL": "https://ndownloader.figshare.com/files/49365928#Ground%20Truth%2F3200810876.txt",
+      "sourceRevision": "10.15131/shef.data.25439023.v2",
+      "annotationRevision": "10.15131/shef.data.25439023.v2",
+      "sourceFamily": "Publisher manual ground truth",
+      "rights": {
+        "license": "CC BY-NC-ND 4.0",
+        "imageLicense": "CC BY-NC-ND 4.0",
+        "referenceLicense": "CC BY-NC-ND 4.0",
+        "attributionURL": "https://orda.shef.ac.uk/articles/dataset/BLN600_A_Parallel_Corpus_of_Machine_Human_Transcribed_Nineteenth_Century_Newspaper_Texts/25439023/2"
+      },
+      "attribution": "Callum Booth, Alan Thomas, Robert Gaizauskas; BLN600 v2, DOI 10.15131/shef.data.25439023.v2; source Gale/British Library Newspapers."
+    },
+    {
+      "id": "newspapers-expansion-courant-1721-article",
+      "category": "newspapers",
+      "panel": "region-recognition",
+      "scope": "region-crop",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-courant-1721-article/input.png",
+      "inputSha256": "da2a831580ec536773ee710699cfef7b283fb4ab63d65313d27b6355cd822b81",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-courant-1721-article/canonical-reference.txt",
+      "referenceSha256": "807a547d92d08a780bfa044a426e2075188b08b375b72a708be58b381dd1eeaf",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-courant-1721-article/normalized-reference.txt",
+      "normalizedReferenceSha256": "7e3311b7f58d15735370a2809bc5869a9d7939c95e41b8694ae7bef0ab299d9e",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-courant-1721-article",
+      "selectedSlots": 21,
+      "scorableSlots": 21,
+      "failedSlots": 0,
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/The_New-England_Courant_-_Nos_001.djvu/page1-1920px-The_New-England_Courant_-_Nos_001.djvu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20New-England%20Courant%20-%20Nos%20001.djvu%2F1&oldid=14351086&action=raw",
+      "sourceRevision": "14351086",
+      "annotationRevision": "14351086",
+      "sourceFamily": "Wikisource/Commons",
+      "rights": {
+        "license": "Public-domain scan; CC-BY-SA-4.0 transcription",
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20New-England%20Courant%20-%20Nos%20001.djvu%2F1&oldid=14351086"
+      },
+      "attribution": "Wikisource contributors, Page:The New-England Courant - Nos 001.djvu/1, revision 14351086; exact first left-column article; Commons scan revision 2019-08-05T09:54:54Z."
+    },
+    {
+      "id": "newspapers-expansion-independent-hindustan-1920-p3",
+      "category": "newspapers",
+      "panel": "whole-page-layout",
+      "scope": "full-page",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-independent-hindustan-1920-p3/input.png",
+      "inputSha256": "c0fede0c768c0b0ae33a129645a00c898ccbb81fae1cdf1dc8173e79c71bdc5a",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-independent-hindustan-1920-p3/canonical-reference.txt",
+      "referenceSha256": "790f12731398747699ab1a05464c497761c2d3367ea7da499cfa89d6f467f659",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-independent-hindustan-1920-p3/normalized-reference.txt",
+      "normalizedReferenceSha256": "c6f855a100e9846edbcc32da8bb84349bef1f3f0b08b8c316543638cec31a42b",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-independent-hindustan-1920-p3",
+      "selectedSlots": 21,
+      "scorableSlots": 21,
+      "failedSlots": 0,
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/The_Independent_Hindustan_Volume_I_Number_4.djvu/page3-960px-The_Independent_Hindustan_Volume_I_Number_4.djvu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20Independent%20Hindustan%20Volume%20I%20Number%204.djvu%2F3&oldid=8368077&action=raw",
+      "sourceRevision": "8368077",
+      "annotationRevision": "8368077",
+      "sourceFamily": "Wikisource/Commons",
+      "rights": {
+        "license": "Public-domain scan; CC-BY-SA-4.0 transcription",
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20Independent%20Hindustan%20Volume%20I%20Number%204.djvu%2F3&oldid=8368077"
+      },
+      "attribution": "Wikisource contributors, Page:The Independent Hindustan Volume I Number 4.djvu/3, revision 8368077; Commons The Independent Hindustan Volume I Number 4.djvu, leaf 3, image revision 2013-01-06T01:12:38Z."
+    },
+    {
+      "id": "newspapers-expansion-london-gazette-1815-p3",
+      "category": "newspapers",
+      "panel": "whole-page-layout",
+      "scope": "full-page",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-london-gazette-1815-p3/input.png",
+      "inputSha256": "ff54460838c97107e2adfbde91e5745b6f73acb03e9ab39298a09eaf134e6ba1",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-london-gazette-1815-p3/canonical-reference.txt",
+      "referenceSha256": "bb78a6501b6a8c6587b027dfba494ee87d9349da249c1ac644fd868b9502ec7c",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-london-gazette-1815-p3/normalized-reference.txt",
+      "normalizedReferenceSha256": "af575edd3cff5c91d09181bb778ce33852777ebdc8e0eede9fc913cc961b2bd8",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-london-gazette-1815-p3",
+      "selectedSlots": 21,
+      "scorableSlots": 21,
+      "failedSlots": 0,
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/The_London_Gazette_17028.pdf/page3-960px-The_London_Gazette_17028.pdf.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20London%20Gazette%2017028.pdf%2F3&oldid=16226637&action=raw",
+      "sourceRevision": "16226637",
+      "annotationRevision": "16226637",
+      "sourceFamily": "Wikisource/Commons",
+      "rights": {
+        "license": "Public-domain scan; CC-BY-SA-4.0 transcription",
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20London%20Gazette%2017028.pdf%2F3&oldid=16226637"
+      },
+      "attribution": "Wikisource contributors, Page:The London Gazette 17028.pdf/3, revision 16226637; Commons The London Gazette 17028.pdf, leaf 3, image revision 2026-08-12T19:19:38Z."
+    },
+    {
+      "id": "newspapers-expansion-london-gazette-1815-p4",
+      "category": "newspapers",
+      "panel": "whole-page-layout",
+      "scope": "full-page",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-london-gazette-1815-p4/input.png",
+      "inputSha256": "88840b506f664ff61b7183a52b643b6d542c12a9b4f297caf22280ce84d96049",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-london-gazette-1815-p4/canonical-reference.txt",
+      "referenceSha256": "23bded7f3a1c447b0adbc219af245eb329e003d12419debadf59280648f80584",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-london-gazette-1815-p4/normalized-reference.txt",
+      "normalizedReferenceSha256": "999928600801e58f9c337c97d5e71ea03490074bef35b81b6cdbec6b41ed56f5",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-london-gazette-1815-p4",
+      "selectedSlots": 21,
+      "scorableSlots": 21,
+      "failedSlots": 0,
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/The_London_Gazette_17028.pdf/page4-960px-The_London_Gazette_17028.pdf.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20London%20Gazette%2017028.pdf%2F4&oldid=16226633&action=raw",
+      "sourceRevision": "16226633",
+      "annotationRevision": "16226633",
+      "sourceFamily": "Wikisource/Commons",
+      "rights": {
+        "license": "Public-domain scan; CC-BY-SA-4.0 transcription",
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20London%20Gazette%2017028.pdf%2F4&oldid=16226633"
+      },
+      "attribution": "Wikisource contributors, Page:The London Gazette 17028.pdf/4, revision 16226633; Commons The London Gazette 17028.pdf, leaf 4, image revision 2026-08-12T19:19:38Z."
+    },
+    {
+      "id": "newspapers-expansion-perth-gazette-1833-03-02-p1",
+      "category": "newspapers",
+      "panel": "whole-page-layout",
+      "scope": "full-page",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-perth-gazette-1833-03-02-p1/input.png",
+      "inputSha256": "b1cfe74d54a368625dddd354eb155c79ac10d47b980020cfcbcf61c39f43e3ae",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-perth-gazette-1833-03-02-p1/canonical-reference.txt",
+      "referenceSha256": "f45df735a09dbfcd12da7c6c22cddc5b8f0be04077b7be8f282c453d819facde",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-perth-gazette-1833-03-02-p1/normalized-reference.txt",
+      "normalizedReferenceSha256": "3b15e1b242b2f28876754e968b28bfef63f6390788fea83bc6f5ec1837d38deb",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-perth-gazette-1833-03-02-p1",
+      "selectedSlots": 21,
+      "scorableSlots": 20,
+      "failedSlots": 1,
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/The_Perth_Gazette_and_Western_Australian_Journal_1%289%29.djvu/page1-960px-The_Perth_Gazette_and_Western_Australian_Journal_1%289%29.djvu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(9).djvu%2F1&oldid=7397214&action=raw",
+      "sourceRevision": "7397214",
+      "annotationRevision": "7397214",
+      "sourceFamily": "Wikisource/Commons",
+      "rights": {
+        "license": "Public-domain scan; CC-BY-SA-4.0 transcription",
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(9).djvu%2F1&oldid=7397214"
+      },
+      "attribution": "Wikisource contributors, Page:The Perth Gazette and Western Australian Journal 1(9).djvu/1, revision 7397214; Commons The Perth Gazette and Western Australian Journal 1(9).djvu, leaf 1, image revision 2008-09-30T04:41:08Z."
+    },
+    {
+      "id": "newspapers-expansion-perth-gazette-1833-04-13-p1",
+      "category": "newspapers",
+      "panel": "whole-page-layout",
+      "scope": "full-page",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-perth-gazette-1833-04-13-p1/input.png",
+      "inputSha256": "5942f22b6ffbeab1ad5a06e592957ca4942588e7018a41b0366298a2916c13fa",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-perth-gazette-1833-04-13-p1/canonical-reference.txt",
+      "referenceSha256": "6570c74c4cfe914a5af972c535c98ba94877e1fab07354113cc352b080dc7641",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-perth-gazette-1833-04-13-p1/normalized-reference.txt",
+      "normalizedReferenceSha256": "293ebc14b4d0615902d57e1a405b8a2f8fd8262b0dc6062055846c21fa16b048",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-perth-gazette-1833-04-13-p1",
+      "selectedSlots": 21,
+      "scorableSlots": 21,
+      "failedSlots": 0,
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f3/The_Perth_Gazette_and_Western_Australian_Journal_1%2815%29.djvu/page1-960px-The_Perth_Gazette_and_Western_Australian_Journal_1%2815%29.djvu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(15).djvu%2F1&oldid=14895746&action=raw",
+      "sourceRevision": "14895746",
+      "annotationRevision": "14895746",
+      "sourceFamily": "Wikisource/Commons",
+      "rights": {
+        "license": "Public-domain scan; CC-BY-SA-4.0 transcription",
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(15).djvu%2F1&oldid=14895746"
+      },
+      "attribution": "Wikisource contributors, Page:The Perth Gazette and Western Australian Journal 1(15).djvu/1, revision 14895746; Commons The Perth Gazette and Western Australian Journal 1(15).djvu, leaf 1, image revision 2008-09-30T06:26:17Z."
+    },
+    {
+      "id": "newspapers-expansion-new-york-times-1929-10-24-p31",
+      "category": "newspapers",
+      "panel": "very-long-page-capacity",
+      "scope": "full-page",
+      "input": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-new-york-times-1929-10-24-p31/input.png",
+      "inputSha256": "b08cef0997f2489c34355b33c305e5eeffa3994e554d33cc7be88e1fc9797550",
+      "reference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-new-york-times-1929-10-24-p31/canonical-reference.txt",
+      "referenceSha256": "d3d6ba3a1a6ed1e4cb94983c9f6537369ab68f1b9a67a8df1d1e7ec6bc6e7987",
+      "normalizedReference": "input/examples/document/ocr-newspaper-expansion/cases/newspapers-expansion-new-york-times-1929-10-24-p31/normalized-reference.txt",
+      "normalizedReferenceSha256": "4c48c8b9b2a2671f077aed24ba71f0f5def695cb243005b8a656bc5a8c07f7d7",
+      "referenceKind": "publisher-canonical",
+      "runDir": "docs/benchmarks/ocr/newspapers-expansion-new-york-times-1929-10-24-p31",
+      "selectedSlots": 21,
+      "scorableSlots": 16,
+      "failedSlots": 5,
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/The_New_York_Times%2C_1929-10-24.pdf/page31-1920px-The_New_York_Times%2C_1929-10-24.pdf.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20New%20York%20Times%2C%201929-10-24.pdf%2F31&oldid=15532401&action=raw",
+      "sourceRevision": "15532401",
+      "annotationRevision": "15532401",
+      "sourceFamily": "Wikisource/Commons",
+      "rights": {
+        "license": "Public-domain scan; CC-BY-SA-4.0 transcription",
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20New%20York%20Times%2C%201929-10-24.pdf%2F31&oldid=15532401"
+      },
+      "attribution": "Wikisource contributors, Page:The New York Times, 1929-10-24.pdf/31, revision 15532401; Commons The New York Times, 1929-10-24.pdf, leaf 31, image revision 2025-01-02T15:29:57Z."
+    }
+  ],
+  "completedAt": "2026-10-23T11:29:46.430Z",
+  "coverage": {
+    "attemptedSlots": 252,
+    "providerCompletedScorableSlots": 246,
+    "failedSlots": 6,
+    "notDispatchedSlots": 0,
+    "runningSlots": 0,
+    "completeInputs": 10,
+    "incompleteInputs": 2,
+    "semantics": "A provider-completed/scorable artifact is valid for scoring; completion does not establish exhaustive source coverage or visual correctness.",
+    "failureClassification": {
+      "outputLimit": 5,
+      "accountingAllowanceBreachWithNativeLengthFinish": 1
+    }
+  },
+  "incompleteOutputs": [
+    {
+      "caseId": "newspapers-expansion-perth-gazette-1833-03-02-p1",
+      "provider": "deepinfra",
+      "model": "google/gemma-4-31B-it",
+      "reason": "output-limit",
+      "qualityScore": null,
+      "retainedAccountingHold": false,
+      "nativeFinishReason": "length"
+    },
+    {
+      "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+      "provider": "grok",
+      "model": "grok-4.7",
+      "reason": "accounting-allowance-breach",
+      "qualityScore": null,
+      "retainedAccountingHold": true,
+      "nativeFinishReason": "length"
+    },
+    {
+      "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+      "provider": "gemini",
+      "model": "gemini-3.8-flash",
+      "reason": "output-limit",
+      "qualityScore": null,
+      "retainedAccountingHold": false,
+      "nativeFinishReason": "MAX_TOKENS"
+    },
+    {
+      "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+      "provider": "grok",
+      "model": "grok-4.5",
+      "reason": "output-limit",
+      "qualityScore": null,
+      "retainedAccountingHold": false,
+      "nativeFinishReason": "length"
+    },
+    {
+      "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash",
+      "reason": "output-limit",
+      "qualityScore": null,
+      "retainedAccountingHold": false,
+      "nativeFinishReason": "MAX_TOKENS"
+    },
+    {
+      "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+      "provider": "gemini",
+      "model": "gemini-3.6-flash",
+      "reason": "output-limit",
+      "qualityScore": null,
+      "retainedAccountingHold": false,
+      "nativeFinishReason": "MAX_TOKENS"
+    }
+  ],
+  "spending": {
+    "requestCount": 241,
+    "reviewedUsageCents": 881.0135170000001,
+    "settledConservativeCents": 0,
+    "settledAccountedCents": 881.0135170000001,
+    "heldReservationCents": 34.9184,
+    "accountedCents": 915.9319170000001,
+    "rejectedRequests": 1,
+    "unresolvedRequests": 1,
+    "receiptCounts": {
+      "settled": 239,
+      "rejected": 1,
+      "breach": 1,
+      "ambiguous": 0,
+      "reserved": 0
+    },
+    "budgetCents": 3000,
+    "currency": "USD",
+    "units": "cents",
+    "kind": "reviewed-rate-cumulative-accounting",
+    "invoiceReconciled": false,
+    "holdPolicy": "Original Grok 4.7 NYT breach retains its full reservation. The final checksum-pinned review permitted only the zero-charge Fable credit retry and prohibits Grok redispatch.",
+    "reconciliations": [
+      {
+        "path": "input/examples/document/ocr-newspaper-expansion/reconciliations/final-grok-nyt-accounting-review.json",
+        "sha256": "5b79b8a7df8fb14dcb2dc5cdd00f479f0ea406b7247d5213e4648e49ced5cff1"
+      }
+    ]
+  },
+  "scoring": {
+    "primaryVariant": "newspaper-reading-normalized-v1",
+    "referenceIndependentOfProviders": true,
+    "rawEvidencePreserved": true,
+    "groupsSeparate": true,
+    "failedOutputsHaveNoInventedScore": true,
+    "comparisonPanels": [
+      "region-recognition",
+      "whole-page-layout",
+      "very-long-page-capacity"
+    ],
+    "matchedInputPolicy": "Compare identical successfully completed source inputs within each local/hosted group; retain conditional scores and denominators separately.",
+    "diagnostics": [
+      "ordered-WER",
+      "literal-CER",
+      "token-multiset-precision-recall-F1",
+      "repeated-logical-lines"
+    ],
+    "limitations": "Text-only metrics do not establish geometry or localization. Some source spacing/hyphenation conventions contribute small errors. Publications and repeated issue pages are dependent observations."
+  },
+  "integratedInventory": {
+    "sourceInputs": 56,
+    "sourcePages": 72,
+    "runEntries": 64,
+    "pageInstances": 96,
+    "usableOutputs": 1415,
+    "intendedOutputs": 1443,
+    "primaryAccuracyRecords": 1310,
+    "partialReferenceDiagnostics": 105
+  },
+  "preservation": {
+    "sourceFilesChecked": 76,
+    "priorArtifactsCheckedBeforeAggregateRebuild": 1066,
+    "otherDispatchJournalsUnchanged": 251,
+    "initialReceiptObjectsUnchanged": 240,
+    "originalArtifactHashesPreserved": 497,
+    "currentArtifactsChecked": 498,
+    "priorPublicArtifactsUnchangedAfterIntegration": 1063,
+    "intentionallyChangedPriorArtifacts": [
+      "docs/benchmarks/ocr/combined-comparison-report.json",
+      "docs/benchmarks/ocr/combined-comparison-report.md",
+      "docs/benchmarks/combined-comparison-dashboard.json"
+    ]
+  },
+  "heldCandidate": {
+    "id": "newspapers-expansion-north-star-1847-12-03-p2",
+    "status": "blocked-reference-review",
+    "selectedForExecution": false
+  },
+  "verification": {
+    "providerCallsForVerification": 0,
+    "defaultCheck": "bun run check",
+    "priceOnly": "bun t --price",
+    "priceOnlyCommandsPassed": 92,
+    "targetedTestsPassed": 166,
+    "targetedAssertions": 904
+  },
+  "guardSnapshotSemantics": "guardSnapshot is the latest continuation-aware snapshot. The final slot records retain their original snapshots; the first-pass zero-charge rejection is separately preserved in prior attempts.",
+  "guardSnapshotHistory": [
+    {
+      "path": "output/benchmark-cache/ocr-newspaper-expansion-guard-fc6e1277e36ce8947a4a751d60604db26918d2ff4e35d9b9c2aafefac031f2ed.js",
+      "sha256": "fc6e1277e36ce8947a4a751d60604db26918d2ff4e35d9b9c2aafefac031f2ed",
+      "finalSlotCount": 251,
+      "reusedSlots": 251
+    },
+    {
+      "path": "output/benchmark-cache/ocr-newspaper-expansion-guard-f0c511f4b3d1d28bf69bb29e7a5b34200d23142f7a8d2983ad9a594271840a19.js",
+      "sha256": "f0c511f4b3d1d28bf69bb29e7a5b34200d23142f7a8d2983ad9a594271840a19",
+      "finalSlotCount": 1,
+      "reusedSlots": 0
+    }
+  ],
+  "integration": {
+    "status": "completed",
+    "publicCaseReportSets": 12,
+    "publicMetricArtifacts": 120,
+    "combinedReport": "docs/benchmarks/ocr/combined-comparison-report.json",
+    "dashboard": "docs/benchmarks/combined-comparison-dashboard.html",
+    "runCount": 64,
+    "pageInstances": 96,
+    "historicalTargetIdentities": 31
+  }
+}

@@ -109,16 +109,12 @@ export interface RejectionScenario {
 }
 
 export function rejectionScenarios(fixture: FixturePath): RejectionScenario[] {
-  const luma = ['image', 'a sunset', '--provider', 'lumalabs=uni-1']
   const tts = 'audio/tts/'
   return [
     { id: 'reject-mistral-tts', name: 'rejects removed Mistral speech generation before provider setup', source: `${tts}removed-mistral.test.ts`, args: ['tts', fixture('text'), '--provider', 'mistral=voxtral-mini-tts-2603'], exitCode: 2, diagnostic: 'Unknown provider "mistral"', absent: ['MISTRAL_API_KEY'] },
     { id: 'reject-tts-reference', name: 'rejects the removed reference-audio option', source: `${tts}removed-mistral.test.ts`, args: ['tts', fixture('text'), '--provider', 'openai', '--tts-ref-audio', fixture('audio')], exitCode: 2, diagnostic: 'Unexpected flag: --tts-ref-audio', absent: ['MISTRAL_API_KEY'] },
-    { id: 'reject-unknown-bfl', name: 'rejects unknown BFL image provider', source: 'visuals/image/image-usage-errors.test.ts', args: ['image', 'a sunset', '--provider', 'bfl'], exitCode: 2, diagnostic: 'Unknown provider "bfl" for --provider. Expected gemini|openai|grok|replicate|lumalabs|fal.' },
+    { id: 'reject-unknown-bfl', name: 'rejects unknown BFL image provider', source: 'visuals/image/image-usage-errors.test.ts', args: ['image', 'a sunset', '--provider', 'bfl'], exitCode: 2, diagnostic: 'Unknown provider "bfl" for --provider. Expected gemini|openai|grok|fal.' },
     { id: 'reject-gemini-lite-size', name: 'rejects Gemini lite sizes other than 1K', source: 'visuals/image/image-usage-errors.test.ts', args: ['image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--size', '2K'], exitCode: 2, diagnostic: 'Supported values: 1K' },
-    { id: 'reject-luma-size', name: 'rejects unsupported Luma Labs image size flag', source: 'visuals/image/lumalabs-validation.test.ts', args: [...luma, '--size', '1024x1024'], exitCode: 2, diagnostic: '--size is not supported by Luma Labs/uni-1' },
-    { id: 'reject-luma-aspect', name: 'rejects invalid Luma Labs aspect ratio values', source: 'visuals/image/lumalabs-validation.test.ts', args: [...luma, '--aspect-ratio', '5:7'], exitCode: 2, diagnostic: 'Invalid --aspect-ratio value "5:7" for Luma Labs' },
-    { id: 'reject-luma-format', name: 'rejects invalid Luma Labs output format values', source: 'visuals/image/lumalabs-validation.test.ts', args: [...luma, '--format', 'webp'], exitCode: 2, diagnostic: 'Invalid --format value "webp" for Luma Labs' },
     { id: 'reject-music-provider', name: 'requires a music provider flag', source: 'audio/music/provider-flag-validation.test.ts', args: ['music', 'an ambient piano song'], exitCode: 2, diagnostic: 'Specify a music generation provider' }
   ]
 }

@@ -2,9 +2,6 @@ export type VideoRuntimeOptions = {
   videoProviderConcurrency: number
   geminiVideoModels: string[] | undefined
   grokVideoModels: string[] | undefined
-  ltxVideoModels: string[] | undefined
-  replicateVideoModels: string[] | undefined
-  lumalabsVideoModels: string[] | undefined
   falVideoModels: string[] | undefined
   allVideo: boolean | undefined
   videoDuration: number | undefined
@@ -16,10 +13,7 @@ export type VideoRuntimeOptions = {
   videoReferenceImages: string[] | undefined
   videoInputVideo: string | undefined
   videoPreviousInteractionId: string | undefined
-  replicateVideoSeed: number | undefined
   videoGenerateAudio: boolean | undefined
   videoReferenceVideos: string[] | undefined
   videoReferenceAudios: string[] | undefined
-  replicateVideoNegativePrompt: string | undefined
-  replicateVideoMultiClip: boolean | undefined
 }

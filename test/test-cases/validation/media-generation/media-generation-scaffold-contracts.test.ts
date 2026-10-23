@@ -52,34 +52,34 @@ describe('media generation scaffold contracts', () => {
 
     await expect(runMediaGeneration({
       modality: 'video',
-      service: 'ltx',
-      model: 'ltx-2-5-pro',
+      service: 'grok',
+      model: 'grok-imagine-video-1.5',
       outputDir,
       prepare: (context) => {
         void context
-        throw UsageError('--mode reference-to-video is not supported by LTX.')
+        throw UsageError('--mode edit is not supported by Grok.')
       },
       execute: async () => {
         credentialRead = true
         return { artifactPaths: [], metadata: {} }
       }
-    })).rejects.toThrow('is not supported by LTX')
+    })).rejects.toThrow('is not supported by Grok')
 
     expect(credentialRead).toBe(false)
     await expect(readdir(outputDir)).rejects.toThrow()
   })
 
   test('the credential is resolved from the registry with the modality stage and description', async () => {
-    const entry = getGenerationCredentialEntry('video', 'ltx')
-    expect(entry.credentialDescription).toBe('LTX video generation')
-    expect(getGenerationStage('video', 'ltx')).toBe('video:ltx')
+    const entry = getGenerationCredentialEntry('video', 'grok')
+    expect(entry.credentialDescription).toBe('Grok video generation')
+    expect(getGenerationStage('video', 'grok')).toBe('video:grok')
 
-    const envVar = resolveCredential('ltx', 'observe').envVar
+    const envVar = resolveCredential('grok', 'observe').envVar
     const previous = process.env[envVar]
     delete process.env[envVar]
     try {
-      expect(() => requireGenerationCredential('video', 'ltx'))
-        .toThrow(`${envVar} environment variable is required for LTX video generation`)
+      expect(() => requireGenerationCredential('video', 'grok'))
+        .toThrow(`${envVar} environment variable is required for Grok video generation`)
     } finally {
       if (previous !== undefined) process.env[envVar] = previous
     }
@@ -98,10 +98,10 @@ describe('media generation scaffold contracts', () => {
     const outputDir = await makeTempDir('autoshow-scaffold-sequence-')
     const order: string[] = []
     try {
-      const run = await withCredential('ltx', async () => await runMediaGeneration({
+      const run = await withCredential('grok', async () => await runMediaGeneration({
         modality: 'video',
-        service: 'ltx',
-        model: 'ltx-2-5-fast',
+        service: 'grok',
+        model: 'grok-imagine-video-1.5',
         outputDir,
         startDetail: (prepared) => prepared.mode,
         prepare: async () => {
@@ -134,14 +134,14 @@ describe('media generation scaffold contracts', () => {
   test('an execute that writes no artifact is an infrastructure failure, not an empty success', async () => {
     const outputDir = await makeTempDir('autoshow-scaffold-empty-')
     try {
-      await expect(withCredential('ltx', async () => await runMediaGeneration({
+      await expect(withCredential('grok', async () => await runMediaGeneration({
         modality: 'video',
-        service: 'ltx',
-        model: 'ltx-2-5-fast',
+        service: 'grok',
+        model: 'grok-imagine-video-1.5',
         outputDir,
         prepare: () => ({}),
         execute: async () => ({ artifactPaths: [], metadata: {} })
-      }))).rejects.toThrow('ltx video generation completed without writing an artifact')
+      }))).rejects.toThrow('grok video generation completed without writing an artifact')
     } finally {
       await rm(outputDir, { recursive: true, force: true })
     }
@@ -201,9 +201,9 @@ describe('media generation scaffold contracts', () => {
   test('the video and music wrappers stamp the primary file name and size', async () => {
     const outputDir = await makeTempDir('autoshow-scaffold-av-')
     try {
-      const video = await withCredential('lumalabs', async () => await runVideoGeneration({
-        service: 'lumalabs',
-        model: 'ray-3.2',
+      const video = await withCredential('grok', async () => await runVideoGeneration({
+        service: 'grok',
+        model: 'grok-imagine-video-1.5',
         outputDir,
         prepare: () => ({}),
         execute: async (context) => ({
@@ -211,7 +211,7 @@ describe('media generation scaffold contracts', () => {
           metadata: { videoDuration: 5, videoResolution: '720p' }
         })
       }))
-      expect(video.metadata.videoGenService).toBe('lumalabs')
+      expect(video.metadata.videoGenService).toBe('grok')
       expect(video.metadata.videoFileName).toBe('generated-video.mp4')
       expect(video.metadata.videoFileSize).toBe(5)
       expect(basename(video.videoPath)).toBe('generated-video.mp4')

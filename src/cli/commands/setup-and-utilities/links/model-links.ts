@@ -10,12 +10,9 @@ import gladiaLinks from './model-links/gladia.json'
 import grokLinks from './model-links/grok.json'
 import inworldLinks from './model-links/inworld.json'
 import whisperfileLinks from './model-links/whisperfile.json'
-import ltxLinks from './model-links/ltx.json'
-import lumalabsLinks from './model-links/lumalabs.json'
 import minimaxLinks from './model-links/minimax.json'
 import mistralLinks from './model-links/mistral.json'
 import openaiLinks from './model-links/openai.json'
-import replicateLinks from './model-links/replicate.json'
 import scrapecreatorsLinks from './model-links/scrapecreators.json'
 import sonioxLinks from './model-links/soniox.json'
 import spiderLinks from './model-links/spider.json'
@@ -34,8 +31,6 @@ const providerLinks = [
   grokLinks,
   xLinks,
   whisperfileLinks,
-  ltxLinks,
-  lumalabsLinks,
   mistralLinks,
   minimaxLinks,
   claudeLinks,
@@ -45,7 +40,6 @@ const providerLinks = [
   cloudflareLinks,
   sonioxLinks,
   speechmaticsLinks,
-  replicateLinks,
   inworldLinks,
   scrapecreatorsLinks,
   zyteLinks,

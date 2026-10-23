@@ -9,7 +9,6 @@ export type VideoMode = typeof VIDEO_MODES[number]
 export const DEFAULT_VIDEO_MODE: VideoMode = 'text'
 export type GeminiResolution = '360p' | '720p' | '1080p' | '4k'
 export type GrokVideoDurationSeconds = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
-export type LtxVideoDurationSeconds = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20
 
 export type VideoTarget = ProviderTargetBase<VideoProvider> & {
   requestSettings: Record<string, unknown>
@@ -25,8 +24,7 @@ export type VideoCostEstimate = CostEstimateBase<VideoProvider> & {
 
 export type EstimateVideoCostOptions = Partial<Pick<VideoRuntimeOptions,
   | 'geminiVideoModels'
-  | 'grokVideoModels' | 'ltxVideoModels'
-  | 'replicateVideoModels' | 'lumalabsVideoModels'
+  | 'grokVideoModels'
   | 'falVideoModels' | 'videoDuration'
   | 'videoAspectRatio' | 'videoResolution' | 'videoMode' | 'videoGenerateAudio'
 >> & {
@@ -34,6 +32,4 @@ export type EstimateVideoCostOptions = Partial<Pick<VideoRuntimeOptions,
   grokInputVideoDurationSeconds?: number | undefined
   falVideoReferenceVideoCount?: number | undefined
   falInputVideoDurationSeconds?: number | undefined
-  replicateVideoReferenceVideoCount?: number | undefined
-  replicateInputVideoDurationSeconds?: number | undefined
 }

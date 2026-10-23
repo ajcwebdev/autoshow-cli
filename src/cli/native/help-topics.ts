@@ -66,7 +66,7 @@ export const getHelpTopics = (root: CliRootDefinition, command: CliCommandHelpDe
     media: ['transcription', 'timing', 'captions'], documents: ['ocr-document', 'document-options', 'run-specific'],
     articles: ['article-extraction'], review: ['transcript-review', 'comic-review'],
     images: ['image-options', 'image-inputs', 'image-provider-options', 'run-specific'],
-    video: ['video-options', 'video-inputs', 'replicate-video', 'run-specific'],
+    video: ['video-options', 'video-inputs', 'run-specific'],
     audit: ['comic-qa'], revision: ['comic-image', 'comic-qa'],
   }
   for (const [name, groups] of Object.entries(routes)) {

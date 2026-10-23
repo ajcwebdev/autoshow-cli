@@ -1,0 +1,2504 @@
+{
+  "schemaVersion": 1,
+  "preparedDate": "2026-10-22",
+  "status": "prepared-not-run",
+  "executionAuthorized": false,
+  "newReadyCount": 30,
+  "execution": {
+    "mode": "prepare-only",
+    "modelInvocations": 0,
+    "providerCostUsd": 0,
+    "instruction": "Do not run OCR models. Keep all prepared cases pending until the user authorizes execution and an exact batch estimate is reviewed."
+  },
+  "corpus": {
+    "existingScoredCases": 14,
+    "existingScoredPages": 30,
+    "previousCleanTypographyAdditions": 5,
+    "preparedNotRunCases": 30,
+    "allAdditionalReadyPairs": 35,
+    "eligibleCasesAfterPreparation": 44,
+    "blockedCandidates": 1,
+    "resultsAndDashboard": "unchanged"
+  },
+  "registrationPolicy": "Metadata-only pending inventory; no manifests, provider results, scores, aggregate or dashboard regeneration. Source images, original and derived references remain in local ignored input bundles.",
+  "bundles": [
+    {
+      "category": "technical-code",
+      "path": "input/examples/document/ocr-technical-code/bundle.json",
+      "sha256": "8ae2bc4d94c0846713bf020c26490728e642e1931c128a89eeb02d6f9829ebfc"
+    },
+    {
+      "category": "historical-print",
+      "path": "input/examples/document/ocr-historical-print/bundle.json",
+      "sha256": "8c7e91ae76a00ab43ff5e4b26d6779b16def07a2099a7bced48a1d78c1bf17c2"
+    },
+    {
+      "category": "advertisements",
+      "path": "input/examples/document/ocr-advertisements/bundle.json",
+      "sha256": "e1933dab70e9ec5f34157f6bf5d882a63318d5f16b0a656406cf8cf3764cc225"
+    },
+    {
+      "category": "numeric-tables",
+      "path": "input/examples/document/ocr-numeric-tables/bundle.json",
+      "sha256": "0be261a9da68acc8b912f9e2f0dc6935532dea1760af54f0099172901750f4f6"
+    },
+    {
+      "category": "handwriting",
+      "path": "input/examples/document/ocr-handwriting/bundle.json",
+      "sha256": "2974b8041852b4998afccdc9d157c1ff17ee5014b2c88c7a3dd7c43ce55090b7"
+    },
+    {
+      "category": "newspapers",
+      "path": "input/examples/document/ocr-newspapers/bundle.json",
+      "sha256": "a8b8622bf76e0b61dba09a42c031b5c6a5e42aa1506a1f9fb387fd47083db16d"
+    }
+  ],
+  "cases": [
+    {
+      "id": "technical-code-nbitcoin",
+      "category": "technical-code",
+      "language": "en",
+      "programmingLanguage": "c#",
+      "input": "input/examples/document/ocr-technical-code/images/co14_7.png",
+      "reference": "input/examples/document/ocr-technical-code/references/technical-code-nbitcoin.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-technical-code/source/7.cs",
+          "sha256": "968ec286240511b6f11c024c7e536197e1bb501e93831e796aa4a70834f4fffa",
+          "url": "https://zenodo.org/records/3743394/files/replication.zip?download=1",
+          "revision": "Zenodo 3743394, revision 4",
+          "selector": "replication/dataset/screenshots/text/c#/ground-truth/7.cs"
+        }
+      ],
+      "sourceURL": "https://zenodo.org/records/3743394/files/replication.zip?download=1",
+      "sourceRevision": "Zenodo 3743394, published archive MD5 48c44b34e47ee02b0fec281f86393e48",
+      "sourceImageSelector": "replication/dataset/screenshots/images/c#/png/co14_7.png",
+      "inputSha256": "92876d9ca5bf05c97692bd22aa067c129b0009786a410ecedab366d7ac19af87",
+      "referenceSha256": "f6008b7a33e1029c749339dbf3890867f0aa4e7e594303925fca3aa9a2fa3118",
+      "width": 1400,
+      "height": 722,
+      "pageCount": 1,
+      "chars": 583,
+      "words": 48,
+      "format": "png",
+      "scope": "region-crop",
+      "synthetic": true,
+      "sourceFamily": "MSR-2020-rendered-code-screenshots",
+      "project": "NBitcoin",
+      "rights": {
+        "annotationLicense": "CC-BY-4.0",
+        "imageLicense": "upstream-code-license-review-pending",
+        "redistributable": false,
+        "notice": "Local research preparation only. Package license does not resolve each original project license.",
+        "evidence": "input/examples/document/ocr-technical-code/source/zenodo-record-3743394.json"
+      },
+      "attribution": "Abdulkarim Malkadi, Mohammad Alahmadi and Sonia Haiduc (MSR 2020 replication package); original project named separately.",
+      "serializationPolicy": "All visible source fragment characters and source indentation preserved; LF line endings and exactly one final LF. Editor chrome/caret excluded. No inferred missing braces. Strict punctuation recognition and indentation require separate later scores.",
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual comparison of every visible code line with original package source snippet; full PNG decode and pinned byte hashes.",
+        "boundaries": "Exact visible snippet as supplied.",
+        "modelExecution": "not-run",
+        "sourceErrorsFound": []
+      },
+      "status": "prepared-not-run"
+    },
+    {
+      "id": "technical-code-cli-parser",
+      "category": "technical-code",
+      "language": "en",
+      "programmingLanguage": "c#",
+      "input": "input/examples/document/ocr-technical-code/images/ar12_15.png",
+      "reference": "input/examples/document/ocr-technical-code/references/technical-code-cli-parser.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-technical-code/source/15.cs",
+          "sha256": "3fba2c538a1577346862c9b23f973b8b42c56844bd836012acf191d80f736fd2",
+          "url": "https://zenodo.org/records/3743394/files/replication.zip?download=1",
+          "revision": "Zenodo 3743394, revision 4",
+          "selector": "replication/dataset/screenshots/text/c#/ground-truth/15.cs"
+        }
+      ],
+      "sourceURL": "https://zenodo.org/records/3743394/files/replication.zip?download=1",
+      "sourceRevision": "Zenodo 3743394, published archive MD5 48c44b34e47ee02b0fec281f86393e48",
+      "sourceImageSelector": "replication/dataset/screenshots/images/c#/png/ar12_15.png",
+      "inputSha256": "e766ecb6169c5c1fe772aa9ca343ed2c2a7e2aeb22bc0e1ea6dc9ec7562fe695",
+      "referenceSha256": "a6108564b74d0680f34fec3e0f0dc7c1b16cfae7caf05eb6f25af760e7d7863f",
+      "width": 1400,
+      "height": 722,
+      "pageCount": 1,
+      "chars": 990,
+      "words": 81,
+      "format": "png",
+      "scope": "region-crop",
+      "synthetic": true,
+      "sourceFamily": "MSR-2020-rendered-code-screenshots",
+      "project": "CLI parser",
+      "rights": {
+        "annotationLicense": "CC-BY-4.0",
+        "imageLicense": "upstream-code-license-review-pending",
+        "redistributable": false,
+        "notice": "Local research preparation only. Package license does not resolve each original project license.",
+        "evidence": "input/examples/document/ocr-technical-code/source/zenodo-record-3743394.json"
+      },
+      "attribution": "Abdulkarim Malkadi, Mohammad Alahmadi and Sonia Haiduc (MSR 2020 replication package); original project named separately.",
+      "serializationPolicy": "All visible source fragment characters and source indentation preserved; LF line endings and exactly one final LF. Editor chrome/caret excluded. No inferred missing braces. Strict punctuation recognition and indentation require separate later scores.",
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual comparison of every visible code line with original package source snippet; full PNG decode and pinned byte hashes.",
+        "boundaries": "Intentional visible fragment; no completion of omitted enclosing code.",
+        "modelExecution": "not-run",
+        "sourceErrorsFound": []
+      },
+      "status": "prepared-not-run"
+    },
+    {
+      "id": "technical-code-pinta",
+      "category": "technical-code",
+      "language": "en",
+      "programmingLanguage": "c#",
+      "input": "input/examples/document/ocr-technical-code/images/ti12_26.png",
+      "reference": "input/examples/document/ocr-technical-code/references/technical-code-pinta.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-technical-code/source/26.cs",
+          "sha256": "97d4146f076beea106f2d5d554972b7a057a2685e23e547d13d15142a51e6bab",
+          "url": "https://zenodo.org/records/3743394/files/replication.zip?download=1",
+          "revision": "Zenodo 3743394, revision 4",
+          "selector": "replication/dataset/screenshots/text/c#/ground-truth/26.cs"
+        }
+      ],
+      "sourceURL": "https://zenodo.org/records/3743394/files/replication.zip?download=1",
+      "sourceRevision": "Zenodo 3743394, published archive MD5 48c44b34e47ee02b0fec281f86393e48",
+      "sourceImageSelector": "replication/dataset/screenshots/images/c#/png/ti12_26.png",
+      "inputSha256": "11390feb836f100c0218efdeb1fb5ca6a9ff1193a2cc9d0eaa53c2589df6ba86",
+      "referenceSha256": "594a74666cb9a0d692cdfdec50ea6e63996243d7a7a839e5987c18cfc71830f3",
+      "width": 1400,
+      "height": 722,
+      "pageCount": 1,
+      "chars": 1407,
+      "words": 198,
+      "format": "png",
+      "scope": "region-crop",
+      "synthetic": true,
+      "sourceFamily": "MSR-2020-rendered-code-screenshots",
+      "project": "Pinta",
+      "rights": {
+        "annotationLicense": "CC-BY-4.0",
+        "imageLicense": "upstream-code-license-review-pending",
+        "redistributable": false,
+        "notice": "Local research preparation only. Package license does not resolve each original project license.",
+        "evidence": "input/examples/document/ocr-technical-code/source/zenodo-record-3743394.json"
+      },
+      "attribution": "Abdulkarim Malkadi, Mohammad Alahmadi and Sonia Haiduc (MSR 2020 replication package); original project named separately.",
+      "serializationPolicy": "All visible source fragment characters and source indentation preserved; LF line endings and exactly one final LF. Editor chrome/caret excluded. No inferred missing braces. Strict punctuation recognition and indentation require separate later scores.",
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual comparison of every visible code line with original package source snippet; full PNG decode and pinned byte hashes.",
+        "boundaries": "Intentional visible fragment; no completion of omitted enclosing code.",
+        "modelExecution": "not-run",
+        "sourceErrorsFound": []
+      },
+      "status": "prepared-not-run"
+    },
+    {
+      "id": "technical-code-podio",
+      "category": "technical-code",
+      "language": "en",
+      "programmingLanguage": "java",
+      "input": "input/examples/document/ocr-technical-code/images/co10_32.png",
+      "reference": "input/examples/document/ocr-technical-code/references/technical-code-podio.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-technical-code/source/32.java",
+          "sha256": "43f3bc04789cfa3d8ee7f2c244a6765f05f05a54ce3430c396fc24697fe79d08",
+          "url": "https://zenodo.org/records/3743394/files/replication.zip?download=1",
+          "revision": "Zenodo 3743394, revision 4",
+          "selector": "replication/dataset/screenshots/text/java/ground-truth/32.java"
+        }
+      ],
+      "sourceURL": "https://zenodo.org/records/3743394/files/replication.zip?download=1",
+      "sourceRevision": "Zenodo 3743394, published archive MD5 48c44b34e47ee02b0fec281f86393e48",
+      "sourceImageSelector": "replication/dataset/screenshots/images/java/png/co10_32.png",
+      "inputSha256": "58e3ef9f8d8d1b9e0d435918a977e2419458342f9af2063f7fd16a26759dd232",
+      "referenceSha256": "43f3bc04789cfa3d8ee7f2c244a6765f05f05a54ce3430c396fc24697fe79d08",
+      "width": 1622,
+      "height": 822,
+      "pageCount": 1,
+      "chars": 493,
+      "words": 42,
+      "format": "png",
+      "scope": "region-crop",
+      "synthetic": true,
+      "sourceFamily": "MSR-2020-rendered-code-screenshots",
+      "project": "Podio",
+      "rights": {
+        "annotationLicense": "CC-BY-4.0",
+        "imageLicense": "upstream-code-license-review-pending",
+        "redistributable": false,
+        "notice": "Local research preparation only. Package license does not resolve each original project license.",
+        "evidence": "input/examples/document/ocr-technical-code/source/zenodo-record-3743394.json"
+      },
+      "attribution": "Abdulkarim Malkadi, Mohammad Alahmadi and Sonia Haiduc (MSR 2020 replication package); original project named separately.",
+      "serializationPolicy": "All visible source fragment characters and source indentation preserved; LF line endings and exactly one final LF. Editor chrome/caret excluded. No inferred missing braces. Strict punctuation recognition and indentation require separate later scores.",
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual comparison of every visible code line with original package source snippet; full PNG decode and pinned byte hashes.",
+        "boundaries": "Intentional visible fragment; no completion of omitted enclosing code.",
+        "modelExecution": "not-run",
+        "sourceErrorsFound": []
+      },
+      "status": "prepared-not-run"
+    },
+    {
+      "id": "technical-code-country-codes",
+      "category": "technical-code",
+      "language": "en",
+      "programmingLanguage": "java",
+      "input": "input/examples/document/ocr-technical-code/images/ar14_40.png",
+      "reference": "input/examples/document/ocr-technical-code/references/technical-code-country-codes.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-technical-code/source/40.java",
+          "sha256": "9c29beebf785e753956ca1cf7c10c275cb8a6d4b29149d39187f36db2422eb5f",
+          "url": "https://zenodo.org/records/3743394/files/replication.zip?download=1",
+          "revision": "Zenodo 3743394, revision 4",
+          "selector": "replication/dataset/screenshots/text/java/ground-truth/40.java"
+        }
+      ],
+      "sourceURL": "https://zenodo.org/records/3743394/files/replication.zip?download=1",
+      "sourceRevision": "Zenodo 3743394, published archive MD5 48c44b34e47ee02b0fec281f86393e48",
+      "sourceImageSelector": "replication/dataset/screenshots/images/java/png/ar14_40.png",
+      "inputSha256": "e40a4e823234f1039d3d1b289245aff0fa0072b85b496fa41cb3be35984fd54e",
+      "referenceSha256": "9c29beebf785e753956ca1cf7c10c275cb8a6d4b29149d39187f36db2422eb5f",
+      "width": 1622,
+      "height": 822,
+      "pageCount": 1,
+      "chars": 792,
+      "words": 44,
+      "format": "png",
+      "scope": "region-crop",
+      "synthetic": true,
+      "sourceFamily": "MSR-2020-rendered-code-screenshots",
+      "project": "Gisgraphy",
+      "rights": {
+        "annotationLicense": "CC-BY-4.0",
+        "imageLicense": "upstream-code-license-review-pending",
+        "redistributable": false,
+        "notice": "Local research preparation only. Package license does not resolve each original project license.",
+        "evidence": "input/examples/document/ocr-technical-code/source/zenodo-record-3743394.json"
+      },
+      "attribution": "Abdulkarim Malkadi, Mohammad Alahmadi and Sonia Haiduc (MSR 2020 replication package); original project named separately.",
+      "serializationPolicy": "All visible source fragment characters and source indentation preserved; LF line endings and exactly one final LF. Editor chrome/caret excluded. No inferred missing braces. Strict punctuation recognition and indentation require separate later scores.",
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual comparison of every visible code line with original package source snippet; full PNG decode and pinned byte hashes.",
+        "boundaries": "Exact visible snippet as supplied.",
+        "modelExecution": "not-run",
+        "sourceErrorsFound": []
+      },
+      "status": "prepared-not-run"
+    },
+    {
+      "id": "historical-print-paradise-lost",
+      "sourceId": "C1",
+      "category": "historical-print",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-historical-print/historical-print-paradise-lost.png",
+      "reference": "input/examples/document/ocr-historical-print/historical-print-paradise-lost.txt",
+      "normalizedReference": "input/examples/document/ocr-historical-print/historical-print-paradise-lost.normalized.txt",
+      "structuredReference": "input/examples/document/ocr-historical-print/historical-print-paradise-lost.reference.json",
+      "originalReference": "input/examples/document/ocr-historical-print/originals/C1.wikitext",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C1.jpg",
+          "sha256": "26c224e051f66e9a81047a53817a02fde2f6237f15128be75e40b1f6ea3c4b22",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Paradise%20Lost%20(1667).djvu/page46-1280px-Paradise%20Lost%20(1667).djvu.jpg",
+          "revision": "2008-11-16T05:26:27Z",
+          "selector": "scan leaf 46"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C1.wikitext",
+          "sha256": "7290428bb75682ca87866b266f674dafb66c13eddfc9550dea3ac46965d5cbc8",
+          "url": "https://en.wikisource.org/w/index.php?title=Page%3AParadise%20Lost%20(1667).djvu%2F46&oldid=15859582&action=raw",
+          "revision": "15859582",
+          "selector": "pagequality=4; scan leaf 46"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C1.commons.json",
+          "sha256": "e4eb8ef88c28f49aca527fd5b96b379c0804954238a832dd6a971fa2c38c6144",
+          "url": "https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&titles=File%3AParadise%20Lost%20(1667).djvu&iiprop=timestamp|url|sha1|size|extmetadata&format=json",
+          "revision": "2008-11-16T05:26:27Z"
+        }
+      ],
+      "inputSha256": "7583bdb14262b2ea2eb8bfc5b8d9ecf693d9a754ed0a097df28953552ff92f19",
+      "referenceSha256": "33bee72da84b8d05a207b87e47a26570234d2039ca3921c454509dac534ac50b",
+      "width": 1280,
+      "height": 1856,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 1439,
+      "words": 251,
+      "scope": "full-page",
+      "synthetic": false,
+      "sourceFamily": "Wikisource/Commons",
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Paradise%20Lost%20(1667).djvu/page46-1280px-Paradise%20Lost%20(1667).djvu.jpg",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AParadise%20Lost%20(1667).djvu%2F46&oldid=15859582&action=raw",
+      "sourceRevision": "15859582",
+      "sourceImageName": "Paradise Lost (1667).djvu/46",
+      "leaf": 46,
+      "imageFileRevision": {
+        "timestamp": "2008-11-16T05:26:27Z",
+        "sha1": "f2d9209693acaff7a0c1b549630720a6428394aa",
+        "descriptionURL": "https://commons.wikimedia.org/wiki/File:Paradise_Lost_(1667).djvu"
+      },
+      "rights": {
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AParadise%20Lost%20(1667).djvu%2F46&oldid=15859582",
+        "notice": "Commons mechanical scans of public-domain originals; Wikisource contributor attribution via pinned page and revision history. Derived text retains share-alike terms.",
+        "redistributable": true
+      },
+      "attribution": "Wikisource contributors, page Paradise Lost (1667).djvu/46, revision 15859582; Commons scan metadata in input/examples/document/ocr-historical-print/originals/C1.commons.json",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "visually-reviewed-source-pair",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "Full leaf reviewed against validated same-leaf text, including long-s, line numbers 660/670/680 and final catchword Rifl’d.",
+          "Marginal numbers are serialized before the associated line; punctuation/spacing follow source; no modernized spelling."
+        ]
+      },
+      "observations": []
+    },
+    {
+      "id": "historical-print-frankenstein",
+      "sourceId": "C2",
+      "category": "historical-print",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-historical-print/historical-print-frankenstein.png",
+      "reference": "input/examples/document/ocr-historical-print/historical-print-frankenstein.txt",
+      "normalizedReference": "input/examples/document/ocr-historical-print/historical-print-frankenstein.normalized.txt",
+      "structuredReference": "input/examples/document/ocr-historical-print/historical-print-frankenstein.reference.json",
+      "originalReference": "input/examples/document/ocr-historical-print/originals/C2.wikitext",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C2.jpg",
+          "sha256": "37dbbd346d6a9c00c7924f415a1ddd018071d10865a676d9ba50f5f27251b925",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Frankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu/page11-1920px-Frankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu.jpg",
+          "revision": "2018-04-07T13:40:15Z",
+          "selector": "scan leaf 11"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C2.wikitext",
+          "sha256": "7d3a33a2d2e9fe5cac0119a914b7a43f5fd9271168d023274268d44e10f926a9",
+          "url": "https://en.wikisource.org/w/index.php?title=Page%3AFrankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu%2F11&oldid=8864833&action=raw",
+          "revision": "8864833",
+          "selector": "pagequality=4; scan leaf 11"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C2.commons.json",
+          "sha256": "62a062aea9a3ad1c8312dd0c0cf99fcd001150d0afe8c58f63b3e7b379823eee",
+          "url": "https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&titles=File%3AFrankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu&iiprop=timestamp|url|sha1|size|extmetadata&format=json",
+          "revision": "2018-04-07T13:40:15Z"
+        }
+      ],
+      "inputSha256": "e56b4797d336dec7603c3f19b75b6b855a2c49ecff11e9c8f135f0cad0ecc315",
+      "referenceSha256": "95b0ff13f85c39104500f7ece603aab33dce93a0dba30fb3e5acf6140912d43d",
+      "width": 1435,
+      "height": 2160,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 1313,
+      "words": 231,
+      "scope": "full-page",
+      "synthetic": false,
+      "sourceFamily": "Wikisource/Commons",
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Frankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu/page11-1920px-Frankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu.jpg",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AFrankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu%2F11&oldid=8864833&action=raw",
+      "sourceRevision": "8864833",
+      "sourceImageName": "Frankenstein, or the Modern Prometheus (Revised Edition, 1831).djvu/11",
+      "leaf": 11,
+      "imageFileRevision": {
+        "timestamp": "2018-04-07T13:40:15Z",
+        "sha1": "f08072749bfe28d03f679456918374da643cf265",
+        "descriptionURL": "https://commons.wikimedia.org/wiki/File:Frankenstein,_or_the_Modern_Prometheus_(Revised_Edition,_1831).djvu"
+      },
+      "rights": {
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AFrankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu%2F11&oldid=8864833",
+        "notice": "Commons mechanical scans of public-domain originals; Wikisource contributor attribution via pinned page and revision history. Derived text retains share-alike terms.",
+        "redistributable": true
+      },
+      "attribution": "Wikisource contributors, page Frankenstein, or the Modern Prometheus (Revised Edition, 1831).djvu/11, revision 8864833; Commons scan metadata in input/examples/document/ocr-historical-print/originals/C2.commons.json",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "visually-reviewed-source-pair",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "Crop retains introduction heading and both complete visible paragraphs; excludes adjacent-page sliver and Google/Emory digitization watermark below the publication.",
+          "Reference retains source ﬁ ligature; normalized companion expands compatibility ligatures and folds typographic quotation variants. Physical line wraps and line-end word breaks are not lexical differences."
+        ]
+      },
+      "observations": [
+        "Recorded crop: {\"x\":255,\"y\":420,\"width\":1435,\"height\":2160} in original pixels; original preserved."
+      ]
+    },
+    {
+      "id": "historical-print-leaves-of-grass",
+      "sourceId": "C3",
+      "category": "historical-print",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-historical-print/historical-print-leaves-of-grass.png",
+      "reference": "input/examples/document/ocr-historical-print/historical-print-leaves-of-grass.txt",
+      "normalizedReference": "input/examples/document/ocr-historical-print/historical-print-leaves-of-grass.normalized.txt",
+      "structuredReference": "input/examples/document/ocr-historical-print/historical-print-leaves-of-grass.reference.json",
+      "originalReference": "input/examples/document/ocr-historical-print/originals/C3.wikitext",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C3.jpg",
+          "sha256": "cda1366674e1e8ea4dbf63173adc0c366f34c416012ad124166a15532d5988ad",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Leaves%20of%20Grass%20(1860).djvu/page192-1920px-Leaves%20of%20Grass%20(1860).djvu.jpg",
+          "revision": "2019-01-27T22:49:41Z",
+          "selector": "scan leaf 192"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C3.wikitext",
+          "sha256": "fadcd65db0e89b18bc870612e84d3668fec6bbaef7e8a1b2cba91c35f61cea39",
+          "url": "https://en.wikisource.org/w/index.php?title=Page%3ALeaves%20of%20Grass%20(1860).djvu%2F192&oldid=15832799&action=raw",
+          "revision": "15832799",
+          "selector": "pagequality=4; scan leaf 192"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C3.commons.json",
+          "sha256": "cef1067cb5ea864e6c3f14eede98bb2a3e67e7810923a44dedbeec4aff3fa636",
+          "url": "https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&titles=File%3ALeaves%20of%20Grass%20(1860).djvu&iiprop=timestamp|url|sha1|size|extmetadata&format=json",
+          "revision": "2019-01-27T22:49:41Z"
+        }
+      ],
+      "inputSha256": "1adae73a4b38f55d9dab622839abf9243c60355fcaba1864dff03b5d86737042",
+      "referenceSha256": "47d9087334b2e7f8cf2f5e21647b08d7e0a76bf07cff2481ec73ea5bc1234a37",
+      "width": 1920,
+      "height": 3044,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 1311,
+      "words": 215,
+      "scope": "full-page",
+      "synthetic": false,
+      "sourceFamily": "Wikisource/Commons",
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Leaves%20of%20Grass%20(1860).djvu/page192-1920px-Leaves%20of%20Grass%20(1860).djvu.jpg",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3ALeaves%20of%20Grass%20(1860).djvu%2F192&oldid=15832799&action=raw",
+      "sourceRevision": "15832799",
+      "sourceImageName": "Leaves of Grass (1860).djvu/192",
+      "leaf": 192,
+      "imageFileRevision": {
+        "timestamp": "2019-01-27T22:49:41Z",
+        "sha1": "9ccf4a0f62302125e6d0a69627197120334d5847",
+        "descriptionURL": "https://commons.wikimedia.org/wiki/File:Leaves_of_Grass_(1860).djvu"
+      },
+      "rights": {
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3ALeaves%20of%20Grass%20(1860).djvu%2F192&oldid=15832799",
+        "notice": "Commons mechanical scans of public-domain originals; Wikisource contributor attribution via pinned page and revision history. Derived text retains share-alike terms.",
+        "redistributable": true
+      },
+      "attribution": "Wikisource contributors, page Leaves of Grass (1860).djvu/192, revision 15832799; Commons scan metadata in input/examples/document/ocr-historical-print/originals/C3.commons.json",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "visually-reviewed-source-pair",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "Full leaf reviewed, printed page 184, running head, stanza markers 3.–6. and last comma.",
+          "Poem template <<< indentation syntax is removed; wrapped continuation lines retain source logical verse order."
+        ]
+      },
+      "observations": []
+    },
+    {
+      "id": "historical-print-origin-of-species",
+      "sourceId": "C4",
+      "category": "historical-print",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-historical-print/historical-print-origin-of-species.png",
+      "reference": "input/examples/document/ocr-historical-print/historical-print-origin-of-species.txt",
+      "normalizedReference": "input/examples/document/ocr-historical-print/historical-print-origin-of-species.normalized.txt",
+      "structuredReference": "input/examples/document/ocr-historical-print/historical-print-origin-of-species.reference.json",
+      "originalReference": "input/examples/document/ocr-historical-print/originals/C4.wikitext",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C4.jpg",
+          "sha256": "644de8eb1df9e6d272c8e75c257cf4a3630a5386d92b99c9d36d6319bd21d331",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Origin%20of%20Species%201859%20facsimile.djvu/page13-1280px-Origin%20of%20Species%201859%20facsimile.djvu.jpg",
+          "revision": "2012-08-24T21:39:54Z",
+          "selector": "scan leaf 13"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C4.wikitext",
+          "sha256": "56fc1d72ce48a9df0033e49172b4f7073e96f78d7511d078d0937b62ab575f28",
+          "url": "https://en.wikisource.org/w/index.php?title=Page%3AOrigin%20of%20Species%201859%20facsimile.djvu%2F13&oldid=7963369&action=raw",
+          "revision": "7963369",
+          "selector": "pagequality=4; scan leaf 13"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C4.commons.json",
+          "sha256": "66abb330e817cf217bedb77cef040a49602fc7634d70eb1c8b91cb25d3507694",
+          "url": "https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&titles=File%3AOrigin%20of%20Species%201859%20facsimile.djvu&iiprop=timestamp|url|sha1|size|extmetadata&format=json",
+          "revision": "2012-08-24T21:39:54Z"
+        }
+      ],
+      "inputSha256": "ab120bb774ccf66ee4f616f205067bfcc3e9bdc4074b4fb894ee5c4f2b70f78f",
+      "referenceSha256": "2affdf333a4b3e7317f63ca55e910926c8bb672ec40bef41194c9dc44958edeb",
+      "width": 1280,
+      "height": 1848,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 1901,
+      "words": 302,
+      "scope": "full-page",
+      "synthetic": false,
+      "sourceFamily": "Wikisource/Commons",
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Origin%20of%20Species%201859%20facsimile.djvu/page13-1280px-Origin%20of%20Species%201859%20facsimile.djvu.jpg",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AOrigin%20of%20Species%201859%20facsimile.djvu%2F13&oldid=7963369&action=raw",
+      "sourceRevision": "7963369",
+      "sourceImageName": "Origin of Species 1859 facsimile.djvu/13",
+      "leaf": 13,
+      "imageFileRevision": {
+        "timestamp": "2012-08-24T21:39:54Z",
+        "sha1": "212b14f3a9549559bb746a613398cf8f804683a1",
+        "descriptionURL": "https://commons.wikimedia.org/wiki/File:Origin_of_Species_1859_facsimile.djvu"
+      },
+      "rights": {
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AOrigin%20of%20Species%201859%20facsimile.djvu%2F13&oldid=7963369",
+        "notice": "Commons mechanical scans of public-domain originals; Wikisource contributor attribution via pinned page and revision history. Derived text retains share-alike terms.",
+        "redistributable": true
+      },
+      "attribution": "Wikisource contributors, page Origin of Species 1859 facsimile.djvu/13, revision 7963369; Commons scan metadata in input/examples/document/ocr-historical-print/originals/C4.commons.json",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "visually-reviewed-source-pair",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "Full leaf reviewed, printed page 3 and running head INTRODUCTION.; no continuation from the next leaf.",
+          "Publisher line-break hyphenation is joined by the independently proofread source; source paragraphs preserved."
+        ]
+      },
+      "observations": []
+    },
+    {
+      "id": "historical-print-birds",
+      "sourceId": "C5",
+      "category": "historical-print",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-historical-print/historical-print-birds.png",
+      "reference": "input/examples/document/ocr-historical-print/historical-print-birds.txt",
+      "normalizedReference": "input/examples/document/ocr-historical-print/historical-print-birds.normalized.txt",
+      "structuredReference": "input/examples/document/ocr-historical-print/historical-print-birds.reference.json",
+      "originalReference": "input/examples/document/ocr-historical-print/originals/C5.xml",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C5.webp",
+          "sha256": "db2e0b69fc0d980c874d88984d94d538750c47355427a8a05bc80b9832c11406",
+          "url": "https://huggingface.co/datasets/finebooks/bhl-impact-gt/resolve/b7bda5fac0471d6d2237360abc799c6d13559465/images/birdsofgreatbrit02butl/birdsofgreatbrit02butl_0073_full.webp",
+          "revision": "b7bda5fac0471d6d2237360abc799c6d13559465",
+          "selector": "birdsofgreatbrit02butl_0073_full.webp"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/C5.xml",
+          "sha256": "b49a7f1d7e97b3d21cd68dbea5a725e1960f4297a7c3b71331dccd0dc74f94b3",
+          "url": "https://raw.githubusercontent.com/impactcentre/groundtruth-bhl/9eb0fc75166bfaaec24c8523ccb69da48f6cf13f/birdsofgreatbrit02butl_XML/pc-00667895.xml",
+          "revision": "9eb0fc75166bfaaec24c8523ccb69da48f6cf13f",
+          "selector": "pcGtsId=pc-00667895"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/finebooks-README.md",
+          "sha256": "6b2f9a7f48c5bec9c78a744c92d0dcbd6e24c1f63d19e505069800f5e0f470fd",
+          "url": "https://huggingface.co/datasets/finebooks/bhl-impact-gt/raw/b7bda5fac0471d6d2237360abc799c6d13559465/README.md",
+          "revision": "b7bda5fac0471d6d2237360abc799c6d13559465"
+        },
+        {
+          "path": "input/examples/document/ocr-historical-print/originals/impact-README.md",
+          "sha256": "d9fb4491dc5d949867b4f43dc78227e6f4a597fce93b2c5c2ccc04e906872f68",
+          "url": "https://raw.githubusercontent.com/impactcentre/groundtruth-bhl/9eb0fc75166bfaaec24c8523ccb69da48f6cf13f/README.md",
+          "revision": "9eb0fc75166bfaaec24c8523ccb69da48f6cf13f"
+        }
+      ],
+      "inputSha256": "c55e7bdb4a196e94bd56f6ca2cc93dae02bfc80655a8dd30588ade1c271c02f9",
+      "referenceSha256": "f6f4f04cb5c938ea7930c00813c6fc6837f4e1fbfc3ae41d23c1ff27795e0f25",
+      "width": 2293,
+      "height": 3062,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 999,
+      "words": 150,
+      "scope": "full-page",
+      "synthetic": false,
+      "sourceFamily": "IMPACT-BHL/FineBooks",
+      "sourceURL": "https://huggingface.co/datasets/finebooks/bhl-impact-gt/resolve/b7bda5fac0471d6d2237360abc799c6d13559465/images/birdsofgreatbrit02butl/birdsofgreatbrit02butl_0073_full.webp",
+      "annotationURL": "https://raw.githubusercontent.com/impactcentre/groundtruth-bhl/9eb0fc75166bfaaec24c8523ccb69da48f6cf13f/birdsofgreatbrit02butl_XML/pc-00667895.xml",
+      "sourceRevision": "9eb0fc75166bfaaec24c8523ccb69da48f6cf13f",
+      "sourceImageName": "birdsofgreatbrit02butl_0073_full.webp",
+      "rights": {
+        "license": "CC-BY-3.0",
+        "notice": "IMPACT-BHL ground truth and FineBooks paired scan; attribute IMPACT Centre of Competence and BHL.",
+        "redistributable": true
+      },
+      "attribution": "IMPACT Centre of Competence, BHL; FineBooks pairing b7bda5fac0471d6d2237360abc799c6d13559465",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "visually-reviewed-source-pair",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "Full leaf reviewed, printed page 35, header, both species headings, Æ, initial A/T and final brownish-.",
+          "PAGE reading order omits header/page number; both are included explicitly before body. Drop-capital regions are joined to their following paragraph without a space."
+        ]
+      },
+      "observations": []
+    },
+    {
+      "id": "advertisement-three-masons",
+      "title": "Three Masons gig flyer",
+      "category": "advertisements",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-advertisements/cases/advertisement-three-masons/input.jpg",
+      "reference": "input/examples/document/ocr-advertisements/cases/advertisement-three-masons/canonical-reference.txt",
+      "structuredReference": "input/examples/document/ocr-advertisements/cases/advertisement-three-masons/structured-reference.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-advertisements/source/TextOCR_0.1_train.json",
+          "sha256": "5bac8303c5999a3ddf630efde8ac9743b4461be6022b193a1075df90fbd2ce0c",
+          "url": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
+          "revision": "v0.1; annotation S3 version nOSHBYLvXX4J7TUWv5Esml0IYeU3I3az",
+          "selector": "imgs[2b0f2beecc86ce4b]; imgToAnns[2b0f2beecc86ce4b] -> anns[annotationId]"
+        },
+        {
+          "path": "input/examples/document/ocr-advertisements/source/open-images-selected-original-rows.csv",
+          "sha256": "a0c1c9216dee6b3cd4a26b893f629636244a2f30d3e18bbe1460445d78063827",
+          "url": "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv",
+          "revision": "GCS generation 1526567626302755; etag a4ac0bcedb5c2df4d1b1230dc6b41b8f",
+          "selector": "ImageID=2b0f2beecc86ce4b"
+        },
+        {
+          "path": "input/examples/document/ocr-advertisements/source/2b0f2beecc86ce4b.zip-member.bin",
+          "sha256": "a1c178262ac973d87d390e98e859f71b8f1ccbb3f0a37ff0b030ffc714fc5409",
+          "url": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
+          "revision": "S3 version ncyQEgyLZWkblorpGNAyzWbH_ssT6yG0; etag \"79ddfdcdb3f40b3466b9c0dc2f0cda25-68\"",
+          "selector": "train_images/2b0f2beecc86ce4b.jpg"
+        }
+      ],
+      "sourceRecord": "input/examples/document/ocr-advertisements/cases/advertisement-three-masons/original.annotation.json",
+      "sourceRecordSha256": "56960e31e0d29ca8589e3a2af753870e62062c037e6db73a6c222e7dd8512199",
+      "inputSha256": "171f62787fdef84699faa33c8e130d0a4c686ae941b21cc9c6430c926d2a68cc",
+      "referenceSha256": "e4986e13d0b6c7aae357dcf32a4f1eaf48d2e807fa76af2cd24b91d94bf9739b",
+      "structuredReferenceSha256": "fbe8865dda31e64efd1b0649c4411a77c96ab2298b7e1f3b4f328dc0e2b8dbd4",
+      "width": 736,
+      "height": 1024,
+      "pageCount": 1,
+      "scope": "full-page",
+      "evaluationScope": "dataset-annotated-word-regions",
+      "synthetic": false,
+      "sourceFamily": "TextOCR-v0.1 / Open Images",
+      "sourceURL": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
+      "sourceRevision": "S3 version ncyQEgyLZWkblorpGNAyzWbH_ssT6yG0",
+      "sourceImageName": "train_images/2b0f2beecc86ce4b.jpg",
+      "annotationURL": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
+      "annotationRevision": "v0.1; annotation S3 version nOSHBYLvXX4J7TUWv5Esml0IYeU3I3az",
+      "words": 23,
+      "chars": 127,
+      "ignoredWordRegions": 0,
+      "rights": {
+        "license": "TextOCR annotations: CC BY 4.0; photograph: CC BY 2.0",
+        "annotationLicense": "https://creativecommons.org/licenses/by/4.0/",
+        "imageLicense": "https://creativecommons.org/licenses/by/2.0/",
+        "notice": "Source license statements and original photographer attribution retained locally; depicted artwork and trademarks may have separate rights. No external redistribution was performed.",
+        "redistributable": false,
+        "redistributionStatus": "Local prepared fixture; publishing depicted poster artwork requires a separate rights decision."
+      },
+      "attribution": "Churchills: Michelle's birthday — wetwebwork (https://www.flickr.com/photos/wetwebwork/7981840120); photograph CC BY 2.0, via Open Images. TextOCR v0.1 word annotations CC BY 4.0.",
+      "photograph": {
+        "ImageID": "2b0f2beecc86ce4b",
+        "Subset": "train",
+        "OriginalURL": "https://c4.staticflickr.com/9/8172/7981840120_468c6cc4e3_o.jpg",
+        "OriginalLandingURL": "https://www.flickr.com/photos/wetwebwork/7981840120",
+        "License": "https://creativecommons.org/licenses/by/2.0/",
+        "AuthorProfileURL": "https://www.flickr.com/people/wetwebwork/",
+        "Author": "wetwebwork",
+        "Title": "Churchills: Michelle's birthday",
+        "OriginalSize": "117881",
+        "OriginalMD5": "V971rxqNVkcVhbjl1IsjOA==",
+        "Thumbnail300KURL": "https://c4.staticflickr.com/9/8172/7981840120_dc46c89172_z.jpg",
+        "Rotation": "0.0",
+        "metadataSource": "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv"
+      },
+      "serializationPolicy": {
+        "canonicalUnit": "word polygon and exact UTF-8 token",
+        "canonicalDatasetReadingOrder": false,
+        "flatReference": "Visually reviewed derived line/block order; spaces between source tokens, LF between reviewed lines, one final LF; no case, spelling or punctuation corrections.",
+        "ignorePolicy": "Dataset dot-only markers preserved in structured reference and excluded from flat reference. These five cases contain zero markers.",
+        "scoring": "Primary: region-aware token recognition. Flat WER is a secondary metric sensitive to the explicit reviewed order. Do not present it as publisher-canonical full-page sequence."
+      },
+      "review": {
+        "status": "visually-reviewed",
+        "reviewedAt": "2026-10-22",
+        "method": "Agent comparison of all canonical word annotations against original image; full image decode and geometry validation; no OCR or extraction models used.",
+        "notes": "All 23 annotated words checked against the original image, including distressed SCUZZBUCKETS and the small venue address. Footer blocks read left block, middle block, right block.",
+        "tinyCopyReviewed": true,
+        "readingOrder": "Explicit reviewed line/group ID lists; all nonignored IDs occur exactly once.",
+        "canonicalReferenceIndependentOfProviders": true,
+        "fullPageExhaustivenessClaim": false
+      },
+      "execution": {
+        "status": "not-run",
+        "modelInvocations": 0,
+        "providerSpendUSD": 0
+      }
+    },
+    {
+      "id": "advertisement-newtown-cruise",
+      "title": "Newtown Creek Cruise advertisement",
+      "category": "advertisements",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-advertisements/cases/advertisement-newtown-cruise/input.jpg",
+      "reference": "input/examples/document/ocr-advertisements/cases/advertisement-newtown-cruise/canonical-reference.txt",
+      "structuredReference": "input/examples/document/ocr-advertisements/cases/advertisement-newtown-cruise/structured-reference.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-advertisements/source/TextOCR_0.1_train.json",
+          "sha256": "5bac8303c5999a3ddf630efde8ac9743b4461be6022b193a1075df90fbd2ce0c",
+          "url": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
+          "revision": "v0.1; annotation S3 version nOSHBYLvXX4J7TUWv5Esml0IYeU3I3az",
+          "selector": "imgs[5dfd863134653dba]; imgToAnns[5dfd863134653dba] -> anns[annotationId]"
+        },
+        {
+          "path": "input/examples/document/ocr-advertisements/source/open-images-selected-original-rows.csv",
+          "sha256": "a0c1c9216dee6b3cd4a26b893f629636244a2f30d3e18bbe1460445d78063827",
+          "url": "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv",
+          "revision": "GCS generation 1526567626302755; etag a4ac0bcedb5c2df4d1b1230dc6b41b8f",
+          "selector": "ImageID=5dfd863134653dba"
+        },
+        {
+          "path": "input/examples/document/ocr-advertisements/source/5dfd863134653dba.zip-member.bin",
+          "sha256": "69cdbf1e3871c6afcf40e7610dfa9e7d46a92b2add59696fcaa065061fae181b",
+          "url": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
+          "revision": "S3 version ncyQEgyLZWkblorpGNAyzWbH_ssT6yG0; etag \"79ddfdcdb3f40b3466b9c0dc2f0cda25-68\"",
+          "selector": "train_images/5dfd863134653dba.jpg"
+        }
+      ],
+      "sourceRecord": "input/examples/document/ocr-advertisements/cases/advertisement-newtown-cruise/original.annotation.json",
+      "sourceRecordSha256": "019ebfd5132f403320abfa355905fa5a45abaadd4dcabdb31957f8fc533a4ee2",
+      "inputSha256": "ae1ef2bb042e78485472eacdfe832750a9decea85adccc5256f7ca4f3e38be17",
+      "referenceSha256": "f447190860b6b502b6d54d1087f6a1f8e95386c921b970b7fe883aaf7b28b3be",
+      "structuredReferenceSha256": "0d448cb8f84cf2ccd6a8d3417b6680bb6444aa04246af7be51b9d98d0487cb5f",
+      "width": 1024,
+      "height": 717,
+      "pageCount": 1,
+      "scope": "full-page",
+      "evaluationScope": "dataset-annotated-word-regions",
+      "synthetic": false,
+      "sourceFamily": "TextOCR-v0.1 / Open Images",
+      "sourceURL": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
+      "sourceRevision": "S3 version ncyQEgyLZWkblorpGNAyzWbH_ssT6yG0",
+      "sourceImageName": "train_images/5dfd863134653dba.jpg",
+      "annotationURL": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
+      "annotationRevision": "v0.1; annotation S3 version nOSHBYLvXX4J7TUWv5Esml0IYeU3I3az",
+      "words": 62,
+      "chars": 447,
+      "ignoredWordRegions": 0,
+      "rights": {
+        "license": "TextOCR annotations: CC BY 4.0; photograph: CC BY 2.0",
+        "annotationLicense": "https://creativecommons.org/licenses/by/4.0/",
+        "imageLicense": "https://creativecommons.org/licenses/by/2.0/",
+        "notice": "Source license statements and original photographer attribution retained locally; depicted artwork and trademarks may have separate rights. No external redistribution was performed.",
+        "redistributable": false,
+        "redistributionStatus": "Local prepared fixture; publishing depicted poster artwork requires a separate rights decision."
+      },
+      "attribution": "Newtown Creek cruise — rollingrck (https://www.flickr.com/photos/rollingrck/5160200230); photograph CC BY 2.0, via Open Images. TextOCR v0.1 word annotations CC BY 4.0.",
+      "photograph": {
+        "ImageID": "5dfd863134653dba",
+        "Subset": "train",
+        "OriginalURL": "https://c3.staticflickr.com/5/4018/5160200230_c73804740e_o.jpg",
+        "OriginalLandingURL": "https://www.flickr.com/photos/rollingrck/5160200230",
+        "License": "https://creativecommons.org/licenses/by/2.0/",
+        "AuthorProfileURL": "https://www.flickr.com/people/rollingrck/",
+        "Author": "rollingrck",
+        "Title": "Newtown Creek cruise",
+        "OriginalSize": "343846",
+        "OriginalMD5": "eJ7I6109vb/dz1XI1mMwQQ==",
+        "Thumbnail300KURL": "https://c2.staticflickr.com/5/4018/5160200230_2f3982deb4_z.jpg",
+        "Rotation": "0.0",
+        "metadataSource": "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv"
+      },
+      "serializationPolicy": {
+        "canonicalUnit": "word polygon and exact UTF-8 token",
+        "canonicalDatasetReadingOrder": false,
+        "flatReference": "Visually reviewed derived line/block order; spaces between source tokens, LF between reviewed lines, one final LF; no case, spelling or punctuation corrections.",
+        "ignorePolicy": "Dataset dot-only markers preserved in structured reference and excluded from flat reference. These five cases contain zero markers.",
+        "scoring": "Primary: region-aware token recognition. Flat WER is a secondary metric sensitive to the explicit reviewed order. Do not present it as publisher-canonical full-page sequence."
+      },
+      "review": {
+        "status": "visually-reviewed",
+        "reviewedAt": "2026-10-22",
+        "method": "Agent comparison of all canonical word annotations against original image; full image decode and geometry validation; no OCR or extraction models used.",
+        "notes": "All 62 annotated words checked, including upper-right ticket/departure information, bottom sponsor and email. Read main heading/date, upper-right information, bottom sponsor, then contact block. Dataset token boarding- retains its attached hyphen.",
+        "tinyCopyReviewed": true,
+        "readingOrder": "Explicit reviewed line/group ID lists; all nonignored IDs occur exactly once.",
+        "canonicalReferenceIndependentOfProviders": true,
+        "fullPageExhaustivenessClaim": false
+      },
+      "execution": {
+        "status": "not-run",
+        "modelInvocations": 0,
+        "providerSpendUSD": 0
+      }
+    },
+    {
+      "id": "advertisement-legend-1900",
+      "title": "The Legend of 1900 film poster",
+      "category": "advertisements",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-advertisements/cases/advertisement-legend-1900/input.jpg",
+      "reference": "input/examples/document/ocr-advertisements/cases/advertisement-legend-1900/canonical-reference.txt",
+      "structuredReference": "input/examples/document/ocr-advertisements/cases/advertisement-legend-1900/structured-reference.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-advertisements/source/TextOCR_0.1_train.json",
+          "sha256": "5bac8303c5999a3ddf630efde8ac9743b4461be6022b193a1075df90fbd2ce0c",
+          "url": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
+          "revision": "v0.1; annotation S3 version nOSHBYLvXX4J7TUWv5Esml0IYeU3I3az",
+          "selector": "imgs[cb0ec1fffcd2916f]; imgToAnns[cb0ec1fffcd2916f] -> anns[annotationId]"
+        },
+        {
+          "path": "input/examples/document/ocr-advertisements/source/open-images-selected-original-rows.csv",
+          "sha256": "a0c1c9216dee6b3cd4a26b893f629636244a2f30d3e18bbe1460445d78063827",
+          "url": "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv",
+          "revision": "GCS generation 1526567626302755; etag a4ac0bcedb5c2df4d1b1230dc6b41b8f",
+          "selector": "ImageID=cb0ec1fffcd2916f"
+        },
+        {
+          "path": "input/examples/document/ocr-advertisements/source/cb0ec1fffcd2916f.zip-member.bin",
+          "sha256": "ca91f014ba9a17468d491228f1cf94ca205483dbda69fbc707c68f73439ed8a5",
+          "url": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
+          "revision": "S3 version ncyQEgyLZWkblorpGNAyzWbH_ssT6yG0; etag \"79ddfdcdb3f40b3466b9c0dc2f0cda25-68\"",
+          "selector": "train_images/cb0ec1fffcd2916f.jpg"
+        }
+      ],
+      "sourceRecord": "input/examples/document/ocr-advertisements/cases/advertisement-legend-1900/original.annotation.json",
+      "sourceRecordSha256": "fde605b988660e05d8198a11ce94dd2335acea126ecab251bc6bbc03b997d381",
+      "inputSha256": "5b036ec742f71d9b1dc6de39c9c2bc3d78d4529eeaecd47f7440e9bfc0a74f70",
+      "referenceSha256": "63750d012d6f74e0d56297c8baf317d366d52d569835d8ed427d37e0e42be311",
+      "structuredReferenceSha256": "298b2fef9966da353d9e56038c9c561b9f612bd9a1914d242c91bfe585ba8a52",
+      "width": 751,
+      "height": 1024,
+      "pageCount": 1,
+      "scope": "full-page",
+      "evaluationScope": "dataset-annotated-word-regions",
+      "synthetic": false,
+      "sourceFamily": "TextOCR-v0.1 / Open Images",
+      "sourceURL": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
+      "sourceRevision": "S3 version ncyQEgyLZWkblorpGNAyzWbH_ssT6yG0",
+      "sourceImageName": "train_images/cb0ec1fffcd2916f.jpg",
+      "annotationURL": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
+      "annotationRevision": "v0.1; annotation S3 version nOSHBYLvXX4J7TUWv5Esml0IYeU3I3az",
+      "words": 34,
+      "chars": 211,
+      "ignoredWordRegions": 0,
+      "rights": {
+        "license": "TextOCR annotations: CC BY 4.0; photograph: CC BY 2.0",
+        "annotationLicense": "https://creativecommons.org/licenses/by/4.0/",
+        "imageLicense": "https://creativecommons.org/licenses/by/2.0/",
+        "notice": "Source license statements and original photographer attribution retained locally; depicted artwork and trademarks may have separate rights. No external redistribution was performed.",
+        "redistributable": false,
+        "redistributionStatus": "Local prepared fixture; publishing depicted poster artwork requires a separate rights decision."
+      },
+      "attribution": "The LEGEND of 1900 — Ail Lee (https://www.flickr.com/photos/jslee/330538386); photograph CC BY 2.0, via Open Images. TextOCR v0.1 word annotations CC BY 4.0.",
+      "photograph": {
+        "ImageID": "cb0ec1fffcd2916f",
+        "Subset": "train",
+        "OriginalURL": "https://c8.staticflickr.com/1/164/330538386_771a597ce2_o.jpg",
+        "OriginalLandingURL": "https://www.flickr.com/photos/jslee/330538386",
+        "License": "https://creativecommons.org/licenses/by/2.0/",
+        "AuthorProfileURL": "https://www.flickr.com/people/jslee/",
+        "Author": "Ail Lee",
+        "Title": "The LEGEND of 1900",
+        "OriginalSize": "47237",
+        "OriginalMD5": "2BKzhU4NTBaiet9NPYuH0Q==",
+        "Thumbnail300KURL": "",
+        "Rotation": "",
+        "metadataSource": "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv"
+      },
+      "serializationPolicy": {
+        "canonicalUnit": "word polygon and exact UTF-8 token",
+        "canonicalDatasetReadingOrder": false,
+        "flatReference": "Visually reviewed derived line/block order; spaces between source tokens, LF between reviewed lines, one final LF; no case, spelling or punctuation corrections.",
+        "ignorePolicy": "Dataset dot-only markers preserved in structured reference and excluded from flat reference. These five cases contain zero markers.",
+        "scoring": "Primary: region-aware token recognition. Flat WER is a secondary metric sensitive to the explicit reviewed order. Do not present it as publisher-canonical full-page sequence."
+      },
+      "review": {
+        "status": "visually-reviewed",
+        "reviewedAt": "2026-10-22",
+        "method": "Agent comparison of all canonical word annotations against original image; full image decode and geometry validation; no OCR or extraction models used.",
+        "notes": "All 34 annotated words checked, including the thin top credits and italic bottom tagline. Dataset token TORNATORE.DIRECTOR is intentionally preserved without splitting or punctuation correction.",
+        "tinyCopyReviewed": true,
+        "readingOrder": "Explicit reviewed line/group ID lists; all nonignored IDs occur exactly once.",
+        "canonicalReferenceIndependentOfProviders": true,
+        "fullPageExhaustivenessClaim": false
+      },
+      "execution": {
+        "status": "not-run",
+        "modelInvocations": 0,
+        "providerSpendUSD": 0
+      }
+    },
+    {
+      "id": "advertisement-metrolink",
+      "title": "Metrolink transport billboard",
+      "category": "advertisements",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-advertisements/cases/advertisement-metrolink/input.jpg",
+      "reference": "input/examples/document/ocr-advertisements/cases/advertisement-metrolink/canonical-reference.txt",
+      "structuredReference": "input/examples/document/ocr-advertisements/cases/advertisement-metrolink/structured-reference.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-advertisements/source/TextOCR_0.1_train.json",
+          "sha256": "5bac8303c5999a3ddf630efde8ac9743b4461be6022b193a1075df90fbd2ce0c",
+          "url": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
+          "revision": "v0.1; annotation S3 version nOSHBYLvXX4J7TUWv5Esml0IYeU3I3az",
+          "selector": "imgs[a6335527c9db9349]; imgToAnns[a6335527c9db9349] -> anns[annotationId]"
+        },
+        {
+          "path": "input/examples/document/ocr-advertisements/source/open-images-selected-original-rows.csv",
+          "sha256": "a0c1c9216dee6b3cd4a26b893f629636244a2f30d3e18bbe1460445d78063827",
+          "url": "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv",
+          "revision": "GCS generation 1526567626302755; etag a4ac0bcedb5c2df4d1b1230dc6b41b8f",
+          "selector": "ImageID=a6335527c9db9349"
+        },
+        {
+          "path": "input/examples/document/ocr-advertisements/source/a6335527c9db9349.zip-member.bin",
+          "sha256": "0b1e144ebe846cc60bda1933c790f3b7850413b0d7409a328c3914b325927849",
+          "url": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
+          "revision": "S3 version ncyQEgyLZWkblorpGNAyzWbH_ssT6yG0; etag \"79ddfdcdb3f40b3466b9c0dc2f0cda25-68\"",
+          "selector": "train_images/a6335527c9db9349.jpg"
+        }
+      ],
+      "sourceRecord": "input/examples/document/ocr-advertisements/cases/advertisement-metrolink/original.annotation.json",
+      "sourceRecordSha256": "12eb1b346900c7165fda08e6011766846b2231bb0b89b2c60b929010f458d03a",
+      "inputSha256": "9a83f1d662c7c689200f3fe0af818390ca35f914cdd04c5c9905a8d90b66e862",
+      "referenceSha256": "cc2b69c23819fcbd8584776bb874e0483b6d3eb0317c2a85ff90f4c2b50342d6",
+      "structuredReferenceSha256": "591b335fe2e4e29c9fabaf0f07dde6f55b1824d5f926664e9f4fee0ae392f170",
+      "width": 1024,
+      "height": 575,
+      "pageCount": 1,
+      "scope": "full-page",
+      "evaluationScope": "dataset-annotated-word-regions",
+      "synthetic": false,
+      "sourceFamily": "TextOCR-v0.1 / Open Images",
+      "sourceURL": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
+      "sourceRevision": "S3 version ncyQEgyLZWkblorpGNAyzWbH_ssT6yG0",
+      "sourceImageName": "train_images/a6335527c9db9349.jpg",
+      "annotationURL": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
+      "annotationRevision": "v0.1; annotation S3 version nOSHBYLvXX4J7TUWv5Esml0IYeU3I3az",
+      "words": 57,
+      "chars": 366,
+      "ignoredWordRegions": 0,
+      "rights": {
+        "license": "TextOCR annotations: CC BY 4.0; photograph: CC BY 2.0",
+        "annotationLicense": "https://creativecommons.org/licenses/by/4.0/",
+        "imageLicense": "https://creativecommons.org/licenses/by/2.0/",
+        "notice": "Source license statements and original photographer attribution retained locally; depicted artwork and trademarks may have separate rights. No external redistribution was performed.",
+        "redistributable": false,
+        "redistributionStatus": "Local prepared fixture; publishing depicted poster artwork requires a separate rights decision."
+      },
+      "attribution": "Metrolink - Brightening up your day — The Laird of Oldham (https://www.flickr.com/photos/jza84/8394768821); photograph CC BY 2.0, via Open Images. TextOCR v0.1 word annotations CC BY 4.0.",
+      "photograph": {
+        "ImageID": "a6335527c9db9349",
+        "Subset": "train",
+        "OriginalURL": "https://c2.staticflickr.com/9/8186/8394768821_0fea26d3e7_o.jpg",
+        "OriginalLandingURL": "https://www.flickr.com/photos/jza84/8394768821",
+        "License": "https://creativecommons.org/licenses/by/2.0/",
+        "AuthorProfileURL": "https://www.flickr.com/people/jza84/",
+        "Author": "The Laird of Oldham",
+        "Title": "Metrolink - Brightening up your day",
+        "OriginalSize": "1019023",
+        "OriginalMD5": "KRHd/pzs1QUHlc0SwSe3ig==",
+        "Thumbnail300KURL": "https://c5.staticflickr.com/9/8186/8394768821_b9cf9b642a_z.jpg",
+        "Rotation": "0.0",
+        "metadataSource": "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv"
+      },
+      "serializationPolicy": {
+        "canonicalUnit": "word polygon and exact UTF-8 token",
+        "canonicalDatasetReadingOrder": false,
+        "flatReference": "Visually reviewed derived line/block order; spaces between source tokens, LF between reviewed lines, one final LF; no case, spelling or punctuation corrections.",
+        "ignorePolicy": "Dataset dot-only markers preserved in structured reference and excluded from flat reference. These five cases contain zero markers.",
+        "scoring": "Primary: region-aware token recognition. Flat WER is a secondary metric sensitive to the explicit reviewed order. Do not present it as publisher-canonical full-page sequence."
+      },
+      "review": {
+        "status": "visually-reviewed",
+        "reviewedAt": "2026-10-22",
+        "method": "Agent comparison of all canonical word annotations against original image; full image decode and geometry validation; no OCR or extraction models used.",
+        "notes": "All 57 annotated words checked, including tiny two-line service exception, website and upper frame CLEARCHANNEL. Perspective lines are grouped semantically; frame credit comes last. Incidental white graffiti on frame outside annotated polygons is excluded from region evaluation.",
+        "tinyCopyReviewed": true,
+        "readingOrder": "Explicit reviewed line/group ID lists; all nonignored IDs occur exactly once.",
+        "canonicalReferenceIndependentOfProviders": true,
+        "fullPageExhaustivenessClaim": false
+      },
+      "execution": {
+        "status": "not-run",
+        "modelInvocations": 0,
+        "providerSpendUSD": 0
+      }
+    },
+    {
+      "id": "advertisement-nyc-skate",
+      "title": "NYC skate poster",
+      "category": "advertisements",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-advertisements/cases/advertisement-nyc-skate/input.jpg",
+      "reference": "input/examples/document/ocr-advertisements/cases/advertisement-nyc-skate/canonical-reference.txt",
+      "structuredReference": "input/examples/document/ocr-advertisements/cases/advertisement-nyc-skate/structured-reference.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-advertisements/source/TextOCR_0.1_train.json",
+          "sha256": "5bac8303c5999a3ddf630efde8ac9743b4461be6022b193a1075df90fbd2ce0c",
+          "url": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
+          "revision": "v0.1; annotation S3 version nOSHBYLvXX4J7TUWv5Esml0IYeU3I3az",
+          "selector": "imgs[6ddc9d4db49a3197]; imgToAnns[6ddc9d4db49a3197] -> anns[annotationId]"
+        },
+        {
+          "path": "input/examples/document/ocr-advertisements/source/open-images-selected-original-rows.csv",
+          "sha256": "a0c1c9216dee6b3cd4a26b893f629636244a2f30d3e18bbe1460445d78063827",
+          "url": "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv",
+          "revision": "GCS generation 1526567626302755; etag a4ac0bcedb5c2df4d1b1230dc6b41b8f",
+          "selector": "ImageID=6ddc9d4db49a3197"
+        },
+        {
+          "path": "input/examples/document/ocr-advertisements/source/6ddc9d4db49a3197.zip-member.bin",
+          "sha256": "e12880af619b24acba6b6dbe249ceabb66b47c69dd5b0ff0260dd31e51d22176",
+          "url": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
+          "revision": "S3 version ncyQEgyLZWkblorpGNAyzWbH_ssT6yG0; etag \"79ddfdcdb3f40b3466b9c0dc2f0cda25-68\"",
+          "selector": "train_images/6ddc9d4db49a3197.jpg"
+        }
+      ],
+      "sourceRecord": "input/examples/document/ocr-advertisements/cases/advertisement-nyc-skate/original.annotation.json",
+      "sourceRecordSha256": "da11ca04fa32cb0f7e11899fc85722b49cb3c4ff8fa349083cbc71c23aa49c26",
+      "inputSha256": "ac33cf3faed79e0ba2afc38d7530fe985e815429dcfd4288f6c29bfd03635392",
+      "referenceSha256": "6773129d25d7a7b1d87885ae9e6911bad534240f565fb6f4af891703ce138963",
+      "structuredReferenceSha256": "c6b5d3a447831d22ae8502c86b54f9d7715db7aab8173da9ee85528229fe3968",
+      "width": 1024,
+      "height": 1024,
+      "pageCount": 1,
+      "scope": "full-page",
+      "evaluationScope": "dataset-annotated-word-regions",
+      "synthetic": false,
+      "sourceFamily": "TextOCR-v0.1 / Open Images",
+      "sourceURL": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
+      "sourceRevision": "S3 version ncyQEgyLZWkblorpGNAyzWbH_ssT6yG0",
+      "sourceImageName": "train_images/6ddc9d4db49a3197.jpg",
+      "annotationURL": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
+      "annotationRevision": "v0.1; annotation S3 version nOSHBYLvXX4J7TUWv5Esml0IYeU3I3az",
+      "words": 65,
+      "chars": 380,
+      "ignoredWordRegions": 0,
+      "rights": {
+        "license": "TextOCR annotations: CC BY 4.0; photograph: CC BY 2.0",
+        "annotationLicense": "https://creativecommons.org/licenses/by/4.0/",
+        "imageLicense": "https://creativecommons.org/licenses/by/2.0/",
+        "notice": "Source license statements and original photographer attribution retained locally; depicted artwork and trademarks may have separate rights. No external redistribution was performed.",
+        "redistributable": false,
+        "redistributionStatus": "Local prepared fixture; publishing depicted poster artwork requires a separate rights decision."
+      },
+      "attribution": "Awesome fake MTA / pro-skate #StreetArt spotted in East Village — dennis crowley (https://www.flickr.com/photos/dpstyles/5961253262); photograph CC BY 2.0, via Open Images. TextOCR v0.1 word annotations CC BY 4.0.",
+      "photograph": {
+        "ImageID": "6ddc9d4db49a3197",
+        "Subset": "train",
+        "OriginalURL": "https://farm8.staticflickr.com/6029/5961253262_eda735526d_o.jpg",
+        "OriginalLandingURL": "https://www.flickr.com/photos/dpstyles/5961253262",
+        "License": "https://creativecommons.org/licenses/by/2.0/",
+        "AuthorProfileURL": "https://www.flickr.com/people/dpstyles/",
+        "Author": "dennis crowley",
+        "Title": "Awesome fake MTA / pro-skate #StreetArt spotted in East Village",
+        "OriginalSize": "105571",
+        "OriginalMD5": "kiMcyBZBridiVIa+j0DMRQ==",
+        "Thumbnail300KURL": "https://c3.staticflickr.com/7/6029/5961253262_1fe32381a7_z.jpg",
+        "Rotation": "0.0",
+        "metadataSource": "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv"
+      },
+      "serializationPolicy": {
+        "canonicalUnit": "word polygon and exact UTF-8 token",
+        "canonicalDatasetReadingOrder": false,
+        "flatReference": "Visually reviewed derived line/block order; spaces between source tokens, LF between reviewed lines, one final LF; no case, spelling or punctuation corrections.",
+        "ignorePolicy": "Dataset dot-only markers preserved in structured reference and excluded from flat reference. These five cases contain zero markers.",
+        "scoring": "Primary: region-aware token recognition. Flat WER is a secondary metric sensitive to the explicit reviewed order. Do not present it as publisher-canonical full-page sequence."
+      },
+      "review": {
+        "status": "visually-reviewed",
+        "reviewedAt": "2026-10-22",
+        "method": "Agent comparison of all canonical word annotations against original image; full image decode and geometry validation; no OCR or extraction models used.",
+        "notes": "All 65 annotated words checked, including small disclaimer, NYC logo wording and bottom website. The hotline 1-666-NYC-SKTE is printed content and is preserved literally.",
+        "tinyCopyReviewed": true,
+        "readingOrder": "Explicit reviewed line/group ID lists; all nonignored IDs occur exactly once.",
+        "canonicalReferenceIndependentOfProviders": true,
+        "fullPageExhaustivenessClaim": false
+      },
+      "execution": {
+        "status": "not-run",
+        "modelInvocations": 0,
+        "providerSpendUSD": 0
+      }
+    },
+    {
+      "id": "numeric-tables-practitioner-attitudes",
+      "category": "numeric-tables",
+      "language": "en",
+      "input": "input/examples/document/ocr-numeric-tables/images/PMC1626454_002_00.png",
+      "reference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-practitioner-attitudes.txt",
+      "structuredReference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-practitioner-attitudes.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-numeric-tables/source/PubTabNet_Examples.jsonl",
+          "sha256": "858ad438bdc1fd6af7538e7a0704c85d62696a601dadf0174a5b0b380685e9f2",
+          "url": "https://raw.githubusercontent.com/ibm-aur-nlp/PubTabNet/8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5/examples/PubTabNet_Examples.jsonl",
+          "revision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+          "selector": "filename == PMC1626454_002_00.png"
+        }
+      ],
+      "sourceURL": "https://raw.githubusercontent.com/ibm-aur-nlp/PubTabNet/8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5/examples/PMC1626454_002_00.png",
+      "sourceRevision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+      "sourceImageSelector": "PMC1626454_002_00.png",
+      "inputSha256": "d34a3a312e57f9c2f3aba335729320ee3dd52ddf09b0c81b59d65746d910dac7",
+      "referenceSha256": "e059378acc0c8f041887b0369ba021730fea47268af5e194ed66e0a7ed55fa80",
+      "structuredReferenceSha256": "bd39795dede5f7a86e47963683bee92332ac5170b6b01eaf6e5041b75edc1c52",
+      "width": 503,
+      "height": 249,
+      "pageCount": 1,
+      "chars": 1045,
+      "words": 190,
+      "format": "png",
+      "scope": "region-crop",
+      "synthetic": false,
+      "sourceFamily": "PubTabNet",
+      "cellCount": 100,
+      "emptyCellCount": 3,
+      "mergedCellCount": 2,
+      "rights": {
+        "annotationLicense": "CDLA-Permissive-1.0",
+        "imageLicense": "CC-BY-2.0",
+        "redistributable": true,
+        "notice": "Article-specific PMC copyright/license block verified; retain article and PubTabNet attribution.",
+        "evidence": "input/examples/document/ocr-numeric-tables/source/PMC1626454-article.html",
+        "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC1626454/"
+      },
+      "attribution": "IBM Research, PubTabNet example release; original article PMC1626454, BioMed Central and credited authors (CC BY 2.0).",
+      "serializationPolicy": "Structured reference preserves original cell tokens, bounding boxes, blanks, row/column anchors and spans. Plain text is a derived TSV reading view in row-major order, each anchor text once; span continuations remain empty. Formatting tags removed, their text retained; signs/decimals/percentages remain exact. Grid tabs are serialization, not printed characters. Later evaluate recognition, numeric fidelity and structure separately; real/synthetic cohorts remain separate.",
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual image/cell-text comparison, exact filename selection, structure/cell count and span consistency; complete PNG decode and pinned byte hashes.",
+        "sourceErrorsFound": [],
+        "representationNotes": [],
+        "modelExecution": "not-run"
+      },
+      "status": "prepared-not-run"
+    },
+    {
+      "id": "numeric-tables-inflammatory-pathways",
+      "category": "numeric-tables",
+      "language": "en",
+      "input": "input/examples/document/ocr-numeric-tables/images/PMC2838834_005_00.png",
+      "reference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-inflammatory-pathways.txt",
+      "structuredReference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-inflammatory-pathways.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-numeric-tables/source/PubTabNet_Examples.jsonl",
+          "sha256": "858ad438bdc1fd6af7538e7a0704c85d62696a601dadf0174a5b0b380685e9f2",
+          "url": "https://raw.githubusercontent.com/ibm-aur-nlp/PubTabNet/8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5/examples/PubTabNet_Examples.jsonl",
+          "revision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+          "selector": "filename == PMC2838834_005_00.png"
+        }
+      ],
+      "sourceURL": "https://raw.githubusercontent.com/ibm-aur-nlp/PubTabNet/8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5/examples/PMC2838834_005_00.png",
+      "sourceRevision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+      "sourceImageSelector": "PMC2838834_005_00.png",
+      "inputSha256": "bc562e84633962e9d0dcdbdecf0169980b42df376d350007520a788c43a57b80",
+      "referenceSha256": "45235f27e5bb109fb0d61e218e79c6317940ba8018b2450f37f82d0d4bbac0a1",
+      "structuredReferenceSha256": "5ad18c4a0f48fff353a68ec22f6255e3446e8d8ff6095b079b23769e3e4a0440",
+      "width": 486,
+      "height": 441,
+      "pageCount": 1,
+      "chars": 2157,
+      "words": 316,
+      "format": "png",
+      "scope": "region-crop",
+      "synthetic": false,
+      "sourceFamily": "PubTabNet",
+      "cellCount": 248,
+      "emptyCellCount": 71,
+      "mergedCellCount": 3,
+      "rights": {
+        "annotationLicense": "CDLA-Permissive-1.0",
+        "imageLicense": "CC-BY-2.0",
+        "redistributable": true,
+        "notice": "Article-specific PMC copyright/license block verified; retain article and PubTabNet attribution.",
+        "evidence": "input/examples/document/ocr-numeric-tables/source/PMC2838834-article.html",
+        "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2838834/"
+      },
+      "attribution": "IBM Research, PubTabNet example release; original article PMC2838834, BioMed Central and credited authors (CC BY 2.0).",
+      "serializationPolicy": "Structured reference preserves original cell tokens, bounding boxes, blanks, row/column anchors and spans. Plain text is a derived TSV reading view in row-major order, each anchor text once; span continuations remain empty. Formatting tags removed, their text retained; signs/decimals/percentages remain exact. Grid tabs are serialization, not printed characters. Later evaluate recognition, numeric fidelity and structure separately; real/synthetic cohorts remain separate.",
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual image/cell-text comparison, exact filename selection, structure/cell count and span consistency; complete PNG decode and pinned byte hashes.",
+        "sourceErrorsFound": [],
+        "representationNotes": [],
+        "modelExecution": "not-run"
+      },
+      "status": "prepared-not-run"
+    },
+    {
+      "id": "numeric-tables-program-implementation",
+      "category": "numeric-tables",
+      "language": "en",
+      "input": "input/examples/document/ocr-numeric-tables/images/PMC4172848_007_00.png",
+      "reference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-program-implementation.txt",
+      "structuredReference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-program-implementation.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-numeric-tables/source/PubTabNet_Examples.jsonl",
+          "sha256": "858ad438bdc1fd6af7538e7a0704c85d62696a601dadf0174a5b0b380685e9f2",
+          "url": "https://raw.githubusercontent.com/ibm-aur-nlp/PubTabNet/8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5/examples/PubTabNet_Examples.jsonl",
+          "revision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+          "selector": "filename == PMC4172848_007_00.png"
+        }
+      ],
+      "sourceURL": "https://raw.githubusercontent.com/ibm-aur-nlp/PubTabNet/8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5/examples/PMC4172848_007_00.png",
+      "sourceRevision": "8ffde9024bd331f5a61c3c549fdf30dd3c3e43a5",
+      "sourceImageSelector": "PMC4172848_007_00.png",
+      "inputSha256": "d15370b68ac5922badb07117a85e681047efc3d09c4a7d88d30c4e6fda5dd961",
+      "referenceSha256": "953f6c47d8c316c7d920a001002ef15b72760d26cca51b99109505128053071e",
+      "structuredReferenceSha256": "0c59161535edc0146de0593f0f57aea667afd2e918d393b6e49f70c1cedf2dbf",
+      "width": 486,
+      "height": 263,
+      "pageCount": 1,
+      "chars": 1189,
+      "words": 208,
+      "format": "png",
+      "scope": "region-crop",
+      "synthetic": false,
+      "sourceFamily": "PubTabNet",
+      "cellCount": 121,
+      "emptyCellCount": 25,
+      "mergedCellCount": 3,
+      "rights": {
+        "annotationLicense": "CDLA-Permissive-1.0",
+        "imageLicense": "CC-BY-2.0",
+        "redistributable": true,
+        "notice": "Article-specific PMC copyright/license block verified; retain article and PubTabNet attribution.",
+        "evidence": "input/examples/document/ocr-numeric-tables/source/PMC4172848-article.html",
+        "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4172848/"
+      },
+      "attribution": "IBM Research, PubTabNet example release; original article PMC4172848, BioMed Central and credited authors (CC BY 2.0).",
+      "serializationPolicy": "Structured reference preserves original cell tokens, bounding boxes, blanks, row/column anchors and spans. Plain text is a derived TSV reading view in row-major order, each anchor text once; span continuations remain empty. Formatting tags removed, their text retained; signs/decimals/percentages remain exact. Grid tabs are serialization, not printed characters. Later evaluate recognition, numeric fidelity and structure separately; real/synthetic cohorts remain separate.",
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual image/cell-text comparison, exact filename selection, structure/cell count and span consistency; complete PNG decode and pinned byte hashes.",
+        "sourceErrorsFound": [],
+        "representationNotes": [],
+        "modelExecution": "not-run"
+      },
+      "status": "prepared-not-run"
+    },
+    {
+      "id": "numeric-tables-synthetic-financial",
+      "category": "numeric-tables",
+      "language": "en",
+      "input": "input/examples/document/ocr-numeric-tables/images/image_000011_1634629328.535577.png",
+      "reference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-synthetic-financial.txt",
+      "structuredReference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-synthetic-financial.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-numeric-tables/source/fintabnet-synthetic_data.jsonl",
+          "sha256": "0bb137d1cec48a1362b53c99151e5cede110b861a4a5cef9ff2625798d64770e",
+          "url": "https://ds4sd-public-artifacts.s3.eu-de.cloud-object-storage.appdomain.cloud/datasets/synthtabnet_public/samples.zip",
+          "revision": "d4266dc3094e42e82f3b30060d22f3e4e394093c",
+          "selector": "samples/fintabnet/synthetic_data.jsonl; filename == image_000011_1634629328.535577.png"
+        }
+      ],
+      "sourceURL": "https://ds4sd-public-artifacts.s3.eu-de.cloud-object-storage.appdomain.cloud/datasets/synthtabnet_public/samples.zip",
+      "sourceRevision": "samples.zip SHA-256 0885b558e9eb7ef2bc1cc8dc6256a8bcf5387e8d8be5180794cf476b55fffa2f; documentation d4266dc3094e42e82f3b30060d22f3e4e394093c",
+      "sourceImageSelector": "samples/fintabnet/images/train/image_000011_1634629328.535577.png",
+      "inputSha256": "317d8d94d524b4bf0edfdf4b4714a1dc4c2693b0b2bea328d5a76aaef7ad96f4",
+      "referenceSha256": "c2e3e6a570084581986032775a83299239bb96ede8e4e31183d00dc23148d455",
+      "structuredReferenceSha256": "5e437d83949557546a37f22615a758de6aa86a058e17d68e6c13a13827039ba6",
+      "width": 392,
+      "height": 512,
+      "pageCount": 1,
+      "chars": 1556,
+      "words": 228,
+      "format": "png",
+      "scope": "region-crop",
+      "synthetic": true,
+      "sourceFamily": "SynthTabNet",
+      "cellCount": 209,
+      "emptyCellCount": 25,
+      "mergedCellCount": 1,
+      "rights": {
+        "annotationLicense": "CDLA-Permissive-1.0",
+        "imageLicense": "CDLA-Permissive-1.0",
+        "redistributable": true,
+        "notice": "IBM-generated sample dataset; retain CDLA notice and source attribution.",
+        "evidence": "input/examples/document/ocr-numeric-tables/source/synthtabnet-LICENSE.md",
+        "source": "https://github.com/IBM/SynthTabNet/blob/d4266dc3094e42e82f3b30060d22f3e4e394093c/LICENSE.md"
+      },
+      "attribution": "IBM Research, SynthTabNet sample release.",
+      "serializationPolicy": "Structured reference preserves original cell tokens, bounding boxes, blanks, row/column anchors and spans. Plain text is a derived TSV reading view in row-major order, each anchor text once; span continuations remain empty. Formatting tags removed, their text retained; signs/decimals/percentages remain exact. Grid tabs are serialization, not printed characters. Later evaluate recognition, numeric fidelity and structure separately; real/synthetic cohorts remain separate.",
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual image/cell-text comparison, exact filename selection, structure/cell count and span consistency; complete PNG decode and pinned byte hashes.",
+        "sourceErrorsFound": [],
+        "representationNotes": [],
+        "modelExecution": "not-run"
+      },
+      "status": "prepared-not-run"
+    },
+    {
+      "id": "numeric-tables-synthetic-marketing",
+      "category": "numeric-tables",
+      "language": "en",
+      "input": "input/examples/document/ocr-numeric-tables/images/image_000002_1634629424.103172.png",
+      "reference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-synthetic-marketing.txt",
+      "structuredReference": "input/examples/document/ocr-numeric-tables/references/numeric-tables-synthetic-marketing.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-numeric-tables/source/marketing-synthetic_data.jsonl",
+          "sha256": "71eb642c91cbef72fee8fe3ef1b458f698dca4a0bc8455abf2f2f7d8c89dbce4",
+          "url": "https://ds4sd-public-artifacts.s3.eu-de.cloud-object-storage.appdomain.cloud/datasets/synthtabnet_public/samples.zip",
+          "revision": "d4266dc3094e42e82f3b30060d22f3e4e394093c",
+          "selector": "samples/marketing/synthetic_data.jsonl; filename == image_000002_1634629424.103172.png"
+        }
+      ],
+      "sourceURL": "https://ds4sd-public-artifacts.s3.eu-de.cloud-object-storage.appdomain.cloud/datasets/synthtabnet_public/samples.zip",
+      "sourceRevision": "samples.zip SHA-256 0885b558e9eb7ef2bc1cc8dc6256a8bcf5387e8d8be5180794cf476b55fffa2f; documentation d4266dc3094e42e82f3b30060d22f3e4e394093c",
+      "sourceImageSelector": "samples/marketing/images/val/image_000002_1634629424.103172.png",
+      "inputSha256": "0a6de4c65dc6fb58c6d73594f1426803dfe8db589d7a8c7445cbc79bbe682079",
+      "referenceSha256": "b32dbf5c5a3c2371b9a85c1c025c723784f19e73ca5feedf6b7b444b9651bdef",
+      "structuredReferenceSha256": "f7b0bb903e334512d2ad9a8955f5c6178e581b8f51b40d73b40d42d381cbe582",
+      "width": 335,
+      "height": 512,
+      "pageCount": 1,
+      "chars": 1636,
+      "words": 230,
+      "format": "png",
+      "scope": "region-crop",
+      "synthetic": true,
+      "sourceFamily": "SynthTabNet",
+      "cellCount": 168,
+      "emptyCellCount": 15,
+      "mergedCellCount": 3,
+      "rights": {
+        "annotationLicense": "CDLA-Permissive-1.0",
+        "imageLicense": "CDLA-Permissive-1.0",
+        "redistributable": true,
+        "notice": "IBM-generated sample dataset; retain CDLA notice and source attribution.",
+        "evidence": "input/examples/document/ocr-numeric-tables/source/synthtabnet-LICENSE.md",
+        "source": "https://github.com/IBM/SynthTabNet/blob/d4266dc3094e42e82f3b30060d22f3e4e394093c/LICENSE.md"
+      },
+      "attribution": "IBM Research, SynthTabNet sample release.",
+      "serializationPolicy": "Structured reference preserves original cell tokens, bounding boxes, blanks, row/column anchors and spans. Plain text is a derived TSV reading view in row-major order, each anchor text once; span continuations remain empty. Formatting tags removed, their text retained; signs/decimals/percentages remain exact. Grid tabs are serialization, not printed characters. Later evaluate recognition, numeric fidelity and structure separately; real/synthetic cohorts remain separate.",
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual image/cell-text comparison, exact filename selection, structure/cell count and span consistency; complete PNG decode and pinned byte hashes.",
+        "sourceErrorsFound": [],
+        "representationNotes": [
+          "Markup-only whitespace in zero-area source cell 1 is preserved in rawTokens and emits no visible text."
+        ],
+        "modelExecution": "not-run"
+      },
+      "status": "prepared-not-run"
+    },
+    {
+      "id": "handwriting-washington-receipt",
+      "category": "handwriting",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-washington-receipt/input.png",
+      "reference": "input/examples/document/ocr-handwriting/cases/handwriting-washington-receipt/reference.txt",
+      "structuredReference": "input/examples/document/ocr-handwriting/cases/handwriting-washington-receipt/reference-structure.json",
+      "readingReference": "input/examples/document/ocr-handwriting/cases/handwriting-washington-receipt/reading-reference.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-handwriting/cases/handwriting-washington-receipt/original.jpg",
+          "url": "https://tile.loc.gov/storage-services/master/mss/mgw/mgw5/117/0500/0553.jpg",
+          "revision": "LOC dataset 2020446971, 2023-07-18",
+          "selector": "mgw500029-5",
+          "sha256": "6b7484c2f3e945168fb88fefb9c63ad4450169ce07e48c12f8bd9934a6666a56"
+        },
+        {
+          "path": "input/examples/document/ocr-handwriting/source/ordinary-lives-in-george-washingtons-papers-the-revolutionary-war_2023-07-18.csv",
+          "url": "https://tile.loc.gov/storage-services/master/gdc/gdcdatasets/2020446971/2020446971.zip",
+          "revision": "LOC dataset 2020446971, 2023-07-18",
+          "selector": "Asset=mgw500029-5; AssetId=367462; AssetStatus=completed; Transcription",
+          "sha256": "66cc36f09c22427b9242b1d01e67a5660494148c88d7821dc3a74405b5b4316f"
+        },
+        {
+          "path": "input/examples/document/ocr-handwriting/source/README_ordinary-lives-in-george-washingtons-papers-the-revolutionary-war_2023-07-18.txt",
+          "url": "https://tile.loc.gov/storage-services/master/gdc/gdcdatasets/2020446971/2020446971.zip",
+          "revision": "LOC dataset 2020446971, 2023-07-18",
+          "sha256": "6a29d72e1341b46d34ed46618049da3a48d19fd20a9463df8c6cfdec1693658a"
+        }
+      ],
+      "inputSha256": "1934adcdca9f60aceb7793f54a1d10f8206e88f98fe8a9255932ccc52a4d9f92",
+      "referenceSha256": "be10f813301d5c7aa64fbde1cdb314be58075e2cbfc695337ac946363dddb114",
+      "structuredReferenceSha256": "b4206f9e0070d0c7bcba200bca8824dadca4f257ebda3e4a18ff9f348a4091b1",
+      "width": 1989,
+      "height": 950,
+      "pageCount": 1,
+      "chars": 689,
+      "scope": "region-crop",
+      "synthetic": false,
+      "sourceFamily": "Library-of-Congress-By-the-People",
+      "sourceURL": "https://tile.loc.gov/storage-services/master/mss/mgw/mgw5/117/0500/0553.jpg",
+      "sourceRevision": "LOC dataset 2020446971, 2023-07-18",
+      "sourceSelector": {
+        "kind": "loc",
+        "csv": "input/examples/document/ocr-handwriting/source/ordinary-lives-in-george-washingtons-papers-the-revolutionary-war_2023-07-18.csv",
+        "asset": "mgw500029-5",
+        "assetId": "367462"
+      },
+      "rights": {
+        "transcription": "Public domain contributions per the dated dataset README",
+        "image": "Separate LOC collection rights advisory; kept local, no image redistribution assumed",
+        "redistributable": false,
+        "evidence": "input/examples/document/ocr-handwriting/source/README_ordinary-lives-in-george-washingtons-papers-the-revolutionary-war_2023-07-18.txt",
+        "advisoryUrl": "https://www.loc.gov/item/mgw500029/"
+      },
+      "attribution": "Library of Congress, Manuscript Division; By the People contributors (reviewed completed transcription)",
+      "serializationPolicy": "LF and final newline; historical spellings and line breaks retained. Publisher square brackets denote deleted words: diplomatic target retains those words without invented brackets, reading companion omits them. Printed Patton form headings included in publisher title case although the image prints capitals; use case-insensitive lexical scoring, not an exact glyph-case claim. No invented continuation. Washington publisher order places date before addressee.",
+      "imageDerivation": {
+        "originalImage": "input/examples/document/ocr-handwriting/cases/handwriting-washington-receipt/original.jpg",
+        "operation": "ImageMagick crop +repage; strip metadata; PNG32",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1989,
+          "height": 950
+        },
+        "masks": [
+          {
+            "x": 1230,
+            "y": 603,
+            "rightInclusive": 1460,
+            "bottomInclusive": 783,
+            "fill": "white",
+            "reason": "Later archival circular stamp in blank ruled space; no receipt wording covered"
+          }
+        ],
+        "reason": "Remove bottom archival identifier, mask later stamp; preserve complete receipt body"
+      },
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual word/number and layout review of original image against independently published human transcription",
+        "modelExecution": "not-run",
+        "limitations": "Publisher spelling/case conventions are retained; manuscript order and deleted-word structure declared separately"
+      }
+    },
+    {
+      "id": "handwriting-patton-travel",
+      "category": "handwriting",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-patton-travel/input.png",
+      "reference": "input/examples/document/ocr-handwriting/cases/handwriting-patton-travel/reference.txt",
+      "structuredReference": "input/examples/document/ocr-handwriting/cases/handwriting-patton-travel/reference-structure.json",
+      "readingReference": "input/examples/document/ocr-handwriting/cases/handwriting-patton-travel/reading-reference.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-handwriting/cases/handwriting-patton-travel/original.jpg",
+          "url": "https://tile.loc.gov/image-services/iiif/service:mss:mss35634:001:01:041/full/pct:50/0/default.jpg",
+          "revision": "LOC dataset 2021386762, 2023-04-26",
+          "selector": "mss35634001-41",
+          "sha256": "632a4498e4805d9a8554ecf944c22b8787bffec85557e8ed31a8b19defcfc0be"
+        },
+        {
+          "path": "input/examples/document/ocr-handwriting/source/patton-war-diaries_2023-04-26.csv",
+          "url": "https://tile.loc.gov/storage-services/master/gdc/gdcdatasets/2021386762/2021386762.zip",
+          "revision": "LOC dataset 2021386762, 2023-04-26",
+          "selector": "Asset=mss35634001-41; AssetId=341465; AssetStatus=completed; Transcription",
+          "sha256": "5615eaacec19c3e6121acd251f4c3fb24e0329b1952ca0aff617d85051d9c27c"
+        },
+        {
+          "path": "input/examples/document/ocr-handwriting/source/README_patton-war-diaries_2023-04-26.txt",
+          "url": "https://tile.loc.gov/storage-services/master/gdc/gdcdatasets/2021386762/2021386762.zip",
+          "revision": "LOC dataset 2021386762, 2023-04-26",
+          "sha256": "637ea54a8f3b4b918aba23c29d64dd5bce8de39240dd33727405382d4fb92065"
+        }
+      ],
+      "inputSha256": "66f64fa9d592550f16cb21634886a09eed11f031bc776d68a314e3849f8fe233",
+      "referenceSha256": "1d968d2ba075a7b7f7661d55dfe8241328ec3f0040e720eb00d80586daf62011",
+      "structuredReferenceSha256": "5c6d6ec495b5925ea6779b10ae9f74e96e6c3c2f6e3ee2b8aaa7fb10671df3eb",
+      "width": 780,
+      "height": 1270,
+      "pageCount": 1,
+      "chars": 418,
+      "scope": "region-crop",
+      "synthetic": false,
+      "sourceFamily": "Library-of-Congress-By-the-People",
+      "sourceURL": "https://tile.loc.gov/image-services/iiif/service:mss:mss35634:001:01:041/full/pct:50/0/default.jpg",
+      "sourceRevision": "LOC dataset 2021386762, 2023-04-26",
+      "sourceSelector": {
+        "kind": "loc",
+        "csv": "input/examples/document/ocr-handwriting/source/patton-war-diaries_2023-04-26.csv",
+        "asset": "mss35634001-41",
+        "assetId": "341465"
+      },
+      "rights": {
+        "transcription": "Public domain contributions per the dated dataset README",
+        "image": "Separate LOC collection rights advisory; kept local, no image redistribution assumed",
+        "redistributable": false,
+        "evidence": "input/examples/document/ocr-handwriting/source/README_patton-war-diaries_2023-04-26.txt",
+        "advisoryUrl": "https://www.loc.gov/item/mss35634001/"
+      },
+      "attribution": "Library of Congress, Manuscript Division; By the People contributors (reviewed completed transcription)",
+      "serializationPolicy": "LF and final newline; historical spellings and line breaks retained. Publisher square brackets denote deleted words: diplomatic target retains those words without invented brackets, reading companion omits them. Printed Patton form headings included in publisher title case although the image prints capitals; use case-insensitive lexical scoring, not an exact glyph-case claim. No invented continuation. Washington publisher order places date before addressee.",
+      "imageDerivation": {
+        "originalImage": "input/examples/document/ocr-handwriting/cases/handwriting-patton-travel/original.jpg",
+        "operation": "ImageMagick crop +repage; strip metadata; PNG32",
+        "crop": {
+          "x": 90,
+          "y": 50,
+          "width": 780,
+          "height": 1270
+        },
+        "reason": "Keep target leaf and all text; exclude adjacent right leaf and binding"
+      },
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual word/number and layout review of original image against independently published human transcription",
+        "modelExecution": "not-run",
+        "limitations": "Publisher spelling/case conventions are retained; manuscript order and deleted-word structure declared separately"
+      }
+    },
+    {
+      "id": "handwriting-marker-prose",
+      "category": "handwriting",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-marker-prose/input.png",
+      "reference": "input/examples/document/ocr-handwriting/cases/handwriting-marker-prose/reference.txt",
+      "structuredReference": "input/examples/document/ocr-handwriting/cases/handwriting-marker-prose/reference-structure.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-handwriting/cases/handwriting-marker-prose/original.webp",
+          "url": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/01.webp",
+          "revision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+          "selector": "01",
+          "sha256": "0f6a3997bb7652926dfd3df55b315bf961007712090bdb8ce77f81205f202830"
+        },
+        {
+          "path": "input/examples/document/ocr-handwriting/source/whiteboards-metadata.jsonl",
+          "url": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/metadata.jsonl",
+          "revision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+          "selector": "id=01; transcription",
+          "sha256": "e2a594a20234fa53fc6b59bb0b77db8de31ca64dea92e7cdf6a7d749ce7983c4"
+        },
+        {
+          "path": "input/examples/document/ocr-handwriting/source/whiteboards-README.md",
+          "url": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/README.md",
+          "revision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+          "sha256": "7f590d2899ddf73a5e45f18208d483a70f9f4b46b51a38a522f27ef11c865712"
+        }
+      ],
+      "inputSha256": "140b1bb674508c6e8107581fc641b2fe3118e76f81a4d01f7d2ba99706b81799",
+      "referenceSha256": "5bdb9cd588baebcd71a51e4014fc8d54b30ee64e413a209eeb926144d51b330d",
+      "structuredReferenceSha256": "575fe2ddb2cce866e1702af1b1b340c30ba0417170d4dd5e7988b9663466772e",
+      "width": 4096,
+      "height": 3072,
+      "pageCount": 1,
+      "chars": 191,
+      "scope": "full-page",
+      "synthetic": false,
+      "sourceFamily": "Whiteboards-single-author",
+      "sourceURL": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/01.webp",
+      "sourceRevision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+      "sourceSelector": {
+        "kind": "whiteboards",
+        "id": "01"
+      },
+      "rights": {
+        "image": "CC-BY-4.0",
+        "transcription": "CC-BY-4.0",
+        "redistributable": true,
+        "evidence": "input/examples/document/ocr-handwriting/source/whiteboards-README.md"
+      },
+      "attribution": "Daniel Rosehill, Whiteboards, CC BY 4.0",
+      "serializationPolicy": "Use the human transcription field only. Preserve literal prose arrow; convert table/flowchart drawings into separate structure with exact label text. Table uses row-major TSV; flowchart uses top-to-bottom then left-to-right labels. No description text or drawing characters become lexical labels.",
+      "imageDerivation": {
+        "originalImage": "input/examples/document/ocr-handwriting/cases/handwriting-marker-prose/original.webp",
+        "operation": "Lossless WebP decode to PNG, no resize/crop/retouch"
+      },
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual word/number and layout review of original image against independently published human transcription",
+        "modelExecution": "not-run",
+        "limitations": "Three examples share one author, board and marker; structure diversity does not add writer diversity"
+      }
+    },
+    {
+      "id": "handwriting-marker-table",
+      "category": "handwriting",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-marker-table/input.png",
+      "reference": "input/examples/document/ocr-handwriting/cases/handwriting-marker-table/reference.txt",
+      "structuredReference": "input/examples/document/ocr-handwriting/cases/handwriting-marker-table/reference-structure.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-handwriting/cases/handwriting-marker-table/original.webp",
+          "url": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/07.webp",
+          "revision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+          "selector": "07",
+          "sha256": "6ee7e72820d02d6a373d0671d898bfded1c13ba5ca30e42ec65b3fca0cd5c8d5"
+        },
+        {
+          "path": "input/examples/document/ocr-handwriting/source/whiteboards-metadata.jsonl",
+          "url": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/metadata.jsonl",
+          "revision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+          "selector": "id=07; transcription",
+          "sha256": "e2a594a20234fa53fc6b59bb0b77db8de31ca64dea92e7cdf6a7d749ce7983c4"
+        },
+        {
+          "path": "input/examples/document/ocr-handwriting/source/whiteboards-README.md",
+          "url": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/README.md",
+          "revision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+          "sha256": "7f590d2899ddf73a5e45f18208d483a70f9f4b46b51a38a522f27ef11c865712"
+        }
+      ],
+      "inputSha256": "f6a063cb5cccac90e3d6ed07db0bb8da88589a61e9bef6d34cf0b885e7b021d5",
+      "referenceSha256": "21b46f03911b866916042379dc49f3c1179e01c28ac84aac5e1eb531994c0fb3",
+      "structuredReferenceSha256": "8e5aa85481b10938bce206500aa4b65db26671de71d0abd22584be98a5f05ed5",
+      "width": 4096,
+      "height": 3072,
+      "pageCount": 1,
+      "chars": 98,
+      "scope": "full-page",
+      "synthetic": false,
+      "sourceFamily": "Whiteboards-single-author",
+      "sourceURL": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/07.webp",
+      "sourceRevision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+      "sourceSelector": {
+        "kind": "whiteboards",
+        "id": "07"
+      },
+      "rights": {
+        "image": "CC-BY-4.0",
+        "transcription": "CC-BY-4.0",
+        "redistributable": true,
+        "evidence": "input/examples/document/ocr-handwriting/source/whiteboards-README.md"
+      },
+      "attribution": "Daniel Rosehill, Whiteboards, CC BY 4.0",
+      "serializationPolicy": "Use the human transcription field only. Preserve literal prose arrow; convert table/flowchart drawings into separate structure with exact label text. Table uses row-major TSV; flowchart uses top-to-bottom then left-to-right labels. No description text or drawing characters become lexical labels.",
+      "imageDerivation": {
+        "originalImage": "input/examples/document/ocr-handwriting/cases/handwriting-marker-table/original.webp",
+        "operation": "Lossless WebP decode to PNG, no resize/crop/retouch"
+      },
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual word/number and layout review of original image against independently published human transcription",
+        "modelExecution": "not-run",
+        "limitations": "Three examples share one author, board and marker; structure diversity does not add writer diversity"
+      }
+    },
+    {
+      "id": "handwriting-marker-flowchart",
+      "category": "handwriting",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-handwriting/cases/handwriting-marker-flowchart/input.png",
+      "reference": "input/examples/document/ocr-handwriting/cases/handwriting-marker-flowchart/reference.txt",
+      "structuredReference": "input/examples/document/ocr-handwriting/cases/handwriting-marker-flowchart/reference-structure.json",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-handwriting/cases/handwriting-marker-flowchart/original.webp",
+          "url": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/08.webp",
+          "revision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+          "selector": "08",
+          "sha256": "4cdca8f6e8fdb238859364570b27ca93f79fcc2cb25aa21d5b59de4f95685c25"
+        },
+        {
+          "path": "input/examples/document/ocr-handwriting/source/whiteboards-metadata.jsonl",
+          "url": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/metadata.jsonl",
+          "revision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+          "selector": "id=08; transcription",
+          "sha256": "e2a594a20234fa53fc6b59bb0b77db8de31ca64dea92e7cdf6a7d749ce7983c4"
+        },
+        {
+          "path": "input/examples/document/ocr-handwriting/source/whiteboards-README.md",
+          "url": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/README.md",
+          "revision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+          "sha256": "7f590d2899ddf73a5e45f18208d483a70f9f4b46b51a38a522f27ef11c865712"
+        }
+      ],
+      "inputSha256": "6da4a8a818c5d4e07e71345388cde287c181acebe593cf0e0a3ba32fabfd0594",
+      "referenceSha256": "b033e75b1d542a51a1127747b82ce4974e39d5a03e42825a54db075cef7a5890",
+      "structuredReferenceSha256": "b267608c70971d237bf32ca3e158a73643606202356deab4fb43933d19de8fcd",
+      "width": 4096,
+      "height": 3072,
+      "pageCount": 1,
+      "chars": 91,
+      "scope": "full-page",
+      "synthetic": false,
+      "sourceFamily": "Whiteboards-single-author",
+      "sourceURL": "https://huggingface.co/datasets/danielrosehill/Whiteboards/resolve/4b31e86e15743ffea20204a8f6992b0173ecbdf9/data/08.webp",
+      "sourceRevision": "4b31e86e15743ffea20204a8f6992b0173ecbdf9",
+      "sourceSelector": {
+        "kind": "whiteboards",
+        "id": "08"
+      },
+      "rights": {
+        "image": "CC-BY-4.0",
+        "transcription": "CC-BY-4.0",
+        "redistributable": true,
+        "evidence": "input/examples/document/ocr-handwriting/source/whiteboards-README.md"
+      },
+      "attribution": "Daniel Rosehill, Whiteboards, CC BY 4.0",
+      "serializationPolicy": "Use the human transcription field only. Preserve literal prose arrow; convert table/flowchart drawings into separate structure with exact label text. Table uses row-major TSV; flowchart uses top-to-bottom then left-to-right labels. No description text or drawing characters become lexical labels.",
+      "imageDerivation": {
+        "originalImage": "input/examples/document/ocr-handwriting/cases/handwriting-marker-flowchart/original.webp",
+        "operation": "Lossless WebP decode to PNG, no resize/crop/retouch"
+      },
+      "review": {
+        "status": "source-image-reviewed",
+        "method": "Manual word/number and layout review of original image against independently published human transcription",
+        "modelExecution": "not-run",
+        "limitations": "Three examples share one author, board and marker; structure diversity does not add writer diversity"
+      }
+    },
+    {
+      "id": "newspapers-london-gazette",
+      "sourceId": "G2",
+      "category": "newspapers",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-newspapers/newspapers-london-gazette.png",
+      "reference": "input/examples/document/ocr-newspapers/newspapers-london-gazette.txt",
+      "normalizedReference": "input/examples/document/ocr-newspapers/newspapers-london-gazette.normalized.txt",
+      "structuredReference": "input/examples/document/ocr-newspapers/newspapers-london-gazette.reference.json",
+      "originalReference": "input/examples/document/ocr-newspapers/originals/G2.wikitext",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G2.jpg",
+          "sha256": "eeb631dc32c7d7bd151ff917e5e36e244e91190d39999ad8355feec8560641a1",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/The%20London%20Gazette%2019345.djvu/page2-1920px-The%20London%20Gazette%2019345.djvu.jpg",
+          "revision": "2015-01-17T16:08:01Z",
+          "selector": "scan leaf 2"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G2.wikitext",
+          "sha256": "dd7fa77cf9cfcf84ed5e106321b4f3e6babae6df12e0807c669001bfcb46377a",
+          "url": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20London%20Gazette%2019345.djvu%2F2&oldid=13200057&action=raw",
+          "revision": "13200057",
+          "selector": "pagequality=4; scan leaf 2"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G2.commons.json",
+          "sha256": "9ad6802a701cafd669e87cd58c8588ae983ba703b40eb79f3275e014314ea61c",
+          "url": "https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&titles=File%3AThe%20London%20Gazette%2019345.djvu&iiprop=timestamp|url|sha1|size|extmetadata&format=json",
+          "revision": "2015-01-17T16:08:01Z"
+        }
+      ],
+      "inputSha256": "9ba47a95ce1042c02b5b20aa944e61a61130c9be0e26fb3fd3d92551941e16cb",
+      "referenceSha256": "db8c828e442cf84097361112b36aad1c625a04dbc21b4601e996c62dd4d3a9d0",
+      "width": 1920,
+      "height": 2838,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 4388,
+      "words": 687,
+      "scope": "full-page",
+      "synthetic": false,
+      "sourceFamily": "Wikisource/Commons",
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/The%20London%20Gazette%2019345.djvu/page2-1920px-The%20London%20Gazette%2019345.djvu.jpg",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20London%20Gazette%2019345.djvu%2F2&oldid=13200057&action=raw",
+      "sourceRevision": "13200057",
+      "sourceImageName": "The London Gazette 19345.djvu/2",
+      "leaf": 2,
+      "imageFileRevision": {
+        "timestamp": "2015-01-17T16:08:01Z",
+        "sha1": "d4462d31a2393e7998c01d3fe5e4039fac613b2b",
+        "descriptionURL": "https://commons.wikimedia.org/wiki/File:The_London_Gazette_19345.djvu"
+      },
+      "rights": {
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20London%20Gazette%2019345.djvu%2F2&oldid=13200057",
+        "notice": "Commons mechanical scans of public-domain originals; Wikisource contributor attribution via pinned page and revision history. Derived text retains share-alike terms.",
+        "redistributable": true
+      },
+      "attribution": "Wikisource contributors, page The London Gazette 19345.djvu/2, revision 13200057; Commons scan metadata in input/examples/document/ocr-newspapers/originals/G2.commons.json",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "visually-reviewed-source-pair",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "Full page reviewed, printed page 42; left column runs through 2d West India Regiment; right column starts BREVET. and ends 31st August 1835.",
+          "One incidental three-word Latin quotation Primus in Indis is part of predominantly English notices; source line wraps may differ from scan."
+        ]
+      },
+      "observations": []
+    },
+    {
+      "id": "newspapers-northern-star",
+      "sourceId": "G3",
+      "category": "newspapers",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-newspapers/newspapers-northern-star.png",
+      "reference": "input/examples/document/ocr-newspapers/newspapers-northern-star.txt",
+      "normalizedReference": "input/examples/document/ocr-newspapers/newspapers-northern-star.normalized.txt",
+      "structuredReference": "input/examples/document/ocr-newspapers/newspapers-northern-star.reference.json",
+      "originalReference": "input/examples/document/ocr-newspapers/originals/G3.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G3.png",
+          "sha256": "d2c23a7ca391c0fc91015a96992244ad518f521fcab21575452d4c03d572c97c",
+          "url": "https://ndownloader.figshare.com/files/52256369",
+          "revision": "10.5522/04/28381610.v1",
+          "selector": "ncse_cropped_images/NS2-1843-04-01_page_4_B0C4R34.png"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G3.txt",
+          "sha256": "b3e547a3b19f5bf85829f87d491b3306de513c88cdfa707f67bc6a885f861990",
+          "url": "https://ndownloader.figshare.com/files/52256378",
+          "revision": "10.5522/04/28381610.v1",
+          "selector": "ground_truth/NS2-1843-04-01_page_4_box_page_id_B0C4R34.txt"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-release.json",
+          "sha256": "a158fa92aefa72873cc419f59c4f64209168fa702ca64377975e0e7bda440e99",
+          "url": "https://api.figshare.com/v2/articles/28381610/versions/1",
+          "revision": "10.5522/04/28381610.v1"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-images.zip",
+          "sha256": "57497f5c1a9dcc92a445edb26912f722380dbbb0fec1af36c927385c9dba6eb7",
+          "md5": "aff636e809778173aec741e426f7ae85",
+          "url": "https://ndownloader.figshare.com/files/52256369",
+          "revision": "10.5522/04/28381610.v1"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-ground-truth.zip",
+          "sha256": "2589503fc897c8c406c2646ddb830286a611841275be4c33b755dc9e24c07161",
+          "md5": "c698461e74c78a0e077fd952ec859724",
+          "url": "https://ndownloader.figshare.com/files/52256378",
+          "revision": "10.5522/04/28381610.v1"
+        }
+      ],
+      "inputSha256": "9887ba595a6adb8b047c952dd8c10a67ba4da02d12af7804d7a28d537ce369f6",
+      "referenceSha256": "09097e3430eb43b01572815b132575b1d728ae66c4976e441d4f6d5a41d80257",
+      "width": 670,
+      "height": 2576,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 3566,
+      "words": 633,
+      "scope": "region-crop",
+      "synthetic": false,
+      "sourceFamily": "NCSE evaluation subset",
+      "sourceURL": "https://ndownloader.figshare.com/files/52256369",
+      "annotationURL": "https://ndownloader.figshare.com/files/52256378",
+      "sourceRevision": "10.5522/04/28381610.v1",
+      "sourceImageName": "ncse_cropped_images/NS2-1843-04-01_page_4_B0C4R34.png",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "notice": "NCSE manually annotated evaluation subset, DOI 10.5522/04/28381610.v1; retain author attribution in release metadata.",
+        "redistributable": true
+      },
+      "attribution": "Jonno Bourne, NCSE evaluation subset, 10.5522/04/28381610.v1; ground_truth/NS2-1843-04-01_page_4_box_page_id_B0C4R34.txt",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "visually-reviewed-source-pair",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "Article crop reviewed line by line; starts As we cannot give and ends Magistrates themselves. Partial nonlexical ink at upstream crop edges is outside article scope.",
+          "Manual published source non sequilur is visually corrected to non sequitur in derived text; original file retained. Quotes/dash type and small-cap case use the source convention."
+        ]
+      },
+      "observations": []
+    },
+    {
+      "id": "newspapers-leader",
+      "sourceId": "G4",
+      "category": "newspapers",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-newspapers/newspapers-leader.png",
+      "reference": "input/examples/document/ocr-newspapers/newspapers-leader.txt",
+      "normalizedReference": "input/examples/document/ocr-newspapers/newspapers-leader.normalized.txt",
+      "structuredReference": "input/examples/document/ocr-newspapers/newspapers-leader.reference.json",
+      "originalReference": "input/examples/document/ocr-newspapers/originals/G4.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G4.png",
+          "sha256": "8df3f1d6339d4fd06fe025f0ae98fe35ec34648361e347b6ef0afdceb3a6a20d",
+          "url": "https://ndownloader.figshare.com/files/52256369",
+          "revision": "10.5522/04/28381610.v1",
+          "selector": "ncse_cropped_images/CLD-1853-07-30_page_2_B0C3R16.png"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G4.txt",
+          "sha256": "a9ce38ec08dc003bc1fef702bf62010bc0cc2c8e734456fbf8e2313124417434",
+          "url": "https://ndownloader.figshare.com/files/52256378",
+          "revision": "10.5522/04/28381610.v1",
+          "selector": "ground_truth/CLD-1853-07-30_page_2_box_page_id_B0C3R16.txt"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-release.json",
+          "sha256": "a158fa92aefa72873cc419f59c4f64209168fa702ca64377975e0e7bda440e99",
+          "url": "https://api.figshare.com/v2/articles/28381610/versions/1",
+          "revision": "10.5522/04/28381610.v1"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-images.zip",
+          "sha256": "57497f5c1a9dcc92a445edb26912f722380dbbb0fec1af36c927385c9dba6eb7",
+          "md5": "aff636e809778173aec741e426f7ae85",
+          "url": "https://ndownloader.figshare.com/files/52256369",
+          "revision": "10.5522/04/28381610.v1"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-ground-truth.zip",
+          "sha256": "2589503fc897c8c406c2646ddb830286a611841275be4c33b755dc9e24c07161",
+          "md5": "c698461e74c78a0e077fd952ec859724",
+          "url": "https://ndownloader.figshare.com/files/52256378",
+          "revision": "10.5522/04/28381610.v1"
+        }
+      ],
+      "inputSha256": "f25837fe54d4d7b3d4feb7304a7bfb61a21b68eb661e74a2b783aa6189a511e3",
+      "referenceSha256": "87cde1ccc10eb3cec39d04ca4385a49964d39b4c7e7d2df1fe043551f6d594ed",
+      "width": 465,
+      "height": 1221,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 4060,
+      "words": 706,
+      "scope": "region-crop",
+      "synthetic": false,
+      "sourceFamily": "NCSE evaluation subset",
+      "sourceURL": "https://ndownloader.figshare.com/files/52256369",
+      "annotationURL": "https://ndownloader.figshare.com/files/52256378",
+      "sourceRevision": "10.5522/04/28381610.v1",
+      "sourceImageName": "ncse_cropped_images/CLD-1853-07-30_page_2_B0C3R16.png",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "notice": "NCSE manually annotated evaluation subset, DOI 10.5522/04/28381610.v1; retain author attribution in release metadata.",
+        "redistributable": true
+      },
+      "attribution": "Jonno Bourne, NCSE evaluation subset, 10.5522/04/28381610.v1; ground_truth/CLD-1853-07-30_page_2_box_page_id_B0C3R16.txt",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "visually-reviewed-source-pair",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "Article crop reviewed line by line; starts There were very good reasons and ends Board of Control.",
+          "Manual published source tho often is visually corrected to the often in derived text; original file retained."
+        ]
+      },
+      "observations": []
+    },
+    {
+      "id": "newspapers-tomahawk",
+      "sourceId": "G5",
+      "category": "newspapers",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-newspapers/newspapers-tomahawk.png",
+      "reference": "input/examples/document/ocr-newspapers/newspapers-tomahawk.txt",
+      "normalizedReference": "input/examples/document/ocr-newspapers/newspapers-tomahawk.normalized.txt",
+      "structuredReference": "input/examples/document/ocr-newspapers/newspapers-tomahawk.reference.json",
+      "originalReference": "input/examples/document/ocr-newspapers/originals/G5.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G5.png",
+          "sha256": "04576de34499610c59d301c6295f0a76b7d5cf6b8610b3bdecaa3118656315f1",
+          "url": "https://ndownloader.figshare.com/files/52256369",
+          "revision": "10.5522/04/28381610.v1",
+          "selector": "ncse_cropped_images/TTW-1868-01-25_page_3_B0C2R8.png"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G5.txt",
+          "sha256": "168cd7bb0c94116f673cdc2c576dfa45d5b22c22479d0bf333589e1cd33eb0c0",
+          "url": "https://ndownloader.figshare.com/files/52256378",
+          "revision": "10.5522/04/28381610.v1",
+          "selector": "ground_truth/TTW-1868-01-25_page_3_box_page_id_B0C2R8.txt"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-release.json",
+          "sha256": "a158fa92aefa72873cc419f59c4f64209168fa702ca64377975e0e7bda440e99",
+          "url": "https://api.figshare.com/v2/articles/28381610/versions/1",
+          "revision": "10.5522/04/28381610.v1"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-images.zip",
+          "sha256": "57497f5c1a9dcc92a445edb26912f722380dbbb0fec1af36c927385c9dba6eb7",
+          "md5": "aff636e809778173aec741e426f7ae85",
+          "url": "https://ndownloader.figshare.com/files/52256369",
+          "revision": "10.5522/04/28381610.v1"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-ground-truth.zip",
+          "sha256": "2589503fc897c8c406c2646ddb830286a611841275be4c33b755dc9e24c07161",
+          "md5": "c698461e74c78a0e077fd952ec859724",
+          "url": "https://ndownloader.figshare.com/files/52256378",
+          "revision": "10.5522/04/28381610.v1"
+        }
+      ],
+      "inputSha256": "a1d6be63885c8e8b279038513b6a8ef7982f783a0588b92e04f2f6b99eae8217",
+      "referenceSha256": "168cd7bb0c94116f673cdc2c576dfa45d5b22c22479d0bf333589e1cd33eb0c0",
+      "width": 747,
+      "height": 712,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 1533,
+      "words": 260,
+      "scope": "region-crop",
+      "synthetic": false,
+      "sourceFamily": "NCSE evaluation subset",
+      "sourceURL": "https://ndownloader.figshare.com/files/52256369",
+      "annotationURL": "https://ndownloader.figshare.com/files/52256378",
+      "sourceRevision": "10.5522/04/28381610.v1",
+      "sourceImageName": "ncse_cropped_images/TTW-1868-01-25_page_3_B0C2R8.png",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "notice": "NCSE manually annotated evaluation subset, DOI 10.5522/04/28381610.v1; retain author attribution in release metadata.",
+        "redistributable": true
+      },
+      "attribution": "Jonno Bourne, NCSE evaluation subset, 10.5522/04/28381610.v1; ground_truth/TTW-1868-01-25_page_3_box_page_id_B0C2R8.txt",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "visually-reviewed-source-pair",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "Entire supplied article crop reviewed, headline VOX PUMPULI! and all five numbered instructions.",
+          "The satirical Latin-style headline remains a small quotation within an English article; lexical reference preserves source words and line-end hyphens."
+        ]
+      },
+      "observations": []
+    },
+    {
+      "id": "newspapers-monthly-repository",
+      "sourceId": "G6",
+      "category": "newspapers",
+      "language": "en",
+      "status": "prepared-not-run",
+      "input": "input/examples/document/ocr-newspapers/newspapers-monthly-repository.png",
+      "reference": "input/examples/document/ocr-newspapers/newspapers-monthly-repository.txt",
+      "normalizedReference": "input/examples/document/ocr-newspapers/newspapers-monthly-repository.normalized.txt",
+      "structuredReference": "input/examples/document/ocr-newspapers/newspapers-monthly-repository.reference.json",
+      "originalReference": "input/examples/document/ocr-newspapers/originals/G6.txt",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G6.png",
+          "sha256": "5465144cd0b2927ca1e44f0ecb9ef3ad98be1b02b7c22a4c23fa80fc295844ee",
+          "url": "https://ndownloader.figshare.com/files/52256369",
+          "revision": "10.5522/04/28381610.v1",
+          "selector": "ncse_cropped_images/MRP-1815-07-02_page_29_B0C1R2.png"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G6.txt",
+          "sha256": "538b051856a629c3dcd36d35a97a6b920c616659e09f237ed39d25049b9a7823",
+          "url": "https://ndownloader.figshare.com/files/52256378",
+          "revision": "10.5522/04/28381610.v1",
+          "selector": "ground_truth/MRP-1815-07-02_page_29_box_page_id_B0C1R2.txt"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-release.json",
+          "sha256": "a158fa92aefa72873cc419f59c4f64209168fa702ca64377975e0e7bda440e99",
+          "url": "https://api.figshare.com/v2/articles/28381610/versions/1",
+          "revision": "10.5522/04/28381610.v1"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-images.zip",
+          "sha256": "57497f5c1a9dcc92a445edb26912f722380dbbb0fec1af36c927385c9dba6eb7",
+          "md5": "aff636e809778173aec741e426f7ae85",
+          "url": "https://ndownloader.figshare.com/files/52256369",
+          "revision": "10.5522/04/28381610.v1"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/ncse-ground-truth.zip",
+          "sha256": "2589503fc897c8c406c2646ddb830286a611841275be4c33b755dc9e24c07161",
+          "md5": "c698461e74c78a0e077fd952ec859724",
+          "url": "https://ndownloader.figshare.com/files/52256378",
+          "revision": "10.5522/04/28381610.v1"
+        }
+      ],
+      "inputSha256": "5c461abeb2fbabd9abf0d8da37f9f45bafe9131f083105edf90f209858e2379a",
+      "referenceSha256": "538b051856a629c3dcd36d35a97a6b920c616659e09f237ed39d25049b9a7823",
+      "width": 603,
+      "height": 2111,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 2273,
+      "words": 418,
+      "scope": "region-crop",
+      "synthetic": false,
+      "sourceFamily": "NCSE evaluation subset",
+      "sourceURL": "https://ndownloader.figshare.com/files/52256369",
+      "annotationURL": "https://ndownloader.figshare.com/files/52256378",
+      "sourceRevision": "10.5522/04/28381610.v1",
+      "sourceImageName": "ncse_cropped_images/MRP-1815-07-02_page_29_B0C1R2.png",
+      "acquisitionAlternativeFor": "G1",
+      "rights": {
+        "license": "CC-BY-4.0",
+        "notice": "NCSE manually annotated evaluation subset, DOI 10.5522/04/28381610.v1; retain author attribution in release metadata.",
+        "redistributable": true
+      },
+      "attribution": "Jonno Bourne, NCSE evaluation subset, 10.5522/04/28381610.v1; ground_truth/MRP-1815-07-02_page_29_box_page_id_B0C1R2.txt",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "visually-reviewed-source-pair",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "Entire single-column crop reviewed line by line; begins have been designed and ends an angel, will not only fall short of.",
+          "Official manually transcribed exact region B0C1R2 replaces the known-bad G1 full page; no new full-page layout claim."
+        ]
+      },
+      "observations": []
+    }
+  ],
+  "blockedCandidates": [
+    {
+      "id": "newspapers-perth-gazette",
+      "sourceId": "G1",
+      "category": "newspapers",
+      "language": "en",
+      "status": "blocked-reference-review",
+      "input": "input/examples/document/ocr-newspapers/newspapers-perth-gazette.png",
+      "reference": null,
+      "normalizedReference": null,
+      "structuredReference": "input/examples/document/ocr-newspapers/newspapers-perth-gazette.reference.json",
+      "originalReference": "input/examples/document/ocr-newspapers/originals/G1.wikitext",
+      "originalReferences": [
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G1.jpg",
+          "sha256": "e26436a3dfb6d30d1f25ed62c49454911ebc132532eb6cd83b2e362c5099a8a1",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/The%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu/page1-1920px-The%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu.jpg",
+          "revision": "2008-10-20T01:33:42Z",
+          "selector": "scan leaf 1"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G1.wikitext",
+          "sha256": "2c3796d8bfad54ba92d0a1fbc74a8f0fae133b8411c5388cf5f201f6597b3455",
+          "url": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu%2F1&oldid=14617495&action=raw",
+          "revision": "14617495",
+          "selector": "pagequality=4; scan leaf 1"
+        },
+        {
+          "path": "input/examples/document/ocr-newspapers/originals/G1.commons.json",
+          "sha256": "56cd59caacd631b57447ebacf1d7fb9737ff9b06671db881ddd70884c83a5b81",
+          "url": "https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&titles=File%3AThe%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu&iiprop=timestamp|url|sha1|size|extmetadata&format=json",
+          "revision": "2008-10-20T01:33:42Z"
+        }
+      ],
+      "inputSha256": "e3507b89457a0a66002c6575612c678000f0c9e8ef760d2f885771ccde8bf4c6",
+      "referenceSha256": null,
+      "width": 1920,
+      "height": 2855,
+      "pageCount": 1,
+      "format": "png",
+      "chars": 0,
+      "words": 0,
+      "scope": "full-page",
+      "synthetic": false,
+      "sourceFamily": "Wikisource/Commons",
+      "sourceURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/The%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu/page1-1920px-The%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu.jpg",
+      "annotationURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu%2F1&oldid=14617495&action=raw",
+      "sourceRevision": "14617495",
+      "sourceImageName": "The Perth Gazette and Western Australian Journal 1(14).djvu/1",
+      "leaf": 1,
+      "imageFileRevision": {
+        "timestamp": "2008-10-20T01:33:42Z",
+        "sha1": "50130f0d73c3874bd64e60b3c1c8be3eb4b5d06a",
+        "descriptionURL": "https://commons.wikimedia.org/wiki/File:The_Perth_Gazette_and_Western_Australian_Journal_1(14).djvu"
+      },
+      "replacementId": "newspapers-monthly-repository",
+      "rights": {
+        "imageLicense": "Public domain",
+        "referenceLicense": "CC-BY-SA-4.0",
+        "attributionURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu%2F1&oldid=14617495",
+        "notice": "Commons mechanical scans of public-domain originals; Wikisource contributor attribution via pinned page and revision history. Derived text retains share-alike terms.",
+        "redistributable": true
+      },
+      "attribution": "Wikisource contributors, page The Perth Gazette and Western Australian Journal 1(14).djvu/1, revision 14617495; Commons scan metadata in input/examples/document/ocr-newspapers/originals/G1.commons.json",
+      "serializationPolicy": {
+        "sourceText": "Immutable original gold retained; deterministic conversion and separately recorded review errata only.",
+        "typography": "Source small-cap templates become uppercase; long-s and ﬁ retained in main text. NFKC, quote/dash folding and whitespace normalization occur only in companion reference.",
+        "pageFurniture": "Publication header, page number, marginal line/stanza numbers and catchword included. Explicit acquisition crop removes out-of-publication margins.",
+        "readingOrder": "Whole-page logical column order; region crops do not establish full-page ordering. XML drop capitals attach to the next paragraph.",
+        "lineBreaks": "Validated Wikisource logical lines/paragraphs retained; NCSE published physical lines and hyphens retained. Treat layout whitespace independently from lexical fidelity."
+      },
+      "review": {
+        "status": "blocked-reference-review",
+        "modelExecution": false,
+        "sourceIndependentOfModels": true,
+        "notes": [
+          "BLOCKED: validated source displays Wakerley while scan reads Waverley; linked title displays Lady where scan reads Lay; masthead serialization splits one sentence across left/right blocks.",
+          "Raw source is retained. No correct scoring reference is asserted; G6 replaces this case in the ready quota. A recorded bottom crop excludes the later COMPOSITE COPY stamp, preserving all publication columns."
+        ]
+      },
+      "observations": [
+        "Recorded crop: {\"x\":0,\"y\":0,\"width\":1920,\"height\":2855} in original pixels; original preserved."
+      ]
+    }
+  ],
+  "inventorySemantics": "Original acquisition snapshot: original cases/bundles/pins remain unchanged. Historical B/C and D execution overlays precede categories5To7ExecutionUpdate. executionSummary is current; all30 additions in this index and all35 planned additions have run.",
+  "executionUpdates": {
+    "updatedAt": "2026-10-23T07:35:01.731Z",
+    "plan": "docs/benchmarks/ocr/categories-bc-execution-plan.json",
+    "status": "completed-available-targets",
+    "approvalBudgetCents": 3000,
+    "authorizedPreparedCount": 10,
+    "remainingUnauthorizedPreparedCount": 20,
+    "authorizedPreparedCaseIds": [
+      "technical-code-nbitcoin",
+      "technical-code-cli-parser",
+      "technical-code-pinta",
+      "technical-code-podio",
+      "technical-code-country-codes",
+      "historical-print-paradise-lost",
+      "historical-print-frankenstein",
+      "historical-print-leaves-of-grass",
+      "historical-print-origin-of-species",
+      "historical-print-birds"
+    ],
+    "baselineVariantCaseIds": [
+      "bc-rerun-10-document",
+      "bc-rerun-04-pages-don-quixote",
+      "bc-rerun-05-pages-the-odyssey"
+    ],
+    "remainingUnexecutedPreparedCount": 20,
+    "completedPreparedCount": 10,
+    "failedOnlyTarget": "mistral/mistral-ocr-4-0",
+    "cases": [
+      {
+        "id": "technical-code-nbitcoin",
+        "status": "completed-available-targets",
+        "runDir": "docs/benchmarks/ocr/technical-code-nbitcoin",
+        "successfulModels": 21,
+        "configuredModels": 22,
+        "failedModels": 1
+      },
+      {
+        "id": "technical-code-cli-parser",
+        "status": "completed-available-targets",
+        "runDir": "docs/benchmarks/ocr/technical-code-cli-parser",
+        "successfulModels": 21,
+        "configuredModels": 22,
+        "failedModels": 1
+      },
+      {
+        "id": "technical-code-pinta",
+        "status": "completed-available-targets",
+        "runDir": "docs/benchmarks/ocr/technical-code-pinta",
+        "successfulModels": 21,
+        "configuredModels": 22,
+        "failedModels": 1
+      },
+      {
+        "id": "technical-code-podio",
+        "status": "completed-available-targets",
+        "runDir": "docs/benchmarks/ocr/technical-code-podio",
+        "successfulModels": 21,
+        "configuredModels": 22,
+        "failedModels": 1
+      },
+      {
+        "id": "technical-code-country-codes",
+        "status": "completed-available-targets",
+        "runDir": "docs/benchmarks/ocr/technical-code-country-codes",
+        "successfulModels": 21,
+        "configuredModels": 22,
+        "failedModels": 1
+      },
+      {
+        "id": "historical-print-paradise-lost",
+        "status": "completed-available-targets",
+        "runDir": "docs/benchmarks/ocr/historical-print-paradise-lost",
+        "successfulModels": 21,
+        "configuredModels": 22,
+        "failedModels": 1
+      },
+      {
+        "id": "historical-print-frankenstein",
+        "status": "completed-available-targets",
+        "runDir": "docs/benchmarks/ocr/historical-print-frankenstein",
+        "successfulModels": 21,
+        "configuredModels": 22,
+        "failedModels": 1
+      },
+      {
+        "id": "historical-print-leaves-of-grass",
+        "status": "completed-available-targets",
+        "runDir": "docs/benchmarks/ocr/historical-print-leaves-of-grass",
+        "successfulModels": 21,
+        "configuredModels": 22,
+        "failedModels": 1
+      },
+      {
+        "id": "historical-print-origin-of-species",
+        "status": "completed-available-targets",
+        "runDir": "docs/benchmarks/ocr/historical-print-origin-of-species",
+        "successfulModels": 21,
+        "configuredModels": 22,
+        "failedModels": 1
+      },
+      {
+        "id": "historical-print-birds",
+        "status": "completed-available-targets",
+        "runDir": "docs/benchmarks/ocr/historical-print-birds",
+        "successfulModels": 21,
+        "configuredModels": 22,
+        "failedModels": 1
+      }
+    ],
+    "accountedCategoryBCProviderCents": 1191.112991,
+    "laterCategoryGenerationAuthorized": false,
+    "category4PricingReport": "docs/reports/ocr-category-4-pricing-2026-10-23.md",
+    "scope": "Historical B/C completion snapshot before category D authorization"
+  },
+  "category4ExecutionUpdate": {
+    "updatedAt": "2026-10-23T08:10:58.962Z",
+    "plan": "docs/benchmarks/ocr/category-d-execution-plan.json",
+    "status": "completed",
+    "approvalBudgetCents": 2500,
+    "completedPreparedCount": 5,
+    "baselineVariantCaseIds": [
+      "d-rerun-01-ad-copy"
+    ],
+    "successfulOutputs": 126,
+    "successfulHostedOutputs": 120,
+    "successfulLocalOutputs": 6,
+    "accountedCents": 76.852751,
+    "primaryQualityEligibleFiles": 1,
+    "partialReferenceDiagnosticFiles": 5,
+    "remainingGenerationAuthorized": false,
+    "scope": "Historical D completion snapshot before EFG authorization"
+  },
+  "executionSummary": {
+    "updatedAt": "2026-10-23T09:31:01.358Z",
+    "status": "all-prepared-additions-executed",
+    "completedPreparedCount": 30,
+    "remainingUnexecutedPreparedCount": 0,
+    "completedPreparedCategories": [
+      "technical-code",
+      "historical-print",
+      "advertisements",
+      "numeric-tables",
+      "handwriting",
+      "newspapers"
+    ],
+    "remainingPreparedCategories": [],
+    "totalPlannedAdditionsIncludingA": 35,
+    "successfulPreparedModelOutputsIncludingA": 735,
+    "intendedPreparedModelOutputsIncludingA": 735,
+    "report": "docs/reports/ocr-remaining-categories-pricing-2026-10-23.md"
+  },
+  "categories5To7ExecutionUpdate": {
+    "updatedAt": "2026-10-23T09:31:01.358Z",
+    "plan": "docs/benchmarks/ocr/categories-efg-execution-plan.json",
+    "status": "completed-with-one-baseline-output-limit-failure",
+    "approvalBudgetCents": 3000,
+    "completedPreparedCount": 15,
+    "completedPreparedOutputs": 315,
+    "intendedPreparedOutputs": 315,
+    "baselineVariantCaseIds": [
+      "efg-rerun-01-financial-data",
+      "efg-rerun-01-handwriting",
+      "efg-rerun-1-page-declaration",
+      "efg-rerun-1-page-newspaper"
+    ],
+    "usableOutputs": 398,
+    "intendedSlots": 399,
+    "failedBaselineSlots": 1,
+    "accountedCents": 1002.679785,
+    "report": "docs/reports/ocr-remaining-categories-pricing-2026-10-23.md"
+  }
+}

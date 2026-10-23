@@ -8,13 +8,8 @@ import {
   SUPPORTED_GEMINI_VIDEO_MODELS,
   SUPPORTED_GROK_IMAGE_MODELS,
   SUPPORTED_GROK_VIDEO_MODELS,
-  SUPPORTED_LTX_VIDEO_MODELS,
-  SUPPORTED_LUMALABS_IMAGE_MODELS,
-  SUPPORTED_LUMALABS_VIDEO_MODELS,
   SUPPORTED_MINIMAX_MUSIC_MODELS,
   SUPPORTED_OPENAI_IMAGE_MODELS,
-  SUPPORTED_REPLICATE_IMAGE_MODELS,
-  SUPPORTED_REPLICATE_VIDEO_MODELS,
   validateElevenlabsMusicModel,
   validateFalImageModel,
   validateFalVideoModel,
@@ -23,13 +18,8 @@ import {
   validateGeminiVideoModel,
   validateGrokImageModel,
   validateGrokVideoModel,
-  validateLtxVideoModel,
-  validateLumalabsImageModel,
-  validateLumalabsVideoModel,
   validateMinimaxMusicModel,
   validateOpenAIImageModel,
-  validateReplicateImageModel,
-  validateReplicateVideoModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import {
   IMAGE_SELECTION_ENTRIES,
@@ -43,17 +33,12 @@ const IMAGE_MODEL_FACTS = {
   gemini: { supportedModels: SUPPORTED_GEMINI_IMAGE_MODELS, validateModel: validateGeminiImageModel },
   openai: { supportedModels: SUPPORTED_OPENAI_IMAGE_MODELS, validateModel: validateOpenAIImageModel },
   grok: { supportedModels: SUPPORTED_GROK_IMAGE_MODELS, validateModel: validateGrokImageModel },
-  replicate: { supportedModels: SUPPORTED_REPLICATE_IMAGE_MODELS, validateModel: validateReplicateImageModel },
-  lumalabs: { supportedModels: SUPPORTED_LUMALABS_IMAGE_MODELS, validateModel: validateLumalabsImageModel },
   fal: { supportedModels: SUPPORTED_FAL_IMAGE_MODELS, validateModel: validateFalImageModel }
 } as const satisfies Record<ImageProvider, ModelFacts>
 
 const VIDEO_MODEL_FACTS = {
   gemini: { supportedModels: SUPPORTED_GEMINI_VIDEO_MODELS, validateModel: validateGeminiVideoModel },
   grok: { supportedModels: SUPPORTED_GROK_VIDEO_MODELS, validateModel: validateGrokVideoModel },
-  ltx: { supportedModels: SUPPORTED_LTX_VIDEO_MODELS, validateModel: validateLtxVideoModel },
-  replicate: { supportedModels: SUPPORTED_REPLICATE_VIDEO_MODELS, validateModel: validateReplicateVideoModel },
-  lumalabs: { supportedModels: SUPPORTED_LUMALABS_VIDEO_MODELS, validateModel: validateLumalabsVideoModel },
   fal: { supportedModels: SUPPORTED_FAL_VIDEO_MODELS, validateModel: validateFalVideoModel }
 } as const satisfies Record<VideoProvider, ModelFacts>
 

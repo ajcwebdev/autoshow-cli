@@ -33,7 +33,6 @@ export const HELP_FLAG_GROUPS = [
   ['image-provider-options', 'Provider-Specific Image Options'],
   ['video-options', 'Video Options'],
   ['video-inputs', 'Video Inputs'],
-  ['replicate-video', 'Replicate Video'],
   ['hosted-music', 'Hosted Music'],
   ['comic-panels', 'Panel Selection'],
   ['comic-reference', 'Reference Sheet'],

@@ -5,8 +5,6 @@ export const SERVICE_TO_IMAGE_MODELS_FIELD: Record<string, string> = {
   gemini: 'geminiImageModels',
   openai: 'openaiImageModels',
   grok: 'grokImageModels',
-  replicate: 'replicateImageModels',
-  lumalabs: 'lumalabsImageModels',
 }
 
 export const resolveImageService = (model: ImageGenerationModel): string | undefined =>

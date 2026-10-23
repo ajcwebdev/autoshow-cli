@@ -62,7 +62,6 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['tts', 'input/examples/tts/01-tts-short.md', '--elevenlabs-tts-pronunciation-dictionary-locator', 'dict_1'], flag: '--elevenlabs-tts-pronunciation-dictionary-locator' },
   { argv: ['config', '--elevenlabs-tts-stability', '0.4'], flag: '--elevenlabs-tts-stability' },
   { argv: ['resume', 'output/x', '--minimax-tts-emotion', 'happy'], flag: '--minimax-tts-emotion' },
-  { argv: ['resume', 'output/x', '--replicate-video-seed', '1'], flag: '--replicate-video-seed' },
   { argv: ['video', 'a sunset', '--grok-video-storage-filename', 'clip.mp4'], flag: '--grok-video-storage-filename' },
   { argv: ['write', 'https://example.com/a.mp3', '--grok-video-storage-expires-after', '3600'], flag: '--grok-video-storage-expires-after' },
   { argv: ['config', '--grok-video-storage-filename', 'clip.mp4'], flag: '--grok-video-storage-filename' },
@@ -119,19 +118,14 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['tts', 'input/examples/tts/01-tts-short.md', '--local-concurrency', '1'], flag: '--local-concurrency' },
   { argv: ['comic', 'generate-audio', 'input/scripts/example.md', '--local-concurrency', '1'], flag: '--local-concurrency' },
   { argv: ['tts', 'input/examples/tts/01-tts-short.md', '--minimax-tts-language-boost', 'English'], flag: '--minimax-tts-language-boost' },
-  { argv: ['video', 'a sunset', '--replicate-video-generate-audio'], flag: '--replicate-video-generate-audio' },
-  { argv: ['video', 'a sunset', '--replicate-video-reference-video', 'v.mp4'], flag: '--replicate-video-reference-video' },
-  { argv: ['video', 'a sunset', '--replicate-video-reference-audio', 'a.mp3'], flag: '--replicate-video-reference-audio' },
   { argv: ['video', 'a sunset', '--fal-video-generate-audio'], flag: '--fal-video-generate-audio' },
   { argv: ['video', 'a sunset', '--fal-video-reference-video', 'v.mp4'], flag: '--fal-video-reference-video' },
   { argv: ['video', 'a sunset', '--fal-video-reference-audio', 'a.mp3'], flag: '--fal-video-reference-audio' },
-  { argv: ['write', 'https://example.com/a.mp3', '--replicate-video-generate-audio'], flag: '--replicate-video-generate-audio' },
   { argv: ['write', 'https://example.com/a.mp3', '--fal-video-generate-audio'], flag: '--fal-video-generate-audio' },
-  { argv: ['config', '--replicate-video-generate-audio'], flag: '--replicate-video-generate-audio' },
   { argv: ['config', '--fal-video-generate-audio'], flag: '--fal-video-generate-audio' },
   { argv: ['write', 'https://example.com/a.mp3', '--tts', 'elevenlabs'], flag: '--tts' },
   { argv: ['write', 'https://example.com/a.mp3', '--image', 'openai'], flag: '--image' },
-  { argv: ['write', 'https://example.com/a.mp3', '--video', 'ltx'], flag: '--video' },
+  { argv: ['write', 'https://example.com/a.mp3', '--video', 'grok'], flag: '--video' },
   { argv: ['write', 'https://example.com/a.mp3', '--music', 'minimax'], flag: '--music' },
   { argv: ['write', 'https://example.com/a.mp3', '--tts-voice', 'alloy'], flag: '--tts-voice' },
   { argv: ['write', 'https://example.com/a.mp3', '--image-size', '1024x1024'], flag: '--image-size' },
@@ -170,7 +164,7 @@ describe('removed CLI spellings', () => {
       [{ name: 'provider', value: 'minimax', raw: '--provider minimax', known: true }],
       'provider',
       STANDALONE_VIDEO_PROVIDER_TARGETS
-    )).toThrow('Unknown provider "minimax" for --provider. Expected gemini|grok|ltx|replicate|lumalabs|fal.')
+    )).toThrow('Unknown provider "minimax" for --provider. Expected gemini|grok|fal.')
   })
 
   test('bfl is not an image provider selector', () => {
@@ -180,7 +174,7 @@ describe('removed CLI spellings', () => {
       [{ name: 'provider', value: 'bfl', raw: '--provider bfl', known: true }],
       'provider',
       STANDALONE_IMAGE_PROVIDER_TARGETS
-    )).toThrow('Unknown provider "bfl" for --provider. Expected gemini|openai|grok|replicate|lumalabs|fal.')
+    )).toThrow('Unknown provider "bfl" for --provider. Expected gemini|openai|grok|fal.')
   })
 
   test('retired voice subcommand aliases are not registered', () => {

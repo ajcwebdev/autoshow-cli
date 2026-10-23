@@ -37,8 +37,8 @@ Selectors use `provider[=model]`. Repeat a flag to run more than one provider. F
 | URL   | Local: `defuddle`. Hosted: `spider`, `zyte`.                                                                                                                                                |
 | LLM   | Hosted: `openai`, `gemini`, `anthropic`, `grok`. Write has no local LLM.                                                                                                                    |
 | TTS   | Hosted: `gemini`, `elevenlabs`, `soniox`, `grok`, `openai`, `inworld`.                                                                                                                      |
-| Image | `gemini`, `openai`, `grok`, `replicate`, `lumalabs`, `fal`.                                                                                                                                 |
-| Video | `gemini`, `grok`, `ltx`, `replicate`, `lumalabs`, `fal`.                                                                                                                                    |
+| Image | `gemini`, `openai`, `grok`, `fal`.                                                                                                                                                          |
+| Video | `gemini`, `grok`, `fal`.                                                                                                                                                                    |
 | Music | `elevenlabs`, `minimax`, `gemini`.                                                                                                                                                          |
 
 ## Setup Pipeline
@@ -74,12 +74,8 @@ Hosted commands require the matching environment variable:
 | `OPENAI_API_KEY`         | OpenAI write/STT/OCR/TTS/image         |
 | `XAI_API_KEY`            | Grok write/STT/OCR/TTS/image/video     |
 | `GEMINI_API_KEY`         | Gemini write/STT/OCR/image/video/music |
-| `LTXV_API_KEY`           | LTX video                              |
 | `MISTRAL_API_KEY`        | Mistral STT/OCR                        |
-| `LUMA_AGENTS_API_KEY`    | Luma Agents API image/video            |
 | `FAL_API_KEY`            | fal.ai image/video                     |
-| `STABILITY_API_KEY`      | Stability AI sound effects             |
-| `REPLICATE_API_TOKEN`    | Replicate image/video                  |
 | `ANTHROPIC_API_KEY`      | Anthropic write/OCR                    |
 | `DEEPINFRA_API_KEY`      | DeepInfra STT/OCR                      |
 | `MINIMAX_API_KEY`        | MiniMax music                          |

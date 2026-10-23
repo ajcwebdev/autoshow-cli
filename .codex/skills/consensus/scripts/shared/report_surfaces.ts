@@ -1013,6 +1013,7 @@ function buildJsonReport(
       scoreFormula: sourceReport.scoreFormula ?? null,
       ...(sourceReport.werFormula ? { werFormula: sourceReport.werFormula } : {}),
       ...(sourceReport.consensusExtractionPath ? { consensusExtractionPath: sourceReport.consensusExtractionPath } : {}),
+      ...(category === "ocr" && sourceReport.referenceProvenance ? { referenceProvenance: sourceReport.referenceProvenance } : {}),
       ...(sourceReport.consensusCharCount ? { consensusCharCount: sourceReport.consensusCharCount } : {}),
       ...(sourceReport.consensusWordCount ? { consensusWordCount: sourceReport.consensusWordCount } : {}),
       ...(sourceReport.referenceTranscriptPath ? { referenceTranscriptPath: sourceReport.referenceTranscriptPath } : {}),
@@ -1365,12 +1366,19 @@ function buildMarkdownReport(
   const notesBlock = notes.length > 0 ? notes.map((note) => `- ${note}`).join("\n") : "- No additional notes.";
 
   if (category === "ocr") {
+    const publisherReference = isRecord(sourceReport.referenceProvenance) && sourceReport.referenceProvenance.kind === "publisher-canonical"
+      ? sourceReport.referenceProvenance
+      : null;
     return [
       "# OCR Provider Comparison Report",
       "",
       "## Summary",
       "",
       `- Run directory: \`${runDir}\``,
+      ...(publisherReference ? [
+        `- Publisher canonical reference: \`${basename(String(publisherReference.path))}\`.`,
+        "- Ranking metric: word error rate (WER) against the independent publisher canonical reference.",
+      ] : []),
       `- Total providers: ${providers.length} (${localProviders.length} local, ${serviceProviders.length} third-party service)`,
       "- Local and third-party service providers are ranked separately for price, speed, and quality score.",
       "- Quality score uses WER-derived extraction accuracy, with CER retained as supporting evidence and tie-breaker context.",
@@ -1378,6 +1386,11 @@ function buildMarkdownReport(
       "",
       "## Method",
       "",
+      ...(publisherReference ? [
+        "- The independently supplied publisher text is the immutable gold reference; provider agreement did not determine this text.",
+        `- Reference SHA-256: \`${publisherReference.sha256}\`.`,
+        `- Publisher source: ${publisherReference.sourceUrl} (revision \`${publisherReference.sourceRevision}\`).`,
+      ] : []),
       "- Price rankings use zero monetary cost for local providers and reported monetary cost for third-party services; missing service price stays in the ranking at the end.",
       "- Speed rankings use processing time when present; missing timing stays in the ranking at the end.",
       "- Quality Score rankings sort by the existing WER-derived provider score from highest to lowest.",

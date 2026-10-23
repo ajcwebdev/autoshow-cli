@@ -14,20 +14,8 @@ export const collectVideoTargets = (options: VideoGenOptions): VideoTarget[] => 
     options,
     'video'
   )
-  const restrictedControls = [
-    [options.replicateVideoSeed !== undefined, '--seed'],
-    [Boolean(options.replicateVideoNegativePrompt), '--negative-prompt'],
-    [options.replicateVideoMultiClip !== undefined, '--multi-clip']
-  ] as const
-  const unsupportedFlags = restrictedControls.filter(([present]) => present).map(([, flag]) => flag)
-  const unsupportedTargets = unsupportedFlags.length > 0 ? targets.filter(target => target.service !== 'replicate') : []
-  if (unsupportedTargets.length > 0) {
-    throw UsageError(`${unsupportedFlags.join(', ')} ${unsupportedFlags.length === 1 ? 'is' : 'are'} not supported by ${unsupportedTargets.map(target => `${target.service}/${target.model}`).join(', ')}. Select compatible Replicate targets explicitly.`)
-  }
   for (const target of targets) {
-    const nativeAudioControl = target.service === 'replicate'
-      ? ['bytedance/seedance-2.5', 'pixverse/pixverse-v6'].includes(target.model)
-      : target.service === 'fal' && target.model.startsWith('bytedance/seedance-2.5/')
+    const nativeAudioControl = target.service === 'fal' && target.model.startsWith('bytedance/seedance-2.5/')
     if (options.videoGenerateAudio !== undefined && !nativeAudioControl) {
       throw UsageError(`--generate-audio is not configurable for ${target.service}/${target.model}; omit the flag to use its fixed provider audio behavior.`)
     }

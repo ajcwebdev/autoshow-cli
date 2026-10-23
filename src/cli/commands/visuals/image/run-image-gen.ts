@@ -56,7 +56,7 @@ export const runImageGen = async (
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata[] }> => {
   const targets = collectImageTargets(options)
   if (targets.length === 0) {
-    throw UsageError('Specify an image generation provider with --provider gemini|openai|grok|replicate|lumalabs|fal[=model]')
+    throw UsageError('Specify an image generation provider with --provider gemini|openai|grok|fal[=model]')
   }
 
   return await runImageTargets(targets, prompt, outputDir, options)

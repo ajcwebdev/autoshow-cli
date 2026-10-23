@@ -1,7 +1,7 @@
 import type { FalImageModel, ImageGenOptions, ImageTarget } from '~/types'
 import { validateFalImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { assertNoUnsupportedFlags } from '../../image-utils/image-target-validation'
-import { validateImageInputReferences, REPLICATE_SEEDREAM_IMAGE_INPUT_MIME_TYPES } from '../../image-utils/image-inputs'
+import { validateImageInputReferences, FAL_IMAGE_INPUT_MIME_TYPES } from '../../image-utils/image-inputs'
 import { FAL_IMAGE_COUNT_RANGE, runFalImageGen } from './run-fal-image-gen'
 import { UsageError } from '~/utils/error-handler'
 
@@ -25,7 +25,7 @@ export const collectFalImageTargets = (options: ImageGenOptions): ImageTarget[] 
     }
     if (options.imageAspectRatio && (model === 'fal-ai/hidream-o1-image' || model === 'alibaba/qwen-image-3')) throw UsageError(`--aspect-ratio is not supported by fal.ai/${model}; use --size WIDTHxHEIGHT.`)
     const maxInputs = model === 'alibaba/qwen-image-3' ? 3 : 9
-    validateImageInputReferences(options.imageInputs, { provider: 'fal.ai', model, allowedMimeTypes: REPLICATE_SEEDREAM_IMAGE_INPUT_MIME_TYPES, maxInputs })
+    validateImageInputReferences(options.imageInputs, { provider: 'fal.ai', model, allowedMimeTypes: FAL_IMAGE_INPUT_MIME_TYPES, maxInputs })
     const request = { model, inputs: options.imageInputs, imageSize: options.imageSize, aspectRatio: options.imageAspectRatio, count: options.imageCount, outputFormat: options.imageFormat }
     return {
       service: 'fal' as const,

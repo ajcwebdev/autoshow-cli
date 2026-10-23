@@ -160,9 +160,9 @@ A cue anchor is an explicit non-negative scene-clock position, a source-segment 
 
 #### Provider targets and execution
 
-`--sfx-provider <provider=model>` selects exactly one dedicated sound-effect target and has no paid hosted default. The accepted targets are ElevenLabs `eleven_text_to_sound_v2`, version-pinned Replicate AudioGen, and Stability `stable-audio-3`. Speech endpoints are not accepted. Dialogue `--provider` remains independent. A fresh render with authored action SFX, vocal reactions, or ambience requires an explicit SFX target. Resume reuses the exact target pinned by a compatible retained plan and does not infer a target from credentials. Empty sound intent performs no SFX target setup.
+`--sfx-provider <provider=model>` selects exactly one dedicated sound-effect target and has no paid hosted default. The accepted target is ElevenLabs `eleven_text_to_sound_v2`. Speech endpoints are not accepted. Dialogue `--provider` remains independent. A fresh render with authored action SFX, vocal reactions, or ambience requires an explicit SFX target. Resume reuses the exact target pinned by a compatible retained plan and does not infer a target from credentials. Empty sound intent performs no SFX target setup.
 
-AudioGen is a community deployment under CC BY-NC 4.0. `--sfx-license-use noncommercial|commercial|unknown` is required for that target and is never inferred from model selection. Commercial use is ineligible. AudioGen and Stability render action SFX and ambience only. Vocal reactions are accepted only by the ElevenLabs sound-effect target. A required vocal reaction on an unsupported target fails static validation before dispatch, and the cue is left unchanged.
+The ElevenLabs sound-effect target supports action SFX, ambience, and vocal reactions. Static validation rejects unsupported cues before dispatch and leaves the cue unchanged.
 
 `--step-concurrency sfx=<n>` caps sound-effect work, and `--concurrency-mode` chooses ramp or immediate admission on the shared lanes of [ADR-007](ADR-007-decompose-work-into-chunks-and-concurrency-lanes.md). Ambiguous paid admission uses `--allow-ambiguous-redispatch` as defined by [ADR-005](ADR-005-cli-error-result-and-retry-contract.md).
 
@@ -232,7 +232,6 @@ Negative outcomes:
 - `structured-script.json` v5 requires new canonical scene runs; there is no v4 compatibility reader.
 - Exact mid-turn cues can block dialogue render targets that do not expose sufficient timing evidence.
 - Retained clips and stems increase disk usage.
-- The Replicate AudioGen target is a community deployment with weaker availability guarantees, and commercial use is ineligible under its CC BY-NC 4.0 terms.
 - The presentation command rejects incomplete panel sets, differently sized images, untimed audio, and ambiguous provenance instead of producing a best-effort video, and every reviewed panel must exist as a canonical `panels/panel-NN.png`.
 - Comic `resume` cannot change providers, rendering, paths, or concurrency. Those changes use the comic commands.
 
@@ -260,22 +259,17 @@ Negative outcomes:
 
 **Trade-off 5**
 
-- **Gain:** Dedicated AudioGen and Stability paths beyond ElevenLabs
-- **Sacrifice:** AudioGen depends on a pinned Replicate community model and an explicit noncommercial license declaration
-
-**Trade-off 6**
-
 - **Gain:** Source audio runs stay unchanged and reruns are deterministic no-ops
 - **Sacrifice:** Each presentation keeps its own derived WAV, MP4, and JSON, replaced whenever content or options change, and every panel must share even dimensions
 
-**Trade-off 7**
+**Trade-off 6**
 
 - **Gain:** Interrupted comic runs continue through the same `resume` command
 - **Sacrifice:** Comic recovery cannot override recorded providers, rendering, paths, or concurrency
 
 ## Implementation Note
 
-`comic generate-audio` ships approved-snapshot scene audio with `--delivery-policy`, `--sfx-provider`, `--sfx-license-use`, `--soundscape-timing-policy`, `--step-concurrency sfx=<n>`, and `--slideshow`. `comic generate-slideshow` ships the local presentation stage, and `resume` ships recorded comic recovery.
+`comic generate-audio` ships approved-snapshot scene audio with `--delivery-policy`, `--sfx-provider`, `--soundscape-timing-policy`, `--step-concurrency sfx=<n>`, and `--slideshow`. `comic generate-slideshow` ships the local presentation stage, and `resume` ships recorded comic recovery.
 
 ## Test Plan
 
@@ -289,7 +283,7 @@ bun test test/test-cases/validation/resume-manifests/
 
 1. `bun t --price` proves `--price` planning makes no network call and writes no files.
 2. The comic suite proves v5 directive parsing, strict and proportional anchor resolution, four-bus mixing with cache reuse, exact panel reconciliation, cross-panel serialization, and publication of the soundscape and presentation artifacts.
-3. The music adapter suite proves ElevenLabs, AudioGen, and Stability capability routing without paid calls.
+3. The sound-effect adapter suite proves ElevenLabs capability routing without paid calls.
 4. The resume-manifest suite proves recorded comic image, audio, and presentation work continues without provider or rendering overrides.
 
 No provider-backed test is part of this verification.
@@ -309,5 +303,3 @@ No provider-backed test is part of this verification.
 - [comic generate-slideshow](../commands/05-visuals/comic/05-generate-slideshow.md)
 - [Comic Recovery](../commands/00-setup-and-utilities/resume.md#comic-recovery)
 - ElevenLabs [Sound Effects API](https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert)
-- Replicate [AudioGen](https://replicate.com/sepal/audiogen)
-- Stability AI [Stable Audio](https://platform.stability.ai/docs/api-reference)

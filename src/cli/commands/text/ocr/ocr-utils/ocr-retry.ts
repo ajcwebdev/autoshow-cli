@@ -10,6 +10,17 @@ export const OCR_PAGE_REQUEST_ATTEMPTS = 2
 export const OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS = 6
 export const OCR_PAGE_REQUEST_TIMEOUT_MS = 5 * 60_000
 
+const resolvePageRequestTimeoutMs = (override: number | undefined): number => {
+  if (override !== undefined) return override
+  const configured = process.env['AUTOSHOW_OCR_PAGE_REQUEST_TIMEOUT_MS']
+  if (configured === undefined) return OCR_PAGE_REQUEST_TIMEOUT_MS
+  const timeout = Number(configured)
+  if (!/^\d+$/.test(configured) || !Number.isSafeInteger(timeout) || timeout < 1 || timeout > 900_000) {
+    throw ValidationError('AUTOSHOW_OCR_PAGE_REQUEST_TIMEOUT_MS must be an integer from 1 to 900000 milliseconds.', { stage: 'ocr:request-timeout' })
+  }
+  return timeout
+}
+
 export const OCR_CREATE_RETRY_POLICY: RetryPolicy = getRetryPolicyForClass('runtime_http_create_conservative')
 export const OCR_PAGE_REQUEST_RETRY_POLICY: RetryPolicy = getRetryPolicyForClass('runtime_http_create_conservative')
 
@@ -134,7 +145,7 @@ export const withOcrPageRequestRetry = async <T>(
 ): Promise<T> => await withRetry({
   retryClass: 'runtime_http_create_conservative',
   operationName,
-  timeoutMs: options.timeoutMs ?? OCR_PAGE_REQUEST_TIMEOUT_MS,
+  timeoutMs: resolvePageRequestTimeoutMs(options.timeoutMs),
   ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
   onRetryAttempt: (error, decision) => notifyRetryablePressure(options.onRetryable, error, decision),
   retryHookCanExtendAttempts: options.onRetryable?.managesHostedRateLimitRecovery === true

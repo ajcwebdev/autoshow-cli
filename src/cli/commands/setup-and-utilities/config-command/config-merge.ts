@@ -292,20 +292,11 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'gemini-image':      ['defaults', 'image', 'geminiImage'],
   'openai-image':      ['defaults', 'image', 'openaiImage'],
   'grok-image':        ['defaults', 'image', 'grokImage'],
-  'replicate-image':   ['defaults', 'image', 'replicateImage'],
-  'lumalabs-image':    ['defaults', 'image', 'lumalabsImage'],
   'fal-image':         ['defaults', 'image', 'falImage'],
   'image-provider-concurrency': ['defaults', 'image', 'providerConcurrency'],
   'gemini-video':      ['defaults', 'video', 'geminiVideo'],
   'grok-video':        ['defaults', 'video', 'grokVideo'],
-  'ltx-video':         ['defaults', 'video', 'ltxVideo'],
-  'replicate-video':   ['defaults', 'video', 'replicateVideo'],
-  'lumalabs-video':    ['defaults', 'video', 'lumalabsVideo'],
   'fal-video':         ['defaults', 'video', 'falVideo'],
-  'replicate-video-seed': ['defaults', 'video', 'replicateVideoSeed'],
-  'replicate-video-negative-prompt': ['defaults', 'video', 'replicateVideoNegativePrompt'],
-  'seed': ['defaults', 'video', 'replicateVideoSeed'],
-  'negative-prompt': ['defaults', 'video', 'replicateVideoNegativePrompt'],
   'video-provider-concurrency': ['defaults', 'video', 'providerConcurrency'],
   'elevenlabs-music':  ['defaults', 'music', 'elevenlabsMusic'],
   'minimax-music':     ['defaults', 'music', 'minimaxMusic'],
@@ -401,7 +392,6 @@ const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
     'image-provider-concurrency',
     'video-provider-concurrency',
     'music-provider-concurrency',
-    'replicate-video-seed', 'seed'
   ])
   if (numericFlags.has(flagName)) {
     const n = Number(rawValue)

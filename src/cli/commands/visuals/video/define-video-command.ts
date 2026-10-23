@@ -72,9 +72,6 @@ const providerModelsFromTargets = (
 const countGrokInputImages = (opts: Pick<VideoRuntimeOptions, 'videoInputImage' | 'videoReferenceImages'>): number =>
   (opts.videoInputImage ? 1 : 0) + (opts.videoReferenceImages?.length ?? 0)
 
-const countReplicateInputVideos = (opts: Pick<VideoRuntimeOptions, 'videoInputVideo' | 'videoReferenceVideos'>): number =>
-  (opts.videoInputVideo ? 1 : 0) + (opts.videoReferenceVideos?.length ?? 0)
-
 const buildPricingOptionsForTargets = <T extends VideoRuntimeOptions>(
   opts: T,
   targets: VideoTarget[]
@@ -147,9 +144,6 @@ export const videoCommand = defineCliCommand({
       ['bun autoshow video "a cinematic mountain sunrise"', 'Generate text-to-video with the cheapest default target'],
       ['bun autoshow video "a cinematic mountain sunrise" --provider gemini=gemini-omni-1.1-flash', 'Generate video with Gemini Omni'],
       ['bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video-1.5', 'Generate video with Grok'],
-      ['bun autoshow video "a product reveal shot" --provider ltx=ltx-2-5-fast', 'Generate video with LTX'],
-      ['bun autoshow video "a cinematic mountain sunrise" --provider replicate=bytedance/seedance-2.5', 'Generate video with Replicate Seedance'],
-      ['bun autoshow video "a slow dolly through a misty greenhouse" --provider lumalabs=ray-3.2', 'Generate video with Luma Labs Ray 3.2'],
       ['bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k', 'Generate video with fal.ai MiniMax H3']
     ]
   }
@@ -179,7 +173,7 @@ export const videoCommand = defineCliCommand({
   const videoOpts: StandaloneVideoCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'video' })
   let videoTargets = collectVideoTargets(videoOpts)
   if (videoTargets.length === 0) {
-    throw UsageError('Specify a video generation provider with --provider gemini|grok|ltx|replicate|lumalabs|fal[=model]')
+    throw UsageError('Specify a video generation provider with --provider gemini|grok|fal[=model]')
   }
 
   let pricingVideoOpts = buildPricingOptionsForTargets(videoOpts, videoTargets)
@@ -223,7 +217,6 @@ export const videoCommand = defineCliCommand({
     videoResolution: videoOpts.videoResolution,
     videoMode: videoOpts.videoMode,
     falVideoReferenceVideoCount: videoOpts.videoReferenceVideos?.length ?? 0,
-    replicateVideoReferenceVideoCount: countReplicateInputVideos(videoOpts),
     grokInputImageCount: countGrokInputImages(videoOpts),
     grokInputVideoDurationSeconds: metadata.find((entry) => entry.videoGenService === 'grok' && typeof entry.inputVideoDurationSeconds === 'number')?.inputVideoDurationSeconds
   })

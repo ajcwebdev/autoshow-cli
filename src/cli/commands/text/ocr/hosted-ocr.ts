@@ -13,6 +13,7 @@ import { isBunImagePngNormalizableFormat, normalizeImageToPngWithBun } from './o
 import { runHostedOcrSchedulerAdmission } from './ocr-utils/hosted-ocr-scheduler'
 import { runHostedOcrWithPdfChunkFallback } from './ocr-utils/pdf-chunk-fallback'
 import { isPdfEncrypted, resolvePdfPageCount } from './pdf/pdf-utils'
+import { normalizeOversizedPng } from '~/utils/lossless-png'
 
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`
@@ -226,11 +227,19 @@ const assertHostedOcrWithinLimits = async (
 
   const inputLabel = step1Metadata.format === 'pdf' ? 'PDF' : 'image'
   const fileStats = await stat(filePath)
+  let transportSize = fileStats.size
+  if (selection.service === 'anthropic' && step1Metadata.format === 'png' && typeof limits.effectiveBytes === 'number' && transportSize > limits.effectiveBytes) {
+    try {
+      transportSize = (await normalizeOversizedPng(await Bun.file(filePath).bytes(), 'png', limits.effectiveBytes)).length
+    } catch {
+      throw UsageError(`Anthropic OCR could not losslessly normalize oversized PNG ${basename(filePath)}. Supply a valid noninterlaced 8-bit PNG within the provider image limit.`)
+    }
+  }
 
-  if (typeof limits.effectiveBytes === 'number' && fileStats.size > limits.effectiveBytes) {
+  if (typeof limits.effectiveBytes === 'number' && transportSize > limits.effectiveBytes) {
     throw UsageError(
       `${formatHostedOcrLabel(selection.service)} supports ${inputLabel} inputs up to ${formatBytes(limits.effectiveBytes)} based on ${getHostedOcrLimitSource(selection.service)}. `
-      + `Got ${formatBytes(fileStats.size)} for ${basename(filePath)}.`
+      + `Got ${formatBytes(transportSize)} for ${basename(filePath)}${transportSize === fileStats.size ? '.' : ' after lossless PNG transport normalization.'}`
     )
   }
 

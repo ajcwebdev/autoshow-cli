@@ -19,9 +19,7 @@ import {
   SUPPORTED_FAL_IMAGE_MODELS,
   SUPPORTED_GEMINI_IMAGE_MODELS,
   SUPPORTED_GROK_IMAGE_MODELS,
-  SUPPORTED_LUMALABS_IMAGE_MODELS,
   SUPPORTED_OPENAI_IMAGE_MODELS,
-  SUPPORTED_REPLICATE_IMAGE_MODELS
 } from '~/cli/commands/setup-and-utilities/models/image-models'
 import {
   SUPPORTED_ELEVENLABS_MUSIC_MODELS,
@@ -32,9 +30,6 @@ import {
   SUPPORTED_FAL_VIDEO_MODELS,
   SUPPORTED_GEMINI_VIDEO_MODELS,
   SUPPORTED_GROK_VIDEO_MODELS,
-  SUPPORTED_LTX_VIDEO_MODELS,
-  SUPPORTED_LUMALABS_VIDEO_MODELS,
-  SUPPORTED_REPLICATE_VIDEO_MODELS
 } from '~/cli/commands/setup-and-utilities/models/video-models'
 import type { MusicProvider, VideoProvider } from '~/types'
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
@@ -44,17 +39,12 @@ const IMAGE_MODELS: Record<string, readonly string[]> = {
   gemini: SUPPORTED_GEMINI_IMAGE_MODELS,
   openai: SUPPORTED_OPENAI_IMAGE_MODELS,
   grok: SUPPORTED_GROK_IMAGE_MODELS,
-  replicate: SUPPORTED_REPLICATE_IMAGE_MODELS,
-  lumalabs: SUPPORTED_LUMALABS_IMAGE_MODELS,
   fal: SUPPORTED_FAL_IMAGE_MODELS
 }
 
 const VIDEO_MODELS = {
   gemini: SUPPORTED_GEMINI_VIDEO_MODELS,
   grok: SUPPORTED_GROK_VIDEO_MODELS,
-  ltx: SUPPORTED_LTX_VIDEO_MODELS,
-  replicate: SUPPORTED_REPLICATE_VIDEO_MODELS,
-  lumalabs: SUPPORTED_LUMALABS_VIDEO_MODELS,
   fal: SUPPORTED_FAL_VIDEO_MODELS
 } as const satisfies Record<VideoProvider, readonly string[]>
 
@@ -67,10 +57,10 @@ const MUSIC_MODELS = {
 describe('generation pricing model-selection tables', () => {
   test('tables preserve provider priority and expose both pass-through keys', () => {
     expect(IMAGE_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
-      'gemini', 'openai', 'grok', 'replicate', 'lumalabs', 'fal'
+      'gemini', 'openai', 'grok', 'fal'
     ])
     expect(VIDEO_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
-      'gemini', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'
+      'gemini', 'grok', 'fal'
     ])
     expect(MUSIC_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
       'elevenlabs', 'minimax', 'gemini'
@@ -91,7 +81,7 @@ describe('generation pricing model-selection tables', () => {
 
     for (const provider of VIDEO_PRICING_PROVIDERS) {
       for (const model of VIDEO_MODELS[provider.service]) {
-        for (const videoDuration of [undefined, model.startsWith('ltx-2-5-') ? 6 : 5, 8]) {
+        for (const videoDuration of [undefined, 5, 8]) {
           const singularOptions = { ...optionsForService(VIDEO_PRICING_PROVIDERS, provider.service, model), videoDuration }
           const pluralOptions = { ...optionsForService(VIDEO_PRICING_PROVIDERS, provider.service, [model]), videoDuration }
           expect(estimateVideoCosts(pluralOptions)).toEqual(estimateVideoCosts(singularOptions))

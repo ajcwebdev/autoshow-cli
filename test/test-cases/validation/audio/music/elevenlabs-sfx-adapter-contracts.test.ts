@@ -30,6 +30,19 @@ describe('ElevenLabs Phase 1 sound-effect adapter', () => {
     expect(() => resolveSoundEffectTarget('elevenlabs=eleven_v3')).toThrow(/Unsupported ElevenLabs sound-effect model/)
   })
 
+  test('rejects a retained plan with an unsupported provider before dispatch or artifact writes', async () => {
+    const root = await makeTempDir('autoshow-sfx-unsupported-')
+    try {
+      const plan = createSoundEffectRenderPlan({ plan: taskPlan('unsupported target'), target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2') })
+      plan.target.provider = 'unsupported-provider' as never
+      let calls = 0
+      await expect(executeSoundEffectRenderPlan({ rootDir: root, plan, adapter: { generate: async () => { calls++; throw new Error('Unexpected dispatch') } } }))
+        .rejects.toThrow('Unsupported sound-effect provider unsupported-provider; expected elevenlabs.')
+      expect(calls).toBe(0)
+      expect(await readdir(root)).toEqual([])
+    } finally { await rm(root, { recursive: true, force: true }) }
+  })
+
   test('executes through bounded mocked transport, retains evidence, and reuses the shared cache without another call', async () => {
     const root = await makeTempDir('autoshow-sfx-adapter-')
     try {

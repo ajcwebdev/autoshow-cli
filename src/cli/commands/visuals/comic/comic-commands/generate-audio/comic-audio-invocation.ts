@@ -22,7 +22,6 @@ import { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-sce
 import { assertProtectedStoreOutputDisjoint } from '../../../../audio/voice/voice-assets/protected-output-boundary'
 import { MANAGED_VOICE_STORE_ROOT } from '../../../../audio/voice/managed-voice-store'
 import { DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE } from '../../../../audio/tts/soundscape/soundscape-planner'
-import { parseSoundEffectLicenseUseClassification } from '../../comic-utils/comic-soundscape-workflow'
 import { COMIC_AUDIO_DELIVERY_POLICIES, COMIC_AUDIO_MODES, COMIC_AUDIO_PACING_PROFILES, COMIC_SOUNDSCAPE_TIMING_POLICIES, DEFAULT_COMIC_AUDIO_DELIVERY_POLICY, DEFAULT_COMIC_AUDIO_MODE, DEFAULT_COMIC_AUDIO_PACING_PROFILE, DEFAULT_COMIC_SOUNDSCAPE_TIMING_POLICY } from '~/cli/flags/comic-audio-contract'
 import { resolveStepConcurrency, stepConcurrencyDefaultFor, type StepConcurrencyScope } from '~/cli/flags/service-selector-normalization/step-concurrency-scopes'
 
@@ -98,7 +97,6 @@ export const resolveComicAudioInvocation = async (ctx: CliCommandContext, script
   const allowAmbiguousRedispatch = flags['allow-ambiguous-redispatch'] === true
   const maxGenerationSlots = parseOptionalPositiveInteger(flags['max-generation-slots'], '--max-generation-slots')
   const sfxSelector = typeof flags['sfx-provider'] === 'string' && flags['sfx-provider'].trim() ? flags['sfx-provider'].trim() : undefined
-  const sfxLicenseUseClassification = parseSoundEffectLicenseUseClassification(flags['sfx-license-use'])
   const sfxConcurrency = resolveStepConcurrency('sfx', COMIC_AUDIO_STEP_CONCURRENCY_SCOPES, ctx.rawParsed.flagOccurrences).value
     ?? Number(stepConcurrencyDefaultFor('sfx'))
   const providerNormalized = normalizeGenericProviderSelectorFlags(
@@ -158,7 +156,6 @@ export const resolveComicAudioInvocation = async (ctx: CliCommandContext, script
     allowAmbiguousRedispatch,
     maxGenerationSlots,
     sfxSelector,
-    sfxLicenseUseClassification,
     sfxConcurrency,
     presentationRequested,
     baseOptions,

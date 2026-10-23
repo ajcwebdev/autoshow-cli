@@ -158,9 +158,6 @@ describe('historical model rate contracts', () => {
       costPerTrackCents: 15,
       lyricsCostPerTrackCents: 1
     })
-    expect(getVideoModelMeta('replicate', 'alibaba/happyhorse-1.0')).toMatchObject({
-      costPerSecondByResolutionCents: { '720p': 14, '1080p': 28 }
-    })
   })
 
   test('retired MiniMax 01-series benchmark rates remain available outside active enums', () => {
@@ -179,20 +176,11 @@ describe('historical model rate contracts', () => {
     })
     expect(getVideoModelMeta('glm', 'cogvideox-3')).toMatchObject({ baseJobFeeCents: 20 })
     expect(getVideoModelMeta('runway', 'gen4.5')).toMatchObject({ baseCostPerSecondCents: 12 })
-    expect(getVideoModelMeta('replicate', 'runwayml/aleph-2')).toMatchObject({ baseCostPerSecondCents: 33.6 })
-    expect(getVideoModelMeta('replicate', 'wan-video/wan-2.7-t2v')).toMatchObject({
-      costPerSecondByResolutionCents: { '720p': 10, '1080p': 10 }
-    })
   })
 
   test('retired image selectors retain exact rates and refresh-report replacements', () => {
     expect(getImageCost('fal', 'microsoft/mai-image-2.5')).toBe(0.21)
     expect(getImageCost('fal', 'microsoft/mai-image-2.5-pro')).toBe(150)
-    expect(getImageCost('replicate', 'ideogram-ai/ideogram-v4-turbo')).toBe(3)
-    expect(getImageCost('replicate', 'ideogram-ai/ideogram-v4-balanced')).toBe(6)
-    expect(getImageCost('replicate', 'ideogram-ai/ideogram-v4-quality')).toBe(10)
-    expect(getImageCost('replicate', 'prunaai/ernie-image')).toBe(5.28)
-    expect(getImageCost('replicate', 'prunaai/ernie-image-turbo')).toBe(1.15)
     expect(getImageCost('recraft', 'recraftv4_1')).toBe(4)
     expect(getImageCost('recraft', 'recraftv4_1_utility')).toBe(4)
     expect(getImageCost('recraft', 'recraftv4_1_pro')).toBe(25)
@@ -202,8 +190,6 @@ describe('historical model rate contracts', () => {
     expect(getRetiredModelReplacement('image', 'grok', 'grok-imagine-image-quality')).toBe('grok-imagine-image-2.0')
     expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1')).toBe('gpt-image-2.5-flare')
     expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1_pro')).toBe('gpt-image-2.5-flare')
-    expect(getRetiredModelReplacement('image', 'replicate', 'prunaai/ernie-image')).toBe('alibaba/qwen-image-3')
-    expect(getRetiredModelReplacement('image', 'replicate', 'prunaai/ernie-image-turbo')).toBe('alibaba/qwen-image-3')
     expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3.1-flash-image')).toBe('gemini-3.1-flash-lite-image')
     expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3-pro-image')).toBe('gemini-3.1-flash-lite-image')
   })
@@ -223,13 +209,9 @@ describe('historical model rate contracts', () => {
     expect(getRetiredModelReplacement('stt', 'rev', 'machine')).toBeUndefined()
   })
 
-  test('retired Replicate and fal OCR selectors retain exact per-1k-page rates', () => {
-    expect(getExtractPricing('replicate', 'datalab-to/ocr')).toMatchObject({ costPer1kPagesCents: 200 })
-    expect(getExtractPricing('replicate', 'datalab-to/marker')).toMatchObject({ costPer1kPagesCents: 400 })
-    expect(getExtractPricing('replicate', 'lucataco/deepseek-ocr')).toMatchObject({ costPer1kPagesCents: 330 })
+  test('retired fal OCR selectors retain exact per-1k-page rates', () => {
     expect(getExtractPricing('fal', 'fal-ai/got-ocr/v2')).toMatchObject({ costPer1kPagesCents: 5000 })
     expect(getExtractPricing('fal', 'fal-ai/florence-2-large/ocr')).toMatchObject({ costPer1kPagesCents: 755 })
-    expect(getRetiredModelReplacement('extract', 'replicate', 'datalab-to/ocr')).toBeUndefined()
     expect(getRetiredModelReplacement('extract', 'fal', 'fal-ai/got-ocr/v2')).toBeUndefined()
   })
 })

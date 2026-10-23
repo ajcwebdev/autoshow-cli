@@ -1,21 +1,13 @@
 import { estimateFalPriorityCost, isFalPriorityVideo } from '../video-services/fal-video-service/fal-priority-video-contract'
-import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, ProviderModelSelectionSpec, ReplicateVideoModel, VideoCostEstimate, VideoMode, VideoProvider } from '~/types'
-import { validateFalVideoModel, validateGeminiVideoModel, validateGrokVideoModel, validateLtxVideoModel, validateLumalabsVideoModel, validateReplicateVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GrokVideoModel, ProviderModelSelectionSpec, VideoCostEstimate, VideoMode, VideoProvider } from '~/types'
+import { validateFalVideoModel, validateGeminiVideoModel, validateGrokVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { getVideoModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { deriveGenerationPricingProviders, VIDEO_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import {
   normalizeGeminiDuration,
   normalizeGeminiResolution,
   normalizeGrokVideoDuration,
-  normalizeGrokVideoResolution,
-  normalizeLtxVideoResolution,
-  normalizeLtxVideoDuration,
-  normalizeLtxVideoSize,
-  normalizeReplicateVideoResolution,
-  resolveReplicateBilledDuration,
-  normalizeLumaVideoDuration,
-  normalizeLumaVideoResolution,
-  isReplicateSeedanceVideoModel
+  normalizeGrokVideoResolution
 } from './video-normalization'
 import * as l from '~/utils/app-logger/app-logger'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
@@ -88,68 +80,6 @@ const estimateGrokCost = (model: GrokVideoModel, options: EstimateVideoCostOptio
   }
 }
 
-const getLtxSizeResolutionMultiplier = (size: string): number => {
-  if (size === '3840x2160' || size === '2160x3840') return 4
-  if (size === '2560x1440' || size === '1440x2560') return 2
-  return 1
-}
-
-const estimateLtxCost = (model: LtxVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
-  const meta = getVideoModelMeta('ltx', model)
-  const mode = options.videoMode
-  const size = normalizeLtxVideoSize(model, options.videoResolution, options.videoAspectRatio)
-  const durationSeconds = normalizeLtxVideoDuration(model, size, options.videoDuration, mode)
-  const costPerSecond = meta?.costPerSecondByResolutionCents?.[normalizeLtxVideoResolution(options.videoResolution, model)]
-    ?? requireRegistryRate(meta?.baseCostPerSecondCents, { category: 'video', service: 'ltx', model, field: 'baseCostPerSecondCents' }) * getLtxSizeResolutionMultiplier(size)
-
-  return {
-    provider: 'ltx',
-    model,
-    durationSeconds,
-    billedDurationSeconds: durationSeconds,
-    costPerSecond,
-    totalCost: durationSeconds * costPerSecond,
-    note: `Approximate estimate using ${size} per-second pricing`
-  }
-}
-
-const getReplicateCostPerSecond = (
-  model: ReplicateVideoModel,
-  resolution: string,
-  hasVideoInput: boolean,
-  generateAudio: boolean
-): number => {
-  const meta = getVideoModelMeta('replicate', model)
-  const audioRate = generateAudio
-    ? meta?.audioCostPerSecondByResolutionCents?.[resolution]
-    : undefined
-  const videoInputRate = hasVideoInput
-    ? meta?.videoInputCostPerSecondByResolutionCents?.[resolution]
-    : undefined
-  const nonVideoRate = meta?.costPerSecondByResolutionCents?.[resolution] ?? meta?.baseCostPerSecondCents
-  return requireRegistryRate(audioRate ?? videoInputRate ?? nonVideoRate, {
-    category: 'video', service: 'replicate', model, field: `costPerSecondByResolutionCents.${resolution}`
-  })
-}
-
-const estimateLumalabsCost = (model: LumalabsVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
-  const meta = getVideoModelMeta('lumalabs', model)
-  const resolution = normalizeLumaVideoResolution(options.videoResolution)
-  const durationSeconds = normalizeLumaVideoDuration(options.videoDuration) === '10s' ? 10 : 5
-  const totalCost = requireRegistryRate(meta?.fixedCostByResolutionDurationCents?.[resolution]?.[String(durationSeconds)], {
-    category: 'video', service: 'lumalabs', model, field: `fixedCostByResolutionDurationCents.${resolution}.${durationSeconds}`
-  })
-  return {
-    provider: 'lumalabs',
-    model,
-    durationSeconds,
-    billedDurationSeconds: durationSeconds,
-    costPerSecond: durationSeconds > 0 ? totalCost / durationSeconds : 0,
-    totalCost,
-    note: `Estimate using published Luma Labs ${resolution}/${durationSeconds}s video generation pricing`
-  }
-}
-
 const estimateFalCost = (model: FalVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
   if (isFalPriorityVideo(model)) return estimateFalPriorityCost(model, options)
   const meta = getVideoModelMeta('fal', model)
@@ -166,29 +96,6 @@ const estimateFalCost = (model: FalVideoModel, options: EstimateVideoCostOptions
   }
 }
 
-export const estimateReplicateCost = (model: ReplicateVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
-  const resolution = normalizeReplicateVideoResolution(model, options.videoResolution)
-  const durationSeconds = resolveReplicateBilledDuration(model, options.videoDuration)
-  const hasVideoInput = isReplicateSeedanceVideoModel(model)
-    && Math.max(0, Math.floor(options.replicateVideoReferenceVideoCount ?? 0)) > 0
-  const generateAudio = options.videoGenerateAudio === true
-  const costPerSecond = getReplicateCostPerSecond(model, resolution, hasVideoInput, generateAudio)
-  const totalCost = durationSeconds * costPerSecond
-  const videoInputNote = hasVideoInput ? ' video-input' : ''
-  const audioNote = generateAudio ? ' with native audio' : ''
-  return {
-    provider: 'replicate',
-    model,
-    durationSeconds,
-    billedDurationSeconds: durationSeconds,
-    costPerSecond,
-    totalCost,
-    note: options.videoDuration === -1
-      ? `Approximate estimate using ${resolution}${videoInputNote}${audioNote} per-second pricing; intelligent duration budgeted at ${durationSeconds}s`
-      : `Approximate estimate using ${resolution}${videoInputNote}${audioNote} per-second pricing`
-  }
-}
-
 export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCostEstimate[] => {
   const estimates: VideoCostEstimate[] = []
   for (const selection of collectSelections(options, VIDEO_PRICING_PROVIDERS)) {
@@ -198,15 +105,6 @@ export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCost
         break
       case 'grok':
         estimates.push(estimateGrokCost(validateGrokVideoModel(selection.model), options))
-        break
-      case 'ltx':
-        estimates.push(estimateLtxCost(validateLtxVideoModel(selection.model), options))
-        break
-      case 'replicate':
-        estimates.push(estimateReplicateCost(validateReplicateVideoModel(selection.model), options))
-        break
-      case 'lumalabs':
-        estimates.push(estimateLumalabsCost(validateLumalabsVideoModel(selection.model), options))
         break
       case 'fal':
         estimates.push(estimateFalCost(validateFalVideoModel(selection.model), options))

@@ -2,6 +2,7 @@
 
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 import { compactRunResults, formatBytes, isRecord } from "../stt/compact_provider_results";
 import { writePortableFileSync } from "./portable_paths";
@@ -37,6 +38,7 @@ export interface ArchiveRunStat {
   resultBytesBefore: number;
   resultBytesAfter: number;
   strippedManifestResults: number;
+  strippedManifestStep2: number;
   manifestBytesBefore: number;
   manifestBytesAfter: number;
   jsonFiles: number;
@@ -145,7 +147,51 @@ function compactNamedJsonFiles(dir: string, names: readonly string[]): ArchiveJs
   return { files, bytesBefore, bytesAfter };
 }
 
-function compactManifest(runDir: string): { stripped: number; beforeBytes: number; afterBytes: number } {
+function stripDuplicateOcrStep2(item: Record<string, unknown>): boolean {
+  if (item["extractRoute"] !== "document" || !isRecord(item["metadata"]) || !Array.isArray(item["providers"])) {
+    return false;
+  }
+  const metadata = item["metadata"];
+  const stored = metadata["step2"];
+  const copies = Array.isArray(stored) ? stored : isRecord(stored) ? [stored] : null;
+  if (!copies?.length || copies.some((copy) => !isRecord(copy))) {
+    return false;
+  }
+
+  const successfulMetadata: Record<string, unknown>[] = [];
+  for (const provider of item["providers"]) {
+    if (!isRecord(provider)) {
+      return false;
+    }
+    if (provider["status"] !== "succeeded") {
+      continue;
+    }
+    if (!isRecord(provider["metadata"])) {
+      return false;
+    }
+    if (Object.keys(provider["metadata"]).length > 0) {
+      successfulMetadata.push(provider["metadata"]);
+    }
+  }
+  if (!successfulMetadata.length || copies.length !== successfulMetadata.length) {
+    return false;
+  }
+
+  // Canonical readers derive step2 from these provider records. Match a multiset:
+  // stored provider order may differ, but no unique or repeated evidence may be lost.
+  const remaining = [...successfulMetadata];
+  for (const copy of copies) {
+    const index = remaining.findIndex((candidate) => isDeepStrictEqual(copy, candidate));
+    if (index === -1) {
+      return false;
+    }
+    remaining.splice(index, 1);
+  }
+  delete metadata["step2"];
+  return true;
+}
+
+function compactManifest(runDir: string): { stripped: number; strippedStep2: number; beforeBytes: number; afterBytes: number } {
   const manifestPath = join(runDir, "manifest.json");
   const beforeBytes = statSync(manifestPath).size;
   const payload = JSON.parse(readFileSync(manifestPath, "utf8")) as unknown;
@@ -154,9 +200,13 @@ function compactManifest(runDir: string): { stripped: number; beforeBytes: numbe
   }
 
   let stripped = 0;
+  let strippedStep2 = 0;
   for (const item of payload["items"]) {
     if (!isRecord(item) || !Array.isArray(item["providers"])) {
       continue;
+    }
+    if (payload["command"] === "extract" && stripDuplicateOcrStep2(item)) {
+      strippedStep2 += 1;
     }
     for (const provider of item["providers"]) {
       if (!isRecord(provider) || !("result" in provider)) {
@@ -171,7 +221,7 @@ function compactManifest(runDir: string): { stripped: number; beforeBytes: numbe
   }
 
   writePortableFileSync(manifestPath, JSON.stringify(payload));
-  return { stripped, beforeBytes, afterBytes: statSync(manifestPath).size };
+  return { stripped, strippedStep2, beforeBytes, afterBytes: statSync(manifestPath).size };
 }
 
 function hasCanonicalResult(dir: string): boolean {
@@ -229,6 +279,7 @@ export function compactArchiveRun(runDir: string): ArchiveRunStat {
     resultBytesBefore,
     resultBytesAfter,
     strippedManifestResults: manifest.stripped,
+    strippedManifestStep2: manifest.strippedStep2,
     manifestBytesBefore: manifest.beforeBytes,
     manifestBytesAfter: manifest.afterBytes,
     jsonFiles: json.files,
@@ -262,6 +313,7 @@ function main(): number {
   let jsonAfter = 0;
   let prunedDirectories = 0;
   let prunedFiles = 0;
+  let strippedStep2 = 0;
   for (const stat of stats) {
     resultBefore += stat.resultBytesBefore;
     resultAfter += stat.resultBytesAfter;
@@ -271,8 +323,9 @@ function main(): number {
     jsonAfter += stat.jsonBytesAfter;
     prunedDirectories += stat.prunedDirectories.length;
     prunedFiles += stat.prunedFiles.length;
+    strippedStep2 += stat.strippedManifestStep2;
     console.log(
-      `${stat.runName.padEnd(48)} results ${formatBytes(stat.resultBytesBefore).padStart(10)} -> ${formatBytes(stat.resultBytesAfter).padStart(10)}  manifest ${formatBytes(stat.manifestBytesBefore).padStart(10)} -> ${formatBytes(stat.manifestBytesAfter).padStart(10)}  json ${formatBytes(stat.jsonBytesBefore).padStart(10)} -> ${formatBytes(stat.jsonBytesAfter).padStart(10)}  pruned ${stat.prunedDirectories.length} dirs / ${stat.prunedFiles.length} files  stripped ${stat.strippedManifestResults}`,
+      `${stat.runName.padEnd(48)} results ${formatBytes(stat.resultBytesBefore).padStart(10)} -> ${formatBytes(stat.resultBytesAfter).padStart(10)}  manifest ${formatBytes(stat.manifestBytesBefore).padStart(10)} -> ${formatBytes(stat.manifestBytesAfter).padStart(10)}  json ${formatBytes(stat.jsonBytesBefore).padStart(10)} -> ${formatBytes(stat.jsonBytesAfter).padStart(10)}  pruned ${stat.prunedDirectories.length} dirs / ${stat.prunedFiles.length} files  stripped ${stat.strippedManifestResults} results / ${stat.strippedManifestStep2} OCR step2 copies`,
     );
   }
   console.log("");
@@ -282,6 +335,7 @@ function main(): number {
   console.log(`report JSON: ${formatBytes(jsonBefore)} -> ${formatBytes(jsonAfter)}`);
   console.log(`pruned derived directories: ${prunedDirectories}`);
   console.log(`pruned checkpoint files: ${prunedFiles}`);
+  console.log(`duplicate OCR step2 copies removed: ${strippedStep2}`);
   return 0;
 }
 

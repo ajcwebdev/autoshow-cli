@@ -53,14 +53,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     ]
   },
   {
-    providerId: 'ltx',
-    envVar: 'LTXV_API_KEY',
-    label: 'LTX video',
-    hintUrl: 'https://docs.ltx.video/',
-    stages: ['video'],
-    configPaths: ['defaults.video.ltxVideo']
-  },
-  {
     providerId: 'mistral',
     envVar: 'MISTRAL_API_KEY',
     label: 'Mistral STT/OCR',
@@ -72,14 +64,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     ]
   },
   {
-    providerId: 'lumalabs',
-    envVar: 'LUMA_AGENTS_API_KEY',
-    label: 'Luma Labs image/video',
-    hintUrl: 'https://platform.lumalabs.ai/',
-    stages: ['image', 'video'],
-    configPaths: ['defaults.image.lumalabsImage', 'defaults.video.lumalabsVideo']
-  },
-  {
     providerId: 'fal',
     envVar: 'FAL_API_KEY',
     label: 'fal.ai image/video',
@@ -88,25 +72,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: [
       'defaults.image.falImage',
       'defaults.video.falVideo'
-    ]
-  },
-  {
-    providerId: 'stability',
-    envVar: 'STABILITY_API_KEY',
-    label: 'Stability AI sound effects',
-    hintUrl: 'https://platform.stability.ai/account/keys',
-    stages: ['soundscape'],
-    configPaths: []
-  },
-  {
-    providerId: 'replicate',
-    envVar: 'REPLICATE_API_TOKEN',
-    label: 'Replicate image/video',
-    hintUrl: 'https://replicate.com/',
-    stages: ['image', 'video', 'soundscape'],
-    configPaths: [
-      'defaults.image.replicateImage',
-      'defaults.video.replicateVideo'
     ]
   },
   {

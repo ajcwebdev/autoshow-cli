@@ -1,8 +1,10 @@
 #!/usr/bin/env bun
 
 import { writePortableFileSync } from "../shared/portable_paths";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { PROJECT_ROOT, toProjectRelativePath } from "../../../../../src/utils/project-root";
 
 import {
   buildOcrPageAnalysisArtifacts,
@@ -170,6 +172,66 @@ interface PreviousReport {
   providerGroups?: {
     local?: { providers?: PreviousReportProvider[] };
     thirdPartyService?: { providers?: PreviousReportProvider[] };
+  };
+}
+
+interface PublisherReferenceProvenance {
+  kind: "publisher-canonical";
+  path: string;
+  sha256: string;
+  sourceUrl: string;
+  sourceRevision: string;
+  description: string;
+  independentOfProviders: true;
+}
+
+function resolveReportReference(runDir: string, explicitPath: string | null): {
+  path: string;
+  provenance: PublisherReferenceProvenance | null;
+} {
+  const manifest = JSON.parse(readFileSync(join(runDir, "manifest.json"), "utf8")) as unknown;
+  const reference = isRecord(manifest) ? manifest["reference"] : undefined;
+  if (reference === undefined) {
+    return { path: explicitPath ?? resolve(runDir, "consensus-extraction.txt"), provenance: null };
+  }
+  const fields = ["path", "sha256", "sourceUrl", "sourceRevision", "description"] as const;
+  if (
+    !isRecord(reference) || reference["kind"] !== "publisher-canonical" ||
+    fields.some((field) => typeof reference[field] !== "string" || !String(reference[field]).trim())
+  ) {
+    throw new Error("Invalid publisher-canonical reference declaration in manifest.json");
+  }
+  const path = String(reference["path"]);
+  const absolutePath = resolve(PROJECT_ROOT, path);
+  if (isAbsolute(path) || toProjectRelativePath(absolutePath) !== path) {
+    throw new Error("Publisher canonical reference path must be normalized and repository-relative");
+  }
+  if (explicitPath !== null && resolve(explicitPath) !== absolutePath) {
+    throw new Error("Explicit reference path does not match the manifest publisher canonical reference");
+  }
+  const sha256 = String(reference["sha256"]).toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(sha256)) {
+    throw new Error("Publisher canonical reference sha256 must contain 64 hexadecimal characters");
+  }
+  const actualHash = createHash("sha256").update(readFileSync(absolutePath)).digest("hex");
+  if (actualHash !== sha256) {
+    throw new Error("Publisher canonical reference SHA-256 mismatch");
+  }
+  const sourceUrl = String(reference["sourceUrl"]);
+  if (!/^https?:\/\//.test(sourceUrl)) {
+    throw new Error("Publisher canonical reference sourceUrl must be an HTTP(S) source URL");
+  }
+  return {
+    path: absolutePath,
+    provenance: {
+      kind: "publisher-canonical",
+      path,
+      sha256,
+      sourceUrl,
+      sourceRevision: String(reference["sourceRevision"]),
+      description: String(reference["description"]),
+      independentOfProviders: true,
+    },
   };
 }
 
@@ -767,7 +829,10 @@ function loadPreviousProviderData(reportPath: string | null, currentProviderKeys
   return providers.filter((provider) => !currentProviderKeys.has(provider.providerKey));
 }
 
-export function buildReport(runDir: string, consensusPath: string, previousReportPath: string | null = resolve(runDir, "provider-comparison-report.json")) {
+export function buildReport(runDir: string, consensusPath: string | null = null, previousReportPath: string | null = resolve(runDir, "provider-comparison-report.json")) {
+  const reference = resolveReportReference(runDir, consensusPath);
+  consensusPath = reference.path;
+  const publisherReference = reference.provenance;
   const consensus = parseConsensusExtraction(consensusPath);
   const consensusFullText = consensus.pages.map((p) => p.text).join("\n\n");
   const charCount = consensusFullText.length;
@@ -895,11 +960,14 @@ export function buildReport(runDir: string, consensusPath: string, previousRepor
 
   const scoreFormula = "max(0, 100 * (1 - WER))";
 
-  const analysisArtifacts = buildOcrPageAnalysisArtifacts(runDir, providers, consensus.pages);
+  const analysisArtifacts = buildOcrPageAnalysisArtifacts(
+    runDir, providers, consensus.pages, publisherReference ? "publisher-canonical" : "consensus",
+  );
 
   const reportJson = {
     runDir,
     consensusExtractionPath: consensusPath,
+    ...(publisherReference ? { referenceProvenance: publisherReference } : {}),
     consensusCharCount: charCount,
     consensusWordCount: wordCount,
     metric: "wer",
@@ -986,6 +1054,11 @@ export function buildReport(runDir: string, consensusPath: string, previousRepor
   const providerList = rankedProviders.map((p) => `  - \`${p.providerKey}\``).join("\n");
   const notesBlock = notes.map((note) => `- ${note}`).join("\n");
   const consensusFileName = basename(consensusPath);
+  const referenceLabel = publisherReference ? "Publisher canonical reference" : "Consensus extraction";
+  const referenceMetricLabel = publisherReference ? "publisher canonical reference" : "consensus extraction";
+  const referenceMethod = publisherReference
+    ? `- The independently supplied publisher text in \`${consensusFileName}\` was treated as the immutable gold reference; provider agreement did not determine this text.\n- Reference SHA-256: \`${publisherReference.sha256}\`.\n- Publisher source: ${publisherReference.sourceUrl} (revision \`${publisherReference.sourceRevision}\`).`
+    : `- The consolidated extraction in \`${consensusFileName}\` was treated as the gold reference.`;
 
   const breakdownRows = rankedProviders
     .map(
@@ -1000,17 +1073,17 @@ export function buildReport(runDir: string, consensusPath: string, previousRepor
 
 ## Summary
 
-- Consensus extraction: \`${consensusFileName}\` (${charCount} characters, ${wordCount} words)
+- ${referenceLabel}: \`${consensusFileName}\` (${charCount} characters, ${wordCount} words)
 - Compared providers:
 ${providerList}
 - Total providers: ${totalProviders} (${rankedLocal.length} local, ${rankedCloud.length} cloud)
-- Ranking metric: word error rate (WER) against consensus extraction
+- Ranking metric: word error rate (WER) against ${referenceMetricLabel}
 - Score formula: \`${scoreFormula}\`
 - WER formula: \`(Substitutions + Deletions + Insertions) / Reference Word Count\`
 
 ## Method
 
-- The consolidated extraction in \`${consensusFileName}\` was treated as the gold reference.
+${referenceMethod}
 - Text normalization applied before comparison: lowercasing, curly quote/dash normalization, contraction expansion (it's -> it is), abbreviation expansion (mr. -> mister), currency symbol conversion ($50 -> 50 dollars), and remaining punctuation stripping.
 - WER compares ASCII \`[a-z0-9]\` token streams after normalization. Non-ASCII glyphs, including Japanese, are excluded from WER.
 - The headline quality score is WER-derived and does not measure complete Japanese or other non-Latin OCR accuracy.
@@ -1045,7 +1118,7 @@ ${notesBlock}
 
 function main(): number {
   const args = parseArgs(process.argv.slice(2));
-  const consensusPath = args.consensusPath ?? resolve(args.runDir, "consensus-extraction.txt");
+  const consensusPath = args.consensusPath;
   const markdownOut = args.markdownOut ?? resolve(args.runDir, "provider-comparison-report.md");
   const jsonOut = args.jsonOut ?? resolve(args.runDir, "provider-comparison-report.json");
 

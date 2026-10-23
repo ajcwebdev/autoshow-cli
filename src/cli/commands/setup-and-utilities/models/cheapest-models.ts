@@ -213,11 +213,11 @@ const selectCheapestMusicModel = (service: string): string => {
 }
 
 export const selectCheapestVideoSelection = (
-  provider: 'gemini' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+  provider: 'gemini' | 'grok' | 'fal'
 ): CheapestVideoSelection => selectCheapestVideoCandidateSelection(provider)
 
 const selectCheapestVideoModel = (
-  provider: 'gemini' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+  provider: 'gemini' | 'grok' | 'fal'
 ): string => selectCheapestVideoSelection(provider).model
 
 export const selectCheapestDefaultTextVideoSelection = (): CheapestVideoSelection =>
@@ -333,17 +333,12 @@ const FLAG_SELECTORS: Record<string, () => string | undefined> = {
   'gemini-image': () => selectCheapestImageModel('gemini'),
   'openai-image': () => selectCheapestImageModel('openai'),
   'grok-image': () => 'grok-imagine-image-2.0',
-  'replicate-image': () => selectCheapestImageModel('replicate'),
-  'lumalabs-image': () => selectCheapestImageModel('lumalabs'),
   'fal-image': () => selectCheapestImageModel('fal'),
   'elevenlabs-music': () => selectCheapestMusicModel('elevenlabs'),
   'minimax-music': () => selectCheapestMusicModel('minimax'),
   'gemini-music': () => 'lyria-3.5',
   'gemini-video': () => selectCheapestVideoModel('gemini'),
   'grok-video': () => selectCheapestVideoModel('grok'),
-  'ltx-video': () => selectCheapestVideoModel('ltx'),
-  'replicate-video': () => selectCheapestVideoModel('replicate'),
-  'lumalabs-video': () => selectCheapestVideoModel('lumalabs'),
   'fal-video': () => selectCheapestVideoModel('fal')
 }
 

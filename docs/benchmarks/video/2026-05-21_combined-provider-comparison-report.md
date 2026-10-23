@@ -9,23 +9,17 @@ Reconstructed from retained per-run comparison reports. Historical evaluator jud
 
 ## Cost
 
-| Rank | Provider/model                   | Coverage |     Mean |
-| ---: | -------------------------------- | -------: | -------: |
-|    1 | lumalabs/ray-3.2                 |      2/2 | $0.30000 |
-|    2 | replicate/pixverse/pixverse-v6   |      2/2 | $0.45375 |
-|    3 | grok/grok-imagine-video-1.5      |      2/2 | $0.64000 |
-|    4 | replicate/alibaba/happyhorse-1.1 |      2/2 | $0.72277 |
-|    5 | fal/minimax/h3                   |      2/2 | $1.30000 |
+| Rank | Provider/model              | Coverage | Mean     |
+| ---: | --------------------------- | -------: | -------: |
+| 1    | grok/grok-imagine-video-1.5 | 2/2      | $0.64000 |
+| 2    | fal/minimax/h3              | 2/2      | $1.30000 |
 
 ## Processing time
 
-| Rank | Provider/model                   | Coverage |      Mean |
-| ---: | -------------------------------- | -------: | --------: |
-|    1 | grok/grok-imagine-video-1.5      |      2/2 |  32.557 s |
-|    2 | replicate/pixverse/pixverse-v6   |      2/2 |  38.762 s |
-|    3 | lumalabs/ray-3.2                 |      2/2 |  49.755 s |
-|    4 | replicate/alibaba/happyhorse-1.1 |      2/2 |  96.338 s |
-|    5 | fal/minimax/h3                   |      2/2 | 276.875 s |
+| Rank | Provider/model              | Coverage | Mean      |
+| ---: | --------------------------- | -------: | --------: |
+| 1    | grok/grok-imagine-video-1.5 | 2/2      | 32.557 s  |
+| 2    | fal/minimax/h3              | 2/2      | 276.875 s |
 
 ## Quality
 

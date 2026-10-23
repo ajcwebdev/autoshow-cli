@@ -287,7 +287,7 @@ describe('combined dashboard bundle', () => {
     const data = JSON.parse(bundle.data) as BenchmarkDashboardData
     expect(data).toEqual({ schemaVersion: 1, title: page.title, generatedAt: page.generatedAt, tabs: page.tabs })
     expect(bundle.data.endsWith('\n')).toBe(true)
-    expect(bundle.data.split('\n').length).toBeGreaterThan(20)
+    expect(Buffer.byteLength(bundle.data)).toBeLessThan(Buffer.byteLength(JSON.stringify(data, null, 2)))
     expect(renderDashboard(data)).toContain('<section class="panel" id="panel-url">')
 
     // the stylesheet and script are the checked-in client files, copied verbatim

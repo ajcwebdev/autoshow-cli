@@ -47,6 +47,7 @@ interface SingleRunReport {
   runDir?: string;
   providerCount?: number;
   providerGroups?: Record<string, { count?: number; providers?: ReportProviderDetail[] }>;
+  evaluation?: { primaryRegionAccuracyAvailable?: boolean };
 }
 
 interface OcrRunRef extends CombinedRunRef {
@@ -143,6 +144,7 @@ function collectSamples(runs: OcrRunRef[]): Map<string, { provider: string; mode
   const byProvider = new Map<string, { provider: string; model: string; samples: ProviderSample[] }>();
   for (const run of runs) {
     const report = JSON.parse(readFileSync(run.reportPath, "utf8")) as SingleRunReport;
+    const primaryQualityAvailable = report.evaluation?.primaryRegionAccuracyAvailable !== false;
     const groups = report.providerGroups ?? {};
     for (const groupValue of Object.values(groups)) {
       for (const detail of groupValue.providers ?? []) {
@@ -159,11 +161,11 @@ function collectSamples(runs: OcrRunRef[]): Map<string, { provider: string; mode
           runName: run.runName,
           group: normalizeGroup(detail.group),
           pageCount: run.pageCount,
-          score: detail.metrics?.score ?? null,
+          score: primaryQualityAvailable ? detail.metrics?.score ?? null : null,
           processingTimeMs: detail.processingTimeMs ?? null,
           costCents: detail.costCents ?? null,
-          werBreakdown: detail.werBreakdown ?? null,
-          cerBreakdown: detail.cerBreakdown ?? null,
+          werBreakdown: primaryQualityAvailable ? detail.werBreakdown ?? null : null,
+          cerBreakdown: primaryQualityAvailable ? detail.cerBreakdown ?? null : null,
         });
         byProvider.set(providerKey, existing);
       }
@@ -451,6 +453,13 @@ export function buildOcrCombinedReport(rootDirRaw: string, generatedAt = new Dat
   const byProvider = collectSamples(runs);
   const aggregated = aggregate(byProvider, runs);
   const totalPages = runs.reduce((total, run) => total + run.pageCount, 0);
+  const partialReferenceRuns = new Set(runs.filter((run) => {
+    const report = JSON.parse(readFileSync(run.reportPath, "utf8")) as SingleRunReport;
+    return report.evaluation?.primaryRegionAccuracyAvailable === false;
+  }).map((run) => run.runName));
+  const partialReferenceNote = partialReferenceRuns.size
+    ? `${partialReferenceRuns.size} runs use partial annotated-word references with text-only OCR. They contribute cost and speed, but no primary quality score or weighted error counts. Annotated-target token coverage and derived-order WER/CER are separate diagnostics; they do not establish region localization or exhaustive full-page accuracy.`
+    : null;
 
   const groupedProviders: Record<GroupKey, AggregatedProvider[]> = {
     local: aggregated.filter((provider) => provider.group === "local"),
@@ -488,6 +497,7 @@ export function buildOcrCombinedReport(rootDirRaw: string, generatedAt = new Dat
       "CER retains normalized Unicode letters and numbers as supporting evidence. Review CER and the source images when assessing non-Latin extraction quality.",
       "Each group ranks price, speed, and quality score independently. No weighted composite or model-tier ranking is emitted.",
       "Supersedes the hand-authored 2026-06-14 combined report, which is preserved as a historical record.",
+      ...(partialReferenceNote ? [partialReferenceNote] : []),
     ],
   };
 
@@ -510,6 +520,7 @@ export function buildOcrCombinedReport(rootDirRaw: string, generatedAt = new Dat
   md.push("");
   md.push("- Providers are matched by `providerKey` and aggregated across the runs they appear in; sums and means cover present values only.");
   md.push("- Quality Score rankings use the unweighted mean `metrics.score` descending.");
+  if (partialReferenceNote) md.push(`- ${partialReferenceNote}`);
   md.push("- Per-run WER uses ASCII `[a-z0-9]` token streams after normalization and excludes non-ASCII glyphs, including Japanese. The WER-derived headline quality score does not measure complete Japanese or other non-Latin OCR accuracy.");
   md.push("- CER retains normalized Unicode letters and numbers as supporting evidence; review it together with the source images for non-Latin cases.");
   md.push(
@@ -576,7 +587,7 @@ export function buildOcrCombinedReport(rootDirRaw: string, generatedAt = new Dat
     runs: runs.map((run, index) => ({
       runName: run.runName,
       shortLabel: `R${index + 1}`,
-      detail: `${run.providerCount} providers, ${run.pageCount} page${run.pageCount === 1 ? "" : "s"}`,
+      detail: `${run.providerCount} providers, ${run.pageCount} page${run.pageCount === 1 ? "" : "s"}${partialReferenceRuns.has(run.runName) ? "; partial reference, primary quality unavailable" : ""}`,
     })),
     groups: GROUPS.map((group) =>
       buildDashboardGroup(group, groupedProviders[group], runs, metricRankings[group]),
@@ -585,6 +596,7 @@ export function buildOcrCombinedReport(rootDirRaw: string, generatedAt = new Dat
       "Providers are matched by `providerKey` and aggregated across the runs they appear in; sums and means cover present values only.",
       "Quality ranks the unweighted mean `metrics.score` descending. Speed ranks aggregate pages per minute (`sum(pageCount) / sum(processingTimeMs / 60000)`) descending. Cost ranks USD per 100 pages (`sum(costCents) / sum(pageCount)`) ascending with local providers at zero. Weighted WER/CER are evidence: summed breakdown errors over summed reference counts. Missing values sort last; ties break deterministically.",
       "Per-run WER uses ASCII [a-z0-9] tokens after normalization and excludes non-ASCII glyphs, including Japanese. Headline quality is WER-derived; assess Japanese and other non-Latin extraction with supporting Unicode CER and source-image review.",
+      ...(partialReferenceNote ? [partialReferenceNote] : []),
     ],
     notes: jsonReport.notes,
   };

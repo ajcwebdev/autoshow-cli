@@ -10,7 +10,6 @@ import {
   GEMINI_MODELS_LINKS,
   GROK_MODELS_LINKS,
   OPENAI_MODELS_LINKS,
-  REPLICATE_MODELS_LINKS
 } from './fixtures/index'
 
 test('links selector accepts global models section in provider order', () => {
@@ -37,7 +36,6 @@ test('links selector accepts provider-scoped models sections', () => {
     ['openai', OPENAI_MODELS_LINKS],
     ['gemini', GEMINI_MODELS_LINKS],
     ['grok', GROK_MODELS_LINKS],
-    ['replicate', REPLICATE_MODELS_LINKS]
   ] as const
 
   for (const [provider, expectedLinks] of cases) {

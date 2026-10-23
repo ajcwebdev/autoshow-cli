@@ -2,7 +2,8 @@ import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, OcrCloudStagingObject, PageResult, RetryDecision } from '~/types'
 import { resolveCredential } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { extractErrorMetadata, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { isRecord } from '~/utils/rest-client'
 import { classifyGeminiRetry, GEMINI_ARGON_MIN_OCR_OUTPUT_TOKENS, isGeminiArgonModel } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
 import { classifyOcrCreateRetry, OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry, withOcrSchemaRetry } from '~/cli/commands/text/ocr/ocr-utils/ocr-retry'
 import { getCachedCloudStagingObject } from '~/cli/commands/text/ocr/ocr-utils/preparation-cache'
@@ -16,7 +17,7 @@ import {
   GEMINI_INLINE_PDF_BYTES,
   GEMINI_PDF_PAGE_COUNT_LIMIT
 } from './gemini-ocr'
-import { OcrStructuredResponseError } from '~/cli/commands/text/ocr/ocr-structured-response-error'
+import { OcrOutputLimitError, OcrStructuredResponseError } from '~/cli/commands/text/ocr/ocr-structured-response-error'
 
 const GEMINI_OCR_MIN_OUTPUT_TOKENS = 24_576
 const GEMINI_OCR_SINGLE_PAGE_IMAGE_MAX_OUTPUT_TOKENS = 8_192
@@ -142,6 +143,24 @@ const getGeminiCompletionTokens = (usage: GeminiGenerateContentUsageMetadata | u
   typeof usage?.candidatesTokenCount === 'number' || typeof usage?.thoughtsTokenCount === 'number'
     ? (usage?.candidatesTokenCount ?? 0) + (usage?.thoughtsTokenCount ?? 0)
     : undefined
+
+/** A native token limit cannot be repaired by asking the same page and cap again. */
+const assertGeminiOcrOutputComplete = (
+  response: Awaited<ReturnType<typeof geminiGenerateContent>>,
+  model: string,
+  cause?: unknown
+): void => {
+  // Google defines MAX_TOKENS as reaching the request's token limit:
+  // https://ai.google.dev/api/generate-content#FinishReason
+  if (response.candidates?.[0]?.finishReason !== 'MAX_TOKENS') return
+  const rawText = typeof response.text === 'string' ? response.text : ''
+  const error = new OcrOutputLimitError(`Gemini OCR ${model} reached its output token limit; no automatic re-ask was dispatched.`, rawText, cause)
+  Object.assign(error.metadata, {
+    provider: 'gemini', model, finishReason: 'MAX_TOKENS',
+    rawProviderUsage: response.usageMetadata, rawResponse: response
+  })
+  throw error
+}
 
 const buildGeminiOcrMaxOutputTokens = (expectedPageCount: number): number => {
   const pages = Number.isFinite(expectedPageCount)
@@ -365,12 +384,29 @@ export const runGeminiOcr = async (
               })()
             : await buildInlineContents(filePath, mimeType, prompt)
 
-          return await geminiGenerateContent(apiKey, {
-            model,
-            contents,
-            generationConfig: buildGeminiOcrGenerationConfig(expectedPageCount, step1Metadata.format, policy.effective, model),
-            ...(signal ? { abortSignal: signal } : {})
-          })
+          let response: Awaited<ReturnType<typeof geminiGenerateContent>>
+          try {
+            response = await geminiGenerateContent(apiKey, {
+              model,
+              contents,
+              generationConfig: buildGeminiOcrGenerationConfig(expectedPageCount, step1Metadata.format, policy.effective, model),
+              ...(signal ? { abortSignal: signal } : {})
+            })
+          } catch (error) {
+            // Argon's synchronous REST contract already rejects non-STOP responses.
+            // Reclassify its preserved MAX_TOKENS evidence as the same OCR limit
+            // used for ordinary Gemini models, without purchasing another response.
+            const metadata = extractErrorMetadata(error)
+            if (metadata['finishReason'] === 'MAX_TOKENS' && isRecord(metadata['rawResponse'])) {
+              assertGeminiOcrOutputComplete(metadata['rawResponse'] as Awaited<ReturnType<typeof geminiGenerateContent>>, model, error)
+            }
+            throw error
+          }
+          // This check belongs in the admitted-request path, before the generic
+          // schema re-ask loop can mistake valid partial JSON for a complete page
+          // or buy another response for malformed token-truncated JSON.
+          assertGeminiOcrOutputComplete(response, model)
+          return response
         } finally {
           if (uploadedFileName) {
             await deleteGeminiOcrUpload(apiKey, uploadedFileName)

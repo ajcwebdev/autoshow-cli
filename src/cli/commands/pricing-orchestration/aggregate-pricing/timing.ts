@@ -5,7 +5,6 @@ const TIMED_EXTRACT_PROVIDERS = new Set<TimedExtractProvider>([
   'tesseract',
   'defuddle',
   'mistral',
-  'replicate',
   'glm',
   'kimi',
   'openai',

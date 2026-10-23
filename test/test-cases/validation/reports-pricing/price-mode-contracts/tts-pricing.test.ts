@@ -33,7 +33,6 @@ describe('price mode contracts', () => {
     })
 
   test('retired TTS pricing remains available as read-only reporting history', () => {
-    expect(getTtsPricing('replicate', 'jaaari/kokoro-82m').costPerRequestCents).toBe(0.022)
     expect(getTtsPricing('deepgram', 'aura-2-thalia-en').costPer1kCharsCents).toBe(3)
   })
 

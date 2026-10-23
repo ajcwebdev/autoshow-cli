@@ -49,17 +49,12 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'gemini-image',
   'openai-image',
   'grok-image',
-  'replicate-image',
-  'lumalabs-image',
   'fal-image',
   'elevenlabs-music',
   'minimax-music',
   'gemini-music',
   'gemini-video',
   'grok-video',
-  'ltx-video',
-  'replicate-video',
-  'lumalabs-video',
   'fal-video'
 ] as const
 

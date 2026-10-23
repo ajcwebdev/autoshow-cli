@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "kind": "ocr-source-catalog",
+  "categoriesBcCasePages": {
+    "technical-code-nbitcoin": 1,
+    "technical-code-cli-parser": 1,
+    "technical-code-pinta": 1,
+    "technical-code-podio": 1,
+    "technical-code-country-codes": 1,
+    "historical-print-paradise-lost": 1,
+    "historical-print-frankenstein": 1,
+    "historical-print-leaves-of-grass": 1,
+    "historical-print-origin-of-species": 1,
+    "historical-print-birds": 1,
+    "bc-rerun-10-document": 10,
+    "bc-rerun-04-pages-don-quixote": 4,
+    "bc-rerun-05-pages-the-odyssey": 5
+  },
+  "existingReferenceIDs": [
+    "01-ad-copy",
+    "01-financial-data",
+    "01-handwriting",
+    "01-test-picture",
+    "04-pages-don-quixote",
+    "05-pages-the-odyssey",
+    "1-page-declaration",
+    "1-page-newspaper",
+    "10-document"
+  ],
+  "historicalNewspaperSources": [
+    {
+      "id": "C1",
+      "category": "historical-print",
+      "slug": "historical-print-paradise-lost",
+      "file": "Paradise Lost (1667).djvu",
+      "leaf": 46,
+      "revision": "15859582",
+      "imageURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Paradise%20Lost%20(1667).djvu/page46-1280px-Paradise%20Lost%20(1667).djvu.jpg",
+      "referenceURL": "https://en.wikisource.org/w/index.php?title=Page%3AParadise%20Lost%20(1667).djvu%2F46&oldid=15859582&action=raw"
+    },
+    {
+      "id": "C2",
+      "category": "historical-print",
+      "slug": "historical-print-frankenstein",
+      "file": "Frankenstein, or the Modern Prometheus (Revised Edition, 1831).djvu",
+      "leaf": 11,
+      "revision": "8864833",
+      "imageURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Frankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu/page11-1920px-Frankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu.jpg",
+      "referenceURL": "https://en.wikisource.org/w/index.php?title=Page%3AFrankenstein%2C%20or%20the%20Modern%20Prometheus%20(Revised%20Edition%2C%201831).djvu%2F11&oldid=8864833&action=raw",
+      "crop": {
+        "x": 255,
+        "y": 420,
+        "width": 1435,
+        "height": 2160
+      }
+    },
+    {
+      "id": "C3",
+      "category": "historical-print",
+      "slug": "historical-print-leaves-of-grass",
+      "file": "Leaves of Grass (1860).djvu",
+      "leaf": 192,
+      "revision": "15832799",
+      "imageURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Leaves%20of%20Grass%20(1860).djvu/page192-1920px-Leaves%20of%20Grass%20(1860).djvu.jpg",
+      "referenceURL": "https://en.wikisource.org/w/index.php?title=Page%3ALeaves%20of%20Grass%20(1860).djvu%2F192&oldid=15832799&action=raw"
+    },
+    {
+      "id": "C4",
+      "category": "historical-print",
+      "slug": "historical-print-origin-of-species",
+      "file": "Origin of Species 1859 facsimile.djvu",
+      "leaf": 13,
+      "revision": "7963369",
+      "imageURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Origin%20of%20Species%201859%20facsimile.djvu/page13-1280px-Origin%20of%20Species%201859%20facsimile.djvu.jpg",
+      "referenceURL": "https://en.wikisource.org/w/index.php?title=Page%3AOrigin%20of%20Species%201859%20facsimile.djvu%2F13&oldid=7963369&action=raw"
+    },
+    {
+      "id": "C5",
+      "category": "historical-print",
+      "slug": "historical-print-birds",
+      "revision": "9eb0fc75166bfaaec24c8523ccb69da48f6cf13f",
+      "imageURL": "https://huggingface.co/datasets/finebooks/bhl-impact-gt/resolve/b7bda5fac0471d6d2237360abc799c6d13559465/images/birdsofgreatbrit02butl/birdsofgreatbrit02butl_0073_full.webp",
+      "referenceURL": "https://raw.githubusercontent.com/impactcentre/groundtruth-bhl/9eb0fc75166bfaaec24c8523ccb69da48f6cf13f/birdsofgreatbrit02butl_XML/pc-00667895.xml"
+    },
+    {
+      "id": "G1",
+      "category": "newspapers",
+      "slug": "newspapers-perth-gazette",
+      "file": "The Perth Gazette and Western Australian Journal 1(14).djvu",
+      "leaf": 1,
+      "revision": "14617495",
+      "imageURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/The%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu/page1-1920px-The%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu.jpg",
+      "referenceURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20Perth%20Gazette%20and%20Western%20Australian%20Journal%201(14).djvu%2F1&oldid=14617495&action=raw",
+      "crop": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 2855
+      }
+    },
+    {
+      "id": "G2",
+      "category": "newspapers",
+      "slug": "newspapers-london-gazette",
+      "file": "The London Gazette 19345.djvu",
+      "leaf": 2,
+      "revision": "13200057",
+      "imageURL": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/The%20London%20Gazette%2019345.djvu/page2-1920px-The%20London%20Gazette%2019345.djvu.jpg",
+      "referenceURL": "https://en.wikisource.org/w/index.php?title=Page%3AThe%20London%20Gazette%2019345.djvu%2F2&oldid=13200057&action=raw"
+    },
+    {
+      "id": "G3",
+      "category": "newspapers",
+      "slug": "newspapers-northern-star",
+      "revision": "10.5522/04/28381610.v1",
+      "imageURL": "https://ndownloader.figshare.com/files/52256369",
+      "referenceURL": "https://ndownloader.figshare.com/files/52256378",
+      "imageMember": "ncse_cropped_images/NS2-1843-04-01_page_4_B0C4R34.png",
+      "referenceMember": "ground_truth/NS2-1843-04-01_page_4_box_page_id_B0C4R34.txt"
+    },
+    {
+      "id": "G4",
+      "category": "newspapers",
+      "slug": "newspapers-leader",
+      "revision": "10.5522/04/28381610.v1",
+      "imageURL": "https://ndownloader.figshare.com/files/52256369",
+      "referenceURL": "https://ndownloader.figshare.com/files/52256378",
+      "imageMember": "ncse_cropped_images/CLD-1853-07-30_page_2_B0C3R16.png",
+      "referenceMember": "ground_truth/CLD-1853-07-30_page_2_box_page_id_B0C3R16.txt"
+    },
+    {
+      "id": "G5",
+      "category": "newspapers",
+      "slug": "newspapers-tomahawk",
+      "revision": "10.5522/04/28381610.v1",
+      "imageURL": "https://ndownloader.figshare.com/files/52256369",
+      "referenceURL": "https://ndownloader.figshare.com/files/52256378",
+      "imageMember": "ncse_cropped_images/TTW-1868-01-25_page_3_B0C2R8.png",
+      "referenceMember": "ground_truth/TTW-1868-01-25_page_3_box_page_id_B0C2R8.txt"
+    },
+    {
+      "id": "G6",
+      "category": "newspapers",
+      "slug": "newspapers-monthly-repository",
+      "revision": "10.5522/04/28381610.v1",
+      "imageURL": "https://ndownloader.figshare.com/files/52256369",
+      "referenceURL": "https://ndownloader.figshare.com/files/52256378",
+      "imageMember": "ncse_cropped_images/MRP-1815-07-02_page_29_B0C1R2.png",
+      "referenceMember": "ground_truth/MRP-1815-07-02_page_29_box_page_id_B0C1R2.txt"
+    }
+  ],
+  "impactImageFilename": "birdsofgreatbrit02butl_0073_full.webp"
+}

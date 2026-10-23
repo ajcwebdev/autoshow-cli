@@ -49,7 +49,7 @@ describe('video and music command flag spellings', () => {
 
   test('runtime provider-list errors match their command-boundary twins', async () => {
     await expect(rejectionMessage(async () => await runVideoGen('prompt', '/tmp/unused', {} as VideoGenOptions)))
-      .resolves.toBe('Specify a video generation provider with --provider gemini|grok|ltx|replicate|lumalabs|fal[=model]')
+      .resolves.toBe('Specify a video generation provider with --provider gemini|grok|fal[=model]')
     await expect(rejectionMessage(async () => await runMusicGen('prompt', '/tmp/unused', {} as MusicGenOptions)))
       .resolves.toBe('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model]')
   })
