@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `docs/benchmarks/video/2026-05-21_06-50-32-135_video-gen`
-- Total providers: 5 (0 local, 5 service)
+- Total providers: 2 (0 local, 2 service)
 - Local and service providers are intentionally not ranked against each other.
 - Reports expose complete price, speed, automated-quality, and human-quality rankings for each group.
 
@@ -41,23 +41,17 @@ No local providers were found.
 
 ### Price
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>lumalabs/ray-3.2</code> | $0.3000 |
-| 2 | <code>replicate/pixverse/pixverse-v6</code> | $0.4538 |
-| 3 | <code>grok/grok-imagine-video-1.5</code> | $0.6400 |
-| 4 | <code>replicate/alibaba/happyhorse-1.1</code> | $0.7228 |
-| 5 | <code>fal/minimax/h3</code> | $1.3000 |
+| Rank | Provider                                 | Evidence |
+| ---: | ---------------------------------------- | -------- |
+| 1    | <code>grok/grok-imagine-video-1.5</code> | $0.6400  |
+| 2    | <code>fal/minimax/h3</code>              | $1.3000  |
 
 ### Speed
 
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | <code>grok/grok-imagine-video-1.5</code> | 32.37s |
-| 2 | <code>replicate/pixverse/pixverse-v6</code> | 39.63s |
-| 3 | <code>lumalabs/ray-3.2</code> | 55.13s |
-| 4 | <code>replicate/alibaba/happyhorse-1.1</code> | 101.40s |
-| 5 | <code>fal/minimax/h3</code> | 183.58s |
+| Rank | Provider                                 | Evidence |
+| ---: | ---------------------------------------- | -------- |
+| 1    | <code>grok/grok-imagine-video-1.5</code> | 32.37s   |
+| 2    | <code>fal/minimax/h3</code>              | 183.58s  |
 
 ### Automated Quality
 
@@ -69,13 +63,10 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider | Quality Evidence | Processing Time | Monetary Cost |
-| --- | --- | ---: | ---: |
-| <code>fal/minimax/h3</code> | n/a | 183.58s | $1.3000 |
-| <code>grok/grok-imagine-video-1.5</code> | n/a | 32.37s | $0.6400 |
-| <code>lumalabs/ray-3.2</code> | n/a | 55.13s | $0.3000 |
-| <code>replicate/alibaba/happyhorse-1.1</code> | n/a | 101.40s | $0.7228 |
-| <code>replicate/pixverse/pixverse-v6</code> | n/a | 39.63s | $0.4538 |
+| Provider                                 | Quality Evidence | Processing Time | Monetary Cost |
+| ---------------------------------------- | ---------------- | --------------: | ------------: |
+| <code>fal/minimax/h3</code>              | n/a              | 183.58s         | $1.3000       |
+| <code>grok/grok-imagine-video-1.5</code> | n/a              | 32.37s          | $0.6400       |
 
 ## Notes
 

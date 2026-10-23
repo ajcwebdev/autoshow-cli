@@ -32,7 +32,7 @@ describe('price mode contracts', () => {
       const timing = computeEstimatedProcessingTimes({
         videoTargets: [
           { service: 'gemini', model: 'gemini-omni-1.1-flash' },
-          { service: 'ltx', model: 'ltx-2-5-fast' }
+          { service: 'grok', model: 'grok-imagine-video-1.5' }
         ]
       })
 
@@ -49,10 +49,10 @@ describe('price mode contracts', () => {
           msPerUnit: getVideoEstimation('gemini', 'gemini-omni-1.1-flash').msPerSecond
         },
         {
-          provider: 'ltx',
-          model: 'ltx-2-5-fast',
+          provider: 'grok',
+          model: 'grok-imagine-video-1.5',
           inputValue: 8,
-          msPerUnit: getVideoEstimation('ltx', 'ltx-2-5-fast').msPerSecond
+          msPerUnit: getVideoEstimation('grok', 'grok-imagine-video-1.5').msPerSecond
         }
       ])
     })

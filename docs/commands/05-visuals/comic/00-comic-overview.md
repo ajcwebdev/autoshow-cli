@@ -122,7 +122,7 @@ For recorded interrupted requests use [`resume <run-directory> --price`, then `r
 
 ## Supported Models
 
-Comic images accept OpenAI, Gemini, Grok, Replicate, and Luma model IDs; fal.ai image models are unavailable here. Default image: `gpt-image-2`. Default text: `gpt-6.1-sol`; blocking and QA require a supported OpenAI or Gemini vision model. Audio defaults to the cheapest hosted TTS target, so this walkthrough selects its model explicitly. Model lists: [image](../image/overview.md), [write](../../03-write/overview.md), [TTS](../../04-audio/tts/overview.md).
+Comic images accept OpenAI, Gemini, and Grok model IDs; fal.ai image models are unavailable here. Default image: `gpt-image-2`. Default text: `gpt-6.1-sol`; blocking and QA require a supported OpenAI or Gemini vision model. Audio defaults to the cheapest hosted TTS target, so this walkthrough selects its model explicitly. Model lists: [image](../image/overview.md), [write](../../03-write/overview.md), [TTS](../../04-audio/tts/overview.md).
 
 ## Command Docs
 

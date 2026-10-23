@@ -1,6 +1,5 @@
 import { helpText } from './shared'
 import { expect, test } from 'bun:test'
-import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/visuals/image/image-generation-services/lumalabs/lumalabs-image-targets'
 import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from '~/cli/commands/audio/music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
 import { getFlagGroupSection, loadHelp } from './shared'
 
@@ -16,7 +15,6 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(getFlagGroupSection(result.stdout, 'Batch Processing')).toContain('--batch-concurrency')
     expect(result.stdout).not.toContain('Deepgram TTS')
     expect(result.stdout).not.toContain('Gemini TTS')
-    expect(result.stdout).not.toContain('Replicate TTS')
     expect(result.stdout).not.toContain('fal TTS')
     expect(getFlagGroupSection(result.stdout, 'Multi-Speaker / Dialogue')).toContain('--tts-dialogue-format')
     const mastering = getFlagGroupSection(result.stdout, 'Audio Mastering / Export')
@@ -170,12 +168,6 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(getFlagGroupSection(videoResult.stdout, 'Video Inputs')).toContain('--input-image')
     expect(getFlagGroupSection(videoResult.stdout, 'Video Inputs')).toContain('--reference-video')
     expect(getFlagGroupSection(videoResult.stdout, 'Video Inputs')).toContain('--reference-audio')
-    expect(getFlagGroupSection(videoResult.stdout, 'Video Options')).toContain('--seed')
-    expect(getFlagGroupSection(videoResult.stdout, 'Video Options')).toContain('--negative-prompt')
-    expect(getFlagGroupSection(videoResult.stdout, 'Video Options')).toContain('--multi-clip')
-    expect(videoResult.stdout).not.toContain('--replicate-video-seed')
-    expect(videoResult.stdout).not.toContain('--replicate-video-negative-prompt')
-    expect(videoResult.stdout).not.toContain('--replicate-video-multi-clip')
     expect(videoResult.stdout).not.toContain('fal.ai Video')
     expect(getFlagGroupSection(videoResult.stdout, 'Pricing')).toContain('--price')
     expect(getFlagGroupSection(videoResult.stdout, 'Pricing')).toContain('--max-model-cents')
@@ -183,20 +175,9 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(imageResult.stdout).toContain('gpt-image-2.5-flare')
     expect(imageResult.stdout).toContain('gpt-image-2.5-sunburst')
     expect(imageResult.stdout).toContain('xhigh')
-    expect(imageResult.stdout).toContain('replicate')
-    expect(imageResult.stdout).toContain('alibaba/qwen-image-3')
     expect(imageResult.stdout).not.toContain('bfl')
     expect(imageResult.stdout).not.toContain('--search-grounding')
-    expect(videoResult.stdout).toContain('ltx')
-    expect(videoResult.stdout).toContain('ltx-2-5-fast')
-    expect(videoResult.stdout).toContain('LTX 2.5')
-    expect(videoResult.stdout).not.toContain('ltx-2-3-fast')
-    expect(videoResult.stdout).not.toContain('ltx-2-3-pro')
     expect(videoResult.stdout).not.toContain('grok-imagine-video,')
-    expect(videoResult.stdout).not.toContain('kwaivgi/kling-v3-video')
-    expect(videoResult.stdout).not.toContain('kwaivgi/kling-v3-omni-video')
-    expect(videoResult.stdout).not.toContain('bytedance/seedance-2.0')
-    expect(videoResult.stdout).not.toContain('fal-ai/pixverse/c1')
     expect(videoResult.stdout).toContain('gemini-omni-1.1-flash')
     expect(videoResult.stdout).not.toContain('veo-3.1-lite-generate-preview')
     expect(videoResult.stdout).not.toContain('veo-3.1-generate-preview')
@@ -204,8 +185,6 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(videoResult.stdout).toContain('edit')
     expect(videoResult.stdout).toContain('extend')
     expect(videoResult.stdout).toContain('--previous-interaction-id')
-    expect(videoResult.stdout).toContain('1440p')
-    expect(videoResult.stdout).not.toContain('wan-video/wan-2.7-t2v')
     expect(imageResult.stdout).toContain('--provider-concurrency')
     expect(imageResult.stdout).not.toContain('--local-concurrency')
     expect(imageResult.stdout).toContain('--provider')
@@ -222,7 +201,6 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(imageResult.stdout).not.toContain('imagen-4.0')
     expect(imageResult.stdout).not.toContain('--glm')
     expect(imageResult.stdout).not.toContain('--bfl-image')
-    expect(imageResult.stdout).not.toContain('--replicate-image')
     expect(videoResult.stdout).toContain('--provider-concurrency')
     expect(videoResult.stdout).not.toContain('--local-concurrency')
     expect(videoResult.stdout).toContain('--mode')
@@ -236,22 +214,15 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(videoResult.stdout).not.toContain('--video-input-image')
     expect(videoResult.stdout).not.toContain('--video-resolution')
     expect(videoResult.stdout).not.toContain('--video-aspect-ratio')
-    expect(videoResult.stdout).toContain('Luma Labs')
-    expect(videoResult.stdout).toContain('540p|720p|1080p')
-    expect(videoResult.stdout).toContain('21:9|adaptive')
-    expect(helpText(videoResult.stdout)).toContain('2-30 (Replicate Wan 3)')
-    expect(helpText(videoResult.stdout)).toContain('5|8|10|15 (Replicate PixVerse V6)')
+    expect(helpText(videoResult.stdout)).toContain('21:9|16:9|4:3|1:1|3:4|9:16|auto')
     expect(videoResult.stdout).not.toContain('--grok-video-storage-filename')
     expect(videoResult.stdout).not.toContain('--grok-video-storage-expires-after')
   })
 
-  test.concurrent('Luma, ratio, and music duration descriptions match supported behavior', async () => {
+  test.concurrent('image and music duration descriptions match supported behavior', async () => {
     const image = await loadHelp(['image', '--help'])
     const music = await loadHelp(['music', '--help'])
 
-    expect(helpText(image.stdout)).toContain('Replicate Seedream also supports match_input_image')
-    expect(helpText(image.stdout)).not.toContain('Replicate Seedream also supports adaptive')
-    expect(helpText(image.stdout)).toContain(`Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS}`)
     expect(helpText(music.stdout)).toContain(`ElevenLabs configurable from ${ELEVENLABS_MIN_DURATION_SECONDS}-${ELEVENLABS_MAX_DURATION_SECONDS}`)
     expect(helpText(music.stdout)).not.toContain('MiniMax currently ignores this flag')
     expect(helpText(music.stdout)).not.toContain('Gemini Lyria Clip is fixed')
@@ -260,14 +231,6 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(helpText(music.stdout)).toContain('provider-selected for prompt-only')
     expect(helpText(music.stdout)).not.toContain('Gemini Lyria Pro uses the requested duration')
     expect(helpText(image.stdout)).toContain('(default: 1)')
-  })
-
-  test.concurrent('video help omits retired Kling multi-prompt', async () => {
-    const video = await loadHelp(['video', '--help'])
-    const write = await loadHelp(['write', '--help'])
-
-    expect(helpText(video.stdout)).not.toContain('--replicate-video-multi-prompt')
-    expect(write.stdout).not.toContain('--replicate-video-multi-prompt')
   })
 
 }

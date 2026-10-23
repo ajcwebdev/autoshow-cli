@@ -145,9 +145,6 @@ const computeActualSttCharge = (
 const countGrokVideoInputImages = (entry: Step6VideoMetadata): number =>
   (entry.inputImage ? 1 : 0) + (entry.referenceImages?.length ?? 0)
 
-const countReplicateVideoInputs = (entry: Step6VideoMetadata): number =>
-  (entry.inputVideo ? 1 : 0) + (entry.referenceVideos?.length ?? 0)
-
 const estimateRetiredVideoFallbackCost = (entry: Step6VideoMetadata): number | undefined => {
   const meta = getRetiredModelRate('video', entry.videoGenService, entry.videoGenModel)
   if (!meta) return undefined
@@ -188,9 +185,6 @@ const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
   const estimate = estimateVideoCost({
     ...(entry.videoGenService === 'gemini' ? { geminiVideoModels: [entry.videoGenModel] } : {}),
     ...(entry.videoGenService === 'grok' ? { grokVideoModels: [entry.videoGenModel] } : {}),
-    ...(entry.videoGenService === 'ltx' ? { ltxVideoModels: [entry.videoGenModel] } : {}),
-    ...(entry.videoGenService === 'replicate' ? { replicateVideoModels: [entry.videoGenModel] } : {}),
-    ...(entry.videoGenService === 'lumalabs' ? { lumalabsVideoModels: [entry.videoGenModel] } : {}),
     ...(entry.videoGenService === 'fal' ? { falVideoModels: [entry.videoGenModel], falVideoReferenceVideoCount: entry.referenceVideos?.length ?? 0, falInputVideoDurationSeconds: entry.inputVideoDurationSeconds } : {}),
     ...(typeof entry.videoDuration === 'number' ? { videoDuration: entry.videoDuration } : {}),
     ...(typeof entry.videoAspectRatio === 'string' ? { videoAspectRatio: entry.videoAspectRatio } : {}),
@@ -200,7 +194,6 @@ const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
     ...(entry.videoGenService === 'grok' && typeof entry.inputVideoDurationSeconds === 'number'
       ? { grokInputVideoDurationSeconds: entry.inputVideoDurationSeconds }
       : {}),
-    ...(entry.videoGenService === 'replicate' ? { replicateVideoReferenceVideoCount: countReplicateVideoInputs(entry) } : {})
   })
   return estimate.totalCost
 }

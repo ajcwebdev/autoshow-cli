@@ -34,9 +34,7 @@ export const registerPipelineCommandHelpCases = (): void => {
 
     expect(providerSection).toContain('--provider')
     expect(providerSection).not.toContain('rev[=')
-    expect(providerSection).not.toContain('replicate[=')
     expect(providerSection).not.toContain('fal[=')
-    expect(result.stdout).not.toContain('datalab-to/ocr')
     expect(result.stdout).not.toContain('fal-ai/got-ocr')
     expect(result.stdout).not.toContain('fal-ai/florence-2-large/ocr')
     expect(providerSection).toContain('--all-providers')
@@ -180,7 +178,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(setupResult.stdout).toContain('--ocr')
     expect(setupResult.stdout).toContain('--llm')
     expect(setupResult.stdout).toContain('--tts')
-    expect(helpText(setupResult.stdout)).toContain('gemini|openai|grok|replicate')
+    expect(helpText(setupResult.stdout)).toContain('gemini|openai|grok')
     expect(setupResult.stdout).toContain('--step-concurrency')
     expect(helpText(writeResult.stdout)).not.toContain('50 for a Grok-only selection')
     expect(helpText(setupResult.stdout)).toContain('50 for a Grok-only selection')
@@ -229,9 +227,7 @@ export const registerPipelineCommandHelpCases = (): void => {
     expect(result.stdout).not.toContain('bfl')
     expect(result.stdout).not.toContain('recraft')
     expect(result.stdout).not.toContain('rev[=')
-    expect(result.stdout).toContain('replicate')
     expect(result.stdout).not.toContain('runway')
-    expect(result.stdout).toContain('ltx')
   })
 
 

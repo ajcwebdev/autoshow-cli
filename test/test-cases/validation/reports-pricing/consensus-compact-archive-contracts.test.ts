@@ -3,6 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { compactArchive, discoverArchiveRuns, isRunDirectory } from '../../../../.codex/skills/consensus/scripts/shared/compact_archive'
 import { compactRunResults } from '../../../../.codex/skills/consensus/scripts/stt/compact_provider_results'
+import { deriveCanonicalItemRecord, readCanonicalManifest, type PipelineManifest } from '../../../../.codex/skills/consensus/scripts/shared/pipeline_manifest'
+import { loadOcrProviderRuns } from '../../../../.codex/skills/consensus/scripts/ocr/ocr_consensus_lib'
 import { runSyncCommand } from '~/utils/sync-subprocess'
 import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
@@ -183,7 +185,131 @@ function writeOcrRun(root: string, name: string): string {
   return runDir
 }
 
+function writeOcrMetadataRun(root: string, name: string, edit?: (manifest: PipelineManifest) => void): string {
+  const runDir = join(root, name)
+  const providerMetadata = [
+    { totalPages: 1, processingTime: 120, tokenEstimate: { input: 100, output: 10 }, pageEvidence: [{ page: 1, usage: { input: 100, output: 10 } }] },
+    { totalPages: 1, processingTime: 240, tokenEstimate: { input: 200, output: 20 }, pageEvidence: [{ page: 1, usage: { input: 200, output: 20 } }] },
+  ]
+  const manifest: PipelineManifest = {
+    command: 'extract', scope: 'single', createdAt: '2026-10-23T00:00:00.000Z', updatedAt: '2026-10-23T00:00:00.000Z',
+    source: { kind: 'synthetic-test-evidence', originalHash: 'unchanged' },
+    items: [{
+      extractRoute: 'document', outputDir: '.', status: 'incomplete',
+      metadata: {
+        step2: structuredClone([...providerMetadata].reverse()),
+        cost: { actual: { totalCost: 3, steps: [
+          { provider: 'openai', model: 'model-a', cost: 1 }, { provider: 'gemini', model: 'model-b', cost: 2 },
+        ] } },
+        timing: { actual: { steps: [
+          { provider: 'openai', model: 'model-a', processingTimeMs: 120 },
+          { provider: 'gemini', model: 'model-b', processingTimeMs: 240 },
+        ] } },
+      },
+      providers: [
+        { service: 'openai', model: 'model-a', artifactDir: 'providers/openai-model-a', status: 'succeeded', attempts: 1, options: {}, metadata: providerMetadata[0]! },
+        { service: 'gemini', model: 'model-b', artifactDir: 'providers/gemini-model-b', status: 'succeeded', attempts: 1, options: {}, metadata: providerMetadata[1]! },
+        { service: 'grok', model: 'model-c', artifactDir: 'providers/grok-model-c', status: 'failed', attempts: 1, options: {},
+          metadata: { retainedReservationCents: 5, nativeFinishReason: 'length' }, error: { message: 'output limit', receiptId: 'preserved-proof' } },
+      ],
+    }],
+  }
+  edit?.(manifest)
+  for (const provider of manifest.items[0]!.providers) {
+    const dir = join(runDir, provider.artifactDir)
+    mkdirSync(dir, { recursive: true })
+    if (provider.status === 'succeeded') {
+      const text = 'SYNTHETIC OCR DOCUMENT'
+      writeFileSync(join(dir, 'result.json'), JSON.stringify({ text, pages: [{ pageNumber: 1, method: 'ocr', text }], totalPages: 1 }, null, 2))
+      writeFileSync(join(dir, 'extraction.txt'), text + '\n')
+    } else {
+      mkdirSync(join(dir, 'page-results'), { recursive: true })
+      writeFileSync(join(dir, 'page-results', 'page-000001-invalid-response.txt'), 'preserved invalid response\n')
+      writeFileSync(join(dir, 'error.json'), JSON.stringify(provider.error ?? { message: 'synthetic failure' }, null, 2))
+    }
+  }
+  writeFileSync(join(runDir, 'manifest.json'), JSON.stringify(manifest, null, 2))
+  return runDir
+}
+
 describe('consensus compact-archive', () => {
+  test('deduplicates reordered OCR step2 copies while canonical readers, prices, timings and failed evidence stay equivalent', async () => {
+    const root = await tracker.make()
+    const dir = writeOcrMetadataRun(root, 'synthetic-document')
+    const before = readCanonicalManifest(dir)
+    const beforeRecord = deriveCanonicalItemRecord(dir, before.items[0]!)
+    const beforeRuns = loadOcrProviderRuns(dir)
+    const failurePath = join(dir, 'providers/grok-model-c/error.json')
+    const failure = readFileSync(failurePath, 'utf8')
+
+    const stats = compactArchive(root)
+    const after = readCanonicalManifest(dir)
+    expect(stats[0]?.strippedManifestStep2).toBe(1)
+    expect(stats[0]!.manifestBytesAfter).toBeLessThan(stats[0]!.manifestBytesBefore)
+    expect(after.items[0]!.metadata['step2']).toBeUndefined()
+    expect(deriveCanonicalItemRecord(dir, after.items[0]!)).toEqual(beforeRecord)
+    expect(loadOcrProviderRuns(dir)).toEqual(beforeRuns)
+    expect(after.items[0]!.providers).toEqual(before.items[0]!.providers)
+    expect(after.source).toEqual(before.source)
+    expect(after.items[0]!.metadata['cost']).toEqual(before.items[0]!.metadata['cost'])
+    expect(after.items[0]!.metadata['timing']).toEqual(before.items[0]!.metadata['timing'])
+    expect(readFileSync(failurePath, 'utf8')).toBe(failure)
+    expect(readFileSync(join(dir, 'providers/grok-model-c/page-results/page-000001-invalid-response.txt'), 'utf8')).toBe('preserved invalid response\n')
+    expect(readFileSync(join(dir, 'providers/openai-model-a/extraction.txt'), 'utf8')).toBe('SYNTHETIC OCR DOCUMENT\n')
+
+    const firstBytes = readFileSync(join(dir, 'manifest.json'), 'utf8')
+    expect(compactArchive(root)[0]?.strippedManifestStep2).toBe(0)
+    expect(readFileSync(join(dir, 'manifest.json'), 'utf8')).toBe(firstBytes)
+  })
+
+  test('preserves unique, mismatched, incomplete and failed-only step2 evidence', async () => {
+    const root = await tracker.make()
+    const edits: Array<(manifest: PipelineManifest) => void> = [
+      manifest => { manifest.items[0]!.metadata['step2'] = [{ uniqueEvidence: 'keep' }] },
+      manifest => { manifest.items[0]!.metadata['step2'] = [manifest.items[0]!.providers[0]!.metadata, manifest.items[0]!.providers[0]!.metadata] },
+      manifest => { manifest.items[0]!.metadata['step2'] = [manifest.items[0]!.providers[0]!.metadata] },
+      manifest => { for (const provider of manifest.items[0]!.providers) provider.status = 'failed' },
+      manifest => { for (const provider of manifest.items[0]!.providers) provider.metadata = {}; manifest.items[0]!.metadata['step2'] = [{}] },
+    ]
+    const before = edits.map((edit, index) => {
+      const dir = writeOcrMetadataRun(root, `preserve-${index}`, edit)
+      return { dir, manifest: readCanonicalManifest(dir) }
+    })
+    const stats = compactArchive(root)
+    expect(stats.every(stat => stat.strippedManifestStep2 === 0)).toBe(true)
+    for (const row of before) expect(readCanonicalManifest(row.dir)).toEqual(row.manifest)
+  })
+
+  test('preserves step2 in non-document and non-extract manifests', async () => {
+    const root = await tracker.make()
+    const edits: Array<(manifest: PipelineManifest) => void> = [
+      manifest => { manifest.command = 'image' },
+      manifest => { manifest.items[0]!.extractRoute = 'media' },
+      manifest => { manifest.items[0]!.extractRoute = 'file' },
+    ]
+    const before = edits.map((edit, index) => {
+      const dir = writeOcrMetadataRun(root, `other-${index}`, edit)
+      return { dir, manifest: readCanonicalManifest(dir) }
+    })
+    expect(compactArchive(root).every(stat => stat.strippedManifestStep2 === 0)).toBe(true)
+    for (const row of before) expect(readCanonicalManifest(row.dir)).toEqual(row.manifest)
+  })
+
+  test('public OCR archive command reports deduplication and its compacted run still builds a packet', async () => {
+    const root = await tracker.make()
+    const dir = writeOcrMetadataRun(root, 'synthetic-document')
+    const compact = runSyncCommand('bun', [runner, 'ocr', 'compact-archive', root])
+    expect(compact.exitCode).toBe(0)
+    expect(compact.stdout).toContain('duplicate OCR step2 copies removed: 1')
+    const packet = runSyncCommand('bun', [runner, 'ocr', 'build-packet', dir, '--out', join(root, 'packet.json')])
+    expect(packet.exitCode).toBe(0)
+    const result = JSON.parse(readFileSync(join(root, 'packet.json'), 'utf8')) as { providerStats: unknown[] }
+    expect(result.providerStats).toHaveLength(2)
+    const second = runSyncCommand('bun', [runner, 'ocr', 'compact-archive', root])
+    expect(second.exitCode).toBe(0)
+    expect(second.stdout).toContain('duplicate OCR step2 copies removed: 0')
+  })
+
   test('refuses a single run directory', async () => {
     const root = await tracker.make()
     const runDir = writeRun(root, '1-audio')
@@ -283,14 +409,14 @@ describe('consensus compact-archive', () => {
 
   test('prunes OCR page-results after result.json exists and keeps failed-provider checkpoints', async () => {
     const root = await tracker.make()
-    writeOcrRun(root, '05-pages-the-odyssey')
+    writeOcrRun(root, '05-pages-sample-document')
 
     const result = runSyncCommand('bun', [runner, 'ocr', 'compact-archive', root])
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('Compacted 1 run directory')
 
-    const succeededDir = join(root, '05-pages-the-odyssey', 'providers', 'kimi-kimi-k2.6')
-    const failedDir = join(root, '05-pages-the-odyssey', 'providers', 'kimi-kimi-k3')
+    const succeededDir = join(root, '05-pages-sample-document', 'providers', 'kimi-kimi-k2.6')
+    const failedDir = join(root, '05-pages-sample-document', 'providers', 'kimi-kimi-k3')
     expect(existsSync(join(succeededDir, 'result.json'))).toBe(true)
     expect(existsSync(join(succeededDir, 'extraction.txt'))).toBe(true)
     expect(existsSync(join(succeededDir, 'page-results'))).toBe(false)
@@ -303,7 +429,7 @@ describe('consensus compact-archive', () => {
     expect(existsSync(join(failedDir, 'partial-extraction.txt'))).toBe(true)
     expect(existsSync(join(failedDir, 'error.json'))).toBe(true)
 
-    const runDir = join(root, '05-pages-the-odyssey')
+    const runDir = join(root, '05-pages-sample-document')
     const manifest = JSON.parse(readFileSync(join(runDir, 'manifest.json'), 'utf8')) as {
       items: Array<{ providers: Array<{ result?: unknown }> }>
     }

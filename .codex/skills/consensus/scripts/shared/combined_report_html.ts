@@ -199,7 +199,7 @@ export function renderBenchmarkDashboard(page: BenchmarkDashboardPage): Benchmar
   };
   return {
     html: renderDashboardShell(page.title, assets),
-    data: `${JSON.stringify(data, null, 2)}\n`,
+    data: `${JSON.stringify(data)}\n`,
     stylesheet: readFileSync(DASHBOARD_CLIENT_STYLESHEET, "utf8"),
     script: readFileSync(DASHBOARD_CLIENT_SCRIPT, "utf8"),
   };

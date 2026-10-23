@@ -122,42 +122,18 @@ export type ResolvedSoundscapeAnchorResolution = {
   errorBoundMs: number
 }
 
-type SoundEffectProvider = 'elevenlabs' | 'replicate' | 'stability'
-export type SoundEffectLicenseUseClassification = 'noncommercial' | 'commercial' | 'unknown'
-export type SoundEffectDispatchAvailability = 'available' | 'unavailable' | 'retired'
-type SoundEffectCommunityLifecycle = 'official' | 'community-unofficial'
-
-export type SoundEffectLicenseUse = {
-  schemaVersion: 1
-  classification: SoundEffectLicenseUseClassification
-  fixtureHash: string
-  permittedUse?: 'noncommercial' | 'commercial' | undefined
-  licenseProvenance?: string | undefined
-  sourceRefs: string[]
-  evidenceHash: string
-}
+type SoundEffectProvider = 'elevenlabs'
 
 export type SoundEffectCapabilityFixture = {
   schemaVersion: 1
   provider: SoundEffectProvider
   owner?: string | undefined
   model: string
-  pinnedVersion?: string | undefined
   transport: 'hosted-api'
   endpoint: string
   serializerVersion: string
   inputSchema?: Record<string, string> | undefined
   outputSchema?: Record<string, string> | undefined
-  hardwareObservation?: {
-    accelerator: string
-    typicalPredictSeconds?: number | undefined
-    observedAt: string
-  } | undefined
-  upstreamSource?: string | undefined
-  communityLifecycle?: SoundEffectCommunityLifecycle | undefined
-  licenseProvenance?: string | undefined
-  permittedUse?: 'noncommercial' | 'commercial' | undefined
-  dispatchAvailability?: SoundEffectDispatchAvailability | undefined
   checkedAt: string
   sourceRefs: string[]
   constraints: {
@@ -175,11 +151,8 @@ export type SoundEffectCapabilityFixture = {
   }
   pricing: {
     currency: 'USD'
-    perSuccessfulGeneration?: number | undefined
     specifiedDurationPerMinute: number
     automaticDurationPerRequest: number | null
-    typicalPerPrediction?: number | undefined
-    inputDependent?: boolean | undefined
   }
   capabilityFixtureHash: string
 }
@@ -208,7 +181,6 @@ export type SoundEffectRenderPlan = {
   tasks: SoundEffectRenderTask[]
   plannedCost: { amount: number | null, currency: 'USD', basis: string }
   routingDecisions?: SoundscapeCueRoutingDecision[] | undefined
-  licenseUse?: SoundEffectLicenseUse | undefined
   createdAt: string
 }
 
@@ -223,7 +195,6 @@ export type SoundEffectRequestEvidence = {
   queryHash: string
   providerRequestId?: string | undefined
   observedContentType?: string | undefined
-  billedCostUsd?: number | undefined
   observedCharacterCost?: number | undefined
   capturedAt: string
 }
@@ -318,7 +289,6 @@ export type CompactSfx = {
   soundscapePlanId: string
   targetKey: string
   target: SoundEffectTarget
-  licenseUse?: SoundEffectLicenseUse | undefined
   status: 'succeeded'
   cost: { amount: number | null, currency: 'USD', basis: string }
   entries: CompactSfxEntry[]

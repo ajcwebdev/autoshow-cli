@@ -85,7 +85,7 @@ bun autoshow setup --ocr mistral=mistral-ocr-4-0 --ocr-language eng --ocr-dpi 30
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice voice_123
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --step-concurrency tts-chunk=3
 bun autoshow setup --image openai=gpt-image-2
-bun autoshow setup --video ltx=ltx-2-5-fast
+bun autoshow setup --video grok=grok-imagine-video-1.5
 bun autoshow setup --batch-limit 20 --batch-order oldest --batch-concurrency 2
 bun autoshow setup --concurrency-mode immediate
 bun autoshow setup --prompt shortSummary --prompt longChapters
@@ -140,7 +140,7 @@ Representative JSON shape:
       "count": 2
     },
     "video": {
-      "ltxVideo": ["ltx-2-5-fast"],
+      "grokVideo": ["grok-imagine-video-1.5"],
       "duration": 8,
       "resolution": "1080p"
     },

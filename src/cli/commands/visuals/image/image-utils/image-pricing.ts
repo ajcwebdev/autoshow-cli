@@ -1,6 +1,6 @@
 import { resolveGrokImageOptions } from '../image-generation-services/image-grok/grok-image-options'
 import { getImageInputCostPer1M, getImageModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateOpenAIImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { deriveGenerationPricingProviders, IMAGE_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageInputEstimate, OpenAIImageQuality, ProviderModelSelectionSpec } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
@@ -142,41 +142,6 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
           totalCost: costPerImageCents * imageCount + inputImageCostCents,
           inputImageCount, inputImageCostCents,
           note: `Published xAI ${resolution} ${quality} output price plus ${inputImageCount} input images at ${inputImageRateCents} cent${inputImageRateCents === 1 ? '' : 's'} each per request. Account discounts and taxes excluded.`
-        })
-        break
-      }
-      case 'replicate': {
-        const model = validateReplicateImageModel(selection.model)
-        const normalizedSize = options.imageSize?.toUpperCase() ?? '1K'
-        const meta = getImageModelMeta('replicate', model)
-        const sizeCosts = meta?.costPerImageBySizeCents
-        const costPerImageCents = sizeCosts
-          ? requireImageCost('replicate', model, sizeCosts[normalizedSize] ?? sizeCosts['1K'], `costPerImageBySizeCents.${normalizedSize}`)
-          : requireImageCost('replicate', model, meta?.costPerImageCents, 'costPerImageCents')
-        const imageCount = 1
-        const note = sizeCosts
-          ? `Published Replicate ${meta?.displayName ?? model} ${normalizedSize} per-output-image price; provider-reported billing is used when returned`
-          : 'Approximate Replicate published per-output-image price; provider-reported billing is used when returned'
-        estimates.push({
-          provider: 'replicate',
-          model,
-          imageCount,
-          costPerImageCents,
-          totalCost: costPerImageCents * imageCount,
-          note
-        })
-        break
-      }
-      case 'lumalabs': {
-        const model = validateLumalabsImageModel(selection.model)
-        const costPerImageCents = requireImageCost('lumalabs', model, getImageModelMeta('lumalabs', model)?.costPerImageCents, 'costPerImageCents')
-        estimates.push({
-          provider: 'lumalabs',
-          model,
-          imageCount: 1,
-          costPerImageCents,
-          totalCost: costPerImageCents,
-          note: 'Approximate Luma Labs published per-image pricing; image edits and reference images cost slightly more per the Luma pricing table'
         })
         break
       }

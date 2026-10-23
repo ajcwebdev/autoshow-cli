@@ -1,57 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectVideoTargets, getVideoArtifactFileName } from '~/cli/commands/visuals/video/video-targets'
-import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config-command/config-merge'
 
 describe('option resolution contracts', () => {
-  test('generic video controls preserve compatibility aliases and explicit overrides of saved defaults', () => {
-    const canonical = { seed: '123', 'negative-prompt': 'blur', 'multi-clip': false }
-    const aliases = { 'replicate-video-seed': '123', 'replicate-video-negative-prompt': 'blur', 'replicate-video-multi-clip': false }
-    for (const controls of [canonical, aliases]) {
-      expect(buildOptsFromFlags(controls)).toMatchObject({
-        replicateVideoSeed: 123, replicateVideoNegativePrompt: 'blur', replicateVideoMultiClip: false
-      })
-    }
-    const config = { defaults: { video: { replicateVideoSeed: 99, replicateVideoNegativePrompt: 'noise' } } } as Parameters<typeof mergeConfigIntoRawFlags>[1]
-    const configured = mergeConfigIntoRawFlags({}, config, new Set(), 'video')
-    expect(buildOptsFromFlags(configured)).toMatchObject({ replicateVideoSeed: 99, replicateVideoNegativePrompt: 'noise' })
-    for (const [seed, negative] of [['seed', 'negative-prompt'], ['replicate-video-seed', 'replicate-video-negative-prompt']] as const) {
-      const explicit = new Set([seed, negative])
-      const overrides = mergeConfigIntoRawFlags({ [seed]: '0', [negative]: '' }, config, explicit, 'video')
-      expect(buildOptsFromFlags(overrides, {}, explicit)).toMatchObject({ replicateVideoSeed: 0, replicateVideoNegativePrompt: undefined })
-      const reset = mergeConfigIntoRawFlags({ [seed]: '', [negative]: '' }, config, explicit, 'video')
-      expect(buildOptsFromFlags(reset, {}, explicit).replicateVideoSeed).toBeUndefined()
-    }
-    expect(buildOptsFromFlags({})).toMatchObject({ replicateVideoSeed: undefined, replicateVideoNegativePrompt: undefined, replicateVideoMultiClip: undefined })
-  })
-
-  test('generic video controls reject conflicting spellings and invalid seeds before dispatch', () => {
-    for (const [name, alias, value] of [
-      ['seed', 'replicate-video-seed', '1'],
-      ['negative-prompt', 'replicate-video-negative-prompt', 'blur'],
-      ['multi-clip', 'replicate-video-multi-clip', false]
-    ] as const) {
-      expect(() => buildOptsFromFlags({ [name]: value, [alias]: value })).toThrow(`Do not combine --${name}`)
-    }
-    for (const value of ['-1', '2147483648', '1.5', 'invalid']) {
-      expect(() => buildOptsFromFlags({ seed: value })).toThrow('Invalid --seed')
-    }
-  })
-
-  test('generic video controls reject unsupported provider/model combinations before dispatch', () => {
-    for (const controls of [{ seed: '1' }, { 'negative-prompt': 'blur' }, { 'multi-clip': false }]) {
-      expect(() => collectVideoTargets(buildOptsFromFlags({ 'grok-video': 'grok-imagine-video-1.5', ...controls }))).toThrow('require a compatible Replicate video provider target')
-      expect(() => collectVideoTargets(buildOptsFromFlags({ 'replicate-video': 'pixverse/pixverse-v6', 'grok-video': 'grok-imagine-video-1.5', ...controls }))).toThrow('not supported by grok/grok-imagine-video-1.5')
-    }
-    expect(() => collectVideoTargets(buildOptsFromFlags({ 'replicate-video': 'bytedance/seedance-2.5', 'negative-prompt': 'blur' }))).toThrow('--negative-prompt is not supported')
-    expect(() => collectVideoTargets(buildOptsFromFlags({ 'replicate-video': 'alibaba/wan-3', 'multi-clip': false }))).toThrow('--multi-clip is not supported')
-    expect(collectVideoTargets(buildOptsFromFlags({ 'replicate-video': 'alibaba/wan-3', seed: '0', 'negative-prompt': 'blur' }))[0]?.requestSettings).toMatchObject({ seed: 0, negativePrompt: 'blur' })
-  })
-
   test('video audio and reference controls reject targets that would ignore their values', () => {
     for (const [selector, model] of [
       ['gemini-video', 'gemini-omni-1.1-flash'], ['grok-video', 'grok-imagine-video-1.5'],
-      ['ltx-video', 'ltx-2-5-fast'], ['lumalabs-video', 'ray-3.2'], ['fal-video', 'minimax/h3']
+      ['fal-video', 'minimax/h3']
     ] as const) {
       for (const value of [true, false]) {
         expect(() => collectVideoTargets(buildOptsFromFlags({ [selector]: model, 'generate-audio': value }))).toThrow('--generate-audio is not configurable')
@@ -64,30 +19,9 @@ describe('option resolution contracts', () => {
     }
   })
 
-  test('Luma Labs video resolution follows the documented Ray 3.2 values', () => {
-    expect(collectVideoTargets(buildOptsFromFlags({
-      'lumalabs-video': 'ray-3.2',
-      'resolution': '540p'
-    })).map(target => target.service)).toEqual(['lumalabs'])
-
-    expect(() => collectVideoTargets(buildOptsFromFlags({
-      'lumalabs-video': 'ray-3.2',
-      'resolution': '360p'
-    }))).toThrow('Expected 540p, 720p, 1080p')
-  })
-
   test('retired video selectors fail with replacement guidance', () => {
     for (const [provider, model, replacement] of [
-      ['replicate', 'runwayml/aleph-2', 'grok-imagine-video-1.5'],
-      ['replicate', 'wan-video/wan-2.7-t2v', 'alibaba/wan-3'],
-      ['replicate', 'kwaivgi/kling-v3-video', 'pixverse/pixverse-v6'],
-      ['replicate', 'kwaivgi/kling-v3-omni-video', 'bytedance/seedance-2.5'],
-      ['replicate', 'bytedance/seedance-2.0', 'bytedance/seedance-2.5'],
-      ['replicate', 'bytedance/seedance-2.0-fast', 'bytedance/seedance-2.5'],
       ['grok', 'grok-imagine-video', 'grok-imagine-video-1.5'],
-      ['ltx', 'ltx-2-3-fast', 'ltx-2-5-fast'],
-      ['ltx', 'ltx-2-3-pro', 'ltx-2-5-pro'],
-      ['fal', 'fal-ai/pixverse/c1', 'minimax/h3'],
       ['gemini', 'veo-3.1-generate-preview', 'gemini-omni-1.1-flash'],
       ['gemini', 'veo-3.1-fast-generate-preview', 'gemini-omni-1.1-flash'],
       ['gemini', 'veo-3.1-lite-generate-preview', 'gemini-omni-1.1-flash']
@@ -145,107 +79,9 @@ describe('option resolution contracts', () => {
       expect(allReferenceTargets.map(target => `${target.service}/${target.model}`)).toEqual([
         'gemini/gemini-omni-1.1-flash',
         'grok/grok-imagine-video-1.5',
-        'replicate/alibaba/happyhorse-1.1',
-        'replicate/bytedance/seedance-2.5',
         'fal/bytedance/seedance-2.5/reference-to-video',
         'fal/minimax/h3'
       ])
-    })
-
-  test('Replicate video options resolve models and enforce model-specific media limits', () => {
-      const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
-      const bmpDataUrl = `data:image/bmp;base64,${Buffer.from([4, 5, 6]).toString('base64')}`
-      const videoDataUrl = `data:video/mp4;base64,${Buffer.from([7, 8, 9]).toString('base64')}`
-      const audioDataUrl = `data:audio/mpeg;base64,${Buffer.from([10, 11, 12]).toString('base64')}`
-
-      const explicitOpts = buildOptsFromFlags({
-        'replicate-video': ['bytedance/seedance-2.5'],
-        'mode': 'reference-to-video',
-        'reference-image': [imageDataUrl, bmpDataUrl],
-        'reference-video': [videoDataUrl],
-        'reference-audio': [audioDataUrl],
-        'replicate-video-seed': '123',
-        'generate-audio': false,
-        'duration': '-1',
-        'aspect-ratio': 'adaptive'
-      })
-      expect(explicitOpts.replicateVideoModels).toEqual(['bytedance/seedance-2.5'])
-      expect(explicitOpts.replicateVideoSeed).toBe(123)
-      expect(explicitOpts.videoGenerateAudio).toBe(false)
-      expect(explicitOpts.videoReferenceVideos).toEqual([videoDataUrl])
-      expect(explicitOpts.videoReferenceAudios).toEqual([audioDataUrl])
-      expect(collectVideoTargets(explicitOpts).map(target => `${target.service}/${target.model}`)).toEqual([
-        'replicate/bytedance/seedance-2.5'
-      ])
-
-      expect(collectVideoTargets(buildOptsFromFlags({
-        'replicate-video': 'bytedance/seedance-2.5',
-        'mode': 'reference-to-video',
-        'reference-image': Array.from({ length: 30 }, () => imageDataUrl)
-      }))).toHaveLength(1)
-
-      expect(() => collectVideoTargets(buildOptsFromFlags({
-        'replicate-video': 'bytedance/seedance-2.5',
-        'mode': 'reference-to-video',
-        'reference-image': Array.from({ length: 31 }, () => imageDataUrl)
-      }))).toThrow('--reference-image supports at most 30 images')
-
-      expect(() => collectVideoTargets(buildOptsFromFlags({
-        'replicate-video': 'bytedance/seedance-2.5',
-        'resolution': '1080p'
-      }))).toThrow('supports 480p or 720p')
-
-      expect(() => buildOptsFromFlags({
-        'replicate-video': 'wan-video/wan-2.7-t2v'
-      })).toThrow('Use "alibaba/wan-3" instead')
-
-      expect(() => collectVideoTargets(buildOptsFromFlags({
-        'replicate-video-seed': '123'
-      }))).toThrow('require a compatible Replicate video provider target')
-    })
-
-  test('LTX video media modes enforce model capability and documented size limits', () => {
-      const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
-      const lastFrameDataUrl = `data:image/webp;base64,${Buffer.from([4, 5, 6]).toString('base64')}`
-      const videoDataUrl = `data:video/mp4;base64,${Buffer.from([7, 8, 9]).toString('base64')}`
-
-      expect(collectVideoTargets(buildOptsFromFlags({
-        'ltx-video': 'ltx-2-5-fast',
-        'mode': 'image-to-video',
-        'input-image': imageDataUrl,
-        'aspect-ratio': '9:16',
-        'resolution': '4k'
-      })).map(target => `${target.service}/${target.model}`)).toEqual([
-        'ltx/ltx-2-5-fast'
-      ])
-
-      expect(collectVideoTargets(buildOptsFromFlags({
-        'ltx-video': 'ltx-2-5-pro',
-        'mode': 'interpolate',
-        'input-image': imageDataUrl,
-        'last-frame': lastFrameDataUrl,
-        'resolution': '4k',
-        'aspect-ratio': '9:16'
-      })).map(target => `${target.service}/${target.model}`)).toEqual([
-        'ltx/ltx-2-5-pro'
-      ])
-
-      expect(() => collectVideoTargets(buildOptsFromFlags({
-        'ltx-video': 'ltx-2-5-pro',
-        'mode': 'extend',
-        'input-video': videoDataUrl,
-        'duration': '30'
-      }))).toThrow('--mode extend is not supported by ltx/ltx-2-5-pro')
-
-      expect(() => collectVideoTargets(buildOptsFromFlags({
-        'ltx-video': 'ltx-2-5-fast',
-        'aspect-ratio': '1:1'
-      }))).toThrow('Expected 16:9 or 9:16')
-
-      expect(() => collectVideoTargets(buildOptsFromFlags({
-        'ltx-video': 'ltx-2-5-fast',
-        'resolution': '480p'
-      }))).toThrow('Expected 720p or 1080p or 1440p or 4k')
     })
 
   test('Gemini Omni video media modes accept Omni capabilities and reject invalid controls', () => {
@@ -306,17 +142,12 @@ describe('option resolution contracts', () => {
       })).map(target => `${target.service}/${target.model}`)
 
       expect(targets).toContain('gemini/gemini-omni-1.1-flash')
-      expect(targets).toContain('ltx/ltx-2-5-fast')
-      expect(targets).toContain('replicate/alibaba/happyhorse-1.1')
-      expect(targets).toContain('replicate/alibaba/wan-3')
-      expect(targets).not.toContain('replicate/wan-video/wan-2.7-t2v')
+      expect(targets).toContain('grok/grok-imagine-video-1.5')
       expect(targets).not.toContain('gemini/veo-3.1-fast-generate-preview')
-      expect(targets).not.toContain('ltx/ltx-2-3-fast')
     })
 
   test('video artifact names use the single-file name or a sanitized multi-target name', () => {
       expect(getVideoArtifactFileName({ service: 'gemini', model: 'gemini-omni-1.1-flash' }, true)).toBe('generated-video.mp4')
       expect(getVideoArtifactFileName({ service: 'gemini', model: 'gemini-omni-1.1-flash' }, false)).toBe('generated-video-gemini-gemini-omni-1.1-flash.mp4')
-      expect(getVideoArtifactFileName({ service: 'replicate', model: 'wan-video/wan-2.7-t2v' }, false)).toBe('generated-video-replicate-wan-video-wan-2.7-t2v.mp4')
     })
 })

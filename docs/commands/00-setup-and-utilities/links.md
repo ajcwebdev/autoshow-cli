@@ -89,12 +89,9 @@ Accepted provider selectors are the lowercase names below. Fetch other documenta
 | `--provider gladia`         | `general`, `llmstxt`, `models`, `stt`                                                  |
 | `--provider grok`           | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`, `video`          |
 | `--provider inworld`        | `general`, `llmstxt`, `models`, `tts`                                                  |
-| `--provider ltx`            | `llmstxt`, `models`, `video`                                                           |
-| `--provider lumalabs`       | `general`, `image`, `llmstxt`, `models`, `video`                                       |
 | `--provider minimax`        | `general`, `llmstxt`, `models`, `music`                                                |
 | `--provider mistral`        | `general`, `llmstxt`, `models`, `ocr`, `stt`                                           |
 | `--provider openai`         | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`                   |
-| `--provider replicate`      | `general`, `llmstxt`, `models`                                                         |
 | `--provider scrapecreators` | `general`, `llmstxt`, `stt`                                                            |
 | `--provider soniox`         | `general`, `llmstxt`, `stt`                                                            |
 | `--provider speechmatics`   | `general`, `llmstxt`, `stt`                                                            |

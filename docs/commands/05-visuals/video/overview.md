@@ -12,9 +12,6 @@ Generate a video from a text prompt or input image with one or more hosted video
 - [Video Services](#video-services)
   - [Gemini Omni](#gemini-omni)
   - [Grok](#grok)
-  - [LTX](#ltx)
-  - [Replicate](#replicate)
-  - [Luma Labs](#luma-labs)
   - [fal.ai](#falai)
 - [Output](#output)
 - [Notes](#notes)
@@ -30,9 +27,6 @@ bun autoshow setup --doctor
 ```bash
 GEMINI_API_KEY=...
 XAI_API_KEY=...
-LTXV_API_KEY=...
-REPLICATE_API_TOKEN=...
-LUMA_AGENTS_API_KEY=...
 FAL_API_KEY=...
 ```
 ## Usage
@@ -46,14 +40,14 @@ The positional input is a text prompt or an image path, URL, or data URL. A posi
 
 Passing media flags without `--mode` is rejected because the default mode is text-to-video.
 
-| Mode                 | Providers                                       | Required inputs                                                              | Notes                                      |
-| -------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
-| `text`               | All video providers                             | none                                                                         | Default mode                               |
-| `image-to-video`     | Gemini, Grok, LTX, Replicate, Luma Labs, fal.ai | `--input-image`                                                              |                                            |
-| `reference-to-video` | Gemini, Grok, Replicate, fal.ai                 | `--reference-image` and/or `--reference-video`                               |                                            |
-| `interpolate`        | Gemini, LTX 2.5, Replicate, fal.ai              | `--input-image`, `--last-frame`                                              | First/last-frame transition                |
-| `edit`               | Gemini Omni                                     | `--previous-interaction-id` or `--input-video`                               | Conversational or uploaded-video edit      |
-| `extend`             | Gemini Omni                                     | `--previous-interaction-id` or `--input-video`; optional `--reference-image` | Append-only continuation, 3–10s per extend |
+| Mode                 | Providers            | Required inputs                                                              | Notes                                      |
+| -------------------- | -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
+| `text`               | All video providers  | none                                                                         | Default mode                               |
+| `image-to-video`     | Gemini, Grok, fal.ai | `--input-image`                                                              |                                            |
+| `reference-to-video` | Gemini, Grok, fal.ai | `--reference-image` and/or `--reference-video`                               |                                            |
+| `interpolate`        | Gemini, fal.ai       | `--input-image`, `--last-frame`                                              | First/last-frame transition                |
+| `edit`               | Gemini Omni          | `--previous-interaction-id` or `--input-video`                               | Conversational or uploaded-video edit      |
+| `extend`             | Gemini Omni          | `--previous-interaction-id` or `--input-video`; optional `--reference-image` | Append-only continuation, 3–10s per extend |
 
 `--input-video` is the Gemini Omni source clip for `edit` and `extend`. `reference-to-video` uses `--reference-video`.
 
@@ -80,26 +74,21 @@ The `video` and `resume` commands use the same short option names, including `--
 | `--input-image <path-or-url>`          | Input image for `image-to-video`; first frame for `interpolate`                                                           |
 | `--last-frame <path-or-url>`           | Last-frame image for `interpolate`                                                                                        |
 | `--reference-image <path-or-url>`      | Reference image for `reference-to-video` or Gemini Omni `extend`; repeatable                                              |
-| `--reference-video <path-or-url>`      | Reference MP4 for Gemini Omni (up to 3, 3s each), Replicate Seedance, and fal.ai MiniMax H3/Seedance 2.5; repeatable      |
-| `--reference-audio <path-or-url>`      | Reference audio for Replicate Seedance and fal.ai MiniMax H3/Seedance 2.5; repeatable                                     |
+| `--reference-video <path-or-url>`      | Reference MP4 for Gemini Omni (up to 3, 3s each) and fal.ai MiniMax H3/Seedance 2.5; repeatable                           |
+| `--reference-audio <path-or-url>`      | Reference audio for fal.ai MiniMax H3/Seedance 2.5; repeatable                                                            |
+| `--generate-audio`                     | Native audio where supported (fal.ai Seedance 2.5)                                                                        |
 | `--input-video <path-or-url>`          | Gemini Omni `edit`/`extend` source MP4 (uploaded sources ≤10s)                                                            |
 | `--previous-interaction-id <id>`       | Gemini Omni prior interaction id from `providerRequestId`; use with `edit` or `extend` instead of re-uploading            |
-| `--generate-audio`                     | Native audio where supported (Replicate Seedance/PixVerse, fal.ai Seedance 2.5)                                           |
-| `--seed <n>`                           | Replicate video seed (`0`–`2147483647`)                                                                                   |
-| `--negative-prompt <text>`             | Replicate PixVerse V6 and Wan 3.0 negative prompt                                                                         |
-| `--multi-clip`                         | Replicate PixVerse V6 multi-shot generation toggle                                                                        |
 | `--price`                              | Show the estimate and exit                                                                                                |
 | `--max-model-cents <n>`                | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price` |
 | `--output-dir <dir>`                   | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/`                                        |
 
-The provider-neutral `--seed`, `--negative-prompt`, and `--multi-clip` names share the normal video option group and resume support. Their current adapters support Replicate only: seed on every active Replicate model, negative prompts on PixVerse V6 and Wan 3, and multi-clip on PixVerse V6. Unsupported selected targets fail before dispatch. The old `--replicate-video-*` spellings remain hidden compatibility aliases on `video`; do not combine an alias with its canonical spelling. Existing `defaults.video.replicateVideoSeed` and `replicateVideoNegativePrompt` configuration keys remain compatible.
-
-Use `--no-generate-audio` and `--no-multi-clip` to disable supported toggles explicitly. Other models have fixed provider audio behavior and reject an explicit `--generate-audio` control. Reference videos and audio are rejected for Grok, whose reference mode accepts images. Pass `--duration=-1` with the equals sign for automatic Seedance duration.
+Use `--no-generate-audio` to disable supported audio generation explicitly. Other models have fixed provider audio behavior and reject an explicit `--generate-audio` control. Reference videos and audio are rejected for Grok, whose reference mode accepts images. Pass `--duration=-1` with the equals sign for automatic Seedance duration.
 
 See [Provider Capabilities](#provider-capabilities) for the per-model matrix.
 
 ```bash
-bun autoshow video "a rainy neon city street, slow camera pan" --provider gemini=gemini-omni-1.1-flash --provider grok=grok-imagine-video-1.5 --provider ltx=ltx-2-5-fast
+bun autoshow video "a rainy neon city street, slow camera pan" --provider gemini=gemini-omni-1.1-flash --provider grok=grok-imagine-video-1.5
 bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --price
 bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --max-model-cents 100 --price
 ```
@@ -179,51 +168,6 @@ bun autoshow video "an adult explorer wearing the teal jacket and round gold gla
 ```
 - Text, image, and reference durations are 1–15 seconds (default 8). Reference generation is capped at 720p.
 
-### LTX
-
-| Option       | Value                                        |
-| ------------ | -------------------------------------------- |
-| Selector     | `--provider ltx[=<model>]`                   |
-| Models       | `ltx-2-5-fast` (bare default), `ltx-2-5-pro` |
-| Resolution   | `720p\|1080p\|1440p\|4k`; default `1080p`    |
-| Aspect ratio | `--aspect-ratio 16:9\|9:16`                  |
-
-Default duration is `8`s. 2.5 Fast accepts even seconds `6`–`20` at 720p/1080p, and `6`, `8`, or `10` at 1440p/4K. 2.5 Pro accepts `6`, `8`, or `10` at every resolution. Unsupported values are rejected. [LTX 2.5](https://docs.ltx.io/models/ltx-2-5), [pricing](https://docs.ltx.io/pricing)
-
-```bash
-bun autoshow video "a lighthouse beam sweeps across calm water" --provider ltx=ltx-2-5-fast --duration 20 --resolution 720p --aspect-ratio 9:16
-bun autoshow video "transition the same Harborlight campsite from dusk to night" --provider ltx=ltx-2-5-pro --mode interpolate --input-image input/examples/video/harborlight-start.png --last-frame input/examples/video/harborlight-end.png --resolution 1080p --aspect-ratio 9:16
-```
-### Replicate
-
-| Option       | Value                                                                                                                                                                            |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Selector     | `--provider replicate[=<model>]`                                                                                                                                                 |
-| Models       | `alibaba/happyhorse-1.1`, `alibaba/wan-3`, `bytedance/seedance-2.5`, `pixverse/pixverse-v6` (bare default)                                                                       |
-| Duration     | Happy Horse `3`–`15`s, PixVerse `5\|8\|10\|15`s, Seedance 2.5 `4`–`30`s or `-1` (default `5`s), Wan 3.0 `2`–`30`s                                                                |
-| Aspect ratio | Happy Horse `16:9`, `9:16`, `1:1`, `4:3`, `3:4`; PixVerse `16:9`, `9:16`, `1:1`; Seedance 2.5 adds `21:9`, `adaptive` and omits `9:21` (default `16:9`); Wan 3.0 adds `adaptive` |
-
-```bash
-bun autoshow video "cinematic mountain sunrise" --provider replicate=bytedance/seedance-2.5
-bun autoshow video "multi-shot launch" --provider replicate=pixverse/pixverse-v6 --duration 8 --resolution 1080p --generate-audio --multi-clip
-```
-- Wan 3.0 (`alibaba/wan-3`) supports text-to-video and image-to-video at 480p, 720p, and 1080p. Audio generation, interpolate, reference media, and multi-clip are not supported. [Wan 3.0](https://replicate.com/alibaba/wan-3)
-- `--duration -1` lets Seedance choose duration. `--price` estimates 30 seconds for Seedance 2.5.
-- Seedance 2.5 image-to-video and interpolate require `adaptive` aspect ratio (the default when omitted) and cannot be combined with reference media. References: 30 images, 10 videos, and 10 audios, with 30 seconds combined per timed modality. Audio references require an image or video. Native audio is on by default. [Seedance 2.5](https://replicate.com/bytedance/seedance-2.5)
-
-### Luma Labs
-
-| Option       | Value                                                                  |
-| ------------ | ---------------------------------------------------------------------- |
-| Selector     | `--provider lumalabs[=<model>]`                                        |
-| Models       | `ray-3.2`                                                              |
-| Duration     | `--duration <seconds>`; rounds to `5s` (under 8) or `10s` (8 and over) |
-| Resolution   | `--resolution 540p\|720p\|1080p`; default `720p`                       |
-| Aspect ratio | `9:16`, `3:4`, `1:1`, `4:3`, `16:9`, or `21:9`; default `16:9`         |
-
-```bash
-bun autoshow video "slow dolly through misty greenhouse" --provider lumalabs=ray-3.2 --duration 5 --resolution 720p
-```
 ### fal.ai
 
 | Option     | Value                                                                         |
@@ -268,22 +212,15 @@ Text-to-video and image-to-video are available on every provider. fal Seedance a
 
 ✅ supported, ❌ not supported. Max resolution: ✅ 2K/4K, ⚠️ 1080p, ❌ 720p. Duration: ✅ 15s+, ⚠️ max 10s, ❌ max 8s. Aspect ratio: ✅ any/7+, ⚠️ 5–6, ❌ 3 or fewer / input frame. References: ❌ none, ⚠️ up to 3, ✅ 4 or more. Rows are newest first. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Outputs are the default per-second (or per-clip) estimate. Inputs are extra billed reference or token cost when published separately; `Included` means the published rate is per output second. Output pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first on the default billed rate (1 = cheapest); ties share a rank.
 
-| Provider                                           | Released     | reference-to-video | interpolate | edit | extend | Duration                                 | Max resolution | Aspect ratio   | Native audio          | References | Inputs                                                  | Outputs                                                      | Cost rank |
-| -------------------------------------------------- | ------------ | ------------------ | ----------- | ---- | ------ | ---------------------------------------- | -------------- | -------------- | --------------------- | ---------- | ------------------------------------------------------- | ------------------------------------------------------------ | --------- |
-| fal.ai `minimax/h3-max-turbo/text-to-video`        | ✅ 2026-09    | ❌                  | ❌           | ❌    | ❌      | ✅ 5–15s                                  | ⚠️ 1080p       | ⚠️ 6 ratios    | ✅ Always on           | ❌ No       | Included                                                | ✅ $0.025/$0.04/$0.08 per second at 480p/768p/1080p           | 1/17      |
-| fal.ai `minimax/h3-max-turbo/image-to-video`       | ✅ 2026-09    | ❌                  | ✅           | ❌    | ❌      | ✅ 5–15s                                  | ⚠️ 1080p       | ❌ Input frame  | ✅ Always on           | ❌ No       | Included                                                | ✅ $0.025/$0.04/$0.08 per second at 480p/768p/1080p           | 1/17      |
-| fal.ai `minimax/h3-max/text-to-video`              | ✅ 2026-09    | ❌                  | ❌           | ❌    | ❌      | ✅ 5–15s                                  | ⚠️ 1080p       | ⚠️ 6 ratios    | ✅ Always on           | ❌ No       | Included                                                | ✅ $0.05/$0.08/$0.16 per second at 480p/768p/1080p            | 4/17      |
-| fal.ai `minimax/h3-max/image-to-video`             | ✅ 2026-09    | ❌                  | ✅           | ❌    | ❌      | ✅ 5–15s                                  | ⚠️ 1080p       | ❌ Input frame  | ✅ Always on           | ❌ No       | Included                                                | ✅ $0.05/$0.08/$0.16 per second at 480p/768p/1080p            | 4/17      |
-| Gemini `gemini-omni-1.1-flash`                     | ✅ 2026-08    | ✅                  | ✅           | ✅    | ✅      | ⚠️ 3–10s                                 | ✅ 4K           | ❌ 16:9 or 9:16 | ✅ Always on           | ⚠️ Up to 3 | Not estimated                                           | ⚠️ $0.10/s                                                   | 8/17      |
-| Replicate `alibaba/wan-3`                          | ✅ 2026-08-24 | ❌                  | ❌           | ❌    | ❌      | ✅ 2–30s                                  | ⚠️ 1080p       | ⚠️ 6 ratios    | ❌ No                  | ❌ No       | Included                                                | ⚠️ $0.05/$0.10/$0.20 per second at 480p/720p/1080p           | 8/17      |
-| LTX `ltx-2-5-fast`                                 | ✅ 2026-08    | ❌                  | ✅           | ❌    | ❌      | ✅ 6–20s at 720p/1080p; 6–10s at 1440p/4K | ✅ 4K           | ❌ 16:9 or 9:16 | ✅ Always on           | ❌ No       | Included                                                | ⚠️ $0.09/$0.13/$0.19/$0.30 per second at 720p/1080p/1440p/4K | 10/17     |
-| LTX `ltx-2-5-pro`                                  | ✅ 2026-08    | ❌                  | ✅           | ❌    | ❌      | ⚠️ 6–10s                                 | ✅ 4K           | ❌ 16:9 or 9:16 | ✅ Always on           | ❌ No       | Included                                                | ⚠️ $0.12/$0.17/$0.25/$0.39 per second at 720p/1080p/1440p/4K | 12/17     |
-| fal.ai `minimax/h3`                                | ✅ 2026-07-31 | ✅                  | ✅           | ❌    | ❌      | ✅ 5–15s                                  | ✅ 2K           | ⚠️ 6 ratios    | ✅ Always on           | ✅ Up to 9  | Included                                                | ❌ $0.26/s                                                    | 14/17     |
-| fal.ai `bytedance/seedance-2.5/text-to-video`      | ✅ 2026-07-31 | ❌                  | ❌           | ❌    | ❌      | ✅ 4–30s or −1                            | ⚠️ 1080p       | ✅ 7 ratios     | ⚠️ `--generate-audio` | ❌ No       | Included                                                | ❌ $0.2205/$0.473/$1.164 per second at 480p/720p/1080p        | 15/17     |
-| fal.ai `bytedance/seedance-2.5/image-to-video`     | ✅ 2026-07-31 | ❌                  | ✅           | ❌    | ❌      | ✅ 4–30s or −1                            | ⚠️ 1080p       | ❌ Input frame  | ⚠️ `--generate-audio` | ❌ No       | Included                                                | ❌ $0.2205/$0.473/$1.164 per second at 480p/720p/1080p        | 15/17     |
-| fal.ai `bytedance/seedance-2.5/reference-to-video` | ✅ 2026-07-31 | ✅                  | ❌           | ❌    | ❌      | ✅ 4–30s or −1                            | ⚠️ 1080p       | ✅ 7 ratios     | ⚠️ `--generate-audio` | ✅ Up to 30 | Video refs at 0.6× rate, input+output seconds           | ❌ $0.2205/$0.473/$1.164 per second at 480p/720p/1080p        | 15/17     |
-| Replicate `bytedance/seedance-2.5`                 | ✅ 2026-07-31 | ✅                  | ✅           | ❌    | ❌      | ✅ 4–30s or −1                            | ❌ 720p         | ✅ 7 ratios     | ⚠️ `--generate-audio` | ✅ Up to 30 | $0.4304/$0.9676 per second at 480p/720p with video refs | ❌ $0.1028/$0.2312 per second at 480p/720p                    | 13/17     |
-| Replicate `alibaba/happyhorse-1.1`                 | ✅ 2026-06-22 | ✅                  | ❌           | ❌    | ❌      | ✅ 3–15s                                  | ⚠️ 1080p       | ⚠️ 5 ratios    | ❌ No                  | ✅ Up to 9  | Included                                                | ⚠️ $0.14/s at 720p ($0.18 at 1080p)                          | 11/17     |
-| Luma Labs `ray-3.2`                                | ✅ 2026-06-09 | ❌                  | ❌           | ❌    | ❌      | ⚠️ 5s or 10s                             | ⚠️ 1080p       | ⚠️ 6 ratios    | ❌ No                  | ❌ No       | Included                                                | ✅ $0.30 per 5s 720p clip ($0.06–$3.60 by tier)               | 3/17      |
-| Grok `grok-imagine-video-1.5`                      | ✅ 2026-05-30 | ✅                  | ❌           | ❌    | ❌      | ✅ 1–15s                                  | ⚠️ 1080p       | ✅ 7 ratios     | ❌ No                  | ✅ Up to 5  | $0.01/image                                             | ✅ $0.08/s at 480p ($0.14 at 720p, $0.25 at 1080p)            | 4/17      |
-| Replicate `pixverse/pixverse-v6`                   | ✅ 2026-04-22 | ❌                  | ✅           | ❌    | ❌      | ✅ 5–15s                                  | ⚠️ 1080p       | ❌ 3 ratios     | ⚠️ `--generate-audio` | ❌ No       | Included                                                | ⚠️ $0.09/s at 720p ($0.05–$0.18 by resolution)               | 7/17      |
+| Provider                                           | Released     | reference-to-video | interpolate | edit | extend | Duration      | Max resolution | Aspect ratio   | Native audio          | References | Inputs                                        | Outputs                                               | Cost rank |
+| -------------------------------------------------- | ------------ | ------------------ | ----------- | ---- | ------ | ------------- | -------------- | -------------- | --------------------- | ---------- | --------------------------------------------- | ----------------------------------------------------- | --------- |
+| fal.ai `minimax/h3-max-turbo/text-to-video`        | ✅ 2026-09    | ❌                  | ❌           | ❌    | ❌      | ✅ 5–15s       | ⚠️ 1080p       | ⚠️ 6 ratios    | ✅ Always on           | ❌ No       | Included                                      | ✅ $0.025/$0.04/$0.08 per second at 480p/768p/1080p    | 1/10      |
+| fal.ai `minimax/h3-max-turbo/image-to-video`       | ✅ 2026-09    | ❌                  | ✅           | ❌    | ❌      | ✅ 5–15s       | ⚠️ 1080p       | ❌ Input frame  | ✅ Always on           | ❌ No       | Included                                      | ✅ $0.025/$0.04/$0.08 per second at 480p/768p/1080p    | 1/10      |
+| fal.ai `minimax/h3-max/text-to-video`              | ✅ 2026-09    | ❌                  | ❌           | ❌    | ❌      | ✅ 5–15s       | ⚠️ 1080p       | ⚠️ 6 ratios    | ✅ Always on           | ❌ No       | Included                                      | ✅ $0.05/$0.08/$0.16 per second at 480p/768p/1080p     | 3/10      |
+| fal.ai `minimax/h3-max/image-to-video`             | ✅ 2026-09    | ❌                  | ✅           | ❌    | ❌      | ✅ 5–15s       | ⚠️ 1080p       | ❌ Input frame  | ✅ Always on           | ❌ No       | Included                                      | ✅ $0.05/$0.08/$0.16 per second at 480p/768p/1080p     | 3/10      |
+| Gemini `gemini-omni-1.1-flash`                     | ✅ 2026-08    | ✅                  | ✅           | ✅    | ✅      | ⚠️ 3–10s      | ✅ 4K           | ❌ 16:9 or 9:16 | ✅ Always on           | ⚠️ Up to 3 | Not estimated                                 | ⚠️ $0.10/s                                            | 6/10      |
+| fal.ai `minimax/h3`                                | ✅ 2026-07-31 | ✅                  | ✅           | ❌    | ❌      | ✅ 5–15s       | ✅ 2K           | ⚠️ 6 ratios    | ✅ Always on           | ✅ Up to 9  | Included                                      | ⚠️ $0.26/s                                            | 7/10      |
+| fal.ai `bytedance/seedance-2.5/text-to-video`      | ✅ 2026-07-31 | ❌                  | ❌           | ❌    | ❌      | ✅ 4–30s or −1 | ⚠️ 1080p       | ✅ 7 ratios     | ⚠️ `--generate-audio` | ❌ No       | Included                                      | ❌ $0.2205/$0.473/$1.164 per second at 480p/720p/1080p | 8/10      |
+| fal.ai `bytedance/seedance-2.5/image-to-video`     | ✅ 2026-07-31 | ❌                  | ✅           | ❌    | ❌      | ✅ 4–30s or −1 | ⚠️ 1080p       | ❌ Input frame  | ⚠️ `--generate-audio` | ❌ No       | Included                                      | ❌ $0.2205/$0.473/$1.164 per second at 480p/720p/1080p | 8/10      |
+| fal.ai `bytedance/seedance-2.5/reference-to-video` | ✅ 2026-07-31 | ✅                  | ❌           | ❌    | ❌      | ✅ 4–30s or −1 | ⚠️ 1080p       | ✅ 7 ratios     | ⚠️ `--generate-audio` | ✅ Up to 30 | Video refs at 0.6× rate, input+output seconds | ❌ $0.2205/$0.473/$1.164 per second at 480p/720p/1080p | 8/10      |
+| Grok `grok-imagine-video-1.5`                      | ✅ 2026-05-30 | ✅                  | ❌           | ❌    | ❌      | ✅ 1–15s       | ⚠️ 1080p       | ✅ 7 ratios     | ❌ No                  | ✅ Up to 5  | $0.01/image                                   | ✅ $0.08/s at 480p ($0.14 at 720p, $0.25 at 1080p)     | 3/10      |

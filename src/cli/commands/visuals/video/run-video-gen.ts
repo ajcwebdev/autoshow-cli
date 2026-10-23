@@ -50,7 +50,7 @@ export const runVideoGen = async (
 ): Promise<{ videoPaths: string[], metadata: Step6VideoMetadata[] }> => {
   const targets = collectVideoTargets(options)
   if (targets.length === 0) {
-    throw UsageError('Specify a video generation provider with --provider gemini|grok|ltx|replicate|lumalabs|fal[=model]')
+    throw UsageError('Specify a video generation provider with --provider gemini|grok|fal[=model]')
   }
   return await runVideoTargets(targets, prompt, outputDir, options)
 }

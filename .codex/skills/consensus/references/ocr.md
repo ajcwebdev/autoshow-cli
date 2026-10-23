@@ -26,6 +26,25 @@ To use a non-default consensus extraction artifact path:
 bun scripts/run.ts ocr build-report "$RUN_DIR" --input-text /path/to/consensus-extraction.txt
 ```
 
+When the user requests evaluation against an independent publisher reference, preserve that reference rather than deriving gold from provider outputs. Declare its provenance in the run's `manifest.json` as a top-level `reference` object:
+
+```json
+{
+  "reference": {
+    "kind": "publisher-canonical",
+    "path": "input/examples/document/example/canonical-reference.txt",
+    "sha256": "<64 hexadecimal characters, hashing the exact reference file bytes>",
+    "sourceUrl": "https://publisher.example/reference",
+    "sourceRevision": "<pinned publisher revision>",
+    "description": "<source annotation selector and deterministic conversion policy>"
+  }
+}
+```
+
+The path must be normalized and relative to the repository root. Report generation resolves this declared reference by default and verifies its exact SHA-256 before scoring; an explicit `--input-text` must match the declared path. Missing provenance fields, mismatched paths and changed reference bytes are rejected. Generated reports add `referenceProvenance.independentOfProviders: true`, label the source as a publisher canonical reference and use the `publisher-canonical` diagnostic variant. Existing runs without a declaration retain the consensus workflow and its labels. Diagnostic provider agreement never changes independently supplied gold.
+
+Keep restricted source images, publisher text, packets and text-bearing provider results in ignored local storage. Use `--markdown-out` and `--json-out` to write metric-only reports into the benchmark archive; analysis sidecars follow the JSON output directory. The legacy `consensusExtractionPath` field remains a compatibility path field and points to the declared publisher reference for these runs.
+
 The OCR report uses full grouped metric rankings:
 
 1. `## Metric Rankings` contains Local and Third-Party Service groups.
@@ -46,7 +65,7 @@ Quality Score rankings use the existing WER-derived score from highest to lowest
 
 These are repo-local consensus-skill artifacts only. They do not add production CLI flags or public APIs, and they must be generated from existing provider artifacts unless the user separately approves an exact paid provider rerun.
 
-On a category root such as `docs/benchmarks/ocr`, run `compact-archive` before the combined report. It strips duplicated `providers[].result` payloads from each run `manifest.json` when `result.json` exists, minifies `provider-comparison-report.json`, `page-metrics.json`, `outliers.json`, `selective-adjudication-pages.json`, `variant-comparison-summary.json`, and the archive-root `combined-comparison-report.json`, rewrites absolute run paths in those files to run-relative paths, deletes regenerable `page-inputs/` trees, and deletes per-page resume checkpoints (`providers/*/page-results/`, `fallback-state.json`, `partial-extraction.txt`) once the sibling `result.json` exists. Failed providers without `result.json` keep those checkpoints, including invalid-response files. Markdown reports stay pretty-printed. See `references/shared-conventions.md`.
+On a category root such as `docs/benchmarks/ocr`, run `compact-archive` before the combined report. It strips duplicated `providers[].result` payloads from each run `manifest.json` when `result.json` exists, minifies `provider-comparison-report.json`, `page-metrics.json`, `outliers.json`, `selective-adjudication-pages.json`, `variant-comparison-summary.json`, and the archive-root `combined-comparison-report.json`, rewrites absolute run paths in those files to run-relative paths, deletes regenerable `page-inputs/` trees, and deletes per-page resume checkpoints (`providers/*/page-results/`, `fallback-state.json`, `partial-extraction.txt`) once the sibling `result.json` exists. For document-route extract items it also removes stored `metadata.step2` only when every entry is an exact duplicate of the complete multiset of nonempty successful provider metadata. The canonical reader derives `step2` from the retained provider records, so page evidence, costs, usage and successful/failed provider metadata remain available. Unique or mismatched copies and zero-success items are preserved. Failed providers without `result.json` keep their checkpoints, including invalid-response files. Markdown reports stay pretty-printed. See `references/shared-conventions.md`.
 
 ## Combined Cross-Run Report
 

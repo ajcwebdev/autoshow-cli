@@ -1,20 +1,13 @@
 import { readUtf8FileExact } from '~/utils/bun-file-io'
 import { mkdir, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { CacheEntry, CompactSfx, CompactSfxEntry, HostedConcurrencyCoordinator, PersistedSoundEffectResponse, SoundEffectAdapter, SoundEffectAdmissionStarted, SoundEffectAdmissionTerminal, SoundEffectGenerationResponse, SoundEffectLicenseUse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
+import type { CacheEntry, CompactSfx, CompactSfxEntry, HostedConcurrencyCoordinator, PersistedSoundEffectResponse, SoundEffectAdapter, SoundEffectAdmissionStarted, SoundEffectAdmissionTerminal, SoundEffectGenerationResponse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
 import { UsageError, hasErrorCode } from '~/utils/error-handler'
 import { classifyPaidCreateRetry, withRetry } from '~/utils/retries'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { isMissingArtifactError, readContainedArtifactFile, removeContainedDirectory, writeImmutableArtifactFile, writeReplaceableArtifactFile } from '../script-to-audio/safe-artifact-store'
 import { serializeElevenLabsSoundEffectRequest, validateElevenLabsSoundEffectTask } from './elevenlabs-sfx-adapter'
-import {
-  assertAudioGenDispatchEligible,
-  assertAudioGenLicenseEligible,
-  serializeReplicateAudioGenRequest,
-  validateReplicateAudioGenTask,
-} from './replicate-audiogen-adapter'
-import { serializeStabilitySoundEffectRequest, validateStabilitySoundEffectTask } from './stability-stable-audio-adapter'
 import { SoundEffectProviderError } from './sound-effect-errors'
 import { inspectSoundscapeAudio } from './soundscape-audio'
 import { routeSoundscapeSynthesisTasks } from './soundscape-routing'
@@ -128,16 +121,10 @@ const writeAdmissionTerminal = async (rootDir: string, plan: SoundEffectRenderPl
 }
 
 const serializeSoundEffectRequest = (task: SoundEffectRenderTask, target: SoundEffectTarget) =>
-  target.provider === 'replicate'
-    ? serializeReplicateAudioGenRequest(task, target)
-    : target.provider === 'stability'
-      ? serializeStabilitySoundEffectRequest(task, target)
-      : serializeElevenLabsSoundEffectRequest(task, target)
+  serializeElevenLabsSoundEffectRequest(task, target)
 
 const validateSoundEffectTask = (task: SoundEffectRenderTask, target: SoundEffectTarget): void => {
-  if (target.provider === 'replicate') validateReplicateAudioGenTask(task, target)
-  else if (target.provider === 'stability') validateStabilitySoundEffectTask(task, target)
-  else validateElevenLabsSoundEffectTask(task, target)
+  validateElevenLabsSoundEffectTask(task, target)
 }
 
 const requestIdentityFor = (task: SoundEffectRenderTask, target: SoundEffectTarget): string =>
@@ -152,13 +139,6 @@ const requestIdentityFor = (task: SoundEffectRenderTask, target: SoundEffectTarg
   })
 
 const planSoundEffectCost = (tasks: readonly SoundEffectRenderTask[], pricing: SoundEffectRenderPlan['target']['capabilityFixture']['pricing']): { amount: number | null, basis: string } => {
-  if (pricing.perSuccessfulGeneration !== undefined) return { amount: tasks.length * pricing.perSuccessfulGeneration, basis: 'published flat rate per successful generation; failed generations are not billed' }
-  if (pricing.typicalPerPrediction !== undefined && pricing.inputDependent) {
-    return {
-      amount: tasks.length * pricing.typicalPerPrediction,
-      basis: 'version-qualified typical per-prediction estimate with input-dependent variance',
-    }
-  }
   if (tasks.some(task => task.durationSeconds === undefined)) return { amount: null, basis: 'unknown:auto-duration pricing is not represented as zero' }
   return {
     amount: tasks.reduce((sum, task) => sum + ((task.durationSeconds as number) / 60) * pricing.specifiedDurationPerMinute, 0),
@@ -167,11 +147,9 @@ const planSoundEffectCost = (tasks: readonly SoundEffectRenderTask[], pricing: S
 }
 
 const validatePlanIdentity = (plan: SoundEffectRenderPlan): SoundEffectRenderPlan => {
+  if (plan.target.provider !== 'elevenlabs') throw UsageError(`Unsupported sound-effect provider ${plan.target.provider}; expected elevenlabs.`)
   if (plan.schemaVersion !== 1 || !/^[a-f0-9]{64}$/u.test(plan.soundscapePlanId) || !plan.target.targetKey) throw UsageError('Sound-effect render plan has invalid source or target identity.')
   if (plan.target.capabilityFixture.capabilityFixtureHash !== hashCanonicalTtsValue((({ capabilityFixtureHash: _hash, ...rest }) => rest)(plan.target.capabilityFixture))) throw UsageError('Sound-effect capability fixture hash is invalid.')
-  if (plan.target.provider === 'replicate') {
-    assertAudioGenLicenseEligible(plan.licenseUse, plan.target.capabilityFixture)
-  }
   if (plan.routingDecisions) {
     const dedicated = new Set(plan.routingDecisions.filter(decision => decision.route === 'dedicated-sfx').map(decision => decision.cueId))
     if (plan.routingDecisions.some(decision => decision.route === 'unsupported' && decision.required)) throw UsageError('Sound-effect render plan records a required unsupported cue.')
@@ -192,15 +170,7 @@ export const createSoundEffectRenderPlan = (input: {
   plan: SoundscapePlan
   target: SoundEffectTarget
   createdAt?: string | undefined
-  licenseUse?: SoundEffectLicenseUse | undefined
-  allowUnavailable?: boolean | undefined
 }): SoundEffectRenderPlan => {
-  if (input.target.provider === 'replicate' && !input.allowUnavailable) {
-    assertAudioGenDispatchEligible(input.target.capabilityFixture)
-  }
-  const licenseUse = input.target.provider === 'replicate'
-    ? assertAudioGenLicenseEligible(input.licenseUse, input.target.capabilityFixture)
-    : undefined
   const routed = routeSoundscapeSynthesisTasks({ tasks: input.plan.synthesisTasks, target: input.target })
   const tasks: SoundEffectRenderTask[] = routed.sfxTasks.map((task) => {
     const requestBase = { ...task, requestIdentity: '', outputFormat: input.target.outputFormat, promptInfluence: input.target.promptInfluence }
@@ -214,7 +184,6 @@ export const createSoundEffectRenderPlan = (input: {
     tasks,
     plannedCost: { amount: plannedCost.amount, currency: 'USD' as const, basis: plannedCost.basis },
     routingDecisions: routed.decisions,
-    ...(licenseUse ? { licenseUse } : {}),
     createdAt: input.createdAt ?? input.plan.createdAt,
   }
   return validatePlanIdentity({ ...base, renderPlanId: hashCanonicalTtsValue(base) })
@@ -280,7 +249,6 @@ const compactSfxEntry = (entry: SoundEffectRenderResultEntry): CompactSfxEntry =
   requestIdentity: entry.requestIdentity,
   status: entry.status,
   ...(entry.audio ? { audio: entry.audio } : {}),
-  ...(entry.requestEvidence?.billedCostUsd !== undefined ? { cost: { amount: entry.requestEvidence.billedCostUsd, currency: 'USD' as const } } : {}),
   ...(entry.omissionReason ? { omissionReason: entry.omissionReason } : {}),
 })
 
@@ -291,11 +259,8 @@ const compactSoundEffectResult = (plan: SoundEffectRenderPlan, result: SoundEffe
     soundscapePlanId: plan.soundscapePlanId,
     targetKey: plan.target.targetKey,
     target: plan.target,
-    ...(plan.licenseUse ? { licenseUse: plan.licenseUse } : {}),
     status: 'succeeded' as const,
-    cost: plan.target.capabilityFixture.pricing.perSuccessfulGeneration !== undefined
-      ? { amount: result.entries.some(entry => entry.status === 'omitted') ? null : result.entries.reduce((sum, entry) => sum + (entry.requestEvidence?.billedCostUsd ?? plan.target.capabilityFixture.pricing.perSuccessfulGeneration ?? 0), 0), currency: 'USD' as const, basis: result.entries.some(entry => entry.status === 'omitted') ? 'Unknown: omitted work may include an accepted generation without a recovered response' : 'Successful generations only' }
-      : plan.plannedCost,
+    cost: plan.plannedCost,
     entries: result.entries.map(compactSfxEntry),
     createdAt: result.createdAt,
   }
@@ -398,7 +363,6 @@ export const executeSoundEffectRenderPlan = async (input: {
         let resultSource: SoundEffectRenderResultEntry['source'] = response ? 'resume' : 'provider-dispatch'
         let nextRequestOrdinal = retainedAdmission.nextOrdinal
         if (!response) {
-          if (input.plan.target.provider === 'replicate') assertAudioGenDispatchEligible(input.plan.target.capabilityFixture)
           response = await withRetry({
             operationName: `sound-effect-dispatch-${task.taskId}`,
             retryClass: 'runtime_http_create_conservative',

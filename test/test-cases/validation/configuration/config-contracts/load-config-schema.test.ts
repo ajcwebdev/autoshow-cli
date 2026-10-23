@@ -50,16 +50,14 @@ describe('config load schema contracts', () => {
           chunkConcurrency: 3
         },
         image: {
-          replicateImage: ['alibaba/qwen-image-3'],
+          falImage: ['alibaba/qwen-image-3'],
           format: 'jpeg'
         },
         video: {
-          replicateVideo: ['bytedance/seedance-2.5'],
-          replicateVideoSeed: 123,
+          falVideo: ['bytedance/seedance-2.5/reference-to-video'],
           generateAudio: false,
           referenceVideos: ['input/examples/video/reference.mp4'],
           referenceAudios: ['input/examples/audio/reference.mp3'],
-          replicateVideoNegativePrompt: 'blur',
           duration: -1
         }
       }
@@ -122,7 +120,7 @@ describe('config load schema contracts', () => {
   })
 
   test('obsolete TTS provider keys fail with migration guidance', async () => {
-    for (const key of ['deepgramTts', 'replicateTts', 'falTts']) {
+    for (const key of ['deepgramTts', 'falTts']) {
       const configPath = await writeTempConfig({ defaults: { tts: { [key]: ['historical-model'] } } })
       await expect(loadConfig(configPath)).rejects.toThrow(`TTS provider configuration ${key} is no longer supported.`)
     }

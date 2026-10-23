@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from 'bun:test'
-import { chmod, mkdtemp, mkdir, rm } from 'node:fs/promises'
+import { chmod, mkdtemp, mkdir, readdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { DockerEngine, containerArguments, mapArtifactPath } from '../../../docker-acceptance/docker-engine'
@@ -247,14 +247,56 @@ test('zero selected/executed cases and incomplete runs cannot pass', async () =>
 test('no-cost service CLI rejections are imported as data and require disabled networking', () => {
   const cases = dockerScenarios()
   const rejections = rejectionScenarios(containerFixture)
-  expect(rejections).toHaveLength(8)
+  expect(rejections.map(item => item.id)).toStrictEqual([
+    'reject-mistral-tts', 'reject-tts-reference', 'reject-unknown-bfl', 'reject-gemini-lite-size',
+    'reject-openai-image-count', 'reject-grok-image-format', 'reject-gemini-video-duration', 'reject-music-provider'
+  ])
   for (const rejection of rejections) {
     const scenario = cases.find(item => item.id === rejection.id)!
     expect(scenario.network).toBe('none')
     expect(scenario.args).toEqual(rejection.args)
-    expect(rejection.exitCode).toBeGreaterThan(0)
+    expect(rejection.exitCode).toBe(2)
   }
 })
+
+test('current image and video control rejections execute without credentials, network requests, or run outputs', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'autoshow-service-rejections-'))
+  roots.push(root)
+  const configPath = join(root, 'empty-config.json')
+  const networkAttempt = join(root, 'network-attempt.txt')
+  const preload = join(root, 'deny-network.mjs')
+  await Bun.write(configPath, '{}')
+  await Bun.write(preload, `
+    import { writeFileSync } from 'node:fs';
+    import { syncBuiltinESMExports } from 'node:module';
+    import http from 'node:http';
+    import https from 'node:https';
+    import net from 'node:net';
+    import tls from 'node:tls';
+    const deny = () => { writeFileSync(${JSON.stringify(networkAttempt)}, 'blocked'); throw new Error('Network requests are disabled for rejection contracts'); };
+    globalThis.fetch = deny;
+    http.request = http.get = https.request = https.get = deny;
+    net.connect = net.createConnection = tls.connect = deny;
+    Bun.connect = deny;
+    syncBuiltinESMExports();
+  `)
+  const currentIds = new Set(['reject-openai-image-count', 'reject-grok-image-format', 'reject-gemini-video-duration'])
+  const selected = rejectionScenarios(name => join(root, name)).filter(scenario => currentIds.has(scenario.id))
+  expect(selected).toHaveLength(3)
+  for (const scenario of selected) {
+    expect(scenario.args).toContain('--price')
+    const outputRoot = join(root, scenario.id)
+    const child = Bun.spawn([process.execPath, '--no-env-file', '--preload', preload, resolve('src/cli/create-cli.ts'), ...scenario.args, '--config-path', configPath, '--output-root', outputRoot, '--no-color'], {
+      env: { PATH: process.env['PATH'], NO_COLOR: '1', CI: 'true' }, stdout: 'pipe', stderr: 'pipe'
+    })
+    const [exitCode, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()])
+    expect(exitCode, stderr).toBe(2)
+    expect(`${stdout}\n${stderr}`).toContain(scenario.diagnostic)
+    for (const absent of scenario.absent ?? []) expect(`${stdout}\n${stderr}`).not.toContain(absent)
+    expect(await Bun.file(networkAttempt).exists()).toBe(false)
+    expect(await readdir(outputRoot).catch(() => [])).toStrictEqual([])
+  }
+}, 15_000)
 
 test('runner parsing bounds timeouts and preserves native model selection', () => {
   expect(parseDockerOptions([]).suite).toBe('all')

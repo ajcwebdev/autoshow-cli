@@ -16,8 +16,7 @@ export const buildVideoCostSteps = (input: ComputeEstimatedCostsInput): CostStep
     ...(input.grokInputImageCount !== undefined ? { grokInputImageCount: input.grokInputImageCount } : {}),
     ...(input.grokInputVideoDurationSeconds !== undefined ? { grokInputVideoDurationSeconds: input.grokInputVideoDurationSeconds } : {}),
     falVideoReferenceVideoCount: input.falVideoReferenceVideoCount,
-    falInputVideoDurationSeconds: input.falInputVideoDurationSeconds,
-    ...(input.replicateVideoReferenceVideoCount !== undefined ? { replicateVideoReferenceVideoCount: input.replicateVideoReferenceVideoCount } : {})
+    falInputVideoDurationSeconds: input.falInputVideoDurationSeconds
   }
   const videoEstimates = VIDEO_PRICING_PROVIDERS.flatMap((provider) =>
     input.videoTargets!

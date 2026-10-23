@@ -5,7 +5,7 @@ import {
 } from 'bun:test'
 import { resolvePriceSelection } from '../../../../test-runner/price-commands/resolve'
 import { BUDGET_PRICE_SELECTION_REGISTRY } from '../../../../test-runner/price-commands/registry/index'
-import { evaluatePriceObservations, toObservation } from '../../../../test-runner/price-evaluation'
+import { evaluatePriceObservations } from '../../../../test-runner/price-evaluation'
 import { findUnevaluatedBudgetKeys, isConcurrentBudgetedTestsEnabled, shouldSkipBudgetKeys } from '../../../../test-utils/budget'
 import { MINIMAX_INSTRUMENTAL_MUSIC_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { inspectBudgetSource } from './budget-source-inspection'
@@ -36,7 +36,7 @@ describe('test-runner contracts', () => {
         models: [\`gpt-template\`, 'gpt-escaped\\'quote'],
       }))
       defineImageServiceTest({
-        imageService: 'replicate',
+        imageService: 'fal',
         models: [{ model: 'owner/model-a' }, { model: \`owner/model-b\` }],
       })
       defineOCRServiceTest({
@@ -56,8 +56,8 @@ describe('test-runner contracts', () => {
       "write-open\"ai-gpt-escaped'quote",
       'extract-fallback-provider-ocr-model',
       'extract-fallback-provider-ocr-model-image',
-      'image-replicate-owner/model-a',
-      'image-replicate-owner/model-b',
+      'image-fal-owner/model-a',
+      'image-fal-owner/model-b',
     ])
     expect(inspected.issues).toEqual([])
   })
@@ -85,7 +85,7 @@ describe('test-runner contracts', () => {
         models: ['literal-model', dynamicModel],
       })
       defineImageServiceTest({
-        imageService: 'replicate',
+        imageService: 'fal',
         models: [{ model: \`model-\${suffix}\` }],
       })
       budgetedTest(dynamicKey, 'dynamic', () => {})
@@ -252,30 +252,6 @@ describe('test-runner contracts', () => {
         unselected: [`${unmatchedFile}: known-key`],
         uninspectable: [`${unmatchedFile}: dynamic key`],
       })
-    })
-
-  test('Replicate image live tests resolve all four exact budget keys', () => {
-      const file = 'test/test-cases/e2e/service/visuals/image/replicate-image.test.ts'
-      const keys = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands.map(command => command.key)
-
-      expect(keys).toEqual([
-        'image-replicate-bytedance/seedream-5-lite',
-        'image-replicate-bytedance/seedream-5-pro',
-        'image-replicate-alibaba/qwen-image-3',
-        'image-replicate-alibaba/qwen-image-3-pro',
-      ])
-    })
-
-  test('a 0.10 cent threshold marks all four Replicate image keys over budget', () => {
-      const file = 'test/test-cases/e2e/service/visuals/image/replicate-image.test.ts'
-      const commands = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands
-      const observations = commands.map((command) =>
-        toObservation(command, { exitCode: 0, durationMs: 0, parsedCost: 1 })
-      )
-
-      const evaluation = evaluatePriceObservations('Replicate images', observations, 10)
-      expect([...(evaluation.budgetSummary?.skipKeys ?? [])].sort()).toEqual(commands.map(command => command.key).sort())
-      expect(evaluation.budgetSummary?.commandsSkipped).toBe(4)
     })
 
   test('unevaluated and malformed budget handshakes never execute test callbacks', () => {

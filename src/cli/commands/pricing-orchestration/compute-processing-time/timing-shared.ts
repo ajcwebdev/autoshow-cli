@@ -12,7 +12,6 @@ const OCR_HOSTED_PROVIDERS = new Set([
   'anthropic',
   'gemini',
   'deepinfra',
-  'replicate'
 ])
 const OCR_LOCAL_PROVIDERS = new Set(['tesseract'])
 export const RASTERIZED_SINGLE_PAGE_PDF_FALLBACK_TIMING_MULTIPLIER = 2

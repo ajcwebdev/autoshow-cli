@@ -65,7 +65,10 @@ test('Docker shares its connection contract and publication keeps credentials ou
   expect(dockerClientEnvironment(source)).toEqual(expected)
   const workflow = await Bun.file('.github/workflows/docker-publish.yml').text()
   expect(workflow).not.toContain('https://x-access-token:')
-  expect(workflow.match(/credential.helper= /g)).toHaveLength(2)
+  const parsed = Bun.YAML.parse(workflow) as { jobs: Record<string, { steps?: Array<{ uses?: string, with?: Record<string, unknown> }> }> }
+  const checkouts = Object.values(parsed.jobs).flatMap(job => job.steps ?? []).filter(step => step.uses?.startsWith('actions/checkout@'))
+  expect(checkouts.length).toBeGreaterThan(0)
+  for (const checkout of checkouts) expect(checkout.with?.['persist-credentials']).toBe(false)
   expect(workflow).toContain('--password-stdin')
 })
 
@@ -164,38 +167,27 @@ test('live workers require an explicit credential list and live callbacks scope 
 
 test('voice and soundscape selections reject absent credentials before provider work', async () => {
   const { advancedProvider } = await import('~/cli/commands/audio/voice/voice-command-support')
-  const { createStabilitySoundEffectAdapter } = await import('~/cli/commands/audio/tts/soundscape/stability-stable-audio-adapter')
   const { createElevenLabsSoundEffectAdapter } = await import('~/cli/commands/audio/tts/soundscape/elevenlabs-sfx-adapter')
-  const { createReplicateAudioGenAdapter } = await import('~/cli/commands/audio/tts/soundscape/replicate-audiogen-adapter')
   for (const [provider, envKey] of [['elevenlabs', 'ELEVENLABS_API_KEY'], ['grok', 'XAI_API_KEY'],   ['inworld', 'INWORLD_API_KEY']] as const) {
     await withEnv({ [envKey]: '  ' }, () => expect(() => advancedProvider(provider)).toThrow(envKey))
   }
-  expect(() => createStabilitySoundEffectAdapter({ apiKey: 'your_stability_api_key_here' })).toThrow('STABILITY_API_KEY')
   expect(() => createElevenLabsSoundEffectAdapter({ apiKey: 'your_elevenlabs_api_key_here' })).toThrow('ELEVENLABS_API_KEY')
-  expect(() => createReplicateAudioGenAdapter({ apiToken: 'your_replicate_api_token_here' })).toThrow('REPLICATE_API_TOKEN')
 })
 
-test('Stability and ElevenLabs send normalized credentials through their default transports', async () => {
-  const { createStabilitySoundEffectAdapter, STABILITY_STABLE_AUDIO_SELECTOR } = await import('~/cli/commands/audio/tts/soundscape/stability-stable-audio-adapter')
+test('ElevenLabs sound effects send normalized credentials through the default transport', async () => {
   const { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } = await import('~/cli/commands/audio/tts/soundscape/elevenlabs-sfx-adapter')
   const original = globalThis.fetch
   const headers: Headers[] = []
   globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: RequestInit) => {
     headers.push(new Headers(init?.headers))
-    if (String(_input).includes('api.stability.ai') && init?.method === 'POST') return new Response(JSON.stringify({ id: 'synthetic-generation' }), { status: 202 })
     return new Response(new Uint8Array([1]), { headers: { 'content-type': 'audio/wav' } })
   }) as unknown as typeof fetch
   try {
-    for (const [selector, adapter] of [
-      [STABILITY_STABLE_AUDIO_SELECTOR, createStabilitySoundEffectAdapter({ apiKey: '  normalized-stability  ', wait: async () => {} })],
-      ['elevenlabs=eleven_text_to_sound_v2', createElevenLabsSoundEffectAdapter({ apiKey: '  normalized-elevenlabs  ' })]
-    ] as const) {
-      const target = resolveSoundEffectTarget(selector)
-      await adapter.generate({ taskId: 'synthetic-task', cueId: 'synthetic-cue', kind: 'action-sfx', prompt: 'glass shatter', durationSeconds: 4, requestIdentity: 'synthetic-request', outputFormat: target.outputFormat, promptInfluence: target.promptInfluence, generationIdentity: 'synthetic-generation', required: true, loop: false }, target, 1, new AbortController().signal)
-    }
-    expect(headers[0]?.get('Authorization')).toBe('Bearer normalized-stability')
-    expect(headers[1]?.get('Authorization')).toBe('Bearer normalized-stability')
-    expect(headers[2]?.get('xi-api-key')).toBe('normalized-elevenlabs')
+    const target = resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2')
+    const adapter = createElevenLabsSoundEffectAdapter({ apiKey: '  normalized-elevenlabs  ' })
+    await adapter.generate({ taskId: 'synthetic-task', cueId: 'synthetic-cue', kind: 'action-sfx', prompt: 'glass shatter', durationSeconds: 4, requestIdentity: 'synthetic-request', outputFormat: target.outputFormat, promptInfluence: target.promptInfluence, generationIdentity: 'synthetic-generation', required: true, loop: false }, target, 1, new AbortController().signal)
+    expect(headers).toHaveLength(1)
+    expect(headers[0]?.get('xi-api-key')).toBe('normalized-elevenlabs')
   } finally { globalThis.fetch = original }
 })
 

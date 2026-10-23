@@ -57,7 +57,6 @@ describe('provider selection contracts', () => {
 
     for (const [flag, model, providerName] of [
       ['gemini-image', 'gemini-3.1-flash-lite-image', 'Gemini'],
-      ['lumalabs-image', 'uni-1', 'Luma Labs']
     ] as const) {
       const opts = buildOptsFromFlags({
         [flag]: [model],

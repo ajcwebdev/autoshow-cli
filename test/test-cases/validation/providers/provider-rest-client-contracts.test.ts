@@ -4,7 +4,6 @@ import { createAnthropicMessage } from '~/utils/anthropic/anthropic-client'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { createOpenAIResponse } from '~/utils/openai/openai-client'
-import { runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
 import { setHttpCaptureBytesForTests } from '~/utils/bounded-capture'
 import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 import type { ClientCase } from '~/types'
@@ -48,18 +47,6 @@ const clients: ClientCase[] = [
     ),
     errorName: 'OpenAIRestError',
     bodyPolicy: 'raw-text'
-  },
-  {
-    name: 'Replicate',
-    request: async () => await runReplicatePrediction({
-      apiToken: 'replicate-key',
-      baseUrl: 'https://mock.replicate.local',
-      model: 'owner/model',
-      input: { prompt: 'hello' },
-      operationName: 'replicate-matrix'
-    }),
-    errorName: 'ReplicateRestError',
-    bodyPolicy: 'parsed'
   },
   {
     name: 'Gemini',
@@ -130,20 +117,14 @@ describe('provider REST client differential contracts', () => {
     })
   }
 
-  test('Gemini and Replicate normalize fetch TimeoutErrors without ambiguous create redispatch', async () => {
+  test('Gemini normalizes fetch TimeoutErrors without ambiguous create redispatch', async () => {
     const geminiCalls = installMockFetch(() => {
       throw new DOMException('provider request timed out', 'TimeoutError')
     })
-    const geminiError = await captureError(clients[4] as ClientCase)
+    const geminiError = await captureError(clients[3] as ClientCase)
     expect(geminiError.name).toBe('AbortError')
     expect(geminiCalls).toHaveLength(1)
 
-    const replicateCalls = installMockFetch(() => {
-      throw new DOMException('provider request timed out', 'TimeoutError')
-    })
-    const replicateError = await captureError(clients[3] as ClientCase)
-    expect(replicateError.name).toBe('AbortError')
-    expect(replicateCalls).toHaveLength(1)
   })
 
   test('every provider client disables Bun\'s default fetch idle timeout', async () => {
@@ -176,7 +157,7 @@ describe('provider REST client differential contracts', () => {
 
   test('Gemini keeps its established successful-response JSON validation message', async () => {
     installMockFetch(() => new Response('not JSON', { status: 200 }))
-    const error = await captureError(clients[4] as ClientCase)
+    const error = await captureError(clients[3] as ClientCase)
     expect(error.message).toBe('Gemini API returned invalid JSON: not JSON')
     expect(error).toMatchObject({ kind: 'validation', status: 200 })
   })

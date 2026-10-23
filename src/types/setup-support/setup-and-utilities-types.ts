@@ -3,9 +3,7 @@ import {
 SUPPORTED_FAL_IMAGE_MODELS,
 SUPPORTED_GEMINI_IMAGE_MODELS,
 SUPPORTED_GROK_IMAGE_MODELS,
-SUPPORTED_LUMALABS_IMAGE_MODELS,
 SUPPORTED_OPENAI_IMAGE_MODELS,
-SUPPORTED_REPLICATE_IMAGE_MODELS,
 } from '~/cli/commands/setup-and-utilities/models/image-models'
 import { ModelRegistrySchema } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import {
@@ -23,9 +21,6 @@ import {
 SUPPORTED_GEMINI_VIDEO_MODELS,
 SUPPORTED_FAL_VIDEO_MODELS,
 SUPPORTED_GROK_VIDEO_MODELS,
-SUPPORTED_LTX_VIDEO_MODELS,
-SUPPORTED_LUMALABS_VIDEO_MODELS,
-SUPPORTED_REPLICATE_VIDEO_MODELS
 } from '~/cli/commands/setup-and-utilities/models/video-models'
 import type { AutoshowConfigSchema, CommandResultBase } from '~/types'
 
@@ -56,14 +51,9 @@ export type GeminiMusicModel = typeof SUPPORTED_GEMINI_MUSIC_MODELS[number]
 export type GeminiImageModel = typeof SUPPORTED_GEMINI_IMAGE_MODELS[number]
 export type OpenAIImageModel = typeof SUPPORTED_OPENAI_IMAGE_MODELS[number]
 export type GrokImageModel = typeof SUPPORTED_GROK_IMAGE_MODELS[number]
-export type ReplicateImageModel = typeof SUPPORTED_REPLICATE_IMAGE_MODELS[number]
-export type LumalabsImageModel = typeof SUPPORTED_LUMALABS_IMAGE_MODELS[number]
 export type FalImageModel = typeof SUPPORTED_FAL_IMAGE_MODELS[number]
 export type GeminiVideoModel = typeof SUPPORTED_GEMINI_VIDEO_MODELS[number]
 export type GrokVideoModel = typeof SUPPORTED_GROK_VIDEO_MODELS[number]
-export type LtxVideoModel = typeof SUPPORTED_LTX_VIDEO_MODELS[number]
-export type ReplicateVideoModel = typeof SUPPORTED_REPLICATE_VIDEO_MODELS[number]
-export type LumalabsVideoModel = typeof SUPPORTED_LUMALABS_VIDEO_MODELS[number]
 export type FalVideoModel = typeof SUPPORTED_FAL_VIDEO_MODELS[number]
 
 export type SttBilling = {
@@ -73,7 +63,7 @@ export type SttBilling = {
 }
 
 export type CheapestVideoSelection = {
-  provider: 'gemini' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+  provider: 'gemini' | 'grok' | 'fal'
   model: string
   duration: number
   size?: string | undefined

@@ -105,8 +105,6 @@ const ImageDefaultsSchema = v.strictObject({
   geminiImage: ModelArraySchema,
   openaiImage: ModelArraySchema,
   grokImage: ModelArraySchema,
-  replicateImage: ModelArraySchema,
-  lumalabsImage: ModelArraySchema,
   falImage: ModelArraySchema,
   aspectRatio: v.optional(v.string(), undefined),
   size: v.optional(v.string(), undefined),
@@ -120,9 +118,6 @@ const ImageDefaultsSchema = v.strictObject({
 const VideoDefaultsSchema = v.strictObject({
   geminiVideo: ModelArraySchema,
   grokVideo: ModelArraySchema,
-  ltxVideo: v.optional(ModelArraySchema, undefined),
-  replicateVideo: v.optional(ModelArraySchema, undefined),
-  lumalabsVideo: v.optional(ModelArraySchema, undefined),
   falVideo: v.optional(ModelArraySchema, undefined),
   duration: v.optional(v.pipe(v.number(), v.integer(), v.minValue(-1)), undefined),
   aspectRatio: v.optional(v.string(), undefined),
@@ -132,11 +127,9 @@ const VideoDefaultsSchema = v.strictObject({
   lastFrame: v.optional(v.string(), undefined),
   referenceImages: v.optional(v.array(v.string()), undefined),
   inputVideo: v.optional(v.string(), undefined),
-  replicateVideoSeed: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(2147483647)), undefined),
   generateAudio: v.optional(v.boolean(), undefined),
   referenceVideos: v.optional(v.array(v.string()), undefined),
   referenceAudios: v.optional(v.array(v.string()), undefined),
-  replicateVideoNegativePrompt: v.optional(v.string(), undefined),
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
 })
 

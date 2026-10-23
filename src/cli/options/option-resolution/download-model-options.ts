@@ -36,14 +36,9 @@ import {
   validateGeminiImageModel,
   validateGrokImageModel,
   validateOpenAIImageModel,
-  validateReplicateImageModel,
-  validateLumalabsImageModel,
   validateFalImageModel,
   validateGeminiVideoModel,
   validateGrokVideoModel,
-  validateLtxVideoModel,
-  validateReplicateVideoModel,
-  validateLumalabsVideoModel,
   validateFalVideoModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { AllShortcutFlag, BuildOptsDefaults, FlagOccurrenceValue, RepeatableModelFlag } from '~/types'
@@ -114,17 +109,12 @@ export const readRuntimeModelOptions = (
     geminiImageModels: readValidatedMany('gemini-image', validateGeminiImageModel),
     openaiImageModels: readValidatedMany('openai-image', validateOpenAIImageModel),
     grokImageModels: readValidatedMany('grok-image', validateGrokImageModel),
-    replicateImageModels: readValidatedMany('replicate-image', validateReplicateImageModel),
-    lumalabsImageModels: readValidatedMany('lumalabs-image', validateLumalabsImageModel),
     falImageModels: readValidatedMany('fal-image', validateFalImageModel),
     elevenlabsMusicModels: readValidatedMany('elevenlabs-music', validateElevenlabsMusicModel),
     minimaxMusicModels: readValidatedMany('minimax-music', validateMinimaxMusicModel),
     geminiMusicModels: readValidatedMany('gemini-music', validateGeminiMusicModel),
     geminiVideoModels: readValidatedMany('gemini-video', validateGeminiVideoModel),
     grokVideoModels: readValidatedMany('grok-video', validateGrokVideoModel),
-    ltxVideoModels: readValidatedMany('ltx-video', validateLtxVideoModel),
-    replicateVideoModels: readValidatedMany('replicate-video', validateReplicateVideoModel),
-    lumalabsVideoModels: readValidatedMany('lumalabs-video', validateLumalabsVideoModel),
     falVideoModels: readValidatedMany('fal-video', validateFalVideoModel)
   }
 }

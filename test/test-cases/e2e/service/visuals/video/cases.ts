@@ -12,20 +12,6 @@ export const grokVideo = {
   envVarDescription: 'Grok video generation',
 } as const
 
-export const ltxVideo = {
-  provider: 'ltx',
-  videoService: 'ltx',
-  envVarKey: 'LTXV_API_KEY',
-  envVarDescription: 'LTX video generation',
-} as const
-
-export const replicateVideo = {
-  provider: 'replicate',
-  videoService: 'replicate',
-  envVarKey: 'REPLICATE_API_TOKEN',
-  envVarDescription: 'Replicate video generation',
-} as const
-
 export const falVideo = {
   provider: 'fal',
   videoService: 'fal',

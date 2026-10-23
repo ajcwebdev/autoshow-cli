@@ -2,9 +2,6 @@ import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runGeminiVideoGen } from '~/cli/commands/visuals/video/video-services/video-gemini/run-gemini-video-gen'
 import { runGrokVideoGen } from '~/cli/commands/visuals/video/video-services/video-grok/run-grok-video-gen'
-import { runLtxVideoGen } from '~/cli/commands/visuals/video/video-services/ltx/run-ltx-video-gen'
-import { runReplicateVideoGen } from '~/cli/commands/visuals/video/video-services/replicate-video/run-replicate-video-gen'
-import { runLumalabsVideoGen } from '~/cli/commands/visuals/video/video-services/video-lumalabs/run-lumalabs-video-gen'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import {
@@ -14,7 +11,7 @@ import {
   setupContractSuiteLifecycle
 } from '../../../../../test-utils/rest-contract-helpers'
 
-const envKeys = ['GEMINI_API_KEY', 'XAI_API_KEY', 'LTXV_API_KEY', 'REPLICATE_API_TOKEN', 'LUMA_AGENTS_API_KEY']
+const envKeys = ['GEMINI_API_KEY', 'XAI_API_KEY']
 const tempDirs = setupContractSuiteLifecycle({
   envKeys,
   tempPrefix: 'autoshow-video-provider-contracts-',
@@ -50,9 +47,6 @@ export {
   jsonResponse,
   runGeminiVideoGen,
   runGrokVideoGen,
-  runLtxVideoGen,
-  runLumalabsVideoGen,
-  runReplicateVideoGen,
   writeFile,
   XAI_DEFAULT_BASE_URL
 }

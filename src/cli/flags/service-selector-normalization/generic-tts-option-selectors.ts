@@ -14,7 +14,7 @@ import {
   ttsIdentityProvidersForFlag
 } from './generic-tts-controls'
 
-const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra', 'mistral'])
+const RETIRED_TTS_PROVIDERS = new Set(['minimax', 'deepgram', 'fal', 'fish', 'deepinfra', 'mistral'])
 
 export const TTS_OPTION_DOMAIN: GenericOptionDomain = {
   label: 'TTS',

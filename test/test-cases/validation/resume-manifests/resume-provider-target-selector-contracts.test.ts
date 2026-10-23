@@ -74,14 +74,14 @@ describe('resume target-aware provider selectors', () => {
     expect(image.flags['openai-image']).toBe('gpt-image-2')
     expect(buildOpts(image.flags, image.explicitFlags, image.flagOccurrences).openaiImageModels).toEqual(['gpt-image-2'])
 
-    const ltxVideo = normalizeResumeSelectorFlagsForTarget(
+    const grokVideo = normalizeResumeSelectorFlagsForTarget(
       target('video'),
-      { provider: ['ltx=ltx-2-5-pro'] },
+      { provider: ['grok=grok-imagine-video-1.5'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'ltx=ltx-2-5-pro']
+      ['resume', 'out', '--provider', 'grok=grok-imagine-video-1.5']
     )
-    expect(ltxVideo.flags['ltx-video']).toBe('ltx-2-5-pro')
-    expect(buildOpts(ltxVideo.flags, ltxVideo.explicitFlags, ltxVideo.flagOccurrences).ltxVideoModels).toEqual(['ltx-2-5-pro'])
+    expect(grokVideo.flags['grok-video']).toBe('grok-imagine-video-1.5')
+    expect(buildOpts(grokVideo.flags, grokVideo.explicitFlags, grokVideo.flagOccurrences).grokVideoModels).toEqual(['grok-imagine-video-1.5'])
 
     const music = normalizeResumeSelectorFlagsForTarget(
       target('music'),

@@ -14,7 +14,6 @@ export type ResolvedComicAudioInvocation = {
   allowAmbiguousRedispatch: boolean
   maxGenerationSlots: number | undefined
   sfxSelector: string | undefined
-  sfxLicenseUseClassification: ReturnType<typeof import('~/cli/commands/visuals/comic/comic-utils/comic-soundscape-workflow').parseSoundEffectLicenseUseClassification>
   sfxConcurrency: number
   presentationRequested: boolean
   baseOptions: TtsOptions

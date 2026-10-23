@@ -19,7 +19,7 @@ export const planComicAudio = async (ctx: CliCommandContext, scriptPath: string)
   const { compatible, dialoguePlan, baseOptions, profileKey, mode, deliveryPolicy, sampleRate, channels, codec } = invocation
   const turns = flattenTurns(dialoguePlan)
   const soundscapePlan = createSoundscapePlan({ structuredScript: compatible.structuredScript, structuredScriptRef: dialoguePlan.structuredScript, dialoguePlan, sceneRunIdentity: dialoguePlan.sceneRunIdentity, createdAt: compatible.manifest.createdAt, mixProfile: DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE, timingPolicy: invocation.soundscapeTimingPolicy })
-  const soundscapePrice = await planComicSoundscapePrice({ rootDir: compatible.sceneRunDir, plan: soundscapePlan, selector: invocation.sfxSelector, licenseUseClassification: invocation.sfxLicenseUseClassification, retainedPlanRef: compatible.comicMetadata.audio.soundEffectRenderPlanRef })
+  const soundscapePrice = await planComicSoundscapePrice({ rootDir: compatible.sceneRunDir, plan: soundscapePlan, selector: invocation.sfxSelector, retainedPlanRef: compatible.comicMetadata.audio.soundEffectRenderPlanRef })
   const targets = turns.length === 0 ? [] : collectTtsTargets(baseOptions).map(target => {
     const transport = target.transport ?? 'hosted-api'
     return { ...target, operation: 'comic-audio' as const, transport, targetKey: canonicalTargetKey('comic-audio', target.service, target.model, transport) }
@@ -49,7 +49,6 @@ export const planComicAudio = async (ctx: CliCommandContext, scriptPath: string)
     'concurrency-mode': baseOptions.concurrencyMode ?? 'ramp',
     ...(invocation.rolePolicies.length ? { role: invocation.rolePolicies.map(role => `${role.speakerLabel}=${role.subjectKey}`) } : {}),
     ...(invocation.sfxSelector ? { 'sfx-provider': invocation.sfxSelector } : {}),
-    ...(invocation.sfxLicenseUseClassification ? { 'sfx-license-use': invocation.sfxLicenseUseClassification } : {}),
   }
   const steps: StepEstimate[] = executions.map((execution, index) => ({ step: 'tts', provider: execution.target.service, model: execution.target.model, totalCost: estimates[index]!.plannedCost.amounts.reduce((sum, cost) => sum + (cost.currency === 'USD' ? cost.amount * 100 : 0), 0), characterCount: estimates[index]!.unresolvedCharacterCount, note: `${estimates[index]!.recoveredSlotCount} retained slots; ${estimates[index]!.unresolvedSlotCount} unresolved` }))
   if (soundscapePrice.renderPlan && soundscapePrice.estimate) steps.push({ step: 'tts', provider: soundscapePrice.renderPlan.target.provider, model: soundscapePrice.renderPlan.target.model, totalCost: (soundscapePrice.estimate.amount ?? 0) * 100, note: soundscapePrice.summary })

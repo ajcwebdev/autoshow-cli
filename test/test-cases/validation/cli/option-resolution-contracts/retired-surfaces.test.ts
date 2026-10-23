@@ -72,49 +72,9 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
     message: 'Model "lyria-3-pro-preview" is retired for --provider/--music gemini[=model]. Use "lyria-3.5" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
-    flag: 'replicate-video',
-    model: 'runwayml/aleph-2',
-    message: 'Model "runwayml/aleph-2" is retired for --provider/--video replicate[=model]. Use "grok-imagine-video-1.5" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
-    flag: 'replicate-video',
-    model: 'wan-video/wan-2.7-t2v',
-    message: 'Model "wan-video/wan-2.7-t2v" is retired for --provider/--video replicate[=model]. Use "alibaba/wan-3" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
-    flag: 'replicate-video',
-    model: 'kwaivgi/kling-v3-video',
-    message: 'Model "kwaivgi/kling-v3-video" is retired for --provider/--video replicate[=model]. Use "pixverse/pixverse-v6" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
-    flag: 'replicate-video',
-    model: 'kwaivgi/kling-v3-omni-video',
-    message: 'Model "kwaivgi/kling-v3-omni-video" is retired for --provider/--video replicate[=model]. Use "bytedance/seedance-2.5" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
-    flag: 'replicate-video',
-    model: 'bytedance/seedance-2.0',
-    message: 'Model "bytedance/seedance-2.0" is retired for --provider/--video replicate[=model]. Use "bytedance/seedance-2.5" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
-    flag: 'replicate-video',
-    model: 'bytedance/seedance-2.0-fast',
-    message: 'Model "bytedance/seedance-2.0-fast" is retired for --provider/--video replicate[=model]. Use "bytedance/seedance-2.5" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
     flag: 'grok-video',
     model: 'grok-imagine-video',
     message: 'Model "grok-imagine-video" is retired for --provider/--video grok[=model]. Use "grok-imagine-video-1.5" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
-    flag: 'ltx-video',
-    model: 'ltx-2-3-fast',
-    message: 'Model "ltx-2-3-fast" is retired for --provider/--video ltx[=model]. Use "ltx-2-5-fast" instead. AutoShow will not silently substitute a different model identity.'
-  },
-  {
-    flag: 'ltx-video',
-    model: 'ltx-2-3-pro',
-    message: 'Model "ltx-2-3-pro" is retired for --provider/--video ltx[=model]. Use "ltx-2-5-pro" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'fal-video',
@@ -176,9 +136,7 @@ describe('retired surfaces', () => {
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/benchmark'))).toBe(false)
     expect(existsSync(resolve('src/types/benchmarks'))).toBe(false)
     expect(existsSync(resolve('docs/commands/00-setup-and-utilities/benchmark/benchmark.md'))).toBe(false)
-    expect(existsSync(resolve('src/cli/commands/text/ocr/ocr-services/replicate-ocr'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/text/ocr/ocr-services/fal-ocr'))).toBe(false)
-    expect(existsSync(resolve('src/cli/commands/setup-and-utilities/models/ocr-config/ocr-replicate.json'))).toBe(false)
     expect(existsSync(resolve('src/cli/commands/setup-and-utilities/models/ocr-config/ocr-fal.json'))).toBe(false)
   })
 

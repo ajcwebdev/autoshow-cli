@@ -1,0 +1,40 @@
+> Evaluation scope: lexical recognition against the declared page/crop reference and its reading-order convention. Table structure, branch association and page geometry are unavailable from text-only outputs. Fidelity diagnostics are separate representation comparisons.
+
+# OCR Consensus Benchmark Summary
+
+## Summary
+
+- Run directory: `input/examples/document/ocr-categories-efg-run/benchmark-runs/efg-rerun-01-financial-data`
+- Providers with page result files: 21
+- Pages: 1
+- Paid provider reruns: not run by this skill artifact; existing provider outputs only.
+- Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.
+
+## Page-Level Hybrid Sources
+
+| Selected Provider | Pages |
+| --- | ---: |
+| `anthropic/claude-opus-5-5` | 1 |
+
+## Outlier Signals
+
+| Signal | Page Count |
+| --- | ---: |
+| blankOutputPages | 0 |
+| repeatedTextPages | 0 |
+| majorLengthDriftPages | 0 |
+| highDisagreementPages | 1 |
+| werCerDivergencePages | 1 |
+| lowConfidencePages | 0 |
+
+## Selective Adjudication
+
+- Candidate pages: 1
+- Low-confidence threshold: 0.72
+- High-disagreement threshold: 0.234382
+
+## Variant Distances
+
+| Reference | Candidate | WER | CER | Word Edits |
+| --- | --- | ---: | ---: | ---: |
+| `status-quo-consensus` | `page-level-hybrid` | 0.00% | 0.00% | 0 |

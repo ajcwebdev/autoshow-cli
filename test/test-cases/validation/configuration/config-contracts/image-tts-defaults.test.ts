@@ -36,29 +36,19 @@ describe('config image and TTS default contracts', () => {
     }
   })
 
-  test('generic video defaults persist under the existing config keys', () => {
-    expectConfigPatchRoundTrip({ seed: '0', 'negative-prompt': 'blur' }, 'video', {
-      replicateVideoSeed: 0, replicateVideoNegativePrompt: 'blur'
-    })
-  })
-
   test('buildConfigPatchFromFlags saves hosted image defaults', () => {
     expectConfigPatchRoundTrip({
-      'replicate-image': ['alibaba/qwen-image-3'],
+      'fal-image': ['alibaba/qwen-image-3'],
     }, 'image', {
-      replicateImage: ['alibaba/qwen-image-3'],
+      falImage: ['alibaba/qwen-image-3'],
     }, { merge: false })
   })
 
-  test('buildConfigPatchFromFlags saves and merges Replicate video defaults', () => {
+  test('buildConfigPatchFromFlags saves and merges hosted video defaults', () => {
     expectConfigPatchRoundTrip({
-      'replicate-video': ['bytedance/seedance-2.5'],
-      'replicate-video-seed': '123',
-      'replicate-video-negative-prompt': 'blur',
+      'grok-video': ['grok-imagine-video-1.5'],
     }, 'video', {
-      replicateVideo: ['bytedance/seedance-2.5'],
-      replicateVideoSeed: 123,
-      replicateVideoNegativePrompt: 'blur',
+      grokVideo: ['grok-imagine-video-1.5'],
     })
   })
 

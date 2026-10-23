@@ -30,7 +30,7 @@ import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { sharedConcurrencyFlags, stepConcurrencyFlag } from './shared-flags'
 import { REFERENCE_LOCATION_ONLY_FLAGS } from './reference-option-contract'
-import { COMIC_AUDIO_DELIVERY_POLICIES, COMIC_AUDIO_MODES, COMIC_AUDIO_PACING_PROFILES, COMIC_SOUNDSCAPE_TIMING_POLICIES, DEFAULT_COMIC_AUDIO_DELIVERY_POLICY, DEFAULT_COMIC_AUDIO_MODE, DEFAULT_COMIC_AUDIO_PACING_PROFILE, DEFAULT_COMIC_SOUNDSCAPE_TIMING_POLICY, SOUND_EFFECT_LICENSE_USE_CLASSIFICATIONS } from './comic-audio-contract'
+import { COMIC_AUDIO_DELIVERY_POLICIES, COMIC_AUDIO_MODES, COMIC_AUDIO_PACING_PROFILES, COMIC_SOUNDSCAPE_TIMING_POLICIES, DEFAULT_COMIC_AUDIO_DELIVERY_POLICY, DEFAULT_COMIC_AUDIO_MODE, DEFAULT_COMIC_AUDIO_PACING_PROFILE, DEFAULT_COMIC_SOUNDSCAPE_TIMING_POLICY } from './comic-audio-contract'
 import { SFX_PROVIDER_FLAG_CHOICES } from '~/cli/commands/audio/tts/soundscape/sfx-provider-targets'
 import { COMIC_REVISION_PROMOTION_POLICIES, DRAFT_SCENES_ONLY_VALUES } from './comic-stage-contract'
 import { DEFAULT_IMAGE_QUALITY, DEFAULT_IMAGE_SIZE } from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-image-run-defaults'
@@ -191,7 +191,6 @@ const comicAudioSelectionFlags = pickFlags(ttsCommandFlags, [
 
 const comicSoundscapeSelectionFlags = {
   'sfx-provider': strFlag(colorizeHelpDescription(`Dedicated sound-effect target as provider=model; accepts ${SFX_PROVIDER_FLAG_CHOICES.join(', ')} and has no hosted default`)),
-  'sfx-license-use': strFlag(colorizeHelpDescription(`Required intended-use declaration for license-restricted SFX targets: ${formatValueList(SOUND_EFFECT_LICENSE_USE_CLASSIFICATIONS)}; never inferred from model selection`)),
   'soundscape-timing-policy': strFlag(colorizeHelpDescription(`Inline cue timing: ${formatValueList(COMIC_SOUNDSCAPE_TIMING_POLICIES)}; proportional records its estimate and error bound`), DEFAULT_COMIC_SOUNDSCAPE_TIMING_POLICY),
 } as const satisfies CliFlagsDefinition
 

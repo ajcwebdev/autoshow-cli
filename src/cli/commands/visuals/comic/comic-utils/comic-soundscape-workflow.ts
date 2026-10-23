@@ -11,8 +11,6 @@ import type {
   HostedConcurrencyCoordinator,
   PipelineProviderState,
   SoundEffectAdapter,
-  SoundEffectLicenseUse,
-  SoundEffectLicenseUseClassification,
   SoundEffectRenderPlan,
   SoundscapePlan,
 } from '~/types'
@@ -20,16 +18,13 @@ import { resolveCredential } from '~/utils/validate/env-utils'
 import { UsageError } from '~/utils/error-handler'
 import { hardlinkContainedArtifact, readContainedArtifactFile, writeImmutableArtifactFile } from '../../../audio/tts/script-to-audio/safe-artifact-store'
 import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget } from '../../../audio/tts/soundscape/elevenlabs-sfx-adapter'
-import { assertAudioGenDispatchEligible, assertAudioGenLicenseEligible, createReplicateAudioGenAdapter, createSoundEffectLicenseUse } from '../../../audio/tts/soundscape/replicate-audiogen-adapter'
-import { createStabilitySoundEffectAdapter } from '../../../audio/tts/soundscape/stability-stable-audio-adapter'
 import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, loadCompactSfx, loadSoundEffectRenderPlan, loadSoundEffectRenderResult, planSoundEffectResumePrice, writeSoundEffectRenderPlan } from '../../../audio/tts/soundscape/sound-effect-execution'
 import { mixSoundscape } from '../../../audio/tts/soundscape/soundscape-mixer'
 import { resolveSoundscapeTimeline } from '../../../audio/tts/soundscape/soundscape-timeline'
 import { writeSoundscapePlan } from '../../../audio/tts/soundscape/soundscape-planner'
 import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue } from '../../../audio/tts/script-to-audio/contract-identity'
 import { createSilenceWav } from '../../../audio/tts/tts-utils/audio-utils'
-import { SOUND_EFFECT_LICENSE_USE_CLASSIFICATIONS } from '~/cli/commands/audio/tts/soundscape/sfx-license-use'
-import { ELEVENLABS_SFX_SELECTOR, REPLICATE_AUDIOGEN_SELECTOR } from '~/cli/commands/audio/tts/soundscape/sfx-provider-targets'
+import { ELEVENLABS_SFX_SELECTOR } from '~/cli/commands/audio/tts/soundscape/sfx-provider-targets'
 
 export const soundscapeReportedOutputPath = (targetKey: string): string => `audio/final/${targetKey}.soundscape.wav`
 
@@ -116,56 +111,39 @@ const loadDialogueMixSource = async (rootDir: string, binding: DialogueAudioRunB
   return { audioRunId: stored.audioRunId, path: binding.audioRunRef, sha256: binding.audioRunSha256, timeline, finalAudio: { path: join(audioRunDirectory, finalOutput.path).replace(/\\/gu, '/'), sha256: finalOutput.sha256 } }
 }
 
-export const parseSoundEffectLicenseUseClassification = (value: unknown): SoundEffectLicenseUseClassification | undefined => {
-  if (value === undefined || value === null || value === '') return undefined
-  if (!SOUND_EFFECT_LICENSE_USE_CLASSIFICATIONS.includes(value as SoundEffectLicenseUseClassification)) {
-    throw UsageError('--sfx-license-use must be noncommercial, commercial, or unknown.')
-  }
-  return value as SoundEffectLicenseUseClassification
-}
-
 export const resolveSoundEffectPlan = async (input: {
   rootDir: string
   soundscapePlan: SoundscapePlan
   selector?: string | undefined
-  licenseUseClassification?: SoundEffectLicenseUseClassification | undefined
   retainedPlanRef?: { path: string, sha256: string } | undefined
 }): Promise<SoundEffectRenderPlan | undefined> => {
   if (input.soundscapePlan.synthesisTasks.length === 0) return undefined
   if (input.selector) {
     const target = resolveSoundEffectTarget(input.selector)
-    const licenseUse: SoundEffectLicenseUse | undefined = target.provider === 'replicate' && input.licenseUseClassification
-      ? createSoundEffectLicenseUse({
-        classification: input.licenseUseClassification,
-        fixture: target.capabilityFixture,
-      })
-      : undefined
-    return createSoundEffectRenderPlan({ plan: input.soundscapePlan, target, ...(licenseUse ? { licenseUse } : {}) })
+    return createSoundEffectRenderPlan({ plan: input.soundscapePlan, target })
   }
   const compact = await loadCompactSfx(input.rootDir)
   if (compact && compact.value.soundscapePlanId === input.soundscapePlan.soundscapePlanId) {
-    return createSoundEffectRenderPlan({ plan: input.soundscapePlan, target: compact.value.target, allowUnavailable: true, ...(compact.value.licenseUse ? { licenseUse: compact.value.licenseUse } : {}) })
+    return createSoundEffectRenderPlan({ plan: input.soundscapePlan, target: compact.value.target })
   }
   if (input.retainedPlanRef) {
     const retained = await loadSoundEffectRenderPlan(input.rootDir, input.retainedPlanRef)
     if (retained.soundscapePlanId !== input.soundscapePlan.soundscapePlanId) throw UsageError('Retained sound-effect target belongs to a different soundscape plan; provide an explicit --sfx-provider for the new plan.')
     return retained
   }
-  throw UsageError(`Authored SFX, VOCAL SFX, or AMBIENCE requires --sfx-provider (e.g. ${ELEVENLABS_SFX_SELECTOR} or ${REPLICATE_AUDIOGEN_SELECTOR}); no paid hosted default is selected.`)
+  throw UsageError(`Authored SFX, VOCAL SFX, or AMBIENCE requires --sfx-provider (e.g. ${ELEVENLABS_SFX_SELECTOR}); no paid hosted default is selected.`)
 }
 
 export const planComicSoundscapePrice = async (input: {
   rootDir: string
   plan: SoundscapePlan
   selector?: string | undefined
-  licenseUseClassification?: SoundEffectLicenseUseClassification | undefined
   retainedPlanRef?: { path: string, sha256: string } | undefined
 }): Promise<{ renderPlan?: SoundEffectRenderPlan | undefined, summary: string, estimate?: Awaited<ReturnType<typeof planSoundEffectResumePrice>> }> => {
   const renderPlan = await resolveSoundEffectPlan({
     rootDir: input.rootDir,
     soundscapePlan: input.plan,
     selector: input.selector,
-    licenseUseClassification: input.licenseUseClassification,
     retainedPlanRef: input.retainedPlanRef,
   })
   if (!renderPlan) return { summary: 'soundscape: 0 authored generation tasks, 0.0000 USD, no SFX target setup' }
@@ -174,21 +152,13 @@ export const planComicSoundscapePrice = async (input: {
   return { renderPlan, estimate, summary: `soundscape ${renderPlan.target.provider}/${renderPlan.target.model}: ${estimate.unresolvedTaskCount} unresolved, ${estimate.cachedTaskCount} cache, ${estimate.resumedTaskCount} resume, ${amount} ${estimate.currency}` }
 }
 
-const requireSoundscapeProviderApiKey = (provider: string): string =>
-  provider === 'replicate'
-    ? resolveCredential('replicate', 'require', { stage: 'comic:soundscape', description: 'Replicate AudioGen sound-effect generation' })
-    : provider === 'stability'
-      ? resolveCredential('stability', 'require', { stage: 'comic:soundscape', description: 'Stability Stable Audio 3 sound-effect generation' })
-      : resolveCredential('elevenlabs', 'require', { stage: 'comic:soundscape', description: 'ElevenLabs sound-effect generation' })
+const requireSoundscapeProviderApiKey = (): string =>
+  resolveCredential('elevenlabs', 'require', { stage: 'comic:soundscape', description: 'ElevenLabs sound-effect generation' })
 
 export const assertComicSoundscapeExecutionReady = async (rootDir: string, renderPlan: SoundEffectRenderPlan): Promise<void> => {
   const estimate = await planSoundEffectResumePrice(rootDir, renderPlan)
   if (estimate.unresolvedTaskCount > 0) {
-    if (renderPlan.target.provider === 'replicate') {
-      assertAudioGenDispatchEligible(renderPlan.target.capabilityFixture)
-      assertAudioGenLicenseEligible(renderPlan.licenseUse, renderPlan.target.capabilityFixture)
-    }
-    requireSoundscapeProviderApiKey(renderPlan.target.provider)
+    requireSoundscapeProviderApiKey()
   }
 }
 
@@ -223,11 +193,7 @@ export const runComicSoundscape = async (input: {
     renderPlanRef = await writeSoundEffectRenderPlan(input.rootDir, input.renderPlan)
     const estimate = await planSoundEffectResumePrice(input.rootDir, input.renderPlan)
     const liveAdapter = input.adapter ?? (estimate.unresolvedTaskCount > 0
-      ? (input.renderPlan.target.provider === 'replicate'
-          ? createReplicateAudioGenAdapter({ apiToken: requireSoundscapeProviderApiKey('replicate') })
-          : input.renderPlan.target.provider === 'stability'
-            ? createStabilitySoundEffectAdapter({ apiKey: requireSoundscapeProviderApiKey('stability') })
-            : createElevenLabsSoundEffectAdapter({ apiKey: requireSoundscapeProviderApiKey(input.renderPlan.target.provider) }))
+      ? createElevenLabsSoundEffectAdapter({ apiKey: requireSoundscapeProviderApiKey() })
       : { generate: async (): Promise<never> => { throw UsageError('Verified sound-effect resume planning unexpectedly attempted provider dispatch.') } })
     const executed = await executeSoundEffectRenderPlan({ rootDir: input.rootDir, plan: input.renderPlan, adapter: liveAdapter, concurrency: input.concurrency, cancellation: input.cancellation, hostedConcurrencyCoordinator: input.hostedConcurrencyCoordinator })
     renderResult = executed.result

@@ -62,11 +62,6 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'elevenlabs-tts-use-speaker-boost',
   'elevenlabs-tts-seed',
   'elevenlabs-tts-pronunciation-dictionary-locator',
-  'replicate-video-seed',
-  'replicate-video-generate-audio',
-  'replicate-video-reference-video',
-  'replicate-video-reference-audio',
-  'replicate-video-negative-prompt',
   'stt-happyscribe-organization-id',
   'stt-supadata-lang',
   'stt-scrapecreators-lang',
@@ -256,10 +251,6 @@ describe('resume provider flag surface', () => {
       'input-video',
       'reference-video',
       'reference-audio'
-    ])
-    expectResumeLacksFlags([
-      'replicate-video-multi-prompt',
-      'replicate-video-seed'
     ])
   })
 })

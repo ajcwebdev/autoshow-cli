@@ -15,6 +15,4 @@ export const SPEECHMATICS_DEFAULT_BASE_URL = 'https://eu1.asr.api.speechmatics.c
 export const SCRAPECREATORS_DEFAULT_BASE_URL = 'https://api.scrapecreators.com'
 export const ELEVENLABS_DEFAULT_BASE_URL = 'https://api.elevenlabs.io/v1'
 export const MINIMAX_DEFAULT_BASE_URL = 'https://api.minimax.io'
-export const REPLICATE_DEFAULT_BASE_URL = 'https://api.replicate.com/v1'
-export const LUMALABS_DEFAULT_BASE_URL = 'https://agents.lumalabs.ai/v1'
 export const FAL_QUEUE_DEFAULT_BASE_URL = 'https://queue.fal.run'

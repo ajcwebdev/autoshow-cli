@@ -13,7 +13,7 @@ describe('option resolution contracts', () => {
       openai: opts.openaiTtsModels, inworld: opts.inworldTtsModels,
     }
     expect(Object.entries(selections).filter(([, models]) => (models?.length ?? 0) > 0).map(([provider]) => provider)).toEqual([...ACTIVE_TTS_PROVIDERS])
-    for (const retired of ['minimax', 'deepgram', 'replicate', 'fal', 'fish', 'deepinfra']) expect(selections).not.toHaveProperty(retired)
+    for (const retired of ['minimax', 'deepgram', 'fal', 'fish', 'deepinfra']) expect(selections).not.toHaveProperty(retired)
   })
 
   test('--all-tts rejects special-input modes that need explicit references', () => {

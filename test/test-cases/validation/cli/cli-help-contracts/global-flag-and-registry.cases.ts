@@ -14,10 +14,7 @@ import {
 } from '~/cli/commands/visuals/image/image-generation-services/image-openai/openai-image-targets'
 import {
   GEMINI_VIDEO_RESOLUTIONS,
-  GROK_VIDEO_ASPECT_RATIOS,
-  LUMA_ASPECT_RATIOS,
-  LUMA_RESOLUTIONS,
-  REPLICATE_VIDEO_RESOLUTIONS
+  GROK_VIDEO_ASPECT_RATIOS
 } from '~/cli/commands/visuals/video/video-utils/video-normalization'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
 import {
@@ -76,11 +73,8 @@ export const registerGlobalFlagAndRegistryCases = (): void => {
 
   const derivedHelpLists = [
     { command: 'video', label: '--mode', values: VIDEO_MODES },
-    { command: 'video', label: '--aspect-ratio (Luma Labs)', values: LUMA_ASPECT_RATIOS },
     { command: 'video', label: '--aspect-ratio (Grok)', values: GROK_VIDEO_ASPECT_RATIOS },
     { command: 'video', label: '--resolution (Gemini)', values: GEMINI_VIDEO_RESOLUTIONS },
-    { command: 'video', label: '--resolution (Replicate)', values: REPLICATE_VIDEO_RESOLUTIONS },
-    { command: 'video', label: '--resolution (Luma Labs)', values: LUMA_RESOLUTIONS },
     { command: 'image', label: '--quality', values: IMAGE_GENERATION_QUALITIES },
     { command: 'image', label: '--size (Gemini)', values: GEMINI_IMAGE_SIZE_VALUES },
     { command: 'image', label: '--size (OpenAI)', values: OPENAI_FIXED_IMAGE_SIZE_VALUES },

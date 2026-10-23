@@ -11,8 +11,8 @@ const expectedCoverage = [
   ['test/test-cases/e2e/service/text/ocr/mistral-ocr-4-1.test.ts', 'extract-mistral-mistral-ocr-4-1', 'extract-mistral-mistral-ocr-4-1-image'],
   ['test/test-cases/e2e/service/stt/diarization/gemini-3.5-transcribe.test.ts', 'transcribe-gemini-stt-gemini-3.5-transcribe'],
   ['test/test-cases/e2e/service/visuals/image/grok-imagine-image-2.0.test.ts', 'image-grok-grok-imagine-image-2.0'],
-  ['test/test-cases/e2e/service/visuals/video/ltx-2-5-fast.test.ts', 'video-ltx-ltx-2-5-fast'],
-  ['test/test-cases/e2e/service/visuals/video/ltx-2-5-pro.test.ts', 'video-ltx-ltx-2-5-pro'],
+  ['test/test-cases/e2e/service/visuals/video/gemini-omni-1.1-flash.test.ts', 'video-gemini-gemini-omni-1.1-flash'],
+  ['test/test-cases/e2e/service/visuals/video/grok-imagine-video-1.5.test.ts', 'video-grok-grok-imagine-video-1.5'],
   ['test/test-cases/e2e/service/audio/music/gemini-lyria-3.5.test.ts', 'music-gemini-lyria-3.5'],
 ] as const
 

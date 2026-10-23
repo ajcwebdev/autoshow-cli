@@ -120,11 +120,11 @@ export const ExtractionMetadataSchema = v.object({
   extractionMethod: v.picklist([
     'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'ocr-pool',
     'epub-text',
-    'pdf-text', 'pdf+tesseract', 'pdf+mistral-ocr', 'pdf+glm-ocr', 'pdf+kimi-ocr', 'pdf+openai-ocr', 'pdf+grok-ocr', 'pdf+anthropic-ocr', 'pdf+gemini-ocr', 'pdf+deepinfra-ocr', 'pdf+replicate-ocr', 'pdf+fal-ocr',
+    'pdf-text', 'pdf+tesseract', 'pdf+mistral-ocr', 'pdf+glm-ocr', 'pdf+kimi-ocr', 'pdf+openai-ocr', 'pdf+grok-ocr', 'pdf+anthropic-ocr', 'pdf+gemini-ocr', 'pdf+deepinfra-ocr', 'pdf+fal-ocr',
     'office-native', 'rtf-native',
-    'cbz+tesseract', 'cbz+mistral-ocr', 'cbz+glm-ocr', 'cbz+kimi-ocr', 'cbz+openai-ocr', 'cbz+grok-ocr', 'cbz+anthropic-ocr', 'cbz+gemini-ocr', 'cbz+deepinfra-ocr', 'cbz+replicate-ocr', 'cbz+fal-ocr',
+    'cbz+tesseract', 'cbz+mistral-ocr', 'cbz+glm-ocr', 'cbz+kimi-ocr', 'cbz+openai-ocr', 'cbz+grok-ocr', 'cbz+anthropic-ocr', 'cbz+gemini-ocr', 'cbz+deepinfra-ocr', 'cbz+fal-ocr',
     'csv-raw',
-    'image+tesseract', 'image+mistral-ocr', 'image+glm-ocr', 'image+kimi-ocr', 'image+openai-ocr', 'image+grok-ocr', 'image+anthropic-ocr', 'image+gemini-ocr', 'image+deepinfra-ocr', 'image+replicate-ocr', 'image+fal-ocr',
+    'image+tesseract', 'image+mistral-ocr', 'image+glm-ocr', 'image+kimi-ocr', 'image+openai-ocr', 'image+grok-ocr', 'image+anthropic-ocr', 'image+gemini-ocr', 'image+deepinfra-ocr', 'image+fal-ocr',
     'glm-ocr',
     'kimi-ocr',
     'openai-ocr',
@@ -132,7 +132,6 @@ export const ExtractionMetadataSchema = v.object({
     'anthropic-ocr',
     'gemini-ocr',
     'deepinfra-ocr',
-    'replicate-ocr',
     'fal-ocr',
     'html+defuddle', 'html+firecrawl', 'html+glm-reader', 'html+spider', 'html+supadata', 'html+zyte'
   ]),

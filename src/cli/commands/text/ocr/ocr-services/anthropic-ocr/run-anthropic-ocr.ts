@@ -15,6 +15,7 @@ import { applyAnthropicReasoning } from '~/cli/commands/setup-and-utilities/mode
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { transformAnthropicJsonSchema } from '~/utils/anthropic/anthropic-json-schema'
 import { createOcrAdmittedUsage } from '../../ocr-utils/ocr-admitted-usage'
+import { normalizeOversizedPng } from '~/utils/lossless-png'
 import { buildHostedOcrJsonPrompt, HOSTED_OCR_PAGES_JSON_SCHEMA, HostedOcrEnvelopeSchema, normalizeHostedOcrPages } from '../../ocr-utils/hosted-ocr-json'
 import {
   createAnthropicMessage,
@@ -158,11 +159,21 @@ const createImageRequestBody = async (
   model: string
 ): Promise<Record<string, unknown>> => {
   const file = Bun.file(filePath)
-  if (file.size > ANTHROPIC_OCR_IMAGE_BYTES) {
+  if (file.size > ANTHROPIC_OCR_IMAGE_BYTES && step1Metadata.format !== 'png') {
+    throw ValidationError(`Anthropic OCR image input exceeds the 5 MB per-image limit for ${basename(filePath)}.`, { stage: 'ocr:anthropic' })
+  }
+  const originalBytes = await file.bytes()
+  let bytes: Uint8Array
+  try {
+    bytes = await normalizeOversizedPng(originalBytes, step1Metadata.format, ANTHROPIC_OCR_IMAGE_BYTES)
+  } catch {
+    throw ValidationError(`Anthropic OCR could not losslessly normalize oversized PNG ${basename(filePath)}.`, { stage: 'ocr:anthropic' })
+  }
+  if (bytes.length > ANTHROPIC_OCR_IMAGE_BYTES) {
     throw ValidationError(`Anthropic OCR image input exceeds the 5 MB per-image limit for ${basename(filePath)}.`, { stage: 'ocr:anthropic' })
   }
 
-  const base64 = Buffer.from(await file.arrayBuffer()).toString('base64')
+  const base64 = Buffer.from(bytes).toString('base64')
   return {
     model,
     max_tokens: ANTHROPIC_OCR_MAX_TOKENS,

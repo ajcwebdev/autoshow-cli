@@ -2,8 +2,6 @@ import { extname } from 'node:path'
 import type { ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
 import { sanitizeModelName } from '~/cli/commands/command-shared/target-runner'
 import { GENERATION_ARTIFACT_BASENAMES, generationArtifactFileName } from '~/cli/commands/command-shared/media-generation/media-generation-scaffold'
-import { getReplicateImageExtension } from '../image-generation-services/replicate/run-replicate-image-gen'
-import { getLumalabsImageExtension } from '../image-generation-services/lumalabs/run-lumalabs-image-gen'
 import { getFalImageExtension } from '../image-generation-services/fal-image-service/run-fal-image-gen'
 import { normalizeOpenAIImageExtension } from '../image-generation-services/image-openai/openai-image-targets'
 
@@ -30,14 +28,6 @@ const getExpectedImageExtension = (
 
   if (target.service === 'grok') {
     return 'jpg'
-  }
-
-  if (target.service === 'replicate') {
-    return getReplicateImageExtension(target.model, options.imageFormat)
-  }
-
-  if (target.service === 'lumalabs') {
-    return getLumalabsImageExtension(options.imageFormat)
   }
 
   if (target.service === 'fal') return getFalImageExtension(options.imageFormat)

@@ -404,7 +404,6 @@ describe('setup doctor contracts', () => {
 
       'SPIDER_API_KEY',
       'ZYTE_API_KEY',
-      'LTXV_API_KEY',
       'X_BEARER_TOKEN'
     ]))
   })

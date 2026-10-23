@@ -48,7 +48,7 @@ describe('generation command config defaults through read-only price planning', 
       const reset = await price('video', configPath)
       expect(saved.totalEstimatedCostCents).toBeGreaterThan(reset.totalEstimatedCostCents)
       expect(reset.totalEstimatedCostCents).toBeGreaterThan(override.totalEstimatedCostCents)
-      expect((await price('video', configPath, ['--provider', 'lumalabs=ray-3.2'])).steps.map(step => step.provider)).toEqual(['lumalabs'])
+      expect((await price('video', configPath, ['--provider', 'gemini=gemini-omni-1.1-flash'])).steps.map(step => step.provider)).toEqual(['gemini'])
     })
   })
 

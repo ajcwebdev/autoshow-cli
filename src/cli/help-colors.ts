@@ -40,7 +40,6 @@ const HELP_GROUP_COLOR_BY_KEY: Readonly<Record<string, string>> = {
   'step-6-video': 'mediumpurple',
   'video-options': 'mediumpurple',
   'video-inputs': 'mediumpurple',
-  'replicate-video': 'mediumpurple',
   'step-7-music': 'gold',
   'hosted-music': 'gold',
   'comic-panels': 'hotpink',

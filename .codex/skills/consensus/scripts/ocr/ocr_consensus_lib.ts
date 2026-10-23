@@ -180,6 +180,7 @@ const OCR_PAGE_ANALYSIS_THRESHOLDS = {
 } as const;
 
 export type OcrMetricProviderGroup = "local" | "thirdPartyService";
+export type OcrReferenceKind = "consensus" | "publisher-canonical";
 
 export interface OcrPageArtifactFlags {
   blankOutput: boolean;
@@ -1302,6 +1303,7 @@ function buildVariantComparisonSummary(
   providers: OcrProviderRun[],
   pages: OcrPageMetric[],
   consensusPages: Array<{ pageNumber: number; text: string }> | null,
+  referenceKind: OcrReferenceKind,
 ): OcrVariantComparisonSummary {
   const hybridText = selectedHybridText(providers, pages);
   const pageSourceCounts = selectedPageSourceCounts(pages);
@@ -1316,8 +1318,10 @@ function buildVariantComparisonSummary(
 
   if (consensusPages) {
     const consensusText = consensusPages.map((page) => page.text).join("\n\n").trim();
-    variants.unshift(variantStats("status-quo-consensus", "current consensus extraction", consensusText, consensusPages.length));
-    pairwiseDistances.push(variantDistance("status-quo-consensus", consensusText, "page-level-hybrid", hybridText));
+    const variantId = referenceKind === "publisher-canonical" ? "publisher-canonical" : "status-quo-consensus";
+    const source = referenceKind === "publisher-canonical" ? "independent publisher canonical reference" : "current consensus extraction";
+    variants.unshift(variantStats(variantId, source, consensusText, consensusPages.length));
+    pairwiseDistances.push(variantDistance(variantId, consensusText, "page-level-hybrid", hybridText));
   }
 
   return {
@@ -1346,6 +1350,7 @@ function buildBenchmarkSummaryMarkdown(
   outliers: OcrOutliersArtifact,
   selectiveAdjudicationPages: OcrSelectiveAdjudicationArtifact,
   variantComparisonSummary: OcrVariantComparisonSummary,
+  referenceKind: OcrReferenceKind,
 ): string {
   const sourceRows = Object.entries(selectedPageSourceCounts(pageMetrics.pages))
     .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
@@ -1363,7 +1368,7 @@ function buildBenchmarkSummaryMarkdown(
     : "| n/a | n/a | n/a | n/a | No consensus extraction was provided. |";
 
   return [
-    "# OCR Consensus Benchmark Summary",
+    referenceKind === "publisher-canonical" ? "# OCR Canonical Reference Benchmark Summary" : "# OCR Consensus Benchmark Summary",
     "",
     "## Summary",
     "",
@@ -1371,7 +1376,9 @@ function buildBenchmarkSummaryMarkdown(
     `- Providers with page result files: ${pageMetrics.providerCount}`,
     `- Pages: ${pageMetrics.pageCount}`,
     "- Paid provider reruns: not run by this skill artifact; existing provider outputs only.",
-    "- Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.",
+    referenceKind === "publisher-canonical"
+      ? "- The publisher canonical reference is immutable; provider agreement diagnostics guide output review only."
+      : "- Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.",
     "",
     "## Page-Level Hybrid Sources",
     "",
@@ -1404,6 +1411,7 @@ export function buildOcrPageAnalysisArtifacts(
   runDir: string,
   providers: OcrProviderRun[],
   consensusPages: Array<{ pageNumber: number; text: string }> | null = null,
+  referenceKind: OcrReferenceKind = "consensus",
 ): OcrPageAnalysisArtifacts {
   const allPageNumbers = new Set<number>();
   for (const provider of providers) {
@@ -1439,7 +1447,7 @@ export function buildOcrPageAnalysisArtifacts(
   };
   const outliers = buildOutliers(runDir, thresholds, pages);
   const selectiveAdjudicationPages = buildSelectiveAdjudicationPages(thresholds, pages);
-  const variantComparisonSummary = buildVariantComparisonSummary(runDir, providers, pages, consensusPages);
+  const variantComparisonSummary = buildVariantComparisonSummary(runDir, providers, pages, consensusPages, referenceKind);
 
   return {
     pageMetrics,
@@ -1451,6 +1459,7 @@ export function buildOcrPageAnalysisArtifacts(
       outliers,
       selectiveAdjudicationPages,
       variantComparisonSummary,
+      referenceKind,
     ),
   };
 }

@@ -1,11 +1,9 @@
 import type { ElevenLabsSoundEffectHttpRequest, SoundEffectCapabilityFixture, SoundEffectGenerationResponse, SoundEffectRenderTask, SoundEffectRequestEvidence, SoundEffectTarget } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { canonicalTtsJson, canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
-import { resolveReplicateAudioGenTarget } from './replicate-audiogen-adapter'
-import { resolveStabilitySoundEffectTarget } from './stability-stable-audio-adapter'
 import { SoundEffectProviderError } from './sound-effect-errors'
 import { resolveCredential } from '~/utils/validate/env-utils'
-import { ELEVENLABS_SFX_SELECTOR, REPLICATE_AUDIOGEN_SELECTOR } from './sfx-provider-targets'
+import { ELEVENLABS_SFX_SELECTOR } from './sfx-provider-targets'
 import { readSoundscapeHeader } from './soundscape-http-headers'
 import { readHttpPayloadBytes } from '~/utils/http-payload'
 
@@ -60,12 +58,10 @@ const defaultRequest = (apiKey: string): ElevenLabsSoundEffectHttpRequest => asy
 
 export const resolveSoundEffectTarget = (selector: string, options: { outputFormat?: string | undefined, promptInfluence?: number | undefined } = {}): SoundEffectTarget => {
   const match = /^([^=]+)=([^=]+)$/u.exec(selector.trim())
-  if (!match?.[1] || !match[2]) throw UsageError(`--sfx-provider must use provider=model syntax, for example ${ELEVENLABS_SFX_SELECTOR} or ${REPLICATE_AUDIOGEN_SELECTOR}.`)
+  if (!match?.[1] || !match[2]) throw UsageError(`--sfx-provider must use provider=model syntax, for example ${ELEVENLABS_SFX_SELECTOR}.`)
   const provider = match[1].toLowerCase()
   const model = match[2]
-  if (provider === 'replicate') return resolveReplicateAudioGenTarget(model, options)
-  if (provider === 'stability') return resolveStabilitySoundEffectTarget(model, options)
-  if (provider !== 'elevenlabs') throw UsageError(`Unsupported sound-effect provider ${provider}; expected elevenlabs, replicate, or stability.`)
+  if (provider !== 'elevenlabs') throw UsageError(`Unsupported sound-effect provider ${provider}; expected elevenlabs.`)
   if (model !== ELEVENLABS_SFX_CAPABILITY_FIXTURE.model) throw UsageError(`Unsupported ElevenLabs sound-effect model ${model}; expected ${ELEVENLABS_SFX_CAPABILITY_FIXTURE.model}.`)
   const outputFormat = options.outputFormat ?? 'mp3_44100_128'
   if (!ELEVENLABS_SFX_CAPABILITY_FIXTURE.constraints.outputFormats.includes(outputFormat)) throw UsageError(`Unsupported ElevenLabs sound-effect output format ${outputFormat}.`)

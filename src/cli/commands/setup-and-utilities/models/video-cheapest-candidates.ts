@@ -4,9 +4,9 @@ import { estimateVideoCost } from '~/cli/commands/visuals/video/video-utils/vide
 import { falPriorityModes, isFalPriorityVideo } from '~/cli/commands/visuals/video/video-services/fal-video-service/fal-priority-video-contract'
 import { getModelRegistry } from './model-loader'
 
-export type CheapestVideoProvider = 'gemini' | 'grok' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
+export type CheapestVideoProvider = 'gemini' | 'grok' | 'fal'
 
-const TEXT_VIDEO_PROVIDERS = ['gemini', 'grok', 'ltx', 'replicate', 'lumalabs', 'fal'] as const
+const TEXT_VIDEO_PROVIDERS = ['gemini', 'grok', 'fal'] as const
 const PERFORMANCE_TIE_BREAKERS = ['mini', 'nano', 'micro', 'flash', 'turbo', 'fast', 'small']
 
 const runtimeRank = (model: string): number => {
@@ -25,9 +25,6 @@ const providerVideoEstimateOptions = (
 ): Parameters<typeof estimateVideoCost>[0] => ({
   ...(provider === 'gemini' ? { geminiVideoModels: [model] } : {}),
   ...(provider === 'grok' ? { grokVideoModels: [model] } : {}),
-  ...(provider === 'ltx' ? { ltxVideoModels: [model] } : {}),
-  ...(provider === 'replicate' ? { replicateVideoModels: [model] } : {}),
-  ...(provider === 'lumalabs' ? { lumalabsVideoModels: [model] } : {}),
   ...(provider === 'fal' ? { falVideoModels: [model] } : {}),
   videoMode: 'text'
 })
@@ -55,12 +52,6 @@ const generateProviderCandidates = (provider: CheapestVideoProvider): CheapestVi
   const service = getModelRegistry().video[provider]
   if (!service) throw InternalError(`Missing video service config: ${provider}`, { stage: 'models:cheapest' })
   const models = Object.keys(service.models)
-  if (provider === 'replicate') {
-    return models.flatMap((model) => {
-      const candidate = estimateCandidate(provider, model, providerVideoEstimateOptions(provider, model))
-      return candidate ? [candidate] : []
-    })
-  }
   const durations = service.billedDurations?.length ? service.billedDurations : [4]
   const resolutions = service.resolutions?.length ? service.resolutions : ['720p']
   return models.flatMap((model) => durations.flatMap((duration) => resolutions.flatMap((resolution) => {
