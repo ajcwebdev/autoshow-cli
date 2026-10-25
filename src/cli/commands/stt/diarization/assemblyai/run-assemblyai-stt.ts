@@ -29,8 +29,8 @@ export const buildAssemblyAiTranscriptRequest = (
   ...(!diarize || speakerCount === undefined ? {} : { speakers_expected: speakerCount })
 })
 
-const formatSpeaker = (speaker: string | undefined): string | undefined => {
-  if (speaker === undefined || speaker.length === 0) return undefined
+const formatSpeaker = (speaker: string | null | undefined): string | undefined => {
+  if (speaker == null || speaker.length === 0) return undefined
   return `speaker-${speaker}`
 }
 

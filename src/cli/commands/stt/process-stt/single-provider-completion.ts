@@ -5,13 +5,15 @@ import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { logManifestLocation } from '~/cli/commands/command-shared/write-manifest-log/write-manifest-log'
-import { readSingleManifestProviderState, writePipelineItemRecords } from '../../command-shared/pipeline-manifest'
+import { readSingleManifestProviderState, readSinglePipelineItemRecord, writePipelineItemRecords } from '../../command-shared/pipeline-manifest'
 import { sttTarget } from '../run-stt'
-import { toRequestedProvider } from '../stt-batch/stt-run-state'
+import { readExistingSttRun, toRequestedProvider } from '../stt-batch/stt-run-state'
 import { createSttProviderProgressLifecycle, markSttProviderFailed, markSttProviderRunning } from '../stt-provider-progress'
 import { buildSingleStepSummaries, filterEstimatedSttCosts, resolveSttEstimatedCosts } from '../stt-costs'
 import { buildPromptFile, buildProviderModelLabel } from '../stt-prompt'
 import { resolveRecordedSttStep2 } from './recorded-step2'
+import { UsageError } from '~/utils/error-handler'
+import { isRecord } from '~/utils/rest-client'
 
 export const mergeCompletedSttProviderMetadata = (
   persistedMetadata: Record<string, unknown> | undefined,
@@ -43,6 +45,30 @@ export const completeSingleProviderStt = async ({
   const audioDurationSeconds = prepared.durationSeconds
   const requestedProvider = toRequestedProvider(target, options)
   const manifestSelector = { rootDir: outputDir, artifactDir: '.', target }
+  const previousProvider = await readSingleManifestProviderState(outputDir, {
+    service: target.service, model: target.model, artifactDir: '.'
+  })
+  const retainedProvider = previousProvider?.status === 'running' || previousProvider?.status === 'failed'
+    ? previousProvider
+    : undefined
+  const sourceHasher = new Bun.CryptoHasher('sha256')
+  for await (const bytes of Bun.file(audioPath).stream()) sourceHasher.update(bytes)
+  const sourceAudioSha256 = sourceHasher.digest('hex')
+  if (retainedProvider) {
+    await readExistingSttRun(outputDir, requestedTargets)
+    const previousRecord = await readSinglePipelineItemRecord(outputDir, { command: 'extract', extractRoute: 'media' })
+    const previousStep1 = isRecord(previousRecord?.['step1']) ? previousRecord['step1'] : undefined
+    const previousLocal = retainedProvider.settings?.local
+    if (previousStep1?.['url'] !== prepared.step1Metadata.url
+      || previousStep1?.['audioFileSize'] !== prepared.step1Metadata.audioFileSize
+      || (typeof previousStep1?.['durationSeconds'] === 'number' && previousStep1['durationSeconds'] !== prepared.step1Metadata.durationSeconds)
+      || (typeof retainedProvider.metadata['sourceAudioSha256'] === 'string' && retainedProvider.metadata['sourceAudioSha256'] !== sourceAudioSha256)
+      || (previousLocal?.['audioProfile'] ?? 'default') !== (options.sttAudioProfile ?? 'default')
+      || (previousLocal?.['split'] === true) !== (options.split === true)) {
+      throw UsageError('Cannot resume STT with a changed source, audio profile, or split setting. Resume with the saved settings or use a new output directory.')
+    }
+  }
+  const attempt = (retainedProvider?.attempts ?? 0) + 1
   await writePipelineItemRecords(outputDir, 'extract', 'single', [{
     step1: prepared.step1Metadata,
     resolvedStep2: resolveRecordedSttStep2(requestedTargets, options),
@@ -54,11 +80,12 @@ export const completeSingleProviderStt = async ({
       local: target.local,
       artifactDir: '.',
       status: 'missing',
-      attempts: 0
+      attempts: retainedProvider?.attempts ?? 0,
+      metadata: { ...retainedProvider?.metadata, sourceAudioSha256 }
     }],
     missingProviders: [requestedProvider]
   }], { extractRoute: 'media' })
-  await markSttProviderRunning(manifestSelector, 1)
+  await markSttProviderRunning(manifestSelector, attempt)
 
   let transcription: Awaited<ReturnType<typeof sttTarget>>
   try {
@@ -126,7 +153,7 @@ export const completeSingleProviderStt = async ({
       local: target.local,
       artifactDir: '.',
       status: 'succeeded',
-      attempts: 1,
+      attempts: attempt,
       result: transcription.result,
       metadata: mergeCompletedSttProviderMetadata(persistedProvider?.metadata, transcription.metadata)
     }],
