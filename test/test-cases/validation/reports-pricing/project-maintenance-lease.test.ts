@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from 'bun:test'
-import { mkdir, readFile, readdir, realpath, symlink, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, readFile, readdir, realpath, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { acquireProjectMaintenanceLease, acquireProjectWriterLease, resolveProjectMaintenanceRoots, withProjectWriterLease } from '~/utils/project-maintenance-lease'
 import { commandRequiresProjectWriterLease } from '~/cli/native/dispatcher'
@@ -120,6 +120,48 @@ test('workspace roots include cwd and external output/characters/resume ancestor
   const roots = await resolveProjectMaintenanceRoots(a, { 'output-dir': join(b, 'output/new-run'), 'characters-root': join(b, 'input/characters') }, { outputDirs: [join(b, 'output/other-run')], input: 'https://example.com/file' })
   expect(roots).toEqual([a, b].sort())
   expect(await readdir(join(b, 'output'))).toEqual([])
+})
+
+test('explicit output destinations replace markerless cwd fallback and retain real source workspace exclusion', async () => {
+  const cwd = await realpath(await temporary.make()), destination = await realpath(await temporary.make()), source = await fixture()
+  await writeFile(join(source, 'recording.txt'), 'authored source')
+  for (const key of ['output-root', 'output-dir']) {
+    const roots = await resolveProjectMaintenanceRoots(cwd, { [key]: join(destination, 'new/nested-run') }, { input: join(source, 'recording.txt') })
+    expect(roots).toEqual([destination, source].sort())
+    const maintenance = await acquireProjectMaintenanceLease(source)
+    try { await expect(withProjectWriterLease(roots, async () => 'unreachable')).rejects.toThrow('maintenance lease is active') }
+    finally { await maintenance.release() }
+    expect(await readdir(destination)).toEqual([])
+  }
+  expect(await resolveProjectMaintenanceRoots(cwd, {})).toEqual([cwd])
+  expect(await readdir(cwd)).toEqual([])
+})
+
+test('dispatcher writes to explicit output from read-only markerless cwd and input directories', async () => {
+  const cwd = await realpath(await temporary.make()), input = await realpath(await temporary.make()), destination = await realpath(await temporary.make())
+  const inputPath = join(input, 'fixture.txt'), output = join(destination, 'new/nested-run')
+  await writeFile(inputPath, 'authored local input')
+  await chmod(inputPath, 0o444)
+  await chmod(input, 0o555); await chmod(cwd, 0o555)
+  try {
+    const code = `
+import {dispatchNativeCli} from ${JSON.stringify(join(PROJECT_ROOT, 'src/cli/native/dispatcher.ts'))};
+import {mkdir,readFile,writeFile,readdir} from 'node:fs/promises';
+const definition={name:'extract',description:'Local output fixture',parameters:[{key:'[input]'}],flags:{},handler:async(ctx)=>{
+  const claims=await readdir(${JSON.stringify(join(leaseRoot(destination), 'writers'))});if(claims.length!==1)throw new Error('Destination writer lease missing');
+  await mkdir(ctx.flags['output-root'],{recursive:true});await writeFile(ctx.flags['output-root']+'/extraction.txt',await readFile(ctx.parameters.input));console.log('HANDLER');
+}};
+const root={scriptName:'fixture',description:'fixture',version:'1',globalFlags:{'output-root':{description:'Destination',type:String}},commandGroups:[],flagGroups:[]};
+await dispatchNativeCli(['extract',${JSON.stringify(inputPath)},'--output-root',${JSON.stringify(output)}],root,[definition]);`
+    const proc = child(cwd, code, { AUTOSHOW_REQUIRED_IMAGE_MODEL: '' })
+    const [exitCode, stdout, stderr] = await Promise.all([proc.exited, new Response(proc.stdout).text(), new Response(proc.stderr).text()])
+    expect({ exitCode, stderr }).toEqual({ exitCode: 0, stderr: '' })
+    expect(stdout).toContain('HANDLER')
+    expect(await readFile(join(output, 'extraction.txt'), 'utf8')).toBe('authored local input')
+    expect(await readdir(cwd)).toEqual([])
+    expect(await readdir(input)).toEqual(['fixture.txt'])
+    expect(await readdir(destination)).toEqual(['new'])
+  } finally { await chmod(cwd, 0o755); await chmod(input, 0o755) }
 })
 
 test('price and unrelated read-only commands do not require writer leases', () => {

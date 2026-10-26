@@ -6,6 +6,9 @@ type Owner = { schemaVersion: 1; token: string; kind: string; pid: number }
 export type ProjectMaintenanceLease = { assertHeld: () => Promise<void>; release: () => Promise<void> }
 type Layout = { root: string; output: string; base: string; outputCreated: boolean }
 const code = (error: unknown): string | undefined => (error as NodeJS.ErrnoException)?.code
+const parentCleanupRace = (error: unknown): boolean => code(error) === 'ENOENT' ||
+  // APFS can report EINVAL when mkdir races removal of its empty parent inode.
+  process.platform === 'darwin' && code(error) === 'EINVAL' && (error as NodeJS.ErrnoException).syscall === 'mkdir'
 const entries = async (path: string): Promise<string[]> => (await readdir(path)).filter(name => name !== '.DS_Store')
 const absent = async (path: string): Promise<boolean> => {
   try { await lstat(path); return false } catch (error) { if (code(error) === 'ENOENT') return true; throw error }
@@ -30,7 +33,7 @@ const ensureLayout = async (paths: Layout): Promise<void> => {
       return
     } catch (error) {
       // The last lease may remove empty parents while a new claim is being initialized.
-      if (code(error) !== 'ENOENT' || Date.now() >= deadline) throw error
+      if (!parentCleanupRace(error) || Date.now() >= deadline) throw error
     }
   }
 }
@@ -82,7 +85,7 @@ const withGate = async <T>(paths: Layout, action: () => Promise<T>): Promise<T> 
     if (Date.now() >= deadline) throw new Error('Workspace lease layout gate is busy; no stale owner is removed automatically')
     await ensureLayout(paths)
     try { await createOwned(gate, owner); break } catch (error) {
-      if (code(error) === 'ENOENT') continue
+      if (parentCleanupRace(error)) continue
       if (code(error) !== 'EEXIST') throw error
       try { await realDirectory(gate) } catch (error) { if (code(error) === 'ENOENT') continue; throw error }
       await new Promise(resolveWait => setTimeout(resolveWait, 10))
@@ -177,11 +180,16 @@ export const withProjectWriterLease = async <T>(projectRoots: readonly string[],
   }
 }
 
-const workspaceAncestor = async (path: string): Promise<string | undefined> => {
+const existingDirectoryAncestor = async (path: string): Promise<string> => {
   let current = resolve(path)
-  while (await absent(current)) { const parent = dirname(current); if (parent === current) return undefined; current = parent }
+  while (await absent(current)) { const parent = dirname(current); if (parent === current) throw new Error(`No existing directory ancestor: ${path}`); current = parent }
   current = await realpath(current)
   if (!(await lstat(current)).isDirectory()) current = dirname(current)
+  return current
+}
+
+const workspaceAncestor = async (path: string): Promise<string | undefined> => {
+  let current = await existingDirectoryAncestor(path)
   while (true) {
     for (const marker of ['AGENTS.md', '.git']) if (!await absent(join(current, marker))) return current
     const parent = dirname(current)
@@ -193,7 +201,17 @@ const workspaceAncestor = async (path: string): Promise<string | undefined> => {
 export const resolveProjectMaintenanceRoots = async (cwd: string, flags: Readonly<Record<string, unknown>>, parameters: Readonly<Record<string, string | string[]>> = {}): Promise<string[]> => {
   const roots = new Set<string>(), own = await workspaceAncestor(cwd)
   if (own) roots.add(own)
-  else roots.add(await realpath(cwd))
+  let explicitDestination = false
+  for (const key of ['output-dir', 'output-root']) {
+    const value = flags[key]
+    if (typeof value !== 'string' || !value.trim() || /^[a-z][a-z\d+.-]*:/i.test(value) || value.includes('\0')) continue
+    const destination = resolve(cwd, value)
+    roots.add(await workspaceAncestor(destination) ?? await existingDirectoryAncestor(destination))
+    explicitDestination = true
+  }
+  // A markerless invocation directory may be a read-only container workdir.
+  // Explicit destinations own its writes; real source workspaces still participate below.
+  if (!own && !explicitDestination) roots.add(await realpath(cwd))
   const values: string[] = []
   for (const key of ['output-dir', 'output-root', 'characters-root', 'input-dir', 'input-root']) if (typeof flags[key] === 'string') values.push(flags[key] as string)
   for (const key of ['input', 'outputDirs', 'path', 'scriptPath']) {
