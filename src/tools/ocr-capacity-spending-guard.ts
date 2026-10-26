@@ -5,6 +5,7 @@ import { isDeepStrictEqual } from 'node:util'
 import * as v from 'valibot'
 import { AppValidationError } from '~/utils/error-handler'
 import { PROJECT_ROOT } from '~/utils/project-root'
+import { sleepWithAbortSignal } from '~/utils/retry-abortable-delay'
 import { decodePngRgba8 } from '~/utils/lossless-png'
 import { buildHostedOcrJsonPrompt, HOSTED_OCR_PAGES_JSON_SCHEMA } from '~/cli/commands/text/ocr/ocr-utils/hosted-ocr-json'
 import { capacityExistingPath, capacityHash, capacityReferenceReviewSchema, validateOcrCapacityProtocol, writeNewCapacityEvidence, type CapacityExecutionPlan } from './ocr-preparation/prepare-capacity-protocol'
@@ -145,7 +146,7 @@ export const createCapacityProtocolFetchGuard = async (options: CapacityGuardOpt
       try { lock = await open(lockPath, 'wx', 0o600); break } catch (error) {
         if (!object(error) || error['code'] !== 'EEXIST') throw error
         if (Date.now() >= deadline) fail('ledger is locked; reconcile ownership before retrying')
-        await Bun.sleep(10)
+        await sleepWithAbortSignal(10)
       }
     }
     try {

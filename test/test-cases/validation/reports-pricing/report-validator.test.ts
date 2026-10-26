@@ -66,6 +66,26 @@ describe('explicit Markdown report validation', () => {
     expect(codes(await f.run()).filter(code => code === 'BROKEN_LINK')).toHaveLength(2)
   })
 
+  test('retains specific Markdown, HTML and source-fragment diagnostics while sanitizing missing-file errors', async () => {
+    const f = await fixture()
+    await f.write('docs/reports/target.md', '# Target\n')
+    await f.write('docs/reports/target.html', '<h2 id="present">Present</h2>\n')
+    await f.write('src/short.ts', 'export const one = 1\n')
+    await f.write(reportPath, '# Notes\n\n'
+      + '[Markdown](target.md#missing-markdown) [HTML](target.html#missing-html) [line](../../src/short.ts#L99) '
+      + '[symbol](../../src/short.ts#symbol) [directory](./#fragment) [missing](absent.md)\n')
+    const result = await f.run()
+    expect(result.diagnostics.filter(item => item.code === 'BROKEN_LINK').map(item => item.message)).toEqual([
+      'Fragment #missing-markdown is not a heading or explicit anchor in the linked document',
+      'Fragment #missing-html is not an HTML anchor',
+      'The linked line range does not exist',
+      'Fragment validation supports Markdown/HTML anchors and source-file #Lnumber ranges',
+      'Link directly to the Markdown or HTML file when checking a fragment',
+      'Local target absent.md does not exist or cannot be read.'
+    ])
+    expect(JSON.stringify(result)).not.toContain(f.root)
+  })
+
   for (const [name, text, code] of [
     ['missing local target', '# Notes\n\n[missing](absent.md)\n', 'BROKEN_LINK'],
     ['missing local fragment', '# Notes\n\n[missing](#absent)\n', 'BROKEN_LINK'],
@@ -97,9 +117,15 @@ describe('explicit Markdown report validation', () => {
     await f.write(reportPath, '# Notes\n\n[line](../../src/short.ts#L400) [escape](escape.md) [parent](../../../outside.md)\n')
     const result = await f.run()
     expect(codes(result).filter(code => code === 'BROKEN_LINK')).toHaveLength(3)
+    expect(result.diagnostics.filter(item => item.code === 'BROKEN_LINK').map(item => item.message)).toEqual([
+      'The linked line range does not exist',
+      'The local link resolves through an escaping symlink',
+      'The local link escapes the project; use an official URL or a portable project reference'
+    ])
     expect(JSON.stringify(result)).not.toContain(outside)
     const selected = await f.run({ paths: ['docs/reports/escape.md'] })
     expect(codes(selected)).toContain('REPORT_INPUT')
+    expect(selected.diagnostics.find(item => item.code === 'REPORT_INPUT')?.message).toBe('The selected path resolves outside the project; replace the escaping symlink or path')
   })
 
   test('rejects unaligned tables, malformed columns and duplicate action ownership while permitting ordinary ID references', async () => {

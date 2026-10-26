@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { dirname, extname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/project-root'
+import { AppValidationError, UsageError } from '~/utils/error-handler'
 import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { findMachineSpecificPaths } from './repository-structure-check'
 
@@ -63,6 +64,8 @@ const cells = (line: string): string[] => {
 }
 const decodeText = (bytes: Uint8Array): string => new TextDecoder('utf-8', { fatal: true }).decode(bytes)
 const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
+const diagnosticMessage = (error: unknown, fallback: string): string =>
+  error instanceof AppValidationError || error instanceof Error && !('code' in error) ? error.message : fallback
 
 /** Parse one Markdown destination, respecting angle brackets, titles and balanced URL parentheses. */
 const destination = (source: string): { target: string, consumed: number } | undefined => {
@@ -294,10 +297,10 @@ const validateProviderStructure = (document: MarkdownDocument, add: (line: numbe
 export const validateReports = async (options: ReportValidationOptions = {}) => {
   const selectedRoot = resolve(options.projectRoot ?? PROJECT_ROOT), root = await realpath(selectedRoot), limit = options.maxErrors ?? 50
   const rootSpellings = [root, selectedRoot, Bun.pathToFileURL(root).href, Bun.pathToFileURL(selectedRoot).href]
-  if (!Number.isInteger(limit) || limit < 1 || limit > 1000) throw new Error('maxErrors must be an integer from 1 through 1000')
+  if (!Number.isInteger(limit) || limit < 1 || limit > 1000) throw new AppValidationError('maxErrors must be an integer from 1 through 1000')
   const paths = [...new Set((options.paths ?? []).filter(path => !ignored(path)))], checksums = [...new Set((options.checksums ?? []).filter(path => !ignored(path)))]
-  if (!paths.length && !checksums.length) throw new Error('Provide at least one explicit Markdown report or checksum path; no workspace scan is performed')
-  if (paths.length + checksums.length > MAX_INPUTS) throw new Error(`Provide at most ${MAX_INPUTS} explicit inputs per invocation`)
+  if (!paths.length && !checksums.length) throw new AppValidationError('Provide at least one explicit Markdown report or checksum path; no workspace scan is performed')
+  if (paths.length + checksums.length > MAX_INPUTS) throw new AppValidationError(`Provide at most ${MAX_INPUTS} explicit inputs per invocation`)
   const diagnostics: ReportDiagnostic[] = []
   let errorCount = 0
   const add = (path: string, line: number | undefined, code: string, message: string) => {
@@ -305,14 +308,14 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
     if (diagnostics.length < limit) diagnostics.push({ path, ...(line === undefined ? {} : { line }), code, message: message.slice(0, 400) })
   }
   const existing = async (path: string): Promise<string> => {
-    if (!normalized(path)) throw new Error('Use a normalized project-relative path without traversal, an absolute prefix or control characters')
+    if (!normalized(path)) throw new AppValidationError('Use a normalized project-relative path without traversal, an absolute prefix or control characters')
     const actual = await realpath(resolve(root, path))
-    if (!inside(root, actual)) throw new Error('The selected path resolves outside the project; replace the escaping symlink or path')
+    if (!inside(root, actual)) throw new AppValidationError('The selected path resolves outside the project; replace the escaping symlink or path')
     return actual
   }
   const textFile = async (actual: string): Promise<string> => {
     const info = await stat(actual)
-    if (!info.isFile() || info.size > MAX_TEXT_BYTES) throw new Error('Expected a UTF-8 text file of at most 5 MiB')
+    if (!info.isFile() || info.size > MAX_TEXT_BYTES) throw new AppValidationError('Expected a UTF-8 text file of at most 5 MiB')
     return decodeText(await readFile(actual))
   }
   const cache = new Map<string, MarkdownDocument>()
@@ -321,7 +324,7 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
     const display = normalized(path) ? path : '<invalid report path>'
     try {
       const actual = await existing(path)
-      if (extname(path).toLowerCase() !== '.md') throw new Error('Select a Markdown (.md) report; use --checksums for manifests and ZIP archives')
+      if (extname(path).toLowerCase() !== '.md') throw new AppValidationError('Select a Markdown (.md) report; use --checksums for manifests and ZIP archives')
       const text = await textFile(actual), document = parseMarkdown(path, text, (line, code, message) => add(display, line, code, message))
       cache.set(actual, document)
       if (!text.endsWith('\n') || text.endsWith('\n\n')) add(display, undefined, 'FINAL_NEWLINE', 'End the report with exactly one newline.')
@@ -347,27 +350,27 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
         const target = file ? resolve(dirname(actual), file) : actual
         linksChecked++
         try {
-          if (!inside(root, target)) throw new Error('The local link escapes the project; use an official URL or a portable project reference')
+          if (!inside(root, target)) throw new AppValidationError('The local link escapes the project; use an official URL or a portable project reference')
           const resolved = await realpath(target)
-          if (!inside(root, resolved)) throw new Error('The local link resolves through an escaping symlink')
+          if (!inside(root, resolved)) throw new AppValidationError('The local link resolves through an escaping symlink')
           const info = await stat(resolved)
           if (!fragment) continue
-          if (info.isDirectory()) throw new Error('Link directly to the Markdown or HTML file when checking a fragment')
+          if (info.isDirectory()) throw new AppValidationError('Link directly to the Markdown or HTML file when checking a fragment')
           if (/\.md$/i.test(resolved)) {
             let destinationDocument = cache.get(resolved)
             if (!destinationDocument) { destinationDocument = parseMarkdown(relative(root, resolved), await textFile(resolved), () => {}); cache.set(resolved, destinationDocument) }
-            if (!destinationDocument.anchors.has(fragment)) throw new Error(`Fragment #${fragment} is not a heading or explicit anchor in the linked document`)
+            if (!destinationDocument.anchors.has(fragment)) throw new AppValidationError(`Fragment #${fragment} is not a heading or explicit anchor in the linked document`)
           } else if (/^L\d+(?:-L\d+)?$/.test(fragment)) {
             const numbers = fragment.match(/\d+/g)!.map(Number), lineCount = (await textFile(resolved)).split('\n').length
-            if (numbers[0]! < 1 || numbers.at(-1)! > lineCount || numbers[0]! > numbers.at(-1)!) throw new Error('The linked line range does not exist')
+            if (numbers[0]! < 1 || numbers.at(-1)! > lineCount || numbers[0]! > numbers.at(-1)!) throw new AppValidationError('The linked line range does not exist')
           } else if (/\.html?$/i.test(resolved)) {
             const html = await textFile(resolved), ids = [...html.matchAll(/\b(?:id|name)\s*=\s*["']([^"']+)["']/g)].map(match => match[1])
-            if (!ids.includes(fragment)) throw new Error(`Fragment #${fragment} is not an HTML anchor`)
-          } else throw new Error('Fragment validation supports Markdown/HTML anchors and source-file #Lnumber ranges')
-        } catch (error) { add(display, link.line, 'BROKEN_LINK', error instanceof Error && !('code' in error) ? error.message : `Local target ${file || path} does not exist or cannot be read.`) }
+            if (!ids.includes(fragment)) throw new AppValidationError(`Fragment #${fragment} is not an HTML anchor`)
+          } else throw new AppValidationError('Fragment validation supports Markdown/HTML anchors and source-file #Lnumber ranges')
+        } catch (error) { add(display, link.line, 'BROKEN_LINK', diagnosticMessage(error, `Local target ${file || path} does not exist or cannot be read.`)) }
       }
       documents.push({ path, profile, linksChecked, ...(inventoryTuples === undefined ? {} : { inventoryTuples }) })
-    } catch (error) { add(display, undefined, 'REPORT_INPUT', error instanceof Error && !('code' in error) ? error.message : 'Cannot read the selected report; check its path and permissions.') }
+    } catch (error) { add(display, undefined, 'REPORT_INPUT', diagnosticMessage(error, 'Cannot read the selected report; check its path and permissions.')) }
   }
   const checksumResults: Array<{ path: string, entriesChecked: number, completeCoverage: boolean }> = []
   for (const path of checksums) {
@@ -383,10 +386,10 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
         try {
           for await (const chunk of child.stdout) {
             bytes += chunk.length; archiveBytes += chunk.length
-            if (bytes > maximum || archiveBytes > MAX_ARCHIVE_BYTES) throw new Error('Archive validation exceeds its documented byte limit')
+            if (bytes > maximum || archiveBytes > MAX_ARCHIVE_BYTES) throw new AppValidationError('Archive validation exceeds its documented byte limit')
             consume(chunk)
           }
-          if (await child.exited !== 0) throw new Error('unzip could not read the archive; verify it is intact and unzip is installed')
+          if (await child.exited !== 0) throw new AppValidationError('unzip could not read the archive; verify it is intact and unzip is installed')
         } finally { clearTimeout(timer); if (child.exitCode === null) { child.kill(); await child.exited } }
       }
       const zipText = async (entry?: string): Promise<string> => {
@@ -397,8 +400,8 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
           const timer = setTimeout(() => child.kill(), 30_000)
           let bytes = 0
           try {
-            for await (const chunk of child.stdout) { bytes += chunk.length; archiveBytes += chunk.length; if (bytes > MAX_TEXT_BYTES || archiveBytes > MAX_ARCHIVE_BYTES) throw new Error('Checksum manifest exceeds its documented byte limit'); chunks.push(chunk) }
-            if (await child.exited !== 0) throw new Error('ZIP archives supplied to --checksums need a root SHA256SUMS file')
+            for await (const chunk of child.stdout) { bytes += chunk.length; archiveBytes += chunk.length; if (bytes > MAX_TEXT_BYTES || archiveBytes > MAX_ARCHIVE_BYTES) throw new AppValidationError('Checksum manifest exceeds its documented byte limit'); chunks.push(chunk) }
+            if (await child.exited !== 0) throw new AppValidationError('ZIP archives supplied to --checksums need a root SHA256SUMS file')
           } finally { clearTimeout(timer); if (child.exitCode === null) { child.kill(); await child.exited } }
         } else await zipRead(['-Z1'], MAX_TEXT_BYTES, chunk => chunks.push(chunk))
         return decodeText(Buffer.concat(chunks))
@@ -406,15 +409,15 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
       const archiveNames = zip ? (await zipText()).trimEnd().split('\n').filter(name => name && !ignored(name)) : []
       const entryPath = (name: string): string => {
         const stripped = name.startsWith('./') ? name.slice(2) : name
-        if (!normalized(stripped) || /[*?\[\]]/.test(stripped)) throw new Error('Checksum paths must be normalized relative paths without traversal or ZIP wildcard characters')
+        if (!normalized(stripped) || /[*?\[\]]/.test(stripped)) throw new AppValidationError('Checksum paths must be normalized relative paths without traversal or ZIP wildcard characters')
         return stripped
       }
-      if (zip && (archiveNames.length > MAX_ARCHIVE_ENTRIES || new Set(archiveNames).size !== archiveNames.length)) throw new Error('Archive contains too many entries or duplicate entry names')
+      if (zip && (archiveNames.length > MAX_ARCHIVE_ENTRIES || new Set(archiveNames).size !== archiveNames.length)) throw new AppValidationError('Archive contains too many entries or duplicate entry names')
       const files = new Set(archiveNames.filter(name => !name.endsWith('/')).map(entryPath))
       for (const name of archiveNames) entryPath(name.endsWith('/') ? name.slice(0, -1) : name)
       const manifest = zip ? await zipText('SHA256SUMS') : await textFile(actual)
       const declared = new Set<string>(), manifestLines = manifest.trimEnd().split('\n')
-      if (manifestLines.length > MAX_ARCHIVE_ENTRIES) throw new Error('Checksum manifest contains too many entries')
+      if (manifestLines.length > MAX_ARCHIVE_ENTRIES) throw new AppValidationError('Checksum manifest contains too many entries')
       for (const [index, line] of manifestLines.entries()) {
         const match = /^([a-f\d]{64})[ \t]+\*?(.+)$/i.exec(line)
         if (!match) { add(display, index + 1, 'CHECKSUM_ROW', 'Use SHA-256 followed by two spaces and a relative file path.'); continue }
@@ -430,28 +433,28 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
             const timer = setTimeout(() => child.kill(), 30_000)
             let bytes = 0
             try {
-              for await (const chunk of child.stdout) { bytes += chunk.length; archiveBytes += chunk.length; if (bytes > MAX_ARCHIVE_ENTRY_BYTES || archiveBytes > MAX_ARCHIVE_BYTES) throw new Error('Archive member exceeds the documented byte limit'); hasher.update(chunk) }
-              if (await child.exited !== 0) throw new Error('Cannot decode the checksummed archive member')
+              for await (const chunk of child.stdout) { bytes += chunk.length; archiveBytes += chunk.length; if (bytes > MAX_ARCHIVE_ENTRY_BYTES || archiveBytes > MAX_ARCHIVE_BYTES) throw new AppValidationError('Archive member exceeds the documented byte limit'); hasher.update(chunk) }
+              if (await child.exited !== 0) throw new AppValidationError('Cannot decode the checksummed archive member')
             } finally { clearTimeout(timer); if (child.exitCode === null) { child.kill(); await child.exited } }
             digest = hasher.digest('hex')
           } else {
             const target = await realpath(resolve(dirname(actual), name))
-            if (!inside(root, target)) throw new Error('Checksum target resolves outside the project')
+            if (!inside(root, target)) throw new AppValidationError('Checksum target resolves outside the project')
             const info = await stat(target)
-            if (!info.isFile() || info.size > MAX_ARCHIVE_ENTRY_BYTES) throw new Error('Checksum target is not a bounded regular file')
+            if (!info.isFile() || info.size > MAX_ARCHIVE_ENTRY_BYTES) throw new AppValidationError('Checksum target is not a bounded regular file')
             archiveBytes += info.size
-            if (archiveBytes > MAX_ARCHIVE_BYTES) throw new Error('Checksum validation exceeds its documented byte limit')
+            if (archiveBytes > MAX_ARCHIVE_BYTES) throw new AppValidationError('Checksum validation exceeds its documented byte limit')
             digest = sha256(await readFile(target))
           }
           entriesChecked++
           if (digest.toLowerCase() !== match[1]!.toLowerCase()) add(display, index + 1, 'CHECKSUM_MISMATCH', `SHA-256 does not match ${name}.`)
-        } catch (error) { add(display, index + 1, 'CHECKSUM_TARGET', error instanceof Error && !('code' in error) ? error.message : `Cannot read checksum target ${name}.`) }
+        } catch (error) { add(display, index + 1, 'CHECKSUM_TARGET', diagnosticMessage(error, `Cannot read checksum target ${name}.`)) }
       }
       const completeCoverage = !zip || [...files].every(name => name === 'SHA256SUMS' || declared.has(name))
       if (!declared.size) add(display, undefined, 'EMPTY_CHECKSUMS', 'Supply at least one checksummed artifact.')
       if (!completeCoverage) add(display, undefined, 'UNCHECKSUMMED_ENTRY', 'The root SHA256SUMS must cover every archive file except itself.')
       checksumResults.push({ path, entriesChecked, completeCoverage })
-    } catch (error) { add(display, undefined, 'CHECKSUM_INPUT', error instanceof Error && !('code' in error) ? error.message : 'Cannot read the checksum input; check its path, permissions and unzip availability.') }
+    } catch (error) { add(display, undefined, 'CHECKSUM_INPUT', diagnosticMessage(error, 'Cannot read the checksum input; check its path, permissions and unzip availability.')) }
   }
   return { schemaVersion: 1, kind: 'report-validation', status: errorCount ? 'invalid' : 'valid',
     scope: 'Local document contracts and supplied artifact checksums; external URLs, provider availability and research conclusions are not verified.',
@@ -493,15 +496,15 @@ export const parseReportValidatorArguments = (args: readonly string[]) => {
     if (arg === '--json') continue
     if (['--profile', '--checksums', '--max-errors', '--files-from'].includes(arg)) {
       const value = args[++index]
-      if (!value || value.startsWith('--')) throw new Error(`Provide a value for ${arg}; use --help for examples.`)
-      if (arg === '--profile') { if (!['auto', 'generic', 'provider-research'].includes(value)) throw new Error('Choose --profile auto, generic or provider-research.'); profile = value as ReportProfile }
+      if (!value || value.startsWith('--')) throw UsageError(`Provide a value for ${arg}; use --help for examples.`)
+      if (arg === '--profile') { if (!['auto', 'generic', 'provider-research'].includes(value)) throw UsageError('Choose --profile auto, generic or provider-research.'); profile = value as ReportProfile }
       if (arg === '--checksums') checksums.push(value)
-      if (arg === '--max-errors') { if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 1000) throw new Error('Choose --max-errors from 1 through 1000.'); maxErrors = Number(value) }
-      if (arg === '--files-from') { if (value !== '-' || stdin) throw new Error('--files-from accepts one explicit - stdin source.'); stdin = true }
-    } else if (arg.startsWith('-')) throw new Error(`Unknown option ${arg.slice(0, 120)}; use --help for valid options.`)
+      if (arg === '--max-errors') { if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 1000) throw UsageError('Choose --max-errors from 1 through 1000.'); maxErrors = Number(value) }
+      if (arg === '--files-from') { if (value !== '-' || stdin) throw UsageError('--files-from accepts one explicit - stdin source.'); stdin = true }
+    } else if (arg.startsWith('-')) throw UsageError(`Unknown option ${arg.slice(0, 120)}; use --help for valid options.`)
     else paths.push(arg)
   }
-  if (action === 'validate' && !paths.some(path => !ignored(path)) && !checksums.some(path => !ignored(path)) && !stdin) throw new Error('Provide an explicit report/checksum path or --files-from -; use --help for examples.')
+  if (action === 'validate' && !paths.some(path => !ignored(path)) && !checksums.some(path => !ignored(path)) && !stdin) throw UsageError('Provide an explicit report/checksum path or --files-from -; use --help for examples.')
   return { action, paths, checksums, profile, maxErrors, stdin }
 }
 
@@ -512,12 +515,12 @@ if (import.meta.main) {
     else if (args.action === 'version') writeCommandPayload('report-validator schema 1\n')
     else {
       if (args.stdin) {
-        if (process.stdin.isTTY) throw new Error('Pipe newline-separated report paths into --files-from -; no interactive input is requested.')
+        if (process.stdin.isTTY) throw UsageError('Pipe newline-separated report paths into --files-from -; no interactive input is requested.')
         const chunks: Uint8Array[] = []
         let size = 0
         for await (const bytes of Bun.stdin.stream()) {
           size += bytes.length
-          if (size > MAX_TEXT_BYTES) throw new Error('The explicit stdin path list must be at most 5 MiB.')
+          if (size > MAX_TEXT_BYTES) throw UsageError('The explicit stdin path list must be at most 5 MiB.')
           chunks.push(bytes)
         }
         args.paths.push(...decodeText(Buffer.concat(chunks)).split(/\r?\n/).map(line => line.trim()).filter(line => line && !ignored(line)))
