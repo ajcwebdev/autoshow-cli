@@ -11,8 +11,12 @@ const CODE_GATE = "steps.changes.outputs.code == 'true'"
 const IMAGE_PUSH_GATE = "github.event_name == 'push' && needs.changes.outputs.image == 'true'"
 
 type Flags = { image: string; alignment: string; javascript_graph: string; code: string }
-type Step = { name?: string; id?: string; if?: string; uses?: string; run?: string }
-type Job = { needs?: string | string[]; if?: string; outputs?: Record<string, string>; steps?: Step[] }
+type Step = { name?: string; id?: string; if?: string; uses?: string; run?: string; with?: Record<string, string> }
+type Job = {
+  needs?: string | string[]; if?: string; outputs?: Record<string, string>; steps?: Step[]
+  'runs-on'?: string; 'continue-on-error'?: boolean
+  strategy?: { 'fail-fast'?: boolean; matrix?: { os?: string[] } }
+}
 type Workflow = { concurrency: Record<string, string>; jobs: Record<string, Job> }
 
 const NONE: Flags = { image: 'false', alignment: 'false', javascript_graph: 'false', code: 'false' }
@@ -202,6 +206,24 @@ test('dependency graph jobs run only for the graph inputs a change touches and s
   expect(selection.permissions).toEqual({ contents: 'read', actions: 'read' })
   expect(selection.outputs).toEqual({ targets: '${{ steps.coverage.outputs.targets }}' })
   expect(selection.steps?.find(step => step.id === 'coverage')?.run).toBe('bun --no-env-file src/tools/docker-audit-coverage.ts')
+})
+
+test('alignment audits retain Linux and supported macOS ARM64 coverage with frozen native inference checks', async () => {
+  const alignment = (await workflow('dependency-graphs.yml')).jobs['alignment']!
+  // GitHub's runner-images #13518 retires macOS 14; standard macos-15 retains ARM64.
+  expect(alignment.strategy).toEqual({
+    'fail-fast': false,
+    matrix: { os: ['ubuntu-24.04', 'ubuntu-24.04-arm', 'macos-15'] }
+  })
+  expect(alignment['runs-on']).toBe('${{ matrix.os }}')
+  expect(alignment['continue-on-error']).not.toBe(true)
+  const bun = alignment.steps?.find(step => step.uses?.startsWith('oven-sh/setup-bun@'))
+  expect(bun?.with?.['bun-version']).toBe('1.4.2')
+  const verification = alignment.steps?.find(step => step.name === 'Install and verify the frozen ONNX CPU graph')
+  expect(verification?.if).toBeUndefined()
+  expect(verification?.run).toContain('bun --no-env-file install --cwd config/stt-alignment --frozen-lockfile --ignore-scripts')
+  expect(verification?.run).toContain('bun --no-env-file test test/test-cases/validation/stt/workflows/timing/stt-onnx-alignment.test.ts')
+  expect(verification?.run).toContain('bun --no-env-file audit --cwd config/stt-alignment')
 })
 
 test('Docker publication skips contract tests, builds, and acceptance for changes that cannot affect them', async () => {
