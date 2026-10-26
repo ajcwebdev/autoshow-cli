@@ -5,6 +5,7 @@ import { readCanonicalManifest, isRecord, type JsonObject } from "../shared/pipe
 import type { CombinedDashboardModel, DashboardGroup, DashboardProviderRow } from "../shared/combined_report_html";
 import { readRetainedTtsEvidence, TTS_DASHBOARD_EVIDENCE } from './retained_tts_evidence';
 import { activeTtsControlBenchmarks } from './tts_benchmark_layout';
+import { resolveTtsAudioDelivery } from './tts_audio_delivery';
 
 const object = (value: unknown): JsonObject => isRecord(value) ? value : {};
 const records = (value: unknown): JsonObject[] => Array.isArray(value) ? value.filter(isRecord) : [];
@@ -19,11 +20,13 @@ export interface TtsDashboardSample {
   status: string; characters: number | null; processingMs: number | null; recovery: boolean;
   durationSeconds: number | null; costCents: number | null; costBasis: string; format: string;
   audioHref: string | null; manifestHref: string; mechanism: string;
+  delivery?: { sourceHref: string; sourceSha256: string; sha256: string; available: boolean };
 }
 
 export const TTS_ASSESSMENT_EVIDENCE = 'assessment.evidence.zip';
 interface TtsAssessmentRow {
   run: string; providerKey: string; suite: string; audioSha256: string; transcript: string; transcriptSha256: string;
+  input?: string; inputSha256?: string; inputSnapshot?: string;
   humanSpeechScore: null; cer: number; comparison: { referenceWords: number; substitutions: number; deletions: number; insertions: number; wer: number };
 }
 
@@ -54,14 +57,20 @@ export function readTtsAssessment(root: string, samples: TtsDashboardSample[]): 
   const value = JSON.parse(verified('assessment.json').toString()) as { schemaVersion: number; sources: Array<{ path: string; scope: string; sha256: string }>; rows: TtsAssessmentRow[] };
   if (value.schemaVersion !== 1 || !Array.isArray(value.sources) || !Array.isArray(value.rows) || value.rows.length !== successfulSamples.length) throw Error('Invalid or incomplete TTS assessment');
   for (const name of checksums.keys()) verified(name);
-  const audioPaths = new Set(successfulSamples.filter(s => s.audioHref).map(s => resolve(dirname(root), s.audioHref!)));
+  const audioPaths = new Set(successfulSamples.flatMap(s => [s.audioHref, s.delivery?.sourceHref].filter((path): path is string => typeof path === 'string').map(path => resolve(dirname(root), path))));
   for (const source of value.sources) {
     if (!['benchmark', 'project'].includes(source.scope) || typeof source.path !== 'string' || !/^[a-f0-9]{64}$/.test(source.sha256)) throw Error('Invalid TTS assessment source');
     const base = source.scope === 'benchmark' ? root : resolve(import.meta.dir, '../../../../..');
     const path = artifactPath(base, source.path);
     // A transferred dashboard may have metadata and assessments without ignored
-    // purchased WAVs; retained manifest evidence still binds the audio hash.
+    // purchased audio; retained manifest evidence still binds the audio hash.
     if (!existsSync(path) && audioPaths.has(resolve(path))) continue;
+    if (!existsSync(path) && source.scope === 'project') {
+      // Ignored input fixtures may be absent after transfer. Accept only the
+      // exact source bytes preserved by the assessment's bound input snapshot.
+      const retained = value.rows.find(row => row.input === source.path && row.inputSha256 === source.sha256 && typeof row.inputSnapshot === 'string');
+      if (retained?.inputSnapshot && hash(verified(retained.inputSnapshot)) === source.sha256) continue;
+    }
     if (!existsSync(path) || hash(readFileSync(path)) !== source.sha256) throw Error(`Stale TTS assessment source: ${source.path}`);
   }
   const seen = new Set<string>();
@@ -71,7 +80,10 @@ export function readTtsAssessment(root: string, samples: TtsDashboardSample[]): 
     if (!sample || seen.has(key) || row.suite !== sample.suite || row.humanSpeechScore !== null || !/^[a-f0-9]{64}$/.test(row.audioSha256) ||
       !comparison || ![comparison.referenceWords, comparison.substitutions, comparison.deletions, comparison.insertions].every(n => Number.isInteger(n) && n >= 0) || comparison.referenceWords <= 0 ||
       !Number.isFinite(row.cer) || row.cer < 0 || !Number.isFinite(comparison.wer) || Math.abs(comparison.wer - (comparison.substitutions + comparison.deletions + comparison.insertions) / comparison.referenceWords) > 1e-10) throw Error('Invalid TTS assessment result');
-    const audioPath = sample.audioHref ? resolve(dirname(root), sample.audioHref) : null;
+    const delivery = sample.delivery;
+    if (delivery && row.audioSha256 !== delivery.sourceSha256 && row.audioSha256 !== delivery.sha256) throw Error('Unbound TTS assessment result');
+    const assessedHref = delivery?.sourceSha256 === row.audioSha256 ? delivery.sourceHref : sample.audioHref;
+    const audioPath = assessedHref ? resolve(dirname(root), assessedHref) : null;
     const audioBinding = value.sources.find(source => source.scope === 'benchmark' && resolve(root, source.path) === audioPath);
     const manifestPath = resolve(dirname(root), sample.manifestHref);
     if (!audioBinding || audioBinding.sha256 !== row.audioSha256 || !value.sources.some(source => source.scope === 'benchmark' && resolve(root, source.path) === manifestPath)) throw Error('Unbound TTS assessment result');
@@ -148,10 +160,23 @@ function readSamples(root: string, runDir: string, suite: TtsDashboardSample['su
       render = verifiedJson(providerRoot, { path: event['providerRenderResultRef'], sha256: event['providerRenderResultSha256'] });
       sample.recovery = String(event['audioRunRef'] ?? '').includes('recovery-audio-run-');
     }
-    const audioPath = artifactPath(runDir, audioRef['path']), bytes = readFileSync(audioPath);
-    if (hash(bytes) !== audioRef['sha256']) throw Error(`TTS audio hash mismatch: ${providerKey} / ${sample.run}`);
-    const probe = audioProbe(audioPath);
-    sample.durationSeconds = probe.duration; sample.format = probe.format; sample.audioHref = link(audioPath);
+    const sourcePath = artifactPath(runDir, audioRef['path']);
+    const delivery = resolveTtsAudioDelivery(root, sourcePath, String(audioRef['sha256']));
+    if (delivery) {
+      if (delivery.available) {
+        const probe = audioProbe(delivery.absolutePath);
+        if (probe.format !== `${delivery.sampleRate / 1000} kHz / ${delivery.channels} ch / mp3`) throw Error(`TTS delivery format mismatch: ${providerKey} / ${sample.run}`);
+      }
+      sample.durationSeconds = delivery.decodedSamples / delivery.sampleRate;
+      sample.format = `${delivery.sampleRate / 1000} kHz / ${delivery.channels} ch / mp3`;
+      sample.audioHref = link(delivery.absolutePath);
+      sample.delivery = { sourceHref: link(sourcePath), sourceSha256: delivery.sourceSha256, sha256: delivery.sha256, available: delivery.available };
+    } else {
+      const bytes = readFileSync(sourcePath);
+      if (hash(bytes) !== audioRef['sha256']) throw Error(`TTS audio hash mismatch: ${providerKey} / ${sample.run}`);
+      const probe = audioProbe(sourcePath);
+      sample.durationSeconds = probe.duration; sample.format = probe.format; sample.audioHref = link(sourcePath);
+    }
     const recorded = costs.find(cost => cost['provider'] === provider.service && cost['model'] === provider['model']);
     const composition = object(object(render['cost'])['currentComposition']);
     const observed = usdAmounts(composition['observed']), planned = usdAmounts(object(composition['planned'])['amounts']);
@@ -254,10 +279,10 @@ export function buildTtsDashboard(rootDir: string, generatedAt = new Date().toIS
       { display: basename(row.run) }, { display: row.providerKey }, { display: row.status }, { display: seconds(row.processingMs) },
       { display: row.recovery ? 'Local recovery; excluded from speed ranking' : 'Generation + local assembly' },
       { display: row.durationSeconds === null ? 'n/a' : `${row.durationSeconds.toFixed(3)}s` }, { display: dollars(row.costCents) }, { display: row.costBasis }, { display: row.format },
-      { display: row.audioHref ? 'WAV' : 'Unavailable', ...(row.audioHref ? { artifactHref: row.audioHref } : {}) },
+      { display: row.audioHref ? (row.delivery ? (row.delivery.available ? 'MP3' : 'MP3 (restore locally)') : 'WAV') : 'Unavailable', ...(row.audioHref ? { artifactHref: row.audioHref } : {}) },
       { display: row.manifestHref.endsWith('.md') ? 'Report' : 'Manifest', artifactHref: row.manifestHref }, { display: row['mechanism'] },
       { display: (() => { const a = assessments.find(a => a.run === row.run && a.providerKey === row.providerKey); return a ? `${(100 * a.comparison.wer).toFixed(2)}%` : 'Unavailable'; })() },
-      assessments.some(a => a.run === row.run && a.providerKey === row.providerKey) ? { display: 'ASR screening; subjective unscored', artifactHref: 'tts/assessment.md' } : { display: 'Unavailable' },
+      assessments.some(a => a.run === row.run && a.providerKey === row.providerKey) ? { display: row.delivery && assessments.some(a => a.run === row.run && a.providerKey === row.providerKey && a.audioSha256 === row.delivery!.sourceSha256) ? 'Original WAV ASR; subjective unscored' : 'ASR screening; subjective unscored', artifactHref: 'tts/assessment.md' } : { display: 'Unavailable' },
     ]) });
   return { samples, dashboardModel: {
     title: 'TTS benchmark results', category: 'tts', generatedAt, rootDir: 'docs/benchmarks/tts',
@@ -268,9 +293,10 @@ export function buildTtsDashboard(rootDir: string, generatedAt = new Date().toIS
     methodParagraphs: [
       ...(!samples.length ? ['No TTS benchmark results are available. Run the benchmarks and regenerate the dashboard to populate this tab.'] : []),
       'Narration rankings use the common direct-child TTS benchmark corpus. Controls are shown separately because providers expose different native mechanisms. Emotion and delivery, and speed and pauses, each select their newest dated standalone benchmark directory independently; earlier revisions are excluded.',
+      ...(samples.some(sample => sample.delivery) ? ['User-approved MP3 playback copies are bound to original WAV hashes in tts/audio-delivery.json. Original synthesis manifests, render identities and generation costs remain unchanged. Assessment rows retain the exact audio hashes they measured; original-WAV rows are historical and never relabeled as MP3 assessments. Decoded sample counts, sample rates and channels were verified during conversion. Missing local MP3s retain their catalogued metadata and restore links; locally present copies must match their recorded hash.'] : []),
       existsSync(join(rootDir, TTS_DASHBOARD_EVIDENCE))
         ? 'Retained evidence binds the current manifests and reports to recorded audio hashes and local ffprobe measurements. Narration costs and exact timings come from manifests; controls costs and timings retain the reports\' published precision. Original render records and controls manifests are unavailable. Locally present audio is hash-checked; absent audio is not reverified. Audio links require the original local recordings. Costs are not confirmed invoices or total historical spending; Soniox costs remain estimates.'
-        : 'Selected manifest audio references and SHA-256 hashes are authoritative. Duration and format are read locally with ffprobe. Current provider usage is preferred for cost, then recorded usage estimates, then the selected render estimate. Costs describe the selected audio, not all historical spending or confirmed invoices. Soniox costs remain estimates based on measured provider audio before local silence insertion.',
+        : 'Selected manifest audio references and SHA-256 hashes are authoritative. Original audio duration and format are read locally with ffprobe; approved MP3 copies use verified decoded sample counts and catalogued format, with local ffprobe verification when present. Current provider usage is preferred for cost, then recorded usage estimates, then the selected render estimate. Costs describe the selected synthesis, not all historical spending or confirmed invoices. Soniox costs remain estimates based on measured provider audio before local silence insertion.',
       'Generation throughput is total final audio duration divided by total recorded generation time, including local assembly. Local recovery timings are labeled and excluded. Speed and cost rankings require complete narration coverage; timings reflect their original concurrency and machine conditions.',
       assessments.length ? 'Automated accuracy is installed Whisper small.en roundtrip ASR screening: 100 × max(0, 1 − total word edits / total reference words), requiring every narration input. One recognizer can mishear speech, and literal number spellings remain differences. This is not acoustic adjudication. Controls remain separate unranked cases. Subjective pronunciation, speaker identity, emotion, seams/prosody, audible-control and perceptual ratings are excluded and unscored at the user’s instruction; see tts/assessment.md and its checksummed evidence archive.' : 'No roundtrip transcript accuracy or human listening scores are present for these benchmark archives. Automated accuracy, spoken-text correctness, audible control effectiveness and human quality are not inferred from HTTP success, audio integrity, duration, speed or cost. No quality ranking is asserted.',
       'Historical OpenAI benchmark costs retain their original character-based estimate and have not been retrospectively corrected to native text/audio-token billing. Recorded costs are not observed native billing receipts.',

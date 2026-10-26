@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "pathBase": "repository-root",
+  "sources": [
+    {
+      "id": "2022-09-30-widgets-fsjam-40-minutes",
+      "path": "docs/benchmarks/stt/sources/2022-09-30-widgets-fsjam-40-minutes.mp3",
+      "bytes": 29077151,
+      "sha256": "d7fff5f0d8f4396e3fb77c9d7b7661df066d73c6124c63d419ff65e0761470f1",
+      "durationSeconds": 2423.04,
+      "retiredCopies": [
+        "docs/benchmarks/stt/without-speakers/2022-09-30-widgets-fsjam-40-minutes/2022-09-30-widgets-fsjam-40-minutes.mp3",
+        "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes/2022-09-30-widgets-fsjam-40-minutes.mp3",
+        "docs/benchmarks/stt/local/2022-09-30-widgets-fsjam-40-minutes/2022-09-30-widgets-fsjam-40-minutes.mp3"
+      ],
+      "runs": [
+        {
+          "path": "docs/benchmarks/stt/without-speakers/2022-09-30-widgets-fsjam-40-minutes",
+          "originalSourceUrl": "https://ajc.pics/autoshow/benchmarks/stt/2022-09-30-widgets-fsjam-40-minutes.mp3",
+          "originalAudioFileName": "2022-09-30-widgets-fsjam-40-minutes.mp3"
+        },
+        {
+          "path": "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes",
+          "originalSourceUrl": "https://ajc.pics/autoshow/benchmarks/stt/2022-09-30-widgets-fsjam-40-minutes.mp3",
+          "originalAudioFileName": "2022-09-30-widgets-fsjam-40-minutes.mp3"
+        },
+        {
+          "path": "docs/benchmarks/stt/local/2022-09-30-widgets-fsjam-40-minutes",
+          "originalSourceUrl": "docs/benchmarks/stt/without-speakers/2022-09-30-widgets-fsjam-40-minutes/2022-09-30-widgets-fsjam-40-minutes.mp3",
+          "originalAudioFileName": "2022-09-30-widgets-fsjam-40-minutes.mp3"
+        }
+      ]
+    },
+    {
+      "id": "2023-03-15-jsjam-qwik-misko-hevery",
+      "path": "docs/benchmarks/stt/sources/2023-03-15-jsjam-qwik-misko-hevery.mp3",
+      "bytes": 81274797,
+      "sha256": "c0720a3f07bf2fc419e8b1e58ed5cf79cccdf3fa5e87ca69046b968ff002a4eb",
+      "durationSeconds": 6772,
+      "retiredCopies": [
+        "docs/benchmarks/stt/without-speakers/2023-03-15-jsjam-qwik-misko-hevery/2023-03-15-jsjam-qwik-misko-hevery.mp3",
+        "docs/benchmarks/stt/with-speakers/2023-03-15-jsjam-qwik-misko-hevery/2023-03-15-jsjam-qwik-misko-hevery.mp3",
+        "output/2026-10-13_cloudflare-stt-2023-03-15-jsjam-qwik-misko-hevery/2023-03-15-jsjam-qwik-misko-hevery.mp3"
+      ],
+      "runs": [
+        {
+          "path": "docs/benchmarks/stt/without-speakers/2023-03-15-jsjam-qwik-misko-hevery",
+          "originalSourceUrl": "docs/benchmarks/stt/without-speakers/2023-03-15-jsjam-qwik-misko-hevery/2023-03-15-jsjam-qwik-misko-hevery.mp3",
+          "originalAudioFileName": "2023-03-15-jsjam-qwik-misko-hevery.mp3"
+        },
+        {
+          "path": "docs/benchmarks/stt/with-speakers/2023-03-15-jsjam-qwik-misko-hevery",
+          "originalSourceUrl": "docs/benchmarks/stt/with-speakers/2023-03-15-jsjam-qwik-misko-hevery/2023-03-15-jsjam-qwik-misko-hevery.mp3",
+          "originalAudioFileName": "2023-03-15-jsjam-qwik-misko-hevery.mp3"
+        },
+        {
+          "path": "output/2026-10-13_cloudflare-stt-2023-03-15-jsjam-qwik-misko-hevery",
+          "originalSourceUrl": "docs/benchmarks/stt-without-speakers/2023-03-15-jsjam-qwik-misko-hevery/2023-03-15-jsjam-qwik-misko-hevery.mp3",
+          "originalAudioFileName": "2023-03-15-jsjam-qwik-misko-hevery.mp3"
+        }
+      ]
+    },
+    {
+      "id": "2023-04-05-jsjam-react-miami-2023-10-minutes",
+      "path": "docs/benchmarks/stt/sources/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3",
+      "bytes": 7200621,
+      "sha256": "f16a50e198e5cbc8c1931e522a3319aae9b2c3a4352e88c8d74ee2ad8675d59c",
+      "durationSeconds": 600,
+      "retiredCopies": [
+        "docs/benchmarks/stt/without-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3",
+        "docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3",
+        "docs/benchmarks/stt/local/2023-04-05-jsjam-react-miami-2023-10-minutes/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3"
+      ],
+      "runs": [
+        {
+          "path": "docs/benchmarks/stt/without-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "originalSourceUrl": "https://ajc.pics/autoshow/benchmarks/stt/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3",
+          "originalAudioFileName": "2023-04-05-jsjam-react-miami-2023-10-minutes.mp3"
+        },
+        {
+          "path": "docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "originalSourceUrl": "https://ajc.pics/autoshow/benchmarks/stt/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3",
+          "originalAudioFileName": "2023-04-05-jsjam-react-miami-2023-10-minutes.mp3"
+        },
+        {
+          "path": "docs/benchmarks/stt/local/2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "originalSourceUrl": "docs/benchmarks/stt/without-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3",
+          "originalAudioFileName": "2023-04-05-jsjam-react-miami-2023-10-minutes.mp3"
+        }
+      ]
+    }
+  ]
+}
