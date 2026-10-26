@@ -1,10 +1,14 @@
 /** Skip an independent production rebuild only after this commit's native release audits retain evidence. */
 import { appendFile } from 'node:fs/promises'
 import { InfraError } from '../utils/error-handler'
+import { readHttpPayloadJson } from '../utils/http-payload'
 import { writeCommandPayload } from '../utils/app-logger/result-emitter'
 
 const workflowPath = '.github/workflows/docker-publish.yml'
 const allTargets = ['production', 'alignment'] as const
+// The observed native audits became complete 213 seconds after lookup began.
+// Allow polling/API margin while leaving 45 seconds inside the existing five-minute job.
+const maximumLookupWaitMs = 255_000
 type Target = typeof allTargets[number]
 type ObjectValue = Record<string, unknown>
 type CoverageContext = { event: string; ref: string; repository: string; sha: string; token?: string | undefined; apiUrl?: string | undefined; imageChanged: boolean }
@@ -35,23 +39,37 @@ export async function selectDockerAuditTargets(context: CoverageContext, options
   const fetchApi = options.fetch ?? fetch
   const now = options.now ?? Date.now
   const sleep = options.sleep ?? Bun.sleep
-  const waitMs = Math.max(0, Math.min(options.waitMs ?? 180_000, 180_000))
+  const waitMs = Math.max(0, Math.min(options.waitMs ?? maximumLookupWaitMs, maximumLookupWaitMs))
   const intervalMs = Math.max(1, options.intervalMs ?? 15_000)
   const deadline = now() + waitMs
+  const expired = new Error('Docker audit coverage wait expired')
+  const timeoutReason = 'No complete release audit coverage within the bounded wait'
   const prefix = `${apiUrl.href.replace(/\/$/, '')}/repos/${context.repository}/actions`
   async function request(path: string): Promise<unknown> {
-    const remaining = Math.max(1, deadline - now())
-    const response = await fetchApi(`${prefix}/${path}`, {
-      method: 'GET', redirect: 'error', signal: AbortSignal.timeout(Math.min(10_000, remaining)),
-      headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${context.token}`, 'X-GitHub-Api-Version': '2022-11-28' }
-    })
-    if (!response.ok) throw InfraError('Release metadata unavailable', { stage: 'docker:audit-coverage' })
-    return response.json()
+    const remaining = deadline - now()
+    if (remaining <= 0) throw expired
+    const controller = new AbortController()
+    const signal = controller.signal
+    const timer = setTimeout(() => controller.abort(new DOMException('Release metadata request timed out', 'TimeoutError')), Math.ceil(Math.min(10_000, remaining)))
+    try {
+      const response = await fetchApi(`${prefix}/${path}`, {
+        method: 'GET', redirect: 'error', signal,
+        headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${context.token}`, 'X-GitHub-Api-Version': '2022-11-28' }
+      })
+      if (!response.ok) throw InfraError('Release metadata unavailable', { stage: 'docker:audit-coverage' })
+      return await readHttpPayloadJson(response, 'Release metadata', { payloadClass: 'control', stage: 'docker:audit-coverage' })
+    } catch (error) {
+      if (signal.aborted && remaining <= 10_000) throw expired
+      throw error
+    } finally {
+      clearTimeout(timer)
+    }
   }
   try {
     const workflow = object(await request('workflows/docker-publish.yml'))
     if (workflow['state'] !== 'active' || workflow['path'] !== workflowPath || !positiveId(workflow['id'])) return fallback('Release workflow is unavailable or inactive')
     while (true) {
+      if (now() >= deadline) return fallback(timeoutReason)
       const runs = fullList(await request(`workflows/${workflow['id']}/runs?event=push&branch=main&head_sha=${context.sha}&per_page=100`), 'workflow_runs')
         .filter(run => run['head_sha'] === context.sha && run['event'] === 'push' && run['head_branch'] === 'main'
           && run['path'] === workflowPath && run['workflow_id'] === workflow['id']
@@ -90,11 +108,11 @@ export async function selectDockerAuditTargets(context: CoverageContext, options
         if (run['status'] === 'completed') return fallback('Release audit evidence is incomplete')
       }
       const remaining = deadline - now()
-      if (remaining <= 0) return fallback('No complete release audit coverage within the bounded wait')
+      if (remaining <= 0) return fallback(timeoutReason)
       await sleep(Math.min(intervalMs, remaining))
     }
-  } catch {
-    return fallback('Release metadata unavailable; independent production audit retained')
+  } catch (error) {
+    return fallback(error === expired || now() >= deadline ? timeoutReason : 'Release metadata unavailable; independent production audit retained')
   }
 }
 

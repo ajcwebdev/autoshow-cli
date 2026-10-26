@@ -1,12 +1,11 @@
 import { basename, dirname, join } from 'node:path'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { getOpenAIClientConfig } from '~/cli/commands/text/write/write-services/write-openai/openai-utils'
-import type { BlockingHardKeyPolicy, PageQaCharacterCue, PageQaEntry, PageQaRepairDecision, PageQaRepairStagnationState, PageQaRequest, PageQaResult, PanelBundleData } from '~/types'
+import type { BlockingHardKeyPolicy, CharacterIdentityReference, PageQaCharacterCue, PageQaEntry, PageQaRepairDecision, PageQaRepairStagnationState, PageQaRequest, PageQaResult, PanelBundleData } from '~/types'
 import { InfraError, UsageError, ValidationError } from '~/utils/error-handler'
 import { geminiGenerateContent, geminiUserContent } from '~/utils/gemini/gemini-rest'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { resolveCredential } from '~/utils/validate/env-utils'
-import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
 import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script-utils/llm-cost'
 import { BLOCKING_AUDIT_STATUSES } from '../../schemas/blocking-plan-schemas'
 import { parseComicPageQaResult } from './comic-page-qa-result-parser'
@@ -231,9 +230,22 @@ const buildBlockingAuditParagraphs = (
   return [...ledgerParagraphs, ...statusGuide, ...rosterParagraph, ...cueParagraph]
 }
 
+export const resolvePageQaCharacterCues = (characterReferences: readonly Pick<CharacterIdentityReference, 'key' | 'distinguishFrom'>[]): PageQaCharacterCue[] => {
+  const seen = new Set<string>()
+  return characterReferences.flatMap(reference => {
+    if (seen.has(reference.key)) return []
+    seen.add(reference.key)
+    // Legacy snapshots have no cues: their saved descriptions and images remain authoritative.
+    const distinguishFrom = reference.distinguishFrom ?? []
+    return distinguishFrom.length > 0
+      ? [{ characterKey: reference.key, distinguishFrom: distinguishFrom.map(cue => ({ ...cue })) }]
+      : []
+  })
+}
+
 export const buildComicPageQaPrompt = (
   panelData: PanelBundleData,
-  characterReferences: Array<{ key: string; description: string }> = [],
+  characterReferences: Array<Pick<CharacterIdentityReference, 'key' | 'description' | 'distinguishFrom'>> = [],
   locationReferences: Array<{ key: string; specification: string }> = [],
   designReferences: Array<{ key: string; usage: string }> = [],
   options: { rosterCards?: ReadonlyArray<{ key: string; name?: string | undefined }> | undefined; characterCues?: readonly PageQaCharacterCue[] | undefined } = {},
@@ -252,7 +264,7 @@ export const buildComicPageQaPrompt = (
   `Canonical location specifications: ${locationReferences.length > 0 ? locationReferences.map(reference => `${reference.key}: ${reference.specification}`).join(' | ') : 'none supplied; rely on the ordered canonical location images.'}`,
   `Canonical design requirements: ${designReferences.length > 0 ? designReferences.map(reference => `${reference.key}: ${reference.usage}`).join(' | ') : 'none supplied.'}`,
   'A mapped canonical design reference is a hard source-precedence requirement. Fail sourcePrecedence when the generated panel unmistakably redesigns, replaces, relabels, or omits a design whose usage requires it to be visible. Do not require a design in panels to which it is not mapped.',
-  ...buildBlockingAuditParagraphs(panelData, options.rosterCards ?? [], options.characterCues ?? []),
+  ...buildBlockingAuditParagraphs(panelData, options.rosterCards ?? [], options.characterCues ?? resolvePageQaCharacterCues(characterReferences)),
   'Source panel data:', JSON.stringify(panelData, null, 2),
   'Return only the requested JSON.',
 ].join('\n\n')
@@ -265,22 +277,9 @@ export const buildPageQaImageInputs = async (
   ...(await Promise.all(rosterCardPaths.map(async path => ({ type: 'input_image' as const, image_url: await dataUrl(path), detail: 'low' as const })))),
 ]
 
-export const resolvePageQaCharacterCues = (characterKeys: readonly string[]): PageQaCharacterCue[] => {
-  let catalog: ReturnType<typeof loadCharacterCatalog>
-  try { catalog = loadCharacterCatalog() } catch { return [] }
-  const known = new Set(catalog.characterKeys)
-  return characterKeys
-    .filter((key, index) => known.has(key as never) && characterKeys.indexOf(key) === index)
-    .flatMap(key => {
-      const distinguishFrom = catalog.get(key as never).distinguishFrom ?? []
-      return distinguishFrom.length > 0 ? [{ characterKey: key, distinguishFrom: [...distinguishFrom] }] : []
-    })
-}
-
 export const judgeComicPage = async (request: PageQaRequest): Promise<PageQaEntry> => {
   const rosterCards = request.rosterCards ?? []
-  const characterCues = request.characterCues ?? resolvePageQaCharacterCues(request.panelData.panels.flatMap(panel => panel.characterKeys))
-  const prompt = buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [], request.locationReferences ?? [], request.designReferences ?? [], { rosterCards, characterCues })
+  const prompt = buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [], request.locationReferences ?? [], request.designReferences ?? [], { rosterCards, characterCues: request.characterCues })
   const imagePaths = [request.pagePath, ...request.identityCards, ...request.locationSheets, ...(request.designSheets ?? [])]
   const rosterCardPaths = rosterCards.map(card => card.path)
   const provider = resolveComicQaProvider(request.model)

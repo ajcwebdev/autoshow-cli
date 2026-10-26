@@ -180,10 +180,21 @@ Both native compiled targets passed their limited help, config, doctor, and `wri
 
 Additional native measurements provide the baseline for a future entrypoint review. Cold-help and CLI-prebuild medians use five samples; RSS medians use three. Source RSS measures the local Tesseract fixture while compiled RSS measures help, so they do not establish a memory improvement for the same workload.
 
-| Native runner | Source build ms | Source CLI prebuild median ms | Source OCR peak RSS median bytes | Compiled build ms | Compiled help peak RSS median bytes |
-| ------------- | --------------- | ----------------------------- | -------------------------------- | ----------------- | ----------------------------------- |
-| AMD64         | 61,896          | 162.131                       | 72,429,568                       | 26,776            | 21,012,480                          |
-| ARM64         | 35,166          | 130.782                       | 79,003,648                       | 24,332            | 22,573,056                          |
+**Native runner: AMD64**
+
+- **Source build ms:** 61,896
+- **Source CLI prebuild median ms:** 162.131
+- **Source OCR peak RSS median bytes:** 72,429,568
+- **Compiled build ms:** 26,776
+- **Compiled help peak RSS median bytes:** 21,012,480
+
+**Native runner: ARM64**
+
+- **Source build ms:** 35,166
+- **Source CLI prebuild median ms:** 130.782
+- **Source OCR peak RSS median bytes:** 79,003,648
+- **Compiled build ms:** 24,332
+- **Compiled help peak RSS median bytes:** 22,573,056
 
 The fixture was `test/fixtures/setup/managed-toolchain-smoke.pdf`, SHA-256 `58bec9a7757f44d7baf9cfac5fb9f24863a6fe7efdef2e82c3fd9e6a10ba4050`. Reviewed originals came from the four `docker-smoke-*` and `docker-compiled-experiment-*` CI artifacts: platform measurements, native offline-acceptance records, compiled measurements, image history and help/config/doctor/path logs. The workflow run supplies the conclusions for all twelve published-image acceptance jobs; the local evidence bundle covered the smoke and compiled artifacts only. Its SHA-256 was `38b46b159ef38b10d7e220c593e7dea89b9def4a37ce47a44c059d4339602af9`, with per-entry hashes in `SHA256SUMS`.
 

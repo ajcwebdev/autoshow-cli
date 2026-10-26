@@ -25,9 +25,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: .github
 
-      - name: Scan a tiny SPDX document to download and cache today's Grype database
-        uses: ./.github/actions/scan-image
+      - name: Download, validate and cache today's Grype database
+        uses: ./.github/actions/prepare-grype-db
         with:
-          sbom: .github/actions/scan-image/warmup.spdx.json
           evidence-dir: runtime/ci/grype-db-warmup
-          fail-on-fixable: 'false'

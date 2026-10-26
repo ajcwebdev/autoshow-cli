@@ -11,7 +11,7 @@ Production installs the frozen runtime graph without peer dependencies. The buil
 The image includes:
 
 - `ffmpeg` and `ffprobe`
-- `yt-dlp` 2026.08.19 and Deno 2.9.6 for YouTube JavaScript challenges
+- `yt-dlp` 2026.08.19 and Deno 2.9.8 for YouTube JavaScript challenges
 - Tesseract OCR with English language data
 - MuPDF `mutool`
 - `qpdf`
@@ -34,7 +34,7 @@ To build locally from source:
 docker build -t autoshow-cli:local .
 ```
 
-The stages are `youtube-js`, `deps`, `alignment-deps`, `runtime`, `alignment`, and final/default `production`. Build the optional CPU alignment backend with `docker build --target alignment -t autoshow-cli:alignment .`. Its independent builder installs the frozen ONNX graph, keeps only the target Linux architecture's native binaries, and normalizes permissions before copying; it does not install into the runtime user's HOME. Production does not build or ship that graph. The frontend remains digest-pinned at 1.6; permission normalization stays explicit in build steps.
+The stages are `youtube-js`, `deps`, `alignment-deps`, `runtime`, `alignment`, and final/default `production`. Build the optional CPU alignment backend with `docker build --target alignment -t autoshow-cli:alignment .`. Its independent builder installs the frozen ONNX graph, keeps only the target Linux architecture's native binaries, and normalizes permissions before copying; it does not install into the runtime user's HOME. Production does not build or ship that graph. The frontend is digest-pinned at 1.27.1. Equivalent explicit and symbolic-copy permission fixtures passed on native ARM64; normalization stays explicit pending native AMD64 verification.
 
 OCR, setup, and doctor use the same English language data selection. If managed `eng.traineddata` is absent, Tesseract uses its packaged default, including when runtime storage is mounted empty. Present but invalid managed data fails with a diagnostic. Doctor and setup initialize the English model as well as listing languages, so a corrupt model does not pass merely because its filename exists.
 
@@ -47,6 +47,12 @@ Core acceptance includes authored FB2 conversion through Calibre, conversion met
 `bun --no-env-file test/docker-acceptance/docker-context-acceptance.ts` verifies the allowlist using an authored scratch context and offline BuildKit export. `bun --no-env-file test/docker-acceptance/docker-tesseract-data-acceptance.ts --image autoshow-cli:local` verifies actual OCR, setup, and doctor across packaged, managed, invalid, and reset data layouts without network access. Native dependency-image CI runs that data gate for both targets, checks alignment first use with the image's original HOME before any replacement mounts, then verifies writable mounted state as the default user and a host UID/GID.
 
 Select a local build with `bun t:docker --suite core --image autoshow-cli:local --pull never`. Select a registry candidate with `bun t:docker --suite core --image ghcr.io/ajcwebdev/autoshow-cli@sha256:<digest> --pull always --expected-revision <full-commit-sha>`. The default pull policy is `always`; `missing` uses an already installed image or pulls it if absent. A failed pull never falls back to a cached tag. Registry pulls execute the verified manifest digest, and cached local tags execute the inspected immutable image ID. `--expected-digest` accepts that manifest digest or local image ID. All selections retain native architecture, non-root user, entrypoint, credential, and revision checks.
+
+Acceptance uses the image user unless `--user UID:GID` selects a non-root numeric identity. Linux CI passes its host UID/GID so restored caches and outputs remain host-owned. Use the same identity when reusing a cache. The harness creates fresh writable mount roots but never recursively changes existing ownership or permissions; inaccessible restored state fails its offline write/read preflight with a diagnostic. The cache lease rejects concurrent acceptance owners, and cleanup removes only its own unchanged lease and containers while retaining fixtures, results and model assets.
+
+Add `--restricted` to exercise capability dropping and no-new-privileges throughout acceptance. The smaller native gate `bun --no-env-file test/docker-acceptance/docker-runtime-state-acceptance.ts --image autoshow-cli:local --output runtime/docker-acceptance/new-state-check` checks fresh and reused configuration/cache state, image and numeric host identities, denied input/source writes, authored PNG decoding and local OCR text, invalid input, timeout cleanup and retained assets. It uses isolated authored state, an already installed immutable image, no downloads and no hosted inference. Its image identity and platform are recorded; it does not replace exact-candidate release acceptance on both native architectures.
+
+The fresh acceptance-host CI job installs only the frozen production graph with `bun --no-env-file install --frozen-lockfile --production --omit=peer`. Verification jobs retain development dependencies, including the type checker. Production mode does not remove development packages from an existing install, so it is not used to repurpose a populated verification workspace ([Bun production mode](https://bun.com/docs/pm/cli/install#production-mode)).
 
 The examples below use `autoshow-cli:local`. Substitute `ghcr.io/ajcwebdev/autoshow-cli:latest` if you pulled the published image.
 
@@ -145,25 +151,53 @@ The `AUTOSHOW_REQUIRED_IMAGE_MODEL` line is optional. Remove it for unrestricted
 
 Keep the separate `/app/runtime` and `/home/bun` mounts intact: protected voice assets, provisioning journals, account identity keys, managed tools, configuration, and caches must survive disposable containers. The default `/app/config/autoshow.json` path links to `/app/runtime/autoshow.json`; an empty runtime mount provisions it on first config write. Source, dependencies, frozen manifests, and bundled configuration assets remain root-owned. For other Linux `--user` invocations, bind host-owned writable directories to `/app/runtime` and `/home/bun` plus any input/output locations the command uses; changing the user alone does not initialize these directories. Keep identity/voice state and credentials out of broad evidence uploads. Docker's explicit `--env` overrides the same key in `--env-file`. `AUTOSHOW_IMAGE` selects a rebuilt tag without a host launcher.
 
+### Restricted input/output invocation
+
+This opt-in function exposes only read-only `input/` plus writable `output/`, runtime state and HOME. It drops every Linux capability and prevents privilege escalation while retaining ordinary bridge networking and the keepalive workaround. Docker describes these [runtime privilege controls](https://docs.docker.com/engine/containers/run/#runtime-privilege-and-linux-capabilities). It leaves the container root filesystem and resource limits at their defaults; tighter limits need workload-specific validation.
+
+```bash
+autoshow_restricted() (
+  autoshow_workspace=${AUTOSHOW_WORKSPACE:?Set AUTOSHOW_WORKSPACE to the absolute project root}
+  mkdir -p "$autoshow_workspace/input" "$autoshow_workspace/output" "$autoshow_workspace/.autoshow/home/.cache" || exit
+  set -- --rm -i --cap-drop ALL --security-opt no-new-privileges:true \
+    --mount "type=bind,src=$autoshow_workspace/input,dst=/workspace/input,readonly" \
+    --mount "type=bind,src=$autoshow_workspace/output,dst=/workspace/output" \
+    --mount "type=bind,src=$autoshow_workspace/.autoshow,dst=/app/runtime" \
+    --mount "type=bind,src=$autoshow_workspace/.autoshow/home,dst=/home/bun" \
+    --workdir /workspace --env-file "$autoshow_workspace/.env" \
+    --env AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1 \
+    "${AUTOSHOW_IMAGE:-autoshow-cli:local}" "$@"
+  if [ "$(uname -s)" = Linux ]; then
+    set -- --user "$(id -u):$(id -g)" "$@"
+  fi
+  docker run "$@"
+)
+```
+
+For example, `autoshow_restricted extract input/document.png --provider tesseract` keeps the source image read-only and writes under `output/`. Relative source paths must stay inside the mounted input tree. Configuration and paid assets persist through the two state mounts; removing a disposable container does not delete them. Missing mounts or a Docker error are failures and never trigger native fallback.
+
 ## Security pin maintenance
 
 The release/dependency maintainer, `@ajcwebdev`, owns the image security pins and their promotion evidence. Review them together every Monday after the scheduled native uncached audits, and before a release that changes one of these pins. For an applicable security advisory, assess it as soon as notified, update all affected pins in one change, and run the same native candidate gates before promotion. If a fix is unavailable, retain the advisory's owner, affected packages, reachability, disposition, and next action in the release triage; a rebuild alone does not close it.
 
-| Pin family           | Coordinated update surfaces                                                                                                                                                                                                      |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bun                  | `package.json` packageManager, `bun.lock`, `src/utils/bun-version.ts`, Docker base tag/digest, setup metadata, pinned setup-bun versions, and version contracts                                                                  |
-| Deno and yt-dlp      | Docker image/download digests and URLs, defaults in `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`, optional `config/deps.json` overrides, native setup distribution metadata, and documented tool versions |
-| Build infrastructure | Dockerfile frontend digest, Buildx version, BuildKit image digest, and pinned Docker/checkout/setup actions in workflows and shared actions                                                                                      |
-| Scanners             | Syft/Grype version selectors, architecture selection, and release-checksum verification in `.github/actions/scan-image/`, plus callers overriding versions                                                                       |
-| Debian               | Dockerfile `DEBIAN_SNAPSHOT`, signed Debian/security snapshot sources, the Bun base digest's distribution, and package inventory/advisory evidence for both native architectures                                                 |
+| Pin family           | Coordinated update surfaces                                                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bun                  | `package.json` packageManager, `bun.lock`, `src/utils/bun-version.ts`, Docker base tag/digest, setup metadata, pinned setup-bun versions, and version contracts                                                  |
+| Deno                 | Docker-only image tag/digest and documented version; native setup does not manage Deno                                                                                                                           |
+| yt-dlp               | Docker download URL/checksum, defaults in `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`, optional `config/deps.json` overrides, native setup distribution metadata, and documented version |
+| Build infrastructure | Dockerfile frontend 1.27.1 digest, Buildx 0.38.1, BuildKit 0.34.1 image digest, and pinned Docker/checkout/setup actions in workflows and shared actions                                                         |
+| Scanners             | Syft 1.55.0 and Grype 0.121.0 version selectors, independently reviewed release hashes, architecture selection, and checksum verification in `.github/actions/scan-image/`, plus callers overriding versions     |
+| Debian               | Dockerfile `DEBIAN_SNAPSHOT`, signed Debian/security snapshot sources, the Bun base digest's distribution, and package inventory/advisory evidence for both native architectures                                 |
 
-Verify exact metadata paths against the current setup registry when updating a tool. Preserve signed APT metadata, snapshot selection, `apt-get upgrade`, frozen dependency installation, and digest/checksum checks. The scheduled `--pull --no-cache` audit detects problems in the selected inputs; a pinned old snapshot still contains its old packages. Move the snapshot and relevant base/tool pins to acquire later security releases, following [Debian Snapshot](https://snapshot.debian.org/) and [Docker's base-image pinning guidance](https://docs.docker.com/build/building/best-practices/#pin-base-image-versions).
+The current Debian snapshot selector is `20261025T000000Z`. Verify exact metadata paths against the current setup registry when updating a tool. Preserve signed APT metadata, snapshot selection, `apt-get upgrade`, frozen dependency installation, and digest/checksum checks. The scheduled `--pull --no-cache` audit detects problems in the selected inputs; a pinned old snapshot still contains its old packages. Move the snapshot and relevant base/tool pins to acquire later security releases, following [Debian Snapshot](https://snapshot.debian.org/) and [Docker's base-image pinning guidance](https://docs.docker.com/build/building/best-practices/#pin-base-image-versions).
+
+The current security updates cover revoked certificate authorities in [Buildx 0.38.1](https://github.com/docker/buildx/releases/tag/v0.38.1), [BuildKit 0.34.1](https://github.com/moby/buildkit/releases/tag/v0.34.1), [Deno 2.9.8](https://github.com/denoland/deno/releases/tag/v2.9.8), and Debian's `ca-certificates` `20250419+deb13u1` ([DSA-6572-1](https://lists.debian.org/debian-security-announce/2026/msg00487.html)). Native ARM64 fixtures verified the pinned builder/frontend, Deno execution, and signed-snapshot package installation with the removed roots rejected by the updated trust bundle. Both native candidate release gates remain required before promotion.
 
 Confirm a fix through the candidate index digest, each original native build digest, shipped Debian and production dependency inventories, both native scans, every high/critical advisory disposition, and all acceptance shards. The shared audit action records the exact image identity, package list, SBOM, scan, scanner database timestamp, notices, and triage. Promotion uses a single accepted index source as a [verbatim index copy](https://docs.docker.com/reference/cli/docker/buildx/imagetools/create/) and checks the final `latest` digest against it. Retain those CI artifacts with the release; a source pin edit or a separate rebuild is not proof of what `latest` ships.
 
-Release and independent image audits share native evidence capture from the inspected immutable image ID: package inventory, notices, rendering capabilities, shipped source pins/policies, identity, and checksums. On main pushes, the independent workflow can omit its production rebuild only after both same-commit native release audits succeed and retain matching evidence artifacts. The lookup waits at most 180 seconds; missing, failed, expired, or unavailable coverage retains production auditing. PRs, schedules, and manual runs retain both targets, including scheduled uncached builds.
+Release and independent image audits share native evidence capture from the inspected immutable image ID: package inventory, notices, rendering capabilities, shipped source pins/policies, identity, and checksums. On main pushes, the independent workflow can omit its production rebuild only after both same-commit native release audits succeed and retain matching evidence artifacts. The lookup waits at most 255 seconds (4 minutes 15 seconds), within the existing five-minute job ceiling; missing, failed, expired, or unavailable coverage retains production auditing. PRs, schedules, and manual runs retain both targets, including scheduled uncached builds.
 
-Scanner downloads use one bounded transient-retry policy; checksum and archive-integrity failures stop immediately. Scanning an existing SBOM, including database warmup, installs Grype alone. Image inventory also installs Syft. Database hydration, freshness evidence, and severity/fixability gates remain required.
+Scanner downloads use one bounded transient-retry policy and independently reviewed release hashes; checksum and archive-integrity failures stop immediately. Scanning an existing SBOM installs Grype alone. Image inventory also installs Syft. The shared database-preparation action updates or reuses the Grype database, validates its hash and age, and records status; scheduled warmup uses that path directly without a dummy SBOM. Database freshness and severity/fixability gates remain required.
 
 ## Docker-only Network Diagnostic
 

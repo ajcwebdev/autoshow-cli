@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { chmod, mkdir, mkdtemp, rename, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { analyzeNewspaperExpansionReports, buildNewspaperExpansionReports, inspectNewspaperExpansionReports, newspaperExecutionMarkdown, parseNewspaperReportArguments, summarizeNewspaperPanels, updateNewspaperExecutionSection } from '~/tools/ocr-newspaper-expansion-report'
+import { NEWSPAPER_EXECUTION_REPORT, NEWSPAPER_PUBLIC_PLAN, analyzeNewspaperExpansionReports, analyzeRetainedNewspaperExpansionReports, buildNewspaperExpansionReports, inspectNewspaperExpansionReports, newspaperCurrentCohortMarkdown, newspaperExecutionMarkdown, parseNewspaperReportArguments, summarizeNewspaperPanels, updateNewspaperExecutionSection } from '~/tools/ocr-newspaper-expansion-report'
 import { assertNewspaperOcrResultComplete, classifyNewspaperFailureLog, classifyNewspaperOcrFailure, inspectBcOcrReports, scoreNewspaperRepetition, scoreNewspaperSpacingConvention, scoreNewspaperTokenMultiset } from '~/tools/ocr-categories-bc-report'
 import { levenshteinDistance, tokenize } from '../../../../../.codex/skills/consensus/scripts/ocr/ocr_consensus_lib'
 import { normalizeHistoricalReference } from '~/tools/ocr-preparation/prepare-historical-newspapers'
@@ -77,13 +77,15 @@ const fixture = async () => {
   const planBytes = await write(`${base}/execution-plan.json`, plan)
   const ledger = { schemaVersion: 1, kind: 'ocr-newspaper-expansion-spending-ledger', budgetCents: 3000, planSha256: hash(String(planBytes)), receipts }
   await write(`${base}/spending-ledger.json`, ledger)
+  await write(NEWSPAPER_PUBLIC_PLAN, { kind: 'ocr-newspaper-expansion-benchmark-status', cases, targets,
+    spending: { accountedCents: 2.25, heldReservationCents: 0, settledConservativeCents: 0 } })
   const era = cases[1]!, evidenceImage = `${base}/originals/spacing-evidence.png`
   await write(evidenceImage, redDotPng)
   await write(`${base}/reference-adjudication-evidence.json`, { kind: 'ocr-newspaper-reference-adjudication-evidence', goldChangesApplied: false, primaryScoresChanged: false,
     entries: [{ caseId: era.id, input: era.input, inputSha256: era.inputSha256, canonicalReference: era.reference,
       canonicalReferenceSha256: era.referenceSha256, evidenceImage, evidenceImageSha256: hash(redDotPng), sourceCrop: { x: 0, y: 0, width: 1, height: 1 },
       imageTransform: { resampling: false }, printedReading: 'some one', frozenReferenceReading: 'someone', wordingInferredFromModelAgreement: false }] })
-  await write('docs/reports/ocr-newspaper-expansion-2026-10-23.md', '# Existing preparation report\n\nOriginal research preserved.\n')
+  await write(NEWSPAPER_EXECUTION_REPORT, '# Existing preparation report\n\nOriginal research preserved.\n')
   await mkdir(join(root, 'src/cli/commands/setup-and-utilities'), { recursive: true })
   await symlink(resolve('src/cli/commands/setup-and-utilities/models'), join(root, 'src/cli/commands/setup-and-utilities/models'), 'dir')
   const quote = (value: string): string => `'${value.replaceAll("'", "'\"'\"'")}'`
@@ -114,11 +116,50 @@ const fixture = async () => {
   return { root, write, read, plan, ledger, cases, slots, targets, options, repinPlan, removeSlot, terminal }
 }
 
+const publicFixture = async (includeGrok = false) => {
+  const root = await mkdtemp(join(tmpdir(), 'autoshow-newspaper-public-report-')); roots.push(root)
+  const write = async (path: string, value: unknown) => {
+    await mkdir(dirname(join(root, path)), { recursive: true })
+    await Bun.write(join(root, path), typeof value === 'string' ? value : JSON.stringify(value))
+  }
+  const read = async (path: string) => Bun.file(join(root, path)).json()
+  const targets = [{ provider: 'tesseract', model: 'tesseract' }, { provider: 'anthropic', model: 'claude-sonnet-5-5' }, { provider: 'gemini', model: 'gemini-3.8-flash' },
+    ...(includeGrok ? [{ provider: 'grok', model: 'grok-4.7' }] : [])]
+  const cases = ['newspapers-expansion-layout-fixture', 'newspapers-expansion-new-york-times-fixture'].map(id => ({ id, scope: 'full-page',
+    runDir: `docs/benchmarks/text/ocr/${id}`, reference: `${base}/cases/${id}/canonical-reference.txt`, referenceSha256: 'a'.repeat(64),
+    normalizedReference: `${base}/cases/${id}/normalized-reference.txt`, normalizedReferenceSha256: 'b'.repeat(64) }))
+  const lineCounts = { nonemptyLogicalLines: 1, uniqueLogicalLines: 1, duplicateLineOccurrences: 0, repeatedLineKinds: 0, maximumIdenticalLineOccurrences: 1, maximumConsecutiveIdenticalLineRun: 1 }
+  for (const [index, entry] of cases.entries()) {
+    const reference = { kind: 'publisher-canonical', path: entry.normalizedReference, sha256: entry.normalizedReferenceSha256 }
+    const providers = targets.map(target => ({ service: target.provider, model: target.model,
+      status: index === 1 && ['gemini', 'grok'].includes(target.provider) ? 'failed' : 'succeeded',
+      metadata: { pageEvidence: [{ failureKind: target.provider === 'grok' ? 'accounting-allowance-breach' : 'output-limit' }] } }))
+    await write(`${entry.runDir}/manifest.json`, { reference, source: { originalCanonicalReference: { path: entry.reference, sha256: entry.referenceSha256 },
+      coverage: { configuredModels: 4, successfulModels: index === 1 ? 3 : 4 } }, items: [{ providers }] })
+    const successful = providers.filter(row => row.status === 'succeeded')
+    await write(`${entry.runDir}/provider-comparison-report.json`, { referenceProvenance: { ...reference, independentOfProviders: true }, providerGroups: {
+      local: { providers: successful.filter(row => row.service === 'tesseract').map(row => ({ providerKey: `${row.service}/${row.model}`, metrics: { score: 50 } })) },
+      thirdPartyService: { providers: successful.filter(row => row.service !== 'tesseract').map(row => ({ providerKey: `${row.service}/${row.model}`, metrics: { score: row.service === 'anthropic' ? 90 : 80 } })) }
+    } })
+    await write(`${entry.runDir}/evaluation-diagnostics.json`, { caseId: entry.id, reference, providers: successful.map(row => ({ providerKey: `${row.service}/${row.model}`,
+      tokenMultiset: { referenceTokenCount: 10, candidateTokenCount: 10, matchedTokenCount: 8, missingTokenCount: 2, unmatchedTokenCount: 2, precision: 0.8, recall: 0.8, f1: 0.8 },
+      repetition: { reference: lineCounts, candidate: lineCounts } })) })
+  }
+  const plan = { kind: 'ocr-newspaper-expansion-benchmark-status', cases, targets: [...targets, { provider: 'retired', model: 'historical-only' }],
+    currentCohort: { targets }, spending: { accountedCents: 25, heldReservationCents: 10, settledConservativeCents: 0 } }
+  await write(NEWSPAPER_PUBLIC_PLAN, plan)
+  const historical = '<!-- newspaper-execution:start -->\n\nHistorical 21-target results: 246/252.\n\n<!-- newspaper-execution:end -->'
+  await write(NEWSPAPER_EXECUTION_REPORT, `# Expansion\n\n${historical}\n\nOther research remains.\n`)
+  return { root, write, read, cases, plan, historical, options: { projectRoot: root } }
+}
+
 describe('Newspaper matched-input arithmetic, with explicit completion coverage', () => {
   test('rebuild CLI accepts explicit authorized-case selection and rejects malformed or analysis-only filters', () => {
     expect(parseNewspaperReportArguments([]).action).toBe('--analyze')
-    expect(parseNewspaperReportArguments(['--generate', '--case', 'newspapers-expansion-first', '--case', 'newspapers-expansion-second'])).toMatchObject({ action: '--generate', buildCaseIds: ['newspapers-expansion-first', 'newspapers-expansion-second'] })
-    for (const args of [['--case', 'newspapers-expansion-first'], ['--analyze', '--case', 'newspapers-expansion-first'], ['--generate', '--case'], ['--generate', '--case', '../escape'], ['--generate', '--case', 'newspapers-expansion-first', '--case', 'newspapers-expansion-first']]) expect(() => parseNewspaperReportArguments(args)).toThrow('Usage:')
+    expect(parseNewspaperReportArguments(['--generate']).action).toBe('--generate')
+    expect(parseNewspaperReportArguments(['--analyze-historical']).action).toBe('--analyze-historical')
+    expect(parseNewspaperReportArguments(['--rebuild-authorized', '--case', 'newspapers-expansion-first', '--case', 'newspapers-expansion-second'])).toMatchObject({ action: '--rebuild-authorized', buildCaseIds: ['newspapers-expansion-first', 'newspapers-expansion-second'] })
+    for (const args of [['--case', 'newspapers-expansion-first'], ['--analyze', '--case', 'newspapers-expansion-first'], ['--generate', '--case', 'newspapers-expansion-first'], ['--rebuild-authorized', '--case'], ['--rebuild-authorized', '--case', '../escape'], ['--rebuild-authorized', '--case', 'newspapers-expansion-first', '--case', 'newspapers-expansion-first']]) expect(() => parseNewspaperReportArguments(args)).toThrow('Usage:')
   })
   test('compares the same common inputs and preserves a valid zero score without giving failures a zero', () => {
     const targets = [{ provider: 'anthropic', model: 'claude-sonnet-5-5' }, { provider: 'gemini', model: 'gemini-3.8-flash' }]
@@ -229,9 +270,10 @@ describe('Newspaper saved-artifact report integration, without provider calls', 
       expect(text).not.toContain(secret); expect(text).not.toContain('apiKey'); expect(text).not.toContain('rawResponse')
     }
     expect(newspaperExecutionMarkdown(analysis)).toContain('11/12 provider-completed/scorable')
-    await updateNewspaperExecutionSection(analysis, f.options); await updateNewspaperExecutionSection(analysis, f.options)
-    const taskReport = await Bun.file(join(f.root, 'docs/reports/ocr-newspaper-expansion-2026-10-23.md')).text()
-    expect(taskReport).toContain('Original research preserved.'); expect(taskReport.split('<!-- newspaper-execution:start -->')).toHaveLength(2)
+    const retained = await analyzeRetainedNewspaperExpansionReports(f.options)
+    await updateNewspaperExecutionSection(retained, f.options); await updateNewspaperExecutionSection(retained, f.options)
+    const taskReport = await Bun.file(join(f.root, NEWSPAPER_EXECUTION_REPORT)).text()
+    expect(taskReport).toContain('Original research preserved.'); expect(taskReport.split('<!-- newspaper-current-cohort:start -->')).toHaveLength(2)
     expect(taskReport).not.toContain(secret)
   })
   test('rejects false native completion flags and mismatched inline artifacts before public writes', async () => {
@@ -336,7 +378,7 @@ describe('Newspaper saved-artifact report integration, without provider calls', 
     report.providerGroups.thirdPartyService.providers.push({ providerKey: 'grok/grok-4.7', metrics: { score: 0 } })
     await f.write(`${c.runDir}/provider-comparison-report.json`, report)
     await expect(analyzeNewspaperExpansionReports(f.options)).rejects.toThrow('stale quality')
-    await f.write('docs/reports/ocr-newspaper-expansion-2026-10-23.md', '<!-- newspaper-execution:start -->')
+    await f.write(NEWSPAPER_EXECUTION_REPORT, '<!-- newspaper-execution:start -->')
     await expect(updateNewspaperExecutionSection(analysis, f.options)).rejects.toThrow('markers')
   })
   test('the ERA source convention requires hash-matched input, unchanged primary gold and an exact evidence crop', async () => {
@@ -354,6 +396,125 @@ describe('Newspaper saved-artifact report integration, without provider calls', 
       await f.write(path, proof)
       await expect(buildNewspaperExpansionReports(f.options)).rejects.toThrow(mode === 'wrong-reference' ? 'pinned input/reference' : mode === 'changed-evidence' ? 'checksum changed' : 'pixels differ')
       expect(await Bun.file(join(f.root, `${f.cases[0]!.runDir}/manifest.json`)).exists()).toBe(false)
+    }
+  })
+})
+
+describe('Retained newspaper cohort reporting from public artifacts only', () => {
+  test('the generate command writes its current section and emits a bounded summary', async () => {
+    const f = await publicFixture()
+    const child = Bun.spawn([process.execPath, resolve('src/tools/ocr-newspaper-expansion-report.ts'), '--generate'], {
+      env: { ...process.env, AUTOSHOW_PROJECT_ROOT: f.root }, stdout: 'pipe', stderr: 'pipe'
+    })
+    const [stdout, stderr, exitCode] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
+    expect(exitCode).toBe(0); expect(stderr).toBe('')
+    expect(JSON.parse(stdout)).toEqual({ kind: 'ocr-newspaper-expansion-report-generation', cohort: 'current-retained',
+      caseCount: 2, targetCount: 3, completedSlots: 5, selectedSlots: 6, failedSlots: 1, reportPath: 'docs/reports/repository-improvement-actions.md' })
+    expect(stdout.length).toBeLessThan(1000)
+    const report = await Bun.file(join(f.root, NEWSPAPER_EXECUTION_REPORT)).text()
+    expect(report).toContain(f.historical); expect(report).toContain('<!-- newspaper-current-cohort:start -->')
+    expect(report).toContain('### Current retained newspaper cohort')
+    expect(report).not.toContain('Matched mean')
+    expect(report.split('\n').length).toBeLessThan(30)
+  })
+
+  test('keeps both saved failures and the permanent Grok restriction in compact generation while retaining detailed export', async () => {
+    const f = await publicFixture(true), analysis = await analyzeRetainedNewspaperExpansionReports(f.options)
+    const compact = newspaperCurrentCohortMarkdown(analysis)
+    expect(compact).toContain('6/8 provider-completed/scorable')
+    expect(compact).toContain('2 admitted inputs / 4 retained targets')
+    expect(compact).toContain('gemini/gemini-3.8-flash')
+    expect(compact).toContain('grok/grok-4.7')
+    expect(compact).toContain('accounting-allowance-breach')
+    expect(compact).toContain('The original Grok slot is permanently prohibited from redispatch; preserve the full accounting hold.')
+    expect(compact).toContain('not the cost of the retained cohort')
+    expect(compact).toContain('../benchmarks/text/ocr/newspaper-expansion-execution-plan.json')
+    expect(compact.split('\n').length).toBeLessThan(20)
+    expect(compact).not.toContain('Matched mean')
+    expect(newspaperExecutionMarkdown(analysis)).toContain('Matched mean /100')
+    await updateNewspaperExecutionSection(analysis, f.options)
+    const report = await Bun.file(join(f.root, NEWSPAPER_EXECUTION_REPORT)).text()
+    expect(report).toContain(compact)
+    expect(report).toContain(f.historical)
+    expect(report).not.toContain('Matched mean /100')
+  })
+
+  test('derives the selected matrix and matched comparisons without opening private gold or execution files', async () => {
+    const f = await publicFixture()
+    expect(await Bun.file(join(f.root, `${base}/execution-plan.json`)).exists()).toBe(false)
+    expect(await Bun.file(join(f.root, f.cases[0]!.normalizedReference)).exists()).toBe(false)
+    const analysis = await analyzeRetainedNewspaperExpansionReports(f.options)
+    expect(analysis).toMatchObject({ cohort: 'current-retained', provenance: NEWSPAPER_PUBLIC_PLAN, spendingScope: 'historical-approved-batch',
+      caseCount: 2, targetCount: 3, selectedSlots: 6, completedSlots: 5, failedSlots: 1, runningSlots: 0, notDispatchedSlots: 0 })
+    const layout = analysis.panels[0]!, capacity = analysis.panels[2]!
+    expect(layout.comparisons).toMatchObject([{ commonInputs: 1, meanScoreDifferenceAminusB: 10 }])
+    expect(layout.groups.find(group => group.group === 'thirdPartyService')!.matchedCaseIds).toEqual([f.cases[0]!.id])
+    expect(capacity.groups.find(group => group.group === 'thirdPartyService')!.matchedCaseIds).toEqual([])
+    expect(capacity.groups.find(group => group.group === 'local')!.matchedCaseIds).toEqual([f.cases[1]!.id])
+    expect(analysis.cases[1]!.outcomes.find(row => row.providerKey.startsWith('gemini/'))).toMatchObject({ status: 'failed', score: null, failureKind: 'output-limit' })
+    const markdown = newspaperExecutionMarkdown(analysis)
+    expect(markdown).toContain('Historical full-batch accounted cost')
+    expect(markdown).toContain('not the cost of the retained cohort')
+    await expect(analyzeRetainedNewspaperExpansionReports({ ...f.options, buildCaseIds: [f.cases[0]!.id] })).rejects.toThrow('cannot rebuild')
+  })
+
+  test('refreshes only its own marked section and preserves frozen history and authorization bytes', async () => {
+    const f = await publicFixture()
+    const planText = 'Original approved private plan; its ledger pins these exact bytes.\n'
+    const ledgerText = JSON.stringify({ planSha256: hash(planText) })
+    await f.write(`${base}/execution-plan.json`, planText); await f.write(`${base}/spending-ledger.json`, ledgerText)
+    const before = await Bun.file(join(f.root, NEWSPAPER_EXECUTION_REPORT)).text()
+    const analysis = await analyzeRetainedNewspaperExpansionReports(f.options)
+    await updateNewspaperExecutionSection(analysis, f.options)
+    const first = await Bun.file(join(f.root, NEWSPAPER_EXECUTION_REPORT)).text()
+    await updateNewspaperExecutionSection(analysis, f.options)
+    expect(await Bun.file(join(f.root, NEWSPAPER_EXECUTION_REPORT)).text()).toBe(first)
+    expect(first.startsWith(before)).toBe(true)
+    expect(first).toContain(f.historical)
+    expect(first.split('<!-- newspaper-current-cohort:start -->')).toHaveLength(2)
+    expect(first).toContain('5/6 provider-completed/scorable')
+    expect(await Bun.file(join(f.root, `${base}/execution-plan.json`)).text()).toBe(planText)
+    expect(await Bun.file(join(f.root, `${base}/spending-ledger.json`)).text()).toBe(ledgerText)
+    await expect(updateNewspaperExecutionSection({ ...analysis, cohort: 'historical-approved' }, f.options)).rejects.toThrow('historical execution remains frozen')
+    expect(await Bun.file(join(f.root, NEWSPAPER_EXECUTION_REPORT)).text()).toBe(first)
+  })
+
+  for (const mode of ['inventory', 'quality-reference', 'provider-derived-reference', 'diagnostic-reference', 'stale-failed-score', 'missing-quality', 'invalid-diagnostic', 'unknown-diagnostic', 'duplicate-target', 'destination']) test(`rejects invalid public evidence: ${mode}`, async () => {
+    const f = await publicFixture(), entry = f.cases[1]!
+    if (mode === 'inventory') {
+      const manifest = await f.read(`${entry.runDir}/manifest.json`); manifest.items[0].providers.pop(); await f.write(`${entry.runDir}/manifest.json`, manifest)
+    } else if (mode === 'quality-reference' || mode === 'provider-derived-reference' || mode === 'stale-failed-score' || mode === 'missing-quality') {
+      const path = `${entry.runDir}/provider-comparison-report.json`, report = await f.read(path)
+      if (mode === 'quality-reference') report.referenceProvenance.sha256 = 'c'.repeat(64)
+      else if (mode === 'provider-derived-reference') report.referenceProvenance.independentOfProviders = false
+      else if (mode === 'missing-quality') report.providerGroups.local.providers = []
+      else report.providerGroups.thirdPartyService.providers.push({ providerKey: 'gemini/gemini-3.8-flash', metrics: { score: 0 } })
+      await f.write(path, report)
+    } else if (mode === 'diagnostic-reference' || mode === 'invalid-diagnostic' || mode === 'unknown-diagnostic') {
+      const path = `${entry.runDir}/evaluation-diagnostics.json`, diagnostics = await f.read(path)
+      if (mode === 'diagnostic-reference') diagnostics.reference.sha256 = 'c'.repeat(64)
+      else if (mode === 'invalid-diagnostic') diagnostics.providers[0].tokenMultiset.precision = 2
+      else diagnostics.providers.push({ providerKey: 'retired/historical-only' })
+      await f.write(path, diagnostics)
+    } else {
+      if (mode === 'duplicate-target') f.plan.currentCohort.targets.push(f.plan.currentCohort.targets[0]!)
+      else f.plan.cases[1]!.runDir = '../outside'
+      await f.write(NEWSPAPER_PUBLIC_PLAN, f.plan)
+    }
+    const errors: Record<string, string> = { inventory: 'target inventory', 'quality-reference': 'metric report or scoring reference', 'provider-derived-reference': 'metric report or scoring reference',
+      'diagnostic-reference': 'diagnostic coverage or reference', 'stale-failed-score': 'stale quality row', 'missing-quality': 'lacks its quality score',
+      'invalid-diagnostic': 'Invalid value', 'unknown-diagnostic': 'unselected target', 'duplicate-target': 'Duplicate newspaper', destination: 'Invalid admitted' }
+    await expect(analyzeRetainedNewspaperExpansionReports(f.options)).rejects.toThrow(errors[mode]!)
+  })
+
+  test('rejects reversed, overlapping and partial markers without editing frozen report text', async () => {
+    const f = await publicFixture(), analysis = await analyzeRetainedNewspaperExpansionReports(f.options)
+    for (const text of ['<!-- newspaper-current-cohort:end --><!-- newspaper-current-cohort:start -->',
+      '<!-- newspaper-execution:start -->',
+      '<!-- newspaper-execution:start --><!-- newspaper-current-cohort:start --><!-- newspaper-current-cohort:end --><!-- newspaper-execution:end -->']) {
+      await f.write(NEWSPAPER_EXECUTION_REPORT, text)
+      await expect(updateNewspaperExecutionSection(analysis, f.options)).rejects.toThrow('markers')
+      expect(await Bun.file(join(f.root, NEWSPAPER_EXECUTION_REPORT)).text()).toBe(text)
     }
   })
 })

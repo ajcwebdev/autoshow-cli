@@ -3,7 +3,7 @@ import { videoCommandFlags } from '~/cli/flags/video-flags'
 import { UsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { selectCheapestDefaultTextVideoSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
-import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getRetiredModelReplacement, hasRetiredModelRate } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { runVideoGen } from './run-video-gen'
@@ -49,6 +49,9 @@ const rejectRetiredVideoProviderSelectors = (occurrences: readonly { name: strin
     const replacement = getRetiredModelReplacement('video', provider, model)
     if (replacement !== undefined) {
       throw UsageError(`Model "${model}" is retired for --provider ${provider}=<model>. Use "${replacement}" instead. AutoShow will not silently substitute a different model identity.`)
+    }
+    if (hasRetiredModelRate('video', provider, model)) {
+      throw UsageError(`Model "${model}" is retired for --provider ${provider}=<model>. Choose an active video provider and model explicitly. AutoShow will not silently substitute a different model identity.`)
     }
   }
 }

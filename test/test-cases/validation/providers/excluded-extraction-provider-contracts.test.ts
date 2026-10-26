@@ -47,7 +47,13 @@ test('excluded tuples stay outside the active model inventory, credentials and e
   expect(all.some(target => excludedStt.includes(target.service as typeof excludedStt[number]))).toBe(false)
   const decision = readFileSync('docs/adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md', 'utf8')
   const section = decision.split('<!-- excluded-extraction-providers:start -->')[1]!.split('<!-- excluded-extraction-providers:end -->')[0]!
-  expect([...section.matchAll(/`(?:extract|stt)\//g)]).toHaveLength(5)
+  expect([...section.matchAll(/`((?:extract|stt)\/[^`]+)`/g)].map(([, tuple]) => tuple)).toEqual([
+    'extract/firecrawl/firecrawl',
+    'extract/supadata/supadata',
+    'stt/supadata/auto',
+    'stt/happyscribe/auto',
+    'extract/glm-reader/glm-reader'
+  ])
 })
 
 test('generic selectors, obsolete flags and direct old runtime settings fail locally without substitution', async () => {

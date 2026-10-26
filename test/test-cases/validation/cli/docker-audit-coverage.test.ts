@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { selectDockerAuditTargets } from '~/tools/docker-audit-coverage'
+import { HTTP_PAYLOAD_CLASS_BYTES } from '~/utils/http-payload'
 
 const sha = 'a'.repeat(40), otherSha = 'b'.repeat(40)
 const context = { event: 'push', ref: 'refs/heads/main', repository: 'Owner/AutoShow-CLI', sha, token: 'test-token', imageChanged: true }
@@ -27,7 +28,8 @@ test('standalone target selection emits CI outputs without installed packages or
     for (const path of [
       'tsconfig.json', 'src/tools/docker-audit-coverage.ts', 'src/utils/error-handler.ts',
       'src/utils/app-logger/result-emitter.ts', 'src/utils/app-logger/redaction.ts',
-      'src/utils/project-root.ts', 'src/utils/value-helpers.ts'
+      'src/utils/project-root.ts', 'src/utils/value-helpers.ts',
+      'src/utils/http-payload.ts', 'src/utils/timeouts.ts'
     ]) await Bun.write(join(directory, path), await Bun.file(join(root, path)).bytes())
     const output = join(directory, 'github-output')
     const result = Bun.spawnSync([process.execPath, '--no-env-file', '--no-install', 'src/tools/docker-audit-coverage.ts'], {
@@ -44,11 +46,12 @@ test('standalone target selection emits CI outputs without installed packages or
   }
 })
 
-async function select(metadata: Metadata | ((attempt: number) => Metadata), overrides: Partial<Overrides> = {}, errorStatus?: number) {
+async function select(metadata: Metadata | ((attempt: number) => Metadata), overrides: Partial<Overrides> = {}, errorStatus?: number,
+  options: Pick<NonNullable<Parameters<typeof selectDockerAuditTargets>[1]>, 'waitMs' | 'intervalMs'> = { waitMs: 30, intervalMs: 10 }) {
   let clock = 0, attempts = 0
   const requests: string[] = [], sleeps: number[] = []
   const selected = await selectDockerAuditTargets({ ...context, ...overrides }, {
-    waitMs: 30, intervalMs: 10, now: () => clock,
+    ...options, now: () => clock,
     sleep: async milliseconds => { sleeps.push(milliseconds); clock += milliseconds; attempts++ },
     fetch: async (input, init) => {
       const url = new URL(input)
@@ -123,11 +126,123 @@ test('missing or in-progress release audits wait only within the audit budget an
     if (unavailable === 'artifact') pending.artifacts = [artifacts[0]]
     const waiting = await select(pending)
     expect(waiting.selected.targets).toEqual(['production', 'alignment'])
+    expect(waiting.selected.reason).toBe('No complete release audit coverage within the bounded wait')
     expect(waiting.clock).toBe(30)
+    // The deadline is terminal: there is no last-millisecond request after the final sleep.
+    expect(waiting.requests.filter(path => path.includes('/runs?'))).toHaveLength(3)
     const recovered = await select(attempt => attempt === 0 ? pending : fixture())
     expect(recovered.selected.targets).toEqual(['alignment'])
     expect(recovered.sleeps).toEqual([10])
   }
+})
+
+test('the default production lookup covers the observed 213-second release readiness with polling margin', async () => {
+  const pending = fixture()
+  pending.jobs = jobs.map(job => ({ ...job, status: 'in_progress', conclusion: null }))
+  pending.artifacts = []
+  // Run 39966902310 lookup began 14:07:24Z; run 39966902349's final native audit ended 14:10:57Z.
+  const result = await select(attempt => attempt * 15_000 >= 213_000 ? fixture() : pending, {}, undefined, { intervalMs: 15_000 })
+  expect(result.selected).toEqual({ targets: ['alignment'], reason: 'Both native release audits passed with retained same-commit artifacts', releaseRunId: run.id })
+  expect(result.clock).toBe(225_000)
+  expect(result.sleeps).toEqual(Array(15).fill(15_000))
+})
+
+test('the production lookup remains bounded inside the unchanged five-minute job for slow releases and oversized overrides', async () => {
+  const source = await Bun.file(resolve(import.meta.dir, '../../../../.github/workflows/dependency-graphs.yml')).text()
+  const configuration = Bun.YAML.parse(source) as { jobs: Record<string, { 'timeout-minutes': number }> }
+  const jobTimeoutMinutes = configuration.jobs['image-targets']?.['timeout-minutes']
+  expect(jobTimeoutMinutes).toBe(5)
+  const pending = fixture()
+  pending.jobs = []
+  pending.artifacts = []
+  for (const options of [{ intervalMs: 15_000 }, { waitMs: 3_600_000, intervalMs: 15_000 }]) {
+    const result = await select(pending, {}, undefined, options)
+    expect(result.selected).toEqual({ targets: ['production', 'alignment'], reason: 'No complete release audit coverage within the bounded wait' })
+    expect(result.clock).toBe(255_000)
+    expect(result.requests.filter(path => path.includes('/runs?'))).toHaveLength(17)
+    expect(Number(jobTimeoutMinutes) * 60_000 - result.clock).toBe(45_000)
+  }
+})
+
+test('an expired or disabled lookup budget retains both targets without issuing another request', async () => {
+  let requests = 0
+  const selected = await selectDockerAuditTargets(context, {
+    waitMs: 0,
+    fetch: async () => { requests++; return Response.json(workflow) }
+  })
+  expect(requests).toBe(0)
+  expect(selected).toEqual({ targets: ['production', 'alignment'], reason: 'No complete release audit coverage within the bounded wait' })
+})
+
+test('a real HTTP response body is aborted at the total deadline and reported as bounded-wait expiry', async () => {
+  let requests = 0
+  let requestSignal: AbortSignal | null = null
+  const server = Bun.serve({
+    hostname: '127.0.0.1', port: 0,
+    fetch: () => new Response(new ReadableStream({
+      start(controller) { controller.enqueue(new TextEncoder().encode('{')) }
+    }), { headers: { 'content-type': 'application/json' } })
+  })
+  const started = Date.now()
+  try {
+    const selected = await selectDockerAuditTargets(context, {
+      waitMs: 40,
+      fetch: async (input, init) => {
+        requests++
+        requestSignal = init.signal as AbortSignal
+        return fetch(new URL(new URL(input).pathname, server.url), init)
+      }
+    })
+    expect(selected).toEqual({ targets: ['production', 'alignment'], reason: 'No complete release audit coverage within the bounded wait' })
+    expect(requests).toBe(1)
+    expect((requestSignal as AbortSignal | null)?.aborted).toBe(true)
+    expect(Date.now() - started).toBeLessThan(1000)
+  } finally {
+    await server.stop(true)
+  }
+})
+
+test('a transport failure before the total deadline remains distinguishable from exhausted coverage wait', async () => {
+  const selected = await selectDockerAuditTargets(context, {
+    waitMs: 1000,
+    fetch: async () => { throw new Error('connection refused') }
+  })
+  expect(selected).toEqual({ targets: ['production', 'alignment'], reason: 'Release metadata unavailable; independent production audit retained' })
+})
+
+test('oversized release metadata is cancelled under the shared control-payload ceiling before another request', async () => {
+  let requests = 0, cancelled = false
+  const selected = await selectDockerAuditTargets(context, {
+    waitMs: 1000,
+    fetch: async () => {
+      requests++
+      return new Response(new ReadableStream({
+        start(controller) { controller.enqueue(new TextEncoder().encode(JSON.stringify(workflow))) },
+        cancel() { cancelled = true }
+      }), { headers: { 'content-length': String(HTTP_PAYLOAD_CLASS_BYTES.control + 1) } })
+    }
+  })
+  expect(selected).toEqual({ targets: ['production', 'alignment'], reason: 'Release metadata unavailable; independent production audit retained' })
+  expect(requests).toBe(1)
+  expect(cancelled).toBe(true)
+})
+
+test('successful metadata reads and early transport failures clear their request deadline timers', async () => {
+  const signals: AbortSignal[] = []
+  for (const fail of [false, true]) {
+    const selected = await selectDockerAuditTargets(context, {
+      waitMs: 40,
+      fetch: async (_input, init) => {
+        signals.push(init.signal as AbortSignal)
+        if (fail) throw new Error('connection refused')
+        return Response.json({ ...workflow, state: 'disabled_manually' })
+      }
+    })
+    expect(selected.targets).toEqual(['production', 'alignment'])
+  }
+  await Bun.sleep(80)
+  expect(signals).toHaveLength(2)
+  expect(signals.every(signal => !signal.aborted)).toBe(true)
 })
 
 test('both artifact identities must match this run, source, native job attempt, and retention state', async () => {
@@ -141,6 +256,18 @@ test('both artifact identities must match this run, source, native job attempt, 
     const metadata = fixture()
     metadata.runs = [{ ...run, status: 'completed', conclusion: 'success' }]
     metadata.artifacts[index] = { ...artifacts[index], ...mutation }
+    expect((await select(metadata)).selected.targets).toEqual(['production', 'alignment'])
+  }
+})
+
+test('neither architecture can omit production with an unfinished or mismatched native audit job', async () => {
+  for (const index of [0, 1]) for (const mutation of [
+    { status: 'in_progress', conclusion: null }, { status: 'queued', conclusion: null },
+    { head_sha: otherSha }, { run_id: run.id + 1 }, { name: 'Audit emulated image' }
+  ]) {
+    const metadata = fixture()
+    metadata.runs = [{ ...run, status: 'completed', conclusion: 'success' }]
+    metadata.jobs[index] = { ...jobs[index], ...mutation }
     expect((await select(metadata)).selected.targets).toEqual(['production', 'alignment'])
   }
 })
@@ -163,8 +290,9 @@ test('wrong run source or event, ambiguous audit identities, and missing complet
 
 test('incomplete API pages and transport/JSON failures preserve independent production auditing', async () => {
   for (const body of [{ total_count: 2, workflow_runs: [run] }, '{invalid']) {
-    const selected = await selectDockerAuditTargets(context, { waitMs: 0, fetch: async input => input.endsWith('/docker-publish.yml') ? Response.json(workflow) : typeof body === 'string' ? new Response(body) : Response.json(body) })
+    const selected = await selectDockerAuditTargets(context, { waitMs: 1000, fetch: async input => input.endsWith('/docker-publish.yml') ? Response.json(workflow) : typeof body === 'string' ? new Response(body) : Response.json(body) })
     expect(selected.targets).toEqual(['production', 'alignment'])
+    expect(selected.reason).toBe('Release metadata unavailable; independent production audit retained')
   }
   const selected = await selectDockerAuditTargets(context, { fetch: async () => { throw new Error('unavailable metadata') } })
   expect(selected.targets).toEqual(['production', 'alignment'])

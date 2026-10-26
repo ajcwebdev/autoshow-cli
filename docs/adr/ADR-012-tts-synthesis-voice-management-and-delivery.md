@@ -178,7 +178,7 @@ A canonical directory created before delivery mastering keeps its purchased slot
 
 Positive outcomes:
 
-- All eight providers share the explicit-voice boundary, and a provider without a verified capability fails locally before any spend.
+- All configured TTS providers share the explicit-voice boundary, and a provider without a verified capability fails locally before any spend.
 - A character voice can be auditioned, approved, and kept stable across scenes and providers, and a single line can be repaired without repeating the whole synthesis.
 - Remote voice creation, approval, expiry, and deletion are explicit lifecycle states.
 - A successful run keeps one paid copy per slot plus the published masters, and purchased audio stays usable under any later delivery profile.

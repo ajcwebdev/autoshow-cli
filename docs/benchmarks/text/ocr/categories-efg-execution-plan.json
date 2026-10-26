@@ -717,5 +717,99 @@
     "partialReferenceDiagnosticOutputs": 105,
     "completedPreparedAdditions": 35,
     "remainingPreparedAdditions": 0
+  },
+  "reportingCohorts": {
+    "reviewDate": "2026-10-26",
+    "historicalSnapshot": "7cf20f1ac",
+    "historicalTargetCount": 21,
+    "historicalTargets": [
+      {
+        "provider": "tesseract",
+        "model": "tesseract"
+      },
+      {
+        "provider": "mistral",
+        "model": "mistral-ocr-4-1"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6.1-sol"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6-luna"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6-astra"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5.6-terra"
+      },
+      {
+        "provider": "grok",
+        "model": "grok-4.7"
+      },
+      {
+        "provider": "grok",
+        "model": "grok-4.5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-opus-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-haiku-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-fable-5-1"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-fable-5"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-4-argon"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite"
+      },
+      {
+        "provider": "deepinfra",
+        "model": "google/gemma-4-31B-it"
+      },
+      {
+        "provider": "deepinfra",
+        "model": "Qwen/Qwen3.8-27B"
+      },
+      {
+        "provider": "deepinfra",
+        "model": "deepseek-ai/DeepSeek-V4.1-Flash"
+      }
+    ],
+    "retainedTargetCount": 10,
+    "targetListSemantics": "The top-level targets or quote.models list is the retained reporting inventory after retirement. Execution scope, case slot counts, coverage, spending and approvals retain their original historical cohort. This metadata does not authorize redispatch.",
+    "historicalEvidence": "docs/reports/repository-improvement-actions.evidence.zip"
   }
 }

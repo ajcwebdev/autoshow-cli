@@ -18,7 +18,10 @@ test('default Docker target retains the source runtime and isolates optional ali
   expect(runtime).toContain('CMD ["help"]')
   expect(runtime).not.toMatch(/\b(?:bun .*build|--compile)\b/)
   expect(runtime).not.toContain('config/stt-alignment')
-  expect(runtime).toContain('ENV AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1')
+  const logicalRuntime = runtime.replace(/\\\r?\n[ \t]*/g, ' ')
+  const environment = logicalRuntime.split(/\r?\n/).filter(line => line.startsWith('ENV ')).flatMap(line => line.slice(4).trim().split(/\s+/))
+  expect(environment).toEqual(['NODE_ENV=production', 'HOME=/home/bun', 'AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1'])
+  expect(logicalRuntime.indexOf('\nENV ')).toBeLessThan(logicalRuntime.indexOf('\nRUN '))
 })
 
 test('alignment copies a frozen, normalized target-native graph without installing into runtime HOME', () => {

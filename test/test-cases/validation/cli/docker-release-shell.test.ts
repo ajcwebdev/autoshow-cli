@@ -53,7 +53,7 @@ switch (command) {
 `
 
 async function execute(helper: 'build' | 'smoke', options: {
-  arch?: string; hostArch?: string; daemonArch?: string; imageDigest?: string; metadata?: string; failMatch?: string
+  arch?: string; hostArch?: string; daemonArch?: string; imageDigest?: string; metadata?: string; failMatch?: string; repository?: string
 } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'docker-release-shell-'))
   roots.push(root)
@@ -74,7 +74,7 @@ async function execute(helper: 'build' | 'smoke', options: {
   const env = {
     PATH: `${bin}:${process.env['PATH'] ?? ''}`, HOME: root, ARCH: arch,
     IMAGE_DIGEST: options.imageDigest ?? digest, BUILD_DURATION_MS: '42',
-    GITHUB_REPOSITORY: 'Owner/AutoShow-CLI', GITHUB_SHA: revision,
+    GITHUB_REPOSITORY: options.repository ?? 'Owner/AutoShow-CLI', GITHUB_SHA: revision,
     GITHUB_WORKSPACE: root, GITHUB_OUTPUT: output, RUNNER_TEMP: runnerTemp,
     RELEASE_TEST_BUN: process.execPath, RELEASE_TEST_SHIM: shimPath, RELEASE_TEST_LOG: log,
     RELEASE_TEST_CLOCK: join(root, 'clock'),
@@ -111,6 +111,16 @@ test('native builds export job-scoped immutable digests with provenance, SBOM, a
     expect(args.join(' ')).not.toContain(':latest')
     expect(result.output).toBe(`digest=${digest}\nbuild_duration_ms=1\n`)
     expect(await Bun.file(args[args.indexOf('--metadata-file') + 1]!).exists()).toBe(false)
+  }
+})
+
+test('invalid repository identities stop native build and smoke before any image push, pull or container', async () => {
+  for (const helper of ['build', 'smoke'] as const) for (const repository of ['owner/repo:tag', 'owner/repo\n']) {
+    const result = await execute(helper, { repository })
+    expect(result.code).toBe(2)
+    expect(result.stderr).toContain('Expected a valid owner/repository identity')
+    expect(result.calls.some(call => call.command === 'docker' && call.args[0] !== 'info')).toBe(false)
+    expect(result.output).toBe('')
   }
 })
 

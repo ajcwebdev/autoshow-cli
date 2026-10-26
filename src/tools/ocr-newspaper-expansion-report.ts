@@ -8,8 +8,10 @@ import { buildBcOcrReports, inspectBcOcrReports, type BcOcrReportOptions } from 
 import { writePortableFileSync } from '../../.codex/skills/consensus/scripts/shared/portable_paths'
 
 export const NEWSPAPER_REPORT_ROOT = 'input/examples/document/ocr-newspaper-expansion'
-export const NEWSPAPER_EXECUTION_REPORT = 'docs/reports/ocr-newspaper-expansion-2026-10-23.md'
-export type NewspaperReportOptions = Omit<BcOcrReportOptions, 'reportProfile'>
+export const NEWSPAPER_EXECUTION_REPORT = 'docs/reports/repository-improvement-actions.md'
+export const NEWSPAPER_PUBLIC_PLAN = 'docs/benchmarks/text/ocr/newspaper-expansion-execution-plan.json'
+export type NewspaperReportOptions = Omit<BcOcrReportOptions, 'reportProfile'> & { publicPlanPath?: string }
+type NewspaperCohort = 'historical-approved' | 'current-retained'
 export type NewspaperPanel = 'whole-page-layout' | 'region-recognition' | 'very-long-page-capacity'
 type Group = 'local' | 'thirdPartyService'
 type Status = 'succeeded' | 'failed' | 'missing' | 'running'
@@ -26,9 +28,17 @@ const mean = (values: readonly number[]): number | null => values.length ? value
 const key = (target: NewspaperTarget): string => `${target.provider}/${target.model}`
 const nonempty = v.pipe(v.string(), v.nonEmpty())
 const planSchema = v.object({
-  cases: v.array(v.object({ id: nonempty, scope: v.picklist(['full-page', 'region-crop']), runDir: nonempty,
+  cases: v.pipe(v.array(v.object({ id: nonempty, scope: v.picklist(['full-page', 'region-crop']), runDir: nonempty,
     reference: nonempty, referenceSha256: nonempty, normalizedReference: nonempty, normalizedReferenceSha256: nonempty })),
-  targets: v.array(v.object({ provider: nonempty, model: nonempty }))
+    v.minLength(1)),
+  targets: v.pipe(v.array(v.object({ provider: nonempty, model: nonempty })), v.minLength(1))
+})
+const cents = v.pipe(v.number(), v.finite(), v.minValue(0))
+const spendingSchema = v.object({ accountedCents: cents, heldReservationCents: cents, settledConservativeCents: cents })
+const publicPlanSchema = v.object({
+  kind: v.literal('ocr-newspaper-expansion-benchmark-status'), ...planSchema.entries,
+  currentCohort: v.optional(v.object({ targets: planSchema.entries.targets })),
+  spending: spendingSchema
 })
 const secondarySchema = v.object({ variant: v.literal('era-reviewed-spacing-equivalence-v1'), primaryMetricsUnchanged: v.literal(true),
   referenceConventionSpans: v.pipe(v.number(), v.integer(), v.minValue(0)), candidateConventionSpans: v.pipe(v.number(), v.integer(), v.minValue(0)),
@@ -105,8 +115,11 @@ export const summarizeNewspaperPanels = (cases: readonly NewspaperScoredCase[], 
   })
 }
 
-const within = async (projectRoot: string, path: string): Promise<string> => {
+const assertPortableNewspaperPath = (path: string): void => {
   if (isAbsolute(path) || /[:\\\x00]/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..')) throw new AppValidationError('Expected a normalized project-relative newspaper path')
+}
+const within = async (projectRoot: string, path: string): Promise<string> => {
+  assertPortableNewspaperPath(path)
   const file = await realpath(resolve(projectRoot, path)), rel = relative(projectRoot, file)
   if (isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) throw new AppValidationError('Newspaper report evidence escapes project root')
   return file
@@ -114,28 +127,37 @@ const within = async (projectRoot: string, path: string): Promise<string> => {
 
 export const inspectNewspaperExpansionReports = (options: NewspaperReportOptions = {}) => inspectBcOcrReports({ ...options, reportProfile: 'newspapers' })
 
-export const analyzeNewspaperExpansionReports = async (options: NewspaperReportOptions = {}) => {
-  const overview = await inspectNewspaperExpansionReports(options)
-  const root = await realpath(options.projectRoot ?? PROJECT_ROOT)
-  const plan = v.parse(planSchema, await Bun.file(await within(root, options.planPath ?? `${NEWSPAPER_REPORT_ROOT}/execution-plan.json`)).json())
+const analyzeSavedNewspaperReports = async (root: string, plan: v.InferOutput<typeof planSchema>, cohort: NewspaperCohort,
+  spending: v.InferOutput<typeof spendingSchema>, provenance: string) => {
+  if (new Set(plan.cases.map(row => row.id)).size !== plan.cases.length || new Set(plan.targets.map(key)).size !== plan.targets.length) throw new AppValidationError('Duplicate newspaper cohort identities')
+  if (plan.cases.some(row => !/^newspapers-expansion-[a-z0-9-]+$/.test(row.id) || row.id.includes('north-star')
+    || row.runDir !== `docs/benchmarks/text/ocr/${row.id}`)) throw new AppValidationError('Invalid admitted newspaper report destination')
+  for (const entry of plan.cases) {
+    assertPortableNewspaperPath(entry.reference)
+    assertPortableNewspaperPath(entry.normalizedReference)
+  }
   const cases: NewspaperScoredCase[] = []
   const secondarySourceConventions: Array<{ caseId: string, providerKey: string } & v.InferOutput<typeof secondarySchema>> = []
   for (const entry of plan.cases) {
     const manifest: unknown = await Bun.file(await within(root, `${entry.runDir}/manifest.json`)).json()
     if (!record(manifest) || !Array.isArray(manifest['items']) || manifest['items'].length !== 1 || !record(manifest['items'][0]) || !Array.isArray(manifest['items'][0]['providers'])) throw new AppValidationError('Public newspaper manifest has no selected-provider matrix')
     const states = manifest['items'][0]['providers']
-    if (states.length !== plan.targets.length || !record(manifest['reference']) || manifest['reference']['path'] !== entry.normalizedReference
+    if (states.length !== plan.targets.length || !record(manifest['reference']) || manifest['reference']['kind'] !== 'publisher-canonical' || manifest['reference']['path'] !== entry.normalizedReference
       || manifest['reference']['sha256'] !== entry.normalizedReferenceSha256 || !record(manifest['source'])
       || !record(manifest['source']['originalCanonicalReference']) || manifest['source']['originalCanonicalReference']['path'] !== entry.reference
       || manifest['source']['originalCanonicalReference']['sha256'] !== entry.referenceSha256) throw new AppValidationError('Public newspaper reference or target inventory differs from the authorized source')
     const reportPath = `${entry.runDir}/provider-comparison-report.json`
     const diagnostics: unknown = await Bun.file(await within(root, `${entry.runDir}/evaluation-diagnostics.json`)).json()
-    if (!record(diagnostics) || !Array.isArray(diagnostics['providers'])) throw new AppValidationError('Newspaper diagnostic coverage is missing')
+    if (!record(diagnostics) || !Array.isArray(diagnostics['providers']) || diagnostics['caseId'] !== entry.id
+      || !record(diagnostics['reference']) || diagnostics['reference']['path'] !== entry.normalizedReference
+      || diagnostics['reference']['sha256'] !== entry.normalizedReferenceSha256) throw new AppValidationError('Newspaper diagnostic coverage or reference differs from the selected source')
     const diagnosticProviders = diagnostics['providers']
+    if (diagnosticProviders.some(detail => !record(detail) || !plan.targets.some(target => key(target) === detail['providerKey']))) throw new AppValidationError('Newspaper diagnostic contains an unselected target')
     let details: Record<string, unknown>[] = []
     if (await Bun.file(resolve(root, reportPath)).exists()) {
       const report: unknown = await Bun.file(await within(root, reportPath)).json()
       if (!record(report) || !record(report['providerGroups']) || !record(report['referenceProvenance'])
+        || report['referenceProvenance']['kind'] !== 'publisher-canonical' || report['referenceProvenance']['independentOfProviders'] !== true
         || report['referenceProvenance']['path'] !== entry.normalizedReference || report['referenceProvenance']['sha256'] !== entry.normalizedReferenceSha256) throw new AppValidationError('Invalid newspaper metric report or scoring reference')
       for (const group of Object.values(report['providerGroups'])) {
         if (!record(group) || !Array.isArray(group['providers'])) throw new AppValidationError('Invalid newspaper metric group')
@@ -177,14 +199,34 @@ export const analyzeNewspaperExpansionReports = async (options: NewspaperReportO
   const panels = summarizeNewspaperPanels(cases, plan.targets)
   const all = cases.flatMap(row => row.outcomes)
   return { kind: 'ocr-newspaper-expansion-cohort-analysis', analysisVariant: 'newspaper-reading-normalized-v1',
+    cohort, provenance, spendingScope: 'historical-approved-batch',
     caseCount: cases.length, targetCount: plan.targets.length, selectedSlots: all.length,
     completionSemantics: 'Provider-completed/scorable means the saved dispatch succeeded and produced a valid scoreable artifact. It does not assert exhaustive source-page coverage or visual correctness; token recall, ordered WER and source-image review assess those separately.',
     completedSlots: all.filter(row => row.status === 'succeeded').length,
     failedSlots: all.filter(row => row.status === 'failed').length,
     notDispatchedSlots: all.filter(row => row.status === 'missing').length,
     runningSlots: all.filter(row => row.status === 'running').length,
-    spending: overview.spending, panels, cases, secondarySourceConventions,
+    spending, panels, cases, secondarySourceConventions,
     policy: 'Local and hosted targets are separate. Means on completed outputs are conditional and retain completion denominators. Matched ranks use the identical successfully completed input intersection within each provider group. Pairwise differences use only inputs completed by both models. Missing/failed outputs have no invented score. Source inputs are counted once; issue/publication dependence remains a limitation.' }
+}
+
+/** Inspect the original approved matrix and ledger without changing their authorization hashes. */
+export const analyzeNewspaperExpansionReports = async (options: NewspaperReportOptions = {}) => {
+  const overview = await inspectNewspaperExpansionReports(options)
+  const root = await realpath(options.projectRoot ?? PROJECT_ROOT)
+  const planPath = options.planPath ?? `${NEWSPAPER_REPORT_ROOT}/execution-plan.json`
+  const plan = v.parse(planSchema, await Bun.file(await within(root, planPath)).json())
+  return analyzeSavedNewspaperReports(root, plan, 'historical-approved', overview.spending, planPath)
+}
+
+/** Read retained public scores and diagnostics only; private source text and execution evidence are unnecessary. */
+export const analyzeRetainedNewspaperExpansionReports = async (options: NewspaperReportOptions = {}) => {
+  if (options.buildCaseIds) throw new AppValidationError('Retained-cohort analysis cannot rebuild authorized case artifacts')
+  const root = await realpath(options.projectRoot ?? PROJECT_ROOT)
+  const planPath = options.publicPlanPath ?? NEWSPAPER_PUBLIC_PLAN
+  const plan = v.parse(publicPlanSchema, await Bun.file(await within(root, planPath)).json())
+  return analyzeSavedNewspaperReports(root, { cases: plan.cases, targets: plan.currentCohort?.targets ?? plan.targets },
+    'current-retained', plan.spending, planPath)
 }
 
 const table = (headers: string[], rows: string[][]): string => {
@@ -196,10 +238,13 @@ const number = (value: number | null): string => value === null ? 'unavailable' 
 const code = (value: string): string => '`' + value + '`'
 
 export const newspaperExecutionMarkdown = (analysis: Awaited<ReturnType<typeof analyzeNewspaperExpansionReports>>): string => {
-  const lines = ['## Execution and paired model comparison',
+  const retained = analysis.cohort === 'current-retained'
+  const lines = [retained ? '## Current retained newspaper cohort' : '## Execution and paired model comparison',
+    retained ? `This current view derives from the retained targets in ${code(analysis.provenance)} and saved public manifests, quality reports and diagnostics. It requires no private source text, ledger changes or provider calls. The historical execution section remains frozen.`
+      : 'This analysis covers the original approved execution matrix and validates its private plan and ledger.',
     `Saved outputs: **${analysis.completedSlots}/${analysis.selectedSlots} provider-completed/scorable**, ${analysis.failedSlots} failed, ${analysis.notDispatchedSlots} not dispatched, ${analysis.runningSlots} running. The same ${analysis.caseCount} admitted source inputs and ${analysis.targetCount} selected targets define every denominator.`,
     analysis.completionSemantics,
-    `Accounted cumulative cost: **$${(analysis.spending.accountedCents / 100).toFixed(4)}**, including $${(analysis.spending.heldReservationCents / 100).toFixed(4)} retained reservations and $${(analysis.spending.settledConservativeCents / 100).toFixed(4)} settled conservative amounts. This is reviewed-rate accounting, not invoice reconciliation.`,
+    `${retained ? 'Historical full-batch accounted cost' : 'Accounted cumulative cost'}: **$${(analysis.spending.accountedCents / 100).toFixed(4)}**, including $${(analysis.spending.heldReservationCents / 100).toFixed(4)} retained reservations and $${(analysis.spending.settledConservativeCents / 100).toFixed(4)} settled conservative amounts. This is reviewed-rate accounting, not invoice reconciliation.${retained ? ' This amount includes retired targets and is not the cost of the retained cohort.' : ''}`,
     'Primary lexical comparison uses NFKC and the declared quote/dash/whitespace conversion on both independently supplied gold and private derived provider text. Saved raw outputs and original diplomatic gold remain unchanged; literal diagnostics use those raw texts. No gold was sent to OCR providers.']
   const incomplete = analysis.cases.flatMap(row => row.outcomes.filter(outcome => outcome.status !== 'succeeded').map(outcome => [code(row.id), code(outcome.providerKey), outcome.status, outcome.failureKind ?? (outcome.status === 'missing' ? 'not dispatched' : outcome.status)]))
   if (incomplete.length) {
@@ -255,13 +300,39 @@ export const newspaperExecutionMarkdown = (analysis: Awaited<ReturnType<typeof a
   return lines.join('\n\n')
 }
 
+/** Keep the action report brief; detailed score tables remain available through analysis and saved benchmark artifacts. */
+export const newspaperCurrentCohortMarkdown = (analysis: Awaited<ReturnType<typeof analyzeRetainedNewspaperExpansionReports>>): string => {
+  if (analysis.cohort !== 'current-retained') throw new AppValidationError('The compact newspaper section requires retained-cohort analysis')
+  const lines = ['### Current retained newspaper cohort',
+    `Saved outputs: **${analysis.completedSlots}/${analysis.selectedSlots} provider-completed/scorable** across **${analysis.caseCount} admitted inputs / ${analysis.targetCount} retained targets**; ${analysis.failedSlots} failed, ${analysis.notDispatchedSlots} not dispatched and ${analysis.runningSlots} running. Scorable output does not establish exhaustive recognition or page geometry.`,
+    `Historical full-batch accounting: **$${(analysis.spending.accountedCents / 100).toFixed(8)}**, including **$${(analysis.spending.heldReservationCents / 100).toFixed(8)}** retained reservations. This includes retired targets, is not the cost of the retained cohort and remains unreconciled against invoices.`]
+  const incomplete = analysis.cases.flatMap(row => row.outcomes.filter(outcome => outcome.status !== 'succeeded').map(outcome => {
+    const evidence = `../benchmarks/text/ocr/${row.id}/manifest.json`
+    const restriction = row.id.includes('new-york-times') && outcome.providerKey === 'grok/grok-4.7'
+      ? ' The original Grok slot is permanently prohibited from redispatch; preserve the full accounting hold.' : ''
+    return `- [${row.id}](${evidence}): ${code(outcome.providerKey)} — ${outcome.failureKind ?? outcome.status}; no quality score.${restriction}`
+  }))
+  if (incomplete.length) lines.push(incomplete.join('\n'))
+  lines.push('Detailed scores and diagnostics remain in the [OCR benchmark archive](../benchmarks/text/ocr/), [combined comparison](../benchmarks/text/ocr/combined-comparison-report.md) and [newspaper execution evidence](../benchmarks/text/ocr/newspaper-expansion-execution-plan.json).')
+  return lines.join('\n\n')
+}
+
 export const updateNewspaperExecutionSection = async (analysis: Awaited<ReturnType<typeof analyzeNewspaperExpansionReports>>, options: NewspaperReportOptions = {}) => {
   const root = await realpath(options.projectRoot ?? PROJECT_ROOT)
   const path = await within(root, NEWSPAPER_EXECUTION_REPORT), existing = await Bun.file(path).text()
-  const start = '<!-- newspaper-execution:start -->', end = '<!-- newspaper-execution:end -->'
-  if (existing.includes(start) !== existing.includes(end) || existing.split(start).length > 2 || existing.split(end).length > 2) throw new AppValidationError('Invalid newspaper execution report markers')
-  const section = `${start}\n\n${newspaperExecutionMarkdown(analysis)}\n\n${end}`
-  const updated = existing.includes(start) ? existing.slice(0, existing.indexOf(start)) + section + existing.slice(existing.indexOf(end) + end.length) : existing.trimEnd() + '\n\n' + section + '\n'
+  const validateMarkers = (name: string) => {
+    const start = `<!-- ${name}:start -->`, end = `<!-- ${name}:end -->`
+    if (existing.includes(start) !== existing.includes(end) || existing.split(start).length > 2 || existing.split(end).length > 2
+      || existing.includes(start) && existing.indexOf(start) >= existing.indexOf(end)) throw new AppValidationError('Invalid newspaper execution report markers')
+    return { start, end, from: existing.indexOf(start), to: existing.indexOf(end) + end.length }
+  }
+  const historical = validateMarkers('newspaper-execution'), current = validateMarkers('newspaper-current-cohort')
+  if (historical.from >= 0 && current.from >= 0 && historical.from < current.to && current.from < historical.to) throw new AppValidationError('Overlapping newspaper execution report markers')
+  if (analysis.cohort !== 'current-retained') throw new AppValidationError('Only retained-cohort analysis may update the current report section; historical execution remains frozen')
+  const { start, end } = current
+  const section = `${start}\n\n${newspaperCurrentCohortMarkdown(analysis)}\n\n${end}`
+  const updated = current.from >= 0 ? existing.slice(0, current.from) + section + existing.slice(current.to)
+    : existing + (existing.endsWith('\n\n') ? '' : existing.endsWith('\n') ? '\n' : '\n\n') + section + '\n'
   writePortableFileSync(path, updated)
 }
 
@@ -271,9 +342,9 @@ export const buildNewspaperExpansionReports = async (options: NewspaperReportOpt
 }
 
 export const parseNewspaperReportArguments = (args: readonly string[]) => {
-  const usage = 'Usage: bun src/tools/ocr-newspaper-expansion-report.ts [--generate [--case <authorized-case-id> ...] | --analyze | --help]'
+  const usage = 'Usage: bun src/tools/ocr-newspaper-expansion-report.ts [--generate | --analyze | --analyze-historical | --rebuild-authorized [--case <authorized-case-id> ...] | --help]'
   const action = args[0] ?? '--analyze'
-  if (!['--help', '--generate', '--analyze'].includes(action) || action !== '--generate' && args.length > 1) throw new AppUsageError(usage)
+  if (!['--help', '--generate', '--analyze', '--analyze-historical', '--rebuild-authorized'].includes(action) || action !== '--rebuild-authorized' && args.length > 1) throw new AppUsageError(usage)
   const buildCaseIds: string[] = []
   for (let index = 1; index < args.length; index += 2) {
     const id = args[index + 1]
@@ -286,11 +357,14 @@ export const parseNewspaperReportArguments = (args: readonly string[]) => {
 if (import.meta.main) {
   try {
     const args = parseNewspaperReportArguments(Bun.argv.slice(2))
-    if (args.action === '--help') writeCommandPayload((args.usage + '\nDefault/--analyze: read-only saved-cohort analysis. --generate: build metric-only reports from pinned saved outputs and update the marked execution section. Repeated --case rebuilds only those cases, validates all batch evidence, then analyzes all saved reports. No OCR/provider calls.') + '\n')
+    if (args.action === '--help') writeCommandPayload((args.usage + '\nDefault/--analyze: read-only retained-cohort analysis from public saved artifacts. --generate: refresh only the current-cohort report section, preserving frozen historical execution. --analyze-historical: validate the private approved execution matrix and ledger. --rebuild-authorized: explicitly rebuild original approved per-case metric reports (including retired targets) from pinned private outputs; repeated --case limits report writes while validating all batch evidence. Historical rebuilding never updates the consolidated report section. No OCR/provider calls.') + '\n')
     else if (args.action === '--generate') {
-      const analysis = await buildNewspaperExpansionReports({ ...(args.buildCaseIds ? { buildCaseIds: args.buildCaseIds } : {}) })
+      const analysis = await analyzeRetainedNewspaperExpansionReports()
       await updateNewspaperExecutionSection(analysis)
-      writeCommandPayload((JSON.stringify(analysis, null, 2)) + '\n')
-    } else writeCommandPayload((JSON.stringify(await analyzeNewspaperExpansionReports(), null, 2)) + '\n')
+      writeCommandPayload((JSON.stringify({ kind: 'ocr-newspaper-expansion-report-generation', cohort: analysis.cohort,
+        caseCount: analysis.caseCount, targetCount: analysis.targetCount, completedSlots: analysis.completedSlots,
+        selectedSlots: analysis.selectedSlots, failedSlots: analysis.failedSlots, reportPath: NEWSPAPER_EXECUTION_REPORT }, null, 2)) + '\n')
+    } else if (args.action === '--rebuild-authorized') writeCommandPayload((JSON.stringify(await buildNewspaperExpansionReports({ ...(args.buildCaseIds ? { buildCaseIds: args.buildCaseIds } : {}) }), null, 2)) + '\n')
+    else writeCommandPayload((JSON.stringify(await (args.action === '--analyze-historical' ? analyzeNewspaperExpansionReports() : analyzeRetainedNewspaperExpansionReports()), null, 2)) + '\n')
   } catch (error) { writeCommandPayload((error instanceof Error ? error.message : 'Newspaper report integration failed') + '\n', 'stderr'); process.exitCode = 1 }
 }

@@ -1,11 +1,13 @@
 import { expect } from 'bun:test'
 import { requireCondition } from '../test-utils/require-condition'
-import { chmod, mkdir, readdir, rm } from 'node:fs/promises'
+import { mkdir, readdir } from 'node:fs/promises'
 import { statPath as stat } from '../../src/utils/bun-file-io'
 import { join, relative, resolve } from 'node:path'
 import type { CliOutcome, LocalExecutionAdapter } from '../scenarios/local-cli-contracts'
 import { artifactExists } from '../scenarios/local-cli-contracts'
-import { DockerEngine, mapArtifactPath } from './docker-engine'
+import { DockerEngine, mapArtifactPath, prepareAcceptanceDirectory } from './docker-engine'
+import { acquireAcceptanceCacheLease, releaseAcceptanceCacheLease } from './docker-cache-lease'
+import type { AcceptanceCacheLease } from './docker-cache-lease'
 import { containerFixture, prepareDockerFixtures, startDockerFixtureServer } from './docker-fixtures'
 import { selectDockerScenarios } from './docker-scenarios'
 import type { DockerScenario, ModelSelector } from './docker-scenarios'
@@ -34,8 +36,7 @@ export class DockerScenarioAdapter implements LocalExecutionAdapter {
     requireCondition(network, 'Fixture network is unavailable')
     this.engine.authorize(args, network)
     const outputRoot = join(this.engine.options.output, 'outputs', this.scenario.id)
-    await mkdir(outputRoot, { recursive: true })
-    await chmod(outputRoot, 0o777)
+    await prepareAcceptanceDirectory(outputRoot)
     const result = await this.engine.cli(args, this.scenario.id, network)
     requireCondition(!result.timedOut, `${this.scenario.id} timed out`)
     return { ...result, outputRoot, outputDir: await discoverOutputDir(outputRoot) }
@@ -73,7 +74,7 @@ export async function runDockerAcceptance(
   await mkdir(options.output, { recursive: false })
   const cases: CaseEvidence[] = []
   const errors: string[] = []
-  let lock: string | undefined
+  let lock: AcceptanceCacheLease | undefined
   let stage = 'image-resolution'
   const startedAt = new Date().toISOString()
   const interrupt = (): void => { engine.interrupted = true }
@@ -107,13 +108,9 @@ export async function runDockerAcceptance(
     const identity = await engine.resolveImage()
     progress.log(`Image ${identity.reference} (${identity.platform}), revision ${identity.revision}`)
     const cacheDir = join(options.cache, identity.platform.replace('/', '-'))
-    await mkdir(cacheDir, { recursive: true })
-    const candidateLock = join(cacheDir, 'acceptance.lock')
-    await mkdir(candidateLock).catch(() => { throw new Error(`Cache already in use: ${candidateLock}. Inspect its owner.json before recovering an abandoned lock.`) })
-    lock = candidateLock
-    await Bun.write(join(lock, 'owner.json'), JSON.stringify({ runId: engine.runId, pid: process.pid, output: options.output, startedAt }))
+    lock = await acquireAcceptanceCacheLease(cacheDir, { runId: engine.runId, pid: process.pid, output: options.output, startedAt })
     await engine.prepareMounts()
-    if (process.platform === 'linux') await engine.repairCacheOwnership()
+    await engine.verifyStateAccess()
     await Bun.write(join(options.output, 'fixtures', 'empty-config.json'), '{}\n')
     stage = 'image-cli'
     const versionArgs = ['--version']
@@ -169,7 +166,9 @@ export async function runDockerAcceptance(
         await Bun.write(join(options.output, 'provisioning', 'inventory.json'), `${JSON.stringify(inventory, null, 2)}\n`)
       } catch (error) { errors.push(`provisioning-evidence: ${String(error)}`) }
     }
-    if (lock && engine.owned.size === 0) await rm(lock, { recursive: true })
+    if (lock && engine.owned.size === 0) {
+      try { await releaseAcceptanceCacheLease(lock) } catch (error) { errors.push(`cache-lease-cleanup: ${String(error)}`) }
+    }
     process.off('SIGINT', interrupt)
     process.off('SIGTERM', interrupt)
     await save()

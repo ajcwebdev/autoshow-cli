@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
-import { stat } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, rm, stat } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 
 const repositoryRoot = resolve(import.meta.dir, '../../../..')
@@ -82,6 +83,61 @@ test('image inputs, alignment graph inputs, and JavaScript graph inputs are attr
   expect(await classify(['bun.lock'])).toEqual(everything)
   expect(await classify(['.github/workflows/dependency-graphs.yml'])).toEqual(everything)
   expect(await classify(['docs/reports/x.md', 'Dockerfile', 'AGENTS.md'])).toEqual({ ...CODE_ONLY, image: 'true' })
+})
+
+test('known image CI policy inputs do not fan out unrelated JavaScript or alignment graph audits', async () => {
+  for (const path of [
+    '.github/workflows/docker-publish.yml', '.github/workflows/warm-grype-db.yml',
+    '.github/actions/build-native-image/action.yml', '.github/actions/smoke-native-image/action.yml',
+    '.github/actions/audit-native-image/action.yml', '.github/actions/scan-image/action.yml',
+    '.github/actions/scan-image/install-scan-tools.sh', '.github/actions/scan-image/fixable.jq',
+    '.github/actions/scan-image/gate-count.jq', '.github/actions/prepare-grype-db/action.yml',
+    '.github/actions/ghcr-login/action.yml'
+  ]) expect(await classify([path])).toEqual({ ...CODE_ONLY, image: 'true' })
+})
+
+test('shared orchestration, unknown CI inputs and quoted paths retain every graph', async () => {
+  const everything: Flags = { image: 'true', alignment: 'true', javascript_graph: 'true', code: 'true' }
+  for (const path of [
+    '.github/workflows/dependency-graphs.yml', '.github/actions/detect-changes/action.yml',
+    '.github/actions/detect-changes/classify.sh', '.github/actions/detect-changes/detect-changes.sh',
+    '.github/workflows/new-security-gate.yml', '.github/actions/future-shared-action/action.yml',
+    '"src/quoted\\nfile.ts"'
+  ]) expect(await classify([path])).toEqual(everything)
+})
+
+test('rename and deletion paths are classified without relying on files still existing, and unfetchable bases run everything', async () => {
+  const directory = await mkdtemp(resolve(tmpdir(), 'autoshow-change-map-'))
+  try {
+    const bin = resolve(directory, 'bin'), paths = resolve(directory, 'changed-paths')
+    await mkdir(bin)
+    const git = resolve(bin, 'git')
+    await Bun.write(git, `#!/usr/bin/env bash
+set -euo pipefail
+case "$1" in
+  cat-file) [ "\${DIFF_BASE_AVAILABLE}" = true ] ;;
+  fetch) exit 1 ;;
+  diff)
+    [ "$2" = --name-only ] && [ "$3" = --no-renames ] && [ "$5" = HEAD ] || exit 2
+    cat "\${DIFF_PATHS}"
+    ;;
+  *) exit 2 ;;
+esac
+`)
+    await chmod(git, 0o755)
+    const env = { EVENT_NAME: 'pull_request', BASE_SHA: 'a'.repeat(40), PATH: `${bin}:${process.env['PATH'] ?? ''}`, DIFF_BASE_AVAILABLE: 'true', DIFF_PATHS: paths }
+    // A rename away from alignment inputs must still run their old graph; --no-renames supplies both paths.
+    await Bun.write(paths, 'config/stt-alignment/deleted-package.json\ndocs/renamed-package.md\n')
+    const renamed = await run(['bash', detectScript], { env })
+    expect(renamed.exitCode, renamed.stderr).toBe(0)
+    expect(renamed.outputs).toMatchObject({ all: 'false', ...CODE_ONLY, image: 'true', alignment: 'true' })
+    await Bun.write(paths, '.github/actions/scan-image/deleted-filter.jq\n')
+    expect((await run(['bash', detectScript], { env })).outputs).toMatchObject({ all: 'false', ...CODE_ONLY, image: 'true' })
+    const missingBase = await run(['bash', detectScript], { env: { ...env, DIFF_BASE_AVAILABLE: 'false' } })
+    expect(missingBase.exitCode).toBe(0)
+    expect(missingBase.outputs).toMatchObject({ all: 'true', image: 'true', alignment: 'true', javascript_graph: 'true', code: 'true' })
+    expect(missingBase.outputs['reason']).toContain('not fetchable')
+  } finally { await rm(directory, { recursive: true, force: true }) }
 })
 
 test('detection runs everything whenever the diff base is unknown and nothing when the diff is empty', async () => {

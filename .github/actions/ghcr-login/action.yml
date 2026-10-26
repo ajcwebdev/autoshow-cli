@@ -1,0 +1,21 @@
+name: Log in to GitHub Container Registry
+description: Authenticate this job using its explicitly scoped token through standard input.
+inputs:
+  token:
+    description: Token with the calling job's existing package permissions
+    required: true
+  username:
+    description: GitHub actor associated with the token
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Authenticate registry client
+      shell: bash
+      env:
+        GHCR_TOKEN: ${{ inputs.token }}
+        GHCR_USERNAME: ${{ inputs.username }}
+      run: |
+        set -euo pipefail
+        test -n "${GHCR_TOKEN}" && test -n "${GHCR_USERNAME}" || { echo 'Registry token and username are required' >&2; exit 2; }
+        printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io --username "${GHCR_USERNAME}" --password-stdin

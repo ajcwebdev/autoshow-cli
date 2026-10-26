@@ -108,28 +108,57 @@ Every provider addition and refresh must document route-specific billing eligibi
 On September 25, 2026, Hume, Cartesia, and Speechify TTS were removed at the user's direction, including their adapters, selectors, credentials, configuration, historical rates, and committed benchmark records. This policy exclusion supersedes ordinary model retirement and historical-rate retention for these providers. Ignored local inputs, outputs, credentials, and purchased audio remain untouched. Excluded selectors and saved settings fail locally; no compatibility aliases or automatic substitutions are provided.
 
 <!-- excluded-tts-providers:start -->
-| Provider  | Model identifiers                                                                                  | Removal decision                                                                                                                                  |
-| --------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hume      | `octave-1`, `octave-2`                                                                             | [Official FAQ](https://dev.hume.ai/docs/text-to-speech-tts/faq): Free and Starter cannot buy additional TTS usage; Creator or higher is required. |
-| Cartesia  | `sonic-3.6-2026-08-27`, `sonic-3.5-2026-05-04`, `sonic-3`, `sonic-3.6`, `sonic-preview`, `sonic-2` | [Official pricing](https://www.cartesia.ai/pricing): monthly plans supply model credits and paid subscribers receive overages.                    |
-| Speechify | `simba-3.2`, `simba-3.0`, `simba-english`                                                          | [Official API pricing](https://speechify.ai/pricing), rechecked 2026-09-25: Free cannot top up; continued usage requires a paid monthly plan.     |
-| Mistral   | `voxtral-mini-tts-2603`                                                                            | TTS and voice management removed; STT/OCR retained                                                                                                |
+
+**Provider: Hume**
+
+- **Model identifiers:** `octave-1`, `octave-2`
+- **Removal decision:** [Official FAQ](https://dev.hume.ai/docs/text-to-speech-tts/faq): Free and Starter cannot buy additional TTS usage; Creator or higher is required.
+
+**Provider: Cartesia**
+
+- **Model identifiers:** `sonic-3.6-2026-08-27`, `sonic-3.5-2026-05-04`, `sonic-3`, `sonic-3.6`, `sonic-preview`, `sonic-2`
+- **Removal decision:** [Official pricing](https://www.cartesia.ai/pricing): monthly plans supply model credits and paid subscribers receive overages.
+
+**Provider: Speechify**
+
+- **Model identifiers:** `simba-3.2`, `simba-3.0`, `simba-english`
+- **Removal decision:** [Official API pricing](https://speechify.ai/pricing), rechecked 2026-09-25: Free cannot top up; continued usage requires a paid monthly plan.
+
+**Provider: Mistral**
+
+- **Model identifiers:** `voxtral-mini-tts-2603`
+- **Removal decision:** TTS and voice management removed; STT/OCR retained
+
 <!-- excluded-tts-providers:end -->
 
 Mistral TTS and voice management were removed on September 25, 2026. Its STT/OCR models, pricing, credentials, shared REST client, and resume paths remain supported. Removed TTS selectors, controls, saved settings, reference-audio inputs, voice commands, and resume attempts fail locally without substitution. Existing Mistral manifests, benchmark evidence, registered assets, purchased audio, and remote voices remain intact; removal triggers no cleanup or remote deletion.
 
 The removed utterance endpoint was the only implementation of `--tts-trailing-silence`; that flag and its saved configuration key are removed too.
 
-
 On October 15, 2026, Firecrawl URL extraction, Supadata URL extraction and STT, Happy Scribe STT, and GLM Reader URL extraction were removed from active support. Firecrawl, Supadata, and Happy Scribe require recurring paid plans for continued usage. GLM Reader is excluded because the implemented REST route lacks a verified price and billing eligibility contract; this does not establish that the route is subscription-gated. Ordinary GLM write and OCR support remained active until the October 18 removal below.
 
 <!-- excluded-extraction-providers:start -->
-| Provider     | Removed category/model tuples                    | Dated primary evidence and decision                                                                                                                                                                                                                                                       |
-| ------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Firecrawl    | `extract/firecrawl/firecrawl`                    | [Billing](https://docs.firecrawl.dev/billing), checked 2026-10-15: Free has no pay-as-you-go option; additional credits require a paid plan.                                                                                                                                              |
-| Supadata     | `extract/supadata/supadata`, `stt/supadata/auto` | [Pricing](https://supadata.ai/pricing), checked 2026-10-15: Free cannot recharge; paid subscriptions unlock recharge.                                                                                                                                                                     |
-| Happy Scribe | `stt/happyscribe/auto`                           | [Plans and pricing](https://help.happyscribe.com/en/articles/6906232-plans-and-pricing), published 2026-07-23 and checked 2026-10-15: the pay-as-you-go Starter offer was retired; one-off AI transcription requires a subscription.                                                      |
-| GLM Reader   | `extract/glm-reader/glm-reader`                  | [REST Reader](https://docs.z.ai/api-reference/tools/web-reader) and [pricing](https://docs.z.ai/guides/overview/pricing), checked 2026-10-15: no verified REST Reader tariff or independent billing entitlement. The Web Search price and Coding Plan Reader MCP are different contracts. |
+
+**Provider: Firecrawl**
+
+- **Removed category/model tuples:** `extract/firecrawl/firecrawl`
+- **Dated primary evidence and decision:** [Billing](https://docs.firecrawl.dev/billing), checked 2026-10-15: Free has no pay-as-you-go option; additional credits require a paid plan.
+
+**Provider: Supadata**
+
+- **Removed category/model tuples:** `extract/supadata/supadata`, `stt/supadata/auto`
+- **Dated primary evidence and decision:** [Pricing](https://supadata.ai/pricing), checked 2026-10-15: Free cannot recharge; paid subscriptions unlock recharge.
+
+**Provider: Happy Scribe**
+
+- **Removed category/model tuples:** `stt/happyscribe/auto`
+- **Dated primary evidence and decision:** [Plans and pricing](https://help.happyscribe.com/en/articles/6906232-plans-and-pricing), published 2026-07-23 and checked 2026-10-15: the pay-as-you-go Starter offer was retired; one-off AI transcription requires a subscription.
+
+**Provider: GLM Reader**
+
+- **Removed category/model tuples:** `extract/glm-reader/glm-reader`
+- **Dated primary evidence and decision:** [REST Reader](https://docs.z.ai/api-reference/tools/web-reader) and [pricing](https://docs.z.ai/guides/overview/pricing), checked 2026-10-15: no verified REST Reader tariff or independent billing entitlement. The Web Search price and Coding Plan Reader MCP are different contracts.
+
 <!-- excluded-extraction-providers:end -->
 
 These five tuples leave active selectors, model catalogs, live pricing, setup credentials, saved configuration, dispatch, and examples together. The provider-only `--stt-organization-id` and `--stt-chunk-size` flags are removed. Defuddle failures stop with the extraction error; no automatic Firecrawl fallback or other paid substitute is attempted, including article downloads and documentation links.
@@ -139,10 +168,17 @@ Existing manifests, raw results, benchmark evidence, transcripts, cached media, 
 On October 17, 2026, the model tuples below were excluded while their providers stay active. They are decisions, not pending additions: provider-model research must not recommend them again unless new primary evidence directly addresses the recorded reason, and restoring one needs a user decision.
 
 <!-- excluded-hosted-models:start -->
-| Provider   | Excluded category/model tuples                                                                             | Decision                                                                                                                                                                                                                                                                                                                                  |
-| ---------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cloudflare | `stt/cloudflare/@cf/deepgram/nova-3`                                                                       | Removed at the user's direction after the [October 2026 STT benchmarks](../benchmarks/README.md#october-2026-stt-refresh): direct Deepgram `deepgram=nova-3` was about 20% cheaper ($0.258/hr against $0.312/hr) and about 6.6x faster with diarization, with comparable quality (92.82 against 93.60). Cloudflare Whisper models remain. |
-| Together   | `stt/together/nvidia/nemotron-3.5-asr-streaming-0.6b`, `stt/together/nvidia/nemotron-3-asr-streaming-0.6b` | Not batch-callable: Together's transcription page lists them, but a 2026-10-17 `POST /v1/audio/transcriptions` request for Nemotron 3.5 returned 400 "This model only supports WebSocket streaming." Streaming transcription is outside current STT dispatch.                                                                             |
+
+**Provider: Cloudflare**
+
+- **Excluded category/model tuples:** `stt/cloudflare/@cf/deepgram/nova-3`
+- **Decision:** Removed at the user's direction after the [October 2026 STT benchmarks](../benchmarks/README.md#october-2026-stt-refresh): direct Deepgram `deepgram=nova-3` was about 20% cheaper ($0.258/hr against $0.312/hr) and about 6.6x faster with diarization, with comparable quality (92.82 against 93.60). Cloudflare Whisper models remain.
+
+**Provider: Together**
+
+- **Excluded category/model tuples:** `stt/together/nvidia/nemotron-3.5-asr-streaming-0.6b`, `stt/together/nvidia/nemotron-3-asr-streaming-0.6b`
+- **Decision:** Not batch-callable: Together's transcription page lists them, but a 2026-10-17 `POST /v1/audio/transcriptions` request for Nemotron 3.5 returned 400 "This model only supports WebSocket streaming." Streaming transcription is outside current STT dispatch.
+
 <!-- excluded-hosted-models:end -->
 
 These tuples leave selectors, registries, live pricing, defaults, `--all-*` expansion, and examples. Explicit selections fail locally before dispatch. Finished benchmark results for Cloudflare Nova-3 keep their identity, and its rate stays in historical pricing so they remain priced. The rejected Nemotron attempt is retained as an error artifact.
@@ -243,12 +279,25 @@ All 345 planned cases completed, 341 qualified, and 50 OCR policy profiles passe
 
 Before paid execution, the CLI refreshed 72 primary documents across the reviewed providers. The dated review found no justified ninth public reasoning value. The eight-value definition was centralized across parsing, schemas, persisted profiles and audits, and documented Anthropic/Grok xhigh support was added. These findings describe the September 23 catalog, not a continuing monitoring service.
 
-| Provider  | Documented contract and decision                                                                                                                                                       | Primary source                                                              |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| OpenAI    | The reviewed models accept low through max including xhigh. No ultra effort is documented for these API models. Provider `none` is represented by existing `disabled` where supported. | [reasoning](https://developers.openai.com/api/docs/guides/reasoning)        |
-| Anthropic | Fable 5 accepts xhigh. Adaptive is a thinking mode, not another effort value.                                                                                                          | [Effort](https://platform.claude.com/docs/en/build-with-claude/effort)      |
-| xAI       | Grok 4.5 does not accept xhigh.                                                                                                                                                        | [Reasoning](https://docs.x.ai/developers/model-capabilities/text/reasoning) |
-| Gemini    | Existing minimal/low/medium/high vocabulary covers documented model levels; budget and thinking configuration fields are separate controls.                                            | [Thinking](https://ai.google.dev/gemini-api/docs/thinking)                  |
+**Provider: OpenAI**
+
+- **Documented contract and decision:** The reviewed models accept low through max including xhigh. No ultra effort is documented for these API models. Provider `none` is represented by existing `disabled` where supported.
+- **Primary source:** [reasoning](https://developers.openai.com/api/docs/guides/reasoning)
+
+**Provider: Anthropic**
+
+- **Documented contract and decision:** Fable 5 accepts xhigh. Adaptive is a thinking mode, not another effort value.
+- **Primary source:** [Effort](https://platform.claude.com/docs/en/build-with-claude/effort)
+
+**Provider: xAI**
+
+- **Documented contract and decision:** Grok 4.5 does not accept xhigh.
+- **Primary source:** [Reasoning](https://docs.x.ai/developers/model-capabilities/text/reasoning)
+
+**Provider: Gemini**
+
+- **Documented contract and decision:** Existing minimal/low/medium/high vocabulary covers documented model levels; budget and thinking configuration fields are separate controls.
+- **Primary source:** [Thinking](https://ai.google.dev/gemini-api/docs/thinking)
 
 #### Implementation lessons
 
@@ -287,18 +336,96 @@ The complete policy medians are retained because they explain which components c
 <!-- reasoning-calibration:start -->
 341 of 345 planned samples qualify. Recorded current-plan cost: $4.0946 (includes disqualified completed outputs; excludes earlier diagnostic runs). Rows for write and OCR routes removed on October 23, 2026 were deleted; the counts and cost above still include them.
 
-| Route / provider / model             | Policy  | Qualified | Median input | Median output | Median ms | Promoted OCR input / output |
-| ------------------------------------ | ------- | --------- | ------------ | ------------- | --------- | --------------------------- |
-| write / gemini / gemini-3.8-flash    | default | 3/3       | 437          | 421           | 2496      | — / —                       |
-| write / gemini / gemini-3.8-flash    | low     | 3/3       | 437          | 38            | 839       | — / —                       |
-| write / gemini / gemini-3.8-flash    | high    | 3/3       | 437          | 639           | 3334      | — / —                       |
-| extract / anthropic / claude-fable-5 | default | 3/3       | 2032         | 519           | 8169      | — / 519                     |
-| extract / anthropic / claude-fable-5 | low     | 3/3       | 2032         | 519           | 8357      | — / 519                     |
-| extract / anthropic / claude-fable-5 | max     | 3/3       | 2032         | 1881          | 19788     | — / 1881                    |
-| extract / anthropic / claude-fable-5 | xhigh   | 3/3       | 2032         | 519           | 8426      | — / 519                     |
-| extract / gemini / gemini-3.8-flash  | default | 3/3       | 1179         | 1118          | 3406      | — / 1118                    |
-| extract / gemini / gemini-3.8-flash  | low     | 3/3       | 1179         | 340           | 2054      | — / 340                     |
-| extract / gemini / gemini-3.8-flash  | high    | 3/3       | 1179         | 4778          | 17491     | — / —                       |
+**Route / provider / model: write / gemini / gemini-3.8-flash**
+
+- **Policy:** default
+- **Qualified:** 3/3
+- **Median input:** 437
+- **Median output:** 421
+- **Median ms:** 2496
+- **Promoted OCR input / output:** — / —
+
+**Route / provider / model: write / gemini / gemini-3.8-flash**
+
+- **Policy:** low
+- **Qualified:** 3/3
+- **Median input:** 437
+- **Median output:** 38
+- **Median ms:** 839
+- **Promoted OCR input / output:** — / —
+
+**Route / provider / model: write / gemini / gemini-3.8-flash**
+
+- **Policy:** high
+- **Qualified:** 3/3
+- **Median input:** 437
+- **Median output:** 639
+- **Median ms:** 3334
+- **Promoted OCR input / output:** — / —
+
+**Route / provider / model: extract / anthropic / claude-fable-5**
+
+- **Policy:** default
+- **Qualified:** 3/3
+- **Median input:** 2032
+- **Median output:** 519
+- **Median ms:** 8169
+- **Promoted OCR input / output:** — / 519
+
+**Route / provider / model: extract / anthropic / claude-fable-5**
+
+- **Policy:** low
+- **Qualified:** 3/3
+- **Median input:** 2032
+- **Median output:** 519
+- **Median ms:** 8357
+- **Promoted OCR input / output:** — / 519
+
+**Route / provider / model: extract / anthropic / claude-fable-5**
+
+- **Policy:** max
+- **Qualified:** 3/3
+- **Median input:** 2032
+- **Median output:** 1881
+- **Median ms:** 19788
+- **Promoted OCR input / output:** — / 1881
+
+**Route / provider / model: extract / anthropic / claude-fable-5**
+
+- **Policy:** xhigh
+- **Qualified:** 3/3
+- **Median input:** 2032
+- **Median output:** 519
+- **Median ms:** 8426
+- **Promoted OCR input / output:** — / 519
+
+**Route / provider / model: extract / gemini / gemini-3.8-flash**
+
+- **Policy:** default
+- **Qualified:** 3/3
+- **Median input:** 1179
+- **Median output:** 1118
+- **Median ms:** 3406
+- **Promoted OCR input / output:** — / 1118
+
+**Route / provider / model: extract / gemini / gemini-3.8-flash**
+
+- **Policy:** low
+- **Qualified:** 3/3
+- **Median input:** 1179
+- **Median output:** 340
+- **Median ms:** 2054
+- **Promoted OCR input / output:** — / 340
+
+**Route / provider / model: extract / gemini / gemini-3.8-flash**
+
+- **Policy:** high
+- **Qualified:** 3/3
+- **Median input:** 1179
+- **Median output:** 4778
+- **Median ms:** 17491
+- **Promoted OCR input / output:** — / —
+
 <!-- reasoning-calibration:end -->
 
 </details>

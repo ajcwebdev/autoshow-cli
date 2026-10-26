@@ -52,7 +52,16 @@ export interface DockerOptions {
   cache: string
   setupTimeoutMs: number
   caseTimeoutMs: number
+  user?: string
+  restricted: boolean
   help: boolean
+}
+
+export function validateContainerUser(value: string): string {
+  const match = /^(\d+):(\d+)$/.exec(value)
+  requireCondition(match && Number(match[1]) > 0 && Number(match[1]) <= 4_294_967_294
+    && Number(match[2]) <= 4_294_967_294, '--user must be a non-root numeric UID:GID')
+  return value
 }
 
 export const DOCKER_HELP = `Usage: bun t:docker [--suite all|core|models|network] [--platform linux/amd64|linux/arm64]
@@ -61,6 +70,8 @@ export const DOCKER_HELP = `Usage: bun t:docker [--suite all|core|models|network
   --model ENGINE:MODEL       Select one models shard (requires --suite models)
   --output PATH              New evidence directory (default runtime/docker-acceptance/runs/<unique-id>)
   --cache PATH               Persistent assets (default runtime/docker-acceptance/cache)
+  --user UID:GID             Non-root host identity for host-owned restored caches (default image user)
+  --restricted               Drop all capabilities and enable no-new-privileges
   --setup-timeout SECONDS    Setup/download deadline, 1–7200 (default 1800)
   --case-timeout SECONDS     Per-case deadline, 1–7200 (default 1200)
   --expected-digest DIGEST   Require the resolved manifest digest or local image ID
@@ -76,7 +87,7 @@ Exit: 0 all selected cases passed; 1 acceptance/infrastructure failure; 2 invali
 export function parseDockerOptions(args: string[]): DockerOptions {
   const options: DockerOptions = {
     suite: 'all', image: REQUESTED_IMAGE, pull: 'always', output: resolve('runtime/docker-acceptance/runs', `${new Date().toISOString().replaceAll(':', '-')}-${crypto.randomUUID().slice(0, 8)}`),
-    cache: resolve('runtime/docker-acceptance/cache'), setupTimeoutMs: 1800_000, caseTimeoutMs: 1200_000, help: false
+    cache: resolve('runtime/docker-acceptance/cache'), setupTimeoutMs: 1800_000, caseTimeoutMs: 1200_000, restricted: false, help: false
   }
   const seen = new Set<string>()
   for (let index = 0; index < args.length; index++) {
@@ -84,6 +95,7 @@ export function parseDockerOptions(args: string[]): DockerOptions {
     if (key === '--help' || key === '-h') { options.help = true; continue }
     requireCondition(!seen.has(key), `Repeated option: ${key}`)
     seen.add(key)
+    if (key === '--restricted') { options.restricted = true; continue }
     const value = args[++index]
     requireCondition(value && !value.startsWith('--'), `Missing value for ${key}`)
     switch (key) {
@@ -94,6 +106,7 @@ export function parseDockerOptions(args: string[]): DockerOptions {
       case '--model': options.model = value; break
       case '--output': options.output = resolve(value); break
       case '--cache': options.cache = resolve(value); break
+      case '--user': options.user = validateContainerUser(value); break
       case '--expected-digest': requireCondition(/^sha256:[a-f0-9]{64}$/.test(value), 'Invalid --expected-digest'); options.expectedDigest = value; break
       case '--expected-revision': requireCondition(/^[a-f0-9]{40}$/.test(value), 'Invalid --expected-revision'); options.expectedRevision = value; break
       case '--setup-timeout': case '--case-timeout': {

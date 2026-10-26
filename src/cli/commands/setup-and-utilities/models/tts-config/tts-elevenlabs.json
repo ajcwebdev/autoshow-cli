@@ -7,13 +7,13 @@
     "catalogNotes": "The 2026-09-14 catalog check still finds eleven_v3 as the flagship HTTP TTS and native-dialogue model. eleven_v3_conversational is a realtime WebSocket sibling and is excluded from this hosted TTS surface.",
     "models": {
       "eleven_v3": {
-        "description": "ElevenLabs v3 — latest generation",
+        "description": "ElevenLabs v3 expressive speech and native dialogue",
         "pricingSourceUrl": "https://elevenlabs.io/pricing/api",
-        "pricingCheckedAt": "2026-08-06",
+        "pricingCheckedAt": "2026-10-26",
         "pricingCurrency": "USD",
-        "pricingTier": "ElevenLabs API text-to-speech pricing",
-        "pricingNotes": "ElevenLabs v3 TTS is estimated at $0.10/1K characters. Voice cloning setup costs are handled separately when a normal CLI option requests cloning; subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsCents": 10,
+        "pricingTier": "Published v3 API character rate across Free/PAYG and listed subscription tiers",
+        "pricingNotes": "The API pricing page lists v3 at $0.08/1K characters across Free/PAYG, Starter, Creator, Pro, Scale, and Business. Synthesis uses this character rate for speech and native dialogue; any recorded voice-cloning or setup charge is accounted for separately. Subscription inclusions, account-specific discounts, enterprise pricing, taxes, and provider credits are excluded from this usage estimate.",
+        "costPer1kCharsCents": 8,
         "limits": { "maxInputCharacters": 5000 },
         "estimation": {
           "costMultiplier": 1,

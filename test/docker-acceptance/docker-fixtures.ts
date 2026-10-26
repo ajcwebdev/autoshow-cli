@@ -102,7 +102,7 @@ export async function startDockerFixtureServer(engine: DockerEngine): Promise<vo
   engine.fixtureNetwork = network
   const name = `${engine.runId}-fixture`
   engine.owned.add(name)
-  const args = containerArguments(engine.identity, name, engine.runId, engine.mounts.filter(mount => mount.container === '/fixtures'), network, ['--no-env-file', '-e', SERVER_SCRIPT], 'bun')
+  const args = containerArguments(engine.identity, name, engine.runId, engine.mounts.filter(mount => mount.container === '/fixtures'), network, ['--no-env-file', '-e', SERVER_SCRIPT], 'bun', engine.options)
   args.splice(1, 0, '--detach', '--network-alias', 'fixture')
   engine.requireSuccess(await engine.command(args), 'Start fixture server')
   engine.requireSuccess(await engine.container(['--no-env-file', '-e', `for(let i=0;i<30;i++){try {if((await fetch('${FIXTURE_ORIGIN}/ready',{signal:AbortSignal.timeout(1000)})).ok) process.exit(0)}catch{} await Bun.sleep(200)}process.exit(1)`], network, 30_000, 'bun'), 'Fixture readiness')

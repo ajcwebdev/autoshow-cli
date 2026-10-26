@@ -7,6 +7,7 @@ Start each report with this metadata, then use the exact second-level headings b
 
 - **Research cutoff:** {Date, time, and timezone}
 - **Repository status date:** {Date and revision or snapshot}
+- **Execution prompt:** {Repository-relative prompt path and exact SHA-256, or the exact supplied task snapshot when no file was used}
 - **Workflow scope:** {Included workflows}
 - **Related reports:** {Links to existing sibling reports, their refresh scope, and any absent/out-of-scope reports}
 ```
@@ -19,7 +20,7 @@ Give a short conclusion with the scoped inventory count, strongest remaining add
 
 ## Prioritized additions
 
-Use this as the only ordered queue of pending recommendations. Define the priority labels used. Link every reference to its detailed finding.
+Use this as the only ordered queue of pending model/workflow additions. Exclude identity, accounting, lifecycle and policy-decision actions; they belong in actionable follow-up. Define the priority labels once for the refreshed scope and reuse their meanings. Mark evidence-blocked candidates and the specific prerequisite. Queue length, future-candidate counts and current-tuple category counts are distinct.
 
 | Ref            | Priority   | Candidate     |
 | -------------- | ---------- | ------------- |
@@ -47,6 +48,8 @@ Use short source labels in the table; place linked paths in a list beneath it.
 
 Below the table, give each provider's exact service key, scoped coverage conclusion, and evidence or finding links. Include relevant providers configured elsewhere with zero scoped entries, explaining their integration status.
 
+Before drafting, screen repository-wide providers for relevant workflows they do not currently dispatch. Report 00 owns the full missing-workflow screen; a scoped run records only its relevant part, linked to each lead's owner. Use a compact Provider / Missing workflow / Disposition table if useful, with exact host/generation/operation identities and evidence gaps beneath it. Recorded exclusions remain decisions, not pending integrations.
+
 ## Current-model inventory and findings
 
 Group entries under workflow headings, then service headings. Use the research workflow labels defined in [the repository source map](repository-source-map.md) and exact service keys in those headings; record the corresponding model-registry key and CLI provider selector below them when different.
@@ -57,9 +60,11 @@ Group entries under workflow headings, then service headings. Use the research w
 
 When an exact registry ID is long, use a compact entry link in the table and record the exact ID in a labeled entry beneath it. Preserve a one-to-one mapping between rows and current tuples. Explain coverage exceptions below the relevant inventory rather than adding columns.
 
+Current primary categories do not count future candidates. An already-registered newer family can qualify a retained older tuple's category, but state the retained capability or unresolved retirement decision. No selectable model means no selectable upstream release; record a service's internal operation ID separately. Independent tariff or entitlement issues belong to their own action findings rather than changing model categories.
+
 ## Detailed findings
 
-Group findings by workflow, then provider. Use the following layout for each recommendation or other substantive finding. Adjust heading depth to fit the grouping while preserving field labels and order. Keep already-current findings brief; reserve expanded detail for actionable differences and unresolved evidence. A comprehensive report needs complete coverage, not a restatement of every API guide.
+Group findings by workflow, then provider. Use the full template below for each new actionable addition or integration, adjusting heading depth while preserving labels and order. For unchanged current families, carried completed/deferred/rejected decisions, identity maintenance and bounded evidence gaps, use a compact entry with disposition, exact scope/IDs, dated evidence, prior owner and re-entry condition. Expand only changed facts and practical consequences. Common release/pricing evidence and repeated implementation requirements have one owner; link distinct workflow changes there instead of repeating guides and ledgers.
 
 ```markdown
 #### {Ref} — {Short title}
@@ -91,7 +96,11 @@ Group findings by workflow, then provider. Use the following layout for each rec
 
 **Required work**
 
-{Registry, schema, adapter, dispatch, pricing, and fixture changes as applicable; dependencies and uncertainties}
+{Name the actual endpoint, serializer or capability change determining C/A/I, with its executing path; for C explain why the existing request/response path remains compatible. Identify registry, schema, dispatch, pricing, fixture changes, dependencies and uncertainties.}
+
+{Record deliberate default/all-expansion and lifecycle/retained-identity changes; all five paid provenance fields (pricingSourceUrl, pricingCheckedAt, pricingCurrency, pricingTier, pricingNotes); exact affected docs/commands overviews and provider-link files; and local accepted/default/override/reset controls, rejection-before-dispatch, pricing, valid/invalid artifacts and recovery checks. Link repeated requirements to a report-owned shared implementation contract.}
+
+{Keep documented behavioral migration changes (for example output normalization, timing, accent, voice continuity or token budgets) separate from accepted fields. For TTS, distinguish native dialogue from single-voice similarity controls, inline delivery tags from request instructions, transport success from decoded integrity, and spoken correctness from perceptual quality. Mocks do not establish audible outcomes.}
 
 **Official sources**
 
@@ -99,6 +108,8 @@ Group findings by workflow, then provider. Use the following layout for each rec
 ```
 
 Keep absent or unresolved facts explicit. Add request code blocks only when exact request syntax is necessary to explain a compatibility assessment; use the matching language tag and credential placeholders.
+
+Required work assesses ADR-010's complete contract and ADR-015's evidence order, including defaults, `--all-*`, help/examples, price preflight, resume and historical rates/identity. Proposed checks are implementation prerequisites rather than permission for paid execution or claims of live compatibility.
 
 ## Restricted and announced watchlist
 
@@ -142,7 +153,7 @@ Record scoped inventory and primary-finding counts with compact two-column table
 | {Primary finding category} | {Count} |
 | Total scoped tuples        | {Count} |
 
-Reconcile category counts to current inventory rows, excluding proposed models and separate capability/accounting findings. For a full-set run, add the shared reconciliation in the text/OCR/URL report only:
+Reconcile category counts to current inventory rows, excluding proposed models and separate capability/accounting findings. Record future workflow/service/model candidate counts and dispositions separately; do not derive them from Addition recommended rows or queue length. For a full-set run, add the shared reconciliation in the text/OCR/URL report only:
 
 | Report         | Tuples  |
 | -------------- | ------- |
@@ -156,9 +167,9 @@ Reconcile category counts to current inventory rows, excluding proposed models a
 
 State whether that union matches the runtime inventory and identify any exceptions. Other reports in the full-set run link here for the combined total. Scoped runs state their reconciled workflows and omit an unverified combined total; older sibling totals remain dated context.
 
-Link to Prioritized additions for pending recommendations and Implementation follow-up for completed changes. Use checkboxes only for remaining evidence collection, benchmarks, integration prerequisites, or verification tasks; do not copy the recommendation queue. Link tasks to their owning findings, including findings in another report.
+Link to Prioritized additions for pending additions and Implementation follow-up for completed changes. Give identity, accounting, lifecycle and policy-decision follow-up an explicit action type, owning finding and urgency under the same priority legend. Urgent retirements remain visible even without an eligible replacement. Use checkboxes for these actions, evidence collection, benchmarks, integration prerequisites and verification; do not copy the addition queue. Link each task to its owning finding, including another report when needed.
 
-- [ ] {Task} — {Owning finding link and completion criterion}
+- [ ] {Action type; urgency} — {Task, owning finding link and completion criterion}
 
 ## Validation and research limitations
 
@@ -176,3 +187,5 @@ $ {Command actually run}
 ```
 
 Omit command blocks for manual checks. State when no commands ran. Record skipped required checks and reasons. Explain limits on public availability evidence, account access, published prices, and benchmarking.
+
+Directly accept every requested report against these twelve headings, links/fragments, unique stable IDs, exact runtime tuples and local exceptions, category sums, table layout, whitespace, newline and portable paths. Apply this schema only to provider-research reports, not arbitrary maintenance/action reports. `bun run check` skips ignored reports and cannot establish document acceptance. Pin the prompt actually used; a later prompt revision does not retroactively validate an earlier research run.

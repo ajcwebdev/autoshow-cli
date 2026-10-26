@@ -12,7 +12,7 @@ case "$(docker info --format '{{.Architecture}}')" in
   "${ARCH}"|"${native_arch}") ;;
   *) echo 'Docker daemon is not native to this runner' >&2; exit 1 ;;
 esac
-image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+image="$(bash "$(dirname "${BASH_SOURCE[0]}")/docker-image-name.sh")"
 image_ref="${image}@${IMAGE_DIGEST}"
 report_dir="runtime/ci/docker-${ARCH}"
 release_dir="docs/reports/release-evidence/${ARCH}"

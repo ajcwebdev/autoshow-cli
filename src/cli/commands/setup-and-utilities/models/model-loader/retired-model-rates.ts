@@ -289,14 +289,6 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'gemini:lyria-3-pro-preview': 'lyria-3.5'
   },
   video: {
-    'minimax:MiniMax-Hailuo-2.3': 'MiniMax-H3',
-    'minimax:MiniMax-Hailuo-2.3-Fast': 'MiniMax-H3',
-    'minimax:T2V-01': 'MiniMax-H3',
-    'minimax:T2V-01-Director': 'MiniMax-H3',
-    'minimax:I2V-01': 'MiniMax-H3',
-    'minimax:I2V-01-Director': 'MiniMax-H3',
-    'minimax:I2V-01-live': 'MiniMax-H3',
-    'minimax:S2V-01': 'MiniMax-H3',
     'grok:grok-imagine-video': 'grok-imagine-video-1.5',
     'gemini:veo-3.1-generate-preview': 'gemini-omni-1.1-flash',
     'gemini:veo-3.1-fast-generate-preview': 'gemini-omni-1.1-flash',

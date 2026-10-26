@@ -32,7 +32,8 @@ test('published image OCR smoke commands pass real CLI option validation', async
 test('all Docker runtime targets opt out of Bun TCP keepalive for silent provider requests', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
   const runtime = dockerfile.slice(dockerfile.indexOf('AS runtime'), dockerfile.indexOf('FROM runtime AS alignment'))
-  expect(runtime).toContain('ENV AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1')
+  const environment = runtime.replace(/\\\r?\n[ \t]*/g, ' ').match(/^ENV (.+)$/m)?.[1] ?? ''
+  expect(environment.split(/\s+/)).toContain('AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1')
   expect(dockerfile).toContain('FROM runtime AS alignment')
   expect(dockerfile).toContain('FROM runtime AS production')
   expect(dockerfile).not.toContain('AUTOSHOW_DISABLE_HTTP_KEEPALIVE=0')
@@ -66,7 +67,7 @@ test('Docker yt-dlp pin matches resolved native setup metadata in both direction
 
 test('Docker supplies a pinned native Deno runtime for yt-dlp in every runtime target', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
-  expect(dockerfile).toContain('ARG DENO_BASE_IMAGE=denoland/deno:bin-2.9.6@sha256:4cf0029b9aeeeed5efcbb71828737f0d7c8c8a20072df960e51a5679ef0d21ba')
+  expect(dockerfile).toContain('ARG DENO_BASE_IMAGE=denoland/deno:bin-2.9.8@sha256:b507583d3c68ba69f3ed2ce5969ae5b8b70f43421c781279c7aea06435263543')
   expect(dockerfile).toContain('FROM ${DENO_BASE_IMAGE} AS youtube-js')
   const runtime = dockerfile.slice(dockerfile.indexOf('AS runtime'), dockerfile.indexOf('FROM runtime AS alignment'))
   expect(runtime).toContain('COPY --from=youtube-js /deno /usr/local/bin/deno')
@@ -96,9 +97,10 @@ test('Docker images carry immutable build identity and publish provenance plus S
     for (const declaration of ['ARG AUTOSHOW_VERSION=', 'ARG BUILD_DATE=', 'ARG VCS_REF=']) {
       expect(stage.indexOf(declaration)).toBeGreaterThan(lastRun)
     }
-    expect(stage).toContain('LABEL org.opencontainers.image.version="${AUTOSHOW_VERSION}"')
-    expect(stage).toContain('LABEL org.opencontainers.image.created="${BUILD_DATE}"')
-    expect(stage).toContain('LABEL org.opencontainers.image.revision="${VCS_REF}"')
+    const identityLabels = stage.replace(/\\\r?\n[ \t]*/g, ' ').match(/^LABEL org\.opencontainers\.image\.version=.+$/m)?.[0] ?? ''
+    expect(identityLabels).toContain('org.opencontainers.image.version="${AUTOSHOW_VERSION}"')
+    expect(identityLabels).toContain('org.opencontainers.image.created="${BUILD_DATE}"')
+    expect(identityLabels).toContain('org.opencontainers.image.revision="${VCS_REF}"')
   }
   const runtime = stages.find(stage => stageName(stage) === 'runtime') ?? ''
   expect(runtime).toContain('ARG DEBIAN_SNAPSHOT=')
@@ -125,8 +127,8 @@ test('dependency-graph image audits reuse the published per-architecture layer c
   expect(workflow.on?.schedule).toHaveLength(1)
   expect(workflow.on?.workflow_dispatch?.inputs?.['fresh_build']).toMatchObject({ type: 'boolean', default: false })
   expect(builder?.with).toMatchObject({
-    version: 'v0.37.0',
-    'driver-opts': 'image=moby/buildkit:v0.33.0@sha256:6c2fa84a6b61ccd72899dde4239f8d5717f05f9a8ca6f3cad185fb1a95a94de3'
+    version: 'v0.38.1',
+    'driver-opts': 'image=moby/buildkit:v0.34.1@sha256:99368f3e46177c6405b9740e4461d91cee004128daeecca78d4ceac50ec1da5c'
   })
   expect(build?.env?.['FRESH_BUILD']).toBe("${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.fresh_build == true) }}")
   expect(build?.run).toContain('--cache-from "type=registry,ref=${image}:buildcache-${ARCH}"')
@@ -329,15 +331,28 @@ test('image legs scan once through the shared scan-image composite and derive th
   expect(installerSource).toContain('--retry-max-time 120')
   expect(installerSource).not.toContain('--retry-all-errors')
   expect(steps.find(step => step.name === 'Inventory the image')?.run).toContain('syft "${IMAGE}" -o "spdx-json=${SBOM}"')
+  expect(steps.find(step => step.name === 'Inventory the image')?.env?.['GODEBUG']).toBe('http2client=0,http2server=0')
   const scanSteps = steps.filter(step => step.name === 'Audit the image')
   expect(scanSteps).toHaveLength(1)
   expect(scanSteps[0]?.run).toContain('grype "sbom:${SBOM}" -o json --file "${OUTPUT}"')
   expect(scanSteps[0]?.env?.['GRYPE_DB_CACHE_DIR']).toBeDefined()
-  expect(scanSteps[0]?.env?.['GRYPE_DB_AUTO_UPDATE']).toContain("steps.grype-db.outputs.cache-hit == 'true'")
-  const restore = steps.find(step => step.uses === 'actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830')
+  expect(scanSteps[0]?.env?.['GRYPE_DB_AUTO_UPDATE']).toBe('false')
+  expect(scanSteps[0]?.env?.['GODEBUG']).toBe('http2client=0,http2server=0')
+  expect(scanSteps[0]?.env?.['GRYPE_DB_VALIDATE_AGE']).toBe('true')
+  expect(scanSteps[0]?.env?.['GRYPE_DB_VALIDATE_BY_HASH_ON_START']).toBe('true')
+  expect(steps.find(step => step.id === 'grype-db')?.with).toEqual({
+    'evidence-dir': '${{ inputs.evidence-dir }}', 'grype-version': '${{ inputs.grype-version }}',
+    'cache-key-salt': '${{ inputs.cache-key-salt }}', 'install-grype': 'false'
+  })
+  expect(steps.find(step => step.id === 'grype-db')?.uses).toBe('./.github/actions/prepare-grype-db')
+  const preparation = Bun.YAML.parse(await readFile(resolve(actionDir, '../prepare-grype-db/action.yml'), 'utf8')) as { runs: { steps: Step[] } }
+  const databaseSteps = preparation.runs.steps
+  const restore = databaseSteps.find(step => step.uses === 'actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830')
   expect(restore?.with?.['key']).toMatch(/^grype-db-v6-\$\{\{ inputs\.grype-version \}\}-\$\{\{ steps\.paths\.outputs\.today \}\}/)
   expect(restore?.with?.['restore-keys']).toContain('grype-db-v6-${{ inputs.grype-version }}-')
-  expect(steps.find(step => step.uses === 'actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830')?.if).toContain("cache-hit != 'true'")
+  expect(databaseSteps.find(step => step.uses === 'actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830')?.if).toContain("cache-hit != 'true'")
+  expect(databaseSteps.find(step => step.id === 'prepare')?.run).toContain('prepare-grype-db.sh')
+  expect(databaseSteps.find(step => step.id === 'prepare')?.env?.['DB_UPDATE_REQUIRED']).toBe("${{ steps.cache.outputs.cache-hit != 'true' }}")
   const gate = steps.find(step => step.id === 'gate')?.run ?? ''
   for (const fragment of ['fixable.jq', 'gate-count.jq', 'image-advisories-fixable.json', 'exit 1']) expect(gate).toContain(fragment)
 
@@ -386,8 +401,6 @@ test('image legs scan once through the shared scan-image composite and derive th
     const workflow = Bun.YAML.parse(source) as { jobs?: Record<string, { steps?: Step[] }> }
     const allSteps = Object.values(workflow.jobs ?? {}).flatMap(job => job.steps ?? [])
     const scanImageSteps = allSteps.filter(step => step.uses === './.github/actions/scan-image')
-    for (const step of scanImageSteps) expect(evidenceDirs).toContain(String(step.with?.['evidence-dir']))
-    expect(new Set(scanImageSteps.map(step => step.with?.['evidence-dir']))).toEqual(new Set(evidenceDirs))
     if (workflowName === 'warm-grype-db.yml') {
       const warmup = Bun.YAML.parse(source) as {
         on?: { schedule?: Array<{ cron: string }>, workflow_dispatch?: unknown }
@@ -395,14 +408,15 @@ test('image legs scan once through the shared scan-image composite and derive th
       }
       expect(warmup.on?.schedule).toEqual([{ cron: '20 0 * * *' }])
       expect(warmup.on).toHaveProperty('workflow_dispatch')
-      expect(scanImageSteps).toHaveLength(1)
-      expect(scanImageSteps[0]?.with).toEqual({
-        sbom: '.github/actions/scan-image/warmup.spdx.json',
-        'evidence-dir': 'runtime/ci/grype-db-warmup',
-        'fail-on-fixable': 'false'
-      })
-      expect(scanImageSteps[0]?.with).not.toHaveProperty('cache-key-salt')
-      expect(existsSync(resolve(actionDir, 'warmup.spdx.json'))).toBe(true)
+      expect(scanImageSteps).toHaveLength(0)
+      const warmupSteps = allSteps.filter(step => step.uses === './.github/actions/prepare-grype-db')
+      expect(warmupSteps).toHaveLength(1)
+      expect(warmupSteps[0]?.with).toEqual({ 'evidence-dir': 'runtime/ci/grype-db-warmup' })
+      expect(warmupSteps[0]?.with).not.toHaveProperty('cache-key-salt')
+      expect(existsSync(resolve(actionDir, 'warmup.spdx.json'))).toBe(false)
+    } else {
+      for (const step of scanImageSteps) expect(evidenceDirs).toContain(String(step.with?.['evidence-dir']))
+      expect(new Set(scanImageSteps.map(step => step.with?.['evidence-dir']))).toEqual(new Set(evidenceDirs))
     }
   }
 })

@@ -153,7 +153,10 @@ export const resolveCharacterIdentityReferences = (
       : options.compose === false
         ? getCharacterIdentityCardPath(runDirectory, manifest, key)
         : ensureCharacterIdentityCardSync(runDirectory, manifest, key)
-    references.push({ key, name: character.name, description: character.description, referenceIndex: references.length + 1, path })
+    references.push({
+      key, name: character.name, description: character.description, referenceIndex: references.length + 1, path,
+      ...(character.distinguishFrom !== undefined ? { distinguishFrom: character.distinguishFrom.map(cue => ({ ...cue })) } : {}),
+    })
   }
   return references
 }

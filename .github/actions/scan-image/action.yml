@@ -15,10 +15,10 @@ inputs:
     default: ''
   syft-version:
     description: Syft release used for the inventory
-    default: v1.51.1
+    default: v1.55.0
   grype-version:
     description: Grype release used for the audit
-    default: v0.118.0
+    default: v0.121.0
   severity-cutoff:
     description: Lowest severity that gates
     default: high
@@ -47,8 +47,6 @@ runs:
         { test -z "${IMAGE}" || test -z "${SBOM}"; } || { echo 'scan-image: image and sbom are mutually exclusive' >&2; exit 1; }
         mkdir -p "${EVIDENCE_DIR}"
         printf 'sbom=%s\n' "${SBOM:-${EVIDENCE_DIR}/image.spdx.json}" >> "${GITHUB_OUTPUT}"
-        printf 'today=%s\n' "$(date -u +%Y-%m-%d)" >> "${GITHUB_OUTPUT}"
-        printf 'db-dir=%s\n' "${RUNNER_TEMP}/grype-db" >> "${GITHUB_OUTPUT}"
     - name: Install required scanners
       shell: bash
       env:
@@ -60,43 +58,35 @@ runs:
       if: inputs.image != ''
       shell: bash
       env:
+        # Mitigate the reviewed stdlib HTTP/2 paths until vendor binaries use patched Go.
+        GODEBUG: http2client=0,http2server=0
         IMAGE: ${{ inputs.image }}
         SBOM: ${{ steps.paths.outputs.sbom }}
       run: |
         set -euo pipefail
         syft "${IMAGE}" -o "spdx-json=${SBOM}"
-    - name: Restore the Grype vulnerability database
+    - name: Prepare the Grype vulnerability database
       id: grype-db
-      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+      uses: ./.github/actions/prepare-grype-db
       with:
-        path: ${{ steps.paths.outputs.db-dir }}
-        key: grype-db-v6-${{ inputs.grype-version }}-${{ steps.paths.outputs.today }}${{ inputs.cache-key-salt }}
-        restore-keys: |
-          grype-db-v6-${{ inputs.grype-version }}-
+        evidence-dir: ${{ inputs.evidence-dir }}
+        grype-version: ${{ inputs.grype-version }}
+        cache-key-salt: ${{ inputs.cache-key-salt }}
+        install-grype: 'false'
     - name: Audit the image
       shell: bash
       env:
-        GRYPE_DB_CACHE_DIR: ${{ steps.paths.outputs.db-dir }}
-        GRYPE_DB_AUTO_UPDATE: ${{ steps.grype-db.outputs.cache-hit == 'true' && 'false' || 'true' }}
+        GODEBUG: http2client=0,http2server=0
+        GRYPE_DB_CACHE_DIR: ${{ steps.grype-db.outputs.db-dir }}
+        GRYPE_DB_AUTO_UPDATE: 'false'
+        GRYPE_DB_VALIDATE_AGE: 'true'
+        GRYPE_DB_MAX_ALLOWED_BUILT_AGE: 120h
+        GRYPE_DB_VALIDATE_BY_HASH_ON_START: 'true'
         SBOM: ${{ steps.paths.outputs.sbom }}
         OUTPUT: ${{ inputs.evidence-dir }}/image-advisories.json
       run: |
         set -euo pipefail
         grype "sbom:${SBOM}" -o json --file "${OUTPUT}"
-    - name: Require a hydrated database before caching it
-      shell: bash
-      env:
-        DB_DIR: ${{ steps.paths.outputs.db-dir }}
-      run: |
-        set -euo pipefail
-        # Grype v0.118 stores schema v6 at <cache-dir>/6/vulnerability.db; the layout-agnostic search also rejects an empty or partial file.
-        find "${DB_DIR}" -name 'vulnerability.db' -size +1M | grep -q . || { echo "scan-image: no hydrated Grype database under ${DB_DIR}" >&2; exit 1; }
-    - name: Retain today's Grype database
-      if: steps.grype-db.outputs.cache-hit != 'true'
-      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
-      with:
-        path: ${{ steps.paths.outputs.db-dir }}
-        key: ${{ steps.grype-db.outputs.cache-primary-key }}
     - name: Gate actionable high severity image findings
       id: gate
       shell: bash

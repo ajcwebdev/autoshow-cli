@@ -177,7 +177,7 @@ export type OcrPreparationCache = {
   renderedPages: Map<string, Promise<string>>
   cloudStaging: Map<string, Promise<OcrCloudStagingObject>>
   cleanupCallbacks: Array<() => Promise<void>>
-  tempDir?: string | undefined
+  tempDir?: Promise<string> | undefined
   nextRenderedPageIndex: number
 }
 

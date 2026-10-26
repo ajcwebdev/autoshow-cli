@@ -1,4 +1,4 @@
-import type { BlockingAuditStatus, BlockingHardCandidateStatus, PanelBundleData } from '~/types'
+import type { BlockingAuditStatus, BlockingHardCandidateStatus, CharacterIdentityReference, PanelBundleData } from '~/types'
 
 export type BlockingHardKeyPolicy = readonly BlockingHardCandidateStatus[]
 
@@ -141,7 +141,7 @@ export type PageQaRequest = {
   identityCards: string[]
   locationSheets: string[]
   designSheets?: string[] | undefined
-  characterReferences?: Array<{ key: string; description: string }> | undefined
+  characterReferences?: Array<Pick<CharacterIdentityReference, 'key' | 'description' | 'distinguishFrom'>> | undefined
   locationReferences?: Array<{ key: string; specification: string }> | undefined
   designReferences?: Array<{ key: string; usage: string }> | undefined
   rosterCards?: PageQaRosterCard[] | undefined

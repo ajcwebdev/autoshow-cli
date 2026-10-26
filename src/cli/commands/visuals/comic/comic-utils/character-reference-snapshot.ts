@@ -17,6 +17,7 @@ const SnapshotAssetSchema = v.strictObject({
 })
 const SnapshotCharacterSchema = v.strictObject({
   key: v.string(), name: v.string(), description: v.string(), sourceSketchVersion: v.string(), assets: v.array(SnapshotAssetSchema),
+  distinguishFrom: v.optional(v.array(v.strictObject({ characterKey: v.string(), cue: v.string() }))),
 })
 export const CharacterReferenceManifestSchema = v.strictObject({
   schemaVersion: v.literal(2), snapshotId: v.string(), catalogHash: v.string(), createdAt: v.string(), characters: v.array(SnapshotCharacterSchema),
@@ -68,6 +69,7 @@ export const createCharacterReferenceSnapshot = async (
       key: character.key,
       name: character.name,
       description: character.description,
+      distinguishFrom: (character.distinguishFrom ?? []).map(cue => ({ ...cue })),
       sourceSketchVersion: registration.generationId,
       assets: [
         { role: 'sketch-sheet', path: relative(runDirectory, sheetDestination).replace(/\\/g, '/'), sha256: sheetSha256 },
