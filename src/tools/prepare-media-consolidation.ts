@@ -1,3 +1,5 @@
+import { UsageError, ValidationError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { createHash } from 'node:crypto'
 import { constants } from 'node:fs'
 import { lstat, mkdir, open, readFile, readdir, realpath, writeFile } from 'node:fs/promises'
@@ -41,8 +43,8 @@ export type MediaConsolidationPlan = {
 }
 
 const relativePath = (value: unknown): string => {
-  if (typeof value !== 'string' || !value || isAbsolute(value) || /^[a-z]:/i.test(value) || /[\\\x00-\x1f\x7f]/.test(value) || value.split('/').some(part => !part || part === '.' || part === '..')) throw new Error(`Expected a clean repository-relative path: ${String(value)}`)
-  if (value.split('/').some(part => PROHIBITED_PARTS.test(part)) || SECRET_EXTENSIONS.has(extname(value).toLowerCase())) throw new Error(`Protected or secret path is excluded: ${value}`)
+  if (typeof value !== 'string' || !value || isAbsolute(value) || /^[a-z]:/i.test(value) || /[\\\x00-\x1f\x7f]/.test(value) || value.split('/').some(part => !part || part === '.' || part === '..')) throw ValidationError(`Expected a clean repository-relative path: ${String(value)}`)
+  if (value.split('/').some(part => PROHIBITED_PARTS.test(part)) || SECRET_EXTENSIONS.has(extname(value).toLowerCase())) throw ValidationError(`Protected or secret path is excluded: ${value}`)
   return value
 }
 
@@ -52,7 +54,7 @@ const checkedPath = async (root: string, value: string, allowMissing = false): P
   for (const part of value.split('/')) {
     path = join(path, part)
     try {
-      if ((await lstat(path)).isSymbolicLink()) throw new Error(`Symlinks are not accepted: ${value}`)
+      if ((await lstat(path)).isSymbolicLink()) throw ValidationError(`Symlinks are not accepted: ${value}`)
     } catch (error) {
       if (allowMissing && (error as NodeJS.ErrnoException).code === 'ENOENT') continue
       throw error
@@ -63,29 +65,29 @@ const checkedPath = async (root: string, value: string, allowMissing = false): P
 
 const rootDirectory = async (root: string): Promise<string> => {
   const path = resolve(root)
-  if (!(await lstat(path)).isDirectory() || (await lstat(path)).isSymbolicLink()) throw new Error('The project root must be a real directory')
+  if (!(await lstat(path)).isDirectory() || (await lstat(path)).isSymbolicLink()) throw ValidationError('The project root must be a real directory')
   return await realpath(path)
 }
 
 const configValue = (value: unknown): MediaConsolidationConfig => {
   const config = value as MediaConsolidationConfig
-  if (!config || config.schemaVersion !== 1 || !Array.isArray(config.groups) || !config.groups.length) throw new Error('Expected schemaVersion 1 and at least one media group')
+  if (!config || config.schemaVersion !== 1 || !Array.isArray(config.groups) || !config.groups.length) throw UsageError('Expected schemaVersion 1 and at least one media group')
   const ids = new Set<string>()
   const roots: Array<{ path: string; group: string; keeper: boolean }> = []
   for (const group of config.groups) {
-    if (!group || typeof group.id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(group.id) || ids.has(group.id)) throw new Error('Invalid or duplicate media group id')
+    if (!group || typeof group.id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(group.id) || ids.has(group.id)) throw UsageError('Invalid or duplicate media group id')
     ids.add(group.id)
-    if (!Array.isArray(group.roots) || !group.roots.length || !Array.isArray(group.extensions) || !group.extensions.length || group.keeperRoots !== undefined && !Array.isArray(group.keeperRoots)) throw new Error(`Invalid roots or extensions: ${group.id}`)
-    for (const ext of group.extensions) if (typeof ext !== 'string' || !MEDIA_EXTENSIONS.has(ext)) throw new Error(`Nonmedia extension is not permitted: ${String(ext)}`)
+    if (!Array.isArray(group.roots) || !group.roots.length || !Array.isArray(group.extensions) || !group.extensions.length || group.keeperRoots !== undefined && !Array.isArray(group.keeperRoots)) throw UsageError(`Invalid roots or extensions: ${group.id}`)
+    for (const ext of group.extensions) if (typeof ext !== 'string' || !MEDIA_EXTENSIONS.has(ext)) throw UsageError(`Nonmedia extension is not permitted: ${String(ext)}`)
     for (const [keeper, values] of [[false, group.roots], [true, group.keeperRoots ?? []]] as const) for (const path of values) {
       relativePath(path)
-      for (const earlier of roots) if ((nested(earlier.path, path) || nested(path, earlier.path)) && !(earlier.group === group.id && earlier.keeper !== keeper)) throw new Error(`Overlapping media roots: ${earlier.path} and ${path}`)
+      for (const earlier of roots) if ((nested(earlier.path, path) || nested(path, earlier.path)) && !(earlier.group === group.id && earlier.keeper !== keeper)) throw UsageError(`Overlapping media roots: ${earlier.path} and ${path}`)
       roots.push({ path, group: group.id, keeper })
     }
   }
-  if (config.preservationRoots !== undefined && !Array.isArray(config.preservationRoots)) throw new Error('Invalid preservationRoots')
+  if (config.preservationRoots !== undefined && !Array.isArray(config.preservationRoots)) throw UsageError('Invalid preservationRoots')
   for (const path of config.preservationRoots ?? []) relativePath(path)
-  if (config.preservationExtensions !== undefined && (!Array.isArray(config.preservationExtensions) || config.preservationExtensions.some(ext => typeof ext !== 'string' || !/^\.[a-z0-9-]+$/.test(ext) || MEDIA_EXTENSIONS.has(ext) || SECRET_EXTENSIONS.has(ext)))) throw new Error('Invalid preservationExtensions')
+  if (config.preservationExtensions !== undefined && (!Array.isArray(config.preservationExtensions) || config.preservationExtensions.some(ext => typeof ext !== 'string' || !/^\.[a-z0-9-]+$/.test(ext) || MEDIA_EXTENSIONS.has(ext) || SECRET_EXTENSIONS.has(ext)))) throw UsageError('Invalid preservationExtensions')
   return config
 }
 
@@ -94,7 +96,7 @@ const walk = async (root: string, relative: string): Promise<string[]> => {
   const path = await checkedPath(root, relative)
   const info = await lstat(path)
   if (info.isFile()) return [relative]
-  if (!info.isDirectory()) throw new Error(`Expected a regular file or directory: ${relative}`)
+  if (!info.isDirectory()) throw ValidationError(`Expected a regular file or directory: ${relative}`)
   const result: string[] = []
   for (const entry of (await readdir(path)).sort(compare)) {
     if (entry === '.DS_Store') continue
@@ -108,13 +110,13 @@ const fileBaseline = async (root: string, path: string): Promise<Baseline> => {
   const file = await open(absolute, constants.O_RDONLY | constants.O_NOFOLLOW)
   try {
     const before = await file.stat()
-    if (!before.isFile()) throw new Error(`Expected a regular file: ${path}`)
+    if (!before.isFile()) throw ValidationError(`Expected a regular file: ${path}`)
     const digest = createHash('sha256')
     for await (const chunk of file.createReadStream({ autoClose: false })) digest.update(chunk)
     const after = await file.stat()
-    for (const key of ['size', 'mtimeMs', 'ctimeMs', 'mode', 'dev', 'ino', 'nlink'] as const) if (before[key] !== after[key]) throw new Error(`File changed during hashing: ${path}`)
+    for (const key of ['size', 'mtimeMs', 'ctimeMs', 'mode', 'dev', 'ino', 'nlink'] as const) if (before[key] !== after[key]) throw ValidationError(`File changed during hashing: ${path}`)
     const current = await lstat(absolute)
-    if (!current.isFile() || current.ino !== after.ino || current.dev !== after.dev || current.size !== after.size || current.mtimeMs !== after.mtimeMs) throw new Error(`File changed during hashing: ${path}`)
+    if (!current.isFile() || current.ino !== after.ino || current.dev !== after.dev || current.size !== after.size || current.mtimeMs !== after.mtimeMs) throw ValidationError(`File changed during hashing: ${path}`)
     return { path, bytes: after.size, sha256: digest.digest('hex'), mode: after.mode & 0o7777, mtimeMs: after.mtimeMs, dev: after.dev, ino: after.ino, nlink: after.nlink }
   } finally { await file.close() }
 }
@@ -122,7 +124,7 @@ const fileBaseline = async (root: string, path: string): Promise<Baseline> => {
 const outputOutsideInputs = (config: MediaConsolidationConfig, configPath: string, output: string): void => {
   relativePath(output)
   const allRoots = config.groups.flatMap(group => [...group.roots, ...group.keeperRoots ?? []]).concat(config.preservationRoots ?? [], configPath)
-  for (const path of allRoots) if (nested(path, output) || nested(output, path)) throw new Error(`Output overlaps a source or config path: ${path}`)
+  for (const path of allRoots) if (nested(path, output) || nested(output, path)) throw ValidationError(`Output overlaps a source or config path: ${path}`)
 }
 
 export const buildMediaConsolidationPlan = async (projectRoot: string, scopeConfigPath: string): Promise<MediaConsolidationPlan> => {
@@ -138,26 +140,26 @@ export const buildMediaConsolidationPlan = async (projectRoot: string, scopeConf
       if (path.split('/').includes('.DS_Store')) continue
       const found = await walk(root, path)
       const media = found.filter(file => group.extensions.includes(extname(file).toLowerCase()))
-      if ((await lstat(await checkedPath(root, path))).isFile() && !media.length) throw new Error(`Nonmedia file selected: ${path}`)
+      if ((await lstat(await checkedPath(root, path))).isFile() && !media.length) throw ValidationError(`Nonmedia file selected: ${path}`)
       for (const file of media) if (kind === 'keeper' || !paths.has(file)) paths.set(file, kind)
     }
     for (const [path, sourceKind] of [...paths].sort(([a], [b]) => compare(a, b))) {
-      if (selected.has(path)) throw new Error(`A media path belongs to multiple groups: ${path}`)
+      if (selected.has(path)) throw ValidationError(`A media path belongs to multiple groups: ${path}`)
       const row: MediaBaseline = { ...await fileBaseline(root, path), group: group.id, sourceKind, plannedReplacement: false, requiresExtraReview: false }
       selected.set(path, row); mediaFiles.push(row)
     }
   }
-  if (!mediaFiles.length) throw new Error('No media files matched the configured scopes')
+  if (!mediaFiles.length) throw ValidationError('No media files matched the configured scopes')
   mediaFiles.sort((a, b) => compare(a.path, b.path))
   const preservedPaths = new Set<string>([scopeConfigPath])
   for (const path of config.preservationRoots ?? []) for (const file of await walk(root, path)) {
     if (selected.has(file)) continue
     const ext = extname(file).toLowerCase()
     if (config.preservationExtensions && !config.preservationExtensions.includes(ext)) continue
-    if (MEDIA_EXTENSIONS.has(ext)) throw new Error(`Unselected media file in preservation roots: ${file}`)
+    if (MEDIA_EXTENSIONS.has(ext)) throw ValidationError(`Unselected media file in preservation roots: ${file}`)
     preservedPaths.add(file)
   }
-  if (selected.has(scopeConfigPath)) throw new Error('The scope config cannot be a media input')
+  if (selected.has(scopeConfigPath)) throw ValidationError('The scope config cannot be a media input')
   const preservedFiles: Baseline[] = []
   for (const path of [...preservedPaths].sort(compare)) preservedFiles.push(await fileBaseline(root, path))
   const streams = new Map<string, MediaBaseline[]>()
@@ -212,10 +214,10 @@ export const prepareMediaConsolidation = async (projectRoot: string, scopeConfig
   outputOutsideInputs(config, scopeConfigPath, output)
   const outputPath = await checkedPath(root, output, true)
   try {
-    if ((await readdir(outputPath)).some(name => name !== '.DS_Store')) throw new Error('Preparation output must be absent or empty')
+    if ((await readdir(outputPath)).some(name => name !== '.DS_Store')) throw ValidationError('Preparation output must be absent or empty')
   } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
   const plan = await buildMediaConsolidationPlan(root, scopeConfigPath)
-  if (comparable(plan) !== comparable(await buildMediaConsolidationPlan(root, scopeConfigPath))) throw new Error('Source baseline changed during preparation')
+  if (comparable(plan) !== comparable(await buildMediaConsolidationPlan(root, scopeConfigPath))) throw ValidationError('Source baseline changed during preparation')
   await mkdir(outputPath, { recursive: true })
   const planBytes = `${JSON.stringify(plan, null, 2)}\n`, companion = artifacts(plan)
   for (const [name, data] of [
@@ -231,30 +233,32 @@ export const verifyMediaConsolidation = async (projectRoot: string, planPath: st
   const absolute = await checkedPath(root, planPath)
   const bytes = await readFile(absolute)
   const checksum = await readFile(await checkedPath(root, `${dirname(planPath)}/plan.sha256`), 'utf8')
-  if (checksum !== `${hash(bytes)}  ${basename(planPath)}\n`) throw new Error('Preparation plan checksum mismatch')
+  if (checksum !== `${hash(bytes)}  ${basename(planPath)}\n`) throw ValidationError('Preparation plan checksum mismatch')
   const plan = JSON.parse(bytes.toString('utf8')) as MediaConsolidationPlan
-  if (plan.schemaVersion !== 1 || plan.operation !== 'prepare-only' || plan.strategy !== 'copy-on-write-regular-file-replacement' || plan.requiresSeparateApproval !== true || plan.preserveSourcePaths !== true || !plan.input) throw new Error('Unsupported preparation plan')
+  if (plan.schemaVersion !== 1 || plan.operation !== 'prepare-only' || plan.strategy !== 'copy-on-write-regular-file-replacement' || plan.requiresSeparateApproval !== true || plan.preserveSourcePaths !== true || !plan.input) throw ValidationError('Unsupported preparation plan')
   const current = await buildMediaConsolidationPlan(root, plan.input.scopeConfigPath)
   outputOutsideInputs(configValue(JSON.parse(await readFile(await checkedPath(root, plan.input.scopeConfigPath), 'utf8'))), plan.input.scopeConfigPath, dirname(planPath))
-  if (comparable(plan) !== comparable(current)) throw new Error('Preparation source or metadata baseline mismatch')
+  if (comparable(plan) !== comparable(current)) throw ValidationError('Preparation source or metadata baseline mismatch')
   const companion = artifacts(plan)
-  if (await readFile(await checkedPath(root, `${dirname(planPath)}/sources.contents.sha256`), 'utf8') !== companion.contents || !Buffer.from(await readFile(await checkedPath(root, `${dirname(planPath)}/sources.files0`))).equals(companion.fileList)) throw new Error('Preparation companion artifact mismatch')
+  if (await readFile(await checkedPath(root, `${dirname(planPath)}/sources.contents.sha256`), 'utf8') !== companion.contents || !Buffer.from(await readFile(await checkedPath(root, `${dirname(planPath)}/sources.files0`))).equals(companion.fileList)) throw ValidationError('Preparation companion artifact mismatch')
   return plan.summary
 }
 
-if (import.meta.main) {
+const main = async (): Promise<void> => {
   const args = Bun.argv.slice(2), values = new Map<string, string>()
   if (args.length === 1 && args[0] === '--help') {
-    console.log('Usage: prepare-media-consolidation.ts --root PATH (--scope-config RELATIVE.json --output RELATIVE_DIRECTORY | --verify RELATIVE_PLAN.json)\nCreates or verifies a preparation-only copy-on-write consolidation plan; never deletes or replaces source files. Config: {schemaVersion:1,groups:[{id,roots,keeperRoots?,extensions}],preservationRoots?,preservationExtensions?}. Stored paths remain repository-relative. Protected stores, secrets, symlinks, overlapping groups, and output/input overlap are rejected. Source media and metadata must remain unchanged for verification. No apply/delete mode is implemented.')
-    process.exit(0)
+    writeCommandPayload('Usage: prepare-media-consolidation.ts --root PATH (--scope-config RELATIVE.json --output RELATIVE_DIRECTORY | --verify RELATIVE_PLAN.json)\nCreates or verifies a preparation-only copy-on-write consolidation plan; never deletes or replaces source files. Config: {schemaVersion:1,groups:[{id,roots,keeperRoots?,extensions}],preservationRoots?,preservationExtensions?}. Stored paths remain repository-relative. Protected stores, secrets, symlinks, overlapping groups, and output/input overlap are rejected. Source media and metadata must remain unchanged for verification. No apply/delete mode is implemented.' + '\n')
+    return
   }
   for (let index = 0; index < args.length; index += 2) {
     const key = args[index]!, value = args[index + 1]
-    if (!['--root', '--scope-config', '--output', '--verify'].includes(key) || !value || value.startsWith('--') || values.has(key)) throw new Error('Usage: prepare-media-consolidation.ts --root PATH (--scope-config RELATIVE.json --output RELATIVE_DIRECTORY | --verify RELATIVE_PLAN.json)')
+    if (!['--root', '--scope-config', '--output', '--verify'].includes(key) || !value || value.startsWith('--') || values.has(key)) throw UsageError('Usage: prepare-media-consolidation.ts --root PATH (--scope-config RELATIVE.json --output RELATIVE_DIRECTORY | --verify RELATIVE_PLAN.json)')
     values.set(key, value)
   }
   const root = values.get('--root')
-  if (!root || (values.has('--verify') ? values.size !== 2 : !values.has('--scope-config') || !values.has('--output') || values.size !== 3)) throw new Error('Expected --root and either --verify or --scope-config with --output; this tool has no apply/delete mode')
+  if (!root || (values.has('--verify') ? values.size !== 2 : !values.has('--scope-config') || !values.has('--output') || values.size !== 3)) throw UsageError('Expected --root and either --verify or --scope-config with --output; this tool has no apply/delete mode')
   const summary = values.has('--verify') ? await verifyMediaConsolidation(root, values.get('--verify')!) : (await prepareMediaConsolidation(root, values.get('--scope-config')!, values.get('--output')!)).summary
-  console.log(JSON.stringify({ verified: true, operation: 'prepare-only', ...summary }))
+  writeCommandPayload(JSON.stringify({ verified: true, operation: 'prepare-only', ...summary }) + '\n')
 }
+
+if (import.meta.main) await main()

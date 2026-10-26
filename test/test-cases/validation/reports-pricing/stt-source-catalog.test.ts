@@ -4,6 +4,7 @@ import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { verifySttBenchmarkSources } from '~/tools/verify-stt-benchmark-sources'
 import { resolveTranscriptVideoSource } from '~/cli/commands/stt/workflows/transcript-video/transcript-video-source'
+import { PROJECT_ROOT } from '~/utils/project-root'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
@@ -41,6 +42,17 @@ test('source catalog verifies exact bytes and canonical manifest/prompt path bin
   expect(await context.verify()).toEqual({ sources: 1, runs: 1, bytes: Buffer.byteLength('exact stored recording bytes') })
 })
 
+test('standalone source verification emits one JSON payload with one newline', async () => {
+  const context = await fixture()
+  const proc = Bun.spawn([process.execPath, '--no-env-file', join(PROJECT_ROOT, 'src/tools/verify-stt-benchmark-sources.ts'), context.catalogPath], {
+    cwd: context.root, env: { PATH: process.env['PATH'], HOME: process.env['HOME'], AUTOSHOW_PROJECT_ROOT: context.root }, stdout: 'pipe', stderr: 'pipe'
+  })
+  const [exitCode, stdout, stderr] = await Promise.all([proc.exited, new Response(proc.stdout).text(), new Response(proc.stderr).text()])
+  expect({ exitCode, stderr }).toEqual({ exitCode: 0, stderr: '' })
+  const payload = { sources: 1, runs: 1, bytes: Buffer.byteLength('exact stored recording bytes'), catalog: 'catalog.json', verified: true }
+  expect(stdout).toBe(`${JSON.stringify(payload)}\n`)
+})
+
 test('actual transcript-video source loader infers canonical audio outside the run directory', async () => {
   const context = await fixture()
   const manifest = JSON.parse(await readFile(join(context.run, 'manifest.json'), 'utf8'))
@@ -64,6 +76,7 @@ test('missing canonical audio fails with an explicit restore path', async () => 
   const context = await fixture()
   await unlink(context.sourcePath)
   await expect(context.verify()).rejects.toThrow('Restore the canonical STT recording at sources/recording.mp3')
+  await expect(context.verify()).rejects.toMatchObject({ kind: 'infrastructure', cause: { code: 'ENOENT' } })
 })
 
 test('source catalog rejects a stale run-local audio path and a divergent prompt', async () => {

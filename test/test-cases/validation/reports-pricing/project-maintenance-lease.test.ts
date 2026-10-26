@@ -113,6 +113,24 @@ test('writer leases exclude maintenance across separate Bun processes', async ()
   expect(await readdir(root)).toEqual(['AGENTS.md'])
 })
 
+test('separate processes hand off lease-created output ownership during writer churn', async () => {
+  const root = await fixture()
+  const workers = Array.from({ length: 6 }, () => child(root, `
+import {acquireProjectWriterLease} from ${utilityImport};
+for(let index=0;index<20;index++){
+ const lease=await acquireProjectWriterLease(${JSON.stringify(root)});
+ try{await lease.assertHeld()}finally{await lease.release()}
+}`))
+  const results = await Promise.all(workers.map(async worker => {
+    const [exitCode, stdout, stderr] = await Promise.all([worker.exited, new Response(worker.stdout).text(), new Response(worker.stderr).text()])
+    return { exitCode, stdout, stderr }
+  }))
+  expect(results).toEqual(Array.from({ length: workers.length }, () => ({ exitCode: 0, stdout: '', stderr: '' })))
+  const maintenance = await acquireProjectMaintenanceLease(root)
+  try { await maintenance.assertHeld() } finally { await maintenance.release() }
+  expect(await readdir(root)).toEqual(['AGENTS.md'])
+})
+
 test('workspace roots include cwd and external output/characters/resume ancestors', async () => {
   const a = await fixture(), b = await fixture()
   await mkdir(join(b, 'input'))

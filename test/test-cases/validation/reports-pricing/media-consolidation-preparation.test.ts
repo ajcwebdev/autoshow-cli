@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { chmod, link, lstat, mkdir, readFile, readdir, symlink, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildMediaConsolidationPlan, prepareMediaConsolidation, verifyMediaConsolidation, type MediaConsolidationConfig } from '~/tools/prepare-media-consolidation'
+import { PROJECT_ROOT } from '~/utils/project-root'
 import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
 const tempDirs = createTempDirTracker('autoshow-media-consolidation-')
@@ -21,6 +22,43 @@ const fixture = async () => {
   await saveConfig()
   return { root, config, saveConfig, prepare: async () => await prepareMediaConsolidation(root, 'scope.json', 'prepared'), verify: async () => await verifyMediaConsolidation(root, 'prepared/plan.json') }
 }
+
+const runTool = async (cwd: string, name: string, args: string[]) => {
+  const proc = Bun.spawn([process.execPath, '--no-env-file', join(PROJECT_ROOT, 'src/tools', name), ...args], {
+    cwd, env: { PATH: process.env['PATH'], HOME: process.env['HOME'], AUTOSHOW_PROJECT_ROOT: cwd }, stdout: 'pipe', stderr: 'pipe'
+  })
+  const [exitCode, stdout, stderr] = await Promise.all([proc.exited, new Response(proc.stdout).text(), new Response(proc.stderr).text()])
+  return { exitCode, stdout, stderr }
+}
+
+test('standalone preparation help returns without filesystem work and JSON payloads have one final newline', async () => {
+  const context = await fixture(), before = await readdir(context.root)
+  const help = await runTool(context.root, 'prepare-media-consolidation.ts', ['--help'])
+  expect(help.exitCode).toBe(0)
+  expect(help.stderr).toBe('')
+  expect(help.stdout).toStartWith('Usage: prepare-media-consolidation.ts')
+  expect(help.stdout.endsWith('\n') && !help.stdout.endsWith('\n\n')).toBe(true)
+  expect(await readdir(context.root)).toEqual(before)
+  const prepared = await runTool(context.root, 'prepare-media-consolidation.ts', ['--root', context.root, '--scope-config', 'scope.json', '--output', 'prepared'])
+  expect({ exitCode: prepared.exitCode, stderr: prepared.stderr }).toEqual({ exitCode: 0, stderr: '' })
+  const payload = JSON.parse(prepared.stdout)
+  expect(payload).toMatchObject({ verified: true, operation: 'prepare-only', plannedReplacementFiles: 1 })
+  expect(prepared.stdout).toBe(`${JSON.stringify(payload)}\n`)
+  const verified = await runTool(context.root, 'prepare-media-consolidation.ts', ['--root', context.root, '--verify', 'prepared/plan.json'])
+  expect(verified).toEqual(prepared)
+})
+
+test('standalone media and source tools reject invalid CLI options as usage errors without payloads or writes', async () => {
+  const context = await fixture(), before = await readdir(context.root)
+  for (const tool of ['prepare-media-consolidation.ts', 'apply-media-consolidation.ts', 'verify-stt-benchmark-sources.ts']) {
+    const result = await runTool(context.root, tool, ['--unknown'])
+    expect(result.exitCode).not.toBe(0)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain('AppUsageError')
+    expect(result.stderr).toContain('Usage:')
+  }
+  expect(await readdir(context.root)).toEqual(before)
+})
 
 test('preparation fingerprints media and metadata without deleting or replacing source files', async () => {
   const context = await fixture()

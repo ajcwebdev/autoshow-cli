@@ -1,3 +1,4 @@
+import { InfraError } from '~/utils/error-handler'
 import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath, rm, rmdir, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -16,12 +17,12 @@ const absent = async (path: string): Promise<boolean> => {
 const directory = async (path: string): Promise<boolean> => {
   try { await mkdir(path); return true } catch (error) { if (code(error) !== 'EEXIST') throw error }
   const info = await lstat(path)
-  if (!info.isDirectory() || info.isSymbolicLink()) throw new Error(`Workspace lease path must be a real directory: ${path}`)
+  if (!info.isDirectory() || info.isSymbolicLink()) throw InfraError(`Workspace lease path must be a real directory: ${path}`)
   return false
 }
 const realDirectory = async (path: string): Promise<void> => {
   const info = await lstat(path)
-  if (!info.isDirectory() || info.isSymbolicLink()) throw new Error(`Workspace lease path must be a real directory: ${path}`)
+  if (!info.isDirectory() || info.isSymbolicLink()) throw InfraError(`Workspace lease path must be a real directory: ${path}`)
 }
 const ensureLayout = async (paths: Layout): Promise<void> => {
   const deadline = Date.now() + 5_000
@@ -49,14 +50,14 @@ const ownerBytes = (owner: Owner): string => `${JSON.stringify(owner)}\n`
 const readOwner = async (path: string): Promise<Owner> => {
   await realDirectory(path)
   const ownerPath = join(path, 'owner.json'), info = await lstat(ownerPath)
-  if (!info.isFile() || info.isSymbolicLink()) throw new Error('Workspace lease owner must be a regular file')
+  if (!info.isFile() || info.isSymbolicLink()) throw InfraError('Workspace lease owner must be a regular file')
   const owner = JSON.parse(await readFile(ownerPath, 'utf8')) as Owner
-  if (owner.schemaVersion !== 1 || typeof owner.token !== 'string' || typeof owner.kind !== 'string') throw new Error('Malformed workspace lease owner')
+  if (owner.schemaVersion !== 1 || typeof owner.token !== 'string' || typeof owner.kind !== 'string') throw InfraError('Malformed workspace lease owner')
   return owner
 }
 const assertOwner = async (path: string, owner: Owner): Promise<void> => {
   const actual = await readOwner(path)
-  if (ownerBytes(actual) !== ownerBytes(owner)) throw new Error('Workspace lease ownership changed; refusing mutation')
+  if (ownerBytes(actual) !== ownerBytes(owner)) throw InfraError('Workspace lease ownership changed; refusing mutation')
 }
 const makeOwner = (kind: string): Owner => ({ schemaVersion: 1, token: randomUUID(), kind, pid: process.pid })
 const createOwned = async (path: string, owner: Owner): Promise<void> => {
@@ -67,13 +68,25 @@ const createOwned = async (path: string, owner: Owner): Promise<void> => {
 const removeOwned = async (path: string, owner: Owner): Promise<void> => {
   await assertOwner(path, owner)
   const contents = await entries(path)
-  if (contents.length !== 1 || contents[0] !== 'owner.json') throw new Error('Workspace lease contains foreign entries; refusing cleanup')
+  if (contents.length !== 1 || contents[0] !== 'owner.json') throw InfraError('Workspace lease contains foreign entries; refusing cleanup')
   await rm(path, { recursive: true })
 }
 const cleanupParents = async (paths: Layout, removeOutput: boolean): Promise<void> => {
   try { await realDirectory(paths.base); await rmdir(paths.base) } catch (error) { if (!['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(code(error) ?? '')) throw error }
   if (removeOutput) {
-    try { await realDirectory(paths.output); await rmdir(paths.output) } catch (error) { if (!['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(code(error) ?? '')) throw error }
+    try { await realDirectory(paths.output); await rmdir(paths.output) } catch (error) {
+      if (!['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(code(error) ?? '')) throw error
+      if (code(error) !== 'ENOENT') {
+        try {
+          // A new claim can recreate the base before empty-output cleanup finishes.
+          // Transfer lease-created output ownership to that lifecycle under its gate.
+          if ((await entries(paths.output)).every(entry => entry === '.autoshow-workspace-leases')) {
+            paths.outputCreated = true
+            await withGate(paths, async () => undefined)
+          }
+        } catch (error) { if (code(error) !== 'ENOENT') throw error }
+      }
+    }
   }
 }
 
@@ -82,7 +95,7 @@ const withGate = async <T>(paths: Layout, action: () => Promise<T>): Promise<T> 
   const gate = join(paths.base, 'gate'), owner = makeOwner('layout-gate')
   const deadline = Date.now() + 5_000
   while (true) {
-    if (Date.now() >= deadline) throw new Error('Workspace lease layout gate is busy; no stale owner is removed automatically')
+    if (Date.now() >= deadline) throw InfraError('Workspace lease layout gate is busy; no stale owner is removed automatically')
     await ensureLayout(paths)
     try { await createOwned(gate, owner); break } catch (error) {
       if (parentCleanupRace(error)) continue
@@ -97,9 +110,9 @@ const withGate = async <T>(paths: Layout, action: () => Promise<T>): Promise<T> 
     let state = { schemaVersion: 1, outputCreated: paths.outputCreated }
     if (!await absent(statePath)) {
       const stat = await lstat(statePath)
-      if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('Workspace lease state must be a regular file')
+      if (!stat.isFile() || stat.isSymbolicLink()) throw InfraError('Workspace lease state must be a regular file')
       const previous = JSON.parse(await readFile(statePath, 'utf8')) as typeof state
-      if (previous.schemaVersion !== 1 || typeof previous.outputCreated !== 'boolean') throw new Error('Malformed workspace lease state')
+      if (previous.schemaVersion !== 1 || typeof previous.outputCreated !== 'boolean') throw InfraError('Malformed workspace lease state')
       state = { schemaVersion: 1, outputCreated: previous.outputCreated || paths.outputCreated }
     }
     await writeFile(statePath, `${JSON.stringify(state)}\n`, { mode: 0o600 })
@@ -124,19 +137,19 @@ const withGate = async <T>(paths: Layout, action: () => Promise<T>): Promise<T> 
 export const acquireProjectMaintenanceLease = async (projectRoot: string): Promise<ProjectMaintenanceLease> => {
   const paths = await layout(projectRoot), maintenance = join(paths.base, 'maintenance'), owner = makeOwner('maintenance')
   await withGate(paths, async () => {
-    if (!await absent(maintenance)) throw new Error('Workspace maintenance lease is already held; refusing concurrent maintenance')
+    if (!await absent(maintenance)) throw InfraError('Workspace maintenance lease is already held; refusing concurrent maintenance')
     await createOwned(maintenance, owner)
     try {
       const writers = join(paths.base, 'writers')
       if (!await absent(writers)) {
         await realDirectory(writers)
-        if ((await entries(writers)).length) throw new Error('Workspace writer leases are active; refusing maintenance')
+        if ((await entries(writers)).length) throw InfraError('Workspace writer leases are active; refusing maintenance')
       }
     } catch (error) { await removeOwned(maintenance, owner); throw error }
   })
   let released = false
   return {
-    assertHeld: async () => { if (released) throw new Error('Workspace maintenance lease is released'); await assertOwner(maintenance, owner) },
+    assertHeld: async () => { if (released) throw InfraError('Workspace maintenance lease is released'); await assertOwner(maintenance, owner) },
     release: async () => {
       if (released) return
       await withGate(paths, async () => { await removeOwned(maintenance, owner) })
@@ -149,17 +162,17 @@ export const acquireProjectWriterLease = async (projectRoot: string, options: { 
   const paths = await layout(projectRoot), owner = makeOwner('writer'), writers = join(paths.base, 'writers'), claim = join(writers, owner.token)
   await withGate(paths, async () => {
     const maintenance = join(paths.base, 'maintenance')
-    if (!await absent(maintenance)) throw new Error('Workspace maintenance lease is active; retry this command after maintenance')
+    if (!await absent(maintenance)) throw InfraError('Workspace maintenance lease is active; retry this command after maintenance')
     await directory(writers)
     await createOwned(claim, owner)
     try {
       await options.afterWriterClaim?.()
-      if (!await absent(maintenance)) throw new Error('Workspace maintenance began while the writer claimed its lease')
+      if (!await absent(maintenance)) throw InfraError('Workspace maintenance began while the writer claimed its lease')
     } catch (error) { await removeOwned(claim, owner); throw error }
   })
   let released = false
   return {
-    assertHeld: async () => { if (released) throw new Error('Workspace writer lease is released'); await assertOwner(claim, owner) },
+    assertHeld: async () => { if (released) throw InfraError('Workspace writer lease is released'); await assertOwner(claim, owner) },
     release: async () => {
       if (released) return
       await withGate(paths, async () => { await removeOwned(claim, owner) })
@@ -182,7 +195,7 @@ export const withProjectWriterLease = async <T>(projectRoots: readonly string[],
 
 const existingDirectoryAncestor = async (path: string): Promise<string> => {
   let current = resolve(path)
-  while (await absent(current)) { const parent = dirname(current); if (parent === current) throw new Error(`No existing directory ancestor: ${path}`); current = parent }
+  while (await absent(current)) { const parent = dirname(current); if (parent === current) throw InfraError(`No existing directory ancestor: ${path}`); current = parent }
   current = await realpath(current)
   if (!(await lstat(current)).isDirectory()) current = dirname(current)
   return current
