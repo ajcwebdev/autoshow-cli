@@ -26,17 +26,18 @@ bun autoshow links <global-section>... --provider <name> [section...] [--provide
 bun autoshow links https://example.com/docs
 bun autoshow links input/examples/batch/provider-docs.md
 ```
+
 Add `--refresh` to any of these invocations.
 
 ## Overview
 
-Each run creates a timestamped directory under `output/` (or `--output-root`) and writes the combined markdown inside it. Pass `--output-dir <dir>` to pin that run directory instead. A `--refresh` run without `--output-dir` reuses `docs/links/<selection>-links/`; see [Refresh](#refresh).
+Plain runs create a timestamped directory under `output/` (or `--output-root`) and write the combined markdown inside it. Pass `--output-dir <dir>` to pin that run directory instead. A `--refresh` run without `--output-dir` reuses `docs/links/<selection>-links/`; see [Refresh](#refresh).
 
 - Curated selections write `<run-dir>/<selection>-links.md`, for example `output/<timestamp>_all-all-links/all-all-links.md`
 - Direct URL mode writes `<run-dir>/<host-and-path>-links.md`, for example `blog-railway-com-p-railway-for-agents-links.md` from `https://blog.railway.com/p/railway-for-agents`
 - Input file mode writes `<run-dir>/<input-basename>-links.md`, for example `provider-docs-links.md` from `input/examples/batch/provider-docs.md`
 - Duplicate URLs are fetched once, in first-seen order
-- HTML pages are converted to markdown; markdown and text pages are appended as-is
+- HTML pages are converted to markdown; markdown and text pages are included without HTML conversion
 
 ## Selection syntax
 
@@ -59,6 +60,7 @@ Pass one remote `http://` or `https://` URL to fetch only that page instead of t
 ```bash
 bun autoshow links https://example.com/docs
 ```
+
 Direct URL mode is standalone. Do not combine it with provider selectors, section selectors, input file mode, or another direct URL.
 
 ## Input file mode
@@ -68,7 +70,8 @@ Pass one local `.md` or `.txt` file to fetch URLs from that file instead of the 
 ```bash
 bun autoshow links input/examples/batch/provider-docs.md
 ```
-The maintained list above contains official Spider and Zyte billing documentation URLs and requires network access to fetch them. The file may contain bare `http://` or `https://` URLs and markdown links like `[docs](https://example.com/docs)`. Headings, comments, blank lines, bullets, local file paths, and other non-URL prose are ignored.
+
+The file may contain bare `http://` or `https://` URLs and markdown links like `[docs](https://example.com/docs)`. Headings, comments, blank lines, local file paths, and other non-URL prose are ignored; URLs in bullet lists are included.
 
 Input file mode is standalone. Do not combine it with provider selectors, section selectors, or direct URL mode.
 
@@ -92,7 +95,7 @@ Accepted provider selectors are the lowercase names below. Fetch other documenta
 | `--provider mistral`        | `general`, `llmstxt`, `models`, `ocr`, `stt`                                           |
 | `--provider openai`         | `general`, `image`, `llmstxt`, `models`, `ocr`, `stt`, `text`, `tts`                   |
 | `--provider scrapecreators` | `general`, `llmstxt`, `stt`                                                            |
-| `--provider soniox`         | `general`, `llmstxt`, `stt`                                                            |
+| `--provider soniox`         | `general`, `llmstxt`, `stt`, `tts`                                                     |
 | `--provider speechmatics`   | `general`, `llmstxt`, `stt`                                                            |
 | `--provider spider`         | `general`, `llmstxt`, `url`                                                            |
 | `--provider together`       | `general`, `llmstxt`, `models`, `stt`                                                  |
@@ -131,10 +134,6 @@ bun autoshow links --provider openai general text
 
 bun autoshow links --provider openai models --provider gemini text
 
-bun autoshow links --provider elevenlabs tts --provider inworld tts
-
-bun autoshow links --provider gemini tts
-
 bun autoshow links --provider gemini general models tts
 
 bun autoshow links tts --provider openai general text --provider grok video
@@ -143,8 +142,6 @@ bun autoshow links --refresh
 
 bun autoshow links --refresh --provider openai models --output-dir output/<earlier-run>
 ```
-
-Gemini's `tts` section includes its current and preview TTS model cards, speech generation and control guides, voice design and replication, and the legacy Generate Content equivalents. Include `general models` to also capture shared pricing, release notes, API references, limits, and deprecations.
 
 ## Output format
 
@@ -158,7 +155,7 @@ Each fetched page is appended to the combined file with a source marker. Failed 
 
 ## Refresh
 
-Pass `--refresh` to compare a selection with its previous refresh. The run rewrites the markdown bundle and writes a JSON sidecar beside it, replacing `.md` with `.refresh.json`. From the second run on it also writes a changes file, replacing `.md` with `.changes.md`.
+Pass `--refresh` to compare a selection with its previous refresh. The run rewrites the markdown bundle and writes a JSON sidecar beside it, replacing `.md` with `.refresh.json`. When the previous bundle and refresh metadata are available, it also writes a changes file, replacing `.md` with `.changes.md`.
 
 Without `--output-dir`, a refresh reuses one git-ignored directory per selection under `docs/links/`. `bun autoshow links --refresh` writes `docs/links/all-all-links/`. `--provider elevenlabs --provider inworld` writes `docs/links/elevenlabs-all--inworld-all-links/`. `--output-dir` pins another directory. `--output-root` does not move a refresh that omits `--output-dir`.
 
@@ -177,7 +174,7 @@ A refresh that selects every provider, or each `--provider` named without sectio
 
 ### Findings
 
-Findings are printed as a warning after the sidecar is written and stored in the sidecar. The command still exits 0, including when a fetch fails. A redirect that only adds or removes a trailing slash, or a leading `www.`, is not reported.
+Findings are printed as warnings and stored in the sidecar. They do not change the command's exit status, including when a fetch fails. Redirects that only change the URL scheme, a trailing slash, or a leading `www.` are not reported.
 
 | Status               | Meaning                                                                                               |
 | -------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -185,8 +182,8 @@ Findings are printed as a warning after the sidecar is written and stored in the
 | `fetch-failed`       | The request errored or timed out after retries.                                                       |
 | `empty`              | The response body was empty.                                                                          |
 | `login-redirect`     | The page redirects to a sign-in URL, so the bundle holds a login page.                                |
-| `duplicate-target`   | The page redirects to a URL already fetched in this run.                                              |
-| `redirect`           | The page redirects to a URL that was not requested.                                                   |
+| `duplicate-target`   | The page redirects to another configured URL or another source URL selected in this run.              |
+| `redirect`           | The page redirects to another URL that is not a configured or selected source.                        |
 | `duplicate-content`  | The body matches an earlier link in the run. The detail names that link.                              |
 | `shrunk`             | The page has at most 60% of the tokens of its previous successful refresh.                            |
 | `conversion-loss`    | Identifiers the previous capture held are still on the page and missing from this run's markdown.     |

@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs'
-import { join, relative, resolve, sep } from 'node:path'
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
 import type { CharacterCatalogEntry, CharacterKey, CharacterSketchManifest, CharacterSketchRegistration, CharacterSketchView } from '~/types'
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
@@ -54,11 +54,11 @@ const assertSafeManifestPath = (root: string, path: string, label: string): void
   }
 }
 
-export const readCharacterSketchManifest = async (charactersRoot = getCharactersRoot()): Promise<CharacterSketchManifest> => {
+export const readCharacterSketchManifestSync = (charactersRoot = getCharactersRoot()): CharacterSketchManifest => {
   const path = getCharacterSketchManifestPath(charactersRoot)
   if (!existsSync(path)) return { schemaVersion: 1, sketches: [] }
   try {
-    const manifest = v.parse(CharacterSketchManifestSchema, JSON.parse(await Bun.file(path).text()))
+    const manifest = v.parse(CharacterSketchManifestSchema, JSON.parse(readFileSync(path, 'utf8')))
     const keys = new Set<string>()
     const generationIds = new Set<string>()
     for (const sketch of manifest.sketches) {
@@ -81,12 +81,15 @@ export const readCharacterSketchManifest = async (charactersRoot = getCharacters
   }
 }
 
-const readRegisteredCharacterSketch = async (
+export const readCharacterSketchManifest = async (charactersRoot = getCharactersRoot()): Promise<CharacterSketchManifest> => readCharacterSketchManifestSync(charactersRoot)
+
+const readRegisteredCharacterSketch = (
   key: CharacterKey,
   character?: CharacterCatalogEntry,
-): Promise<CharacterSketchRegistration | null> => {
+  charactersRoot = getCharactersRoot(),
+): CharacterSketchRegistration | null => {
   const catalogCharacter = character ?? loadCharacterCatalog().get(key)
-  const manifest = await readCharacterSketchManifest()
+  const manifest = readCharacterSketchManifestSync(charactersRoot)
   const registration = manifest.sketches.find(sketch => sketch.characterKey === key)
   if (!registration) return null
   if (registration.sourceImage !== catalogCharacter.image || registration.outlineSheet !== catalogCharacter.outlineSheet) {
@@ -95,13 +98,17 @@ const readRegisteredCharacterSketch = async (
       { stage: 'comic:character-sketch' }
     )
   }
-  if (!existsSync(catalogCharacter.outlineSheetPath)) {
-    throw InfraError(`Registered outline sheet for "${key}" is missing at ${catalogCharacter.outlineSheetPath}`, { stage: 'comic:character-sketch' })
+  for (const assetPath of [catalogCharacter.sourcePath, catalogCharacter.outlineSheetPath]) {
+    if (!existsSync(assetPath) || !statSync(assetPath).isFile()) {
+      throw InfraError(`Registered character reference for "${key}" is missing at ${assetPath}`, { stage: 'comic:character-sketch' })
+    }
+    const actualRelative = relative(realpathSync(charactersRoot), realpathSync(assetPath))
+    if (!actualRelative || actualRelative === '..' || actualRelative.startsWith(`..${sep}`) || isAbsolute(actualRelative)) {
+      throw ValidationError(`Registered character reference for "${key}" escapes the characters root`, { stage: 'comic:character-sketch' })
+    }
   }
-  const [sourceSha256, sheetSha256] = await Promise.all([
-    checksumFile(catalogCharacter.sourcePath),
-    checksumFile(catalogCharacter.outlineSheetPath),
-  ])
+  const sourceSha256 = new Bun.CryptoHasher('sha256').update(readFileSync(catalogCharacter.sourcePath)).digest('hex')
+  const sheetSha256 = new Bun.CryptoHasher('sha256').update(readFileSync(catalogCharacter.outlineSheetPath)).digest('hex')
   if (sourceSha256 !== registration.sourceSha256 || sheetSha256 !== registration.sheetSha256) {
     throw ValidationError(
       `Registered sketch for "${key}" is stale or tampered: the source or outline-sheet checksum does not match character-sketches.json.`,
@@ -111,11 +118,12 @@ const readRegisteredCharacterSketch = async (
   return registration
 }
 
-export const requireCurrentCharacterSketch = async (
+export const requireCurrentCharacterSketchSync = (
   key: CharacterKey,
   character?: CharacterCatalogEntry,
-): Promise<CharacterSketchRegistration> => {
-  const registration = await readRegisteredCharacterSketch(key, character)
+  charactersRoot = getCharactersRoot(),
+): CharacterSketchRegistration => {
+  const registration = readRegisteredCharacterSketch(key, character, charactersRoot)
   if (!registration) {
     throw InfraError(
       `Character "${key}" has no registered outline sheet. Run: bun autoshow comic reference-sketch --character ${key}`,
@@ -124,6 +132,11 @@ export const requireCurrentCharacterSketch = async (
   }
   return registration
 }
+
+export const requireCurrentCharacterSketch = async (
+  key: CharacterKey,
+  character?: CharacterCatalogEntry,
+): Promise<CharacterSketchRegistration> => requireCurrentCharacterSketchSync(key, character)
 
 let manifestUpdateTail: Promise<void> = Promise.resolve()
 

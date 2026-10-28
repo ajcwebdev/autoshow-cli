@@ -324,7 +324,7 @@ export const printReadyFinalImageEstimate = (
     }
     printPagePricingEstimate(result.pricing.primary)
     printImageInputEstimate(result.pricing.imageInput)
-    priceLine('Grouped pages use canonical character references followed by each distinct immutable location reference.')
+    priceLine('Grouped pages use current canonical character references followed by each distinct current location reference.')
     printPageQaEstimate(result)
     return
   }

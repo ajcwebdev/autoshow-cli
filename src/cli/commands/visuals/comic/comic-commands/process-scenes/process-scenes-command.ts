@@ -136,10 +136,9 @@ export const processScene = async ({ sceneSlug, sceneJsonPath, outputDir, concur
       if (blocking && !compiledBlocking) throw ValidationError(`No compiled blocking object exists for panel ${currentPanel.number}`, { stage: STAGE })
       const bundle = v.parse(PanelBundleDataSchema, {
         schemaVersion: 4,
-        snapshotId: manifest.snapshotId,
         title: sceneData.title,
         location: sceneData.location,
-        panels: [{ ...currentPanel, number: panelNum, sourceSegments, locationSnapshotId: locationSnapshot.snapshotId, ...(currentPanel.designReferences?.length ? { designSnapshotId: designManifest?.snapshotId, designReferenceKeys: currentPanel.designReferences.map(reference => reference.key) } : {}) }],
+        panels: [{ ...currentPanel, number: panelNum, sourceSegments, ...(currentPanel.designReferences?.length ? { designReferenceKeys: currentPanel.designReferences.map(reference => reference.key) } : {}) }],
         ...(blocking && compiledBlocking ? { blocking: compiledBlocking, planSha256: blocking.compilation.planSha256 } : {}),
       })
       panelContent += `${formatSourceSegmentsMarkdown(sourceSegments)}\n\n`
@@ -157,8 +156,8 @@ export const processScene = async ({ sceneSlug, sceneJsonPath, outputDir, concur
     stats.success++
     comicLog.line('panel-prompts generated', [
       `panels=${sceneData.panels.length}`,
-      `snapshot=${manifest.snapshotId}`,
-      `locationSnapshots=${locationManifest.snapshots.length}`,
+      'references=live-canonical',
+      `locations=${locationManifest.snapshots.length}`,
       `designs=${designManifest?.designs.length ?? 0}`,
       `characters=${manifest.characters.length}`,
       `coverage=${coverageReport.coveredSegments}/${coverageReport.totalSegments}`,

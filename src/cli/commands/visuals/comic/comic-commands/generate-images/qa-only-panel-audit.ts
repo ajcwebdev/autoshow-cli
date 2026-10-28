@@ -9,7 +9,7 @@ import { extractPanelBundleData, getPanelNumberFromName, getPromptBundleFilename
 import { getPanelComicImagePath } from '../../comic-utils/scene-utils'
 import { selectComicPanels } from './comic-page-utils'
 import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
-import { judgeComicPage, resolveComicQaProvider, writePageQaReports } from './comic-page-qa'
+import { judgeComicPage, judgePageWithBoundInputs, resolveComicQaProvider, writePageQaReports } from './comic-page-qa'
 import { runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 import { createComicRunId } from '../../comic-utils/comic-run-id'
 import { judgePanelContinuity } from './continuity-qa'
@@ -106,8 +106,7 @@ export const runQaOnlyPanelAudit = async (options: GenerateImagesCommandOptions,
     let continuityError: string | undefined
     if (pageJudgeEnabled) {
       try {
-        const reusable = continuityRequired ? await readReusablePageQaEntryForAudit(input.panelPath, judgeModel, { continuityRequired: true }) : undefined
-        const judged = reusable ?? await runComicHostedRequest(scheduling, provider, 'comic-qa', `${options.sceneSlug}:qa-only:panel-${input.panelNumber}`, index, async () => await judge({
+        const request: PageQaRequest = {
           pageNumber: input.panelNumber,
           pagePath: input.panelPath,
           panelData: input.bundleData,
@@ -120,7 +119,9 @@ export const runQaOnlyPanelAudit = async (options: GenerateImagesCommandOptions,
           ...(input.references.rosterCharacterReferences?.length ? { rosterCards: input.references.rosterCharacterReferences } : {}),
           ...(options.blockingHardKeys?.length ? { blockingHardKeys: options.blockingHardKeys } : {}),
           model: judgeModel,
-        }))
+        }
+        const reusable = continuityRequired ? await readReusablePageQaEntryForAudit(input.panelPath, judgeModel, { continuityRequired: true, request }) : undefined
+        const judged = reusable ?? await runComicHostedRequest(scheduling, provider, 'comic-qa', `${options.sceneSlug}:qa-only:panel-${input.panelNumber}`, index, async () => await judgePageWithBoundInputs(request, judge))
         entry = { ...judged, pageNumber: input.panelNumber, panelNumbers: [input.panelNumber], outputFile: basename(input.panelPath) }
       } catch (caught) {
         error = caught instanceof Error ? caught.message : String(caught)

@@ -10,7 +10,7 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice delete <registration-id> [flags]
 ```
 
-`delete` works only for a ready voice this project owns. If another current registration still uses that provider voice, [retire](./08-retire.md) it first.
+`delete` requires a ready, deletion-eligible remote voice owned by this project. If another current registration shares that provider voice, [retire](./08-retire.md) the other registration first.
 
 ### Options
 
@@ -18,8 +18,8 @@ bun autoshow voice delete <registration-id> [flags]
 | -------------------------- | ------------------------------------------------------------------- |
 | `--generation-id <sha256>` | Optional unless more than one generation could match                |
 | `--confirm-voice-id <id>`  | Required exact provider resource ID confirmation                    |
-| `--reconcile`              | Finish an ambiguous voice creation without creating the voice again |
-| `--price`                  | Validate and estimate without provider calls or artifact writes     |
+| `--reconcile`              | Finish ambiguous provisioning without creating the voice again      |
+| `--price`                  | Check resource eligibility and confirmation without calls or writes |
 
 ### Examples
 

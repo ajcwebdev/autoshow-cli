@@ -10,6 +10,7 @@ bun autoshow help <command>
 bun autoshow <command> --help
 bun autoshow --version
 ```
+
 `bun as <command>` is a shorter equivalent. Put flags after the command. Prefix a filename that begins with `-` with `./` so it is not parsed as a flag.
 
 Use `--help-topic` to print one topic without an input and without running the command. `--help` lists the topics.
@@ -24,14 +25,14 @@ bun autoshow resume --help-topic concurrency
 
 Shared across commands unless a command's help omits them:
 
-| Flag                      | Effect                                                                                                |
-| ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `--config-path <path>`    | Config file path (default: `config/autoshow.json` in the project root).                               |
-| `--output-root <dir>`     | Base directory for timestamped run folders (default: `./output`).                                     |
-| `--output-dir <dir>`      | Pin the run directory instead of `output/<timestamp>_<slug>`.                                         |
-| `--characters-root <dir>` | Comic/voice character reference directory (default: `input/characters`). `voice` and `comic` only.    |
-| `--bin-dir <dir>`         | Prefer tool binaries in this directory before installed tools and `PATH`.                             |
-| `--allow-over-budget`     | Continue when a cost estimate exceeds the configured `--max-cents` budget. The override is not saved. |
+| Flag                      | Effect                                                                                                           |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `--config-path <path>`    | Config file path (default: `config/autoshow.json` in the project root).                                          |
+| `--output-root <dir>`     | Base directory for timestamped run folders (default: `./output`).                                                |
+| `--output-dir <dir>`      | Pin the run directory instead of `output/<timestamp>_<slug>`. Requires a command that creates one run directory. |
+| `--characters-root <dir>` | Comic/voice character reference directory (default: `input/characters`). `voice` and `comic` only.               |
+| `--bin-dir <dir>`         | Prefer tool binaries in this directory before installed tools and `PATH`.                                        |
+| `--allow-over-budget`     | Continue above the budget set with `config --max-cents`. The override is not saved.                              |
 
 `bun autoshow --help-topic globals` lists these controls. Each command's `--help` shows only the globals it accepts.
 
@@ -55,4 +56,3 @@ Color is enabled on a TTY. `NO_COLOR` disables color whenever it is set, includi
 ```bash
 bun autoshow setup --show --json 2>diagnostics.jsonl | jq '.data'
 ```
-Output artifacts remain in the command's run directory.

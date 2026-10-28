@@ -1,6 +1,6 @@
 # Music Tests
 
-Local lyric-video rendering plus hosted music generation for the `music` command. These `bun t` commands may call paid or quota-limited providers.
+Tests cover local lyric-video rendering and hosted music generation for `music`. The local suite uses installed media tools and whisperfile; the hosted suite may incur provider charges.
 
 ## Quick Start
 
@@ -20,6 +20,8 @@ Live music generation tests need the matching provider key: `ELEVENLABS_API_KEY`
 bun t test/test-cases/e2e/service/audio/music/ --price
 bun t test/test-cases/e2e/service/audio/music/ --budget 2500
 ```
+
+`--price` runs mapped estimates without generating audio. `--budget 2500` can run paid tests whose mapped estimates are at most 25¢ per test key. Total spending can exceed that threshold.
 
 ## Related Docs
 

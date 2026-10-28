@@ -1,6 +1,6 @@
 # voice audition
 
-Synthesize the pre-approval audition set.
+Synthesize the pre-approval audition set for a ready draft registration.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
@@ -14,15 +14,15 @@ Remove `--price` only when you intend to purchase the synthesis. `--price` still
 
 ### Options
 
-| Flag                           | Description                                                     |
-| ------------------------------ | --------------------------------------------------------------- |
-| `--generation-id <sha256>`     | Optional unless more than one generation could match            |
-| `--representative-line <text>` | Required representative script line for the audition set        |
-| `--takes <n>`                  | Takes per audition passage, 1-5; default `1`                    |
-| `--max-cents <n>`              | Maximum authorized provider spend in cents                      |
-| `--approve`                    | Approve the auditioned generation in the same run               |
-| `--actor-id <id>`              | Opaque approving actor ID; required when `--approve` is set     |
-| `--price`                      | Validate and estimate without provider calls or artifact writes |
+| Flag                           | Description                                                            |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| `--generation-id <sha256>`     | Optional unless more than one generation could match                   |
+| `--representative-line <text>` | Required representative script line for the audition set               |
+| `--takes <n>`                  | Takes per audition passage, 1-5; default `1`                           |
+| `--max-cents <n>`              | Reject an audition estimate above this many cents; no cap when omitted |
+| `--approve`                    | Approve the auditioned generation in the same run                      |
+| `--actor-id <id>`              | Opaque approving actor ID; required when `--approve` is set            |
+| `--price`                      | Validate and estimate without provider calls or artifact writes        |
 
 ### Examples
 

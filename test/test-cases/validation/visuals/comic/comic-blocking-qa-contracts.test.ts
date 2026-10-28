@@ -9,6 +9,7 @@ import {
   buildComicPageQaPrompt,
   buildPageQaImageInputs,
   getPageQaHardFailureKeys,
+  fingerprintPageQaInputs,
   hasHardPageQaFailure,
   isBlockingClassFailureOnly,
   isBlockingMaterialFailure,
@@ -22,12 +23,14 @@ import { generateImagesCommandDefinition } from '~/cli/commands/visuals/comic/co
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
+import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import type { BlockingHardKeyPolicy, ComicImageRequestInput, CompiledPanelBlocking, PageQaEntry, PageQaRequest, PageQaResult, PanelBundleData } from '~/types'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
+import { createLiveLocationFixture } from '../../../../test-utils/live-location-reference-fixture'
 
 const temporaryDirectories: string[] = []
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
-const sha = new Bun.CryptoHasher('sha256').update(tinyPng).digest('hex')
 const planSha256 = 'a'.repeat(64)
 const cargoBayLocation = { key: 'cargo-bay', raw: 'cargo-bay' }
 
@@ -71,25 +74,8 @@ const createSceneFixture = async (sceneSlug: string, options: { blocking?: boole
   const runDirectory = await makeTempDir('autoshow-comic-blocking-qa-')
   temporaryDirectories.push(runDirectory)
   beginSceneRun(sceneSlug, { outputDir: runDirectory })
-  for (const key of ['hero', 'rival']) {
-    const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', key)
-    await mkdir(characterRoot, { recursive: true })
-    await Bun.write(join(characterRoot, 'reference.png'), tinyPng)
-  }
-  await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({
-    schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z',
-    characters: ['hero', 'rival'].map(key => ({
-      key, name: key === 'hero' ? 'Hero' : 'Rival', description: `Test ${key}`, sourceSketchVersion: 'v1',
-      assets: [
-        { role: 'sketch-sheet', path: `assets/character-references/character-snapshot/${key}/reference.png`, sha256: sha },
-        { role: 'source-image', path: `assets/character-references/character-snapshot/${key}/reference.png`, sha256: sha },
-      ],
-    })),
-  }))
-  const locationSheet = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'cargo-bay.png')
-  await mkdir(dirname(locationSheet), { recursive: true })
-  await Bun.write(locationSheet, tinyPng)
-  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots: [{ schemaVersion: 3, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth.', sourceScripts: ['scripts/02-script/01.md'], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: 'assets/location-references/location-snapshot/cargo-bay.png', label: 'establishing view of cargo-bay' }] }] }))
+  await createLiveCharacterFixture(runDirectory, ['hero', 'rival'].map(key => ({ key, name: key === 'hero' ? 'Hero' : 'Rival', description: `Test ${key}`, image: `${key}.png`, outlineSheet: `${key}.png`, aliases: [] })))
+  await createLiveLocationFixture(runDirectory, [{ key: 'cargo-bay', name: 'Cargo Bay', specification: 'A loading door stays left of a fixed control booth.', sourceScripts: ['scripts/02-script/01.md'] }], tinyPng)
   const directory = join(runDirectory, 'metadata', 'panel-prompts', 'panel-01')
   await mkdir(directory, { recursive: true })
   await Bun.write(join(directory, 'prompt.md'), `Generate panel independently.\n\n\`\`\`json\n${JSON.stringify(panelBundle(1, options), null, 2)}\n\`\`\`\n`)
@@ -137,6 +123,7 @@ const rawPayload = (panel: Record<string, unknown>): string => JSON.stringify({
 describe('blocking-aware page QA and the blocking-class restart lane', () => {
   afterEach(async () => {
     resetSceneRunContext()
+    configureCharactersRoot('input/characters')
     while (temporaryDirectories.length > 0) await rm(temporaryDirectories.pop()!, { recursive: true, force: true })
   })
 
@@ -412,12 +399,13 @@ describe('blocking-aware page QA and the blocking-class restart lane', () => {
     const pagePath = join(directory, 'panel-01.png')
     await Bun.write(pagePath, tinyPng)
     const entry = entryFor(auditResult(auditPanel()))
-    await writePageQaReports(directory, [{ ...entry, outputFile: 'panel-01.png' }])
+    const request: PageQaRequest = { pageNumber: 1, pagePath, panelData: panelBundle(1), identityCards: [], locationSheets: [], model: 'gpt-6.1-sol' }
+    await writePageQaReports(directory, [{ ...entry, outputFile: 'panel-01.png', inputSha256: await fingerprintPageQaInputs(request) }])
     expect(PAGE_QA_REPORT_SCHEMA_VERSION).toBe(6)
-    expect(await readReusablePageQaEntry(pagePath, 'gpt-6.1-sol')).toBeDefined()
+    expect(await readReusablePageQaEntry(pagePath, 'gpt-6.1-sol', request)).toBeDefined()
     const report = JSON.parse(await Bun.file(join(directory, 'page-qa-report.json')).text()) as Record<string, unknown>
     await Bun.write(join(directory, 'page-qa-report.json'), JSON.stringify({ ...report, schemaVersion: 4 }, null, 2))
-    expect(await readReusablePageQaEntry(pagePath, 'gpt-6.1-sol')).toBeUndefined()
+    expect(await readReusablePageQaEntry(pagePath, 'gpt-6.1-sol', request)).toBeUndefined()
   })
 
   test('validates --blocking-hard-keys against the hard-candidate vocabulary', () => {

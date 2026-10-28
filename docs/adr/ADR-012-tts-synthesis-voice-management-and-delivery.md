@@ -4,15 +4,15 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-10-17
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
-- **Supersession:** Absorbs the shared TTS, voice-management, rendering, slot, and compact authority of "Add Character Voice References and Multi-Speaker Script-to-Audio", whose comic scene-run authority moved to [ADR-013](ADR-013-comic-scene-audio-and-presentation.md), and all of "Master TTS Delivery Audio Outside Paid Slot Identity". The rule that `resume` adopts a pre-mastering canonical directory's legacy chunking and 16 kHz output, which [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) cites, belongs to this record. This is the standalone `tts` and `voice` command record.
+- **Supersession:** Absorbs the shared TTS and voice-management authority of "Add Character Voice References and Multi-Speaker Script-to-Audio" and all of "Master TTS Delivery Audio Outside Paid Slot Identity". Comic scene-run authority belongs to [ADR-013](ADR-013-comic-scene-audio-and-presentation.md).
 
 ## Context
 
-`tts` could parse a multi-speaker script, map speakers, and concatenate turn files locally, but a speaker map was only a speaker string plus a voice string or path. It could not express provider-specific casting, design or clone state, consent, delivery controls, or a stable voice identity. Per-turn voice overrides were ignored while the finished metadata recorded them as applied, and there was no command for creating, auditioning, approving, or snapshotting a character voice. Provider capabilities are richer than one voice string, and comic has to reach them through shared TTS rather than a second stack.
+The original `tts` workflow could map speakers and concatenate turn files, but it could not represent provider-specific casting, consent, voice lifecycle, or stable character identity. Per-turn voice overrides were ignored while metadata recorded them as applied. Comic needed these capabilities through shared TTS rather than a second synthesis stack.
 
-Delivery had a separate quality problem. Every hosted single-voice run was stored as 16 kHz mono PCM even when the provider returned 24 to 48 kHz audio. Long text was split at the last newline or space before the provider limit, chunks were joined with whatever silence the provider left at each edge, and there was no loudness normalization, no container other than WAV, no tags, and no way to assemble a directory of chapters into one book. Purchased audio is identified separately from the delivered file, and that identity included the output format, so changing the format through the existing mastering settings would have orphaned every previously purchased file. ElevenLabs request stitching is unavailable for `eleven_v3`, so cross-chunk continuity could not come from that provider.
+Delivery also reduced hosted audio to 16 kHz mono, split long text without sentence-aware boundaries, and lacked loudness normalization or book exports. Changing the output format within the existing purchased-audio identity would have prevented reuse of already purchased speech. Delivery improvements therefore needed a separate identity and a recovery path that preserved paid audio.
 
 This record works inside the canonical `manifest.json` and no-provider `resume --price` rules of [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), the shared hosted lanes of [ADR-007](ADR-007-decompose-work-into-chunks-and-concurrency-lanes.md), and the model-selector contract of [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), which leaves voice identity and dialogue capability to this decision.
 
@@ -27,7 +27,7 @@ Why now: multi-character script-to-audio was the next workflow requirement and i
 - **Option:** Build shared voice-identity, provisioning, capability, dialogue-rendering, timing, and artifact primitives beneath `tts` and comic, with native dialogue where a model supports it and a truthful segmented baseline everywhere else
 - **Pros:** Repairs the contract once for every provider; keeps provider-native strengths; supports immutable voice references, local repair, and resume
 - **Cons:** Largest initial change; two render strategies and lifecycle state to maintain
-- **Quantitative Notes:** Eight managed models, two of them native dialogue
+- **Quantitative Notes:** Shared contracts cover every active TTS provider
 
 **Option 2**
 
@@ -55,14 +55,14 @@ Why now: multi-character script-to-audio was the next workflow requirement and i
 - **Option:** Use only provider-native dialogue
 - **Pros:** Maximizes provider-owned context
 - **Cons:** Excludes providers without native dialogue, fails on speaker or length ceilings, and weakens single-line repair
-- **Quantitative Notes:** Two current native models
+- **Quantitative Notes:** n/a
 
 **Option 6**
 
 - **Option:** Add voice fields directly to the visual character catalog
 - **Pros:** One character file to inspect
 - **Cons:** Couples provider resources, consent, and audio settings to a strict visual schema
-- **Quantitative Notes:** Rejected; the visual catalog stays at schema version 3
+- **Quantitative Notes:** n/a
 
 ### Delivery mastering
 
@@ -71,14 +71,14 @@ Why now: multi-character script-to-audio was the next workflow requirement and i
 - **Option:** Keep purchased-audio identity on its historical output format, describe final audio with a separate delivery profile that identifies the render only, master once from retained provider audio, and treat encoding, tags, cover art, and book assembly as exports outside render identity
 - **Pros:** Previously purchased audio stays usable under a new profile; a recovered run matches a normal run; the same behavior applies to every hosted provider
 - **Cons:** Purchased-audio identity still records the historical format; TTS delivery settings are separate from comic and soundscape mastering
-- **Quantitative Notes:** Re-rendering a retained run under the `audiobook` profile made zero provider requests, and loudness landed within 0.5 LU of the `-19` LUFS target
+- **Quantitative Notes:** Local contracts verify re-mastering retained audio with zero provider requests
 
 **Option 2**
 
 - **Option:** Change the defaults of the existing mastering settings and send that profile through the hosted chunk pipeline
 - **Pros:** Smallest change
 - **Cons:** Those settings identify purchased audio, so every existing directory would buy its audio again
-- **Quantitative Notes:** About $30 of retained `eleven_v3` audio per 300,000-character book would be orphaned
+- **Quantitative Notes:** Every retained chunk would require another purchase
 
 **Option 3**
 
@@ -93,30 +93,28 @@ Provider eligibility follows [ADR-010’s billing policy](ADR-010-hosted-model-r
 
 One shared, provider-neutral script-to-audio subsystem sits beneath `tts` and comic. It owns provider capabilities, voice provisioning and lifecycle, explicit per-invocation voice dispatch, native and segmented rendering, timing, scheduling, synthesis metadata, and delivery mastering. Comic consumes it for scene runs under [ADR-013](ADR-013-comic-scene-audio-and-presentation.md) and never creates provider clients or a second TTS stack.
 
-Managed models are Gemini `gemini-3.8-flash-tts` and `gemini-3.8-flash-lite-tts`, ElevenLabs `eleven_v3`, Grok `grok-tts`, OpenAI `gpt-4o-mini-tts-2025-12-15`, and Inworld `realtime-tts-2`. Import applies to all six providers, including Soniox `tts-rt-v2`. Catalog, inspect, and delete apply to every provider except OpenAI and Soniox. Design applies to Gemini, ElevenLabs, and Inworld. Clone applies to Gemini, ElevenLabs, Grok, and Inworld. Every provider must receive an explicit voice on each turn or fail locally with a model-specific capability error. No provider may silently reuse a default voice.
+Active models and management capabilities come from the TTS and voice registries, with their current supported combinations documented in the [TTS overview](../commands/04-audio/tts/overview.md) and [voice overview](../commands/04-audio/voice/00-voice-overview.md). Each synthesis request receives the resolved voice explicitly, including a documented default for single-voice runs; speaker mappings cannot silently fall back to another voice.
 
 Purchased speech keeps the historical output format in its identity. A separate delivery profile, selected with `--tts-audio-profile` and the related mastering flags, identifies the render, and one mastering step produces the delivered file from the provider audio already stored for that purchase.
 
 This applies to:
 
 - Standalone `tts` and its `resume` path for every hosted provider: single-voice, segmented multi-speaker, and native dialogue.
-- `voice` catalog, design, clone, import, inspect, and delete actions for providers that declare those capabilities, over stock, saved, designed, cloned, or request-time reference voices to the extent each provider supports them.
+- `voice` registration, catalog, and lifecycle actions for supported stock, saved, designed, and cloned voices.
 - Chunk planning, seam mastering, loudness normalization, exports, tags, cover art, book assembly, the pronunciation lexicon, and text preflight.
 
 It does not apply to:
 
-- Azure, Google Cloud TTS, Polly, or Resemble, which are not added before the shared contracts are stable.
 - Treating configured credentials as proof of plan-, approval-, verification-, or region-gated voice capabilities.
 - Implicit remote voice creation during synthesis, configuration loading, resume, cleanup, or `--price`, or cloning without recorded provenance and consent.
-- Hosted lane ramp, rate-limit recovery, and work-selector fairness, which belong to [ADR-007](ADR-007-decompose-work-into-chunks-and-concurrency-lanes.md). This record only joins dialogue turns to those lanes.
-- Comic scene runs, voice briefs, scene snapshots, dialogue plans, `--delivery-policy`, soundscape, and presentation, which belong to [ADR-013](ADR-013-comic-scene-audio-and-presentation.md). Comic segmented planning stays on the legacy splitter, and the visual character catalog does not embed voice fields.
+- Hosted lane ramp, rate-limit recovery, and work scheduling, which belong to [ADR-007](ADR-007-decompose-work-into-chunks-and-concurrency-lanes.md). This record only joins dialogue turns to those lanes.
+- Comic scene runs, voice briefs, scene snapshots, dialogue plans, `--delivery-policy`, soundscape, and presentation, which belong to [ADR-013](ADR-013-comic-scene-audio-and-presentation.md). The visual character catalog does not embed voice fields.
 - Retry classification and the authorization semantics of `--allow-ambiguous-redispatch`, which belong to [ADR-005](ADR-005-cli-error-result-and-retry-contract.md). This record applies that authorization to persisted TTS slots.
 - Provider continuity fields. ElevenLabs stitching stays unused.
-- Live paid provider runs as verification.
 
 ### Commands
 
-`tts` synthesizes with an existing stock, designed, or cloned voice, on every implemented model. `voice` manages durable catalog, design, clone, inspect, and delete resources for providers that declare those capabilities; providers without a declared management capability stay synthesis-only. `comic reference-voice` forwards to the same actions as a deprecated alias for one compatibility release ([ADR-006](ADR-006-top-level-command-boundaries-and-deprecations.md)).
+`tts` synthesizes with an existing stock, designed, or cloned voice. `voice` manages registration and lifecycle; its `list` action also provides local inspection and supported remote catalogs. Remote design, clone, and delete actions require declared provider capabilities. `comic reference-voice` remains a deprecated alias ([ADR-006](ADR-006-top-level-command-boundaries-and-deprecations.md)).
 
 Expressiveness stays model-specific. There is no shared delivery-tag language; exact tags and request controls are in the [TTS command docs](../commands/04-audio/tts/overview.md).
 
@@ -128,42 +126,48 @@ A declared capability, an implemented adapter, and current-account access are se
 2. Execution readiness: authorized read-only remote inspection after local checks pass.
 3. Provisioning and synthesis: explicitly selected provider-mutating phases.
 
-`tts` and `comic generate-audio` synthesize and apply dialogue controls but cannot create or delete remote voices. Only `voice` accepts creation, clone, design, import, consent, and lifecycle inputs. Voice design is two-phase: create a remote candidate, then approve the registration locally. Cloning requires recorded provenance and consent. Remote deletion requires an explicit management action. Voice assets and consent records live in a protected store outside output roots.
+`tts` and `comic generate-audio` synthesize and apply dialogue controls but cannot create or delete remote voices. Only `voice` accepts creation, clone, design, import, consent, and lifecycle inputs. Voice design separates candidate creation and saving from local audition and approval. Cloning requires recorded provenance and consent. Remote deletion requires an explicit management action. Voice assets and consent records live in a protected store outside output roots.
 
 `voice <action>` is the one management entry point for standalone and comic character voices. Import, design, and clone stay separate operations because local registration, paid design preview, and authorized sample cloning have different consent and lifecycle boundaries. Approval, audition, retirement, and deletion also stay separate: approval promotes existing evidence locally, audition can synthesize paid audio, retirement changes local lifecycle state, and deletion can remove a remote resource. Usage is in the [voice overview](../commands/04-audio/voice/00-voice-overview.md).
 
 ### Rendering, resume, and compact
 
-`--mode` selects `auto`, `native`, or `segmented`. `auto` uses native rendering when the model, account, speaker count, turn lengths, and voice registrations fit provider limits, and segmented rendering otherwise. `native` requires native multi-speaker dialogue and fails preflight when a constraint is violated. `segmented` synthesizes each turn independently, then normalizes timing and assembles locally. Native rendering is ElevenLabs `eleven_v3` Text-to-Dialogue and Gemini TTS multi-speaker synthesis; every other model is segmented, and authored overlaps or local voice-effect filters force segmented rendering.
+Standalone `tts` automatically selects native dialogue when the model and speaker mappings meet its constraints, and segmented rendering otherwise. Native rendering uses ElevenLabs `eleven_v3` Text-to-Dialogue or eligible Gemini TTS multi-speaker synthesis. Gemini native dialogue requires two eligible stock voices. Segmented rendering synthesizes turns independently and assembles them locally; authored overlaps and local voice effects require this strategy. Explicit `--mode` selection belongs to comic scene audio under [ADR-013](ADR-013-comic-scene-audio-and-presentation.md).
 
 Dialogue work uses the shared hosted TTS lanes. An ambiguous paid admission is never retried inside the running command. Continuing one requires `--allow-ambiguous-redispatch`, which warns that the slot may be purchased again. If synthesis stops after any request is sent, successful outputs are kept and the failure report names the reusable and unresolved slot counts.
 
-Completed audio is reused from `audio/slots/`. Version 2 paid-slot keys include provider and model as well as the canonical speech request identity, so models using the same voice and endpoint cannot share a slot accidentally. Legacy slots remain readable through checksum-bound archives for the same target; an unscoped legacy cache file alone cannot authorize reuse. Verified recovered audio is copied into the model-scoped cache when publishing a new render. The same slot identity spends nothing on a later render, and a changed voice snapshot creates a new render identity without touching unrelated completed slots. `--price` subtracts retained slots and reports zero spend when a render can be assembled locally. `--max-generation-slots` stops after a bounded number of new slots without publishing a final WAV. A fully reused render closes as a local composition with no provider call.
+Purchased audio is reused only when its provider, model, voice, and speech request identity match verified retained evidence. A changed voice snapshot creates a new render identity without invalidating unrelated completed slots. `--price` subtracts reusable slots and reports zero spend when the render can be assembled locally. A fully reused render completes without a provider call.
 
 Output storage has three lifetime classes:
 
 **Class 1: Working**
 
 - **When it exists:** In-flight only
-- **Retention:** Written under `audio/work/` and deleted when that target's selected success is published
+- **Retention:** Temporary render files are removed after successful publication
 
 **Class 2: Resume**
 
 - **When it exists:** Incomplete or failed
-- **Retention:** Keeps the working tree, completed `audio/slots/` files, and matching result records; paid audio is never deleted
+- **Retention:** Keeps working audio, completed slots, and reconciliation evidence; interrupted runs must retain their output directory
 
 **Class 3: Archive**
 
 - **When it exists:** After successful compact
-- **Retention:** Keeps published masters under `audio/final/`, referenced slot WAVs, bound voice snapshots, and the compact `render.json`; unreferenced working files are removed
+- **Retention:** Keeps playable final audio and compact render/timeline records; completed standalone runs losslessly bundle purchased audio into `slots/audio.zip` (under each item for directory runs). Price inspection validates the bundle without extraction; local assembly restores the required clips
 
 ### Delivery mastering and export
 
-New runs always use the shared smart chunk planner. Frozen legacy and earlier smart algorithms are internal replay modes for older saved plans. Provider policies resolve request limits, metadata overhead, protected syntax, and validation before any dispatch; the resulting plan supplies request text and boundaries to execution, estimates, settings, and joins. Chunk seams follow the plan that produced the purchased text, so recovery reproduces the original chunk without a new purchase. New native and audiobook profiles preserve provider silence, with trimming off and zero added join padding. Pause overrides add silence after the final output of a slot without enabling trimming; they do not alter pauses inside provider requests. Opt-in trimming validates silence intervals, retains a 30 ms speech guard, preserves internal pauses, and leaves ambiguous or all-silent audio intact. Outputs within one slot are normalized and concatenated before trimming or fades. Assembly positions use integer decoded sample frames and convert cumulative positions to existing millisecond fields. Audiobook loudness and 500/1,000 ms bookends remain unchanged. Saved profiles retain their exact prior trim and gap values. Default output keeps the provider's sample rate.
+New runs use smart chunk boundaries that respect provider request limits and protected speech syntax. Dispatch, timing estimates, and joins use the same resolved chunks; recovery preserves the text of older purchased plans. Default output keeps the provider's sample rate. Both `native` and `audiobook` preserve provider silence with trimming off and zero added join padding. Pause flags add silence only between chunks, without changing pauses inside a provider request. Opt-in trimming preserves internal pauses and leaves ambiguous or all-silent audio intact. Audiobook mastering normalizes loudness and adds 500 ms before and 1,000 ms after the audio. Saved profiles retain their original trim and gap values.
 
 Encoding to `flac`, `mp3`, `m4a`, or `m4b`, tags, cover art, and one book file per directory with one chapter per input are exports derived from the WAV master. They do not identify the render, are recorded in the manifest, and can be rebuilt without a new render or purchase. A pronunciation lexicon is applied before chunking, and a text preflight rejects speech markup the provider documents as unsupported.
 
-A canonical directory created before delivery mastering keeps its purchased slots. When no chunking or mastering flag is explicit, `resume` and `resume --price` adopt that run's legacy chunking and 16 kHz output, so those directories finish without buying audio again. An explicit mismatch fails closed without spending. Resuming a run that used non-default mastering or a lexicon requires the same flags again, and rerunning a completed directory with different mastering flags stops with no spend and leaves completed chapters unchanged. Pre-canonical TTS manifests stay unreadable and must be rebuilt with the current `tts` command ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
+A canonical directory created before delivery mastering keeps its purchased slots. When no chunking or mastering flag is explicit, `resume` and `resume --price` adopt that run's legacy chunking and 16 kHz output. Current runs restore saved delivery, chunking, and pronunciation settings; an explicit incompatible override fails closed without spending. Rerunning a completed directory leaves completed chapters unchanged and can rebuild only its export layer. Single-file runs do not attach to an existing directory. Pre-canonical TTS manifests remain unreadable and must be rebuilt with the current `tts` command ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
+
+### Gemini transport and lifecycle
+
+Gemini offers unary synthesis, buffered streaming, and explicit remote Batch execution. Native dialogue preserves provider takes without inventing turn timestamps. Batch resume collects purchased results before submitting missing work; ambiguous submission blocks automatic recreation. Cancelling local waiting leaves remote work running unless cancellation is explicitly requested. Delivery settings remain separate from transport request identity.
+
+Gemini voice design creates persistent candidates before selection, and saving adopts the selected resource rather than recreating it. Replication requires consent, a reference recording, and separate consent audio. Known expiry and project ownership govern new synthesis and deletion. Undocumented voice-operation prices remain unknown; synthesis estimates remain estimates rather than invoices.
 
 ## Rationale
 
@@ -178,7 +182,7 @@ A canonical directory created before delivery mastering keeps its purchased slot
 
 Positive outcomes:
 
-- All configured TTS providers share the explicit-voice boundary, and a provider without a verified capability fails locally before any spend.
+- All configured TTS providers share the explicit-voice boundary, and unsupported controls fail locally before any spend.
 - A character voice can be auditioned, approved, and kept stable across scenes and providers, and a single line can be repaired without repeating the whole synthesis.
 - Remote voice creation, approval, expiry, and deletion are explicit lifecycle states.
 - A successful run keeps one paid copy per slot plus the published masters, and purchased audio stays usable under any later delivery profile.
@@ -188,8 +192,6 @@ Negative outcomes:
 - Callers work with structured voice artifacts and a formal preflight instead of a single voice string.
 - Native dialogue and segmented fallback are both maintained, including their timing alignment.
 - Compact removes in-flight records, so post-success debugging relies on the compact cost, retry, and error summary.
-- New runs identify a different render than the same command produced before, because the default splitter and profile both changed.
-- Byte-identical output is guaranteed only within a single ffmpeg build, and wall-time estimates still assume the legacy splitter.
 
 ## Trade-offs
 
@@ -200,13 +202,13 @@ Negative outcomes:
 
 **Trade-off 2**
 
-- **Gain:** Segmented compatibility on every provider plus native quality where it exists
+- **Gain:** Segmented compatibility on every provider plus native dialogue where supported
 - **Sacrifice:** Two render strategies and a planner that chooses between them
 
 **Trade-off 3**
 
 - **Gain:** A crashed run continues from its completed slots and a single line can be repaired
-- **Sacrifice:** One retained slot WAV for each paid generation
+- **Sacrifice:** Retained source audio for each paid generation
 
 **Trade-off 4**
 
@@ -215,18 +217,18 @@ Negative outcomes:
 
 **Trade-off 5**
 
-- **Gain:** Seam pauses are fixed and independent of the silence a provider left on each chunk
-- **Sacrifice:** Opt-in silence trimming can clip very quiet edge speech; trimming is off by default and retains a 30 ms guard pad
+- **Gain:** Users can add pauses at chunk joins and opt in to edge trimming
+- **Sacrifice:** Added pauses do not shorten provider silence, and trimming can affect very quiet edge speech despite its speech guards
 
 ## Implementation Note
 
-Shipped as `tts` explicit-voice synthesis with native and segmented rendering, slot reuse, compact, resume, and delivery mastering with its export layer, and as `voice` for catalog, design, clone, import, inspect, and delete. `comic reference-voice` remains a deprecated alias of `voice`, and `comic generate-audio` consumes this subsystem under [ADR-013](ADR-013-comic-scene-audio-and-presentation.md).
+Shipped through `src/cli/commands/audio/tts/define-tts-command.ts` and `src/cli/commands/audio/voice/define-voice-command.ts`. Shared delivery presets live in `src/cli/commands/audio/tts/tts-utils/tts-delivery-profile.ts`; comic consumes the subsystem under [ADR-013](ADR-013-comic-scene-audio-and-presentation.md).
 
 ## API / Type Impact
 
 - Before: a speaker map was a speaker string plus a voice string or path, and synthesis options mixed voice selection with invocation.
-- After: speaker maps carry provider-qualified voice bindings. `tts` synthesizes with an existing voice and never creates or deletes remote voices; `voice` owns the lifecycle actions. Public controls are `--mode auto|native|segmented` and `--allow-ambiguous-redispatch`. Audio artifacts live inside the run as `audio/slots/`, `audio/final/`, and `render.json`.
-- Delivery: `--tts-audio-profile`, `--tts-chunk-boundary smart`, `--tts-trim-silence`, and the related mastering, export, tag, cover-art, and lexicon flags select the render and its exports. None of them enters purchased-slot identity.
+- After: speaker maps resolve to explicit provider voice bindings. `tts` uses existing voices; `voice` owns lifecycle actions. `--allow-ambiguous-redispatch` authorizes another attempt at unresolved paid work.
+- Delivery: mastering flags identify the render; export format, tags, and cover art identify derived exports. Neither changes purchased-slot identity. Chunking and pronunciation changes can change the speech requests and require new synthesis.
 
 ## Test Plan
 
@@ -235,18 +237,20 @@ bun run check
 bun t --price
 bun test test/test-cases/validation/audio/tts/
 bun test test/test-cases/validation/audio/voice/
+bun test test/test-cases/validation/resume-manifests/tts-resume-delivery-adoption-contracts.test.ts
 ```
 
 1. Price commands stay no-cost and dispatch no provider.
 2. TTS contracts prove explicit per-turn voice dispatch, slot reuse, compact retention, blocked automatic redispatch, and the delivery profile, chunk planner, seam mastering, and export layer against retained slot audio.
 3. Voice contracts prove the lifecycle actions and capability gating without live provider calls.
+4. Resume contracts verify adoption of retained plans and rejection of incompatible explicit settings before dispatch. These local checks do not establish spoken correctness or perceptual quality.
 
 ## Follow-up Actions
 
 - [ ] Listening pass on the paid `eleven_v3` pilot — Pending
-  A 625-character, three-chunk pilot was purchased once on 2026-09-18 for an estimated 6.25¢ (`output/2026-09-18_tts-delivery-pilot`). Decoded integrity passed and a local transcript matched the source across both seams; seam naturalness, pause lengths, and cross-chunk prosody still need a human listen.
-- [ ] Re-master a completed run from audio already purchased — Pending
-- [ ] Model wall-time estimates on the smart splitter — Pending
+  Retain `output/2026-09-18_tts-delivery-pilot` for review of seam naturalness, pause lengths, and cross-chunk prosody; decoded integrity and transcript checks do not establish those qualities.
+- [ ] Expose completed-run re-mastering through the CLI — Pending
+  Local rendering supports reuse under a new profile, but completed directory reruns skip existing chapters.
 - [ ] Re-export a single-file run that already exists in a directory — Pending
 
 ## References
@@ -262,17 +266,4 @@ bun test test/test-cases/validation/audio/voice/
 - Related ADR: [ADR-019](ADR-019-read-successful-http-bodies-whole-under-a-payload-class-ceiling.md) — pre-dispatch size estimates for inlined TTS audio
 - TTS catalog: [docs/commands/04-audio/tts/overview.md](../commands/04-audio/tts/overview.md)
 - [voice overview](../commands/04-audio/voice/00-voice-overview.md)
-- [ElevenLabs Text-to-Dialogue](https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue)
-- <https://elevenlabs.io/docs/eleven-api/guides/how-to/text-to-speech/request-stitching>
-
-## Gemini 3.8 transport and lifecycle extension
-
-Unary and buffered streaming synthesis use Interactions with canonical speech text and separate style metadata. Single-voice requests send only the selected voice in `speech_config`; speaker names stay in the local canonical plan. Native dialogue names both speakers in the configuration and annotates every turn. Live probes rejected the earlier single-voice payload containing named-speaker fields with HTTP 400. The two-model integration shares casting, retained artifacts, delivery, exports, auditions and registration rules. Native dialogue is restricted to two eligible stock voices and preserves one take without fabricated timing. Segmented generation remains available for custom voices, larger casts and incompatible controls. Conservative token planning includes metadata within the 8,192-input/16,384-output limits.
-
-Remote Batch execution serializes GenerateContent independently and journals stable slot keys, request fingerprints, upload handles and provider job IDs. Versioned provider-job links extend manifests without changing legacy manifest requirements. Atomic journal writes and a process lock protect submission and collection. Resume collects purchased work before preparing any remainder; ambiguous submission requires reconciliation. Delivery settings remain separate from transport request identity.
-
-Gemini design creates persistent resources before candidate selection. The creation journal precedes POST; returned IDs are retained before preview validation. Saving adopts rather than recreates. Requested preview text is separately synthesized into protected storage. Replication requires consent records, one decoded reference and separate consent audio. Known expiry and project ownership govern reuse and deletion. Operation prices remain unknown unless documented; synthesis estimates and observed usage carry explicit token schedules.
-
-The October 15 Gemini evidence review is complete for documented contracts, retained unary outcomes and local transport, lifecycle and recovery validation. Retained token counts and duration-based conversions disagree; invoice attribution, unpublished voice-operation tariffs and valuation across future rate boundaries remain unresolved. Unobserved live streaming/Batch outcomes, voice-design fidelity, pronunciation effects and long-term expiry behavior remain unverified.
-
-The [retained recording assessment](../benchmarks/tts/assessment.md) records offline ASR and signal measurements for 42 selected recordings. Subjective ratings remain excluded and unscored; mocked transport, decoded artifacts and ASR discrepancies do not establish spoken correctness or perceptual quality. Proposed extensions for Inworld remote async/Batch, Grok timestamps/replacements and Soniox regional REST, silence reduction and read-only voice discovery were declined on 2026-10-17: optional TTS features are added only in a form that works across providers, Grok replacements duplicate the provider-independent `--tts-pronunciations` lexicon, and timestamp output was already declined for ElevenLabs on the same basis. Additional Gemini interfaces remain separately deferred; completing the evidence review does not implement those extensions.
+- [Retained recording assessment](../benchmarks/tts/assessment.md) — offline ASR and signal evidence, without subjective quality ratings

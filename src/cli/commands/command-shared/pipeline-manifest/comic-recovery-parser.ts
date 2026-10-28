@@ -16,6 +16,7 @@ export const isComicRecoveryState = (value: unknown): value is ComicRecoveryStat
     && isRecord(intent['flags'])
     && Object.values(intent['flags']).every(flag => typeof flag === 'string' || typeof flag === 'boolean' || (Array.isArray(flag) && flag.every(part => typeof part === 'string')))
     && Array.isArray(intent['inputs'])
-    && intent['inputs'].every(ref => isRecord(ref) && hasOnlyKeys(ref, ['path', 'sha256']) && typeof ref['path'] === 'string'
-      && (isAbsolute(ref['path']) || isStrictArtifactRelativePath(ref['path'])) && isSha256(ref['sha256'])))
+    && intent['inputs'].every(ref => isRecord(ref) && hasOnlyKeys(ref, ['path', 'sha256', 'base']) && typeof ref['path'] === 'string'
+      && (ref['base'] === undefined || ref['base'] === 'project')
+      && (ref['base'] === 'project' ? isStrictArtifactRelativePath(ref['path']) : isAbsolute(ref['path']) || isStrictArtifactRelativePath(ref['path'])) && isSha256(ref['sha256'])))
 }

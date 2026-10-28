@@ -1,6 +1,6 @@
 # voice retire
 
-Retire or revoke a registration so it is no longer current.
+Retire or revoke a registration generation so it is no longer current.
 
 See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
 
@@ -14,11 +14,11 @@ Retire and revoke are local and do not call a provider or delete a remote resour
 
 ### Options
 
-| Flag                       | Description                                                     |
-| -------------------------- | --------------------------------------------------------------- |
-| `--generation-id <sha256>` | Optional unless more than one generation could match            |
-| `--reason <text>`          | Revoke instead of retire and record a non-sensitive reason      |
-| `--price`                  | Validate and estimate without provider calls or artifact writes |
+| Flag                       | Description                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| `--generation-id <sha256>` | Defaults to the current or unique latest generation; required when ambiguous |
+| `--reason <text>`          | Revoke instead of retire and record a non-sensitive reason                   |
+| `--price`                  | Validate and estimate without provider calls or artifact writes              |
 
 ### Examples
 
@@ -27,5 +27,3 @@ bun autoshow voice retire vr_ID
 bun autoshow voice retire vr_ID --generation-id GENERATION_SHA256
 bun autoshow voice retire vr_ID --reason "Casting changed"
 ```
-
-Next: [delete](./09-delete.md).

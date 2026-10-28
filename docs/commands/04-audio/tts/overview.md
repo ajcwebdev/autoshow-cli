@@ -2,7 +2,7 @@
 
 Generate speech audio from a local `.md` or `.txt` file, or from a directory of text files, with hosted TTS providers.
 
-`tts` uses an existing voice. Mistral TTS and reference-audio synthesis are no longer supported; Mistral STT and OCR remain available. Create or manage remote voices with [`voice`](../voice/00-voice-overview.md).
+`tts` uses an existing voice. Create or manage remote voices with [`voice`](../voice/00-voice-overview.md).
 
 ## Outline
 
@@ -31,6 +31,7 @@ bun autoshow setup
 
 bun autoshow setup --doctor
 ```
+
 ### Environment
 
 Hosted providers require API keys set in environment variables:
@@ -43,12 +44,14 @@ SONIOX_API_KEY=...
 ELEVENLABS_API_KEY=...
 INWORLD_API_KEY=...
 ```
+
 ## Usage
 
 ```bash
 bun autoshow tts <input> [flags]
 ```
-`<input>` must be a local `.md` or `.txt` file, or a directory containing text files that are batched through `--batch-concurrency`. If no `--provider` is given, `tts` uses the saved provider selection or the cheapest hosted TTS provider. An explicit provider selection overrides the saved provider selection.
+
+`<input>` must be a local `.md` or `.txt` file, or a directory containing text files. Directory synthesis shares provider request limits across files; `--batch-concurrency` does not cap the number of active hosted files. If no `--provider` is given, `tts` uses the saved provider selection or the cheapest hosted TTS provider. An explicit provider selection overrides the saved provider selection.
 
 ## Shared TTS Options
 
@@ -57,8 +60,8 @@ bun autoshow tts <input> [flags]
 | `--provider provider[=model]`                            | TTS provider/model selector; repeat to run multiple targets                                                                                            |
 | `--model <model>`                                        | Model for exactly one selected provider; alternatively use `--provider provider=model`                                                                 |
 | `--all-providers`                                        | Select every supported hosted TTS provider/model                                                                                                       |
-| `--provider-concurrency <n>`                             | Hosted TTS provider/model targets to run concurrently per item; this does not limit requests inside one target; default `7`                            |
-| `--batch-concurrency <n>`                                | Batch text files to process concurrently; default `7`                                                                                                  |
+| `--provider-concurrency <n>`                             | Concurrent provider/model targets for a single-file input; default `7`. Directory runs use shared provider request limits instead                      |
+| `--batch-concurrency <n>`                                | Directory timing-estimate input; default `7`. Does not cap active hosted files; use `--step-concurrency` to limit synthesis requests                   |
 | `--concurrency-mode <ramp\|immediate>`                   | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                                                                   |
 | `--tts-voice <provider=value\|value>`                    | Generic TTS voice selector                                                                                                                             |
 | `--tts-speed <provider=value\|value>`                    | Generic TTS speed                                                                                                                                      |
@@ -66,7 +69,7 @@ bun autoshow tts <input> [flags]
 | `--tts-text-normalization <provider=value\|value>`       | Generic text normalization                                                                                                                             |
 | `--tts-instructions <provider=value\|value>`             | Generic voice/style instructions                                                                                                                       |
 | `--tts-stability <provider=value\|value>`                | Generic TTS voice stability (ElevenLabs `0-1`)                                                                                                         |
-| `--tts-seed <provider=value\|value>`                     | Generic TTS deterministic generation seed (ElevenLabs `0-4294967295`)                                                                                  |
+| `--tts-seed <provider=value\|value>`                     | Generic TTS generation seed (ElevenLabs `0-4294967295`)                                                                                                |
 | `--tts-pronunciation-dictionary <provider=value\|value>` | Generic TTS pronunciation dictionary locator as `dictionary_id` or `dictionary_id:version_id` (ElevenLabs; repeatable)                                 |
 | `--tts-response-format <provider=value\|value>`          | Provider source audio format (Gemini `wav\|pcm\|mulaw\|alaw`; ElevenLabs `mp3_44100_128\|mp3_44100_192\|wav_44100\|wav_48000`)                         |
 | `--step-concurrency tts-chunk=<n>`                       | Hosted TTS requests allowed in parallel per provider; default `30`, `2` under `--all-providers`, or `50` for Grok-only; Soniox is always capped at `3` |
@@ -81,13 +84,13 @@ See [Provider Capabilities](#provider-capabilities) for the per-model instructio
 
 Shared voice flags apply to every selected model for that provider. Use `bun autoshow tts --help-topic provider:soniox` (or another provider name) for registered models, voice choices, default voices, and chunk ceilings. Help lists language values and normalization choices from the same capability tables used by validation.
 
-The old `--tts-similarity`, `--tts-style`, and `--tts-speaker-boost` spellings remain compatibility inputs but are hidden because the only active ElevenLabs model, `eleven_v3`, cannot use those controls. `--tts-chunk-boundary smart` remains accepted for existing scripts; smart is the only supported boundary policy and is always used for new runs.
+`eleven_v3` rejects `--tts-similarity`, `--tts-style`, and `--tts-speaker-boost`. New runs always use smart chunk boundaries.
 
 Multi-speaker mode requires `--tts-speaker` (repeatable) and `--tts-dialogue-format`, and exactly one active TTS provider. Speaker mappings use existing provider voice IDs; reference-audio paths are unsupported.
 
-If a hosted target fails after producing some audio, keep the output directory. If the run stops with a recovery checkpoint, pass `--allow-ambiguous-redispatch` on the next run to resume. That may purchase the interrupted request a second time.
+If a hosted target fails after producing some audio, keep the output directory and resume it. Add `--allow-ambiguous-redispatch` only when recovery reports unresolved admitted work that requires this authorization; it may purchase the interrupted request a second time.
 
-`--provider-concurrency` limits how many provider/model targets run at once. `--step-concurrency tts-chunk=<n>` limits parallel requests within one provider. To cap a single Inworld target at five simultaneous requests, pass `--step-concurrency tts-chunk=5`; `--provider-concurrency 5` does not.
+`--step-concurrency tts-chunk=<n>` limits parallel synthesis requests within each provider, shared across files in a directory run. For example, `--step-concurrency tts-chunk=5` caps an Inworld target at five requests; `--provider-concurrency 5` caps concurrent targets for single-file runs.
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md \
@@ -98,11 +101,12 @@ bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven
 
 bun autoshow tts input/examples/tts/01-tts-short.md --all-providers --max-model-cents 400
 ```
-`--max-model-cents` estimates every selected target, then removes targets above the ceiling. For a directory, the comparison uses each provider/model's summed estimate across all selected files. Add `--price` to inspect the filtered plan without making provider calls. This differs from the configured `maxCents` budget from `setup --max-cents`, which checks the combined retained cost instead of filtering individual models.
+
+`--max-model-cents` estimates every selected target, then removes targets above the ceiling. For a directory, the comparison uses each provider/model's summed estimate across all selected files. Add `--price` to inspect the filtered plan without making provider calls. The configured `maxCents` budget from `setup --max-cents` checks the combined estimate instead of filtering individual models.
 
 ## Audio Mastering and Export
 
-These flags apply to every provider. They run locally with ffmpeg after synthesis and never add provider requests.
+These flags apply to every provider. Mastering and exports run locally with ffmpeg. Chunk-size and pronunciation settings prepare provider requests and can change what must be synthesized.
 
 | Flag                                                  | Description                                                                                                                                         |
 | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -129,7 +133,7 @@ Profiles:
 
 | Profile      | Sample rate and channels             | Loudness              | Lead-in / lead-out | Use                                  |
 | ------------ | ------------------------------------ | --------------------- | ------------------ | ------------------------------------ |
-| `native`     | The provider's own rate and channels | None                  | `0` / `0` ms       | Default; keeps full provider quality |
+| `native`     | The provider's own rate and channels | None                  | `0` / `0` ms       | Default; preserves rate and channels |
 | `audiobook`  | 44.1 kHz mono                        | `-19` LUFS, `-3` dBTP | `500` / `1000` ms  | Book chapters with consistent level  |
 | `legacy-16k` | 16 kHz mono                          | None                  | None               | No seam trimming, pauses, or export  |
 
@@ -137,19 +141,19 @@ All settings except `--tts-metadata`, `--tts-cover`, `--tts-book`, and `--tts-pr
 
 ### Chunking and seams
 
-Text longer than a provider's request limit is split into chunks, synthesized in parallel, and joined locally. `smart` chunking balances chunk sizes and cuts at the best boundary near each target length: a paragraph break, then a sentence end, then clause punctuation, then a space. It does not cut inside a bracketed delivery tag. New runs always use smart boundaries, including direct provider calls. Common abbreviations and initials are not treated as sentence ends. Legacy chunking is internal compatibility code used only to replay older saved plans.
+Text longer than a provider's request limit is split into chunks, synthesized in parallel, and joined locally. Smart chunking balances chunk sizes and prefers a paragraph break, then a sentence end, clause punctuation, or a space. It protects bracketed delivery tags and does not treat common abbreviations or initials as sentence ends. Earlier saved plans preserve their original request text during resume.
 
-Both `native` and `audiobook` preserve provider edge silence and internal pauses by default, with zero added padding at paragraph, sentence, clause, word, and speaker-turn joins. Audiobook mastering still adds a 500 ms lead-in and 1,000 ms lead-out and normalizes loudness. Multiple outputs from one generation slot are normalized and concatenated in order before any edge processing.
+Both `native` and `audiobook` preserve provider edge silence and internal pauses by default, with zero added padding at joins. Audiobook mastering adds a 500 ms lead-in and 1,000 ms lead-out and normalizes loudness.
 
-Pause flags add silence only where separate chunks are joined. For example, `--tts-paragraph-pause 750` adds 750 ms after paragraph and speaker-turn chunks without enabling trimming; `--tts-sentence-pause 350` adds silence only at sentence joins. Zero disables added padding. These flags do not control pauses inside a provider request or shorten long provider pauses. Smart chunk selection, native dialogue timing, and comic pacing stay unchanged.
+Pause flags add silence only where separate chunks are joined. For example, `--tts-paragraph-pause 750` adds 750 ms after paragraph and speaker-turn chunks without enabling trimming; `--tts-sentence-pause 350` adds silence only at sentence joins. Zero disables added padding. These flags do not control pauses inside a provider request or shorten long provider pauses.
 
 `--tts-trim-silence on` trims only detected outer silence with speech guards; internal silence remains intact. Ambiguous detections and all-silent clips are left intact. Saved delivery profiles restore their original trim and gap values when resuming supported providers.
 
-Providers do not share voice state between chunks. For `eleven_v3`, pin `--tts-seed` and a moderate `--tts-stability` so chunks stay consistent, and lower `--tts-chunk-size` if long requests drift.
+Provider requests do not share voice state between chunks. For `eleven_v3`, a fixed `--tts-seed` and moderate `--tts-stability` can reduce variation; lower `--tts-chunk-size` if long requests drift. Listen across joins to assess continuity.
 
 ### Audiobook workflow
 
-The maintained `harborlight-chapters` directory contains two original chapter files, `01-first-light.md` and `02-night-watch.md`. It contains no provider controls fixtures. Estimate this small book before synthesis; `setup` supplies ffmpeg/ffprobe for mastering and M4B export.
+The `harborlight-chapters` example contains two chapter files, `01-first-light.md` and `02-night-watch.md`. Estimate the book before synthesis; `setup` supplies ffmpeg/ffprobe for mastering and M4B export.
 
 ```bash
 # Estimate first; no provider calls
@@ -163,6 +167,7 @@ bun autoshow tts input/examples/tts/harborlight-chapters \
   --tts-metadata "title=Harborlight Field Notes" --tts-metadata "artist=AutoShow" \
   --output-dir output/harborlight-book
 ```
+
 The synthesis command uses ElevenLabs' default existing voice; `--tts-voice` can select another available account voice. For your own book, substitute a directory of readable text chapters. Optional `--tts-cover` and `--tts-pronunciations` need your own existing cover image and lexicon file. Chapters follow input filename order with numeric collation, and chapter titles come from the filenames. `m4b` is the most widely supported container for chapter markers; MP3 chapter support varies by player. What a later run reuses or rebuilds is covered in [Existing output directories](#existing-output-directories).
 
 A pronunciation lexicon is a JSON array of alias rules. Rules match whole words and are case sensitive unless stated otherwise. The earliest match wins, ties go to the earlier rule, and inserted aliases are never rescanned. Avoid rules that match speaker labels in dialogue input. The lexicon changes the text sent to the provider, so billing and chunking use the substituted text.
@@ -174,19 +179,18 @@ A pronunciation lexicon is a JSON array of alias rules. Rules match whole words 
   { "match": "dr.", "alias": "Doctor", "caseSensitive": false, "wordBoundary": false }
 ]
 ```
+
 Text preflight rejects SSML-style tags such as `<break>` for a provider documented not to support them (`eleven_v3`), because the markup would be read aloud and billed. For Inworld, which accepts timed SSML breaks, it passes silently. For other providers it warns and sends the text unchanged. It also warns about long bracketed passages, which providers tend to speak rather than treat as delivery tags.
 
 ### Existing output directories
 
 Completed TTS runs losslessly bundle purchased request audio into `slots/audio.zip` (`items/<stem>/slots/audio.zip` in a directory run). Final audio stays directly playable; the manifest, provider render/timeline records, source dialogue plan, costs and timings remain available. `resume --price` validates compressed audio without extracting it. Local reassembly restores only the source clips it needs, and successful completion bundles them again. Incomplete runs retain their working audio and reconciliation journals.
 
-To compact existing TTS benchmarks, preview with `bun src/tools/compact-tts-benchmarks.ts docs/benchmarks/tts`, then add `--apply`. This removes obsolete generated recovery files and regenerable per-run comparison reports, while preserving selected audio, resume evidence, control fixtures/fingerprints, and assessment notes. No provider calls are made.
-
-Compression does not make purchased audio suitable for Git. Source bundles named `slots/audio.zip` and final WAVs are ignored; benchmark slot directories under `docs/benchmarks/tts/` are also excluded. Commit the small benchmark metadata and generated dashboard assets. Preserve the complete local run separately for playback, artifact verification, regeneration, and resume. A metadata-only checkout can display the saved dashboard but cannot resume a run without its audio. See [TTS benchmark storage](../../../benchmarks/tts/README.md).
+Preserve the complete local run, including compressed source audio, for playback, regeneration, and resume. Metadata alone cannot restore purchased speech. See [TTS benchmark storage](../../../benchmarks/tts/README.md) for benchmark retention and maintenance.
 
 Choose the audio profile and pause settings on the first run. Rerunning a completed directory with different mastering flags purchases nothing and changes nothing, because completed chapters are skipped. Single-file runs do not attach to an existing directory. A directory rerun rebuilds only the export layer: format, bitrate, tags, cover art, and the book file.
 
-`resume` restores saved shared delivery, chunk size, and pronunciation settings. Older legacy and smart plans keep their original request text and paid audio; legacy is not a selectable mode for new runs. Explicit chunking or mastering overrides must match the retained plan. The resolved plan records each request’s offsets in its prepared turn or timing segment, boundary, and effective provider budget, and supplies the same chunks to dispatch, timing estimates, and audio joins. Provider-specific limits and native dialogue grouping still apply.
+`resume` restores saved delivery, chunk size, and pronunciation settings and preserves older plans' paid audio. Explicit chunking or mastering overrides must match the retained plan. Dispatch, timing estimates, and audio joins use the same resolved chunks.
 
 ## TTS Services
 
@@ -201,7 +205,7 @@ Select `--provider gemini` for `gemini-3.8-flash-lite-tts` and the prebuilt voic
 
 The [model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts) and [Flash-Lite documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-lite-tts) describe coverage and limits. Text preparation preserves inline pause and pronunciation notation. `--tts-instructions` and turn delivery become separate speech style metadata. Numeric speed, forced language, seed, stability, similarity, provider dictionaries and direct reference-audio synthesis are rejected. Qualitative pacing and pauses do not promise exact durations; use local delivery gaps for timed silence. [Speech controls](https://ai.google.dev/gemini-api/docs/speech-generation).
 
-Unary synthesis uses Interactions and defaults to native 24 kHz WAV. `--tts-response-format wav|pcm|mulaw|alaw` selects the source encoding; sample-rate conversion and delivery exports happen locally after decoding. `--gemini-tts-mode stream` buffers bounded streaming audio into retained artifacts and defaults to PCM. Two eligible prebuilt voices use native dialogue; custom voices, larger casts and incompatible turn controls use segmented rendering. Native takes have no invented word or turn timestamps.
+Unary synthesis defaults to 24 kHz WAV. `--tts-response-format wav|pcm|mulaw|alaw` selects the source encoding; sample-rate conversion and exports happen locally. `--gemini-tts-mode stream` retains buffered streaming audio and defaults to PCM. Two eligible prebuilt voices use native dialogue; custom voices, larger casts and incompatible turn controls use segmented rendering. Native takes do not include word or turn timestamps.
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider gemini --price
@@ -210,21 +214,13 @@ bun autoshow tts input/examples/tts/01-tts-short.md --provider gemini --gemini-t
 bun autoshow tts input/examples/tts/01-tts-short.md --provider gemini --gemini-tts-mode batch --gemini-tts-batch-wait-seconds 0 --price
 ```
 
-Remove `--price` to synthesize. A directory normally runs local per-file batching. `--gemini-tts-mode batch` instead submits remote Gemini Batch API jobs using a separate GenerateContent serializer. It requires explicit Gemini selection, supports WAV source output, and waits up to 86,400 seconds by default; `--gemini-tts-batch-wait-seconds 0` submits and returns. Other selected providers retain their normal execution path in a separate run directory, so mixed-provider runs use `--output-root` rather than `--output-dir`. A mixed run validates, prices and readiness-checks both workflows before either dispatches, applies `--max-cents` to the Gemini Batch bound plus the other providers' estimate, then runs the two concurrently and reports them under `geminiBatch` and `otherProviders`; if one fails, the failure result still carries the other's output and the Batch resume command. Inline requests use the documented input ceiling and a conservative reply bound; larger jobs upload JSONL.
+Remove `--price` to synthesize. A directory normally runs local per-file batching. `--gemini-tts-mode batch` instead submits remote Gemini Batch API jobs. It requires explicit Gemini selection, supports WAV source output, and waits up to 86,400 seconds by default; `--gemini-tts-batch-wait-seconds 0` submits and returns. Other selected providers run concurrently in a separate directory, so mixed-provider runs use `--output-root` rather than `--output-dir`. Both workflows are validated and priced before dispatch, and `--max-cents` covers the Gemini Batch bound plus the other providers' estimate. A failure still reports the other workflow's output and the Batch resume command.
 
-Resume the printed directory with `bun autoshow resume <output-dir> --provider-job-action status|wait|cancel`. The default is `wait`. Interrupting local waiting leaves remote jobs running. Explicit cancellation reconciles any completed results. Successful slots are retained as they arrive, ordered for delivery by their original request keys, and reused by subsequent resume calls. Ambiguous submissions are searched by fingerprint before redispatch; unresolved ambiguity blocks automatic recreation. `--allow-ambiguous-redispatch` can purchase missing work again. Preserve the job record and cached audio.
+Resume the printed directory with `bun autoshow resume <output-dir> --provider-job-action status|wait|cancel`. The default is `wait`. Interrupting local waiting leaves remote jobs running. Explicit cancellation retains completed results. Resume reuses compatible completed audio and blocks automatic resubmission when an earlier submission is unresolved. `--allow-ambiguous-redispatch` can purchase missing work again. Preserve the output directory and cached audio.
 
-Batch rates are half the standard tariff. Standard and Batch rates double in January 2027; estimates for jobs crossing the transition use the higher schedule. Audio estimates use 25 tokens per second; text tokens and duration are local estimates. Price output identifies the schedule, provenance and conservative spending bound; observed text/audio usage is reconciled when returned. `--price` makes no provider calls or artifact writes. [Pricing](https://ai.google.dev/gemini-api/docs/pricing), [Batch API](https://ai.google.dev/gemini-api/docs/batch-api).
+Batch rates are half the standard tariff. Standard and Batch rates double in January 2027; estimates for jobs crossing the transition use the higher schedule. Price output identifies the schedule and conservative spending bound; token and duration estimates are not invoices. `--price` makes no provider calls or artifact writes. [Pricing](https://ai.google.dev/gemini-api/docs/pricing), [Batch API](https://ai.google.dev/gemini-api/docs/batch-api).
 
-Persistent custom voices use the shared [voice lifecycle](../voice/00-voice-overview.md). Stateless voice keys, explicit context caching, Flex/Priority inference and Live API execution are outside this integration.
-
-The controls benchmark runner accepts repeatable `--provider provider[=model]` filters. Gemini cases use five separate turns per suite, with emotion instructions in style metadata and qualitative pacing plus inline pause tags in the speed/pauses suite. Existing completed cases are reused. Price output separates the expected cost from the conservative spending bound; execution reserves the bound in the shared ledger before dispatch.
-
-```bash
-bun src/tools/tts-controls-benchmark.ts --suite all --provider gemini=gemini-3.8-flash-tts --provider gemini=gemini-3.8-flash-lite-tts --price
-```
-
-Replace `--price` with `--run` after reviewing the estimate and the shared ledger. A cumulative ceiling above 25 cents requires explicit approval through `--approved-budget-cents`; retain incomplete outputs for reconciliation.
+Persistent custom voices use the shared [voice lifecycle](../voice/00-voice-overview.md).
 
 ### ElevenLabs
 
@@ -238,6 +234,7 @@ Replace `--price` with `--run` after reviewing the estimate and the shared ledge
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
 ```
+
 ElevenLabs synthesis uses existing voices only. Single-voice text is limited to 5,000 characters per request; longer text is chunked (see [Chunking and seams](#chunking-and-seams)). SSML `<break>` and `<phoneme>` tags are rejected before dispatch because `eleven_v3` would read them aloud. The default source format is `mp3_44100_128`. `--tts-response-format mp3_44100_192`, `wav_44100`, or `wav_48000` requests higher-quality source audio where the ElevenLabs plan tier allows it; a rejected format is reported and not replaced with another format. Multi-speaker `eleven_v3` supports up to 10 voices and documented v3 audio tags such as `[whispers]` and `[laughs]`.
 
 ### Soniox
@@ -247,16 +244,16 @@ Use the active `tts-rt-v2` model with the existing `SONIOX_API_KEY` credential. 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider soniox --model tts-rt-v2 --tts-voice Adrian --tts-language en --tts-speed 1 --price
 bun autoshow tts input/examples/tts/01-tts-short.md --provider soniox --tts-voice Adrian
-bun autoshow tts input/examples/tts/harborlight-chapters --provider soniox --batch-concurrency 2 --price
+bun autoshow tts input/examples/tts/harborlight-chapters --provider soniox --step-concurrency tts-chunk=2 --price
 ```
 
 Built-in voice names and existing cloned-voice IDs retain their case and must contain 1–50 characters. Soniox checks whether the voice is available to your account. Choose a [supported language code](https://soniox.com/docs/tts/concepts/supported-languages); `auto` is rejected. Numeric speed accepts `0.7–1.3`. Native emotion, delivery and pause tags remain in the submitted text, such as `[warm] Hello. [pause] Welcome.` Use English tag names as described in the [tag reference](https://soniox.com/docs/tts/concepts/emotion-and-tone). Free-form `--tts-instructions`, reference audio, response-format overrides and voice creation are not exposed by this adapter. [REST schema](https://soniox.com/docs/api-reference/tts/generate_tts), [speech speed](https://soniox.com/docs/tts/concepts/speech-speed).
 
-Soniox uses sentence-aware chunks of at most 500 characters, including tags. `--tts-chunk-size` can lower this ceiling; it cannot raise it. Complete bracket tags and Unicode characters remain intact. The shared invocation scheduler allows at most three active requests and 100 request starts per minute, including retries across files and speakers. Audio is requested as 24 kHz WAV; valid integer and floating-point PCM containers, including streaming headers, are accepted. Multi-speaker scripts use `--tts-speaker Host=Adrian --tts-speaker Guest=YOUR_CLONED_VOICE_ID` and local segment concatenation; REST word timestamps and native dialogue are not advertised.
+Soniox uses sentence-aware chunks of at most 500 characters, including tags. `--tts-chunk-size` can lower this ceiling; it cannot raise it. Complete bracket tags and Unicode characters remain intact. At most three requests run concurrently, with 100 request starts per minute shared across files, speakers, and retries. Audio is requested as 24 kHz WAV. Multi-speaker scripts use `--tts-speaker Host=Adrian --tts-speaker Guest=YOUR_CLONED_VOICE_ID` with `--tts-dialogue-format` and local turn assembly.
 
 The provider caps each response at two minutes. AutoShow retains raw bytes and rejects corrupt, empty or at-least-119-second audio before completing a slot. Interrupted or invalid successful requests require reconciliation before another purchase. Resume reuses compatible completed audio and restores voice, language, speed, speaker and chunk settings. Decoded integrity and shorter duration do not prove that every word was spoken. [REST limits](https://soniox.com/docs/tts/rest-api/limits-and-quotas).
 
-Pricing remains estimated: $4 per million input text tokens and $21.50 per million output audio tokens. Preflight uses 0.3 text tokens per character, 50,000 characters per generated hour at speed 1, and 30,000 audio tokens per hour. At default speed, 1,000 characters cost about $0.0141. After generation, output-token estimates use retained provider-audio duration, excluding locally inserted silence. Tags, language and delivery affect usage; REST returns no authoritative token counts. [Official pricing](https://soniox.com/pricing).
+Pricing remains estimated: $4 per million input text tokens and $21.50 per million output audio tokens. At default speed, the local estimate for 1,000 characters is about $0.0141. After generation, estimates use retained provider-audio duration, excluding locally inserted silence. Tags, language and delivery affect usage; REST returns no authoritative token counts. [Official pricing](https://soniox.com/pricing).
 
 ### Grok
 
@@ -277,12 +274,12 @@ These examples use the documented built-in `eve` voice with the English fixture 
 
 ### OpenAI
 
-| Option   | Value                                                |
-| -------- | ---------------------------------------------------- |
-| Selector | `--provider openai[=<model>]`                        |
-| Models   | `gpt-4o-mini-tts-2025-12-15`                         |
-| Voice    | `--tts-voice <id>`, default `alloy`                  |
-| Controls | `--tts-instructions <text>`, `--tts-speed <0.25..4>` |
+| Option   | Value                                                                                              |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| Selector | `--provider openai[=<model>]`                                                                      |
+| Models   | `gpt-4o-mini-tts-2025-12-15`                                                                       |
+| Voice    | `--tts-voice <id>`, default `alloy`; eligible custom IDs beginning with `voice_` are also accepted |
+| Controls | `--tts-instructions <text>`, `--tts-speed <0.25..4>`                                               |
 
 OpenAI bills text-input and audio-output tokens. Price estimates include repeated instructions and numeric speed; binary WAV responses do not report authoritative token usage. The model accepts up to 2,000 input tokens, while the API separately limits input and instructions to 4,096 characters each. AutoShow applies a conservative input budget, so Unicode text and long instructions can require smaller chunks. See the [model contract](https://developers.openai.com/api/docs/models/gpt-4o-mini-tts) and [speech request](https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create).
 
@@ -290,6 +287,7 @@ OpenAI bills text-input and audio-output tokens. Price estimates include repeate
 bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-voice alloy
 bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1
 ```
+
 ### Inworld
 
 | Option   | Value                                                            |
@@ -303,6 +301,7 @@ bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-min
 bun autoshow tts input/examples/tts/01-tts-short.md --provider inworld=realtime-tts-2
 bun autoshow tts input/examples/tts/01-tts-short.md --provider inworld=realtime-tts-2 --tts-voice Dennis --tts-instructions "Sound reassuring"
 ```
+
 Inline emotion and vocalization tags such as `[happy]`, `[laugh]`, and `[breathe]` are preserved.
 
 ## Output
@@ -311,13 +310,13 @@ Inline emotion and vocalization tags such as `[happy]`, `[laugh]`, and `[breathe
 - `--tts-export-format` other than `wav` writes that file beside the WAV master with the same stem, such as `speech.m4b`.
 - Directory runs with `--tts-book` also write `book.<format>` (`book-<service>-<sanitized-model>.<format>` for multi-target runs).
 - Multi-target runs write `speech-<service>-<sanitized-model>.wav` per successful target and one `manifest.json`.
-- Dialogue runs write `dialogue-normalized.txt`. Multi-speaker runs that synthesize one turn at a time keep per-turn WAVs under `segments/`.
+- Dialogue plans and render/timeline records retain speaker mappings; purchased source audio is bundled under `slots/` after successful completion.
 - `manifest.json` records each target, its cost and timing, and the voice and settings used.
 - `--output-dir` sets the output directory; output filenames stay provider-deterministic.
 
 ## Provider Capabilities
 
-Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. Rows are newest first. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01.
+Marks: ✅ supported, ⚠️ partial or qualified, ❌ not exposed. These describe request support; listen to the output to assess spoken text and delivery.
 
 Instructions is synthesis-time delivery for the voice already selected with `--tts-voice`. It is not voice design, cloning, numeric `--tts-speed`, or pause control.
 
@@ -325,18 +324,18 @@ Instructions is synthesis-time delivery for the voice already selected with `--t
 - ⚠️ spoken-text markup inside the synthesis input: ElevenLabs audio tags, Grok/Soniox speech tags. Inworld also accepts inline steering tags in addition to `--tts-instructions`.
 - ❌ neither a dedicated field nor markup.
 
-Speed: ✅ numeric `--tts-speed`, ⚠️ SSML or tags only, ❌ not exposed. Pause: ✅ timed SSML, ⚠️ qualitative tags, ❌ not exposed. Language: ✅ `--tts-language`, ⚠️ English-only, ❌ not exposed. Native dialogue: ✅ multi-speaker in one provider request, ❌ local turn assembly. Every provider can still take part in locally segmented multi-speaker rendering.
+Speed: ✅ numeric `--tts-speed`, ⚠️ qualitative instructions or tags, ❌ not exposed. Pause: ✅ timed SSML, ⚠️ qualitative instructions or tags, ❌ not exposed. Language: automatic detection or explicit `--tts-language` as shown. Native dialogue: ✅ multi-speaker in one provider request, ❌ local turn assembly. Every provider supports locally segmented multi-speaker rendering.
 
 Stock: ✅ a built-in voice selectable with `--tts-voice`. Design: ✅ `voice design`. Clone: ✅ `voice clone` from authorized samples, ⚠️ a platform clone registered with `voice import`, ❌ not exposed.
 
-Pricing shows each provider's billing units. Cost ranks compare AutoShow's count-only estimates for 1,000 input characters at speed 1, without custom instructions or voice setup fees, using the September 2026 Gemini standard schedule and the October 15 OpenAI accounting correction. These estimates include local token/duration assumptions; they are not observed charges. Cost rank is cheapest first (1 = cheapest); ties share a rank.
+Pricing shows the rates registered by AutoShow and excludes voice setup fees. Use `--price` for an estimate based on your text and controls; token and duration assumptions are not observed charges.
 
-| Provider                            | Released     | Instructions           | Speed                   | Pause                | Language           | Native dialogue    | Stock | Design | Clone           | Pricing                             | Cost rank |
-| ----------------------------------- | ------------ | ---------------------- | ----------------------- | -------------------- | ------------------ | ------------------ | ----- | ------ | --------------- | ----------------------------------- | --------- |
-| Gemini `gemini-3.8-flash-tts`       | ✅ 2026-09-22 | ✅ Style metadata       | ⚠️ Qualitative only     | ⚠️ Inline pauses     | ✅ Auto, 130        | ✅ Two stock voices | ✅     | ✅      | ✅ Consent audio | $0.50 text / $9 audio per M tokens  | 4/7       |
-| Gemini `gemini-3.8-flash-lite-tts`  | ✅ 2026-09-22 | ✅ Style metadata       | ⚠️ Qualitative only     | ⚠️ Inline pauses     | ✅ Auto, 101        | ✅ Two stock voices | ✅     | ✅      | ✅ Consent audio | $0.50 text / $6 audio per M tokens  | 1/7       |
-| Soniox `tts-rt-v2`                  | ✅ 2026-08-11 | ⚠️ Native inline tags  | ✅ `--tts-speed` 0.7–1.3 | ⚠️ Native pause tags | ✅ `--tts-language` | ❌ Local assembly   | ✅     | ❌      | ⚠️ Existing IDs | $4 text / $21.50 audio per M tokens | 2/7       |
-| Inworld `realtime-tts-2`            | ✅ 2026-05-05 | ✅ `--tts-instructions` | ✅ `--tts-speed` 0.5–1.5 | ✅ SSML breaks        | ❌ Not exposed      | ❌ Local assembly   | ✅     | ✅      | ✅               | `$0.025` / 1K chars                 | 5/7       |
-| Grok `grok-tts`                     | ✅ 2026-04    | ⚠️ Speech tags         | ✅ `--tts-speed` 0.7–1.5 | ⚠️ `[pause]` tags    | ✅ `--tts-language` | ❌ Local assembly   | ✅     | ❌      | ✅               | `$0.015` / 1K chars                 | 3/7       |
-| ElevenLabs `eleven_v3`              | ⚠️ 2026-02   | ⚠️ Audio tags          | ❌ Not exposed           | ⚠️ Audio tags        | ✅ `--tts-language` | ✅ Up to 10 voices  | ✅     | ✅      | ✅               | `$0.10` / 1K chars                  | 7/7       |
-| OpenAI `gpt-4o-mini-tts-2025-12-15` | ❌ 2025-12-15 | ✅ `--tts-instructions` | ✅ `--tts-speed` 0.25–4  | ⚠️ Qualitative only  | ❌ Not exposed      | ❌ Local assembly   | ✅     | ❌      | ❌               | $0.60 text / $12 audio per M tokens | 6/7       |
+| Provider                            | Instructions           | Speed                   | Pause                | Language           | Native dialogue    | Stock | Design | Clone           | Pricing                             |
+| ----------------------------------- | ---------------------- | ----------------------- | -------------------- | ------------------ | ------------------ | ----- | ------ | --------------- | ----------------------------------- |
+| Gemini `gemini-3.8-flash-tts`       | ✅ Style metadata       | ⚠️ Qualitative only     | ⚠️ Inline pauses     | ✅ Auto, 130        | ✅ Two stock voices | ✅     | ✅      | ✅ Consent audio | $0.50 text / $9 audio per M tokens  |
+| Gemini `gemini-3.8-flash-lite-tts`  | ✅ Style metadata       | ⚠️ Qualitative only     | ⚠️ Inline pauses     | ✅ Auto, 101        | ✅ Two stock voices | ✅     | ✅      | ✅ Consent audio | $0.50 text / $6 audio per M tokens  |
+| Soniox `tts-rt-v2`                  | ⚠️ Native inline tags  | ✅ `--tts-speed` 0.7–1.3 | ⚠️ Native pause tags | ✅ `--tts-language` | ❌ Local assembly   | ✅     | ❌      | ⚠️ Existing IDs | $4 text / $21.50 audio per M tokens |
+| Inworld `realtime-tts-2`            | ✅ `--tts-instructions` | ✅ `--tts-speed` 0.5–1.5 | ✅ SSML breaks        | ❌ Not exposed      | ❌ Local assembly   | ✅     | ✅      | ✅               | `$0.025` / 1K chars                 |
+| Grok `grok-tts`                     | ⚠️ Speech tags         | ✅ `--tts-speed` 0.7–1.5 | ⚠️ `[pause]` tags    | ✅ `--tts-language` | ❌ Local assembly   | ✅     | ❌      | ✅               | `$0.015` / 1K chars                 |
+| ElevenLabs `eleven_v3`              | ⚠️ Audio tags          | ❌ Not exposed           | ⚠️ Audio tags        | ✅ `--tts-language` | ✅ Up to 10 voices  | ✅     | ✅      | ✅               | `$0.08` / 1K chars                  |
+| OpenAI `gpt-4o-mini-tts-2025-12-15` | ✅ `--tts-instructions` | ✅ `--tts-speed` 0.25–4  | ⚠️ Qualitative only  | ❌ Not exposed      | ❌ Local assembly   | ✅     | ❌      | ⚠️ Existing IDs | $0.60 text / $12 audio per M tokens |

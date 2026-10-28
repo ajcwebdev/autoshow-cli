@@ -17,6 +17,7 @@ export const captureComicRecoveryInputs = async (rootDir: string, paths: readonl
     })
     if (entries) {
       for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+        if (entry.name === '.DS_Store') continue
         if (entry.isSymbolicLink()) throw UsageError(`Comic recovery inputs cannot contain symbolic links: ${join(path, entry.name)}`)
         await visit(join(path, entry.name))
       }
@@ -31,7 +32,9 @@ export const captureComicRecoveryInputs = async (rootDir: string, paths: readonl
 
 export const validateComicRecoveryInputs = async (rootDir: string, intent: ComicRecoveryIntent): Promise<void> => {
   for (const ref of intent.inputs) {
-    const observed = isAbsolute(ref.path)
+    const observed = ref.base === 'project'
+      ? (await readContainedArtifactFile(process.cwd(), ref.path)).sha256
+      : isAbsolute(ref.path)
       ? sha256Bytes(new Uint8Array(await Bun.file(ref.path).arrayBuffer()))
       : (await readContainedArtifactFile(rootDir, ref.path)).sha256
     if (observed !== ref.sha256) throw UsageError(`Comic recovery input changed: ${ref.path}. Use the explicit comic stage command to review the changed inputs; retained outputs were preserved.`)

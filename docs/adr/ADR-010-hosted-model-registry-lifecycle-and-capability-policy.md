@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-10-15
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
 - **Supersession:** Replaces per-modality registry and reasoning configurations. Absorbs the calibration and billing-authority rules of "Govern Benchmark Evidence and Generated-Report Architecture" and the comic model-resolution decision of "Integrate Comic with Shared Model and Native CLI Infrastructure". This record is the accepted authority for selector identity, lifecycle, capability, reasoning, and pricing across write, OCR, STT, TTS, music, image, and video, and for every command that resolves models through the central registries. The benchmark evidence lifecycle and paid-approval rules live in [ADR-015](ADR-015-govern-documentation-examples-and-verification-evidence.md), and the combined-report architecture is documented in [docs/benchmarks/README.md](../benchmarks/README.md).
 
@@ -42,13 +42,6 @@ Why now: refreshes across every modality kept restating these rules, comic carri
 - **Quantitative Notes:** n/a
 
 **Option 4**
-
-- **Option:** Update selector validators without a shared policy
-- **Pros:** Small diffs
-- **Cons:** Can advertise models with wrong pricing, capabilities, defaults, or resume behavior
-- **Quantitative Notes:** n/a
-
-**Option 5**
 
 - **Option:** Mirror provider aliases and capability names directly
 - **Pros:** Follows upstream documentation closely
@@ -89,7 +82,7 @@ It does not apply to:
 
 ### Registry consumers
 
-Comic resolves LLM, image, QA, dialogue, and sound-effect models, prices, and hosted generation through these registries and keeps no private model list. Image selections match `image`, text selections match `write`, and QA selections are the vision-capable OpenAI and Gemini models. `--provider` and role-scoped `--<role>-provider` validate central registry IDs; comic domain rules such as target values, grid combinations, and reference-sheet modes are unchanged by registry resolution.
+Comic resolves LLM, image, QA, dialogue, and sound-effect models, prices, and hosted generation through these registries and keeps no private model list. Image selections match `image`, text selections match `write`, and QA selections are the vision-capable OpenAI and Gemini models. `--provider` and role-scoped `--<role>-provider` validate central registry IDs.
 
 ### Concrete selector identity
 
@@ -105,7 +98,7 @@ Every provider addition and refresh must document route-specific billing eligibi
 
 #### Excluded integrations
 
-On September 25, 2026, Hume, Cartesia, and Speechify TTS were removed at the user's direction, including their adapters, selectors, credentials, configuration, historical rates, and committed benchmark records. This policy exclusion supersedes ordinary model retirement and historical-rate retention for these providers. Ignored local inputs, outputs, credentials, and purchased audio remain untouched. Excluded selectors and saved settings fail locally; no compatibility aliases or automatic substitutions are provided.
+On September 25, 2026, Hume, Cartesia, and Speechify TTS were removed at the user's direction. This policy exclusion supersedes ordinary model retirement and historical-rate retention for these providers. Existing local assets remain untouched. Excluded selectors and saved settings fail locally without substitution.
 
 <!-- excluded-tts-providers:start -->
 
@@ -131,11 +124,11 @@ On September 25, 2026, Hume, Cartesia, and Speechify TTS were removed at the use
 
 <!-- excluded-tts-providers:end -->
 
-Mistral TTS and voice management were removed on September 25, 2026. Its STT/OCR models, pricing, credentials, shared REST client, and resume paths remain supported. Removed TTS selectors, controls, saved settings, reference-audio inputs, voice commands, and resume attempts fail locally without substitution. Existing Mistral manifests, benchmark evidence, registered assets, purchased audio, and remote voices remain intact; removal triggers no cleanup or remote deletion.
+Mistral TTS and voice management were removed on September 25, 2026; its STT/OCR support remains. Removed TTS selections, saved settings, voice commands, and resume attempts fail locally without substitution. Existing manifests, registered assets, purchased audio, and remote voices remain intact.
 
 The removed utterance endpoint was the only implementation of `--tts-trailing-silence`; that flag and its saved configuration key are removed too.
 
-On October 15, 2026, Firecrawl URL extraction, Supadata URL extraction and STT, Happy Scribe STT, and GLM Reader URL extraction were removed from active support. Firecrawl, Supadata, and Happy Scribe require recurring paid plans for continued usage. GLM Reader is excluded because the implemented REST route lacks a verified price and billing eligibility contract; this does not establish that the route is subscription-gated. Ordinary GLM write and OCR support remained active until the October 18 removal below.
+On October 15, 2026, Firecrawl URL extraction, Supadata URL extraction and STT, Happy Scribe STT, and GLM Reader URL extraction were removed. The dated billing review below excluded the first three providers for requiring recurring paid plans and GLM Reader for lacking a verified REST price and billing eligibility contract.
 
 <!-- excluded-extraction-providers:start -->
 
@@ -161,9 +154,9 @@ On October 15, 2026, Firecrawl URL extraction, Supadata URL extraction and STT, 
 
 <!-- excluded-extraction-providers:end -->
 
-These five tuples leave active selectors, model catalogs, live pricing, setup credentials, saved configuration, dispatch, and examples together. The provider-only `--stt-organization-id` and `--stt-chunk-size` flags are removed. Defuddle failures stop with the extraction error; no automatic Firecrawl fallback or other paid substitute is attempted, including article downloads and documentation links.
+These five tuples are excluded from active selection and dispatch. Their provider-only `--stt-organization-id` and `--stt-chunk-size` flags are removed. Defuddle failures stop with the extraction error; article downloads and documentation links do not silently fall back to a paid provider.
 
-Existing manifests, raw results, benchmark evidence, transcripts, cached media, remote jobs, and recorded costs remain intact. Historical identifiers and frozen rate references remain available for reading completed artifacts and reconstructing old estimates; GLM Reader's former Web Search-based estimate remains explicitly historical and unverified. Recorded charges retain precedence over those estimates. Completed provider states may be reused alongside newly selected active targets. An unfinished excluded target, an explicit excluded selection, or obsolete saved configuration fails locally before credential lookup or network dispatch, without changing the old target or selecting a replacement.
+Existing completed artifacts and recorded costs remain intact. Historical rates remain available; GLM Reader's former Web Search-based estimate is historical and unverified. Completed provider states may be reused alongside newly selected active targets. An unfinished excluded target, explicit excluded selection, or obsolete saved configuration fails locally before credential lookup or dispatch without substitution.
 
 On October 17, 2026, the model tuples below were excluded while their providers stay active. They are decisions, not pending additions: provider-model research must not recommend them again unless new primary evidence directly addresses the recorded reason, and restoring one needs a user decision.
 
@@ -172,7 +165,7 @@ On October 17, 2026, the model tuples below were excluded while their providers 
 **Provider: Cloudflare**
 
 - **Excluded category/model tuples:** `stt/cloudflare/@cf/deepgram/nova-3`
-- **Decision:** Removed at the user's direction after the [October 2026 STT benchmarks](../benchmarks/README.md#october-2026-stt-refresh): direct Deepgram `deepgram=nova-3` was about 20% cheaper ($0.258/hr against $0.312/hr) and about 6.6x faster with diarization, with comparable quality (92.82 against 93.60). Cloudflare Whisper models remain.
+- **Decision:** Removed at the user's direction after the [October 2026 STT benchmarks](../benchmarks/README.md#october-2026-stt-refresh) found direct Deepgram `deepgram=nova-3` cheaper and faster with comparable quality. Cloudflare Whisper models remain.
 
 **Provider: Together**
 
@@ -181,13 +174,13 @@ On October 17, 2026, the model tuples below were excluded while their providers 
 
 <!-- excluded-hosted-models:end -->
 
-These tuples leave selectors, registries, live pricing, defaults, `--all-*` expansion, and examples. Explicit selections fail locally before dispatch. Finished benchmark results for Cloudflare Nova-3 keep their identity, and its rate stays in historical pricing so they remain priced. The rejected Nemotron attempt is retained as an error artifact.
+Explicit selections of these tuples fail locally before dispatch. Finished Cloudflare Nova-3 benchmark results keep their identity and historical pricing.
 
 ### Complete runtime contract
 
 Adding, replacing, or retiring a selector updates the public contract together: accepted names, published prices and limits, bare-provider defaults, exact `--all-*` membership, model capabilities (modes, voices, languages, formats, durations, resolutions, references, and reasoning), help and examples, price preflight, resume, and the identity kept after active support ends.
 
-A provider or model that can run can also be resumed, and extract follows the STT or OCR route stored for that item. Invalid model or control combinations fail locally before price calculation, credential lookup, or dispatch. A listed model exposes only the controls it implements. A stored result keeps the provider that produced it.
+A hosted provider or model that can run can also be resumed, and extract follows the media, document, or article route stored for that item. Invalid model or control combinations fail locally before price calculation, credential lookup, or dispatch. A listed model exposes only the controls it implements. A stored result keeps the provider that produced it.
 
 ### Lifecycle, defaults, expansion, and retirement
 
@@ -197,13 +190,7 @@ Bare-provider selection uses the cheapest active default-eligible model unless a
 
 Retired names are rejected for new runs and omitted from defaults, help, current config, and `--all-*`. When a concrete successor exists, the error names it and leaves the stored identity unchanged. Finished manifests and benchmark artifacts keep the model they stored; an unfinished retired target cannot run under the old name, and choosing the successor adds a new target. Historical pricing keeps the rates of removed models so committed runs can be repriced, and the cost recorded on a run remains the authority for that run.
 
-On October 18, 2026, the user retired six write and OCR selectors in favor of already implemented newer options, then removed Kimi and GLM from all active workflows, including Together-hosted writing. Their adapters, model selectors, defaults, config keys, setup credentials, provider links, examples, and live verification definitions are removed, including chapter extraction and comic LLM dispatch. Together STT remains supported. Comic drafting, QA, and revision comparisons default to GPT-6.1 Sol. The active catalog has 11 write routes and 21 hosted OCR routes. Old selections fail locally without dispatch or substitution. Provider-level metadata readers remain so older local manifests stay readable; they do not enable new requests. The dashboard defaults to its current CLI-supported model view, with historical results available through its toggle.
-
-On October 23, 2026, the user removed every remaining trace of those retired write and OCR models, as an exception to the historical-pricing rule above: committed benchmark outputs, receipts, plan entries, report rows, and evidence-archive entries; frozen rates and successor hints; bundled calibration profiles; and their rows in the calibration record below. The write benchmark plan and its remaining receipts were re-pinned to a new fingerprint, so cumulative benchmark costs now cover only retained routes.
-
-Later on October 23, 2026, the user removed six more OCR routes from the implementation and from every benchmark, including all DeepInfra OCR models; DeepInfra remains an STT provider. Bare Mistral OCR now resolves to its newer model and bare Gemini OCR to the cheapest remaining Gemini model. Removed selections fail locally before dispatch, and 15 hosted OCR routes remain. Their OCR calibration profiles and their rows in the calibration record below were removed the same way. Five more OCR routes were removed the same way later that day, leaving one Gemini and one Grok OCR model, which are now their bare-provider defaults, and 10 hosted OCR routes remain. Three more models were then removed from write and OCR entirely, with their calibration rows, leaving 8 write routes and 9 hosted OCR routes.
-
-Also on October 23, 2026, the user removed fal entirely: its image and video models, client, `FAL_API_KEY` credential, frozen rates, the fal-only `--generate-audio` and `--reference-audio` video controls, and its benchmark results. OpenAI `gpt-image-2` was removed from image the same day; comic image generation and revision plans now default to `gpt-image-2.5-flare`. Removed fal selections fail locally before dispatch.
+The October 2026 user-directed removals of retired write/OCR routes, fal, and OpenAI `gpt-image-2` explicitly waived historical-rate and committed benchmark-evidence retention for those removals. Kimi and GLM write/OCR, Together writing, DeepInfra OCR, and fal image/video remain unavailable without substitution; Together and DeepInfra STT remain supported. Current model membership and defaults belong to the live catalogs, rather than a dated inventory in this policy.
 
 ### Pricing provenance
 
@@ -217,7 +204,7 @@ Bundled OCR token profiles may override individual registry components only for 
 
 ### Normalized reasoning
 
-`--reasoning-effort <default|disabled|minimal|low|medium|high|xhigh|max>` is the public reasoning control for hosted LLM write and OCR, and for commands that dispatch them. Each model states whether reasoning is unsupported, optional, or required, whether `disabled` is legal, and which levels it accepts; unsupported combinations fail before pricing or dispatch. Omitting the flag leaves the model's default unchanged, and explicit `default` sends no override.
+`--reasoning-effort <default|disabled|minimal|low|medium|high|xhigh|max>` is the public reasoning control for hosted LLM write and OCR, and for commands that dispatch them. Each model states whether reasoning is unsupported, optional, or required, whether `disabled` is legal, and which levels it accepts; unsupported combinations fail before pricing or dispatch. Omitting the flag retains the command's default policy, including `low` for Gemini 3 OCR. Explicit `default` clears the CLI override and delegates to the provider default.
 
 When the flag affects behavior, write and OCR manifests, estimates, result diagnostics, and resume identity store the requested policy and the effective policy, and resume rejects an explicit policy that differs from the stored effective policy. A provider level outside these eight values is exposed only after the public enum grows to include it.
 
@@ -273,170 +260,17 @@ The policy is in force in the hosted registries under `src/cli/commands/setup-an
 
 ### Reasoning calibration and provider vocabulary review (2026-09-23)
 
-All 345 planned cases completed, 341 qualified, and 50 OCR policy profiles passed component promotion. This closed the calibration and enum-review follow-ups for the reviewed catalog and measured contexts. General write token and timing heuristics remain provisional: three short summaries cannot establish long-form generation latency or reasoning cost, so the measured policy differences below do not justify a global multiplier. Unmeasured OCR contexts also remain provisional.
+The September 23 review completed the reasoning vocabulary and calibration follow-ups for its measured contexts. It retained the eight-value public enum. Current model-specific support is declared in the live registries; the review does not establish support for later models or provider vocabulary.
 
-#### Provider-contract decisions
+The retained OCR calibration profiles come from three original fictional English prose sources, Harbor, Meadow and Summit, rendered as single-page 1020×1320 images. The fixtures remain in `test/fixtures/reasoning-calibration/`, and the promoted component medians remain in `src/cli/commands/setup-and-utilities/models/ocr-calibration-profiles.json`. Profiles apply only to the exact provider, model, image mode, page-count band and effective reasoning policy represented by those samples. General write heuristics, other document modes, page bands and unmeasured policies remain provisional.
 
-Before paid execution, the CLI refreshed 72 primary documents across the reviewed providers. The dated review found no justified ninth public reasoning value. The eight-value definition was centralized across parsing, schemas, persisted profiles and audits, and documented Anthropic/Grok xhigh support was added. These findings describe the September 23 catalog, not a continuing monitoring service.
+Qualification required matching model and effective policy, finite provider usage, positive timing, recorded usage cost and a nonempty decoded artifact. Write also required valid structured output and the expected returned model identity. OCR required one successful attempt covering the source image, matching page and text artifacts, and source-text equality after removing case, punctuation and whitespace. Failed, partial, retried or text-incorrect OCR outputs were excluded from promotion.
 
-**Provider: OpenAI**
+Each promoted OCR component required at least three distinct healthy sources in the same context, all observations on the same side of the registry estimate, and median absolute percentage error greater than 20%, using the observation as denominator. The promoted value is the observed median. Published prices and scheduler timing were not changed by token calibration.
 
-- **Documented contract and decision:** The reviewed models accept low through max including xhigh. No ultra effort is documented for these API models. Provider `none` is represented by existing `disabled` where supported.
-- **Primary source:** [reasoning](https://developers.openai.com/api/docs/guides/reasoning)
+These checks establish write transport, identity, usage and structured-artifact integrity, plus normalized text correctness for OCR. They do not establish summary factual correctness, writing quality, punctuation fidelity or layout fidelity. Recorded usage costs are rate-based calculations, not account invoices.
 
-**Provider: Anthropic**
-
-- **Documented contract and decision:** Fable 5 accepts xhigh. Adaptive is a thinking mode, not another effort value.
-- **Primary source:** [Effort](https://platform.claude.com/docs/en/build-with-claude/effort)
-
-**Provider: xAI**
-
-- **Documented contract and decision:** Grok 4.5 does not accept xhigh.
-- **Primary source:** [Reasoning](https://docs.x.ai/developers/model-capabilities/text/reasoning)
-
-**Provider: Gemini**
-
-- **Documented contract and decision:** Existing minimal/low/medium/high vocabulary covers documented model levels; budget and thinking configuration fields are separate controls.
-- **Primary source:** [Thinking](https://ai.google.dev/gemini-api/docs/thinking)
-
-#### Implementation lessons
-
-- Forward the reasoning option through the actual `write` and image-document OCR entry points. Live diagnostic runs exposed both handoffs dropping the option, despite accurate price-plan identity and working direct adapter tests.
-- Carry Anthropic and Grok xhigh through real adapters. Tests cover omitted, override and explicit default/reset behavior.
-- Include Gemini's separately reported thought tokens in billed write completion usage exactly once. Providers whose output totals already include reasoning retain their totals.
-- Read xhigh from persisted OCR token profiles and evidence audits. The previous profile reader rejected its own xhigh output.
-- Bundle qualified OCR component medians in `src/cli/commands/setup-and-utilities/models/ocr-calibration-profiles.json`. With no learned local profile, an exact provider/model/image/page-band/policy match uses these values and reports `tokenEstimateSource: calibrated-registry`. Components that fail the gate retain their registry estimates. Other contexts do not borrow these profiles. Learned local profiles retain precedence.
-- Preserve all completed paid outputs. The runner skips existing receipts/manifests and stops new scheduling on identity mismatch or Anthropic credit rejection. Explicit credit retries require a fresh exact preflight and archive prior rejection receipts; ambiguous failures are never automatically repurchased.
-
-#### Qualification, promotion and limits
-
-The plan contains 345 cases. Each model receives explicit `default`, `low`, and its highest supported effort; non-OpenAI models that additionally expose xhigh receive that level too. The fixtures are three original, fictional English operations reviews: Harbor, Meadow and Summit. Write uses each plaintext source with the `shortSummary` structured preset; OCR uses matching 1020×1320 images, one page per run. This is a small prose calibration corpus, not a ranking benchmark or an exhaustive test of every intermediate effort, disabled mode, language, page layout, context tier or modality.
-
-Qualification requires exactly one full manifest item, matching selected identity and effective policy, finite provider usage and positive timing, recorded usage cost, and a nonempty decoded artifact. Write additionally requires the expected returned model ID and valid structured output. OCR requires one successful provider attempt, one covered image page, agreement between the canonical page and text artifact, and source-text equality after removing case, punctuation and whitespace. Hashes identify artifacts; they do not establish quality. Identical OCR text across providers is expected when the same source is transcribed correctly.
-
-Write qualification establishes transport, identity, usage and structured-artifact integrity. It does not establish summary factual correctness or comparative writing quality. OCR additionally checks normalized text correctness, but not punctuation fidelity or visual layout. No audio or perceptual claims are made. OCR retries, partial results, text errors and policy mismatches cannot supply promoted samples.
-
-For each OCR component, promotion requires at least three distinct healthy sources in the same provider/model/mode/page-band/policy group, every observation on the same side of the registry estimate, and median absolute percentage error greater than 20%, using the observation as denominator. The promoted value is the observed median. Timing measurements include wall-clock variability; this run does not promote scheduler or global latency settings. Published prices and `costMultiplier: 1` remain separate from token-shape calibration.
-
-Four original OCR outputs were excluded for transcription errors; all four belonged to OCR routes removed on October 23, 2026, and their groups remained below the three-source gate. Errors were retained rather than replaced with favorable reruns.
-
-#### Execution and spending
-
-The user explicitly approved all paid commands in advance. The initial 345-case preflight estimated $4.7110. After repairing OCR dispatch and retaining 15 compatible default outputs, the repeat full-plan estimate was $4.5799; that figure includes slots subsequently reused. Anthropic credit exhaustion produced 72 explicit HTTP 400 rejections. After the user confirmed replenishment, their exact retry plan estimated $1.7612. These plans overlap and must not be added as if they were separate complete purchases.
-
-The diagnostic write pilot and 43 OCR runs made before the handoff fixes were recorded separately and excluded from calibration; their recorded costs total $1.1325. The current plan recorded $4.0946 including disqualified outputs, and total recorded usage cost including diagnostics was $5.2272 (totals rounded independently). Recorded costs are usage multiplied by configured rates, not account invoices: cache discounts, introductory tariffs, tax, credits, and unreported billable retries can differ. In particular, Gemini standard registry rates conservatively exceed its temporary introductory tariff. No account invoice was retrieved.
-
-#### Qualified observations and promotions
-
-The complete policy medians are retained because they explain which components changed and which remained provisional. “—” means no component was promoted. Medians use qualified samples only; recorded current-plan cost includes all completed outputs. These are historical observations, not a model ranking.
-
-<details>
-<summary>September 23 measurements by route, provider, model and policy</summary>
-
-<!-- reasoning-calibration:start -->
-341 of 345 planned samples qualify. Recorded current-plan cost: $4.0946 (includes disqualified completed outputs; excludes earlier diagnostic runs). Rows for write and OCR routes removed on October 23, 2026 were deleted; the counts and cost above still include them.
-
-**Route / provider / model: write / gemini / gemini-3.8-flash**
-
-- **Policy:** default
-- **Qualified:** 3/3
-- **Median input:** 437
-- **Median output:** 421
-- **Median ms:** 2496
-- **Promoted OCR input / output:** — / —
-
-**Route / provider / model: write / gemini / gemini-3.8-flash**
-
-- **Policy:** low
-- **Qualified:** 3/3
-- **Median input:** 437
-- **Median output:** 38
-- **Median ms:** 839
-- **Promoted OCR input / output:** — / —
-
-**Route / provider / model: write / gemini / gemini-3.8-flash**
-
-- **Policy:** high
-- **Qualified:** 3/3
-- **Median input:** 437
-- **Median output:** 639
-- **Median ms:** 3334
-- **Promoted OCR input / output:** — / —
-
-**Route / provider / model: extract / anthropic / claude-fable-5**
-
-- **Policy:** default
-- **Qualified:** 3/3
-- **Median input:** 2032
-- **Median output:** 519
-- **Median ms:** 8169
-- **Promoted OCR input / output:** — / 519
-
-**Route / provider / model: extract / anthropic / claude-fable-5**
-
-- **Policy:** low
-- **Qualified:** 3/3
-- **Median input:** 2032
-- **Median output:** 519
-- **Median ms:** 8357
-- **Promoted OCR input / output:** — / 519
-
-**Route / provider / model: extract / anthropic / claude-fable-5**
-
-- **Policy:** max
-- **Qualified:** 3/3
-- **Median input:** 2032
-- **Median output:** 1881
-- **Median ms:** 19788
-- **Promoted OCR input / output:** — / 1881
-
-**Route / provider / model: extract / anthropic / claude-fable-5**
-
-- **Policy:** xhigh
-- **Qualified:** 3/3
-- **Median input:** 2032
-- **Median output:** 519
-- **Median ms:** 8426
-- **Promoted OCR input / output:** — / 519
-
-**Route / provider / model: extract / gemini / gemini-3.8-flash**
-
-- **Policy:** default
-- **Qualified:** 3/3
-- **Median input:** 1179
-- **Median output:** 1118
-- **Median ms:** 3406
-- **Promoted OCR input / output:** — / 1118
-
-**Route / provider / model: extract / gemini / gemini-3.8-flash**
-
-- **Policy:** low
-- **Qualified:** 3/3
-- **Median input:** 1179
-- **Median output:** 340
-- **Median ms:** 2054
-- **Promoted OCR input / output:** — / 340
-
-**Route / provider / model: extract / gemini / gemini-3.8-flash**
-
-- **Policy:** high
-- **Qualified:** 3/3
-- **Median input:** 1179
-- **Median output:** 4778
-- **Median ms:** 17491
-- **Promoted OCR input / output:** — / —
-
-<!-- reasoning-calibration:end -->
-
-</details>
-
-#### Provenance and historical verification
-
-The three original Harbor, Meadow and Summit text/image fixtures remain in `test/fixtures/reasoning-calibration/`. The reviewed evidence bundle contained 1,874 original files plus `SHA256SUMS`: exact preflights, per-case manifests, artifacts and execution receipts, credit-rejection history, excluded diagnostic runs, documentation refreshes and fixture inputs. Its integrity check passed before consolidation. The separate report and evidence bundle were retired on September 23 after retaining their decisions, complete policy medians, exclusions, spending and primary-source references here; raw receipts and source-document snapshots are no longer packaged with this ADR. Existing local paid outputs under `output/adr-010-calibration/` were left in place.
-
-Historical verification passed `bun run check` (structure, names, types and documentation contracts covering 415 unique commands), `bun t --price` (97/97 price-only cases), and the since-retired documentation price verifier (15 offline examples). Targeted option resolution, provider selection, reasoning adapters, entry-point dispatch, artifact qualification, OCR token audit, pricing and CLI-help contracts passed 596 tests across 103 files without provider calls. These are the original review results; mocked contracts establish payload behavior, not output quality.
-
-The completed calibration runner and summary generator were retired on September 23, including their investigation-specific credit-rejection retry modes. The policy medians above, bundled `ocr-calibration-profiles.json`, original fixtures, and existing local paid outputs remain. `test/test-cases/validation/reports-pricing/bundled-ocr-calibration-contracts.test.ts` preserves the runtime checks for exact image/page/policy matching and registry fallback. Future calibration requires a new scoped plan under the existing evidence and spending rules; this record no longer advertises a regeneration or paid rerun command.
+The investigation runner, separate report and raw evidence bundle were retired after review. The retained fixtures, profiles and qualification rules preserve the basis of the shipped estimates; existing local paid outputs were left intact. Future calibration requires a scoped plan under the evidence and spending rules in [ADR-015](ADR-015-govern-documentation-examples-and-verification-evidence.md).
 
 ## API / Type Impact
 
@@ -459,11 +293,6 @@ bun test test/test-cases/validation/providers/provider-selection-contracts/
 3. Deterministic defaults, exact `--all-*` expansion, and run-to-resume inventory parity.
 
 Verification is local and no-cost.
-
-## Follow-up Actions
-
-- [x] Calibrate materially different reasoning levels and provisional model heuristics — September 23: 345 completed cases, 341 qualified samples, 50 scoped OCR token profiles. Write usage and timing are recorded by policy; general write and unmeasured-context heuristics remain explicitly provisional. The [historical calibration record](#reasoning-calibration-and-provider-vocabulary-review-2026-09-23) preserves exclusions, spending, provenance and measurements.
-- [x] Evaluate provider-specific reasoning levels outside the eight-value surface through explicit public-enum expansion — September 23: primary-source review found no justified ninth value for registered models. Retain the eight-value enum, centralize its consumers, and expose documented Anthropic/Grok xhigh support. See the [dated evaluation](#provider-contract-decisions) and [expansion gate](#normalized-reasoning).
 
 ## References
 

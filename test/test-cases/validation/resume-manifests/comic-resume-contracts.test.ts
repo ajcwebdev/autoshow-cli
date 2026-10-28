@@ -29,6 +29,8 @@ import { captureProcessOutput } from '../../../test-utils/console-capture'
 import { runCliInProcess } from '~/cli/create-cli'
 import { resetLoggerForInvocation } from '~/utils/app-logger/app-logger'
 import { buildComicAudioPhase2SnapshotEntry, buildComicAudioPhase2Structured, COMIC_AUDIO_PHASE_2_CREATED_AT as createdAt } from '../visuals/comic/comic-audio-phase-fixture'
+import { createLiveCharacterFixture } from '../../../test-utils/live-character-reference-fixture'
+import { createLiveLocationFixture } from '../../../test-utils/live-location-reference-fixture'
 
 const tempDirs = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'GEMINI_API_KEY', 'AUTOSHOW_REQUIRED_IMAGE_MODEL'], tempPrefix: 'autoshow-comic-resume-' })
 afterEach(() => { resetPinnedRunDir(); resetSceneRunContext(); configureCharactersRoot('input/characters'); resetLoggerForInvocation(false) })
@@ -90,18 +92,14 @@ const mockSpeech = () => {
 }
 
 const imageInputs = async (f: Awaited<ReturnType<typeof fixture>>) => {
-  const sha = sha256Bytes(redDotPng)
-  const sheet = 'assets/location-references/location-snapshot/bridge.png'
-  await mkdir(dirname(join(f.run, sheet)), { recursive: true })
-  await writeFile(join(f.run, sheet), redDotPng)
-  await writeFile(join(f.run, 'assets/character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt, characters: [] }))
-  await writeFile(join(f.run, 'assets/location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots: [{ schemaVersion: 3, snapshotId: 'location-snapshot', locationKey: 'bridge', specification: 'An empty bridge.', sourceScripts: ['scene.md'], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: sheet, label: 'establishing view of bridge' }] }] }))
-  const panels = f.structured.sourceSegments.map((segment, index) => ({ number: index + 1, description: 'Empty bridge.', shotPlan: 'Wide shot.', characterKeys: [], speech: [{ speaker: { kind: 'character', characterKey: segment.speakerKey, offscreen: true }, line: segment.text }], sourceSegmentIds: [segment.id], sourceSegments: [segment], locationKey: 'bridge', locationSnapshotId: 'location-snapshot', designReferences: [] }))
-  await writeFile(join(f.run, 'metadata/scene.json'), JSON.stringify({ schemaVersion: 4, title: 'Scene', location: 'Bridge', panels: panels.map(({ sourceSegments: _sourceSegments, locationSnapshotId: _snapshot, ...panel }) => panel) }))
+  await createLiveCharacterFixture(f.root)
+  await createLiveLocationFixture(f.root, [{ key: 'bridge', name: 'Bridge', specification: 'An empty bridge.', sourceScripts: ['scene.md'] }], redDotPng)
+  const panels = f.structured.sourceSegments.map((segment, index) => ({ number: index + 1, description: 'Empty bridge.', shotPlan: 'Wide shot.', characterKeys: [], speech: [{ speaker: { kind: 'character', characterKey: segment.speakerKey, offscreen: true }, line: segment.text }], sourceSegmentIds: [segment.id], sourceSegments: [segment], locationKey: 'bridge', designReferences: [] }))
+  await writeFile(join(f.run, 'metadata/scene.json'), JSON.stringify({ schemaVersion: 4, title: 'Scene', location: 'Bridge', panels: panels.map(({ sourceSegments: _sourceSegments, ...panel }) => panel) }))
   for (const panel of panels) {
     const path = join(f.run, `metadata/panel-prompts/panel-0${panel.number}/prompt.md`)
     await mkdir(dirname(path), { recursive: true })
-    await writeFile(path, '```json\n' + JSON.stringify({ schemaVersion: 4, snapshotId: 'character-snapshot', title: 'Scene', location: 'Bridge', panels: [panel] }) + '\n```\n')
+    await writeFile(path, '```json\n' + JSON.stringify({ schemaVersion: 4, title: 'Scene', location: 'Bridge', panels: [panel] }) + '\n```\n')
   }
 }
 
@@ -150,7 +148,7 @@ for (const models of [['gemini-3.1-flash-lite-image']] as const) {
     await dispatchResume(f.run, {})
     expect(await hashes(f.run)).toEqual(completed)
     expect(calls).toHaveLength(count + 2 * models.length - 1)
-    await writeFile(join(f.run, 'metadata/panel-prompts/panel-02/extra.md'), 'Changed prompt input')
+    await writeFile(join(f.run, 'metadata/panel-prompts/panel-02/extra.json'), '{"changed":"prompt input"}')
     expect((await planComicResume(f.target)).stages[0]).toMatchObject({ action: 'blocked', detail: expect.stringContaining('inputs were added') })
   }, 20_000)
 }

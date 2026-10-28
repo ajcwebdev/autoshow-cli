@@ -21,24 +21,27 @@ Generate a video from a text prompt or input image with one or more hosted video
 ```bash
 bun autoshow setup --doctor
 ```
+
 ### Environment
 
 ```bash
 GEMINI_API_KEY=...
 XAI_API_KEY=...
 ```
+
 ## Usage
 
 ```bash
 bun autoshow video <input> [flags]
 ```
-The positional input is a text prompt or an image path, URL, or data URL. A positional image input infers `--mode image-to-video` and cannot be combined with media-input flags. Saved `defaults.video` settings apply when not overridden. When no provider is specified or saved, a text prompt runs the cheapest default text-to-video target and a positional image input runs every supported provider.
+
+The positional input is a text prompt or an image path, URL, or data URL. A positional image input infers `--mode image-to-video` and cannot be combined with media-input flags. Saved `defaults.video` settings apply when not overridden. When no provider is specified or saved, a text prompt in `text` mode runs the cheapest default target and a positional image input runs every supported provider.
 
 ## Modes
 
-Passing media flags without `--mode` is rejected because the default mode is text-to-video.
+Without an explicit or saved mode, media flags are rejected under the default `text` mode. A positional image input infers `image-to-video`.
 
-| Mode                 | Providers           | Required inputs                                                              | Notes                                      |
+| Mode                 | Providers           | Required media inputs                                                        | Notes                                      |
 | -------------------- | ------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
 | `text`               | All video providers | none                                                                         | Default mode                               |
 | `image-to-video`     | Gemini, Grok        | `--input-image`                                                              |                                            |
@@ -47,13 +50,14 @@ Passing media flags without `--mode` is rejected because the default mode is tex
 | `edit`               | Gemini Omni         | `--previous-interaction-id` or `--input-video`                               | Conversational or uploaded-video edit      |
 | `extend`             | Gemini Omni         | `--previous-interaction-id` or `--input-video`; optional `--reference-image` | Append-only continuation, 3–10s per extend |
 
-`--input-video` is the Gemini Omni source clip for `edit` and `extend`. `reference-to-video` uses `--reference-video`.
+`--input-video` is the Gemini Omni source clip for `edit` and `extend`. `reference-to-video` uses `--reference-video`. To add new reference images during `extend`, use `--input-video`; stored-interaction extension currently does not forward them.
 
 ```bash
 bun autoshow video "animate the teal camping mug illustration with a gentle camera orbit; preserve its cream badge" --provider gemini=gemini-omni-1.1-flash --mode image-to-video --input-image input/examples/image/harborlight-mug.png --output-dir output/v-base
 bun autoshow video "transition the same Harborlight campsite from dusk to night; keep the tent and mug consistent" --provider gemini=gemini-omni-1.1-flash --mode interpolate --input-image input/examples/video/harborlight-start.png --last-frame input/examples/video/harborlight-end.png --aspect-ratio 9:16
 ```
-The bundled [Harborlight fixtures](../../../../input/examples/harborlight-README.md) supply the product, two distinct 1080 × 1920 campsite frames, and wardrobe references. Use `9:16` with both interpolation examples. The jacket and glasses are object references rather than a verified character identity. Local decoding and price checks do not establish motion, reference fidelity, or provider output quality.
+
+The bundled [Harborlight fixtures](../../../../input/examples/harborlight-README.md) supply the product, two distinct 1080 × 1920 campsite frames, and wardrobe references. Use `9:16` for the campsite interpolation. The jacket and glasses are object references rather than a verified character identity. Local decoding and price checks do not establish motion, reference fidelity, or provider output quality.
 
 ## Shared Video Options
 
@@ -62,7 +66,7 @@ The `video` and `resume` commands use the same short option names, including `--
 | Flag                                   | Description                                                                                                               |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `--provider provider[=model]`          | Hosted video provider/model selector; repeat to run multiple targets                                                      |
-| `--all-providers`                      | Run every supported video provider/model                                                                                  |
+| `--all-providers`                      | Run every provider/model supporting the selected mode                                                                     |
 | `--provider-concurrency <n>`           | Hosted video providers/models to run concurrently; default `7`                                                            |
 | `--concurrency-mode <ramp\|immediate>` | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                                      |
 | `--duration <seconds>`                 | Requested video duration                                                                                                  |
@@ -71,7 +75,7 @@ The `video` and `resume` commands use the same short option names, including `--
 | `--mode <mode>`                        | `text`, `image-to-video`, `reference-to-video`, `interpolate`, `edit`, or `extend`; default `text`                        |
 | `--input-image <path-or-url>`          | Input image for `image-to-video`; first frame for `interpolate`                                                           |
 | `--last-frame <path-or-url>`           | Last-frame image for `interpolate`                                                                                        |
-| `--reference-image <path-or-url>`      | Reference image for `reference-to-video` or Gemini Omni `extend`; repeatable                                              |
+| `--reference-image <path-or-url>`      | Reference image for `reference-to-video` or Gemini Omni uploaded-video `extend`; repeatable                               |
 | `--reference-video <path-or-url>`      | Reference MP4 for Gemini Omni (up to 3, 3s each); repeatable                                                              |
 | `--input-video <path-or-url>`          | Gemini Omni `edit`/`extend` source MP4 (uploaded sources ≤10s)                                                            |
 | `--previous-interaction-id <id>`       | Gemini Omni prior interaction id from `providerRequestId`; use with `edit` or `extend` instead of re-uploading            |
@@ -88,6 +92,7 @@ bun autoshow video "a rainy neon city street, slow camera pan" --provider gemini
 bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --price
 bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --max-model-cents 100 --price
 ```
+
 ## Video Services
 
 ### Gemini Omni
@@ -103,13 +108,14 @@ bun autoshow video "a rainy neon city street, slow camera pan" --all-providers -
 ```bash
 bun autoshow video "a sweeping Grand Canyon drone shot" --provider gemini=gemini-omni-1.1-flash --duration 8 --aspect-ratio 16:9 --resolution 1080p
 ```
+
 - Native audio is always on. 1080p and 4K are upscaled. Unspecified duration is estimated at 10 seconds.
 - Uploaded edit/extend is not available in the EEA, Switzerland, or the United Kingdom. Audio references and voice editing are not supported.
 - [Omni docs](https://ai.google.dev/gemini-api/docs/omni), [pricing](https://ai.google.dev/gemini-api/docs/pricing)
 
 #### Generate a base, then edit it
 
-Use a paid-tier Gemini API project with Omni access and keep `GEMINI_API_KEY` in that same project for every turn. This workflow needs a completed generated base; a price-only run creates no interaction ID. AutoShow requests `store: true`, allowing a later turn to reference the provider's stored interaction. Deleted or expired interactions cannot be reused. [Stateful editing](https://ai.google.dev/gemini-api/docs/omni#stateful-video-editing), [interaction retention](https://ai.google.dev/gemini-api/docs/interactions-overview#data-storage-and-retention).
+Use a paid-tier Gemini API project with Omni access and keep `GEMINI_API_KEY` in that same project for every turn. This workflow needs a completed generated base; a price-only run creates no interaction ID. The generated interaction is stored for later editing turns. Deleted or expired interactions cannot be reused. [Stateful editing](https://ai.google.dev/gemini-api/docs/omni#stateful-video-editing), [interaction retention](https://ai.google.dev/gemini-api/docs/interactions-overview#data-storage-and-retention).
 
 Plan the whole sequence before generating the base. At the current CLI estimate of $0.10 per output second, the 3-second base plus one 3-second edit below total **$0.60 estimated output cost**. A separate 3-second extension adds $0.30. Input/context tokens and billable retries are additional and are not fully estimated here; Google's billing uses tokens. Review the complete budget and account eligibility before removing `--price`. [Official pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-omni-flash).
 
@@ -162,14 +168,14 @@ For uploaded edit/extend instead, supply your own compatible video of at most 10
 bun autoshow video "cinematic moonlit coastline" --provider grok=grok-imagine-video-1.5 --duration 8 --resolution 1080p
 bun autoshow video "an adult explorer wearing the teal jacket and round gold glasses walks along a harbor path" --provider grok=grok-imagine-video-1.5 --mode reference-to-video --reference-image input/examples/video/harborlight-jacket.png --reference-image input/examples/video/harborlight-glasses.png
 ```
-- Text, image, and reference durations are 1–15 seconds (default 8). Reference generation is capped at 720p.
 
+- Text, image, and reference durations are 1–15 seconds (default 8); supplied values are floored and clamped to that range. The default resolution is 480p, and reference generation is capped at 720p.
 
 ## Output
 
-- Single-provider runs write `generated-video.mp4` and `manifest.json`.
-- Multi-provider runs write `generated-video-<provider>-<model>.mp4` per target and `manifest.json`.
-- `manifest.json` records `video`, `cost`, and `timing`; `video` is an array.
+- Single-target runs write `generated-video.mp4` and `manifest.json`.
+- Multi-target runs write `generated-video-<provider>-<model>.mp4` per successful target and `manifest.json`.
+- `items[0].metadata` in the manifest records the `video` array, `cost`, and `timing`.
 
 ## Notes
 
@@ -179,9 +185,9 @@ bun autoshow video "an adult explorer wearing the teal jacket and round gold gla
 
 Text-to-video and image-to-video are available on every provider.
 
-✅ supported, ❌ not supported. Max resolution: ✅ 2K/4K, ⚠️ 1080p, ❌ 720p. Duration: ✅ 15s+, ⚠️ max 10s, ❌ max 8s. Aspect ratio: ✅ any/7+, ⚠️ 5–6, ❌ 3 or fewer / input frame. References: ❌ none, ⚠️ up to 3, ✅ 4 or more. Rows are newest first. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Outputs are the default per-second (or per-clip) estimate. Inputs are extra billed reference or token cost when published separately; `Included` means the published rate is per output second. Output pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first on the default billed rate (1 = cheapest); ties share a rank.
+Prices are the CLI's default output estimates; input charges are additional where listed. Gemini input/context costs are not fully estimated.
 
-| Provider                       | Released     | reference-to-video | interpolate | edit | extend | Duration | Max resolution | Aspect ratio   | Native audio | References | Inputs        | Outputs                                           | Cost rank |
-| ------------------------------ | ------------ | ------------------ | ----------- | ---- | ------ | -------- | -------------- | -------------- | ------------ | ---------- | ------------- | ------------------------------------------------- | --------- |
-| Gemini `gemini-omni-1.1-flash` | ✅ 2026-08    | ✅                  | ✅           | ✅    | ✅      | ⚠️ 3–10s | ✅ 4K           | ❌ 16:9 or 9:16 | ✅ Always on  | ⚠️ Up to 3 | Not estimated | ⚠️ $0.10/s                                        | 2/2       |
-| Grok `grok-imagine-video-1.5`  | ✅ 2026-05-30 | ✅                  | ❌           | ❌    | ❌      | ✅ 1–15s  | ⚠️ 1080p       | ✅ 7 ratios     | ❌ No         | ✅ Up to 5  | $0.01/image   | ✅ $0.08/s at 480p ($0.14 at 720p, $0.25 at 1080p) | 1/2       |
+| Model                          | Additional modes                     | Duration | Maximum resolution      | Aspect ratio | Native audio | References                | Output estimate                                | Input charges       |
+| ------------------------------ | ------------------------------------ | -------- | ----------------------- | ------------ | ------------ | ------------------------- | ---------------------------------------------- | ------------------- |
+| Gemini `gemini-omni-1.1-flash` | Reference, interpolate, edit, extend | 3–10s    | 4K (upscaled)           | 16:9 or 9:16 | Always on    | Images and up to 3 videos | $0.10/s                                        | Not fully estimated |
+| Grok `grok-imagine-video-1.5`  | Reference                            | 1–15s    | 1080p; references ≤720p | 7 ratios     | None         | Up to 5 images            | $0.08/s at 480p; $0.14 at 720p; $0.25 at 1080p | $0.01/image         |

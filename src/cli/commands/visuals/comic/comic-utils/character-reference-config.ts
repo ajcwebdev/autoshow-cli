@@ -14,10 +14,10 @@ const catalogContext = new AsyncLocalStorage<CharacterCatalogService>()
 const resolveCharacterReferenceConfigPath = (charactersRoot = getCharactersRoot()): string =>
   join(charactersRoot, CHARACTER_REFERENCE_FILENAME)
 
-export const loadCharacterCatalog = (charactersRoot = getCharactersRoot()): CharacterCatalogService => {
+export const loadCharacterCatalog = (charactersRoot = getCharactersRoot(), options: { fresh?: boolean } = {}): CharacterCatalogService => {
   const root = resolve(charactersRoot)
   const active = catalogContext.getStore()
-  if (active?.root === root) return active
+  if (!options.fresh && active?.root === root) return active
   const configPath = resolveCharacterReferenceConfigPath(root)
   const { config, raw } = readCharacterCatalogConfig(configPath)
   const index = buildCharacterCatalogIndex(root, configPath, config)

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
+import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { generatePanelImages } from '~/cli/commands/visuals/comic/comic-commands/generate-images/generate-panel-images'
 import { isComicProviderError, runComicImageWorkItems } from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-image-work-items'
 import { runComicCreditPreflight } from '~/cli/commands/visuals/comic/comic-utils/credit-preflight'
@@ -14,10 +15,11 @@ import { AppProviderError } from '~/utils/error-handler'
 import promptsConfig from '~/cli/commands/visuals/comic/comic-prompts/prompts.json'
 import type { ComicImageRunStop, ComicImageWorkItemResult, PageQaEntry, PageQaRequest, PanelBundleData } from '~/types'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
+import { createLiveLocationFixture } from '../../../../test-utils/live-location-reference-fixture'
 
 const temporaryDirectories: string[] = []
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
-const sha = new Bun.CryptoHasher('sha256').update(tinyPng).digest('hex')
 const cargoBayLocation = { key: 'cargo-bay', raw: 'cargo-bay' }
 
 const panelBundle = (panelNumber: number): PanelBundleData => ({
@@ -35,14 +37,8 @@ const createSceneFixture = async (sceneSlug: string, panelNumbers: number[]): Pr
   const runDirectory = await makeTempDir('autoshow-comic-unattended-')
   temporaryDirectories.push(runDirectory)
   beginSceneRun(sceneSlug, { outputDir: runDirectory })
-  const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero')
-  await mkdir(characterRoot, { recursive: true })
-  await Bun.write(join(characterRoot, 'reference.png'), tinyPng)
-  await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
-  const locationSheet = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'cargo-bay.png')
-  await mkdir(dirname(locationSheet), { recursive: true })
-  await Bun.write(locationSheet, tinyPng)
-  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots: [{ schemaVersion: 3, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth.', sourceScripts: [], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: 'assets/location-references/location-snapshot/cargo-bay.png', label: 'establishing view of cargo-bay' }] }] }))
+  await createLiveCharacterFixture(runDirectory)
+  await createLiveLocationFixture(runDirectory, [{ key: 'cargo-bay', name: 'Cargo Bay', specification: 'A loading door stays left of a fixed control booth.', sourceScripts: [] }], tinyPng)
   for (const panelNumber of panelNumbers) {
     const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
     await mkdir(directory, { recursive: true })
@@ -56,6 +52,7 @@ const parseArgs = (args: string[]) => coerceAndValidateGenerateImages(parseComma
 describe('unattended comic image runs', () => {
   afterEach(async () => {
     resetSceneRunContext()
+    configureCharactersRoot('input/characters')
     while (temporaryDirectories.length > 0) await rm(temporaryDirectories.pop()!, { recursive: true, force: true })
   })
 

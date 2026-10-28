@@ -1,17 +1,16 @@
 import type { DirectoryEntry } from '~/types'
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import * as v from 'valibot'
-import type { ComicPanelSource, ImageGenerationModel, LocationReferenceSnapshot, LocationReferenceSnapshotManifest, LocationView, PanelBundleData, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedLocationReference, ResolvedLocationReferenceView, ResolveLocationReferenceOptions, ResolvedReferenceImages } from '~/types'
+import type { ComicPanelSource, ImageGenerationModel, LocationView, PanelBundleData, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedLocationReference, ResolvedLocationReferenceView, ResolveLocationReferenceOptions, ResolvedReferenceImages } from '~/types'
 import { PanelBundleDataSchema } from '../schemas/schemas'
 import { loadAndVerifyCharacterReferenceSnapshot } from './character-reference-snapshot'
+import { loadCharacterCatalog } from './character-reference-config'
 import { resolveCharacterIdentityReferences, resolveRosterCharacterReferences } from './character-identity-card'
-import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOT_READABLE_VERSIONS, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS } from './location-reference'
+import { describeLocationSnapshotView, requireCurrentLocationReferenceSync, LOCATION_VIEWS } from './location-reference'
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
 export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
 import { comicLog } from './comic-logger'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { ValidationError } from '~/utils/error-handler'
 import { getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
 
 export const PANEL_DIRECTORY_PATTERN = /^panel-(\d+)$/
@@ -52,13 +51,19 @@ const orderedKeys = (panels: PanelPrimaryReferenceInput[]): string[] => {
 
 export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[], options: { composeDerived?: boolean } = {}): PrimaryCharacterReferenceState => {
   if (panels.length === 0) return { primaryCharacterRefs: [], missingPrimaryCharacterRefs: [] }
-  const snapshotIds = new Set(panels.map(panel => panel.bundleData.snapshotId))
   const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
-  if (snapshotIds.size !== 1 || runDirectories.size !== 1) throw ValidationError('Mixed snapshot IDs or run directories are not allowed in one image request', { stage: 'comic:reference-snapshot' })
+  if (runDirectories.size !== 1) throw ValidationError('Mixed run directories are not allowed in one image request', { stage: 'comic:reference-snapshot' })
   const runDirectory = [...runDirectories][0]!
-  const snapshotId = [...snapshotIds][0]!
-  const manifest = loadAndVerifyCharacterReferenceSnapshot(runDirectory, snapshotId)
   const keys = orderedKeys(panels)
+  const blockingKeys = panels.flatMap(({ bundleData: { blocking } }) => blocking ? [
+    ...blocking.ledger.map(entry => entry.characterKey),
+    ...blocking.offFrameRoster.map(entry => entry.characterKey),
+    ...blocking.croppedOnStage.map(entry => entry.characterKey),
+    ...blocking.extrasInFrame.map(entry => entry.ensembleKey),
+  ] : [])
+  const catalogKeys = blockingKeys.length > 0 ? new Set<string>(loadCharacterCatalog(undefined, { fresh: true }).characterKeys) : undefined
+  const rosterKeys = blockingKeys.filter(key => catalogKeys?.has(key))
+  const manifest = loadAndVerifyCharacterReferenceSnapshot(runDirectory, undefined, [...keys, ...rosterKeys])
   const characterReferences = resolveCharacterIdentityReferences(runDirectory, manifest, keys, { compose: options.composeDerived !== false })
   const primaryCharacterRefs = characterReferences.map(reference => reference.path)
   const rosterCharacterReferences = resolveRosterCharacterReferences(runDirectory, manifest, keys)
@@ -73,45 +78,10 @@ export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrima
 export const resolvePrimaryCharacterReferences = (panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData): PrimaryCharacterReferenceState =>
   resolvePrimaryCharacterReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
 
-const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/
-
-const hasOrderedViewProvenance = (views: ReadonlyArray<{ view: LocationView; generationId: string; imageSha256: string }> | undefined): boolean => {
-  if (!Array.isArray(views) || views.length === 0 || views[0]?.view !== 'establishing') return false
-  if (!views.every(view => LOCATION_VIEWS.includes(view.view) && !!view.generationId && SHA256_HEX_PATTERN.test(view.imageSha256))) return false
-  const indices = views.map(view => LOCATION_VIEWS.indexOf(view.view))
-  return new Set(indices).size === indices.length && !indices.some((index, position) => position > 0 && index <= indices[position - 1]!)
-}
-
-const verifySnapshotAsset = (runDirectory: string, relativePath: string, expectedSha256: string): string => {
-  const assetPath = resolve(runDirectory, relativePath)
-  if (!existsSync(assetPath)) throw InfraError(`Location snapshot asset is missing: ${relativePath}`, { stage: 'comic:location-reference' })
-  const actual = new Bun.CryptoHasher('sha256').update(readFileSync(assetPath)).digest('hex')
-  if (actual !== expectedSha256) throw ValidationError(`Location snapshot asset was modified: ${relativePath}`, { stage: 'comic:location-reference' })
-  return assetPath
-}
-
-const snapshotMatchesPanel = (snapshot: LocationReferenceSnapshot | undefined, expectedKey: string | undefined): snapshot is LocationReferenceSnapshot => {
-  if (!snapshot || (expectedKey && snapshot.locationKey !== expectedKey)) return false
-  if (snapshot.schemaVersion === 3) return hasOrderedViewProvenance(snapshot.views) && snapshot.views.every(view => !!view.path && typeof view.label === 'string')
-  return false
-}
-
-const resolveSnapshotViews = (runDirectory: string, snapshot: LocationReferenceSnapshot): ResolvedLocationReferenceView[] => {
-  return snapshot.views.map(view => ({ view: view.view, path: verifySnapshotAsset(runDirectory, view.path, view.imageSha256), label: view.label }))
-}
-
 export const selectLocationSnapshotView = (views: readonly ResolvedLocationReferenceView[], preferred?: LocationView | undefined): ResolvedLocationReferenceView => {
   const selected = (preferred ? views.find(view => view.view === preferred) : undefined) ?? views[0]
-  if (!selected) throw ValidationError('Location snapshot has no registered views', { stage: 'comic:location-reference' })
+  if (!selected) throw ValidationError('Location reference has no registered views', { stage: 'comic:location-reference' })
   return selected
-}
-
-export const readLocationSnapshotManifest = (runDirectory: string): LocationReferenceSnapshotManifest => {
-  const pluralPath = getLocationReferenceSnapshotsPath(runDirectory)
-  if (!existsSync(pluralPath)) throw InfraError(`Missing ${LOCATION_SNAPSHOTS_FILENAME}. Run draft-scenes explicitly.`, { stage: 'comic:location-reference' })
-  const manifest = JSON.parse(readFileSync(pluralPath, 'utf8')) as LocationReferenceSnapshotManifest
-  if (!(LOCATION_SNAPSHOT_READABLE_VERSIONS as readonly number[]).includes(manifest.schemaVersion) || !Array.isArray(manifest.snapshots)) throw ValidationError(`Invalid location snapshot manifest: ${pluralPath}`, { stage: 'comic:location-reference' })
-  return manifest
 }
 
 const preferredViewForPanels = (panels: PanelPrimaryReferenceInput[], options: ResolveLocationReferenceOptions): LocationView | undefined => {
@@ -124,27 +94,19 @@ export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryRefere
   if (panels.length === 0) throw ValidationError('A location reference requires at least one panel', { stage: 'comic:location-reference' })
   const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
   if (runDirectories.size !== 1) throw ValidationError('Mixed run directories are not allowed in one image request', { stage: 'comic:location-reference' })
-  const runDirectory = [...runDirectories][0]!
-  const manifest = readLocationSnapshotManifest(runDirectory)
-  const byId = new Map(manifest.snapshots.map(snapshot => [snapshot.snapshotId, snapshot]))
   const preferredView = preferredViewForPanels(panels, options)
   const ordered: ResolvedLocationReference[] = []
   const seen = new Set<string>()
   for (const input of panels) {
     const panel = input.bundleData.panels[0]
     if (!panel) throw ValidationError('Panel bundle is missing its panel payload', { stage: 'comic:location-reference' })
-    const snapshotId = panel.locationSnapshotId
-    const expectedKey = panel.locationKey
-    if (!snapshotId) throw ValidationError('Panel bundle omits its location snapshot ID', { stage: 'comic:location-reference' })
-    const snapshot = byId.get(snapshotId)
-    if (!snapshotMatchesPanel(snapshot, expectedKey)) {
-      throw ValidationError(`Panel location snapshot ${snapshotId} does not match its manifest entry`, { stage: 'comic:location-reference' })
-    }
-    if (seen.has(snapshotId)) continue
-    const views = resolveSnapshotViews(runDirectory, snapshot)
+    const key = panel.locationKey
+    if (seen.has(key)) continue
+    const current = requireCurrentLocationReferenceSync(key, { requireCurrentSpecification: false })
+    const views = current.views.map(view => ({ view: view.view, path: view.imagePath, label: describeLocationSnapshotView(current.entry.key, view.view) }))
     const selected = selectLocationSnapshotView(views, preferredView)
-    seen.add(snapshotId)
-    ordered.push({ key: snapshot.locationKey, snapshotId, specification: snapshot.specification, path: selected.path, view: selected.view, views })
+    seen.add(key)
+    ordered.push({ key: current.entry.key, snapshotId: `live:${current.entry.key}`, specification: current.entry.specification, path: selected.path, view: selected.view, views })
   }
   return ordered
 }

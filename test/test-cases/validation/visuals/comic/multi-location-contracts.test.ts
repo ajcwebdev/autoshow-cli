@@ -1,15 +1,17 @@
 import { afterEach, describe, expect, test } from 'bun:test'
+import { existsSync } from 'node:fs'
 import { mkdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { createLocationReferenceSnapshots, normalizeLocationKey, resolveLocationCatalogEntry } from '~/cli/commands/visuals/comic/comic-utils/location-reference'
-import { resolveLocationReferencesAcrossPanels } from '~/cli/commands/visuals/comic/comic-utils/panel-prompt-utils'
+import { resolveLocationReferencesAcrossPanels, resolvePrimaryCharacterReferencesAcrossPanels } from '~/cli/commands/visuals/comic/comic-utils/panel-prompt-utils'
 import { validateSceneSourceSegmentCoverage } from '~/cli/commands/visuals/comic/comic-utils/source-coverage-utils'
 import { parseScriptMarkdownToStructuredData } from '~/cli/commands/visuals/comic/comic-utils/structured-script-utils/structured-script-parser'
 import type { CharacterCatalogService, CompiledPanelBlocking, LocationReferenceCatalog, LocationView, PanelPrimaryReferenceInput, ScenePromptData, StructuredScriptSourceSegment } from '~/types'
 import * as v from 'valibot'
 import { CompiledPanelBlockingSchema } from '~/cli/commands/visuals/comic/schemas/blocking-plan-schemas'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
 
 const roots: string[] = []
 const sha256 = (value: string | Buffer): string => new Bun.CryptoHasher('sha256').update(value).digest('hex')
@@ -131,7 +133,7 @@ describe('multi-location comic contracts', () => {
     expect(() => validateSceneSourceSegmentCoverage(scene(['beat-0001', 'beat-0002'], 'quarters'), segments)).toThrow(/spans multiple locations.*Split/)
   })
 
-  test('snapshots each distinct location once and rejects tampered or missing snapshot manifests on the panel resolution path', async () => {
+  test('uses current canonical locations and specifications without snapshot files, while rejecting corrupt or missing canonical images', async () => {
     const root = await makeTempDir('autoshow-multi-location-snapshots-')
     roots.push(root)
     const characters = join(root, 'input', 'characters')
@@ -163,9 +165,10 @@ describe('multi-location comic contracts', () => {
     const manifest = await createLocationReferenceSnapshots(run, ['quarters', 'hallway', 'quarters'])
     expect(manifest.schemaVersion).toBe(3)
     expect(manifest.snapshots.every(snapshot => snapshot.schemaVersion === 3)).toBe(true)
-    expect(manifest.snapshots.every(snapshot => snapshot.views.every(view => view.path.startsWith('assets/location-references/')))).toBe(true)
-    expect(manifest.snapshots.map(snapshot => snapshot.views.map(view => view.path.split('/').at(-1)))).toEqual([['quarters--establishing.png'], ['hallway--establishing.png']])
+    expect(manifest.snapshots.map(snapshot => snapshot.snapshotId)).toEqual(['live:quarters', 'live:hallway'])
+    expect(manifest.snapshots.map(snapshot => snapshot.views.map(view => resolve(run, view.path)))).toEqual([[join(locations, 'quarters.png')], [join(locations, 'hallway.png')]])
     expect(manifest.snapshots.map(snapshot => snapshot.locationKey)).toEqual(['quarters', 'hallway'])
+    expect(existsSync(run)).toBe(false)
     const panelInput = (runDirectory: string, index: number, snapshot: { locationKey: string; snapshotId: string }): PanelPrimaryReferenceInput => ({
       panelDirectory: join(runDirectory, 'metadata', 'panel-prompts', `panel-0${index + 1}`),
       entries: [],
@@ -191,14 +194,29 @@ describe('multi-location comic contracts', () => {
     expect(resolveLocationReferencesAcrossPanels(panels)).toHaveLength(2)
     const firstAsset = resolve(run, manifest.snapshots[0]!.views[0]!.path)
     await Bun.write(firstAsset, 'tampered')
-    expect(() => resolveLocationReferencesAcrossPanels(panels)).toThrow(/Location snapshot asset was modified/)
+    expect(() => resolveLocationReferencesAcrossPanels(panels)).toThrow(/Registered location establishing image.*modified/)
+
+    const replacement = Buffer.from('latest-quarters-pixels')
+    const replacementPath = join(locations, 'quarters-latest.png')
+    await Bun.write(replacementPath, replacement)
+    sketches[0]!.views[0] = { ...sketches[0]!.views[0]!, image: 'quarters-latest.png', generationId: 'latest-quarters', imageSha256: sha256(replacement) }
+    await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches }))
+    const latestCatalog = { ...catalog, locations: catalog.locations.map(entry => ({ ...entry, specification: entry.key === 'quarters' ? 'Updated quarters with a new wall description.' : entry.specification })) }
+    await Bun.write(join(locations, 'locations-reference.json'), JSON.stringify(latestCatalog))
+    await Bun.write(join(run, 'assets', 'location-references.json'), 'obsolete malformed manifest')
+    const latest = resolveLocationReferencesAcrossPanels(panels)
+    expect(latest[0]!.path).toBe(replacementPath)
+    expect(latest[0]!.specification).toBe(latestCatalog.locations[0]!.specification)
+    expect(latest[0]!.views[0]!.path).toBe(replacementPath)
 
     const emptyRun = join(root, 'empty-run')
-    await mkdir(join(emptyRun, 'assets'), { recursive: true })
-    expect(() => resolveLocationReferencesAcrossPanels([panelInput(emptyRun, 0, manifest.snapshots[0]!)])).toThrow(/Missing location-references\.json/)
+    expect(resolveLocationReferencesAcrossPanels([panelInput(emptyRun, 0, manifest.snapshots[0]!)])[0]!.path).toBe(replacementPath)
+    expect(existsSync(emptyRun)).toBe(false)
+    await rm(replacementPath)
+    expect(() => resolveLocationReferencesAcrossPanels(panels)).toThrow(/Registered location establishing image is missing/)
   })
 
-  test('registers every view separately in a schema-version-3 snapshot without ImageMagick and selects the camera-matched view', async () => {
+  test('describes canonical views without writing copies and selects the camera-matched current view', async () => {
     const root = await makeTempDir('autoshow-multi-view-location-')
     roots.push(root)
     const characters = join(root, 'input', 'characters')
@@ -225,12 +243,13 @@ describe('multi-location comic contracts', () => {
     expect(manifest.schemaVersion).toBe(3)
     expect(snapshot.schemaVersion).toBe(3)
     expect(snapshot.views.map(view => [view.view, view.generationId])).toEqual([['establishing', 'establishing-generation'], ['reverse', 'reverse-generation']])
-    expect(snapshot.views.map(view => view.path.split('/').at(-1))).toEqual(['quarters--establishing.png', 'quarters--reverse.png'])
+    expect(snapshot.views.map(view => view.path.split('/').at(-1))).toEqual(['quarters--reference.png', 'quarters--reference-reverse.png'])
     expect(snapshot.views.map(view => view.label)).toEqual(['establishing view of quarters', 'reverse view of quarters'])
+    expect(existsSync(run)).toBe(false)
     for (const view of snapshot.views) {
-      const copied = Buffer.from(await Bun.file(resolve(run, view.path)).arrayBuffer())
-      expect(copied.equals(viewBytes[view.view as 'establishing' | 'reverse'])).toBe(true)
-      expect(sha256(copied)).toBe(view.imageSha256)
+      const canonical = Buffer.from(await Bun.file(resolve(run, view.path)).arrayBuffer())
+      expect(canonical.equals(viewBytes[view.view as 'establishing' | 'reverse'])).toBe(true)
+      expect(sha256(canonical)).toBe(view.imageSha256)
     }
 
     const panel = viewPanelInput(run, snapshot.snapshotId, 'quarters')
@@ -239,15 +258,21 @@ describe('multi-location comic contracts', () => {
     const reversePanel = viewPanelInput(run, snapshot.snapshotId, 'quarters', 'reverse')
     const matched = resolveLocationReferencesAcrossPanels([reversePanel], { cameraMatched: true })[0]!
     expect(matched.view).toBe('reverse')
-    expect(matched.path).toEndWith('/quarters--reverse.png')
+    expect(matched.path).toBe(join(locations, 'quarters--reference-reverse.png'))
     expect(matched.views.map(view => view.view)).toEqual(['establishing', 'reverse'])
     expect(resolveLocationReferencesAcrossPanels([reversePanel]).map(reference => reference.view)).toEqual(['establishing'])
     expect(resolveLocationReferencesAcrossPanels([reversePanel, reversePanel], { cameraMatched: true }).map(reference => reference.view)).toEqual(['establishing'])
   })
 
-  test('rejects schema-version-2 location snapshot manifests', async () => {
-    const root = await makeTempDir('autoshow-v2-snapshot-rejected-')
+  test('never uses a legacy snapshot as fallback for a missing current registration', async () => {
+    const root = await makeTempDir('autoshow-current-location-required-')
     roots.push(root)
+    const characters = join(root, 'input', 'characters')
+    const locations = join(root, 'input', 'locations')
+    await mkdir(characters, { recursive: true })
+    configureCharactersRoot(characters)
+    await Bun.write(join(locations, 'locations-reference.json'), JSON.stringify(catalog))
+    await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches: [] }))
     const run = join(root, 'run')
     const snapshotId = '1767225600000-v2rejected'
     const sheetRelativePath = `assets/location-references/${snapshotId}/quarters--reference-sheet.png`
@@ -268,7 +293,26 @@ describe('multi-location comic contracts', () => {
         sheet: { path: sheetRelativePath, sha256: sha256(sheetBytes) },
       }],
     }))
-    expect(() => resolveLocationReferencesAcrossPanels([viewPanelInput(run, snapshotId, 'quarters')])).toThrow(/Invalid location snapshot manifest/)
+    expect(() => resolveLocationReferencesAcrossPanels([viewPanelInput(run, snapshotId, 'quarters')])).toThrow(/quarters.*no registered establishing reference/)
+    expect(() => resolveLocationReferencesAcrossPanels([viewPanelInput(run, snapshotId, 'unregistered-location')])).toThrow(/does not resolve to a canonical location key/)
+    expect(() => resolveLocationReferencesAcrossPanels([viewPanelInput(run, snapshotId, 'quarters'), viewPanelInput(join(root, 'different-run'), snapshotId, 'quarters')])).toThrow(/Mixed run directories/)
+  })
+
+  test('keeps cataloged off-frame characters as roster cards without requiring assets for generic blocking guests', async () => {
+    const root = await makeTempDir('autoshow-live-blocking-roster-')
+    roots.push(root)
+    await createLiveCharacterFixture(root, ['hero', 'rival'].map(key => ({ key, name: key, description: key, aliases: [], image: `${key}.png`, outlineSheet: `${key}.png` })))
+    const run = join(root, 'run')
+    const input = viewPanelInput(run, 'obsolete-location', 'quarters', 'establishing')
+    input.bundleData.panels[0]!.characterKeys = ['hero']
+    input.bundleData.blocking!.offFrameRoster = [{ characterKey: 'rival', note: 'Outside the crop.' }, { characterKey: 'background-guard', note: 'A generic guest outside the crop.' }]
+    input.bundleData.blocking!.croppedOnStage = [{ characterKey: 'rival', reason: 'Outside the crop.' }]
+    input.bundleData.blocking!.extrasInFrame = [{ ensembleKey: 'anonymous-crowd', count: 3, variety: [], exclude: [], props: [] }]
+    const references = resolvePrimaryCharacterReferencesAcrossPanels([input])
+    expect(references.characterReferences?.map(reference => reference.key)).toEqual(['hero'])
+    expect(references.primaryCharacterRefs).toEqual([join(root, 'input', 'characters', 'hero.png')])
+    expect(references.rosterCharacterReferences).toEqual([{ key: 'rival', name: 'rival', path: join(root, 'input', 'characters', 'rival.png') }])
+    expect(existsSync(run)).toBe(false)
   })
 
   test('parses a complete script into ordered location segments without an external project fixture', () => {

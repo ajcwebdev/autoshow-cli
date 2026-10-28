@@ -1,10 +1,6 @@
 import { expect, test } from 'bun:test'
 import { basename, relative, resolve } from 'node:path'
 import {
-  getCharacterReferencesDirectory,
-  getDesignReferencesDirectory,
-  getLocationReferencesDirectory,
-  getSceneAssetsDirectory,
   getSceneMetadataDirectoryForWorkspace,
   normalizeProjectPath
 } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
@@ -18,12 +14,7 @@ const docs = [
 ]
 const workspaceDirectories = [
   getSceneMetadataDirectoryForWorkspace(workspace),
-  getSceneAssetsDirectory(workspace),
-  getCharacterReferencesDirectory(workspace),
-  getLocationReferencesDirectory(workspace),
-  getDesignReferencesDirectory(workspace)
 ]
-const snapshotDirectories = workspaceDirectories.slice(2)
 
 const treeIndent = (directory: string): string => {
   const depth = normalizeProjectPath(relative(workspace, directory)).split('/').length
@@ -40,8 +31,10 @@ test('comic layout docs match the workspace-parameterized path helpers', async (
 
     expect(section).toContain(`${workspace}/`)
     for (const directory of workspaceDirectories) expect(section).toContain(treeLine(directory))
-    for (const directory of snapshotDirectories) {
-      expect(section).toContain(`${treeLine(directory)}\n${treeIndent(directory)}  <snapshot-id>/`)
-    }
+    expect(section).toContain('input/characters/')
+    expect(section).toContain('input/locations/')
+    expect(section).toContain('images read directly from current canonical roots')
+    expect(section).not.toContain('  assets/')
+    expect(section).not.toContain('<snapshot-id>')
   }
 })

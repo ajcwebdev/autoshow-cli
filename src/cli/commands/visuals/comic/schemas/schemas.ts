@@ -194,9 +194,13 @@ const PanelBundlePanelSchema = v.strictObject({
   characterKeys: v.array(CharacterKeySchema),
   speech: v.array(SpeechItemSchema),
   sourceSegmentIds: v.array(v.string()),
-  sourceSegments: v.array(StructuredScriptSourceSegmentSchema),
+  sourceSegments: v.array(v.strictObject({
+    ...StructuredScriptSourceSegmentSchema.entries,
+    // Reviewed v4 image bundles predate source-span annotations; missing spans convey no extra provenance.
+    sourceSpans: v.optional(v.array(StructuredScriptSourceSpanSchema), []),
+  })),
   locationKey: v.string(),
-  locationSnapshotId: v.string(),
+  locationSnapshotId: v.optional(v.string()),
   designReferences: v.optional(v.array(DesignReferenceSchema)),
   designSnapshotId: v.optional(v.string()),
   designReferenceKeys: v.optional(v.array(v.string())),
@@ -240,7 +244,7 @@ export const ScenePromptDataSchema = v.strictObject({
 })
 export const PanelBundleDataSchema = v.strictObject({
   schemaVersion: v.literal(4),
-  snapshotId: v.string(),
+  snapshotId: v.optional(v.string()),
   title: v.string(),
   location: v.string(),
   panels: v.array(PanelBundlePanelSchema),

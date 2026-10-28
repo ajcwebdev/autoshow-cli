@@ -21,7 +21,7 @@ Available actions are `list`, `consent`, `import`, `design`, `clone`, `audition`
 
 Import, local listing, approval, retirement, and audition support Gemini, ElevenLabs, Soniox, Grok, OpenAI, and Inworld. Remote catalog listing and delete support all except OpenAI and Soniox. Design supports Gemini, ElevenLabs, and Inworld. Clone supports Gemini, ElevenLabs, Grok, and Inworld.
 
-Gemini supports both `gemini-3.8-flash-tts` and `gemini-3.8-flash-lite-tts`. Registrations and audition approvals bind the selected synthesis model. Account discovery lists stored custom voices; provider-library discovery lists prebuilt voices with pagination. Stored resources carry known expiry and ownership; expired voices are blocked before synthesis. An unselected design resource can be imported by its `voice_...` ID, inspected, and explicitly deleted if the local creation journal establishes project ownership.
+Registrations and audition approvals bind the selected synthesis model. Gemini supports `gemini-3.8-flash-tts` and `gemini-3.8-flash-lite-tts`; its account catalog lists stored custom voices, and its provider-library catalog lists prebuilt voices. Known expired voices are blocked before synthesis.
 
 Author profiles in `input/characters/character-voices.json`. Profiles are independent of the visual character catalog. A minimal catalog is:
 
@@ -46,11 +46,12 @@ Author profiles in `input/characters/character-voices.json`. Profiles are indepe
 
 ## Setup
 
-Hosted voice providers need the same API keys as TTS:
+Remote voice operations and auditions use the same provider API keys as TTS:
 
 ```bash
 GEMINI_API_KEY=...
 ELEVENLABS_API_KEY=...
+SONIOX_API_KEY=...
 XAI_API_KEY=...
 OPENAI_API_KEY=...
 INWORLD_API_KEY=...

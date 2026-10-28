@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-09-22
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
 
 ## Context
@@ -43,25 +43,11 @@ Why now: type ownership had to match those subsystem boundaries so later work in
 - **Cons:** Conflicts with the central `~/types` barrel and the project-wide import pattern
 - **Quantitative Notes:** n/a
 
-**Option 5**
-
-- **Option:** Collapse types into fewer monolithic domain files
-- **Pros:** Fewer files to manage
-- **Cons:** Recreates mixed-purpose files and hides subsystem ownership
-- **Quantitative Notes:** n/a
-
-**Option 6**
-
-- **Option:** Leave `src/types` and `migrated/` unchanged
-- **Pros:** Zero edit risk
-- **Cons:** Keeps unnecessary aliases and treats migration staging as permanent architecture
-- **Quantitative Notes:** n/a
-
 ## Decision
 
 Keep `src/types` organized by durable subsystem and workflow ownership, with `src/types/index.ts` as the sole public `~/types` barrel.
 
-Do not export a type whose only consumer is a single importing file. Fold a private alias into its parent when that parent is the only reference. Place remaining files by subsystem and workflow domain rather than by a strict `src/` mirror, and place cross-cutting contracts in shared subsystem directories such as `pipeline-core/` and `runtime-core/`, not at the `src/types` root. Do not use `src/types/migrated/` or deep-path compatibility shims.
+Inline declarations used by only one importing file and private aliases referenced by only one parent. Keep cross-cutting contracts in shared subsystem directories and retire `src/types/migrated/` without compatibility shims.
 
 This applies to:
 
@@ -76,8 +62,7 @@ It does not apply to:
 
 ## Rationale
 
-- A type imported from one file does not protect a boundary and should not occupy the public barrel.
-- A private alias with one parent is local structure, not a shared contract.
+- Single-use declarations add indirection without defining a shared contract.
 - `migrated/` was staging, not architecture. A partial mirror of the durable boundaries avoids thin folders around ephemeral modules, and keeping the central barrel avoids rewriting every import.
 
 ## Consequences
@@ -85,12 +70,11 @@ It does not apply to:
 Positive outcomes:
 
 - The exported `~/types` surface is smaller, and remaining type files live with the subsystem they support.
-- Later type work follows the same boundaries as [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md), and [ADR-009](ADR-009-stt-timing-captions-and-alignment.md).
 
 Negative outcomes:
 
 - Inlined shapes can be harder to read when they grow large.
-- The public barrel must stay aligned with subsystem files, and placing a cross-cutting contract in `pipeline-core/` versus `runtime-core/` remains a judgment call.
+- The public barrel must stay aligned with subsystem files, and cross-cutting contracts require an ownership judgment.
 
 ## Trade-offs
 
@@ -110,11 +94,7 @@ The cleanup has shipped: `src/types/index.ts` is the only root file and the sole
 
 ### Bun 1.4 Image Declarations
 
-The 2026-08-31 evaluation removed local `Bun.Image` declarations because the installed Bun type packages already declare that surface; TIFF conversion and ImageMagick routing stay in [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md#bun-14-image-routing).
-
-## API / Type Impact
-
-Single-use names are not part of the public `~/types` barrel. In-tree imports continue to use `~/types`. Deep paths under `src/types/` are not a supported public API.
+Local `Bun.Image` declarations were removed in favor of the installed Bun types; image-format routing is owned by [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md).
 
 ## Test Plan
 

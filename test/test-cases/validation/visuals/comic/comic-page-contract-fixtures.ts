@@ -1,9 +1,12 @@
 import { afterEach } from 'bun:test'
 import { mkdir, rm } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
+import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
 import type { PageQaEntry, PanelBundleData } from '~/types'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
+import { createLiveLocationFixture } from '../../../../test-utils/live-location-reference-fixture'
 
 export const setupPageContractFixtures = () => {
   const temporaryDirectories: string[] = []
@@ -56,44 +59,26 @@ export const setupPageContractFixtures = () => {
     const runDirectory = await makeTempDir('autoshow-comic-location-')
     temporaryDirectories.push(runDirectory)
     beginSceneRun(sceneSlug, { outputDir: runDirectory })
-    const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero')
-    await mkdir(characterRoot, { recursive: true })
-    await Bun.write(join(characterRoot, 'reference.png'), tinyPng)
-    await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
-    const locationSheet = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'cargo-bay.png')
-    await mkdir(dirname(locationSheet), { recursive: true })
-    await Bun.write(locationSheet, tinyPng)
-    await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots: [{ schemaVersion: 3, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: 'assets/location-references/location-snapshot/cargo-bay.png', label: 'establishing view of cargo-bay' }] }] }))
+    await createLiveCharacterFixture(runDirectory)
+    const [locationSheet] = await createLiveLocationFixture(runDirectory, [{ key: 'cargo-bay', name: 'Cargo Bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'] }], tinyPng)
     for (const panelNumber of [1, 2]) {
       const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
       await mkdir(directory, { recursive: true })
       await Bun.write(join(directory, 'prompt.md'), `Generate panel independently.\n\n\`\`\`json\n${JSON.stringify(panelBundle(panelNumber), null, 2)}\n\`\`\`\n`)
     }
-    return { runDirectory, locationSheet }
+    return { runDirectory, locationSheet: locationSheet! }
   }
 
   const createMultiLocationFixture = async (sceneSlug: string): Promise<{ runDirectory: string; locationSheets: string[] }> => {
     const runDirectory = await makeTempDir('autoshow-comic-multi-location-')
     temporaryDirectories.push(runDirectory)
     beginSceneRun(sceneSlug, { outputDir: runDirectory })
-    const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero')
-    await mkdir(characterRoot, { recursive: true })
-    await Bun.write(join(characterRoot, 'reference.png'), tinyPng)
-    await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
+    await createLiveCharacterFixture(runDirectory)
     const locations = [
       { key: 'quarters', snapshotId: 'location-quarters' },
       { key: 'hallway', snapshotId: 'location-hallway' },
     ]
-    const locationSheets: string[] = []
-    const snapshots = []
-    for (const location of locations) {
-      const path = join(runDirectory, 'assets', 'location-references', location.snapshotId, `${location.key}.png`)
-      await mkdir(dirname(path), { recursive: true })
-      await Bun.write(path, tinyPng)
-      locationSheets.push(path)
-      snapshots.push({ schemaVersion: 3, snapshotId: location.snapshotId, locationKey: location.key, specification: location.key, sourceScripts: [], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: `assets/location-references/${location.snapshotId}/${location.key}.png`, label: `establishing view of ${location.key}` }] })
-    }
-    await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots }))
+    const locationSheets = await createLiveLocationFixture(runDirectory, locations.map(location => ({ key: location.key, name: location.key, specification: location.key, sourceScripts: [] })), tinyPng)
     for (const [index, location] of locations.entries()) {
       const panelNumber = index + 1
       const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-0${panelNumber}`)
@@ -123,6 +108,7 @@ export const setupPageContractFixtures = () => {
 
   afterEach(async () => {
     resetSceneRunContext()
+    configureCharactersRoot('input/characters')
     await Promise.all(temporaryDirectories.splice(0).map(path => rm(path, { recursive: true, force: true })))
   })
   return { temporaryDirectories, tinyPng, sha, cargoBayLocation, repairAssessment, repairComparisonResponse, panelBundle, createSceneFixture, createMultiLocationFixture }

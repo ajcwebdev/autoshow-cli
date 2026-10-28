@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-11
-- **Date Updated:** 2026-09-23
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
 - **Supersession:** Absorbs the OCR execution, token-priced estimate, batch-diagnostic, chapter-filename, and Bun 1.4 image-routing authority of "Extract Execution and Artifact Contracts", all of "Distribute OCR Pages Across a Multi-Provider Work Pool", and the pooled OCR page-state detail formerly recorded in "Define Pipeline State, Resume, and Dry-Run Planning". URL execution moved to [ADR-001](ADR-001-source-ingestion-and-normalization.md) and STT execution to [ADR-009](ADR-009-stt-timing-captions-and-alignment.md). This record is the accepted authority for Step 2 OCR execution, fan-out and pooled provider modes, and the public OCR and chapter artifacts.
 
@@ -25,7 +25,7 @@ Why now: hosted OCR estimates, incompatible chapter paths, and the need for inde
 **Option 1 (selected)**
 
 - **Option:** Tesseract as the only local OCR engine
-- **Pros:** Fastest and highest-mean engine in local comparison; smallest provisioning surface
+- **Pros:** Best performance-to-complexity ratio in the original local comparison; smallest provisioning surface
 - **Cons:** No local fallback for difficult inputs
 - **Quantitative Notes:** 1 engine
 
@@ -40,14 +40,14 @@ Why now: hosted OCR estimates, incompatible chapter paths, and the need for inde
 
 **Option 1 (selected)**
 
-- **Option:** Evidence-gated token shapes with `costMultiplier: 1`
+- **Option:** Evidence-gated token estimates with unchanged published rates
 - **Pros:** Preserves published rate and tier semantics; makes the wrong component visible
 - **Cons:** Requires ongoing evidence collection
 - **Quantitative Notes:** Promotion needs at least 3 matching healthy samples
 
 **Option 2**
 
-- **Option:** Tune `costMultiplier` until the total estimate matches a benchmark
+- **Option:** Apply a cost multiplier until the total estimate matches a benchmark
 - **Pros:** Small metadata change
 - **Cons:** Hides which token component is wrong and distorts tier selection
 - **Quantitative Notes:** Rejected
@@ -130,7 +130,7 @@ Why now: hosted OCR estimates, incompatible chapter paths, and the need for inde
 
 ## Decision
 
-OCR owns its adapters, retries, response handling, normalized output, and artifacts, above the provider identity shared with URL and STT extraction. It offers two provider modes through `--ocr-provider-mode fanout|pool`, defaulting to `fanout`. In `pool` mode every eligible selected target draws independent pages from a shared queue and the run produces one composite extraction. Canonical progress and resume eligibility, including pooled page state, stay in the [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) manifest.
+OCR offers full-document comparison or a shared page pool through `--ocr-provider-mode fanout|pool`, defaulting to `fanout`. Pool mode produces one composite extraction; canonical progress and resume eligibility for both modes stay in the [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) manifest.
 
 This applies to:
 
@@ -144,7 +144,6 @@ It does not apply to:
 - Canonical pipeline state, resume authority, and price dry runs in general ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
 - Local OCR toolchain provisioning ([ADR-004](ADR-004-setup-toolchain-and-runtime-configuration.md)).
 - Shared hosted admission, ramps, and provider/account lane policy ([ADR-007](ADR-007-decompose-work-into-chunks-and-concurrency-lanes.md)). Pool mode uses those lanes as they exist.
-- OCR under `write`, which no longer exists ([ADR-006](ADR-006-top-level-command-boundaries-and-deprecations.md)).
 - Hosted model identity, lifecycle, reasoning, and pricing provenance ([ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)).
 - STT execution, timing, captions, and alignment ([ADR-009](ADR-009-stt-timing-captions-and-alignment.md)).
 
@@ -154,23 +153,23 @@ It does not apply to:
 
 A hosted failure carries retryability and redacted diagnostics. Automatic resume skips a deterministic provider blocker such as quota, billing, account, or policy; naming that provider again on resume includes the blocked target after repair or an explicit retry.
 
-Hosted page work uses the [ADR-007](ADR-007-decompose-work-into-chunks-and-concurrency-lanes.md) provider and account lanes. Omitting `--step-concurrency ocr-page` selects adaptive `auto` sizing from document size and qualified profiles, up to `48` or an explicit user cap; `--step-concurrency ocr-page=<n>` is a hard ceiling for scheduling and estimates ([ADR-018](ADR-018-derive-cli-help-from-registries-and-generalize-provider-flags.md) owns the spelling). `--concurrency-mode ramp|immediate` controls hosted startup. Local Tesseract, page rendering, and normalization start immediately.
+Hosted page work uses the [ADR-007](ADR-007-decompose-work-into-chunks-and-concurrency-lanes.md) provider and account lanes. Omitting `--step-concurrency ocr-page` selects adaptive `auto` sizing from document size, capped at `32` unless a qualified throughput profile raises it, up to `48`. An explicit `--step-concurrency ocr-page=<n>` sets the scheduling and estimate ceiling ([ADR-018](ADR-018-derive-cli-help-from-registries-and-generalize-provider-flags.md) owns the spelling). `--concurrency-mode ramp|immediate` controls hosted startup. Local Tesseract, page rendering, and normalization start immediately.
 
-Token-priced OCR keeps published rates and prompt and completion shapes explicit with `costMultiplier: 1`, and canonical usage follows each provider's billed components, including thought tokens when the provider bills them. A token shape is promoted only from at least three healthy samples matched on provider, model, OCR mode, page-count band, and reasoning policy that agree in direction and show median error above 20%; failed or partial work is never a warm start, and pool and fan-out evidence are not interchangeable.
+Token-priced OCR keeps published rates separate from estimated usage, including thought tokens when the provider bills them. Registry token estimates are promoted only from at least three healthy samples matched on provider, model, OCR mode, page-count band, and reasoning policy that agree in direction and show median error above 20%. Failed or partial work is excluded, and pool and fan-out evidence are not interchangeable.
 
 `ocr-batch-diagnostics.json` is written only when a deterministic blocker affects multiple items, partial provider usage exists, actual cost is missing for attempted hosted work, or absolute estimate error exceeds 20%. It is a sanitized, regenerable projection of the final manifest, never resume authority, and a clean rerun removes a stale file.
 
 ### Fan-out and pool
 
-In `fanout`, the default, every selected target receives the full document and writes a complete result under its provider directory, and `--primary-ocr` may copy one of those results to the top-level extraction.
+In `fanout`, the default, every selected target receives the full document. A single target writes the top-level extraction without a `providers/` directory. With multiple targets, complete independent results go under their provider directories; top-level extraction is written only when `--primary-ocr` selects one of them.
 
-In `pool`, the run writes one top-level composite extraction with `extractionMethod: "ocr-pool"`, assembled from accepted pages in original page order. `--primary-ocr` is rejected as a usage error before credential lookup or dispatch, because no complete per-provider result exists. Provider directories hold per-attempt results, raw responses, errors, and usage under `providers/<target>/attempts/`; they are not complete extractions and cannot be resumed on their own. Every accepted page records provider, model, reasoning, attempt, usage, cost, timing, and artifact path. A failed or ambiguous attempt keeps the same attribution and any reported paid usage but does not become accepted output, and a cached page response is never reused across a different mode, model, reasoning setting, input, page, or render.
+In `pool`, the run writes one top-level composite extraction assembled from accepted pages in original page order. `--primary-ocr` is rejected before credential lookup or dispatch because no complete per-provider result exists. Provider directories hold per-attempt results, raw responses, errors, and usage under `providers/<target>/attempts/`; they are not complete extractions and cannot be resumed on their own. Accepted pages retain provider and cost attribution; failed or ambiguous attempts retain reported paid usage without becoming accepted output.
 
 Pages are queued in source order and at most one target works on a pending page at a time, so faster targets process more pages. `--provider-concurrency` and `--local-concurrency` bound how many targets are admitted, each admitted target requests pages up to its OCR cap, independent provider/account lanes run concurrently, and targets that share a lane share that lane's cap.
 
-A transient page failure returns the page for another eligible target. A target-specific blocker retires only that target; a provider/account blocker retires the lane. Each target gets one attempt per page unless resume explicitly re-enables it, interrupted in-flight work returns as unfinished without counting as an attempt, a page is exhausted when no eligible target remains, and the composite is complete only when every required page is accepted.
+A transient page failure returns the page for another eligible target. A target-specific blocker retires only that target; a provider/account blocker retires the lane. Each target gets one attempt per page unless resume explicitly re-enables it; interrupted in-flight work remains unfinished and eligible for retry. The composite is complete only when every required page is accepted.
 
-Page progress, attempts, and accepted results live in the canonical item (`ocrProviderMode: "pool"` with an `ocrPool` ledger), so `manifest.json` grows with page count on long documents. Resume keeps the stored mode, continues only unfinished pages, and never re-executes accepted pages. A fan-out item cannot resume as a pool and a pool cannot resume as fan-out; `--ocr-provider-mode` on resume only detects an explicit mismatch, and omitting it preserves the stored setting. Explicitly selecting a previously retired target re-enables it without invalidating accepted pages.
+Page progress and attempts live in `manifest.json`. Resume preserves the stored mode, continues only unfinished pages, and never re-executes accepted pages. An explicit `--ocr-provider-mode` mismatch is rejected. Explicitly selecting a previously blocked target re-enables it without invalidating accepted pages.
 
 `--price` allocates the page set once across available lane capacity instead of charging every selected target for the full document. `resume --price` applies that allocation to unfinished pages only, with no state mutation, artifact write, or provider call. Actual cost includes every attempt that reports usage, including failed or ambiguous executions.
 
@@ -183,7 +182,7 @@ Every direct chapter producer writes `chapters/<ordinal>-<source-locator>-<slug>
 - Tesseract gave the best performance-to-complexity ratio in local testing and avoids a second engine to provision.
 - Retry-aware blockers stop automatic resume from repeating quota, billing, account, and policy failures.
 - Adaptive caps raise large-document throughput while an explicit ceiling and the shared lanes still bind the run.
-- Explicit token components keep pricing-tier meaning and stop a profile-derived usage figure from being multiplied twice, and a derived batch report shows repeated blockers and cost gaps without a second mutable copy of provider state.
+- Separating token estimates from published rates preserves pricing-tier meaning, and a derived batch report shows repeated blockers and cost gaps without duplicating canonical state.
 - Dynamic page assignment lets fast, healthy targets absorb work, lane sharing keeps account rate limits, and page state in `manifest.json` gives resume and pricing one authority.
 - Separate fan-out and pool artifacts keep a per-provider comparison result from being read as the composite, and an ordinal-first chapter name sorts by reading order while keeping the source position.
 
@@ -227,34 +226,28 @@ Negative outcomes:
 
 ## Implementation Note
 
-`extract` ships this contract for OCR, with `--ocr-provider-mode`, `--primary-ocr`, `--step-concurrency ocr-page`, the composite and per-attempt artifacts, `ocr-batch-diagnostics.json`, and the chapter filename shape. The command guides under References are the operator surface for flags, artifact names, and examples.
+`extract` implements the two modes in `src/cli/commands/text/ocr/ocr-multi-provider-batch.ts` and `src/cli/commands/text/ocr/ocr-pooled-batch.ts`. The command guides under References document flags, artifacts, and examples.
 
 ### Bun 1.4 Image Routing
 
-Bun 1.4 decodes TIFF on macOS and Windows only, so production TIFF routing stays on the direct-provider or ImageMagick path and Linux and the Docker image still require ImageMagick, which also remains the comic compositing engine. Removal of the redundant Bun.Image type declarations is recorded in [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md#bun-14-image-declarations).
-
-### Token-shape audit
-
-The token-shape audit excludes incomplete entries and keeps image and PDF modes in separate buckets. The 2026-09-23 archived samples it first summarized belonged to an OCR model whose benchmark evidence was removed on October 23, 2026, so they are no longer recorded here. The audit tool's former static `--plan` suggested one-, three-, and four-page runs as one calibration set even though those span two page bands, so that obsolete paid-run plan was removed. The audit remains available through `bun run audit:ocr-tokens` with explicit `--run-dir` arguments.
+TIFF routing stays on the direct-provider or ImageMagick path rather than Bun.Image, preserving cross-platform behavior. Linux and the Docker image require ImageMagick for TIFF normalization.
 
 ## Test Plan
 
 ```bash
 bun run check
 bun t --price
-bun test test/test-cases/validation/text/ocr/
-bun test test/test-cases/validation/resume-manifests/
-bun test test/test-cases/validation/cli/option-resolution-contracts/
+bun test test/test-cases/validation/text/ocr/chapter-artifact-filenames.test.ts
+bun test test/test-cases/validation/text/ocr/ocr-batch-diagnostics.test.ts
+bun test test/test-cases/validation/text/ocr/ocr-page-pool-state-contracts.test.ts test/test-cases/validation/text/ocr/ocr-page-pool-scheduling-contracts.test.ts test/test-cases/validation/text/ocr/ocr-page-pool-resume-contracts.test.ts test/test-cases/validation/text/ocr/ocr-page-pool-artifact-price-contracts.test.ts
+bun test test/test-cases/validation/text/ocr/ocr-resume-provider-state-contracts.test.ts
 ```
 
-1. Chapter producers emit ordinal-first, source-locator paths with dynamic widths and split suffixes.
-2. Batch diagnostics are written only for an actionable batch and never become resume authority.
-3. Pool runs keep one accepted result per page, hand failed pages to other targets, reject `--primary-ocr` before dispatch, resume only unfinished pages, and leave fan-out estimates unchanged.
-4. Automatic resume skips deterministic blockers and includes them again when named explicitly.
-
-## Follow-up Actions
-
-- [x] Collect reasoning-qualified OCR token samples — Completed from retained benchmark manifests on 2026-09-23; no new paid run needed
+1. The default checks validate repository, types, documentation, and price planning without provider calls.
+2. Chapter filename contracts cover source-locator padding, ordinal-first paths, and collision handling.
+3. Batch diagnostic contracts cover actionable triggers and derivation from the canonical manifest.
+4. Mocked pool contracts cover one accepted result per page, failure handoffs, `--primary-ocr` rejection, unfinished-page resume, and price planning.
+5. Resume selection contracts cover deterministic blockers and explicit retries.
 
 ## References
 

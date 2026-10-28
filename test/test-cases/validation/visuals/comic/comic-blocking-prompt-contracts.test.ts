@@ -364,7 +364,12 @@ describe('panel bundles compiled from an imported plan', () => {
     expect(singlePrompt).not.toContain('"sourceSegments"')
     expect(singlePrompt).not.toContain('"blocking"')
 
-    const groupedData = buildComicPagePromptData([first, second])
+    const groupedData = buildComicPagePromptData([
+      { ...first, snapshotId: 'retired-first-snapshot' },
+      { ...second, snapshotId: 'retired-second-snapshot' },
+    ])
+    expect(groupedData.snapshotId).toBeUndefined()
+    expect(groupedData.panels.map(panel => panel.number)).toEqual([1, 2])
     expect(groupedData.blocking).toBeUndefined()
     expect(groupedData.planSha256).toBeUndefined()
     const groupedPrompt = buildComicPagePrompt(groupedData)

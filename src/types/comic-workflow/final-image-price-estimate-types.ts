@@ -1,4 +1,4 @@
-import type { ComicGridSpec, ComicPanelSelection, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePromptVariation, LlmModel, OpenAIImageInputEstimate } from '~/types'
+import type { BlockingHardKeyPolicy, ComicGridSpec, ComicPanelSelection, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePromptVariation, LlmModel, OpenAIImageInputEstimate } from '~/types'
 
 type FinalImageQaRequest =
   | { enabled: false }
@@ -16,6 +16,7 @@ export type FinalImageEstimateRequestBase = {
   variations: readonly ImagePromptVariation[]
   variationsSpecified: boolean
   blockingLayoutGuide: boolean
+  blockingHardKeys?: BlockingHardKeyPolicy
   qa: FinalImageQaRequest
 }
 
@@ -53,6 +54,8 @@ export type FinalImagePanelInventory = {
     variations: ReadonlyArray<{
       variation: ImagePromptVariation
       allModelsExist: boolean
+      qaReusable?: boolean
+      pendingQaCount?: number
     }>
   }>
   gridPages: ReadonlyArray<{

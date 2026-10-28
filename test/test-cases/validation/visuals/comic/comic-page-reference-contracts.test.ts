@@ -37,7 +37,7 @@ describe('canonical page reference assembly', () => {
     expect(calls[1]?.referenceImages).not.toContain(locationSheets[0])
   })
 
-  test('uses each canonical character image once followed by the immutable scene location image', async () => {
+  test('uses each canonical character image once followed by the current canonical location image', async () => {
     const sceneSlug = `location-contract-${crypto.randomUUID()}`
     const { runDirectory, locationSheet } = await createSceneFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
@@ -47,7 +47,7 @@ describe('canonical page reference assembly', () => {
     })
     expect(calls).toHaveLength(1)
     expect(calls[0]?.referenceImages.at(-1)).toBe(locationSheet)
-    expect(calls[0]?.referenceImages[0]).toEndWith('hero/reference.png')
+    expect(calls[0]?.referenceImages[0]).toBe(join(runDirectory, 'input', 'characters', 'hero.png'))
     expect(calls[0]?.referenceImages).toHaveLength(2)
     expect(calls[0]?.normalizedPrompt).toContain('Exhaustive prose shot plan')
     expect(calls[0]?.normalizedPrompt).toContain('immutable canonical location reference')

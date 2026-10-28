@@ -4,4 +4,4 @@ export type DesignReferenceSnapshotManifest = v.InferOutput<typeof import('~/cli
 
 export type SceneDesignReference = { key: string; sourcePath: string; usage: string }
 
-export type ResolvedDesignReference = { key: string; usage: string; path: string }
+export type ResolvedDesignReference = { key: string; usage: string; path: string; sha256?: string }

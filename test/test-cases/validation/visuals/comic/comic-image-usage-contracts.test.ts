@@ -13,13 +13,15 @@ import { IMAGE_ESTIMATE_BASIS_NOTE, PANEL_QA_BASIS_NOTE } from '~/cli/commands/v
 import { estimateFinalImageInputUnits, estimateFinalImagePricing, estimatePageMode, estimatePanelMode, estimateQaWork, normalizeFinalImageEstimateRequest } from '~/cli/commands/visuals/comic/comic-utils/final-image-price-estimate'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
+import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import type { ComicImageRequestInput, FinalImageOutputInventory, FinalImagePageInventory, FinalImagePanelInventory, GeneratedImageResponse, PageQaEntry, PanelBundleData, SourceCoverageReport } from '~/types'
 import { captureLogEvents } from '../../../../test-utils/console-capture'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
+import { createLiveLocationFixture } from '../../../../test-utils/live-location-reference-fixture'
 
 const temporaryDirectories: string[] = []
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
-const sha = new Bun.CryptoHasher('sha256').update(tinyPng).digest('hex')
 const cargoBayLocation = { key: 'cargo-bay', raw: 'cargo-bay' }
 
 const panelBundle = (panelNumber: number): PanelBundleData => ({
@@ -34,17 +36,12 @@ const panelBundle = (panelNumber: number): PanelBundleData => ({
 })
 
 const createSceneFixture = async (sceneSlug: string): Promise<string> => {
-  const runDirectory = await makeTempDir('autoshow-comic-usage-')
-  temporaryDirectories.push(runDirectory)
+  const projectDirectory = await makeTempDir('autoshow-comic-usage-')
+  const runDirectory = join(projectDirectory, 'scene')
+  temporaryDirectories.push(projectDirectory)
   beginSceneRun(sceneSlug, { outputDir: runDirectory })
-  const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero')
-  await mkdir(characterRoot, { recursive: true })
-  await Bun.write(join(characterRoot, 'reference.png'), tinyPng)
-  await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
-  const locationSheet = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'cargo-bay.png')
-  await mkdir(dirname(locationSheet), { recursive: true })
-  await Bun.write(locationSheet, tinyPng)
-  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots: [{ schemaVersion: 3, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: 'assets/location-references/location-snapshot/cargo-bay.png', label: 'establishing view of cargo-bay' }] }] }))
+  await createLiveCharacterFixture(projectDirectory)
+  await createLiveLocationFixture(projectDirectory, [{ key: 'cargo-bay', name: 'Cargo Bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'] }], tinyPng)
   for (const panelNumber of [1, 2]) {
     const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
     await mkdir(directory, { recursive: true })
@@ -83,6 +80,7 @@ const coverageReport: SourceCoverageReport = { complete: true, totalSegments: 2,
 afterEach(async () => {
   resetSceneRunContext()
   resetPinnedRunDir()
+  configureCharactersRoot('input/characters')
   await Promise.all(temporaryDirectories.splice(0).map(path => rm(path, { recursive: true, force: true })))
 })
 
@@ -274,7 +272,7 @@ describe('comic image usage contracts', () => {
     expect(subtotalIndex).toBeGreaterThan(pageIndex)
     const inputIndex = messages.indexOf('Image input (modeled): 5,000 units across 5 references (~$0.04)')
     expect(inputIndex).toBe(subtotalIndex + 1)
-    expect(messages[inputIndex + 1]).toBe('Grouped pages use canonical character references followed by each distinct immutable location reference.')
+    expect(messages[inputIndex + 1]).toBe('Grouped pages use current canonical character references followed by each distinct current location reference.')
     expect(events[inputIndex]?.metadata).toMatchObject({ models: ['gpt-image-2.5-flare'], initialCalls: 1, initialReferenceInputs: 2, maximumRepairCalls: 1, maximumRepairReferenceInputs: 3, imageInputUnits: 5000, priced: true })
     expect(messages).toContain('Comic Page QA Price Estimate')
     expect(events.find(event => event.message === 'Comic Page QA Price Estimate')?.metadata).toMatchObject({ maximumAdditionalImageEdits: 1 })

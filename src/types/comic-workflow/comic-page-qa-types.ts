@@ -101,6 +101,8 @@ export type PageQaEntry = {
   panelNumbers: number[]
   outputFile: string
   judgeModel: string
+  /** Binds reuse to the exact image, current reference inputs, and judge contract. Legacy entries remain historical evidence. */
+  inputSha256?: string
   hardFailure: boolean
   waivedChecks?: Array<{ panelNumber: number; check: 'shotPlanMatch'; reason: string }>
   repairPolicy?: {

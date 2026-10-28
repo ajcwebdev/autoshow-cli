@@ -21,9 +21,12 @@ import {
 import { createComicSourceIdentity, createStructuredScriptArtifactRef } from '~/cli/commands/visuals/comic/comic-utils/comic-audio-contracts'
 import { recordComicImageRevision, updateComicImageManifest, writeInitialComicStructureManifest } from '~/cli/commands/visuals/comic/comic-utils/comic-manifest'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
+import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import type { GenerateImagesCommandOptions, PanelBundleData, PipelineProviderState } from '~/types'
 import { getFfmpegBinary, PROJECT_ROOT, toPosixPath } from '~/utils/runtime-paths'
 import { withLocalTestDir } from '../../../../test-utils/temp-dirs'
+import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
+import { createLiveLocationFixture } from '../../../../test-utils/live-location-reference-fixture'
 
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
 const sha256Bytes = (value: Uint8Array): string => new Bun.CryptoHasher('sha256').update(value).digest('hex')
@@ -59,15 +62,10 @@ const createFixture = async (root: string, importance: RevisionPlan['entries'][n
   const priorQaPath = join(root, 'prior-qa.json')
   await Bun.write(scriptPath, '# Test scene\n')
   await Bun.write(priorQaPath, '{"finding":"wrong uniform"}\n')
-  const referenceSha = sha256Bytes(tinyPng)
-  const characterPath = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero', 'reference.png')
-  await mkdir(dirname(characterPath), { recursive: true })
-  await Bun.write(characterPath, tinyPng)
-  await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Blue uniform and dark hair.', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: referenceSha }, { role: 'source-image', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: referenceSha }] }] }))
-  const locationPath = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'room.png')
-  await mkdir(dirname(locationPath), { recursive: true })
-  await Bun.write(locationPath, tinyPng)
-  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots: [{ schemaVersion: 3, snapshotId: 'location-snapshot', locationKey: 'room', specification: 'A fixed display sits above a long cabinet.', sourceScripts: [projectPath(scriptPath)], views: [{ view: 'establishing', generationId: 'v1', imageSha256: referenceSha, path: 'assets/location-references/location-snapshot/room.png', label: 'establishing view of room' }] }] }))
+  const { charactersRoot } = await createLiveCharacterFixture(root, [{ key: 'hero', name: 'Hero', aliases: ['HERO'], image: 'hero.png', outlineSheet: 'hero.png', description: 'Blue uniform and dark hair.' }])
+  const characterPath = join(charactersRoot, 'hero.png')
+  const [locationPath] = await createLiveLocationFixture(root, [{ key: 'room', name: 'Room', specification: 'A fixed display sits above a long cabinet.', sourceScripts: [projectPath(scriptPath)] }], tinyPng)
+  if (!locationPath) throw new Error('Expected canonical room fixture')
   const location = { key: 'room', raw: 'room' }
   const bundle: PanelBundleData = { schemaVersion: 4, snapshotId: 'character-snapshot', title: 'Revision fixture', location: 'Room', panels: [{ number: 1, description: 'Hero checks the display.', shotPlan: 'Medium shot; preserve the existing composition.', characterKeys: ['hero'], speech: [], sourceSegmentIds: ['beat-1'], sourceSegments: [{ id: 'beat-1', type: 'direction', text: 'Hero checks the display.', sourceSpans: [], beatIndex: 1, location }], locationKey: 'room', locationSnapshotId: 'location-snapshot' }] }
   const contractPath = join(runDirectory, 'metadata', 'panel-prompts', 'panel-01', 'prompt.md')
@@ -93,7 +91,10 @@ const createFixture = async (root: string, importance: RevisionPlan['entries'][n
   return { options, plan, runDirectory, canonicalPath, planPath, originalBytes }
 }
 
-afterEach(() => resetSceneRunContext())
+afterEach(() => {
+  resetSceneRunContext()
+  configureCharactersRoot('input/characters')
+})
 
 describe('revision evaluation contracts', () => {
   for (const responseKind of ['valid', 'malformed', 'empty'] as const) {

@@ -12,7 +12,7 @@ import {
   isPageQaEntryReusableWithContinuity,
   readReusablePageQaEntryForAudit
 } from '~/cli/commands/visuals/comic/comic-utils/continuity-audit-report'
-import type { ContinuityJudgeRequest, PageQaEntry } from '~/types'
+import type { ContinuityJudgeRequest, PageQaEntry, PageQaRequest } from '~/types'
 import { setupContinuityContractFixtures, type FixturePanel } from './comic-continuity-contract-fixtures'
 const { tinyPng, JUDGE_MODEL, createSceneFixture, continuityResult, entryFor, pageQaEntry, labelsFile, verdicts } = setupContinuityContractFixtures()
 
@@ -42,8 +42,8 @@ describe('QA-only continuity integration', () => {
       [2, 1, 1, ['rival'], ['hero', 'rival']],
       [3, 1, 2, [], ['hero', 'rival']],
     ])
-    expect(requests[0]?.castCards).toEqual([{ key: 'hero', path: join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero', 'reference.png') }])
-    expect(requests[0]?.absentCards).toEqual([{ key: 'rival', path: join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'rival', 'reference.png') }])
+    expect(requests[0]?.castCards).toEqual([{ key: 'hero', path: join(runDirectory, 'input', 'characters', 'hero.png') }])
+    expect(requests[0]?.absentCards).toEqual([{ key: 'rival', path: join(runDirectory, 'input', 'characters', 'rival.png') }])
     expect(requests[0]?.characterReferences.map(reference => reference.key)).toEqual(['hero', 'rival'])
     expect(requests[0]?.anchorPath).toBe(join(runDirectory, 'panels', 'panel-01.png'))
     expect(requests[1]?.predecessorPath).toBe(join(runDirectory, 'panels', 'panel-02.png'))
@@ -110,22 +110,28 @@ describe('QA-only continuity integration', () => {
     expect(isPageQaEntryReusableWithContinuity(bare, { continuityRequired: false })).toBe(true)
     expect(isPageQaEntryReusableWithContinuity(bare, { continuityRequired: true })).toBe(false)
     expect(isPageQaEntryReusableWithContinuity(undefined, { continuityRequired: false })).toBe(false)
-    const stamped = attachContinuityToPageQaEntry(bare, entryFor(2, 1, 1))
-    expect(isPageQaEntryReusableWithContinuity(stamped, { continuityRequired: true })).toBe(true)
+    expect(isPageQaEntryReusableWithContinuity(attachContinuityToPageQaEntry(bare, entryFor(2, 1, 1)), { continuityRequired: true })).toBe(true)
     const writeReport = async (entry: PageQaEntry) => Bun.write(join(runDirectory, 'panels', 'page-qa-report.json'), JSON.stringify({ schemaVersion: PAGE_QA_REPORT_SCHEMA_VERSION, usage: entry.usage, pages: [entry] }))
     await writeReport(bare)
     expect(await readReusablePageQaEntryForAudit(panelPath, JUDGE_MODEL, { continuityRequired: true })).toBeUndefined()
-    expect((await readReusablePageQaEntryForAudit(panelPath, JUDGE_MODEL, { continuityRequired: false }))?.outputFile).toBe('panel-02.png')
+    expect(await readReusablePageQaEntryForAudit(panelPath, JUDGE_MODEL, { continuityRequired: false })).toBeUndefined()
     let pageJudgeCalls = 0
+    let currentRequest: PageQaRequest | undefined
     const dependencies = {
-      judgePage: async (request: { pageNumber: number }) => { pageJudgeCalls++; return pageQaEntry(request.pageNumber) },
+      judgePage: async (request: PageQaRequest) => { pageJudgeCalls++; currentRequest = request; return pageQaEntry(request.pageNumber) },
       judgeContinuity: async (request: ContinuityJudgeRequest) => buildContinuityJudgeEntry(request, continuityResult({ panelNumber: 2 }), [], { inputTokens: 1, outputTokens: 1 }),
     }
     const options = { sceneSlug, scriptPath: 'script.md', qaOnly: true, qa: true, qaModel: JUDGE_MODEL, maxRepairs: 0, panels: [2], concurrency: 1, continuityQa: true }
-    await runQaOnlyPanelAudit(options, { ...dependencies, runId: 'reuse-refused' })
+    const first = await runQaOnlyPanelAudit(options, { ...dependencies, runId: 'reuse-refused' })
     expect(pageJudgeCalls).toBe(1)
+    expect(currentRequest).toBeDefined()
+    const boundBare = { ...bare, inputSha256: first.entries[0]!.inputSha256! }
+    await writeReport(boundBare)
+    expect(await readReusablePageQaEntryForAudit(panelPath, JUDGE_MODEL, { continuityRequired: true, request: currentRequest! })).toBeUndefined()
+    expect((await readReusablePageQaEntryForAudit(panelPath, JUDGE_MODEL, { continuityRequired: false, request: currentRequest! }))?.outputFile).toBe('panel-02.png')
+    const stamped = attachContinuityToPageQaEntry(boundBare, entryFor(2, 1, 1))
     await writeReport(stamped)
-    expect((await readReusablePageQaEntryForAudit(panelPath, JUDGE_MODEL, { continuityRequired: true }))?.continuity?.anchorPanel).toBe(1)
+    expect((await readReusablePageQaEntryForAudit(panelPath, JUDGE_MODEL, { continuityRequired: true, request: currentRequest! }))?.continuity?.anchorPanel).toBe(1)
     const reused = await runQaOnlyPanelAudit(options, { ...dependencies, runId: 'reuse-accepted' })
     expect(pageJudgeCalls).toBe(1)
     expect(reused.entries).toHaveLength(1)

@@ -1,6 +1,6 @@
 # Input Routing & Batch Orchestration
 
-How targets become single runs or batches.
+How `metadata`, `download`, `extract`, and `write` targets become single runs or batches.
 
 ## Outline
 
@@ -11,17 +11,7 @@ How targets become single runs or batches.
 
 ## Target Planning
 
-```
-command + target + flags
-        |
-        +--> write: <project>/text, or a .md/.txt file under it, with prompt.md or --prompt-file -> project lyric draft mode
-        +--> write: a local .md/.txt file or directory of those files
-        |
-        v
-plan the run
-```
-
-Write planning:
+`write` planning:
 
 ```
 write
@@ -32,10 +22,12 @@ write
   +--> otherwise: usage error
 ```
 
-Normal target planning:
+Project lyric draft mode adds defaults when the target is `<project>/text` or a text file beneath it and the project has `prompt.md` or an explicit `--prompt-file`. See [write usage](../commands/03-write/overview.md#usage).
+
+`metadata`, `download`, and `extract` planning:
 
 ```
-normal target
+target
   |
   +--> directory:
   |      collect input files
@@ -55,7 +47,7 @@ normal target
          single target
 ```
 
-Directory, list, source, and collection plans run as batches. Everything else is a single-item run.
+These directory, list, source, and collection plans run as batches even when they contain one item. `write` runs a single item when only one text file remains after selection.
 
 ## Input Routing
 
@@ -85,7 +77,7 @@ extract route
 | `x_space`      | `x-space`     | X Space route                                     |
 | `unsupported`  | none          | skipped in batch, usage error for a single target |
 
-Local `.html`/`.htm` files classify as `html_article`. `.acsm` is unsupported. Supported document and image extensions are listed in [extract input routing](../commands/02-extract/overview.md#input-routing).
+Supported document and image extensions are listed in [extract input routing](../commands/02-extract/overview.md#input-routing).
 
 ## Command Matrix
 
@@ -95,7 +87,7 @@ Local `.html`/`.htm` files classify as `html_article`. `.acsm` is unsupported. S
 | Document/image | metadata only         | document metadata only         | OCR/native document route | unsupported; extract first                                               |
 | HTML/article   | metadata only         | article prep/download metadata | URL/article route         | unsupported; extract first                                               |
 | X Space        | X API metadata lookup | Space audio download           | X Space route             | unsupported; extract first                                               |
-| Text input     | unsupported           | unsupported                    | unsupported               | local `.md`/`.txt`, including extract artifacts and project lyric drafts |
+| Text prose     | unsupported           | unsupported                    | unsupported               | local `.md`/`.txt`, including extract artifacts and project lyric drafts |
 
 Unsupported extract batch items stay in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`.
 
@@ -103,7 +95,7 @@ Unsupported extract batch items stay in the parent manifest with item `status: "
 
 Every batch root writes the same `manifest.json` used by a single run. Source-backed batches add an optional top-level `source` object. The full shape is in [Types, Metadata & Output Layout](05-types-and-output.md).
 
-Non-extract batches keep item directories next to the parent `manifest.json`. Extract batches are partitioned by route, with child batches under `media/`, `document/`, `article/`, and `x-space/` when those routes are present:
+`metadata`, `download`, and `write` batches keep item directories next to the parent `manifest.json`. Extract batches are partitioned by route, with child batches under `media/`, `document/`, `article/`, and `x-space/` when those routes are present:
 
 ```
 output/YYYY-MM-DD_HH-MM-SS-mmm_<batch-label>/

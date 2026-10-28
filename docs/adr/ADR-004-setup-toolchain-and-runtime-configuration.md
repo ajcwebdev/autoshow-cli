@@ -4,17 +4,15 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-09-22
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
 - **Supersession:** Absorbs "Reduce the Environment-Variable Surface Area" in full. Docker distribution and the container credential boundary are governed by [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md). This record is the accepted authority for host setup, the toolchain lifecycle, and the environment-variable surface.
 
 ## Context
 
-AutoShow requires a local-lite tool set on macOS and Linux: FFmpeg and `ffprobe`, `yt-dlp`, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, and Tesseract with English trained data. Upstream MuPDF and qpdf publish no prebuilt macOS CLI binaries, so those tools have to be compiled without picking up host package-manager libraries.
+AutoShow requires FFmpeg and `ffprobe`, `yt-dlp`, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, and Tesseract with English trained data for local workflows on macOS and Linux. The pinned macOS MuPDF and qpdf dependencies use source builds that avoid host package-manager libraries. Full setup also requires host-provided ImageMagick with TIFF support, Fontconfig, and DejaVu Sans; lyric rendering requires FFmpeg's `ass` filter or Pango.
 
-Before this decision, macOS setup installed some tools through Homebrew, which mutated global system state and varied by machine. Downloads used total-transfer timeouts that aborted large assets on ordinary bandwidth, restarted from byte zero, and skipped checksum verification. Setup could exit 0 after failed steps, and `setup --doctor` inspected version flags rather than running the binaries.
-
-The environment-variable surface had accumulated dead keys, per-tool binary overrides that duplicated a flag, inconsistent provider-endpoint overrides, duplicated credential lists, missing-key failures that differed by provider, an advisory-only doctor, and full parent-environment inheritance into child processes.
+Previously, macOS provisioning depended on Homebrew, interrupted downloads restarted from zero, and setup could report success after failed steps. Configuration had accumulated unused variables, redundant binary overrides, inconsistent missing-credential errors, and unrestricted credential inheritance into child processes.
 
 Why now: host provisioning, download integrity, offline diagnostics, and the configuration surface describe one runtime, and a configuration audit showed the CLI documenting and inheriting variables it does not use.
 
@@ -27,7 +25,7 @@ Why now: host provisioning, download integrity, offline diagnostics, and the con
 - **Option:** Runtime-managed macOS dependencies under `runtime/`
 - **Pros:** Pinned versions, checksum verification, no global package-manager mutation
 - **Cons:** The project maintains download and build recipes per tool
-- **Quantitative Notes:** Replaces 6 Homebrew-managed install paths
+- **Quantitative Notes:** n/a
 
 **Option 2**
 
@@ -56,7 +54,7 @@ Why now: host provisioning, download integrity, offline diagnostics, and the con
 
 - **Option:** Upstream prebuilts or Homebrew bottles
 - **Pros:** No local compilation
-- **Cons:** No pinned upstream release ships macOS CLI binaries, and bottles reintroduce the package-manager dependency
+- **Cons:** The pinned dependencies use source archives, and bottles reintroduce the package-manager dependency
 - **Quantitative Notes:** n/a
 
 **Option 3**
@@ -95,8 +93,8 @@ Why now: host provisioning, download integrity, offline diagnostics, and the con
 
 - **Option:** Keep credentials, standard system variables, and values spawned processes must receive; replace everything else with CLI flags, typed parameters, OS APIs, or trusted defaults; one credential list, one missing-key error, a `setup --doctor --strict` gate, and an allowlisted child environment
 - **Pros:** `.env.example` matches behavior, `--bin-dir` replaces per-tool overrides, one missing-key contract, a CI readiness gate, no credential leakage into spawned tools
-- **Cons:** Removes ad-hoc environment escape hatches; missing credentials exit 2 instead of 1
-- **Quantitative Notes:** Six per-tool binary variables became `--bin-dir`
+- **Cons:** Removes ad-hoc environment escape hatches
+- **Quantitative Notes:** n/a
 
 **Option 2**
 
@@ -121,15 +119,15 @@ Why now: host provisioning, download integrity, offline diagnostics, and the con
 
 ## Decision
 
-AutoShow provisions the local-lite toolchain as managed `runtime/` artifacts on macOS, and keeps only environment variables that carry credentials, pass state into spawned child processes, follow a standard system convention, or have no CLI equivalent. On Linux, `yt-dlp` is a checksum-verified binary under `runtime/`; FFmpeg, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, and Tesseract are installed with `apt`. Everything that is not a credential, a child-process seam, or a standard system variable is a CLI flag, a typed parameter, an OS API, or a fixed constant.
+AutoShow provisions the managed toolchain under `runtime/` on macOS and limits environment configuration to credentials, explicit child-process needs, standard system conventions, and documented overrides without a CLI equivalent. On Linux, setup downloads a checksum-verified `yt-dlp` under `runtime/` when none is available and installs missing FFmpeg, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, and Tesseract through `apt`.
 
 1. **Host provisioning and resolver precedence:** macOS setup does not invoke Homebrew for AutoShow-managed dependencies. Resolver precedence is:
    1. Explicit `--bin-dir` override when that directory contains the tool. `--bin-dir` is the only binary location override; per-tool environment variables are not supported.
    2. AutoShow-managed binary under `runtime/`.
    3. `PATH` on non-macOS hosts when no override or managed binary is present. Linux setup uses that fallback for `apt` installs and accepts an existing `yt-dlp` on `PATH` instead of downloading one. Build prerequisites such as Xcode tools, `cmake`, and compilers always come from the host.
-2. **Download integrity and reporting:** Downloads resume after interruption and verify checksums before install. A transfer aborts after 60 seconds without new data, and also when elapsed time reaches 15 minutes, or 60 minutes for the Calibre disk image and the whisperfile binary. Concurrent network transfers are bounded. Setup reports step timing, disk usage, and component health truthfully, and exits non-zero on partial failures. `setup --doctor` runs the installed binaries rather than inspecting version flags.
-3. **Hermetic macOS builds:** MuPDF and qpdf are built from pinned upstream source with no host package-manager libraries, with pinned libjpeg-turbo compiled into qpdf. Cold macOS setup also compiles FFmpeg against a static LAME library and Tesseract against Leptonica.
-4. **Runtime configuration surface:** Provider credentials stay environment variables and are listed in `.env.example`. One credential list drives missing-key hints and `setup --doctor`. A missing credential fails with one error that names the variable, includes a hint URL, and exits 2. `setup --doctor` stays advisory. `setup --doctor --strict` exits non-zero when configured defaults lack credentials, configuration is invalid, configured cookies are unreadable, or a required runtime or model asset is unavailable. Spawned children receive `PATH`, `HOME`, terminal controls, and values they explicitly need, never the parent credential set. Saved run output does not store raw credential values. Provider clients use trusted default endpoints; runtime base-URL overrides are not supported.
+2. **Download integrity and reporting:** Downloads resume after interruption and verify checksums before install. A transfer aborts after 60 seconds without new data, and also when elapsed time reaches 15 minutes, or 60 minutes for the Calibre disk image and the whisperfile binary. Concurrent network transfers are bounded. Setup reports step timing, disk usage, and component health truthfully, and exits non-zero on partial failures. `setup --doctor` executes the resolved binaries and validates managed MuPDF and qpdf provenance.
+3. **Hermetic macOS builds:** MuPDF and qpdf are built from pinned source without host package-manager libraries. Cold macOS setup also compiles FFmpeg and Tesseract.
+4. **Runtime configuration surface:** Provider credentials stay environment variables and are listed in `.env.example`. One credential list drives missing-key hints and `setup --doctor`. A missing credential fails with one error that names the variable, includes a hint URL, and exits 2. `setup --doctor` stays advisory. `setup --doctor --strict` exits 2 when configured defaults lack credentials, configuration is invalid, configured cookies are unreadable, or a required runtime or model asset is unavailable. Spawned children receive `PATH`, `HOME`, terminal controls, and values they explicitly need, never the parent credential set. Saved run output does not store raw credential values. Provider clients use trusted default endpoints; runtime base-URL overrides are not supported.
 
 This applies to:
 
@@ -138,12 +136,12 @@ This applies to:
 
 It does not apply to:
 
-- External host build prerequisites and Linux host package management through `apt`.
+- External host build and rendering prerequisites, including ImageMagick, Fontconfig, DejaVu fonts, and Pango, and Linux host package management through `apt`.
 - Docker image contents, mounts, and publication, and credential delivery through Docker's `--env-file` and `-e` options. [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md) owns the container credential boundary; mounted `/app/.env` files are intentionally not loaded.
 - Hosted provider credential validity. Setup and `setup --doctor` report key presence only.
 - Standard system variables such as `PATH`, `HOME`, `NO_COLOR`, and `FORCE_COLOR`.
 - Error classes and rendering. The missing-credential contract uses the error taxonomy that [ADR-005](ADR-005-cli-error-result-and-retry-contract.md) owns.
-- `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES`, the one non-credential runtime override, which [ADR-019](ADR-019-read-successful-http-bodies-whole-under-a-payload-class-ceiling.md) owns. This record only admits it as a production override with no CLI equivalent.
+- The payload-limit behavior of `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES`, which [ADR-019](ADR-019-read-successful-http-bodies-whole-under-a-payload-class-ceiling.md) owns. This record admits it as a production override with no CLI equivalent.
 
 ## Rationale
 
@@ -166,8 +164,7 @@ Positive outcomes:
 Negative outcomes:
 
 - Cold macOS setup compiles MuPDF, qpdf, FFmpeg, and Tesseract, and `ebook-convert` is extracted from the official Calibre application bundle.
-- Per-tool binary overrides and runtime base-URL repointing are gone; a proxy or self-hosted endpoint takes a local proxy or a code change.
-- Scripts that treated a missing credential as exit 1 now see exit 2.
+- Per-tool binary environment overrides and runtime base-URL repointing are unavailable.
 - Each tool's child-environment allowlist has to stay accurate; omitting a variable the tool reads can break that tool.
 
 ## Trade-offs
@@ -194,11 +191,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-Setup installs the managed macOS toolchain under `runtime/`, resolves tools through `--bin-dir` then `runtime/` then `PATH`, and exposes `setup --doctor` and `setup --doctor --strict`. `.env.example` lists the working credential variables. User-facing behavior is in the [setup guide](../commands/00-setup-and-utilities/setup.md).
-
-### Bun 1.4 Dotenv Compatibility
-
-On 2026-08-31 the local `.env` parsed to the same values under Bun 1.3.14 and Bun 1.4.0. The migration comparison utility was retired on September 23 after the migration completed. This result remains historical evidence; current environment behavior is covered by the setup contracts and Docker acceptance tests.
+Setup and doctor are implemented under `src/cli/commands/setup-and-utilities/setup/`. `src/utils/runtime-paths.ts` enforces resolver precedence, including the absence of a macOS `PATH` fallback; `src/utils/child-env.ts` controls child inheritance. User-facing configuration and setup behavior are documented in the [setup guide](../commands/00-setup-and-utilities/setup.md).
 
 ## Test Plan
 

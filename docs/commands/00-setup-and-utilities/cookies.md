@@ -1,8 +1,6 @@
 # YouTube Cookies
 
-Use this when `yt-dlp` hits a YouTube sign-in prompt or `Sign in to confirm you're not a bot`.
-
-Save the cookie source with `bun autoshow setup`. Commands that read YouTube through `yt-dlp` use that saved source.
+Save a cookie source with `bun autoshow setup` when `yt-dlp` requests YouTube sign-in or reports `Sign in to confirm you're not a bot`. Commands that access YouTube through `yt-dlp` use that saved source.
 
 - A cookies file is used instead of browser import. If the file is unreadable, AutoShow warns and does not use the browser.
 - `bun autoshow setup --doctor` reports the cookie source and whether a cookies file is readable.
@@ -23,8 +21,8 @@ Use this when browser import does not work, or when you want a cookie file for t
 
 1. Open a fresh private/incognito window.
 2. Log into YouTube there.
-3. In the same tab, open `https://www.youtube.com/robots.txt`.
-4. Export only `youtube.com` cookies to a Netscape `cookies.txt` file with an exporter such as `Get cookies.txt LOCALLY` (Chrome) or `cookies.txt` (Firefox). `document.cookie` does not include the auth cookies. Close the private window after exporting, and do not commit the file.
+3. In the same tab, open `https://www.youtube.com/robots.txt`, keeping it as the only private/incognito tab.
+4. Export only `youtube.com` cookies in Netscape format using `Get cookies.txt LOCALLY` (Chrome) or `cookies.txt` (Firefox). Close the private window and do not reopen that session, to prevent cookie rotation. Do not commit the file.
 5. Put the file somewhere stable:
 
 ```bash

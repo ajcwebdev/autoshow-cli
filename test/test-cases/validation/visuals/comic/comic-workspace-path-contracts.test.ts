@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdir, rm } from 'node:fs/promises'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { configureOutputRoot } from '~/cli/commands/command-shared/output-root'
+import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import { loadAndVerifyCharacterReferenceSnapshot } from '~/cli/commands/visuals/comic/comic-utils/character-reference-snapshot'
 import {
@@ -14,39 +15,23 @@ import {
   getStructuredScriptPath,
 } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
-import type { SnapshotFixtureOptions } from '~/types'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
 
 const roots: string[] = []
 
-const createSnapshotFixture = async (options: SnapshotFixtureOptions = {}) => {
+const createReferenceFixture = async () => {
   const workspace = await makeTempDir('autoshow-comic-assets-')
   roots.push(workspace)
-  const bytes = Buffer.from('canonical-reference')
-  const canonicalPath = join(workspace, 'assets', 'character-references', 'snapshot', 'hero', 'reference.png')
-  await mkdir(join(workspace, 'assets', 'character-references', 'snapshot', 'hero'), { recursive: true })
-  await Bun.write(canonicalPath, bytes)
-  const sha256 = new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
-  const assetPath = typeof options.assetPath === 'function'
-    ? options.assetPath(canonicalPath)
-    : options.assetPath ?? 'assets/character-references/snapshot/hero/reference.png'
-  await Bun.write(join(workspace, 'assets', 'character-references.json'), JSON.stringify({
-    schemaVersion: options.schemaVersion ?? 2,
-    snapshotId: 'snapshot',
-    catalogHash: 'catalog',
-    createdAt: '2026-01-01T00:00:00.000Z',
-    characters: [{ key: 'hero', name: 'Hero', description: 'Hero.', sourceSketchVersion: 'v1', assets: [
-      { role: 'sketch-sheet', path: assetPath, sha256: options.registeredSha256 ?? sha256 },
-      { role: 'source-image', path: assetPath, sha256: options.registeredSha256 ?? sha256 },
-    ] }],
-  }))
-  return { canonicalPath, workspace }
+  const { charactersRoot } = await createLiveCharacterFixture(workspace)
+  return { canonicalPath: join(charactersRoot, 'hero.png'), charactersRoot, workspace }
 }
 
 afterEach(async () => {
   resetSceneRunContext()
   resetPinnedRunDir()
   configureOutputRoot('./output')
+  configureCharactersRoot('input/characters')
   await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
 })
 
@@ -83,33 +68,45 @@ describe('panel-first comic workspace paths', () => {
     expect(getSceneJsonPath('scene')).toBe(join(pinned, 'metadata', 'scene.json'))
   })
 
-  test('accepts a valid character-reference snapshot', async () => {
-    const { workspace } = await createSnapshotFixture()
-    expect(loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot').snapshotId).toBe('snapshot')
+  test('accepts current canonical references without scene snapshot assets', async () => {
+    const { workspace } = await createReferenceFixture()
+    expect(loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot', ['hero']).snapshotId).toBe('live')
   })
 
-  test('rejects a character-reference asset path that escapes with ../', async () => {
-    const { workspace } = await createSnapshotFixture({ assetPath: '../outside.png' })
-    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot')).toThrow(/Unsafe snapshot asset path/)
+  test('rejects a canonical character asset path that escapes with ../', async () => {
+    const { workspace, charactersRoot } = await createReferenceFixture()
+    const path = join(charactersRoot, 'characters-reference.json')
+    const value = JSON.parse(await Bun.file(path).text())
+    value.characters[0].image = '../outside.png'
+    await writeFile(path, JSON.stringify(value))
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, undefined, ['hero'])).toThrow(/escapes the characters root/)
   })
 
-  test('rejects an absolute character-reference asset path even when it points inside the workspace', async () => {
-    const { workspace } = await createSnapshotFixture({ assetPath: canonicalPath => canonicalPath })
-    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot')).toThrow(/Unsafe snapshot asset path/)
+  test('rejects an absolute canonical character asset path even when it points inside the root', async () => {
+    const { workspace, charactersRoot, canonicalPath } = await createReferenceFixture()
+    const path = join(charactersRoot, 'characters-reference.json')
+    const value = JSON.parse(await Bun.file(path).text())
+    value.characters[0].image = canonicalPath
+    await writeFile(path, JSON.stringify(value))
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, undefined, ['hero'])).toThrow(/must be relative/)
   })
 
-  test('rejects a character-reference checksum mismatch', async () => {
-    const { workspace } = await createSnapshotFixture({ registeredSha256: '0'.repeat(64) })
-    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot')).toThrow(/modified or corrupted/)
+  test('rejects a canonical character registration checksum mismatch', async () => {
+    const { workspace, canonicalPath } = await createReferenceFixture()
+    await writeFile(canonicalPath, 'modified canonical reference')
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, undefined, ['hero'])).toThrow(/stale or tampered/)
   })
 
-  test('rejects a legacy character-reference schema version', async () => {
-    const { workspace } = await createSnapshotFixture({ schemaVersion: 1 })
-    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot')).toThrow(/schemaVersion 2/)
+  test('rejects malformed current registrations rather than trusting historical snapshots', async () => {
+    const { workspace, charactersRoot } = await createReferenceFixture()
+    await writeFile(join(charactersRoot, 'character-sketches.json'), JSON.stringify({ schemaVersion: 0, sketches: [] }))
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, undefined, ['hero'])).toThrow(/Invalid character sketch manifest/)
   })
 
-  test('rejects a stale character-reference snapshot ID', async () => {
-    const { workspace } = await createSnapshotFixture()
-    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, 'stale-snapshot')).toThrow(/does not match manifest snapshot/)
+  test('ignores a historical bundle snapshot ID when resolving current references', async () => {
+    const { workspace, canonicalPath } = await createReferenceFixture()
+    const manifest = loadAndVerifyCharacterReferenceSnapshot(workspace, 'stale-snapshot', ['hero'])
+    expect(manifest.snapshotId).toBe('live')
+    expect(join(workspace, manifest.characters[0]!.assets[0]!.path)).toBe(canonicalPath)
   })
 })

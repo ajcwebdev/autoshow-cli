@@ -25,7 +25,7 @@ Consent records cannot be edited. A grant prints a `protected-consent:v1:...` lo
 | `--reason <text>`        | Required non-sensitive revocation reason when `--revoke` is set                                               |
 | `--actor-namespace <ns>` | Actor namespace: `local-user`, `project-role`, or `automation`; default `local-user`                          |
 | `--actor-id <id>`        | Required opaque actor ID                                                                                      |
-| `--price`                | Validate and estimate without provider calls or artifact writes                                               |
+| `--price`                | Report $0 without provider calls or writes; revocation checks locator syntax only                             |
 
 ### Examples
 

@@ -1,6 +1,6 @@
 # Diarization
 
-These providers return speaker labels by default. Toggle support and word timing differ by provider; see [provider controls](../overview.md#provider-controls).
+AutoShow enables diarization by default for these providers. Word timing and speaker-count controls differ by provider; see [provider controls](../overview.md#provider-controls). The model listed for each provider is its default when no model is specified.
 
 See the [STT overview](../overview.md) for shared options, environment variables, pricing, and workflows.
 
@@ -18,7 +18,6 @@ See the [STT overview](../overview.md) for shared options, environment variables
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider assemblyai
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider assemblyai=universal-3-5-pro --speaker-count 2
 ```
-Bare `--provider assemblyai` defaults to `universal-3-5-pro`.
 
 ### Gemini STT
 
@@ -30,7 +29,8 @@ Bare `--provider assemblyai` defaults to `universal-3-5-pro`.
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gemini
 ```
-Bare `--provider gemini` defaults to `gemini-3.5-transcribe`. Diarization and word timestamps are on by default. `--no-diarization` keeps word timestamps. `--speaker-count` is ignored.
+
+Word timestamps are on by default. `--no-diarization` keeps word timestamps. `--speaker-count` is ignored. Speaker attribution for three or more speakers is experimental.
 
 ### Deepgram
 
@@ -42,6 +42,7 @@ Bare `--provider gemini` defaults to `gemini-3.5-transcribe`. Diarization and wo
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3
 ```
+
 ### Gladia
 
 | Option        | Value                         |
@@ -54,7 +55,8 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider d
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gladia=solaria-3
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gladia --speaker-count 2
 ```
-Bare `--provider gladia` selects `solaria-3`. `solaria-3` is English, French, German, Spanish, and Italian only.
+
+`solaria-3` supports English, French, German, Spanish, and Italian only.
 
 ### Grok STT
 
@@ -66,7 +68,7 @@ Bare `--provider gladia` selects `solaria-3`. `solaria-3` is English, French, Ge
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider grok=grok-voice-transcribe-2.0
 ```
-Bare `--provider grok` selects `grok-voice-transcribe-2.0`, and AutoShow sends that model explicitly instead of relying on the xAI default. The earlier `speech-to-text` selector is retired: it names its replacement, while finished runs keep their stored identity and rate.
+
 ### Mistral
 
 | Option   | Value                          |
@@ -77,6 +79,7 @@ Bare `--provider grok` selects `grok-voice-transcribe-2.0`, and AutoShow sends t
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider mistral
 ```
+
 ### Soniox
 
 | Option   | Value                         |
@@ -87,6 +90,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider m
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider soniox
 ```
+
 ### Speechmatics
 
 | Option   | Value                               |
@@ -97,19 +101,20 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider s
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider speechmatics=melia-1
 ```
-Bare `--provider speechmatics` selects `melia-1` (multilingual).
+
+`melia-1` supports multilingual transcription.
 
 ## Provider Capabilities
 
-Rows are newest first. Pricing is the AutoShow per-hour estimate.
+Pricing is the nominal AutoShow per-hour estimate; use `--price` for the selected audio and options. AssemblyAI's rate includes its diarization add-on. Soniox's hourly figure estimates token-based billing. Mistral returns segment timing with diarization; use `--no-diarization` for native word timestamps.
 
-| Provider                         | Released   | Speaker count     | Word timestamps                  | Transcript cleanup               | Duration           | File size      | Pricing   |
-| -------------------------------- | ---------- | ----------------- | -------------------------------- | -------------------------------- | ------------------ | -------------- | --------- |
-| Grok `grok-voice-transcribe-2.0` | 2026-09-17 | No                | Native words                     | Formatting                       | No documented cap  | 500 MiB        | $0.10/hr  |
-| Gemini `gemini-3.5-transcribe`   | 2026-08-26 | No                | Native words                     | Verbatim default                 | 30 minutes         | 2 GiB upload   | $0.30/hr  |
-| AssemblyAI `universal-3-5-pro`   | 2026-07-07 | `--speaker-count` | Native words                     | None                             | 10 hours           | 2.2 GiB upload | $0.23/hr  |
-| Speechmatics `melia-1`           | 2026-06-17 | No                | Native words                     | Punctuation included             | No documented cap  | 1 GiB          | $0.129/hr |
-| Soniox `stt-async-v5`            | 2026-06-11 | No                | Native words                     | Smart formatting included        | 5 hours            | 500 MiB        | $0.10/hr  |
-| Gladia `solaria-3`               | 2026-06-10 | `--speaker-count` | Native words                     | None                             | 2 hours 15 minutes | 1000 MiB       | $0.61/hr  |
-| Mistral `voxtral-mini-2602`      | 2026-02-04 | No                | Native words without diarization | None                             | ~3 hours           | 500 MiB        | $0.18/hr  |
-| Deepgram `nova-3`                | 2025-02-12 | No                | Native words                     | Punctuation and smart formatting | No documented cap  | 2 GiB          | $0.258/hr |
+| Provider                         | Speaker-count hint | Word timestamps                  | Duration           | File size      | Pricing   |
+| -------------------------------- | ------------------ | -------------------------------- | ------------------ | -------------- | --------- |
+| Grok `grok-voice-transcribe-2.0` | No                 | Native words                     | No documented cap  | 500 MiB        | $0.10/hr  |
+| Gemini `gemini-3.5-transcribe`   | No                 | Native words                     | 30 minutes         | 2 GiB upload   | $0.30/hr  |
+| AssemblyAI `universal-3-5-pro`   | `--speaker-count`  | Native words                     | 10 hours           | 2.2 GiB upload | $0.23/hr  |
+| Speechmatics `melia-1`           | No                 | Native words                     | No documented cap  | 1 GiB          | $0.129/hr |
+| Soniox `stt-async-v5`            | No                 | Native words                     | 5 hours            | 500 MiB        | $0.10/hr  |
+| Gladia `solaria-3`               | `--speaker-count`  | Native words                     | 2 hours 15 minutes | 1000 MiB       | $0.61/hr  |
+| Mistral `voxtral-mini-2602`      | No                 | Native words without diarization | ~3 hours           | 500 MiB        | $0.18/hr  |
+| Deepgram `nova-3`                | No                 | Native words                     | No documented cap  | 2 GiB          | $0.258/hr |

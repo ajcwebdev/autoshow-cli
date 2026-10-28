@@ -11,58 +11,58 @@ Public output artifacts, the pipeline manifest, runtime directories, and metadat
 
 ## Output Layout
 
-```
+The trees show common artifacts across commands; a run contains only the files produced by its command and selected options. `--output-root` changes the parent directory, and `--output-dir` pins an exact run directory.
+
+```text
 output/
   YYYY-MM-DD_HH-MM-SS-mmm_<title>/
-    manifest.json                  # every run root, including metadata
-    metadata.md                    # metadata --save --markdown only
+    manifest.json                       # every run root, including metadata
+    metadata.md                         # metadata --save --markdown only
 
-    <publish-date>-<title-slug>.(mp3|m4a|ogg|flac|wav)   # normalized media artifact; wav is the lossless profile
-    source-timeline.json                   # lossless audio profile
-    transcription.txt                  # single-provider or primary text output
-    youtube-captions.vtt               # when --youtube-captions succeeds
+    <media-stem>.(mp3|m4a|ogg|flac|wav)    # source basename or publish-date/title slug; lossless uses wav
+    source-timeline.json                # lossless audio profile
+    transcription.txt                   # single-provider or primary text output
+    youtube-captions.vtt                 # when --youtube-captions succeeds
     youtube-captions.json
     prompt.md
-    prompt-md.md                       # when --prompt-md is set
-    text.json                          # single LLM provider
-    text-<model>.json                  # multi-provider LLM; a shared model id uses text-<provider>-<model>.json, and rendered markdown and show notes use that stem
-    text.md                            # when --rendered-text is set
+    prompt-md.md                        # when --prompt-md is set
+    text.json                           # single LLM target
+    text-<model>.json                    # multiple LLM targets; shared model IDs add a provider prefix
+    text.md                             # when --rendered-text is set
     text-<model>.md
     show-note.md
     show-note-<model>.md
-    providers/<service>-<model>/
+    providers/<service>-<model>/         # STT targets
       transcription.txt
       result.json
 
     extraction.txt
-    extraction.md                      # X Space runs and document --docx-markdown
+    extraction.md                       # X Space runs and document --docx-markdown
     result.json
-    providers/<service>-<model>/       # OCR targets
-    providers/<backend>/               # HTML article backends
+    providers/<service>-<model>/         # OCR targets
       extraction.txt
       result.json
-    prompt.md
-    prompt-md.md
-    text.json | text-<model>.json
-    text.md | text-<model>.md
-    show-note.md | show-note-<model>.md
+    providers/<backend>/                # HTML article backends
+      extraction.txt
+      result.json
 
-    speech.wav                         # speech-<provider>-<model>.wav for more than one TTS target
-    generated-image.*                  # extra images append -<n>; more than one target uses generated-image-<provider>-<model>.*
-    generated-video.mp4                # generated-video-<provider>-<model>.mp4 for more than one video target
-    generated-music.mp3                # generated-music-<provider>-<model>.mp3 for more than one music target
-
-    <label>.mp4
-    <label>.vtt
-    <label>.srt
+    speech.wav                          # speech-<provider>-<model>.wav for multiple TTS targets
+    slots/audio.zip                     # retained TTS request audio after successful completion
+    <target-key>/
+      render.json                       # TTS render record
+      timeline.json
+    generated-image.*                   # extra images append -<n>; multiple targets add a provider/model suffix
+    generated-video.mp4                 # generated-video-<provider>-<model>.mp4 for multiple targets
+    generated-music.mp3                 # generated-music-<provider>-<model>.mp3 for multiple targets
 
     <stem>.mp4
     <stem>.vtt
     <stem>.srt
 ```
+
 Batch roots:
 
-```
+```text
 non-extract batch:
   manifest.json
   <item-output>/
@@ -84,10 +84,18 @@ extract batch:
 
 standalone tts directory batch:
   manifest.json
-  <item-stem>.<ext>                        # one target
-  <item-stem>-<provider>-<model>.<ext>     # multi-target/provider output
+  <item-stem>.<ext>                       # one target
+  <item-stem>-<provider>-<model>.<ext>    # multiple targets
+  items/<item-stem>/
+    slots/audio.zip
+    <target-key>/
+      render.json
+      timeline.json
 ```
-Every output root owns exactly one `manifest.json`. Extract parent items link to route child manifests by a relative directory. TTS directory batch items record the input, audio stem, status, providers, cost, timing, and errors. See [Input Routing & Batch Orchestration](02-input-routing-batch.md) for how extract batches are partitioned by route.
+
+Each run root owns one `manifest.json`; batch trees can contain child manifests. Extract parent items link to route child manifests by a relative directory. TTS directory batch items record the input, audio stem, status, providers, cost, timing, and errors. See [Input Routing & Batch Orchestration](02-input-routing-batch.md) for how extract batches are partitioned by route.
+
+Multi-target write outputs use the same stem for JSON, rendered Markdown, and show notes.
 
 ## Canonical Manifest
 
@@ -141,13 +149,14 @@ Provider directories may keep a raw `result.json` next to generated text. That f
 
 ## Runtime Layout
 
-Managed installs live under `runtime/` in the project checkout. `--bin-dir` overrides `runtime/bin` for external tool lookup; a tool present in that directory takes precedence over the managed install and `PATH`.
+Managed installs live under `runtime/` in the project checkout. A tool found in `--bin-dir` takes precedence over its managed install. macOS requires an override or managed binary; other hosts can fall back to `PATH`.
 
-```
+```text
 runtime/
   bin/                           # managed binaries, including whisperfile models
   tools/                         # installed tool prefixes
 ```
+
 ### Comic character and run layout
 
 ```text
@@ -160,11 +169,12 @@ input/characters/
 input/locations/
   locations-reference.json
   location-sketches.json
-  location-plans.json                # optional reviewed room geometry, hashed separately from the specification
+  location-plans.json                # optional reviewed room geometry
   plans/
     <location-key>--floor-plan.png   # optional drawing behind a reviewed record
 
 output/<timestamp>_<scene-slug>/
+  manifest.json
   metadata/
     structured-script.json
     structured-script.previous.json  # written only when a structure re-run replaces an existing script
@@ -188,31 +198,13 @@ output/<timestamp>_<scene-slug>/
     panel-prompts/
       source-coverage.json
       panel-NN/
-        <scene>-panel-N.md            # keys and snapshot IDs; images live under assets/
-  assets/
-    character-references.json
-    character-references/
-      <snapshot-id>/
-        <character-key>/
-          reference.<ext>             # when source and outline sheet are the same file
-          sketch-sheet.png            # when source and outline sheet differ
-          source.<ext>                # when source and outline sheet differ
-    location-references.json          # schemaVersion 3
-    location-references/
-      <snapshot-id>/
-        <location-key>--establishing.png
-        <location-key>--reverse.png    # only when a reverse view is registered
-        <location-key>--side.png       # only when a side view is registered
-    design-references.json           # only when reviewed panels declare design references
-    design-references/
-      <snapshot-id>/
-        <design-key>.<ext>
+        <scene>-panel-N.md            # stable keys/mappings; images read directly from current canonical roots
   panels/
   pages/
   sketches/
   qa/                                  # written only by generate-images --qa-only
     panel-audit-<run-id>/
-      page-qa-report.json              # schemaVersion 6
+      page-qa-report.json
       page-qa-report.md
       qa-only-audit.json
     continuity-audit-<run-id>/         # only with --continuity-qa
@@ -234,15 +226,15 @@ output/<timestamp>_<scene-slug>/
 
 Item `status` and `providers` record completion and provider progress. Item metadata commonly includes title, slug, duration or page count, source URL or path, output file names, token or character counts, timings, and cost.
 
-Typical fields by step:
+Typical metadata by command or artifact:
 
-- Step 1 media: title, slug, duration, channel, source, publish metadata, and audio file name/size.
-- Step 1 document: title, slug, author, page count when available, format, file size, and source.
-- Step 2 STT: service, model, output files, segment counts, timings, cost, and YouTube caption language/format when captions were used.
-- Step 2 extraction: method, provider/model/backend, format, page counts, language, and cost.
-- Step 3 LLM: service/model, output file, token counts, processing time, and cost.
-- Step 4 TTS: provider/model, voice/speaker/language, audio file names/sizes, chunk counts, processing time, and cost.
-- Step 5 image: provider/model, file names/sizes, dimensions, format, request mode, and cost.
-- Step 6 video: provider/model, file name/size/duration, resolution/aspect ratio, request mode, and cost.
-- Step 7 music: provider/model, file name/size/duration, lyrics source, generated title/style, and cost.
-- Step 8 comic: stage progress (structure, image, audio, presentation), scene identity, structured script, dialogue plan, and selected audio/soundscape/presentation refs. The script slug lives in the manifest `source` block.
+- Media: title, slug, duration, channel, source, publish metadata, and audio file name/size.
+- Document: title, slug, author, page count when available, format, file size, and source.
+- STT: service, model, output files, segment counts, timings, cost, and YouTube caption language/format when captions were used.
+- Extraction: method, provider/model/backend, format, page counts, language, and cost.
+- Write: service/model, output file, token counts, processing time, and cost.
+- TTS: provider/model, voice/speaker/language, audio file names/sizes, chunk counts, processing time, and cost.
+- Image: provider/model, file names/sizes, dimensions, format, request mode, and cost.
+- Video: provider/model, file name/size/duration, resolution/aspect ratio, request mode, and cost.
+- Music: provider/model, file name/size/duration, lyrics source, generated title/style, and cost.
+- Comic: stage progress (structure, image, audio, presentation), scene identity, structured script, dialogue plan, and selected audio/soundscape/presentation refs. The script slug lives in the manifest `source` block.
