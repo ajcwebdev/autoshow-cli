@@ -2,34 +2,42 @@ Video consensus evaluation
 
 Run directory: docs/benchmarks/video/2026-05-21_06-51-12-517_video-gen
 Category: video
-Evidence source: consensus packet built from manifest.json and the generated MP4 artifacts.
+Evidence source: canonical manifest, consensus packet and local MP4 decoding/probes.
 
-This evaluation uses measurable packet evidence only. It does not claim to have watched the videos and does not assess visual quality, prompt adherence, motion quality, narrative coherence, or human preference.
+This evaluation uses measurable evidence only. No video was watched or listening assessment performed. Visual quality, prompt adherence, motion quality, spoken correctness and human preference remain unmeasured.
 
 Scope
 
-- Providers: 2 service providers, 0 local providers.
-- Artifacts: both MP4 files are present, and their file sizes match the recorded metadata.
-- Gemini Omni was added on 2026-10-23 by resuming this run with one request at the provider-selected length.
+- Providers: 3 service providers, 0 local providers.
+- All three MP4 files are present; file sizes match the recorded metadata.
+- Gemini Omni was added on 2026-10-23 with one provider-selected-length request.
+- Grok Video 1.5 Lite was added on 2026-10-29 with one explicit 8-second/480p request; the exact returned model identity matches the request.
+- SHA-256 checks confirm both earlier provider videos are unchanged.
 
 Recorded durations
 
-- grok/grok-imagine-video-1.5: 8 seconds (recorded).
-- gemini/gemini-omni-1.1-flash: no recorded duration; ffprobe measures the container at 10.005 seconds.
+- grok/grok-imagine-video-1.5: 8 generated seconds (recorded).
+- grok/grok-imagine-video-1.5-lite: 8 generated seconds; local container probe 8.041667 seconds, H.264/AAC at 848x480. Full local video decoding passed.
+- gemini/gemini-omni-1.1-flash: no recorded duration; retained local container measurement 10.005 seconds.
 
 Recorded processing time, fastest to slowest
 
-1. grok/grok-imagine-video-1.5: 32,747 ms
-2. gemini/gemini-omni-1.1-flash: 33,278 ms
+1. grok/grok-imagine-video-1.5-lite: 22460 ms
+2. grok/grok-imagine-video-1.5: 32747 ms
+3. gemini/gemini-omni-1.1-flash: 33278 ms
 
 Recorded cost, lowest to highest
 
-1. grok/grok-imagine-video-1.5: 64 cents (provider usage).
-2. gemini/gemini-omni-1.1-flash: 100 cents (registry rate; the provider returned no usage).
+1. grok/grok-imagine-video-1.5-lite: 16 cents (provider usage).
+2. grok/grok-imagine-video-1.5: 64 cents (provider usage).
+3. gemini/gemini-omni-1.1-flash: 100 cents (registry rate; provider returned no usage).
 
 Recorded artifact file sizes, smallest to largest
 
-1. grok/grok-imagine-video-1.5: 1,565,638 bytes
-2. gemini/gemini-omni-1.1-flash: 3,056,647 bytes
+1. grok/grok-imagine-video-1.5: 1565638 bytes
+2. grok/grok-imagine-video-1.5-lite: 2190970 bytes
+3. gemini/gemini-omni-1.1-flash: 3056647 bytes
 
+Lite SHA-256: aa98f2bc9421ade4dcf9f03091258c735e09e9dd2bbf91d7d0911a675712512b
+Provider-reported usage receipts are not reconciled invoice charges.
 No packet warnings were reported.

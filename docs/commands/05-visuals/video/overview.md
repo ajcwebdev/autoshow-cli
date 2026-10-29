@@ -158,18 +158,21 @@ For uploaded edit/extend instead, supply your own compatible video of at most 10
 
 ### Grok
 
-| Option              | Value                                                    |
-| ------------------- | -------------------------------------------------------- |
-| Selector            | `--provider grok[=<model>]`                              |
-| Models              | `grok-imagine-video-1.5` (bare default)                  |
-| Duration/resolution | `--duration <seconds>`, `--resolution 480p\|720p\|1080p` |
+| Option              | Value                                                                  |
+| ------------------- | ---------------------------------------------------------------------- |
+| Selector            | `--provider grok[=<model>]`                                            |
+| Models              | `grok-imagine-video-1.5`, `grok-imagine-video-1.5-lite` (bare default) |
+| Duration/resolution | `--duration <seconds>`, `--resolution 480p\|720p\|1080p`               |
 
 ```bash
+bun autoshow video "a red kite above a field" --provider grok=grok-imagine-video-1.5-lite --duration 5 --resolution 720p
 bun autoshow video "cinematic moonlit coastline" --provider grok=grok-imagine-video-1.5 --duration 8 --resolution 1080p
 bun autoshow video "an adult explorer wearing the teal jacket and round gold glasses walks along a harbor path" --provider grok=grok-imagine-video-1.5 --mode reference-to-video --reference-image input/examples/video/harborlight-jacket.png --reference-image input/examples/video/harborlight-glasses.png
 ```
 
-- Text, image, and reference durations are 1–15 seconds (default 8); supplied values are floored and clamped to that range. The default resolution is 480p, and reference generation is capped at 720p.
+- Both models accept text and image generation from 1–15 seconds (default 8); supplied values are floored and clamped to that range. The default resolution is 480p. Bare `--provider grok`, an explicit Lite selector, and omitted-provider text generation select Lite at 8s/480p when controls are omitted. The cheapest-candidate helper also exposes 1s/480p, but the command retains its 8-second request default.
+- Lite reaches 1080p by upscaling 720p and rejects reference, interpolate, edit, and extend modes before pricing or dispatch. Retain full 1.5 for native 1080p and image references (capped at 720p). Both models generate audio by default; the CLI exposes no audio toggle or voice references. Image-to-video follows the input image aspect ratio upstream.
+- Published Lite rates checked 2026-10-29: $0.02/s at 480p, $0.03/s at 720p, $0.14/s at 1080p, plus $0.01/input image. No Batch discount is assumed. Downloaded Grok videos must decode with local FFmpeg before success; invalid bytes remain available for recovery. Local fixture checks establish transport and decoding, while visual quality, spoken correctness, and live account access remain unmeasured. See the [Lite model](https://docs.x.ai/developers/models/grok-imagine-video-1.5-lite) and [video guide](https://docs.x.ai/developers/model-capabilities/video/generation).
 
 ## Output
 
@@ -187,7 +190,8 @@ Text-to-video and image-to-video are available on every provider.
 
 Prices are the CLI's default output estimates; input charges are additional where listed. Gemini input/context costs are not fully estimated.
 
-| Model                          | Additional modes                     | Duration | Maximum resolution      | Aspect ratio | Native audio | References                | Output estimate                                | Input charges       |
-| ------------------------------ | ------------------------------------ | -------- | ----------------------- | ------------ | ------------ | ------------------------- | ---------------------------------------------- | ------------------- |
-| Gemini `gemini-omni-1.1-flash` | Reference, interpolate, edit, extend | 3–10s    | 4K (upscaled)           | 16:9 or 9:16 | Always on    | Images and up to 3 videos | $0.10/s                                        | Not fully estimated |
-| Grok `grok-imagine-video-1.5`  | Reference                            | 1–15s    | 1080p; references ≤720p | 7 ratios     | None         | Up to 5 images            | $0.08/s at 480p; $0.14 at 720p; $0.25 at 1080p | $0.01/image         |
+| Model                              | Additional modes                     | Duration | Maximum resolution      | Aspect ratio | Native audio | References                | Output estimate                                | Input charges       |
+| ---------------------------------- | ------------------------------------ | -------- | ----------------------- | ------------ | ------------ | ------------------------- | ---------------------------------------------- | ------------------- |
+| Gemini `gemini-omni-1.1-flash`     | Reference, interpolate, edit, extend | 3–10s    | 4K (upscaled)           | 16:9 or 9:16 | Always on    | Images and up to 3 videos | $0.10/s                                        | Not fully estimated |
+| Grok `grok-imagine-video-1.5`      | Reference                            | 1–15s    | 1080p; references ≤720p | 9 ratios     | Always on    | Up to 5 images            | $0.08/s at 480p; $0.14 at 720p; $0.25 at 1080p | $0.01/image         |
+| Grok `grok-imagine-video-1.5-lite` | None                                 | 1–15s    | 1080p (upscaled)        | 9 ratios     | Always on    | Input image only          | $0.02/s at 480p; $0.03 at 720p; $0.14 at 1080p | $0.01/image         |

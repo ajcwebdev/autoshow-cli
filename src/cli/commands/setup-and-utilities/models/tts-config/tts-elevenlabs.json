@@ -3,8 +3,8 @@
     "description": "ElevenLabs cloud text-to-speech",
     "type": "api",
     "catalogSourceUrl": "https://elevenlabs.io/docs/overview/models",
-    "catalogCheckedAt": "2026-09-14",
-    "catalogNotes": "The 2026-09-14 catalog check still finds eleven_v3 as the flagship HTTP TTS and native-dialogue model. eleven_v3_conversational is a realtime WebSocket sibling and is excluded from this hosted TTS surface.",
+    "catalogCheckedAt": "2026-10-29",
+    "catalogNotes": "Eleven v4 supports public HTTP speech and native dialogue. Retain v3 for existing voice characterization and cross-language accent behavior; keep v3 as the explicit bare-provider default pending audible migration assessment. Turbo realtime variants remain excluded.",
     "models": {
       "eleven_v3": {
         "description": "ElevenLabs v3 expressive speech and native dialogue",
@@ -14,7 +14,25 @@
         "pricingTier": "Published v3 API character rate across Free/PAYG and listed subscription tiers",
         "pricingNotes": "The API pricing page lists v3 at $0.08/1K characters across Free/PAYG, Starter, Creator, Pro, Scale, and Business. Synthesis uses this character rate for speech and native dialogue; any recorded voice-cloning or setup charge is accounted for separately. Subscription inclusions, account-specific discounts, enterprise pricing, taxes, and provider credits are excluded from this usage estimate.",
         "costPer1kCharsCents": 8,
-        "limits": { "maxInputCharacters": 5000 },
+        "limits": {
+          "maxInputCharacters": 5000
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 35885
+        }
+      },
+      "eleven_v4": {
+        "description": "ElevenLabs v4 expressive speech and native dialogue",
+        "pricingSourceUrl": "https://elevenlabs.io/pricing/api",
+        "pricingCheckedAt": "2026-10-29",
+        "pricingCurrency": "USD",
+        "pricingTier": "Free / Pay as you go",
+        "pricingNotes": "Published $0.08 per 1,000 characters without recurring commitment. Voice setup, premium plan-gated formats, taxes and discounts are excluded. Single-voice TTS supports 10,000 characters; native dialogue uses the separate 2,000-total-character/10-voice endpoint limit. Timing estimates reuse the v3 heuristic and are not measured v4 latency.",
+        "costPer1kCharsCents": 8,
+        "limits": {
+          "maxInputCharacters": 10000
+        },
         "estimation": {
           "costMultiplier": 1,
           "msPer1KChars": 35885

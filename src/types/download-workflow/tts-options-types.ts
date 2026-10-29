@@ -30,7 +30,7 @@ export type TtsRuntimeOptions = {
   elevenlabsTtsStability: number | undefined
   elevenlabsTtsSimilarityBoost: number | undefined
   elevenlabsTtsStyle: number | undefined
-  elevenlabsTtsUseSpeakerBoost: boolean
+  elevenlabsTtsUseSpeakerBoost: boolean | undefined
   elevenlabsTtsSpeed: number | undefined
   elevenlabsTtsSeed: number | undefined
   elevenlabsTtsTextNormalization: string | undefined

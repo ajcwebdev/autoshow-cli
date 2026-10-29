@@ -60,13 +60,14 @@ const buildElevenLabsSerializer: SerializerBuilder = ({ target, strategy, contro
     speed: controls.number('speed'), similarity_boost: controls.number('similarityBoost'),
     style: controls.number('style'), use_speaker_boost: controls.boolean('useSpeakerBoost'),
   })
+  const dialogueSettings = { ...(controls.number('stability') !== undefined ? { stability: controls.number('stability') } : {}), ...(controls.number('similarityBoost') !== undefined ? { similarity: controls.number('similarityBoost') } : {}) }
   if (strategy === 'native-dialogue') return {
     endpointKind: 'text-to-dialogue-with-timestamps',
     serializerVersion: 'elevenlabs.dialogue.phase-3-v1',
     controls: {
       outputFormat: controls.string('responseFormat') ?? ELEVENLABS_TTS_OUTPUT_FORMAT,
-      modelId: 'eleven_v3',
-      ...(controls.number('stability') !== undefined ? { settings: { stability: controls.number('stability') } } : {}),
+      modelId: target.model,
+      ...(Object.keys(dialogueSettings).length > 0 ? { settings: dialogueSettings } : {}),
       ...(controls.stringArray('pronunciationDictionaryLocators')?.length ? { pronunciationDictionaryLocators: controls.stringArray('pronunciationDictionaryLocators')!.map(parseElevenLabsDictionaryLocator) } : {}),
       ...(controls.string('languageCode') ? { languageCode: controls.string('languageCode') } : {}),
       ...(controls.number('seed') !== undefined ? { seed: controls.number('seed') } : {}),
@@ -149,7 +150,7 @@ export const resolveEffectiveProviderControls = (
       if (controls.instructions && target.model !== 'gpt-4o-mini-tts-2025-12-15') throw UsageError(`OpenAI per-turn TTS instructions are not supported by ${target.model}.`)
       return controls
     }
-    case 'elevenlabs': return resolveTtsTargetInvocationControls('elevenlabs', invocation, { languageCode: selection.elevenLabsLanguageCode, stability: selection.elevenLabsStability, similarityBoost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}), speed: selection.elevenLabsSpeed, seed: selection.elevenLabsSeed, textNormalization: selection.elevenLabsTextNormalization, pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators, responseFormat: selection.elevenLabsResponseFormat as (typeof ELEVENLABS_TTS_RESPONSE_FORMATS)[number] | undefined })
+    case 'elevenlabs': return resolveTtsTargetInvocationControls('elevenlabs', invocation, { languageCode: selection.elevenLabsLanguageCode, stability: selection.elevenLabsStability, similarityBoost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost !== undefined ? { useSpeakerBoost: selection.elevenLabsUseSpeakerBoost } : {}), speed: selection.elevenLabsSpeed, seed: selection.elevenLabsSeed, textNormalization: selection.elevenLabsTextNormalization, pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators, responseFormat: selection.elevenLabsResponseFormat as (typeof ELEVENLABS_TTS_RESPONSE_FORMATS)[number] | undefined })
     case 'gemini': return resolveTtsTargetInvocationControls('gemini', invocation, { instructions: selection.geminiInstructions, responseFormat: selection.geminiResponseFormat })
     case 'soniox': return resolveTtsTargetInvocationControls('soniox', invocation, { language: selection.sonioxLanguage ?? 'en', speed: selection.sonioxSpeed ?? 1 })
     case 'grok': return resolveTtsTargetInvocationControls('grok', invocation, { speed: selection.grokSpeed, language: selection.grokLanguage, ...(selection.grokTextNormalization ? { textNormalization: true } : {}) })

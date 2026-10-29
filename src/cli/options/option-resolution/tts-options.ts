@@ -216,7 +216,7 @@ export const buildTtsOptions = (
     elevenlabsTtsStability: undefined,
     elevenlabsTtsSimilarityBoost: undefined,
     elevenlabsTtsStyle: undefined,
-    elevenlabsTtsUseSpeakerBoost: false,
+    elevenlabsTtsUseSpeakerBoost: undefined,
     elevenlabsTtsSpeed: undefined,
     elevenlabsTtsSeed: undefined,
     elevenlabsTtsTextNormalization: undefined,

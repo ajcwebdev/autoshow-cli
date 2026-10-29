@@ -72,13 +72,13 @@ describe('price mode contracts', () => {
       expect(cost({ geminiVideoModels: ['gemini-omni-1.1-flash'], videoResolution: '720p' })).toBe('$1.00')
     })
 
-  test('cheapest default text-to-video selection is Grok Imagine Video 1.5', () => {
-      // Grok: 8 cents/second at its 8-second default (64 cents); Gemini Omni: 10 cents/second at its 10-second estimate (100 cents).
+  test('cheapest default text-to-video selection is Grok Imagine Video 1.5 Lite', () => {
+      // Lite: 2 cents/second at its 8-second default; full: 64 cents; Omni: 100 cents.
       expect(selectCheapestDefaultTextVideoSelection()).toMatchObject({
         provider: 'grok',
-        model: 'grok-imagine-video-1.5',
+        model: 'grok-imagine-video-1.5-lite',
         duration: 8,
-        totalCost: 64
+        totalCost: 16
       })
     })
 

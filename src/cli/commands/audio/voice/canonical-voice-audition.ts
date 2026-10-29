@@ -135,8 +135,8 @@ export const runCanonicalVoiceAudition = async (input: {
   await input.protectedStore.withWorkspace(`audition-${registration.registrationId}`, async workspace => {
     for (const passage of plan.passages) {
       const takes: VoiceAuditionItem['takes'] = []
-      const providerText = registration.provider === 'elevenlabs' && registration.providerModel === 'eleven_v3'
-        ? prepareElevenLabsDialogueText(passage.text, passage.delivery).providerText
+      const providerText = registration.provider === 'elevenlabs' && (registration.providerModel === 'eleven_v3' || registration.providerModel === 'eleven_v4')
+        ? prepareElevenLabsDialogueText(passage.text, passage.delivery, registration.providerModel).providerText
         : passage.text
       for (let takeIndex = 0; takeIndex < plan.takeCount; takeIndex += 1) {
         const takeId = `${passage.itemId}-${takeIndex + 1}`

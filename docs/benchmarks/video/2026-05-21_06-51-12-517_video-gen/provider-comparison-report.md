@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `docs/benchmarks/video/2026-05-21_06-51-12-517_video-gen`
-- Total providers: 2 (0 local, 2 service)
+- Total providers: 3 (0 local, 3 service)
 - Local and service providers are intentionally not ranked against each other.
 - Reports expose complete price, speed, automated-quality, and human-quality rankings for each group.
 
@@ -41,17 +41,19 @@ No local providers were found.
 
 ### Price
 
-| Rank | Provider                                  | Evidence |
-| ---: | ----------------------------------------- | -------- |
-| 1    | <code>grok/grok-imagine-video-1.5</code>  | $0.6400  |
-| 2    | <code>gemini/gemini-omni-1.1-flash</code> | $1.0000  |
+| Rank | Provider                                      | Evidence |
+| ---: | --------------------------------------------- | -------- |
+| 1    | <code>grok/grok-imagine-video-1.5-lite</code> | $0.1600  |
+| 2    | <code>grok/grok-imagine-video-1.5</code>      | $0.6400  |
+| 3    | <code>gemini/gemini-omni-1.1-flash</code>     | $1.0000  |
 
 ### Speed
 
-| Rank | Provider                                  | Evidence |
-| ---: | ----------------------------------------- | -------- |
-| 1    | <code>grok/grok-imagine-video-1.5</code>  | 32.75s   |
-| 2    | <code>gemini/gemini-omni-1.1-flash</code> | 33.28s   |
+| Rank | Provider                                      | Evidence |
+| ---: | --------------------------------------------- | -------- |
+| 1    | <code>grok/grok-imagine-video-1.5-lite</code> | 22.46s   |
+| 2    | <code>grok/grok-imagine-video-1.5</code>      | 32.75s   |
+| 3    | <code>gemini/gemini-omni-1.1-flash</code>     | 33.28s   |
 
 ### Automated Quality
 
@@ -63,10 +65,11 @@ Unavailable: No explicit humanQualityScore was available for service providers. 
 
 ### Provider Detail
 
-| Provider                                  | Quality Evidence | Processing Time | Monetary Cost |
-| ----------------------------------------- | ---------------- | --------------: | ------------: |
-| <code>gemini/gemini-omni-1.1-flash</code> | n/a              | 33.28s          | $1.0000       |
-| <code>grok/grok-imagine-video-1.5</code>  | n/a              | 32.75s          | $0.6400       |
+| Provider                                      | Quality Evidence | Processing Time | Monetary Cost |
+| --------------------------------------------- | ---------------- | --------------: | ------------: |
+| <code>gemini/gemini-omni-1.1-flash</code>     | n/a              | 33.28s          | $1.0000       |
+| <code>grok/grok-imagine-video-1.5</code>      | n/a              | 32.75s          | $0.6400       |
+| <code>grok/grok-imagine-video-1.5-lite</code> | n/a              | 22.46s          | $0.1600       |
 
 ## Notes
 

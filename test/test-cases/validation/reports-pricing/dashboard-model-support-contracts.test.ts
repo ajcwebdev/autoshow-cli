@@ -65,7 +65,7 @@ const nonDiarizedStt = [
 const localStt = routePairs('whisperfile', ['tiny', 'tiny.en', 'small', 'small.en', 'medium', 'medium.en', 'large-v2', 'large-v3'])
 const activeTts = [
   ...routePairs('gemini', ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts']),
-  ...routePairs('elevenlabs', ['eleven_v3']), ...routePairs('soniox', ['tts-rt-v2']),
+  ...routePairs('elevenlabs', ['eleven_v3', 'eleven_v4']), ...routePairs('soniox', ['tts-rt-v2']),
   ...routePairs('grok', ['grok-tts']), ...routePairs('openai', ['gpt-4o-mini-tts-2025-12-15']),
   ...routePairs('inworld', ['realtime-tts-2']),
 ]

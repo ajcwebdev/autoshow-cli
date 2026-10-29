@@ -22,6 +22,28 @@
           "costMultiplier": 1,
           "msPerImage": 19416
         }
+      },
+      "gemini-nano-banana-2.1": {
+        "description": "Gemini Nano Banana 2.1 \u2014 high-resolution native image generation and editing",
+        "referenceImages": {
+          "supported": true,
+          "maxInputs": 14
+        },
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-10-29",
+        "pricingCurrency": "USD",
+        "pricingTier": "Paid standard pay-as-you-go",
+        "pricingNotes": "Output-only estimate; excludes input ($1.50/M tokens), text/thinking output ($7.50/M), and search grounding. Image output $30/M tokens: 1120/1680/3780 tokens at 1K/2K/4K (3.36/5.04/11.34 cents). Pricing-page 3780-token 4K tariff takes precedence over the generation guide’s conflicting 2520-token table. No grounding tools enabled. Latency provisionally inherited from Lite; no paid calibration.",
+        "costPerImageCents": 3.36,
+        "costPerImageBySizeCents": {
+          "1K": 3.36,
+          "2K": 5.04,
+          "4K": 11.34
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerImage": 19416
+        }
       }
     }
   },

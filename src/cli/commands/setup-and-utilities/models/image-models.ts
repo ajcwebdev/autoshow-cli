@@ -2,7 +2,8 @@ import type { GeminiImageModel, GrokImageModel, OpenAIImageModel } from '~/types
 import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_GEMINI_IMAGE_MODELS = [
-  'gemini-3.1-flash-lite-image'
+  'gemini-3.1-flash-lite-image',
+  'gemini-nano-banana-2.1'
 ] as const satisfies readonly string[]
 
 export const validateGeminiImageModel = createRetiringModelValidator<GeminiImageModel>('image', 'gemini', SUPPORTED_GEMINI_IMAGE_MODELS, 'gemini-image')

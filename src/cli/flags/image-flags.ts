@@ -14,7 +14,7 @@ const imageAspectRatioLists = [
 
 export const imageGenFlags = {
   'aspect-ratio': strFlag(`Image aspect ratio: ${formatUniqueValueList(...imageAspectRatioLists)} (provider-specific support; omitted by default for provider sizing). OpenAI uses --size instead`),
-  size: strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI GPT Image 2.5 (default: auto), or ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok; default: 1K). Other defaults use provider sizing`),
+  size: strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini Nano Banana 2.1; Lite: 1K only), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI GPT Image 2.5 (default: auto), or ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok; default: 1K). Other defaults use provider sizing`),
   quality: strFlag(`Image quality: ${formatValueList(IMAGE_GENERATION_QUALITIES)} (OpenAI, default: auto; xhigh/max require GPT Image 2.5); Grok Image 2.0: low|medium|auto (auto pins low for generation, medium for editing)`),
   format: strFlag(`Image output format: ${formatValueList(OPENAI_IMAGE_FORMAT_VALUES)} (OpenAI). Default: png`),
   background: strFlag(`Image background: ${formatValueList(OPENAI_IMAGE_BACKGROUND_VALUES)} (OpenAI, default: auto; transparent requires GPT Image 2.5 and png/webp)`),

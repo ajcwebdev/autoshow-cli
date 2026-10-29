@@ -1,3 +1,4 @@
+import { validateGeminiImageDimensions } from '../image-generation-services/image-gemini/gemini-image-options'
 import { resolveGrokImageOptions } from '../image-generation-services/image-grok/grok-image-options'
 import { getImageInputCostPer1M, getImageModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { validateGeminiImageModel, validateGrokImageModel, validateOpenAIImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
@@ -94,6 +95,7 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
     switch (selection.service) {
       case 'gemini': {
         const model = validateGeminiImageModel(selection.model)
+        validateGeminiImageDimensions(model, options)
         const imageSize = options.imageSize ?? '1K'
         const meta = getImageModelMeta('gemini', model)
         const costPerImageCents = meta?.costPerImageBySizeCents?.[imageSize]
@@ -104,7 +106,7 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
           imageCount: 1,
           costPerImageCents,
           totalCost: costPerImageCents,
-          note: `Published Gemini standard-tier ${imageSize} output-image estimate; text/image input tokens are not included`
+          note: `Published Gemini standard-tier ${imageSize} output-image estimate; input tokens, text/thinking output tokens, and search grounding are excluded; no grounding tools enabled`
         })
         break
       }

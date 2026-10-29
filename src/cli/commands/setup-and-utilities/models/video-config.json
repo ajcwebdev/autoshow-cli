@@ -81,6 +81,22 @@
           "costMultiplier": 1,
           "msPerSecond": 10000
         }
+      },
+      "grok-imagine-video-1.5-lite": {
+        "description": "Grok Imagine Video 1.5 Lite text and image video generation; 1080p upscaled from 720p",
+        "pricingSourceUrl": "https://docs.x.ai/developers/models/grok-imagine-video-1.5-lite",
+        "pricingCheckedAt": "2026-10-29",
+        "pricingCurrency": "USD",
+        "pricingTier": "Public prepaid pay-as-you-go API; no recurring commitment required",
+        "pricingNotes": "Output costs $0.02/s at 480p, $0.03/s at 720p, and $0.14/s at 1080p (upscaled from 720p). Each input image costs $0.01. Text-to-video and image-to-video only; references, pinned frames and voice references unsupported. No Batch discount is published. Manual funding minimum and credit expiry are unknown; discounts, taxes and credits excluded.",
+        "baseCostPerSecondCents": 2,
+        "resolutionMultiplier720p": 1.5,
+        "resolutionMultiplier1080p": 7,
+        "inputImageCostCents": 1,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 10000
+        }
       }
     }
   }

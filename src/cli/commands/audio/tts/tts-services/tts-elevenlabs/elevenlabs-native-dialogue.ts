@@ -59,7 +59,7 @@ const documentedAudioTags = (delivery: string): string[] => {
 
 const safeAudioTag = (delivery: string): string => documentedAudioTags(delivery).map(tag => `[${tag}]`).join(' ')
 
-export const prepareElevenLabsDialogueText = (canonicalText: string, delivery?: string | undefined): PreparedProviderText => {
+export const prepareElevenLabsDialogueText = (canonicalText: string, delivery?: string | undefined, model = 'eleven_v3'): PreparedProviderText => {
   const canonicalLength = [...canonicalText].length
   const audioTags = delivery ? safeAudioTag(delivery) : ''
   const prefix = audioTags ? `${audioTags} ` : ''
@@ -69,11 +69,11 @@ export const prepareElevenLabsDialogueText = (canonicalText: string, delivery?: 
     schemaVersion: 1,
     canonicalText,
     providerText,
-    preparationVersion: 'elevenlabs-v3-dialogue-v2',
+    preparationVersion: model === 'eleven_v4' ? 'elevenlabs-v4-dialogue-v1' : 'elevenlabs-v3-dialogue-v2',
     canonicalIndexUnit: 'unicode-scalar-value',
     providerIndexUnit: 'provider-character-array-index',
     spans: [
-      ...(prefixLength > 0 ? [{ kind: 'provider-only' as const, providerStart: 0, providerEnd: prefixLength, transform: 'v3-delivery-audio-tag' }] : []),
+      ...(prefixLength > 0 ? [{ kind: 'provider-only' as const, providerStart: 0, providerEnd: prefixLength, transform: model === 'eleven_v4' ? 'v4-delivery-audio-tag' : 'v3-delivery-audio-tag' }] : []),
       ...(canonicalLength > 0 ? [{ kind: 'mapped' as const, canonicalStart: 0, canonicalEnd: canonicalLength, providerStart: prefixLength, providerEnd: prefixLength + canonicalLength }] : [])
     ]
   }
@@ -81,10 +81,11 @@ export const prepareElevenLabsDialogueText = (canonicalText: string, delivery?: 
 
 export const planElevenLabsNativeDialogueBatches = (
   turns: readonly ElevenLabsNativeDialogueTurn[],
-  maxCharacters = ELEVENLABS_NATIVE_DIALOGUE_MAX_CHARACTERS
+  maxCharacters = ELEVENLABS_NATIVE_DIALOGUE_MAX_CHARACTERS,
+  model = 'eleven_v3'
 ): ElevenLabsNativeDialogueBatch[] => {
   if (!Number.isInteger(maxCharacters) || maxCharacters < 1) throw UsageError('ElevenLabs native dialogue character limit must be a positive integer.')
-  const prepared = turns.map(turn => ({ ...turn, preparedText: prepareElevenLabsDialogueText(turn.canonicalText, turn.delivery) }))
+  const prepared = turns.map(turn => ({ ...turn, preparedText: prepareElevenLabsDialogueText(turn.canonicalText, turn.delivery, model) }))
   const batches: ElevenLabsNativeDialogueBatch[] = []
   let current: ElevenLabsPreparedDialogueTurn[] = []
   let characters = 0
@@ -176,12 +177,12 @@ export const runElevenLabsNativeDialogue = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  if (options.model !== 'eleven_v3') throw UsageError('ElevenLabs native Text-to-Dialogue requires model eleven_v3.')
+  if (options.model !== 'eleven_v3' && options.model !== 'eleven_v4') throw UsageError('ElevenLabs native Text-to-Dialogue requires model eleven_v3 or eleven_v4.')
   if (turns.length === 0) throw UsageError('ElevenLabs native Text-to-Dialogue requires at least one turn.')
-  const apiKey = resolveCredential('elevenlabs', 'require', { stage: 'tts:elevenlabs', description: 'ElevenLabs Text-to-Dialogue' })
-  const batches = planElevenLabsNativeDialogueBatches(turns)
-  const outputFormat = options.controls?.responseFormat ?? ELEVENLABS_TTS_OUTPUT_FORMAT
   validateElevenLabsVoiceSettings(options.model, options.controls?.voiceSettings)
+  const apiKey = resolveCredential('elevenlabs', 'require', { stage: 'tts:elevenlabs', description: 'ElevenLabs Text-to-Dialogue' })
+  const batches = planElevenLabsNativeDialogueBatches(turns, undefined, options.model)
+  const outputFormat = options.controls?.responseFormat ?? ELEVENLABS_TTS_OUTPUT_FORMAT
   // The dialogue endpoint defines MP3 formats as codec_sample-rate_kbps:
   // https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert-with-timestamps
   // WAV sample rate alone does not establish channel count/bit depth. Do not guess its byte rate.
@@ -193,6 +194,8 @@ export const runElevenLabsNativeDialogue = async (
     })
   }
   const stability = options.controls?.voiceSettings?.stability
+  const similarity = options.controls?.voiceSettings?.similarity_boost
+  const settings = { ...(stability !== undefined ? { stability } : {}), ...(similarity !== undefined ? { similarity } : {}) }
   const dictionaries = options.controls?.pronunciationDictionaryLocators?.map(parseElevenLabsDictionaryLocator)
   const paths: string[] = []
   let completed = false
@@ -203,8 +206,8 @@ export const runElevenLabsNativeDialogue = async (
       const chunkIndex = batchIndex + 1
       const requestBody = {
         inputs: batch.turns.map(turn => ({ text: turn.preparedText.providerText, voice_id: turn.voiceId })),
-        model_id: 'eleven_v3',
-        ...(stability !== undefined ? { settings: { stability } } : {}),
+        model_id: options.model,
+        ...(Object.keys(settings).length > 0 ? { settings } : {}),
         ...(dictionaries?.length ? { pronunciation_dictionary_locators: dictionaries } : {}),
         ...(options.controls?.languageCode ? { language_code: options.controls.languageCode } : {}),
         ...(typeof options.controls?.seed === 'number' ? { seed: options.controls.seed } : {}),
@@ -212,8 +215,8 @@ export const runElevenLabsNativeDialogue = async (
       }
       const requestControls = {
         outputFormat,
-        modelId: 'eleven_v3',
-        ...(stability !== undefined ? { settings: { stability } } : {}),
+        modelId: options.model,
+        ...(Object.keys(settings).length > 0 ? { settings } : {}),
         ...(dictionaries?.length ? { pronunciationDictionaryLocators: dictionaries } : {}),
         ...(options.controls?.languageCode ? { languageCode: options.controls.languageCode } : {}),
         ...(typeof options.controls?.seed === 'number' ? { seed: options.controls.seed } : {}),
@@ -239,8 +242,11 @@ export const runElevenLabsNativeDialogue = async (
         await accepted({ fields: { httpStatus: response.status } })
         return await readHttpPayloadJson(response, 'ElevenLabs Text-to-Dialogue response', { stage: 'tts:elevenlabs-dialogue' }) as ElevenLabsDialogueTimingResponse & { audio_base64?: unknown }
       }))
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw InfraError('ElevenLabs Text-to-Dialogue returned a malformed response.', { stage: 'tts:elevenlabs' })
       if (typeof payload.audio_base64 !== 'string' || !payload.audio_base64) throw InfraError('ElevenLabs Text-to-Dialogue returned no audio.', { stage: 'tts:elevenlabs' })
-      const bytes = Uint8Array.from(Buffer.from(payload.audio_base64, 'base64'))
+      const decoded = Buffer.from(payload.audio_base64, 'base64')
+      if (decoded.toString('base64') !== payload.audio_base64) throw InfraError('ElevenLabs Text-to-Dialogue returned malformed base64 audio.', { stage: 'tts:elevenlabs' })
+      const bytes = Uint8Array.from(decoded)
       if (bytes.byteLength === 0) throw InfraError('ElevenLabs Text-to-Dialogue returned empty audio.', { stage: 'tts:elevenlabs' })
       const path = `${outputDir}/speech-elevenlabs-dialogue-${String(chunkIndex).padStart(3, '0')}.${elevenLabsChunkExtension(outputFormat)}`
       await Bun.write(path, bytes)

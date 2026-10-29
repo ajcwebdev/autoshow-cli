@@ -1,0 +1,5 @@
+I speak without an added pause. One, two, three, four, five.
+I take a short pause here. [short pause] Then I continue.
+I take a long pause here. [long pause] Then I continue.
+I count with a short pause. One, two. [short pause] Three, four, five.
+I count with a long pause. One, two. [long pause] Three, four, five.

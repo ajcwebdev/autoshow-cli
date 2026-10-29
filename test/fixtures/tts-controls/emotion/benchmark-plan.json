@@ -31,6 +31,34 @@
       ]
     },
     {
+      "id": "elevenlabs-eleven-v4-tags",
+      "provider": "elevenlabs",
+      "model": "eleven_v4",
+      "input": "test/fixtures/tts-controls/emotion/elevenlabs-eleven-v4-tags.txt",
+      "flags": {
+        "elevenlabs-tts": "eleven_v4",
+        "tts-voice": "hpp4J3VqNfWAUOO0d1Us",
+        "tts-stability": "elevenlabs=0.5"
+      },
+      "turnControls": {},
+      "source": "https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices#prompting-eleven-v4",
+      "lines": [
+        "[whispers] I am whispering. This is just for you.",
+        "[sarcastic] I sound sarcastic. Oh, great. More work. Just what I need.",
+        "[excited] I sound excited! This is GREAT news! I cannot wait!",
+        "[angry] I sound angry. That is not fair! I said no!",
+        "[sad] I sound sad. I miss my friend. I wish they were here."
+      ],
+      "mechanism": "Native inline delivery/emotion tags; canonical spoken words exclude tags; no request-level instructions.",
+      "spokenLines": [
+        "I am whispering. This is just for you.",
+        "I sound sarcastic. Oh, great. More work. Just what I need.",
+        "I sound excited! This is GREAT news! I cannot wait!",
+        "I sound angry. That is not fair! I said no!",
+        "I sound sad. I miss my friend. I wish they were here."
+      ]
+    },
+    {
       "id": "grok-grok-tts-delivery",
       "provider": "grok",
       "model": "grok-tts",

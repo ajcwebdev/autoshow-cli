@@ -13,6 +13,7 @@ const expectedCoverage = [
   ['test/test-cases/e2e/service/visuals/image/grok-imagine-image-2.0.test.ts', 'image-grok-grok-imagine-image-2.0'],
   ['test/test-cases/e2e/service/visuals/video/gemini-omni-1.1-flash.test.ts', 'video-gemini-gemini-omni-1.1-flash'],
   ['test/test-cases/e2e/service/visuals/video/grok-imagine-video-1.5.test.ts', 'video-grok-grok-imagine-video-1.5'],
+  ['test/test-cases/e2e/service/visuals/video/grok-imagine-video-1.5-lite.test.ts', 'video-grok-grok-imagine-video-1.5-lite'],
   ['test/test-cases/e2e/service/audio/music/gemini-lyria-3.5.test.ts', 'music-gemini-lyria-3.5'],
 ] as const
 

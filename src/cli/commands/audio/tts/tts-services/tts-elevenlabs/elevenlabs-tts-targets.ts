@@ -27,7 +27,7 @@ export const collectElevenLabsTtsTargets = (
           stability: selection.elevenLabsStability,
           similarityBoost: selection.elevenLabsSimilarityBoost,
           style: selection.elevenLabsStyle,
-          ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}),
+          ...(selection.elevenLabsUseSpeakerBoost !== undefined ? { useSpeakerBoost: selection.elevenLabsUseSpeakerBoost } : {}),
           speed: selection.elevenLabsSpeed,
           seed: selection.elevenLabsSeed,
           textNormalization: selection.elevenLabsTextNormalization,
@@ -36,7 +36,7 @@ export const collectElevenLabsTtsTargets = (
         })
         validateElevenLabsVoiceSettings(model, { speed: controls.speed, similarity_boost: controls.similarityBoost, style: controls.style, use_speaker_boost: controls.useSpeakerBoost })
         invocation?.signal?.throwIfAborted()
-        if (!invocation && model === 'eleven_v3' && opts.ttsSpeakers?.length) {
+        if (!invocation && (model === 'eleven_v3' || model === 'eleven_v4') && opts.ttsSpeakers?.length) {
           const registry = parseSpeakerVoiceMappings(opts.ttsSpeakers)
           const dialogue = opts.ttsCanonicalTurns
             ? opts.ttsCanonicalTurns.map(turn => ({ turnId: turn.turnId, speaker: turn.speaker, text: turn.text }))
@@ -51,7 +51,7 @@ export const collectElevenLabsTtsTargets = (
             model,
             controls: {
               languageCode: controls.languageCode,
-              voiceSettings: { ...(typeof controls.stability === 'number' ? { stability: controls.stability } : {}) },
+              voiceSettings: { ...(typeof controls.stability === 'number' ? { stability: controls.stability } : {}), ...(typeof controls.similarityBoost === 'number' ? { similarity_boost: controls.similarityBoost } : {}) },
               pronunciationDictionaryLocators: controls.pronunciationDictionaryLocators ? [...controls.pronunciationDictionaryLocators] : undefined,
               seed: controls.seed,
               textNormalization: controls.textNormalization,

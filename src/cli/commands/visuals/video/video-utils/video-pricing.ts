@@ -1,3 +1,4 @@
+import { validateGrokVideoRequest } from '../video-services/video-grok/grok-video-capabilities'
 import type { EstimateVideoCostOptions, GeminiVideoModel, GrokVideoModel, ProviderModelSelectionSpec, VideoCostEstimate, VideoMode, VideoProvider } from '~/types'
 import { validateGeminiVideoModel, validateGrokVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { getVideoModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
@@ -49,6 +50,7 @@ const estimateGeminiCost = (model: GeminiVideoModel, options: EstimateVideoCostO
 }
 
 const estimateGrokCost = (model: GrokVideoModel, options: EstimateVideoCostOptions): VideoCostEstimate => {
+  validateGrokVideoRequest(model, options.videoMode ?? 'text')
   const meta = getVideoModelMeta('grok', model)
   const durationSeconds = normalizeGrokVideoDuration(options.videoDuration)
   const normalizedResolution = normalizeGrokVideoResolution(options.videoResolution, model)

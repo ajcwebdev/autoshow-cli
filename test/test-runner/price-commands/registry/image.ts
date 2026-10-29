@@ -9,6 +9,9 @@ export const imageRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/visuals/image/gemini-image-gen.test.ts', [
     command('image-gemini-gemini-3.1-flash-lite-image', 'image-gemini-gemini-3.1-flash-lite-image', ['src/cli/create-cli.ts', 'image', 'a tiny purple circle on white background', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--size', '1K', '--aspect-ratio', '1:1', '--price']),
   ]),
+  ...exact('test/test-cases/validation/visuals/image/gemini-nano-banana-21-contracts.test.ts', [
+    command('image-gemini-gemini-nano-banana-2.1', 'image-gemini-gemini-nano-banana-2.1', ['src/cli/create-cli.ts', 'image', 'a tiny purple circle on white background', '--provider', 'gemini=gemini-nano-banana-2.1', '--size', '4K', '--aspect-ratio', '8:1', '--price']),
+  ]),
   ...exact('test/test-cases/e2e/service/visuals/image/grok-imagine-image-2.0.test.ts', [
     command('image-grok-grok-imagine-image-2.0', 'image-grok-grok-imagine-image-2.0', ['src/cli/create-cli.ts', 'image', 'A simple blue cube on a white background', '--provider', 'grok=grok-imagine-image-2.0', '--size', '1K', '--aspect-ratio', '1:1', '--quality', 'low', '--price']),
   ]),

@@ -31,8 +31,8 @@ test('excluded provider decision remains disjoint from active selection, credent
     { provider: 'mistral', models: ['voxtral-mini-tts-2603'] }
   ])
   const targets = collectTtsTargets(buildOptsFromFlags({ 'all-tts': true }))
-  expect(Object.values(getModelRegistry().tts).flatMap(provider => Object.keys(provider.models))).toHaveLength(7)
-  expect(targets).toHaveLength(7)
+  expect(Object.values(getModelRegistry().tts).flatMap(provider => Object.keys(provider.models))).toHaveLength(8)
+  expect(targets).toHaveLength(8)
   expect([...new Set(targets.map(target => target.service))].sort()).toEqual(
     ['elevenlabs', 'gemini', 'grok', 'inworld', 'openai', 'soniox']
   )

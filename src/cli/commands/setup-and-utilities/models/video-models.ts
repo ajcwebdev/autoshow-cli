@@ -8,7 +8,8 @@ export const SUPPORTED_GEMINI_VIDEO_MODELS = [
 export const validateGeminiVideoModel = createRetiringModelValidator<GeminiVideoModel>('video', 'gemini', SUPPORTED_GEMINI_VIDEO_MODELS, 'gemini-video')
 
 export const SUPPORTED_GROK_VIDEO_MODELS = [
-  'grok-imagine-video-1.5'
+  'grok-imagine-video-1.5',
+  'grok-imagine-video-1.5-lite'
 ] as const satisfies readonly string[]
 
 export const validateGrokVideoModel = createRetiringModelValidator<GrokVideoModel>('video', 'grok', SUPPORTED_GROK_VIDEO_MODELS, 'grok-video')

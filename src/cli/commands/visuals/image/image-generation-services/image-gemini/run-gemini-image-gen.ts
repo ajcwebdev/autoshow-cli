@@ -5,6 +5,7 @@ import { withRetry } from '~/utils/retries'
 import { classifyGeminiRetry } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
 import { imageReferenceToInlineDataPart } from '../../image-utils/image-inputs'
 import { getProviderReturnedModel, mimeToExtension } from '../../image-utils/image-output'
+import { validateGeminiImageDimensions } from './gemini-image-options'
 import { InfraError } from '~/utils/error-handler'
 
 const describeGeminiEmptyImageReason = (
@@ -31,6 +32,7 @@ export const runGeminiImageGen = async (
     responseMode?: 'image' | 'text-image' | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
+  validateGeminiImageDimensions(options.model, { imageSize: options.imageSize, imageAspectRatio: options.aspectRatio })
   const mode = options.mode ?? 'generation'
 
   return await runImageGeneration({
@@ -84,7 +86,22 @@ export const runGeminiImageGen = async (
           if (!imageData) continue
           const extension = mimeToExtension(part.inlineData.mimeType)
           const outputPath = context.artifactPath(extension, imagePaths.length)
-          await Bun.write(outputPath, Buffer.from(imageData, 'base64'))
+          const bytes = Buffer.from(imageData, 'base64')
+          if (options.model === 'gemini-nano-banana-2.1') {
+            try {
+              if (!['image/png', 'image/jpeg', 'image/webp'].includes(part.inlineData.mimeType ?? '')) throw new Error('Unsupported image MIME type')
+              if (bytes.length === 0 || bytes.toString('base64') !== imageData) throw new Error('Invalid base64 image')
+              const image = new Bun.Image(bytes)
+              const metadata = await image.metadata()
+              if (!metadata.width || !metadata.height || !['png', 'jpeg', 'webp'].includes(metadata.format ?? '')) throw new Error('Unsupported image encoding')
+              const expectedFormat = extension === 'jpg' ? 'jpeg' : extension
+              if (metadata.format !== expectedFormat) throw new Error('Image MIME type disagrees with decoded encoding')
+              await image.png().bytes()
+            } catch (error) {
+              throw InfraError('Gemini returned invalid image bytes', { stage: 'image:gemini', cause: error })
+            }
+          }
+          await Bun.write(outputPath, bytes)
           imagePaths.push(outputPath)
           imageFormats.push(extension)
         }
@@ -99,6 +116,7 @@ export const runGeminiImageGen = async (
         metadata: {
           imageWidth: undefined,
           imageHeight: undefined,
+          imageSize: options.imageSize ?? '1K',
           requestMode: mode,
           ...(imageFormats[0] ? { imageFormat: imageFormats[0] } : {}),
           ...(providerReturnedModel ? { providerReturnedModel } : {})

@@ -26,7 +26,7 @@ export type TtsTargetSelection = {
   elevenLabsStability: number | undefined
   elevenLabsSimilarityBoost: number | undefined
   elevenLabsStyle: number | undefined
-  elevenLabsUseSpeakerBoost: boolean
+  elevenLabsUseSpeakerBoost: boolean | undefined
   elevenLabsSpeed: number | undefined
   elevenLabsSeed: number | undefined
   elevenLabsTextNormalization: string | undefined

@@ -32,24 +32,28 @@ describe('provider selection contracts', () => {
       'gemini-omni-1.1-flash'
     ])
     expect(allOpts.geminiImageModels).toEqual([
-      'gemini-3.1-flash-lite-image'
+      'gemini-3.1-flash-lite-image',
+      'gemini-nano-banana-2.1'
     ])
     expect(allOpts.openaiImageModels).toEqual([
       'gpt-image-2.5-flare',
       'gpt-image-2.5-sunburst'
     ])
     expect(allOpts.grokVideoModels).toEqual([
-      'grok-imagine-video-1.5'
+      'grok-imagine-video-1.5',
+      'grok-imagine-video-1.5-lite'
     ])
     expect(collectImageTargets(allOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'gemini:gemini-3.1-flash-lite-image',
+      'gemini:gemini-nano-banana-2.1',
       'openai:gpt-image-2.5-flare',
       'openai:gpt-image-2.5-sunburst',
       'grok:grok-imagine-image-2.0'
     ])
     expect(collectVideoTargets(allOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'gemini:gemini-omni-1.1-flash',
-      'grok:grok-imagine-video-1.5'
+      'grok:grok-imagine-video-1.5',
+      'grok:grok-imagine-video-1.5-lite'
     ])
   })
 

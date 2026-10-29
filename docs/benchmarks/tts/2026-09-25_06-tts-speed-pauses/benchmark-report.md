@@ -1,6 +1,8 @@
 # Speed and pauses benchmark — 2026-09-25
 
-Eight existing cases were synthesized successfully. Results describe transport, decoded audio integrity, recorded time, and cost. Numeric speed, qualitative pacing, requested timed SSML breaks, and qualitative pause tags remain distinct native mechanisms; these cases are not ranked against each other.
+Nine cases completed synthesis: eight original cases and the Eleven v4 pause-only case added on October 29. Results describe transport, decoded audio integrity, recorded time, and cost. Numeric speed, qualitative pacing, requested timed SSML breaks, and qualitative pause tags remain distinct native mechanisms; these cases are not ranked against each other.
+
+The October 29 v4 addition explicitly selected `eleven_v4` and stability `0.5`. Its five lines compare a neutral baseline with documented short/long qualitative pause tags. Numeric speed, timed SSML and unverified slow/fast tags were excluded. The final mono 16 kHz PCM WAV fully decoded: 27.040 seconds, 5.381 seconds recorded generation/assembly time, and $0.02520 computed character cost. Duration and detected silence do not establish semantic pause placement or audible control accuracy. Earlier recordings and their historical assessments remain unchanged.
 
 > October 26 storage update: the user approved the MP3 playback copies and deletion of the final WAVs. The October 15 ASR and signal measurements describe the original WAVs; the current MP3s have not been reassessed.
 
@@ -10,6 +12,7 @@ Eight existing cases were synthesized successfully. Results describe transport, 
 
 | Case                                          | Provider/model                   | Execution | Audio seconds | Cost USD | Audio                                                                                                  |
 | --------------------------------------------- | -------------------------------- | --------- | ------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| elevenlabs-eleven-v4-pause-tags               | elevenlabs/eleven_v4             | succeeded | 27.040        | 0.02520  | [WAV](elevenlabs-eleven-v4-pause-tags/elevenlabs-eleven-v4-pause-tags.wav)                             |
 | gemini-gemini-3.8-flash-lite-tts-instructions | gemini/gemini-3.8-flash-lite-tts | succeeded | 33.200        | 0.00642  | [MP3](gemini-gemini-3.8-flash-lite-tts-instructions/gemini-gemini-3.8-flash-lite-tts-instructions.mp3) |
 | gemini-gemini-3.8-flash-tts-instructions      | gemini/gemini-3.8-flash-tts      | succeeded | 33.200        | 0.00962  | [MP3](gemini-gemini-3.8-flash-tts-instructions/gemini-gemini-3.8-flash-tts-instructions.mp3)           |
 | grok-grok-tts-numeric                         | grok/grok-tts                    | succeeded | 21.576        | 0.00341  | [MP3](grok-grok-tts-numeric/grok-grok-tts-numeric.mp3)                                                 |

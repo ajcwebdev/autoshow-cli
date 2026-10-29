@@ -9,7 +9,8 @@ import { withTempImageFixture } from './shared'
 describe('image model refresh contracts', () => {
   test('active Gemini and Grok registries expose the remaining model sets', () => {
     expect(SUPPORTED_GEMINI_IMAGE_MODELS as readonly string[]).toEqual([
-      'gemini-3.1-flash-lite-image'
+      'gemini-3.1-flash-lite-image',
+      'gemini-nano-banana-2.1'
     ])
     expect(SUPPORTED_GROK_IMAGE_MODELS as readonly string[]).toEqual([
       'grok-imagine-image-2.0'
@@ -21,11 +22,11 @@ describe('image model refresh contracts', () => {
     ])
   })
 
-  test('active image registries contain four selectors', () => {
+  test('active image registries contain five selectors', () => {
     const targets = collectImageTargets(buildOptsFromFlags({ 'all-image': true }))
-    expect(targets).toHaveLength(4)
+    expect(targets).toHaveLength(5)
     expect(targets.filter(target => target.service === 'grok').map(target => target.model)).toEqual(['grok-imagine-image-2.0'])
-    expect(targets.filter(target => target.service === 'gemini').map(target => target.model)).toEqual(['gemini-3.1-flash-lite-image'])
+    expect(targets.filter(target => target.service === 'gemini').map(target => target.model)).toEqual(['gemini-3.1-flash-lite-image', 'gemini-nano-banana-2.1'])
   })
 
   test('retired selectors fail with refresh-report replacement guidance', () => {
@@ -38,7 +39,8 @@ describe('image model refresh contracts', () => {
   test('Gemini image targets enforce Lite size capabilities', () => {
     const allTargets = collectImageTargets(buildOptsFromFlags({ 'all-image': true }))
     expect(allTargets.filter((target) => target.service === 'gemini').map((target) => target.model)).toEqual([
-      'gemini-3.1-flash-lite-image'
+      'gemini-3.1-flash-lite-image',
+      'gemini-nano-banana-2.1'
     ])
 
     expect(() => collectImageTargets(buildOptsFromFlags({

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-10-28
+- **Date Updated:** 2026-10-29
 - **Verification Status:** Passed
 - **Supersession:** Absorbs the shared TTS and voice-management authority of "Add Character Voice References and Multi-Speaker Script-to-Audio" and all of "Master TTS Delivery Audio Outside Paid Slot Identity". Comic scene-run authority belongs to [ADR-013](ADR-013-comic-scene-audio-and-presentation.md).
 
@@ -132,7 +132,7 @@ A declared capability, an implemented adapter, and current-account access are se
 
 ### Rendering, resume, and compact
 
-Standalone `tts` automatically selects native dialogue when the model and speaker mappings meet its constraints, and segmented rendering otherwise. Native rendering uses ElevenLabs `eleven_v3` Text-to-Dialogue or eligible Gemini TTS multi-speaker synthesis. Gemini native dialogue requires two eligible stock voices. Segmented rendering synthesizes turns independently and assembles them locally; authored overlaps and local voice effects require this strategy. Explicit `--mode` selection belongs to comic scene audio under [ADR-013](ADR-013-comic-scene-audio-and-presentation.md).
+Standalone `tts` automatically selects native dialogue when the model and speaker mappings meet its constraints, and segmented rendering otherwise. Native rendering uses ElevenLabs `eleven_v3` or `eleven_v4` Text-to-Dialogue or eligible Gemini TTS multi-speaker synthesis. Gemini native dialogue requires two eligible stock voices. Segmented rendering synthesizes turns independently and assembles them locally; authored overlaps and local voice effects require this strategy. Explicit `--mode` selection belongs to comic scene audio under [ADR-013](ADR-013-comic-scene-audio-and-presentation.md).
 
 Dialogue work uses the shared hosted TTS lanes. An ambiguous paid admission is never retried inside the running command. Continuing one requires `--allow-ambiguous-redispatch`, which warns that the slot may be purchased again. If synthesis stops after any request is sent, successful outputs are kept and the failure report names the reusable and unresolved slot counts.
 

@@ -1,5 +1,7 @@
 # Retained TTS recordings: offline assessment
 
+This report retains the original 42 WAV assessments below and adds 6 Eleven v4 WAV assessments in the dated extension at the end (48 total). The original report and byte-identical evidence ZIP are preserved inside assessment.evidence.zip under history/. Historical rows retain their measured WAV hashes; approved MP3 playback copies were not re-assessed. The archive records and verifies the metadata-only narration-manifest rebindings.
+
 Updated 2026-10-16T12:57:29.495Z. The retained assessment covers 42 selected recordings (4.386 audio hours) with installed Whisper small.en and local ffmpeg. No provider calls, model downloads, or new synthesis.
 
 [Checksummed original transcripts, source snapshots, complete differences, measurements, and provenance](assessment.evidence.zip) contains assessment.json, transcripts/*.txt, exact raw transcripts/*.whisper.json, inputs/*.txt and SHA256SUMS. Per-case transcript paths below refer to entries in this archive.
@@ -704,3 +706,88 @@ Human speech score: excluded and unscored. User-excluded dimensions: Pronunciati
 ## Reproduce
 
 Inspect without writes: `bun src/tools/assess-tts-benchmarks.ts`. Run/reuse installed local ASR and update this report/archive: `bun src/tools/assess-tts-benchmarks.ts --run --concurrency 2`. Each cache key binds the audio, original input, expected spoken text, ASR engine hash, version and selected render; complete cached transcripts are reused. Cache and interrupted diagnostics remain under runtime/tts-benchmark-assessment/. No provider fallback or model download is implemented.
+
+## Eleven v4 extension — 2026-10-29
+
+Only six new Eleven v4 recordings received installed small.en ASR and full waveform decoding. Subjective ratings and audible control correctness remain excluded and unscored. The pause-only case uses qualitative tags; it is not a slow/fast or exact-timing test. Original archive SHA-256: `1ea84d0a4d1a003607a7d9eb5044738d246a86ec2e9460d45f4f0b93b0d99775`.
+
+## Selected recordings
+
+| Case                                                                                                                                   | Provider/model       | Suite        | WER    | CER   | S/D/I    | Disposition                          |
+| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ------------ | ------ | ----- | -------- | ------------------------------------ |
+| [2026-09-25_01-tts-short](#narration--2026-09-25_01-tts-short--elevenlabs-eleven-v4)                                                   | elevenlabs/eleven_v4 | narration    | 0.00%  | 0.00% | 0/0/0    | No normalized ASR differences        |
+| [2026-09-25_02-tts-hard](#narration--2026-09-25_02-tts-hard--elevenlabs-eleven-v4)                                                     | elevenlabs/eleven_v4 | narration    | 10.94% | 2.13% | 7/0/0    | ASR differences require adjudication |
+| [2026-09-25_03-tts-harder](#narration--2026-09-25_03-tts-harder--elevenlabs-eleven-v4)                                                 | elevenlabs/eleven_v4 | narration    | 10.25% | 3.69% | 25/3/1   | ASR differences require adjudication |
+| [2026-09-25_04-tts-long](#narration--2026-09-25_04-tts-long--elevenlabs-eleven-v4)                                                     | elevenlabs/eleven_v4 | narration    | 2.37%  | 1.05% | 116/11/6 | ASR differences require adjudication |
+| [2026-09-25_05-tts-emotion/elevenlabs-eleven-v4-tags](#emotion--elevenlabs-eleven-v4-tags--elevenlabs-eleven-v4)                       | elevenlabs/eleven_v4 | emotion      | 0.00%  | 0.00% | 0/0/0    | No normalized ASR differences        |
+| [2026-09-25_06-tts-speed-pauses/elevenlabs-eleven-v4-pause-tags](#speed-pauses--elevenlabs-eleven-v4-pause-tags--elevenlabs-eleven-v4) | elevenlabs/eleven_v4 | speed-pauses | 0.00%  | 0.00% | 0/0/0    | No normalized ASR differences        |
+
+<a id="narration--2026-09-25_01-tts-short--elevenlabs-eleven-v4"></a>
+### 2026-09-25_01-tts-short — elevenlabs/eleven_v4
+
+[Selected audio](2026-09-25_01-tts-short/reruns/eleven-v4-2026-10-29/speech-resume-d612656c0c6402ea3f3af3d0f59064f50d79e401ead2b3f8-attempt-1.wav); [manifest](2026-09-25_01-tts-short/reruns/eleven-v4-2026-10-29/manifest.json); source: input/examples/tts/01-tts-short.md. Measured WAV SHA-256: `ec912e0f67ea45090069285b4aabebfe076911ec8b08a47bbbd8084b228069db`. Input SHA-256: `7ee6b18343ea3080272910139a472f9b40262e41a5d9c23bea454a0866fc87a1`. Render: `82400e935c5719dd83292e63d98599a67c946793a0f3b43f929f0e3d06c88664`; result: `79d491ad9c10245fd6347a2da7d7e64d4f75eec1401f5b145b0c7a6660e64bcf`. Transcript: `transcripts/narration--2026-09-25_01-tts-short--elevenlabs-eleven-v4.txt` (SHA-256 `40e5145e286b0793a6adc1bf8991f2f81247ee3741e97c9bc964d3e2ce907ed3`).
+
+Full waveform decoding succeeded. ASR WER 0.00%, CER 0.00%, substitutions/deletions/insertions 0/0/0 over 15 reference words. No normalized ASR differences. These differences are ASR evidence, not confirmed synthesis errors.
+
+Human speech score: excluded and unscored. User-excluded dimensions: Pronunciation listening ratings; Speaker identity listening ratings; Seams and prosody ratings; Perceptual quality ratings. Not a controls case.
+
+<a id="narration--2026-09-25_02-tts-hard--elevenlabs-eleven-v4"></a>
+### 2026-09-25_02-tts-hard — elevenlabs/eleven_v4
+
+[Selected audio](2026-09-25_02-tts-hard/reruns/eleven-v4-2026-10-29/speech.wav); [manifest](2026-09-25_02-tts-hard/reruns/eleven-v4-2026-10-29/manifest.json); source: input/examples/tts/02-tts-hard.md. Measured WAV SHA-256: `571c1a83cdde30836558375b6137b3c8849b964e72355cd7b78ebd487ca4ba26`. Input SHA-256: `333a0292c213dd8e4497f9bcd99cacbb6a66217f3c8f330505989a56a8ca1a23`. Render: `ca5398b19b7747eaf06ab4a3c09dedbd81b7ba3b6c7bb32618bd8ef0009582e7`; result: `54503392813763639ef59605a9ca6a5d23563162801e10117192fe100952d094`. Transcript: `transcripts/narration--2026-09-25_02-tts-hard--elevenlabs-eleven-v4.txt` (SHA-256 `3930235ae9b011be799c86e664911e8574412d39da75e88d3be5a2b97ad85268`).
+
+Full waveform decoding succeeded. ASR WER 10.94%, CER 2.13%, substitutions/deletions/insertions 7/0/0 over 64 reference words. ASR differences require adjudication. These differences are ASR evidence, not confirmed synthesis errors.
+
+First differences: substitution "crêpes" → "crepes"; substitution "jalapeños" → "jalapenos"; substitution "façades" → "facades"; substitution "naïve" → "naive"; substitution "résumés" → "resumes"; substitution "crème" → "creme"; substitution "brûlée" → "brulee". Complete ordered differences are in assessment.json.
+
+Human speech score: excluded and unscored. User-excluded dimensions: Pronunciation listening ratings; Speaker identity listening ratings; Seams and prosody ratings; Perceptual quality ratings. Not a controls case.
+
+<a id="narration--2026-09-25_03-tts-harder--elevenlabs-eleven-v4"></a>
+### 2026-09-25_03-tts-harder — elevenlabs/eleven_v4
+
+[Selected audio](2026-09-25_03-tts-harder/reruns/eleven-v4-2026-10-29/speech.wav); [manifest](2026-09-25_03-tts-harder/reruns/eleven-v4-2026-10-29/manifest.json); source: input/examples/tts/03-tts-harder.txt. Measured WAV SHA-256: `4d63f0100d89c76401353814beafc33f2b8c5b8f8669b16a1a9fc84025c3b26a`. Input SHA-256: `366d95903eadea04b50f9eb9235a9ae3d76e8abf8b14a8fd5a681b700d504d94`. Render: `c3db10324351b48df9facb2aaddde01303cfc6818de2db5ee8c03dc80f419544`; result: `7e8071f6bf26ded83c6c0ec08b12d2247f49c816e77524668f85ba38e114dbd9`. Transcript: `transcripts/narration--2026-09-25_03-tts-harder--elevenlabs-eleven-v4.txt` (SHA-256 `3effb1733c8eb63dab1327c5188804e90dc51852ded11c10f572e6ae754bc22f`).
+
+Full waveform decoding succeeded. ASR WER 10.25%, CER 3.69%, substitutions/deletions/insertions 25/3/1 over 283 reference words. ASR differences require adjudication. These differences are ASR evidence, not confirmed synthesis errors.
+
+First differences: substitution "anaïs" → "anais"; substitution "résumé" → "resume"; substitution "xiǎomí" → "xiaomi"; substitution "professor" → "dr"; substitution "maría" → "maria"; substitution "josé" → "jose"; deletion "ça" → ""; deletion "va" → ""; substitution "grüß" → "sava"; substitution "gott" → "gruzkot"; substitution "jalapeño" → "jalapeno"; substitution "pho" → "fur". Complete ordered differences are in assessment.json.
+
+Human speech score: excluded and unscored. User-excluded dimensions: Pronunciation listening ratings; Speaker identity listening ratings; Seams and prosody ratings; Perceptual quality ratings. Not a controls case.
+
+<a id="narration--2026-09-25_04-tts-long--elevenlabs-eleven-v4"></a>
+### 2026-09-25_04-tts-long — elevenlabs/eleven_v4
+
+[Selected audio](2026-09-25_04-tts-long/reruns/eleven-v4-2026-10-29/speech.wav); [manifest](2026-09-25_04-tts-long/reruns/eleven-v4-2026-10-29/manifest.json); source: input/examples/tts/04-tts-long.txt. Measured WAV SHA-256: `c82d1fc8be1d3bffa4146803c5ff8661d74a9630f320771b26b38004aba2b340`. Input SHA-256: `a5eff588bb530fbfdf9c8890f74369e604b364b1501a0c2a4ecd22851358e8bb`. Render: `f4598f1728af9c94416219e4fdde8b40a82bf6b82c7d6751bf2cb5b1f65e35c5`; result: `234e15d185af829a82976efb17a288c23e9276b435f53bfe5629b0f927f8cbda`. Transcript: `transcripts/narration--2026-09-25_04-tts-long--elevenlabs-eleven-v4.txt` (SHA-256 `92e4012b8d5c7213c8f159728041c2ae3af0b896a5ac7b528e8e5acdce00ec18`).
+
+Full waveform decoding succeeded. ASR WER 2.37%, CER 1.05%, substitutions/deletions/insertions 116/11/6 over 5608 reference words. ASR differences require adjudication. These differences are ASR evidence, not confirmed synthesis errors.
+
+First differences: deletion "p" → ""; substitution "m" → "pm"; substitution "15" → "15th"; substitution "he" → "she"; substitution "forty" → "40"; insertion "" → "the"; substitution "dinner" → "opener"; substitution "niamh" → "neve"; substitution "tomás" → "tomas"; substitution "anika" → "annika"; substitution "niamh" → "neve"; substitution "tomás" → "tomas". Complete ordered differences are in assessment.json.
+
+Human speech score: excluded and unscored. User-excluded dimensions: Pronunciation listening ratings; Speaker identity listening ratings; Seams and prosody ratings; Perceptual quality ratings. Not a controls case.
+
+<a id="emotion--elevenlabs-eleven-v4-tags--elevenlabs-eleven-v4"></a>
+### 2026-09-25_05-tts-emotion/elevenlabs-eleven-v4-tags — elevenlabs/eleven_v4
+
+[Selected audio](2026-09-25_05-tts-emotion/elevenlabs-eleven-v4-tags/elevenlabs-eleven-v4-tags.wav); [manifest](2026-09-25_05-tts-emotion/elevenlabs-eleven-v4-tags/manifest.json); source: input/examples/tts/controls/emotion/elevenlabs-eleven-v4-tags.txt. Measured WAV SHA-256: `b05bf394f948be1b0d683fd62641e191369926e42214e16b142dc452f7efc9cd`. Input SHA-256: `04eda224d6697caf0578ca21f8952f5025207702c2aa17c306f73c844b9a8e8d`. Render: `5dc3d4ed95ba44aefe81c7da3f0890e679b78bcdf110bfb669904c3186d31ebe`; result: `289a9cfa05cf3e56cb49ea33e9715e938b6d8dfc27903cce17f6224c72746304`. Transcript: `transcripts/emotion--elevenlabs-eleven-v4-tags--elevenlabs-eleven-v4.txt` (SHA-256 `a35621bfd42bab4314995254ffadcab54dcffd64a4f746bd3be9deb0fb18898d`).
+
+Full waveform decoding succeeded. ASR WER 0.00%, CER 0.00%, substitutions/deletions/insertions 0/0/0 over 51 reference words. No normalized ASR differences. These differences are ASR evidence, not confirmed synthesis errors.
+
+Native mechanism: Native inline delivery/emotion tags; canonical spoken words exclude tags; no request-level instructions.. Five source lines share one assembled turn; per-line rate and exact pause attribution unavailable without acoustic alignment.
+
+Below-threshold intervals: 18; total 5.403 seconds. Complete signal intervals are in assessment.json; these are not independently verified semantic pauses.
+
+Human speech score: excluded and unscored. User-excluded dimensions: Pronunciation listening ratings; Speaker identity listening ratings; Seams and prosody ratings; Audible native-control ratings; Emotional/delivery ratings; Perceptual quality ratings. Signal measurements only; subjective ratings excluded and unscored.
+
+<a id="speed-pauses--elevenlabs-eleven-v4-pause-tags--elevenlabs-eleven-v4"></a>
+### 2026-09-25_06-tts-speed-pauses/elevenlabs-eleven-v4-pause-tags — elevenlabs/eleven_v4
+
+[Selected audio](2026-09-25_06-tts-speed-pauses/elevenlabs-eleven-v4-pause-tags/elevenlabs-eleven-v4-pause-tags.wav); [manifest](2026-09-25_06-tts-speed-pauses/elevenlabs-eleven-v4-pause-tags/manifest.json); source: input/examples/tts/controls/speed-pauses/elevenlabs-eleven-v4-pause-tags.txt. Measured WAV SHA-256: `3a61857c47a6555b6fe3d0618ab05a1f75ceedf0bf067827a0d4d44501a631bd`. Input SHA-256: `800730c5be50d5ed5720858e7f3c3dbdc47bb233880ec606a799e67e3ee27b99`. Render: `34274a4a960ab6756187e6e111eb4b564b2f1d59d1851794479f124b965d1b98`; result: `630b5bd276026f11066be34d41caa335d802bb6c63f5991c392f88b885036ef2`. Transcript: `transcripts/speed-pauses--elevenlabs-eleven-v4-pause-tags--elevenlabs-eleven-v4.txt` (SHA-256 `7efb4f5e695aabd443df7a825b334d8a665183ef6ed73b7a8220d504e85414be`).
+
+Full waveform decoding succeeded. ASR WER 0.00%, CER 0.00%, substitutions/deletions/insertions 0/0/0 over 51 reference words. No normalized ASR differences. These differences are ASR evidence, not confirmed synthesis errors.
+
+Native mechanism: Native qualitative short/long pause tags only. Numeric speed, exact timed SSML, and unverified normal-pace/slow/fast tags are excluded.. Five source lines share one assembled turn; per-line rate and exact pause attribution unavailable without acoustic alignment.
+
+Supplemental counting-number-fold WER: 0.00%; substitutions/deletions/insertions 0/0/0. This limited spelling equivalence is separate from the strict score and preserves missing words.
+
+Below-threshold intervals: 23; total 9.933 seconds. Complete signal intervals are in assessment.json; these are not independently verified semantic pauses.
+
+Human speech score: excluded and unscored. User-excluded dimensions: Pronunciation listening ratings; Speaker identity listening ratings; Seams and prosody ratings; Audible native-control ratings; Emotional/delivery ratings; Perceptual quality ratings. Signal measurements only; subjective ratings excluded and unscored.

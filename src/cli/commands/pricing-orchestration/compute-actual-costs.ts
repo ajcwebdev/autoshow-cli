@@ -1,6 +1,7 @@
 import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
 import {
   getImageCost,
+  getImageModelMeta,
   getLlmCost,
   getMusicModelMeta,
   getRetiredModelRate
@@ -212,6 +213,11 @@ const computeImageFallbackCost = (
     })[0]
     const costPerImageCents = estimate?.costPerImageCents ?? getImageCost(metadata.imageService, metadata.imageModel)
     return costPerImageCents * imageCount
+  }
+
+  if (metadata.imageService === 'gemini') {
+    const meta = getImageModelMeta('gemini', metadata.imageModel)
+    return (meta?.costPerImageBySizeCents?.[metadata.imageSize ?? '1K'] ?? getImageCost('gemini', metadata.imageModel)) * imageCount
   }
 
   return getImageCost(metadata.imageService, metadata.imageModel) * imageCount

@@ -68,6 +68,7 @@ The `image` and `resume` commands use the same short option names, including `--
 See [Provider Capabilities](#provider-capabilities) for the per-model reference, resolution, aspect-ratio, count, format, and input/output price matrix.
 
 ```bash
+bun autoshow image "a panoramic harbor at dawn" --provider gemini=gemini-nano-banana-2.1 --size 4K --aspect-ratio 8:1 --price
 bun autoshow image "a serene mountain lake at dawn" --all-providers --price
 bun autoshow image "a serene mountain lake at dawn" --all-providers --max-model-cents 5 --price
 ```
@@ -114,16 +115,20 @@ The edited output is `output/mug-edit/generated-image.webp`. Inspect it to asses
 | Option       | Value                                                                   |
 | ------------ | ----------------------------------------------------------------------- |
 | Selector     | `--provider gemini[=<model>]`                                           |
-| Models       | `gemini-3.1-flash-lite-image`                                           |
-| Size         | `1K` only                                                               |
+| Models       | `gemini-3.1-flash-lite-image` (bare default), `gemini-nano-banana-2.1`  |
+| Size         | Lite: `1K`; Nano Banana 2.1: `1K`, `2K`, `4K`                           |
 | Aspect ratio | `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9` |
+| Extra ratios | Nano Banana 2.1 also accepts `1:4`, `4:1`, `1:8`, `8:1`                 |
 | Count        | 1 image per request; omit `--count`                                     |
 | References   | Repeatable `--input` (up to 14 images)                                  |
 
 ```bash
+bun autoshow image "a panoramic harbor at dawn" --provider gemini=gemini-nano-banana-2.1 --size 4K --aspect-ratio 8:1 --price
 bun autoshow image "a serene mountain lake at dawn" --provider gemini=gemini-3.1-flash-lite-image --size 1K --aspect-ratio 16:9
 bun autoshow image "restyle this teal camping mug illustration as a 1960s harbor travel poster; preserve its cream compass-and-mountain badge" --provider gemini=gemini-3.1-flash-lite-image --input input/examples/image/harborlight-mug.png --output-dir output/travel-poster
 ```
+
+Nano Banana 2.1 uses the existing GenerateContent endpoint for generation and image-reference editing. Omitted size uses provider sizing (default 1K), and `--response-mode text-image` requests text alongside images. Text and image input ($1.50/M tokens), text/thinking output ($7.50/M tokens), and search grounding are excluded from image-only estimates. This command does not enable grounding or expose thinking controls, video/PDF references, or conversational sessions. The [pricing page](https://ai.google.dev/gemini-api/docs/pricing), checked 2026-10-29, specifies 1,120/1,680/3,780 image tokens at $30/M for 1K/2K/4K: $0.0336/$0.0504/$0.1134. Its 4K tariff takes precedence over the generation guide's conflicting 2,520-token table. These are output estimates, not spending bounds or quality measurements.
 
 ### OpenAI
 
@@ -185,3 +190,4 @@ Output prices are per-image estimates; `M` means one million tokens. Input rates
 | OpenAI `gpt-image-2.5-sunburst`      | Up to 16   | Custom ≤3840   | Use `--size` | 1–10  | PNG/JPEG/WebP | $5/M text; $8/M image | $0.01317 at 1024-square medium |
 | Grok `grok-imagine-image-2.0`        | Up to 5    | 2K             | 16 ratios    | 1–10  | JPEG          | $0.01/image           | $0.04–$0.08                    |
 | Gemini `gemini-3.1-flash-lite-image` | Up to 14   | 1K             | 10 ratios    | 1     | PNG           | Not estimated         | $0.0336/image                  |
+| Gemini `gemini-nano-banana-2.1`      | Up to 14   | 4K             | 14 ratios    | 1     | PNG/JPEG/WebP | $1.50/M tokens        | $0.0336–$0.1134/image          |

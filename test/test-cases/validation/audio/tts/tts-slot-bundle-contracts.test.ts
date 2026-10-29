@@ -1,3 +1,4 @@
+import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { mkdir, rm, symlink } from 'node:fs/promises'
@@ -25,7 +26,7 @@ test('compressed non-WAV provider audio is probed from memory without extraction
   await mkdir(join(root, 'slots'))
   await Bun.write(join(root, 'source.wav'), createSyntheticWavBytes({ durationSeconds: 0.5, amplitude: 0.2, frequencyHz: 440 }))
   const path = join(root, 'slots', 'c'.repeat(64) + '.wav')
-  const encode = Bun.spawnSync(['ffmpeg', '-v', 'error', '-i', join(root, 'source.wav'), '-f', 'mp3', path])
+  const encode = Bun.spawnSync([getFfmpegBinary(), '-v', 'error', '-i', join(root, 'source.wav'), '-f', 'mp3', path])
   expect(encode.exitCode).toBe(0)
   const before = await readObservedAudio(root, path)
   await compactTtsSlotDirectory(root, 'slots')

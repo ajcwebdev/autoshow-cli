@@ -233,7 +233,7 @@ test('voice design rejects catalog-only providers and unknown synthesis models',
   )
   await rejectVoice(
     ['voice', 'import', 'hero', '--provider', 'elevenlabs', '--model', 'eleven_multilingual_v2', '--voice-id', 'hpp4J3VqNfWAUOO0d1Us', '--provenance-ref', 'project:casting', '--price'],
-    'Voice management for elevenlabs requires --model eleven_v3.'
+    'Voice management for elevenlabs requires --model eleven_v3 or eleven_v4.'
   )
 })
 

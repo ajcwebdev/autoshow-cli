@@ -6,6 +6,7 @@ import type { CombinedDashboardModel, DashboardGroup, DashboardProviderRow } fro
 import { readRetainedTtsEvidence, TTS_DASHBOARD_EVIDENCE } from './retained_tts_evidence';
 import { activeTtsControlBenchmarks } from './tts_benchmark_layout';
 import { resolveTtsAudioDelivery } from './tts_audio_delivery';
+import { getFfprobeBinary } from '../../../../../src/utils/runtime-paths';
 
 const object = (value: unknown): JsonObject => isRecord(value) ? value : {};
 const records = (value: unknown): JsonObject[] => Array.isArray(value) ? value.filter(isRecord) : [];
@@ -114,7 +115,7 @@ function usdAmounts(value: unknown): number | null {
 }
 
 function audioProbe(path: string): { duration: number; format: string } {
-  const result = Bun.spawnSync(['ffprobe', '-v', 'error', '-show_entries', 'format=duration:stream=sample_rate,channels,codec_name', '-of', 'json', path]);
+  const result = Bun.spawnSync([getFfprobeBinary(), '-v', 'error', '-show_entries', 'format=duration:stream=sample_rate,channels,codec_name', '-of', 'json', path]);
   if (result.exitCode !== 0) throw Error(`Invalid TTS audio: ${basename(path)}: ${result.stderr.toString().trim()}`);
   const value = JSON.parse(result.stdout.toString());
   const duration = Number(value.format?.duration), stream = value.streams?.[0];

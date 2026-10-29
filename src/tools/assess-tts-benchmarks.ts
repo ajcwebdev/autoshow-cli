@@ -6,6 +6,7 @@ import { TTS_AUDIO_DELIVERY_CATALOG } from '../../.codex/skills/consensus/script
 import { writePortableFileSync } from '../../.codex/skills/consensus/scripts/shared/portable_paths'
 import { transcribeWhisperfile } from '~/cli/commands/stt/local/whisperfile/transcribe'
 import { toProjectRelativePath } from '~/utils/project-root'
+import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { InfraError, UsageError, ValidationError } from '~/utils/error-handler'
 
@@ -137,7 +138,7 @@ async function command(args: string[]): Promise<string> {
 }
 
 export async function verifyAssessmentAudio(path: string): Promise<void> {
-  await command(['ffmpeg', '-nostdin', '-v', 'error', '-xerror', '-i', path, '-f', 'null', '-'])
+  await command([getFfmpegBinary(), '-nostdin', '-v', 'error', '-xerror', '-i', path, '-f', 'null', '-'])
 }
 
 export async function transcribeAssessmentSource(source: AssessmentSource, cacheRoot: string, engineSha256: string): Promise<void> {
@@ -216,7 +217,7 @@ export async function publishAssessment(root: string, sources: AssessmentSource[
     const transcript = `transcripts/${source.id}.txt`, rawTranscript = `transcripts/${source.id}.whisper.json`, inputSnapshot = `inputs/${source.id}.txt`
     addEvidence(transcript, transcriptBytes); addEvidence(rawTranscript, readFileSync(join(cache, 'transcription.json'))); addEvidence(inputSnapshot, readFileSync(source.input))
     let silences: Silence[] = []
-    if (source.suite !== 'narration') silences = parseSilences(await command(['ffmpeg', '-nostdin', '-hide_banner', '-i', source.audio, '-af', 'silencedetect=noise=-40dB:d=0.08', '-f', 'null', '-']), source.durationSeconds)
+    if (source.suite !== 'narration') silences = parseSilences(await command([getFfmpegBinary(), '-nostdin', '-hide_banner', '-i', source.audio, '-af', 'silencedetect=noise=-40dB:d=0.08', '-f', 'null', '-']), source.durationSeconds)
     const perTurn = source.controls && source.turns.length === source.controls.spokenLines.length
       ? source.turns.map((turn, i) => turnSilenceMetrics(turn, silences, source.controls!.spokenLines[i]!)) : []
     const speedOrder = source.suite === 'speed-pauses' && perTurn.length === 5

@@ -4,9 +4,10 @@ import type { ElevenLabsTtsVoiceSettings } from '~/types'
 
 export const validateElevenLabsVoiceSettings = (model: string, settings?: ElevenLabsTtsVoiceSettings): void => {
   validateElevenLabsTtsSpeed(model, settings?.speed)
-  if (model !== 'eleven_v3' || !settings) return
+  if ((model !== 'eleven_v3' && model !== 'eleven_v4') || !settings) return
   for (const key of ['similarity_boost', 'use_speaker_boost', 'style'] as const) {
-    if (settings[key] !== undefined) throw UsageError(`Eleven v3 does not expose a supported ${key} control; use stability or documented inline delivery tags.`)
+    if (model === 'eleven_v4' && key === 'similarity_boost') continue
+    if (settings[key] !== undefined) throw UsageError(`${model === 'eleven_v3' ? 'Eleven v3' : 'Eleven v4'} does not expose a supported ${key} control; use stability or documented inline delivery tags.`)
   }
 }
 
@@ -19,7 +20,7 @@ export const parseElevenLabsDictionaryLocator = (value: string): { pronunciation
 }
 
 export const validateElevenLabsTtsSpeed = (model: string, speed?: number): void => {
-  if (model === 'eleven_v3' && speed !== undefined) throw UsageError('Eleven v3 does not support numeric speed; use pacing audio tags in the input instead. Numeric speed is supported by other ElevenLabs models only.')
+  if ((model === 'eleven_v3' || model === 'eleven_v4') && speed !== undefined) throw UsageError(`${model === 'eleven_v3' ? 'Eleven v3' : 'Eleven v4'} does not support numeric speed; use pacing audio tags in the input instead. Numeric speed is supported by other ElevenLabs models only.`)
 }
 import { validateDataSafe } from '~/utils/validate/validation'
 import { readRestDiagnosticText } from '~/utils/rest-client'

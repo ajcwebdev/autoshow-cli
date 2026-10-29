@@ -49,7 +49,9 @@
       "https://docs.x.ai/developers/model-capabilities/video/generation.md",
       "https://docs.x.ai/developers/model-capabilities/video/image-to-video.md",
       "https://docs.x.ai/developers/model-capabilities/video/reference-to-video.md",
-      "https://docs.x.ai/developers/models/grok-imagine-video-1.5.md"
+      "https://docs.x.ai/developers/models/grok-imagine-video-1.5.md",
+      "https://docs.x.ai/developers/models/grok-imagine-video-1.5-lite.md",
+      "https://docs.x.ai/developers/model-capabilities/video/overview.md"
     ],
     "TTS": [
       "https://docs.x.ai/developers/rest-api-reference/inference/voice.md",

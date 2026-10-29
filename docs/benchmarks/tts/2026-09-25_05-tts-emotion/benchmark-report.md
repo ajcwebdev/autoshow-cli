@@ -1,6 +1,8 @@
 # Emotion and delivery benchmark — 2026-09-25
 
-Six existing cases were synthesized successfully. Results describe transport, decoded audio integrity, recorded time, and cost. Different native inputs and mechanisms are not ranked against each other.
+Seven cases completed synthesis: six original cases and Eleven v4 added on October 29. Results describe transport, decoded audio integrity, recorded time, and cost. Different native inputs and mechanisms are not ranked against each other.
+
+The October 29 v4 addition explicitly selected `eleven_v4` and stability `0.5`, keeping the five documented delivery tags inside submitted text and storing canonical spoken words separately. Its final mono 16 kHz PCM WAV fully decoded: 21.280 seconds, 5.094 seconds recorded generation/assembly time, and $0.02360 computed character cost. These measurements establish execution and integrity; they do not establish spoken correctness or audible emotion effects. Earlier recordings and their historical assessments remain unchanged.
 
 > October 26 storage update: the user approved the MP3 playback copies and deletion of the final WAVs. The October 15 ASR and signal measurements describe the original WAVs; the current MP3s have not been reassessed.
 
@@ -11,6 +13,7 @@ Six existing cases were synthesized successfully. Results describe transport, de
 | Case                                          | Provider/model                   | Execution | Audio seconds | Cost USD | Audio                                                                                                  |
 | --------------------------------------------- | -------------------------------- | --------- | ------------- | -------- | ------------------------------------------------------------------------------------------------------ |
 | elevenlabs-eleven-v3-tags                     | elevenlabs/eleven_v3             | succeeded | 22.000        | 0.02950  | [MP3](elevenlabs-eleven-v3-tags/elevenlabs-eleven-v3-tags.mp3)                                         |
+| elevenlabs-eleven-v4-tags                     | elevenlabs/eleven_v4             | succeeded | 21.280        | 0.02360  | [WAV](elevenlabs-eleven-v4-tags/elevenlabs-eleven-v4-tags.wav)                                         |
 | gemini-gemini-3.8-flash-lite-tts-instructions | gemini/gemini-3.8-flash-lite-tts | succeeded | 19.520        | 0.00379  | [MP3](gemini-gemini-3.8-flash-lite-tts-instructions/gemini-gemini-3.8-flash-lite-tts-instructions.mp3) |
 | gemini-gemini-3.8-flash-tts-instructions      | gemini/gemini-3.8-flash-tts      | succeeded | 20.160        | 0.00585  | [MP3](gemini-gemini-3.8-flash-tts-instructions/gemini-gemini-3.8-flash-tts-instructions.mp3)           |
 | grok-grok-tts-delivery                        | grok/grok-tts                    | succeeded | 13.190        | 0.00387  | [MP3](grok-grok-tts-delivery/grok-grok-tts-delivery.mp3)                                               |

@@ -1,3 +1,4 @@
+import { validVideoBytes } from './valid-video-fixture'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runGeminiVideoGen } from '~/cli/commands/visuals/video/video-services/video-gemini/run-gemini-video-gen'
@@ -20,7 +21,7 @@ const tempDirs = setupContractSuiteLifecycle({
     ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
   }
 })
-export const videoBytes = new Uint8Array([9, 8, 7])
+export const videoBytes = validVideoBytes
 export const inlineVideo = Buffer.from(videoBytes).toString('base64')
 export const defaultImageVideoPrompt = 'Animate the provided image with natural, subtle motion while preserving its subject and composition.'
 

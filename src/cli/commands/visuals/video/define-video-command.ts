@@ -146,7 +146,7 @@ export const videoCommand = defineCliCommand({
       ['bun autoshow video input/ajc.png --provider grok=grok-imagine-video-1.5 --price', 'Estimate image-to-video for one explicit target'],
       ['bun autoshow video "a cinematic mountain sunrise"', 'Generate text-to-video with the cheapest default target'],
       ['bun autoshow video "a cinematic mountain sunrise" --provider gemini=gemini-omni-1.1-flash', 'Generate video with Gemini Omni'],
-      ['bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video-1.5', 'Generate video with Grok']
+      ['bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video-1.5-lite', 'Generate video with Grok']
     ]
   }
 }, async (ctx) => {
