@@ -11,6 +11,8 @@ const expectedCoverage = [
   ['test/test-cases/e2e/service/text/ocr/mistral-ocr-4-1.test.ts', 'extract-mistral-mistral-ocr-4-1', 'extract-mistral-mistral-ocr-4-1-image'],
   ['test/test-cases/e2e/service/stt/diarization/gemini-3.5-transcribe.test.ts', 'transcribe-gemini-stt-gemini-3.5-transcribe'],
   ['test/test-cases/e2e/service/visuals/image/grok-imagine-image-2.0.test.ts', 'image-grok-grok-imagine-image-2.0'],
+  ['test/test-cases/e2e/service/visuals/image/gemini-nano-banana-2.1.test.ts', 'image-gemini-gemini-nano-banana-2.1'],
+  ['test/test-cases/e2e/service/audio/tts/elevenlabs-eleven-v4.test.ts', 'tts-elevenlabs-eleven_v4'],
   ['test/test-cases/e2e/service/visuals/video/gemini-omni-1.1-flash.test.ts', 'video-gemini-gemini-omni-1.1-flash'],
   ['test/test-cases/e2e/service/visuals/video/grok-imagine-video-1.5.test.ts', 'video-grok-grok-imagine-video-1.5'],
   ['test/test-cases/e2e/service/visuals/video/grok-imagine-video-1.5-lite.test.ts', 'video-grok-grok-imagine-video-1.5-lite'],

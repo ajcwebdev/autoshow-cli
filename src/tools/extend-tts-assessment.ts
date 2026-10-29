@@ -6,6 +6,7 @@ import { collectTtsDashboardSamples, readTtsAssessment } from '../../.codex/skil
 import { writePortableFileSync } from '../../.codex/skills/consensus/scripts/shared/portable_paths'
 import { PROJECT_ROOT, toProjectRelativePath } from '~/utils/project-root'
 import { UsageError, ValidationError } from '~/utils/error-handler'
+import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 
 type JsonObject = Record<string, unknown>
 interface SourceBinding { path: string; scope: string; sha256: string }
@@ -88,7 +89,7 @@ export async function extendTtsAssessment(root: string, snapshotDirectory: strin
     if (object(current['extension'])['originalArchiveSha256'] !== index.archiveSha256) throw ValidationError('Current assessment is not the snapshotted base')
     readTtsAssessment(root, samples)
     repairPermanentNoteLinks(root, current.rows)
-    console.log('Matching extended assessment is complete; cached evidence reused and permanent note links verified.')
+    writeCommandPayload('Matching extended assessment is complete; cached evidence reused and permanent note links verified.\n')
     return
   }
   const rebindings = []
@@ -176,7 +177,7 @@ export async function extendTtsAssessment(root: string, snapshotDirectory: strin
   writePortableFileSync(join(root, 'assessment.md'), markdown.trimEnd() + '\n')
   readTtsAssessment(root, samples)
   repairPermanentNoteLinks(root, rows)
-  console.log(JSON.stringify({ preservedRows: oldReport.rows.length, newRows: newReport.rows.length, totalRows: rows.length, report: toProjectRelativePath(join(root, 'assessment.md')) }))
+  writeCommandPayload(JSON.stringify({ preservedRows: oldReport.rows.length, newRows: newReport.rows.length, totalRows: rows.length, report: toProjectRelativePath(join(root, 'assessment.md')) }) + '\n')
 }
 
 if (import.meta.main) {

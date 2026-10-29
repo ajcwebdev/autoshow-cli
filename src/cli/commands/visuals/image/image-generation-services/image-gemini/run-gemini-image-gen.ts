@@ -89,13 +89,13 @@ export const runGeminiImageGen = async (
           const bytes = Buffer.from(imageData, 'base64')
           if (options.model === 'gemini-nano-banana-2.1') {
             try {
-              if (!['image/png', 'image/jpeg', 'image/webp'].includes(part.inlineData.mimeType ?? '')) throw new Error('Unsupported image MIME type')
-              if (bytes.length === 0 || bytes.toString('base64') !== imageData) throw new Error('Invalid base64 image')
+              if (!['image/png', 'image/jpeg', 'image/webp'].includes(part.inlineData.mimeType ?? '')) throw InfraError('Unsupported image MIME type', { stage: 'image:gemini' })
+              if (bytes.length === 0 || bytes.toString('base64') !== imageData) throw InfraError('Invalid base64 image', { stage: 'image:gemini' })
               const image = new Bun.Image(bytes)
               const metadata = await image.metadata()
-              if (!metadata.width || !metadata.height || !['png', 'jpeg', 'webp'].includes(metadata.format ?? '')) throw new Error('Unsupported image encoding')
+              if (!metadata.width || !metadata.height || !['png', 'jpeg', 'webp'].includes(metadata.format ?? '')) throw InfraError('Unsupported image encoding', { stage: 'image:gemini' })
               const expectedFormat = extension === 'jpg' ? 'jpeg' : extension
-              if (metadata.format !== expectedFormat) throw new Error('Image MIME type disagrees with decoded encoding')
+              if (metadata.format !== expectedFormat) throw InfraError('Image MIME type disagrees with decoded encoding', { stage: 'image:gemini' })
               await image.png().bytes()
             } catch (error) {
               throw InfraError('Gemini returned invalid image bytes', { stage: 'image:gemini', cause: error })
