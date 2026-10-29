@@ -14,7 +14,7 @@ const hasElevenLabsControls = (selection: TtsTargetSelection): boolean => Boolea
   || typeof selection.elevenLabsStability === 'number'
   || typeof selection.elevenLabsSimilarityBoost === 'number'
   || typeof selection.elevenLabsStyle === 'number'
-  || selection.elevenLabsUseSpeakerBoost
+  || typeof selection.elevenLabsUseSpeakerBoost === 'boolean'
   || typeof selection.elevenLabsSpeed === 'number'
   || typeof selection.elevenLabsSeed === 'number'
   || selection.elevenLabsTextNormalization
@@ -47,5 +47,5 @@ const validateOpenAiInstructions = (selection: TtsTargetSelection): void => {
 export const validateTtsProviderOptions = (selection: TtsTargetSelection): void => {
   validateRequiredProviderSelections(selection)
   validateOpenAiInstructions(selection)
-  for (const model of selection.elevenlabsModels) validateElevenLabsVoiceSettings(model, { speed: selection.elevenLabsSpeed, similarity_boost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost ? { use_speaker_boost: true } : {}) })
+  for (const model of selection.elevenlabsModels) validateElevenLabsVoiceSettings(model, { speed: selection.elevenLabsSpeed, similarity_boost: selection.elevenLabsSimilarityBoost, style: selection.elevenLabsStyle, ...(selection.elevenLabsUseSpeakerBoost !== undefined ? { use_speaker_boost: selection.elevenLabsUseSpeakerBoost } : {}) })
 }

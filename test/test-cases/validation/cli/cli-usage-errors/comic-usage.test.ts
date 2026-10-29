@@ -89,7 +89,8 @@ test('comic generate-slideshow validates local timing and audio-selection flags 
 
 test('comic generate-images rejects invalid and duplicate image models', () => {
   expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=not-a-model'])).toThrow('Invalid image model "not-a-model"')
-  expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=gpt-image-2', '--provider', 'openai=gpt-image-2'])).toThrow('Duplicate image model "gpt-image-2" is not allowed')
+  expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=gpt-image-2'])).toThrow('Invalid image model "gpt-image-2"')
+  expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=gpt-image-2.5-flare', '--provider', 'openai=gpt-image-2.5-flare'])).toThrow('Duplicate image model "gpt-image-2.5-flare" is not allowed')
 })
 
 test('comic shorthand resolution errors name the expected directory and prefix', async () => {

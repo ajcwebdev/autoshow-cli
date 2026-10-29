@@ -26,15 +26,6 @@ describe('price mode contracts', () => {
         },
         {
           provider: 'openai' as const,
-          model: 'gpt-5.6-terra',
-          promptTokensPerPage: 1625,
-          completionTokensPerPage: 743,
-          costMultiplier: 1,
-          msPerPage: 5349,
-          expectedOnePageCost: 1.2166
-        },
-        {
-          provider: 'openai' as const,
           model: 'gpt-6-luna',
           promptTokensPerPage: 1625,
           completionTokensPerPage: 858,
@@ -101,24 +92,16 @@ describe('price mode contracts', () => {
       }
 
       for (const target of [
-        { provider: 'deepinfra' as const, model: 'google/gemma-4-31B-it', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'grok' as const, model: 'grok-4.5', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'grok' as const, model: 'grok-4.5', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'grok' as const, model: 'grok-4.5', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'grok' as const, model: 'grok-4.7', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'anthropic' as const, model: 'claude-fable-5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'anthropic' as const, model: 'claude-opus-5-5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'anthropic' as const, model: 'claude-sonnet-5-5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'anthropic' as const, model: 'claude-sonnet-5-5', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'openai' as const, model: 'gpt-6.1-sol', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'openai' as const, model: 'gpt-5.6-terra', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'openai' as const, model: 'gpt-6-luna', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'openai' as const, model: 'gpt-6.1-sol', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'openai' as const, model: 'gpt-5.6-terra', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'openai' as const, model: 'gpt-6-luna', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'gemini' as const, model: 'gemini-3.8-flash', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'gemini' as const, model: 'gemini-3.5-flash', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'gemini' as const, model: 'gemini-3.5-flash-lite', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'deepinfra' as const, model: 'google/gemma-4-31B-it', pageCount: 1, estimateType: 'heuristic' as const }
+        { provider: 'gemini' as const, model: 'gemini-3.8-flash', pageCount: 1, estimateType: 'heuristic' as const }
       ]) {
         const usage = estimateOcrTokenUsage(target.provider, target.model, target.pageCount)
         expect(usage.promptTokens).toBeGreaterThan(0)
@@ -140,12 +123,12 @@ describe('price mode contracts', () => {
         languages: 'eng',
         tokenEstimate: 10_000,
         ocrService: 'gemini',
-        ocrModel: 'gemini-3.5-flash',
+        ocrModel: 'gemini-3.8-flash',
         promptTokens: 20_000,
         completionTokens: 3_000,
         ocrProviderUsage: [{
           provider: 'gemini',
-          model: 'gemini-3.5-flash',
+          model: 'gemini-3.8-flash',
           requestId: 'req-secret',
           promptTokens: 20_000,
           completionTokens: 3_000,
@@ -164,7 +147,7 @@ describe('price mode contracts', () => {
         const profile = store.profiles[0]
         expect(profile).toMatchObject({
           provider: 'gemini',
-          model: 'gemini-3.5-flash',
+          model: 'gemini-3.8-flash',
           ocrMode: 'pdf',
           pageCountBand: '2-10',
           pageCount: 10,
@@ -198,7 +181,7 @@ describe('price mode contracts', () => {
         expect(JSON.stringify(store)).not.toContain('input.pdf')
         expect(JSON.stringify(store)).not.toContain('req-secret')
 
-        const usage = estimateOcrTokenUsage('gemini', 'gemini-3.5-flash', 10, {
+        const usage = estimateOcrTokenUsage('gemini', 'gemini-3.8-flash', 10, {
           ocrMode: 'pdf',
           profilePath
         })
@@ -214,7 +197,7 @@ describe('price mode contracts', () => {
           hostedOcrTokenProfilePath: profilePath,
           extractTargets: [{
             provider: 'gemini',
-            model: 'gemini-3.5-flash',
+            model: 'gemini-3.8-flash',
             pageCount: 10,
             ocrMode: 'pdf',
             estimateType: 'heuristic'
@@ -222,7 +205,7 @@ describe('price mode contracts', () => {
         })
         expect(cost.steps[0]).toMatchObject({
           provider: 'gemini',
-          model: 'gemini-3.5-flash',
+          model: 'gemini-3.8-flash',
           promptTokens: 20_000,
           completionTokens: 3_000,
           tokenEstimateSource: 'profile',
@@ -239,11 +222,11 @@ describe('price mode contracts', () => {
       const profilePath = join(tempDir, 'token-profiles.json')
       const pageCount = 312
       const metadata = [
-        ['deepinfra', 'Qwen/Qwen3.8-27B', 1_332_939, 114_292],
-        ['grok', 'grok-4.5', 828_252, 112_209],
-        ['gemini', 'gemini-3.5-flash', 359_877, 134_602],
+        ['anthropic', 'claude-haiku-5-5', 1_332_939, 114_292],
+        ['grok', 'grok-4.7', 828_252, 112_209],
+        ['anthropic', 'claude-sonnet-5-5', 359_877, 134_602],
         ['gemini', 'gemini-3.8-flash', 363_333, 163_959],
-        ['deepinfra', 'google/gemma-4-31B-it', 3_184_289, 113_872]
+        ['openai', 'gpt-6-luna', 3_184_289, 113_872]
       ].map(([provider, model, promptTokens, completionTokens]) => ({
         extractionMethod: `pdf+${provider}-ocr`,
         totalPages: pageCount,
@@ -261,7 +244,7 @@ describe('price mode contracts', () => {
 
       try {
         await persistHostedOcrTokenUsageProfiles({
-          extractionMethod: 'pdf+deepinfra-ocr',
+          extractionMethod: 'pdf+openai-ocr',
           totalPages: 228,
           ocrPages: 228,
           textPages: 0,
@@ -269,8 +252,8 @@ describe('price mode contracts', () => {
           dpi: 300,
           languages: 'eng',
           tokenEstimate: 10_000,
-          ocrService: 'deepinfra',
-          ocrModel: 'google/gemma-4-31B-it',
+          ocrService: 'openai',
+          ocrModel: 'gpt-6-luna',
           promptTokens: 781_990,
           completionTokens: 95_155
         }, {
@@ -290,15 +273,15 @@ describe('price mode contracts', () => {
           profile.ocrMode === 'pdf' && profile.pageCountBand === '300-499'
         )).toHaveLength(5)
 
-        const deepinfra = store.profiles.find((profile) =>
-          profile.provider === 'deepinfra' && profile.model === 'google/gemma-4-31B-it' && profile.pageCountBand === '300-499'
+        const luna = store.profiles.find((profile) =>
+          profile.provider === 'openai' && profile.model === 'gpt-6-luna' && profile.pageCountBand === '300-499'
         )
-        expect(deepinfra).toMatchObject({
+        expect(luna).toMatchObject({
           promptTokensPerPage: 10206.054,
           completionTokensPerPage: 364.974
         })
 
-        const usage = estimateOcrTokenUsage('deepinfra', 'google/gemma-4-31B-it', pageCount, {
+        const usage = estimateOcrTokenUsage('openai', 'gpt-6-luna', pageCount, {
           ocrMode: 'pdf',
           profilePath
         })
@@ -327,7 +310,7 @@ describe('price mode contracts', () => {
         languages: 'eng',
         tokenEstimate: 10_000,
         ocrService: 'gemini',
-        ocrModel: 'gemini-3.5-flash',
+        ocrModel: 'gemini-3.8-flash',
         promptTokens: 20_000,
         completionTokens: 3_000
       }
@@ -345,14 +328,14 @@ describe('price mode contracts', () => {
       }
     })
 
-  test('Gemini 3.5 Flash OCR heuristic tokens use observed single-page calibration', () => {
+  test('Gemini 3.8 Flash OCR heuristic tokens use its registered single-page estimates', () => {
       const profilePath = missingHostedOcrProfilePath()
-      const usage = estimateOcrTokenUsage('gemini', 'gemini-3.5-flash', 10, { profilePath })
+      const usage = estimateOcrTokenUsage('gemini', 'gemini-3.8-flash', 10, { profilePath })
       const cost = computeEstimatedCosts({
         hostedOcrTokenProfilePath: profilePath,
         extractTargets: [{
           provider: 'gemini',
-          model: 'gemini-3.5-flash',
+          model: 'gemini-3.8-flash',
           pageCount: 10,
           estimateType: 'heuristic'
         }]
@@ -360,17 +343,17 @@ describe('price mode contracts', () => {
       const step = cost.steps[0]
 
       expect(usage).toMatchObject({
-        promptTokens: 11710,
-        completionTokens: 6170,
+        promptTokens: 11570,
+        completionTokens: 16260,
         tokenEstimateSource: 'registry',
         tokenEstimateConfidence: 'none'
       })
       expect(step).toMatchObject({
         provider: 'gemini',
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
         pageCount: 10,
-        promptTokens: 11710,
-        completionTokens: 6170,
+        promptTokens: 11570,
+        completionTokens: 16260,
         costMultiplier: 1,
         tokenEstimateSource: 'registry',
         tokenEstimateConfidence: 'none',

@@ -2,7 +2,7 @@ import type { StepEstimate } from '~/types'
 
 export type ComicRecoveryStage = 'image' | 'audio' | 'presentation'
 export type ComicRecoveryFlags = Record<string, string | boolean | string[]>
-export type ComicRecoveryInput = { path: string; sha256: string }
+export type ComicRecoveryInput = { path: string; sha256: string; base?: 'project' }
 export type ComicRecoveryIntent = {
   schemaVersion: 1
   flags: ComicRecoveryFlags

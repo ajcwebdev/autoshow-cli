@@ -117,8 +117,8 @@ describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
       expect(() =>
         resolveReasoningPolicy({
           step: 'llm',
-          service: 'anthropic',
-          model: 'claude-fable-5-1',
+          service: 'openai',
+          model: 'gpt-6.1-sol',
           requestedReasoningEffort: 'disabled'
         })
       ).toThrow()

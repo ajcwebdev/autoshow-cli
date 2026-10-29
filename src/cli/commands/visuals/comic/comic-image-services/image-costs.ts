@@ -38,7 +38,8 @@ export const estimateImageOutputCost = (
     return null
   }
 
-  const options = { [field]: [model], imageSize: size, imageQuality: quality } as EstimateImageCostOptions
+  // Comic's Gemini adapter maps canvas dimensions to a native 1K aspect ratio.
+  const options = { [field]: [model], imageSize: service === 'gemini' ? '1K' : size, imageQuality: quality } as EstimateImageCostOptions
   const estimate = estimateImageCosts(options)[0]
   if (!estimate) {
     return null

@@ -35,7 +35,7 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     elevenLabsStability: options.elevenlabsTtsStability,
     elevenLabsSimilarityBoost: options.elevenlabsTtsSimilarityBoost,
     elevenLabsStyle: options.elevenlabsTtsStyle,
-    elevenLabsUseSpeakerBoost: options.elevenlabsTtsUseSpeakerBoost === true,
+    elevenLabsUseSpeakerBoost: options.elevenlabsTtsUseSpeakerBoost,
     elevenLabsSpeed: options.elevenlabsTtsSpeed,
     elevenLabsSeed: options.elevenlabsTtsSeed,
     elevenLabsTextNormalization: trimmed(options.elevenlabsTtsTextNormalization),

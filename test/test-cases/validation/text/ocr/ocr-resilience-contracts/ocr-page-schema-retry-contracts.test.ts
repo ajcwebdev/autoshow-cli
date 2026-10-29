@@ -45,7 +45,7 @@ describe('OCR resilience contracts', () => {
         pageCount: 1,
         format: 'png',
         fileSize: 4
-      }, 'gemini-3.5-flash-lite', {
+      }, 'gemini-3.8-flash', {
         documentPageNumber: 7
       })
 
@@ -114,7 +114,7 @@ describe('OCR resilience contracts', () => {
         pageCount: 1,
         format: 'pdf',
         fileSize: 24
-      }, 'gemini-3.5-flash-lite')
+      }, 'gemini-3.8-flash')
 
       expect((requests[0]?.bodyJson?.['generationConfig'] as Record<string, unknown>)['maxOutputTokens']).toBe(24_576)
       expect(result.pages[0]?.text).toBe('pdf page')

@@ -4,14 +4,12 @@ AutoShow publishes a Docker image with the CLI and common local tools so you can
 
 Pre-built `linux/amd64` and `linux/arm64` images are on GitHub Container Registry (GHCR), tagged `latest` and by full commit SHA. They are published for every push to `main` that changes image inputs (`Dockerfile`, dependencies, `config/`, `src/`, the acceptance harness, or workflows), and docs-only pushes keep the previous `latest`.
 
-Publication first creates a SHA-tagged candidate index after verification, package checks, native offline smoke, and vulnerability scans. All twelve core, model, and public-site acceptance shards run against its immutable digest. Only a successful candidate is copied to `latest`, preserving both native platform descriptors, SBOM, and provenance attestations. A failed or skipped shard blocks promotion and leaves the previous `latest` in place. Push releases remain serialized; existing build, smoke, audit, and required-check names are retained.
-
-Production installs the frozen runtime graph without peer dependencies. The build context allows only the root manifests, application source, and Defuddle/alignment configuration; nested dependency trees, hidden workspace files, and logs are excluded. Native verification recursively checks root ownership, readable/traversable modes, symlink routes, and absent group/other write access across the application and optional alignment tree. Only the configuration link into runtime state is exempt from that immutable boundary.
+Publication creates a SHA-tagged candidate after verification, native smoke tests, and vulnerability scans. Core, model, and public-site acceptance run against its immutable digest on both architectures before the same image index is promoted to `latest`. A failed or skipped acceptance shard leaves the previous `latest` in place.
 
 The image includes:
 
 - `ffmpeg` and `ffprobe`
-- `yt-dlp` 2026.08.19 and Deno 2.9.6 for YouTube JavaScript challenges
+- `yt-dlp` 2026.08.19 and Deno 2.9.8 for YouTube JavaScript challenges
 - Tesseract OCR with English language data
 - MuPDF `mutool`
 - `qpdf`
@@ -19,8 +17,6 @@ The image includes:
 - ImageMagick (TIFF conversion and lyric-video/comic compositing), with Pango/DejaVu fonts for caption rendering
 
 It does not include heavyweight local STT, LLM, or TTS engines, model weights, Defuddle, or provider credentials.
-
-Deno is included so yt-dlp can solve YouTube JavaScript challenges without downloading solver scripts at runtime. See the [yt-dlp JavaScript runtime requirements](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
 
 ## Pull or Build
 
@@ -34,19 +30,25 @@ To build locally from source:
 docker build -t autoshow-cli:local .
 ```
 
-The stages are `youtube-js`, `deps`, `alignment-deps`, `runtime`, `alignment`, and final/default `production`. Build the optional CPU alignment backend with `docker build --target alignment -t autoshow-cli:alignment .`. Its independent builder installs the frozen ONNX graph, keeps only the target Linux architecture's native binaries, and normalizes permissions before copying; it does not install into the runtime user's HOME. Production does not build or ship that graph. The frontend remains digest-pinned at 1.6; permission normalization stays explicit in build steps.
+The default `production` target omits the CPU alignment backend. Build that optional backend with `docker build --target alignment -t autoshow-cli:alignment .`.
 
-OCR, setup, and doctor use the same English language data selection. If managed `eng.traineddata` is absent, Tesseract uses its packaged default, including when runtime storage is mounted empty. Present but invalid managed data fails with a diagnostic. Doctor and setup initialize the English model as well as listing languages, so a corrupt model does not pass merely because its filename exists.
+If managed `eng.traineddata` is absent, Tesseract uses its packaged English data, including when runtime storage is mounted empty. Invalid managed data fails with a diagnostic from OCR, setup, and doctor.
 
 ### Acceptance checks
 
-`bun t:docker --suite core` pulls the published image and runs local acceptance cases on the Docker daemon's native architecture. It uses no hosted inference or provider credentials; pulling the image requires network access. Failed runs retain their evidence and cached assets. Use `bun t:docker --help` to see suite, timeout, and evidence-directory options without starting Docker.
+`bun t:docker --suite core` pulls the published image and runs local acceptance cases on the Docker daemon's native architecture. It uses no hosted inference or provider credentials. Pulling the image and preparing optional Defuddle may require network access; document conversion and cached tool checks run offline, and local URL fixtures use an isolated network. Core checks cover actual OCR and ebook conversion, extracted text, and malformed-input rejection. Failed runs retain evidence and cached assets. Use `bun t:docker --help` for options without starting Docker.
 
-Core acceptance includes authored FB2 conversion through Calibre, conversion metadata and extracted chapter text, malformed-input rejection, and a separate EPUB integrity probe before temporary conversion cleanup. Defuddle preparation may download its optional package; cached tool checks and document conversion run offline, while local URL fixtures use an isolated Docker network. These checks are distinct from public-site acceptance.
+Select a local build with `bun t:docker --suite core --image autoshow-cli:local --pull never`. Select a registry candidate with `bun t:docker --suite core --image ghcr.io/ajcwebdev/autoshow-cli@sha256:<digest> --pull always --expected-revision <full-commit-sha>`. The default pull policy is `always`; `missing` uses a cached image or pulls it if absent. A failed pull never falls back to a cached tag. Containers run the resolved immutable digest or local image ID. `--expected-digest` accepts either identity, and `--platform` must match the Docker daemon's native architecture.
 
-`bun --no-env-file test/docker-acceptance/docker-context-acceptance.ts` verifies the allowlist using an authored scratch context and offline BuildKit export. `bun --no-env-file test/docker-acceptance/docker-tesseract-data-acceptance.ts --image autoshow-cli:local` verifies actual OCR, setup, and doctor across packaged, managed, invalid, and reset data layouts without network access. Native dependency-image CI runs that data gate for both targets, checks alignment first use with the image's original HOME before any replacement mounts, then verifies writable mounted state as the default user and a host UID/GID.
+Acceptance uses the image user unless `--user UID:GID` selects a non-root numeric identity. Use the same identity when reusing caches, and ensure restored state is writable; the harness does not repair existing ownership or permissions. Concurrent acceptance runs cannot share a cache. Add `--restricted` to drop capabilities and prevent privilege escalation.
 
-Select a local build with `bun t:docker --suite core --image autoshow-cli:local --pull never`. Select a registry candidate with `bun t:docker --suite core --image ghcr.io/ajcwebdev/autoshow-cli@sha256:<digest> --pull always --expected-revision <full-commit-sha>`. The default pull policy is `always`; `missing` uses an already installed image or pulls it if absent. A failed pull never falls back to a cached tag. Registry pulls execute the verified manifest digest, and cached local tags execute the inspected immutable image ID. `--expected-digest` accepts that manifest digest or local image ID. All selections retain native architecture, non-root user, entrypoint, credential, and revision checks.
+Narrower local checks are available for build context, language data, and persistent state:
+
+- `bun --no-env-file test/docker-acceptance/docker-context-acceptance.ts` checks the build-context allowlist.
+- `bun --no-env-file test/docker-acceptance/docker-tesseract-data-acceptance.ts --image autoshow-cli:local` checks OCR, setup, and doctor with packaged, managed, invalid, and reset data layouts.
+- `bun --no-env-file test/docker-acceptance/docker-runtime-state-acceptance.ts --image autoshow-cli:local --output runtime/docker-acceptance/new-state-check` checks fresh and reused state, host identities, restricted operation, invalid inputs, and timeout cleanup.
+
+These checks use local fixtures without hosted inference. The language-data and state checks require an installed image; they do not replace release acceptance on both native architectures.
 
 The examples below use `autoshow-cli:local`. Substitute `ghcr.io/ajcwebdev/autoshow-cli:latest` if you pulled the published image.
 
@@ -110,15 +112,15 @@ Docker reads the file on the host and exports its entries into the container env
 
 ## Long requests and keepalive
 
-The image sets `AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1`. Long provider requests on Docker Desktop for Mac were reset while Bun reused connections, including when the request timeout was disabled. Fresh connections avoid that reset. Set the variable to `0` to restore connection pooling in a container; that also restores the failure on affected networks. Native runs keep pooling unless you set the variable to `1`. Bun documents [disabling fetch keepalive](https://bun.sh/docs/runtime/networking/fetch).
+The image sets `AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1` to avoid connection resets during long provider requests on affected Docker Desktop for Mac networks. Set it to `0` to restore connection pooling in a container; resets may recur on those networks. Native runs keep pooling unless you set it to `1`.
 
 Ordinary bridge networking is the supported mode. Cancellation deadlines still end a stalled request.
 
 ## Large provider responses
 
-Successful HTTP response bodies are read whole under a memory ceiling sized by what the body is for: 16 MiB for control-plane JSON (status polls, catalogs, metadata), 512 MiB for provider results, including audio or images that a provider inlines in JSON as base64 or hex, and 2 GiB for downloads held in memory. Paid results written straight to disk are streamed and have no ceiling. A source you supply by URL, such as a document, media file, or reference, is also streamed to disk, but stops at 16 GiB or after the 10-minute media download deadline, so a runaway source cannot fill the container disk. A body over its ceiling is rejected with its observed size, never truncated, and the failure is not retried because the provider may already have billed the request.
+Successful HTTP responses are read whole or rejected when they exceed their memory ceiling: 16 MiB for status/catalog/metadata responses, 512 MiB for provider results, including inlined audio or images, and 2 GiB for downloads held in memory. Paid results streamed directly to disk have no size ceiling. User-supplied URL sources stream to disk with a 16 GiB ceiling and a 10-minute deadline per transfer; leave enough free disk for the selected workload. Oversize bodies fail with their observed size and are not automatically retried, since the provider may already have billed the request.
 
-Set `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES` to a positive whole number of bytes to replace every in-memory ceiling, for example `-e AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES=1073741824` for 1 GiB. Size it to the container's memory limit, since one response is held in memory while it is decoded. It lowers nothing for source downloads; a value above 16 GiB raises the source ceiling. A malformed value fails at startup, before any provider request. When the request fixes the inlined response size, as with Inworld WAV audio, the run is estimated before dispatch, so a ceiling below what that chunk needs is rejected before it is billed.
+Set `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES` to a positive whole number of bytes to replace every in-memory ceiling, for example `-e AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES=1073741824` for 1 GiB. Allow memory for response decoding and concurrent work as well as the body itself. This override can raise the source-download ceiling above 16 GiB but cannot lower it. A malformed value fails at startup. Predictable oversized inlined responses, such as Inworld WAV audio, are rejected before provider dispatch.
 
 ## Project Workspace Invocation
 
@@ -132,7 +134,7 @@ autoshow() (
     --mount "type=bind,src=$autoshow_workspace/.autoshow,dst=/app/runtime" \
     --mount "type=bind,src=$autoshow_workspace/.autoshow/home,dst=/home/bun" \
     --workdir /workspace --env-file "$autoshow_workspace/.env" \
-    --env AUTOSHOW_REQUIRED_IMAGE_MODEL=gpt-image-2 \
+    --env AUTOSHOW_REQUIRED_IMAGE_MODEL=gpt-image-2.5-flare \
     "${AUTOSHOW_IMAGE:-autoshow-cli:local}" "$@"
   if [ "$(uname -s)" = Linux ]; then
     set -- --user "$(id -u):$(id -g)" "$@"
@@ -141,29 +143,40 @@ autoshow() (
 )
 ```
 
-The `AUTOSHOW_REQUIRED_IMAGE_MODEL` line is optional. Remove it for unrestricted models. When it is set, image-producing comic commands and standalone image commands must name that model explicitly. Help, version, and `comic generate-images --qa-only` stay exempt. A violation exits 64 before pricing or output setup.
+The `AUTOSHOW_REQUIRED_IMAGE_MODEL` line is optional. Remove it for unrestricted models. When it is set, image-producing comic commands and standalone image commands require exactly one `--provider openai=<model>` matching that value; all-provider selection is rejected. Help, version, and `comic generate-images --qa-only` stay exempt. A violation exits 64 before pricing or output setup.
 
-Keep the separate `/app/runtime` and `/home/bun` mounts intact: protected voice assets, provisioning journals, account identity keys, managed tools, configuration, and caches must survive disposable containers. The default `/app/config/autoshow.json` path links to `/app/runtime/autoshow.json`; an empty runtime mount provisions it on first config write. Source, dependencies, frozen manifests, and bundled configuration assets remain root-owned. For other Linux `--user` invocations, bind host-owned writable directories to `/app/runtime` and `/home/bun` plus any input/output locations the command uses; changing the user alone does not initialize these directories. Keep identity/voice state and credentials out of broad evidence uploads. Docker's explicit `--env` overrides the same key in `--env-file`. `AUTOSHOW_IMAGE` selects a rebuilt tag without a host launcher.
+Keep the separate `/app/runtime` and `/home/bun` mounts to retain voice assets, identity state, managed tools, configuration, and caches. Configuration is created in runtime storage on the first write; application files remain read-only to the runtime user. For other Linux `--user` invocations, mount host-owned writable state, home, and output directories; changing the user alone does not initialize them. Keep identity/voice state and credentials out of broad evidence uploads. `AUTOSHOW_IMAGE` selects a different image tag or digest.
+
+### Restricted input/output invocation
+
+This opt-in function exposes only read-only `input/` plus writable `output/`, runtime state and HOME. It drops every Linux capability and prevents privilege escalation while retaining ordinary bridge networking and the keepalive workaround. Docker describes these [runtime privilege controls](https://docs.docker.com/engine/containers/run/#runtime-privilege-and-linux-capabilities). It leaves the container root filesystem and resource limits at their defaults; tighter limits need workload-specific validation.
+
+```bash
+autoshow_restricted() (
+  autoshow_workspace=${AUTOSHOW_WORKSPACE:?Set AUTOSHOW_WORKSPACE to the absolute project root}
+  mkdir -p "$autoshow_workspace/input" "$autoshow_workspace/output" "$autoshow_workspace/.autoshow/home/.cache" || exit
+  set -- --rm -i --cap-drop ALL --security-opt no-new-privileges:true \
+    --mount "type=bind,src=$autoshow_workspace/input,dst=/workspace/input,readonly" \
+    --mount "type=bind,src=$autoshow_workspace/output,dst=/workspace/output" \
+    --mount "type=bind,src=$autoshow_workspace/.autoshow,dst=/app/runtime" \
+    --mount "type=bind,src=$autoshow_workspace/.autoshow/home,dst=/home/bun" \
+    --workdir /workspace --env-file "$autoshow_workspace/.env" \
+    --env AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1 \
+    "${AUTOSHOW_IMAGE:-autoshow-cli:local}" "$@"
+  if [ "$(uname -s)" = Linux ]; then
+    set -- --user "$(id -u):$(id -g)" "$@"
+  fi
+  docker run "$@"
+)
+```
+
+For example, `autoshow_restricted extract input/document.png --provider tesseract` keeps the source image read-only and writes under `output/`. Relative source paths must stay inside the mounted input tree. Configuration and paid assets persist through the two state mounts; removing a disposable container does not delete them. Missing mounts or a Docker error are failures and never trigger native fallback.
 
 ## Security pin maintenance
 
-The release/dependency maintainer, `@ajcwebdev`, owns the image security pins and their promotion evidence. Review them together every Monday after the scheduled native uncached audits, and before a release that changes one of these pins. For an applicable security advisory, assess it as soon as notified, update all affected pins in one change, and run the same native candidate gates before promotion. If a fix is unavailable, retain the advisory's owner, affected packages, reachability, disposition, and next action in the release triage; a rebuild alone does not close it.
+The release maintainer owns image security pins and reviews them after the scheduled Monday audits and before releases that change them. Bun, Deno, the Debian snapshot, and yt-dlp are pinned in `Dockerfile`; native setup metadata and workflows must stay consistent with shared tool versions. Current pins and release gates are maintained in the recipe and workflows referenced by [ADR-014](adr/ADR-014-distribute-the-cli-as-a-docker-image.md).
 
-| Pin family           | Coordinated update surfaces                                                                                                                                                                                                      |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bun                  | `package.json` packageManager, `bun.lock`, `src/utils/bun-version.ts`, Docker base tag/digest, setup metadata, pinned setup-bun versions, and version contracts                                                                  |
-| Deno and yt-dlp      | Docker image/download digests and URLs, defaults in `src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts`, optional `config/deps.json` overrides, native setup distribution metadata, and documented tool versions |
-| Build infrastructure | Dockerfile frontend digest, Buildx version, BuildKit image digest, and pinned Docker/checkout/setup actions in workflows and shared actions                                                                                      |
-| Scanners             | Syft/Grype version selectors, architecture selection, and release-checksum verification in `.github/actions/scan-image/`, plus callers overriding versions                                                                       |
-| Debian               | Dockerfile `DEBIAN_SNAPSHOT`, signed Debian/security snapshot sources, the Bun base digest's distribution, and package inventory/advisory evidence for both native architectures                                                 |
-
-Verify exact metadata paths against the current setup registry when updating a tool. Preserve signed APT metadata, snapshot selection, `apt-get upgrade`, frozen dependency installation, and digest/checksum checks. The scheduled `--pull --no-cache` audit detects problems in the selected inputs; a pinned old snapshot still contains its old packages. Move the snapshot and relevant base/tool pins to acquire later security releases, following [Debian Snapshot](https://snapshot.debian.org/) and [Docker's base-image pinning guidance](https://docs.docker.com/build/building/best-practices/#pin-base-image-versions).
-
-Confirm a fix through the candidate index digest, each original native build digest, shipped Debian and production dependency inventories, both native scans, every high/critical advisory disposition, and all acceptance shards. The shared audit action records the exact image identity, package list, SBOM, scan, scanner database timestamp, notices, and triage. Promotion uses a single accepted index source as a [verbatim index copy](https://docs.docker.com/reference/cli/docker/buildx/imagetools/create/) and checks the final `latest` digest against it. Retain those CI artifacts with the release; a source pin edit or a separate rebuild is not proof of what `latest` ships.
-
-Release and independent image audits share native evidence capture from the inspected immutable image ID: package inventory, notices, rendering capabilities, shipped source pins/policies, identity, and checksums. On main pushes, the independent workflow can omit its production rebuild only after both same-commit native release audits succeed and retain matching evidence artifacts. The lookup waits at most 180 seconds; missing, failed, expired, or unavailable coverage retains production auditing. PRs, schedules, and manual runs retain both targets, including scheduled uncached builds.
-
-Scanner downloads use one bounded transient-retry policy; checksum and archive-integrity failures stop immediately. Scanning an existing SBOM, including database warmup, installs Grype alone. Image inventory also installs Syft. Database hydration, freshness evidence, and severity/fixability gates remain required.
+A pinned snapshot does not acquire later security fixes through a rebuild alone. Update affected pins together, then verify the exact candidate on native AMD64 and ARM64 with scans and acceptance before promotion. Retain image inventories, advisory dispositions, and acceptance evidence with the release; a source change or separate local build does not establish what `latest` contains.
 
 ## Docker-only Network Diagnostic
 

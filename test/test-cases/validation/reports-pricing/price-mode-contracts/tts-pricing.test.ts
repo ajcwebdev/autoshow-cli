@@ -1,9 +1,11 @@
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
-import { estimateTtsCosts } from '~/cli/commands/audio/tts/tts-utils/tts-pricing'
+import { estimateTtsCosts, estimateTtsTargetCosts } from '~/cli/commands/audio/tts/tts-utils/tts-pricing'
 import { getTtsEstimation, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
+import { buildTtsTargetEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/tts-estimates'
 import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
 import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildTtsBatchEstimateSummary, computeSuccessfulTtsBatchActualCost } from '~/cli/commands/audio/tts/tts-batch-summary'
@@ -251,15 +253,15 @@ describe('price mode contracts', () => {
 
   test('TTS preflight estimates preserve setup-fee and estimate-type metadata', () => {
     const estimated = preflightToEstimated({
-      totalEstimatedCost: 26,
+      totalEstimatedCost: 24,
       steps: [{
         step: 'tts',
         provider: 'elevenlabs',
         model: 'eleven_v3',
-        costPer1kCharactersCents: 10,
+        costPer1kCharactersCents: 8,
         setupCostCents: 16,
         estimateType: 'exact',
-        totalCost: 26
+        totalCost: 24
       }]
     })
 
@@ -267,8 +269,8 @@ describe('price mode contracts', () => {
       step: 'tts',
       provider: 'elevenlabs',
       model: 'eleven_v3',
-      cost: 26,
-      costPer1kCharactersCents: 10,
+      cost: 24,
+      costPer1kCharactersCents: 8,
       setupCostCents: 16,
       estimateType: 'exact'
     }])
@@ -299,7 +301,7 @@ describe('price mode contracts', () => {
         costPer1kCharactersCents: cost.costPer1kCharactersCents,
         totalCost: cost.totalCost
       }))).toEqual([
-        { model: 'eleven_v3', costPer1kCharactersCents: 10, totalCost: 10 }
+        { model: 'eleven_v3', costPer1kCharactersCents: 8, totalCost: 8 }
       ])
 
       const timing = computeEstimatedProcessingTimes({
@@ -324,7 +326,40 @@ describe('price mode contracts', () => {
     })
 
   test('active revised TTS models expose approved pricing and provisional timing', () => {
-    expect(getTtsPricing('elevenlabs', 'eleven_v3').costPer1kCharsCents).toBe(10)
+    expect(getTtsPricing('elevenlabs', 'eleven_v3').costPer1kCharsCents).toBe(8)
     expect(getTtsEstimation('elevenlabs', 'eleven_v3').msPer1KChars).toBe(35_885)
+  })
+
+  test('Eleven v3 local character accounting adds an explicit setup or recorded clone charge once across split requests', async () => {
+    // Independently published tariff: https://elevenlabs.io/pricing/api, checked 2026-10-26.
+    // $0.08 per 1,000 characters => 6,000 characters cost 48 cents, independent of request count.
+    // The 16-cent add-on is a fixture for an explicitly supplied charge, not a provider clone tariff.
+    const target = {
+      service: 'elevenlabs',
+      model: 'eleven_v3',
+      run: async () => { throw new Error('Accounting contracts must not dispatch synthesis') }
+    } satisfies TtsTarget
+    const setupTarget = { ...target, setupCostCents: 16 }
+    const opts = {} as Parameters<typeof buildTtsTargetEstimates>[1]
+
+    expect(estimateTtsTargetCosts([target], 6000, [2])[0]).toMatchObject({
+      characterCount: 6000, costPer1kCharactersCents: 8, totalCost: 48
+    })
+    expect(estimateTtsTargetCosts([setupTarget], 6000, [3])[0]).toMatchObject({
+      characterCount: 6000, costPer1kCharactersCents: 8, setupCostCents: 16, totalCost: 64
+    })
+    expect((await buildTtsTargetEstimates([setupTarget], opts, 6000, [3]))[0]).toMatchObject({
+      costPer1kCharactersCents: 8, setupCostCents: 16, totalCost: 64
+    })
+    expect(computeEstimatedCosts({ ttsTargets: [setupTarget], ttsCharacterCount: 6000 }).totalCost).toBe(64)
+    expect(computeEstimatedCosts({ ttsTargets: [target], ttsCharacterCount: 6000 }).totalCost).toBe(48)
+
+    const metadata = buildTtsMetadata({ ttsService: 'elevenlabs', ttsModel: 'eleven_v3', chunkCount: 2 })
+    expect(computeActualCosts({ step4: [metadata], ttsCharacterCount: 6000 }).steps).toEqual([{
+      step: 'tts', provider: 'elevenlabs', model: 'eleven_v3', cost: 48,
+      costSource: 'computed_usage', inputMetric: 'characters', inputValue: 6000
+    }])
+    expect(computeActualCosts({ step4: [{ ...metadata, cloneCostCents: 16 }], ttsCharacterCount: 6000 }).totalCost).toBe(64)
+    expect(computeActualCosts({ step4: [metadata], ttsCharacterCount: 6000 }).totalCost).toBe(48)
   })
 })

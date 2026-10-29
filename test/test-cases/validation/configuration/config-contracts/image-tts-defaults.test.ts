@@ -38,10 +38,16 @@ describe('config image and TTS default contracts', () => {
 
   test('buildConfigPatchFromFlags saves hosted image defaults', () => {
     expectConfigPatchRoundTrip({
-      'fal-image': ['alibaba/qwen-image-3'],
+      'openai-image': ['gpt-image-2.5-sunburst'],
     }, 'image', {
-      falImage: ['alibaba/qwen-image-3'],
+      openaiImage: ['gpt-image-2.5-sunburst'],
     }, { merge: false })
+  })
+
+  test('buildConfigPatchFromFlags rejects removed fal image and video selections', () => {
+    for (const flag of ['fal-image', 'fal-video'] as const) {
+      expect(() => buildConfigPatchFromFlags({ [flag]: ['removed-fal-model'] }, new Set([flag]))).toThrow(`Provider selections ${flag} are no longer supported`)
+    }
   })
 
   test('buildConfigPatchFromFlags saves and merges hosted video defaults', () => {

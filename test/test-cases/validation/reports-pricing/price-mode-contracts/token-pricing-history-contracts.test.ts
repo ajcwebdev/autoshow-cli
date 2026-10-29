@@ -6,7 +6,7 @@ import type { Step3Metadata } from '~/types'
 
 const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'openai',
-  llmModel: 'gpt-5.6-sol',
+  llmModel: 'gpt-6.1-sol',
   processingTime: 1234,
   inputTokenCount: 300_000,
   outputTokenCount: 10_000,
@@ -44,7 +44,7 @@ describe('price mode contracts', () => {
         defaultEligible: true,
         allExpansionEligible: true
       })
-      expect(resolveModelLifecycle(registry.extract['gemini']?.models['gemini-3.5-flash-lite'])).toMatchObject({
+      expect(resolveModelLifecycle(registry.extract['gemini']?.models['gemini-3.8-flash'])).toMatchObject({
         status: 'active',
         defaultEligible: true,
         allExpansionEligible: true
@@ -58,11 +58,11 @@ describe('price mode contracts', () => {
         outputCostPer1MCents: 150
       })
       expect(getRetiredModelReplacement('llm', 'gemini', 'gemini-3.1-flash-lite')).toBe('gemini-3.8-flash')
-      expect(getRetiredModelReplacement('extract', 'gemini', 'gemini-3.1-flash-lite')).toBe('gemini-3.5-flash-lite')
+      expect(getRetiredModelReplacement('extract', 'gemini', 'gemini-3.1-flash-lite')).toBe('gemini-3.8-flash')
       expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.8-flash')
       expect(resolveCheapestModelForFlag('anthropic')).toBe('claude-haiku-5-5')
       expect(resolveCheapestModelForFlag('kimi')).toBeUndefined()
-      expect(resolveCheapestModelForFlag('gemini-ocr')).toBe('gemini-3.5-flash-lite')
+      expect(resolveCheapestModelForFlag('gemini-ocr')).toBe('gemini-3.8-flash')
       expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-haiku-5-5')
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBeUndefined()
     })

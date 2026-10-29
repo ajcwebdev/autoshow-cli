@@ -12,7 +12,7 @@ describe('config load schema contracts', () => {
           mode: 'immediate'
         },
         llm: {
-          openai: ['gpt-5.6-terra'],
+          openai: ['gpt-6.1-sol'],
           grok: ['grok-4.7'],
           providerConcurrency: 3,
           localConcurrency: 1
@@ -29,8 +29,8 @@ describe('config load schema contracts', () => {
             localConcurrency: 1,
             ocrConcurrency: 4,
             openaiOcr: ['gpt-6.1-sol'],
-            grokOcr: ['grok-4.5'],
-            deepinfraOcr: ['google/gemma-4-31B-it'],
+            grokOcr: ['grok-4.7'],
+            mistralOcr: ['mistral-ocr-4-1'],
           }
         },
         tts: {
@@ -50,21 +50,36 @@ describe('config load schema contracts', () => {
           chunkConcurrency: 3
         },
         image: {
-          falImage: ['alibaba/qwen-image-3'],
+          openaiImage: ['gpt-image-2.5-flare'],
           format: 'jpeg'
         },
         video: {
-          falVideo: ['bytedance/seedance-2.5/reference-to-video'],
-          generateAudio: false,
+          geminiVideo: ['gemini-omni-1.1-flash'],
           referenceVideos: ['input/examples/video/reference.mp4'],
-          referenceAudios: ['input/examples/audio/reference.mp3'],
-          duration: -1
+          duration: 5
         }
       }
     }
     const configPath = await writeTempConfig(fullConfig)
 
     await expect(loadConfig(configPath)).resolves.toMatchObject(fullConfig)
+  })
+
+  test('loadConfig rejects retired DeepInfra OCR defaults before dispatch', async () => {
+    const configPath = await writeTempConfig({ defaults: { extract: { ocr: { deepinfraOcr: ['retired-deepinfra-ocr-model'] } } } })
+    await expect(loadConfig(configPath)).rejects.toThrow('Provider configuration defaults.extract.ocr.deepinfraOcr is no longer supported.')
+  })
+
+  test('loadConfig rejects removed fal and audio-generation defaults before dispatch', async () => {
+    for (const [section, key, value] of [
+      ['image', 'falImage', ['removed-fal-image-model']],
+      ['video', 'falVideo', ['removed-fal-video-model']],
+      ['video', 'generateAudio', true],
+      ['video', 'referenceAudios', ['input/examples/audio/reference.mp3']]
+    ] as const) {
+      const configPath = await writeTempConfig({ defaults: { [section]: { [key]: value } } })
+      await expect(loadConfig(configPath)).rejects.toThrow(`Provider configuration defaults.${section}.${key} is no longer supported.`)
+    }
   })
 
   test('loadConfig rejects raw reference defaults with migration guidance', async () => {
@@ -104,7 +119,7 @@ describe('config load schema contracts', () => {
     const scalarConfig = await writeTempConfig({
       defaults: {
         llm: {
-          openai: 'gpt-5.6-terra'
+          openai: 'gpt-6.1-sol'
         }
       }
     })

@@ -1,6 +1,6 @@
 # TTS Service Tests
 
-Provider-backed text-to-speech coverage for the `tts` command: ElevenLabs, Grok, Inworld, and OpenAI. These `bun t` commands may call paid or quota-limited providers.
+Live synthesis coverage for the `tts` command includes ElevenLabs, Grok, and OpenAI. Inworld has local target-selection coverage and a price estimate only. Commands below can incur provider charges except in `--price` mode.
 
 ## Quick Start
 
@@ -10,12 +10,17 @@ bun t test/test-cases/e2e/service/audio/tts/
 
 ## Provider Env Vars
 
-Live TTS synthesis tests need the matching provider key: `ELEVENLABS_API_KEY`, `XAI_API_KEY`, `INWORLD_API_KEY`, or `OPENAI_API_KEY`.
+Live synthesis needs the matching key: `ELEVENLABS_API_KEY`, `XAI_API_KEY`, or `OPENAI_API_KEY`. It also requires installed media tools and the local Whisperfile `small.en` model before synthesis. Tests validate decodable audio, provider/model/voice metadata, and approximate spoken-text agreement; they do not establish perceptual quality.
 
 ## Price Preflight
 
 ```bash
 bun t test/test-cases/e2e/service/audio/tts/ --price
+```
+
+`--price` estimates mapped commands without synthesis. `--budget 2500` runs the tests after excluding budgeted test keys estimated above 25¢; it is not a total spending cap.
+
+```bash
 bun t test/test-cases/e2e/service/audio/tts/ --budget 2500
 ```
 

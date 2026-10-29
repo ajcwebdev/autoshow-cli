@@ -35,7 +35,7 @@ describe('additive resume provider selection', () => {
       }, { extractRoute: 'media' })
 
       const tesseract: OcrTarget = { service: 'tesseract', model: 'tesseract' }
-      const openaiOcr: OcrTarget = { service: 'openai', model: 'gpt-5.6-terra' }
+      const openaiOcr: OcrTarget = { service: 'openai', model: 'gpt-6-luna' }
       await writeSingleManifestFixture(ocrDir, 'extract', {
         source: { filePath: '/tmp/document.pdf' },
         completionStatus: 'full',

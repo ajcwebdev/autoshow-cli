@@ -115,7 +115,7 @@ describe('comic compact logging contracts', () => {
           comicLog.output('generated', 'sketch', [
             'id=panels-01-04',
             'panels=panel-01,panel-02,panel-03,panel-04',
-            'model=gpt-image-2',
+            'model=gpt-image-2.5-flare',
             'mode=edit',
             'refs=3',
             'cost=$0.02',
@@ -156,7 +156,7 @@ describe('comic compact logging contracts', () => {
           comicLog.output('skipped', 'sketch', [
             'id=panels-01-04',
             'panels=1-4',
-            'model=gpt-image-2',
+            'model=gpt-image-2.5-flare',
             'refs=3',
             'path=output/01-co-work-smarter/sketches/panels-01-04.png',
           ])

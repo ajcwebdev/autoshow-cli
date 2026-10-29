@@ -8,11 +8,11 @@ describe('price mode contracts', () => {
       const timing = computeEstimatedProcessingTimes({
         sttTargets: [{ service: 'deepgram', model: 'nova-3' }],
         audioDurationSeconds: 10,
-        extractTargets: [{ provider: 'deepinfra', model: 'google/gemma-4-31B-it', pageCount: 2 }],
+        extractTargets: [{ provider: 'openai', model: 'gpt-6-luna', pageCount: 2 }],
         llmTargets: [{ service: 'openai', model: 'gpt-6-luna', inputTokens: 600, outputTokens: 400 }],
         ttsTargets: [{ service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }],
         ttsCharacterCount: 1000,
-        imageTargets: [{ service: 'openai', model: 'gpt-image-2', count: 2 }],
+        imageTargets: [{ service: 'openai', model: 'gpt-image-2.5-flare', count: 2 }],
         videoTargets: [{ service: 'gemini', model: 'gemini-omni-1.1-flash', durationSeconds: 4 }],
         musicTargets: [{ service: 'gemini', model: 'lyria-3.5' }]
       })
@@ -117,7 +117,7 @@ describe('price mode contracts', () => {
       const actual = computeActualProcessingTimes({
         ocrProviderConcurrency: 4,
         step2: [{
-          extractionMethod: 'pdf+deepinfra-ocr',
+          extractionMethod: 'pdf+openai-ocr',
           totalPages: 228,
           ocrPages: 228,
           textPages: 0,
@@ -125,8 +125,8 @@ describe('price mode contracts', () => {
           dpi: 300,
           languages: 'eng',
           tokenEstimate: 10_000,
-          ocrService: 'deepinfra',
-          ocrModel: 'google/gemma-4-31B-it'
+          ocrService: 'openai',
+          ocrModel: 'gpt-6-luna'
         }, {
           extractionMethod: 'pdf+grok-ocr',
           totalPages: 228,
@@ -137,7 +137,7 @@ describe('price mode contracts', () => {
           languages: 'eng',
           tokenEstimate: 10_000,
           ocrService: 'grok',
-          ocrModel: 'grok-4.5'
+          ocrModel: 'grok-4.7'
         }, {
           extractionMethod: 'pdf+gemini-ocr',
           totalPages: 228,
@@ -148,7 +148,7 @@ describe('price mode contracts', () => {
           languages: 'eng',
           tokenEstimate: 10_000,
           ocrService: 'gemini',
-          ocrModel: 'gemini-3.5-flash'
+          ocrModel: 'gemini-3.8-flash'
         }, {
           extractionMethod: 'pdf+gemini-ocr',
           totalPages: 228,

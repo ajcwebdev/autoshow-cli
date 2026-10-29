@@ -35,10 +35,10 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['extract', 'https://example.com/article', '--url-backend', 'firecrawl'], flag: '--url-backend' },
   { argv: ['extract', 'https://example.com/article', '--url-provider', 'spider'], flag: '--url-provider' },
   { argv: ['resume', 'output/x', '--url-provider', 'supadata'], flag: '--url-provider' },
-  { argv: ['image', 'a sunset', '--openai', 'gpt-image-2'], flag: '--openai' },
+  { argv: ['image', 'a sunset', '--openai', 'gpt-image-2.5-flare'], flag: '--openai' },
   { argv: ['video', 'a sunset', '--gemini-video', 'veo-3.1-lite-generate-preview'], flag: '--gemini-video' },
   { argv: ['music', 'ambient', '--elevenlabs', 'music_v2'], flag: '--elevenlabs' },
-  { argv: ['extract', 'input.pdf', '--glm-ocr', 'glm-5.3-flash'], flag: '--glm-ocr' },
+  { argv: ['extract', 'input.pdf', '--glm-ocr', 'x'], flag: '--glm-ocr' },
   { argv: ['extract', 'https://example.com/a.mp3', '--glm-stt', 'x'], flag: '--glm-stt' },
   { argv: ['tts', 'input/examples/tts/01-tts-short.md', '--minimax-tts-ref-audio', 'x.mp3'], flag: '--minimax-tts-ref-audio' },
   { argv: ['tts', 'input/examples/tts/01-tts-short.md', '--minimax-tts-volume', '1'], flag: '--minimax-tts-volume' },
@@ -164,7 +164,7 @@ describe('removed CLI spellings', () => {
       [{ name: 'provider', value: 'minimax', raw: '--provider minimax', known: true }],
       'provider',
       STANDALONE_VIDEO_PROVIDER_TARGETS
-    )).toThrow('Unknown provider "minimax" for --provider. Expected gemini|grok|fal.')
+    )).toThrow('Unknown provider "minimax" for --provider. Expected gemini|grok.')
   })
 
   test('bfl is not an image provider selector', () => {
@@ -174,7 +174,7 @@ describe('removed CLI spellings', () => {
       [{ name: 'provider', value: 'bfl', raw: '--provider bfl', known: true }],
       'provider',
       STANDALONE_IMAGE_PROVIDER_TARGETS
-    )).toThrow('Unknown provider "bfl" for --provider. Expected gemini|openai|grok|fal.')
+    )).toThrow('Unknown provider "bfl" for --provider. Expected gemini|openai|grok.')
   })
 
   test('retired voice subcommand aliases are not registered', () => {

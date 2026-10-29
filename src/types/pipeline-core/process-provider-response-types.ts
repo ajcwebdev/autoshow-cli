@@ -138,7 +138,7 @@ const AssemblyAiWordSchema = v.looseObject({
   start: v.number(),
   end: v.number(),
   text: v.string(),
-  speaker: v.optional(v.string(), undefined)
+  speaker: v.optional(v.nullable(v.string()), undefined)
 })
 
 export const AssemblyAiTranscriptResponseSchema = v.looseObject({

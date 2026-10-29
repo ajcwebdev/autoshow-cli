@@ -1,6 +1,6 @@
 # extract
 
-Routes each input to the appropriate extractor: media to STT, documents and images to OCR or native extraction, article HTML to URL extraction, and X/Twitter links to X Space metadata.
+Routes media to STT, documents and images to OCR or native extraction, article HTML to URL extraction, and X/Twitter Space or post links to X Space metadata.
 
 ## Outline
 
@@ -23,7 +23,7 @@ For backfilling missing provider outputs from an existing run or batch, see [`re
 | Input                                                                                               | Route                                                                                                                               |
 | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | YouTube, Twitch, or TikTok URLs                                                                     | [STT](./stt/overview.md) by default; [URL transcripts](./url/overview.md#public-media-url-transcripts) for ScrapeCreators (YouTube) |
-| Direct media URLs (`.mp3`, `.mp4`, `.wav`, `.webm`, and other audio/video extensions)               | [STT](./stt/overview.md) by default; [URL transcripts](./url/overview.md#public-media-url-transcripts) for supported public URLs    |
+| Direct media URLs (`.mp3`, `.mp4`, `.wav`, `.webm`, and other audio/video extensions)               | [STT](./stt/overview.md)                                                                                                            |
 | Local media files                                                                                   | [STT](./stt/overview.md)                                                                                                            |
 | RSS or podcast feed batches                                                                         | [STT](./stt/overview.md)                                                                                                            |
 | YouTube channel or playlist batches                                                                 | [STT](./stt/overview.md)                                                                                                            |
@@ -33,26 +33,26 @@ For backfilling missing provider outputs from an existing run or batch, see [`re
 | Local `.html` / `.htm` files                                                                        | [URL / HTML extraction](./url/overview.md)                                                                                          |
 | X/Twitter Space URLs, post URLs, and raw Space IDs                                                  | [X Space metadata](./url/overview.md#x-space-path)                                                                                  |
 | Directory batches                                                                                   | Mixed routing per discovered item                                                                                                   |
-| URL-list batches (`.md` / `.txt`)                                                                   | Mixed routing per listed URL                                                                                                        |
+| Input-list batches (`.md` / `.txt`)                                                                 | Mixed routing per listed URL, local file, or raw Space ID                                                                           |
 
-With no `--provider` selection, media uses local whisperfile `tiny`, PDFs and images use local Tesseract, and remote articles use local `defuddle`. Local HTML files always use `defuddle`. X/Twitter inputs produce metadata rather than a transcript.
+Without explicit or configured provider selections, media uses local whisperfile `tiny`, PDFs and images use local Tesseract, and remote articles use local `defuddle`. Local HTML supports `defuddle` only. X/Twitter inputs produce metadata rather than a transcript.
 
 `.acsm` files are unsupported. Obtain a readable EPUB or PDF before extraction.
 
 ## Common Options
 
-| Flag                             | Behavior                                                                     |
-| -------------------------------- | ---------------------------------------------------------------------------- |
-| `--provider provider[=model]`    | Select a provider for the detected route; repeat to select multiple targets. |
-| `--all-providers`                | Select the hosted provider targets supported by the input route.             |
-| `--all-local`                    | Run every local engine for the detected route.                               |
-| `--local-concurrency <n>`        | Max local engines running at once for one item; default `7`.                 |
-| `--price`                        | Print the estimate and exit before provider execution.                       |
-| `--output-dir <path>`            | Pin the run directory instead of a timestamped output path.                  |
-| `--batch-limit <n\|all>`         | Limit discovered batch items; defaults to `5`.                               |
-| `--batch-order <newest\|oldest>` | Choose batch ordering.                                                       |
-| `--batch-concurrency <n>`        | Limit the number of batch items processed concurrently.                      |
-| `--provider-concurrency <n>`     | Limit hosted provider/model targets processed concurrently for an item.      |
+| Flag                             | Behavior                                                                                                  |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `--provider provider[=model]`    | Select targets for the detected route; repeat for STT/OCR targets. Articles accept one backend at a time. |
+| `--all-providers`                | Select the hosted provider targets supported by the input route.                                          |
+| `--all-local`                    | Run every local engine for the detected route.                                                            |
+| `--local-concurrency <n>`        | Max local engines running at once for one item; default `7`, or `10` for OCR.                             |
+| `--price`                        | Print the estimate and exit before provider execution.                                                    |
+| `--output-dir <path>`            | Pin the run directory instead of a timestamped output path.                                               |
+| `--batch-limit <n\|all>`         | Limit discovered batch items; defaults to `5`.                                                            |
+| `--batch-order <newest\|oldest>` | Choose batch ordering.                                                                                    |
+| `--batch-concurrency <n>`        | Limit the number of batch items processed concurrently.                                                   |
+| `--provider-concurrency <n>`     | Limit hosted provider/model targets processed concurrently for an item.                                   |
 
 Local STT, OCR, and article engines are free. Install them with [`bun autoshow setup`](../00-setup-and-utilities/setup.md). Article extraction rejects an explicit `--provider` combined with `--all-providers` or `--all-local`.
 
@@ -65,7 +65,7 @@ bun autoshow extract input/examples/batch/2-urls.md --batch-limit all
 bun autoshow extract input/examples/document --batch-limit all
 ```
 
-For a YouTube channel or playlist, supply a real public URL you can access. This is a template: replace the value before running it. Install `yt-dlp` with `setup` and follow the [cookies guide](../00-setup-and-utilities/cookies.md) if YouTube challenges the request. Start with one item so you can inspect the discovered source before expanding the batch.
+For a YouTube channel or playlist, replace the placeholder below with a public URL you can access. Install `yt-dlp` with `setup` and follow the [cookies guide](../00-setup-and-utilities/cookies.md) if YouTube challenges the request. Start with one item to inspect discovery and pricing.
 
 ```bash
 YOUTUBE_BATCH_URL='<your-public-youtube-channel-or-playlist-url>'
@@ -73,7 +73,7 @@ bun autoshow metadata "$YOUTUBE_BATCH_URL" --batch-limit 1
 bun autoshow extract "$YOUTUBE_BATCH_URL" --batch-limit 1 --price
 ```
 
-After the metadata succeeds and you review the estimate, remove `--price` to extract that item. Increase `--batch-limit` deliberately; `all` selects every discovered item. Metadata success does not guarantee a later download or transcript, and price-only output does not check source availability.
+After reviewing the metadata and estimate, remove `--price` to extract that item. `--batch-limit all` selects every discovered item. Metadata success does not guarantee a later download or transcript, and price-only output does not check source availability.
 
 Mixed batches write a parent run directory with `media/`, `document/`, `article/`, and `x-space/` child directories for the routes used.
 

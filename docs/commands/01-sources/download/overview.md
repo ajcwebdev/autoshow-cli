@@ -1,8 +1,8 @@
 # download
 
-Download media, documents, articles, or X Space audio and collect metadata only.
+Download media or X Space audio, or collect document and article metadata.
 
-Document and article inputs write metadata only. Media inputs use `--media-quality audio` to write compressed audio. Select `original` to preserve source media or `best` to select the best available video and audio.
+Media inputs default to `--media-quality audio`, producing an audio-only file. Select `original` to preserve the selected source audio or media without normalization, or `best` to select the best available video and audio. Document and article inputs write metadata only.
 
 ## Outline
 
@@ -16,18 +16,19 @@ Document and article inputs write metadata only. Media inputs use `--media-quali
 ```bash
 bun autoshow download [input] [flags]
 ```
+
 ## Supported Inputs
 
 | Input                                                                 | Behavior                                                         |
 | --------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| YouTube / Twitch / TikTok URL                                         | Download as compressed audio                                     |
-| Direct media URL (`.mp3`, `.mp4`, etc.)                               | Download as compressed audio                                     |
+| YouTube / Twitch / TikTok URL                                         | Download audio by default                                        |
+| Direct media URL (`.mp3`, `.mp4`, etc.)                               | Download audio by default                                        |
 | Direct document or image URL (`.pdf`, `.epub`, `.docx`, `.png`, etc.) | Collect document metadata                                        |
 | Remote article / HTML URL                                             | Collect article metadata; choose a backend with `--url-provider` |
-| X/Twitter Space URL or raw Space ID                                   | Download Space audio as compressed audio                         |
+| X/Twitter Space URL or raw Space ID                                   | Download Space audio                                             |
 | X/Twitter post URL                                                    | Download the linked Space audio                                  |
 | Local `.html` / `.htm` file                                           | Collect article metadata (`defuddle`)                            |
-| Local media file                                                      | Convert to compressed audio                                      |
+| Local media file                                                      | Prepare audio by default                                         |
 | Local document or image file                                          | Collect document metadata                                        |
 | YouTube channel or playlist URL                                       | Batch the latest videos                                          |
 | RSS / podcast feed URL                                                | Batch the latest episodes                                        |
@@ -55,23 +56,25 @@ Convertible ebooks (MOBI, AZW/AZW3, PRC, FB2, and LIT) require Calibre.
 
 Shared globals such as `--output-root`, `--output-dir`, `--json`, and logging flags are documented in [`usage.md`](../../00-setup-and-utilities/usage.md).
 
-The compatibility aliases `--keep-original-media` and `--best-quality` remain accepted for existing scripts. Use `--media-quality original` or `--media-quality best` for new commands. Do not combine `--media-quality` with either alias.
-
 ## yt-dlp Passthrough
 
 Use `--` after the input and flags to pass extra arguments to yt-dlp:
 
 ```bash
-bun autoshow download "https://youtube.com/watch?v=abc" -- --write-thumbnail
+bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU" -- --write-thumbnail
 bun autoshow download input/examples/batch/2-urls.md --batch-limit 3 -- --format bestaudio
 ```
+
 Passthrough works for media URL downloads, including direct media URLs, podcast feed items, and X Space downloads. Local files, documents, and articles reject it.
+
+Each input must produce exactly one primary media file. Use raw mode for workflows that produce no media or multiple media files.
 
 Without an input, `download --` runs yt-dlp directly:
 
 ```bash
-bun autoshow download -- --format bestaudio -o "%(title)s.%(ext)s" "https://youtube.com/watch?v=abc"
+bun autoshow download -- --format bestaudio -o "%(title)s.%(ext)s" "https://www.youtube.com/watch?v=u1-WHqATSQU"
 ```
+
 ## Output
 
 **Media inputs**
@@ -131,6 +134,7 @@ bun autoshow download https://example.com/feed --batch-limit all --media-quality
 
 bun autoshow download input/examples/batch/2-urls.md --batch-limit all
 ```
+
 ## Setup and Environment
 
 Setup details are in [`setup.md`](../../00-setup-and-utilities/setup.md).

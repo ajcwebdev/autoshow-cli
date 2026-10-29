@@ -28,15 +28,6 @@ export const geminiOcr = {
   envVarKey: 'GEMINI_API_KEY',
 } as const
 
-export const deepinfraOcr = {
-  provider: 'deepinfra',
-  extractionMethod: 'deepinfra-ocr',
-  imageExtractionMethod: 'image+deepinfra-ocr',
-  envVarKey: 'DEEPINFRA_API_KEY',
-  imageInput: 'input/examples/document/1-document.jpg',
-  assertUsageMetadata: true,
-} as const
-
 export const grokOcr = {
   provider: 'grok',
   extractionMethod: 'grok-ocr',

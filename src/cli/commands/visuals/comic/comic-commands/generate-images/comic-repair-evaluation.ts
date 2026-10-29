@@ -8,7 +8,7 @@ import type {
 } from '~/types'
 import { runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script-utils/llm-cost'
-import { advancePageQaRepairStagnation, applyPageQaRepairPolicy, createPageQaRepairStagnationState, getPageQaHardFailureKeys, isBlockingMaterialFailure, resolveComicQaProvider } from './comic-page-qa'
+import { advancePageQaRepairStagnation, applyPageQaRepairPolicy, createPageQaRepairStagnationState, getPageQaHardFailureKeys, isBlockingMaterialFailure, judgePageWithBoundInputs, resolveComicQaProvider } from './comic-page-qa'
 import type { QaAttemptTotals } from './comic-repair-attempt-types'
 import { buildComicRepairComparisonPrompt, decideComicRepairCandidate, parseComicRepairComparison, requestComicRepairComparison } from './comic-repair-comparison'
 
@@ -22,6 +22,24 @@ export const writeAttemptQaEvidence = async (attemptsDirectory: string, attempt:
   await Bun.write(join(attemptsDirectory, `attempt-${attempt}-qa.json`), `${JSON.stringify(entry, null, 2)}\n`)
 }
 
+export const buildQaImageRequest = (
+  input: GenerateWithQaRepairInput,
+  pagePath: string
+): PageQaRequest => ({
+  pageNumber: input.itemNumber,
+  pagePath,
+  panelData: input.bundleData,
+  identityCards: input.resolvedReferences.primaryCharacterRefs ?? [],
+  locationSheets: input.resolvedReferences.secondaryRefs ?? [],
+  designSheets: input.resolvedReferences.designReferences?.map(ref => ref.path),
+  characterReferences: input.resolvedReferences.characterReferences,
+  locationReferences: input.resolvedReferences.locationReferences,
+  designReferences: input.resolvedReferences.designReferences as PageQaRequest['designReferences'],
+  ...(input.kind === 'panel' && input.resolvedReferences.rosterCharacterReferences?.length ? { rosterCards: input.resolvedReferences.rosterCharacterReferences } : {}),
+  ...(input.blockingHardKeys?.length ? { blockingHardKeys: input.blockingHardKeys } : {}),
+  model: input.judgeModel,
+})
+
 export const judgeQaImage = async (
   input: GenerateWithQaRepairInput,
   pagePath: string
@@ -31,20 +49,7 @@ export const judgeQaImage = async (
   'comic-qa',
   `${input.sceneSlug}:${input.kind}-${input.itemNumber}:qa`,
   input.nextHostedIndex(),
-  async () => await input.judge({
-    pageNumber: input.itemNumber,
-    pagePath,
-    panelData: input.bundleData,
-    identityCards: input.resolvedReferences.primaryCharacterRefs ?? [],
-    locationSheets: input.resolvedReferences.secondaryRefs ?? [],
-    designSheets: input.resolvedReferences.designReferences?.map(ref => ref.path),
-    characterReferences: input.resolvedReferences.characterReferences,
-    locationReferences: input.resolvedReferences.locationReferences,
-    designReferences: input.resolvedReferences.designReferences as PageQaRequest['designReferences'],
-    ...(input.kind === 'panel' && input.resolvedReferences.rosterCharacterReferences?.length ? { rosterCards: input.resolvedReferences.rosterCharacterReferences } : {}),
-    ...(input.blockingHardKeys?.length ? { blockingHardKeys: input.blockingHardKeys } : {}),
-    model: input.judgeModel,
-  })
+  async () => await judgePageWithBoundInputs(buildQaImageRequest(input, pagePath), input.judge)
 )
 
 export const evaluateGenerationAttempt = async (input: {

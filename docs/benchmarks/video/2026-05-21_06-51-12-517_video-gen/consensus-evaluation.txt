@@ -1,46 +1,43 @@
-Consensus evaluation for video generation run 2026-05-21_06-51-12-517_video-gen.
+Video consensus evaluation
 
-This evaluation is based only on packet metadata. It does not include visual or audio quality assessment.
+Run directory: docs/benchmarks/video/2026-05-21_06-51-12-517_video-gen
+Category: video
+Evidence source: canonical manifest, consensus packet and local MP4 decoding/probes.
 
-All 9 retained provider outputs have recorded MP4 artifact metadata. The MP4 files themselves are not present in the committed run directory.
+This evaluation uses measurable evidence only. No video was watched or listening assessment performed. Visual quality, prompt adherence, motion quality, spoken correctness and human preference remain unmeasured.
 
-Recorded durations:
-- 4 seconds: gemini/veo-3.1-lite-generate-preview
-- 5 seconds: glm/cogvideox-3, glm/viduq1-text, runway/gen4.5, fal/minimax/h3
-- 6 seconds: minimax/T2V-01, minimax/T2V-01-Director, minimax/MiniMax-Hailuo-2.3
-- 8 seconds: grok/grok-imagine-video-1.5
+Scope
 
-Recorded processing time, fastest to slowest:
-1. grok/grok-imagine-video-1.5: 32,747 ms
-2. gemini/veo-3.1-lite-generate-preview: 41,408 ms
-3. minimax/MiniMax-Hailuo-2.3: 72,335 ms
-4. runway/gen4.5: 101,564 ms
-5. glm/cogvideox-3: 149,944 ms
-6. minimax/T2V-01-Director: 154,630 ms
-7. glm/viduq1-text: 190,835 ms
-8. fal/minimax/h3: 370,169 ms
-9. minimax/T2V-01: 401,029 ms
+- Providers: 3 service providers, 0 local providers.
+- All three MP4 files are present; file sizes match the recorded metadata.
+- Gemini Omni was added on 2026-10-23 with one provider-selected-length request.
+- Grok Video 1.5 Lite was added on 2026-10-29 with one explicit 8-second/480p request; the exact returned model identity matches the request.
+- SHA-256 checks confirm both earlier provider videos are unchanged.
 
-Recorded cost, lowest to highest:
-1. minimax/T2V-01: 19 cents
-2. minimax/T2V-01-Director: 19 cents
-3. gemini/veo-3.1-lite-generate-preview: 20 cents
-4. glm/cogvideox-3: 20 cents
-5. minimax/MiniMax-Hailuo-2.3: 28 cents
-6. glm/viduq1-text: 40 cents
-7. runway/gen4.5: 60 cents
-8. grok/grok-imagine-video-1.5: 64 cents
-9. fal/minimax/h3: 130 cents
+Recorded durations
 
-Recorded artifact file sizes, smallest to largest:
-1. minimax/MiniMax-Hailuo-2.3: 656,822 bytes
-2. minimax/T2V-01: 939,971 bytes
-3. runway/gen4.5: 1,415,618 bytes
-4. gemini/veo-3.1-lite-generate-preview: 1,453,888 bytes
-5. minimax/T2V-01-Director: 1,459,596 bytes
-6. grok/grok-imagine-video-1.5: 1,565,638 bytes
-7. glm/cogvideox-3: 3,551,253 bytes
-8. glm/viduq1-text: 4,069,481 bytes
-9. fal/minimax/h3: 8,634,227 bytes
+- grok/grok-imagine-video-1.5: 8 generated seconds (recorded).
+- grok/grok-imagine-video-1.5-lite: 8 generated seconds; local container probe 8.041667 seconds, H.264/AAC at 848x480. Full local video decoding passed.
+- gemini/gemini-omni-1.1-flash: no recorded duration; retained local container measurement 10.005 seconds.
 
-No packet warnings were reported beyond missing committed MP4 files.
+Recorded processing time, fastest to slowest
+
+1. grok/grok-imagine-video-1.5-lite: 22460 ms
+2. grok/grok-imagine-video-1.5: 32747 ms
+3. gemini/gemini-omni-1.1-flash: 33278 ms
+
+Recorded cost, lowest to highest
+
+1. grok/grok-imagine-video-1.5-lite: 16 cents (provider usage).
+2. grok/grok-imagine-video-1.5: 64 cents (provider usage).
+3. gemini/gemini-omni-1.1-flash: 100 cents (registry rate; provider returned no usage).
+
+Recorded artifact file sizes, smallest to largest
+
+1. grok/grok-imagine-video-1.5: 1565638 bytes
+2. grok/grok-imagine-video-1.5-lite: 2190970 bytes
+3. gemini/gemini-omni-1.1-flash: 3056647 bytes
+
+Lite SHA-256: aa98f2bc9421ade4dcf9f03091258c735e09e9dd2bbf91d7d0911a675712512b
+Provider-reported usage receipts are not reconciled invoice charges.
+No packet warnings were reported.

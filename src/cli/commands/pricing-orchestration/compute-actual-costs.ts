@@ -1,6 +1,7 @@
 import { estimateSonioxTtsCost } from '~/cli/commands/audio/tts/tts-services/tts-soniox/soniox-tts-pricing'
 import {
   getImageCost,
+  getImageModelMeta,
   getLlmCost,
   getMusicModelMeta,
   getRetiredModelRate
@@ -185,7 +186,6 @@ const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
   const estimate = estimateVideoCost({
     ...(entry.videoGenService === 'gemini' ? { geminiVideoModels: [entry.videoGenModel] } : {}),
     ...(entry.videoGenService === 'grok' ? { grokVideoModels: [entry.videoGenModel] } : {}),
-    ...(entry.videoGenService === 'fal' ? { falVideoModels: [entry.videoGenModel], falVideoReferenceVideoCount: entry.referenceVideos?.length ?? 0, falInputVideoDurationSeconds: entry.inputVideoDurationSeconds } : {}),
     ...(typeof entry.videoDuration === 'number' ? { videoDuration: entry.videoDuration } : {}),
     ...(typeof entry.videoAspectRatio === 'string' ? { videoAspectRatio: entry.videoAspectRatio } : {}),
     ...(typeof entry.videoResolution === 'string' ? { videoResolution: entry.videoResolution } : {}),
@@ -204,7 +204,7 @@ const computeImageFallbackCost = (
 ): number => {
   if (
     metadata.imageService === 'openai'
-    && (metadata.imageModel === 'gpt-image-2' || isOpenAIImage25Model(metadata.imageModel))
+    && isOpenAIImage25Model(metadata.imageModel)
   ) {
     const estimate = estimateImageCosts({
       openaiImageModels: [metadata.imageModel],
@@ -213,6 +213,11 @@ const computeImageFallbackCost = (
     })[0]
     const costPerImageCents = estimate?.costPerImageCents ?? getImageCost(metadata.imageService, metadata.imageModel)
     return costPerImageCents * imageCount
+  }
+
+  if (metadata.imageService === 'gemini') {
+    const meta = getImageModelMeta('gemini', metadata.imageModel)
+    return (meta?.costPerImageBySizeCents?.[metadata.imageSize ?? '1K'] ?? getImageCost('gemini', metadata.imageModel)) * imageCount
   }
 
   return getImageCost(metadata.imageService, metadata.imageModel) * imageCount

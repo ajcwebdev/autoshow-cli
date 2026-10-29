@@ -4,9 +4,9 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-14
-- **Date Updated:** 2026-09-22
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
-- **Supersession:** Absorbs the `links` parser and selection-grammar decision of "Integrate Comic with Shared Model and Native CLI Infrastructure". `--refresh-only` is not a flag; `--refresh` rewrites the bundle, and a refresh without `--output-dir` reuses `docs/links/<selection>-links/`.
+- **Supersession:** Absorbs the `links` parser and selection-grammar decision of "Integrate Comic with Shared Model and Native CLI Infrastructure".
 
 ## Context
 
@@ -25,7 +25,7 @@ Why now: `links` is used as a repeatable documentation snapshot and as the first
 - **Option:** Opt-in `--refresh` that rewrites the bundle, writes a JSON sidecar and a changes diff, and reports links that need attention; plain runs write timestamped `output/` directories, and a refresh without `--output-dir` reuses `docs/links/<selection>-links/`
 - **Pros:** Markdown-only output stays the default; a refresh compares against a stable directory without passing it every time; `--output-dir` still pins either kind of run
 - **Cons:** Extra artifacts on refresh; attention findings still exit 0; a default refresh writes under `docs/links/` even when `--output-root` is set
-- **Quantitative Notes:** One sidecar per refresh and one changes file from the second comparison on
+- **Quantitative Notes:** One sidecar per refresh; a changes file when a previous bundle and refresh metadata are available
 
 **Option 2**
 
@@ -80,13 +80,13 @@ Why now: `links` is used as a repeatable documentation snapshot and as the first
 
 ## Decision
 
-`--refresh` fetches every unique selected link, records a content hash, a change hash, and a reference token count for the converted markdown, compares them with the previous refresh, writes a JSON sidecar beside the markdown, and always rewrites the bundle. From the second comparison on it also writes `<selection>-links.changes.md`, a diff of each changed link taken from the bundle it is about to overwrite, plus links that are new or no longer selected. `--refresh-only` is an unknown flag.
+Keep the order-sensitive provider selection grammar on the shared command parser, and make freshness comparison opt-in through `--refresh`. A refresh fetches every unique selected link, compares the converted Markdown with the previous refresh, writes hashes and reference token counts in a JSON sidecar, and always rewrites the bundle.
 
-Change status is `new`, `unchanged`, `changed`, or `failed`. Comparison ignores line order and ISO 8601 timestamps, so a reorder or a regenerated timestamp reads as `unchanged`. `contentHash` is the normalized markdown body and `changeHash` is what change status compares. A failed fetch keeps the previous successful hash, token count, and timestamp when they exist. Token counts are reference estimates for context sizing. Each link records `startLine` and `lineCount` so one page can be read out of the bundle.
+When both the previous bundle and refresh metadata are available, the refresh also writes `<selection>-links.changes.md` with diffs and lists of new or removed links. Change status is `new`, `unchanged`, `changed`, or `failed`; comparison ignores line order and ISO 8601 timestamps. A failed fetch preserves previous successful comparison metadata, and token counts are estimates for context sizing.
 
-The sidecar includes a `findings` array and `totals.attentionCount`. Findings are logged as warnings and the command exits 0. The statuses are `http-error`, `fetch-failed`, `empty`, `login-redirect`, `duplicate-target`, `redirect`, `duplicate-content`, `shrunk`, `conversion-loss`, and `model-undocumented`. `shrunk` reports a page at or below 60% of its previous token count, `conversion-loss` reports identifiers the previous capture held, the page still has, and this run's markdown lost, and `duplicate-content` uses `contentHash`.
+Findings flag failed, empty, redirected, duplicate, shrunken, or incomplete captures in the sidecar and warnings. These findings, including fetch failures, do not make the command exit unsuccessfully.
 
-A refresh that selects every provider, or each `--provider` named without sections, also fetches the documentation pages the model registry cites for prices and catalogs; a source on an `api.` host is skipped. A section-scoped, direct-URL, or input-file refresh fetches only what it was asked for. `model-undocumented` reports a configured model id that no fetched page of its source site spells out, omitting ids that no documentation page is expected to spell out. Refresh does not update hand-written registry check dates.
+A whole-provider refresh also fetches documentation pages the model registry cites for prices and catalogs and reports configured model IDs missing from the fetched documentation, except documented exemptions. A section-scoped, direct-URL, or input-file refresh fetches only the requested selection. Refresh does not update registry check dates.
 
 Model-reference URLs live in `models` sections, so `links models` and provider-scoped `models` selections stay complete and the same URL is not repeated across categories.
 
@@ -101,7 +101,7 @@ This applies to:
 
 It does not apply to:
 
-- A plain `links` run, which writes markdown only and does not compare.
+- Freshness comparison on plain runs, which write Markdown only.
 - Choosing or editing curated documentation URLs, registry check dates, or the combined markdown format.
 - Pipeline `manifest.json` or `resume` for `links`.
 - The other command surfaces that adopted the native parser ([ADR-006](ADR-006-top-level-command-boundaries-and-deprecations.md)).
@@ -109,7 +109,7 @@ It does not apply to:
 
 ### Selection grammar
 
-`links` uses the same command parser as every other command. Positionals after `--provider <name>` belong to that provider until the next `--provider`, and leading positionals are global sections. Inline values such as `--provider openai=models` are invalid, and unknown dashed selectors, including retired per-provider flags such as `--openai`, fail as unknown flags. `--provider` is a documented repeatable flag, and `links --help-topic providers` lists the provider names and this scoping.
+Positionals after `--provider <name>` belong to that provider until the next `--provider`, and leading positionals are global sections. Inline values such as `--provider openai=models` are invalid, and unknown dashed selectors fail as unknown flags. `links --help-topic providers` lists provider names and this scoping.
 
 ## Rationale
 
@@ -156,10 +156,6 @@ Negative outcomes:
 - **Gain:** Registered provider names and the same unknown-flag validation as every other command
 - **Sacrifice:** `--provider` stays order-sensitive, and `provider=section` values are rejected
 
-## Implementation Note
-
-`--refresh`, the `models` sections, the run-directory rules, and the shared-parser grammar with `links --help-topic providers` have shipped. User-facing behavior is documented in `docs/commands/00-setup-and-utilities/links.md`.
-
 ## Test Plan
 
 ```bash
@@ -172,7 +168,7 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 1. First and repeated refreshes, hash and token-count changes, reorder and timestamp edits treated as unchanged, and a failed fetch preserving previous metadata.
 2. Direct URL mode, input file mode, URL deduplication, findings, the changes diff, and model-registry source pages.
 3. Run directories under `--output-root`, pinned `--output-dir`, and `--refresh` reusing one directory per selection.
-4. Invalid inline `--provider` values and unknown-flag failures, including the retired `--openai` selector and `--refresh-only`.
+4. Invalid inline `--provider` values and unknown-flag failures.
 
 Verification is local and no-cost.
 
@@ -182,3 +178,4 @@ Verification is local and no-cost.
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)
 - Related ADR: [ADR-015](ADR-015-govern-documentation-examples-and-verification-evidence.md)
 - `docs/commands/00-setup-and-utilities/links.md`
+- `src/cli/commands/setup-and-utilities/links/define-links-command.ts`

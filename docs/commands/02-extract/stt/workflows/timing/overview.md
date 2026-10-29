@@ -4,7 +4,7 @@ See the [STT overview](../../overview.md) for provider selection and shared opti
 
 These `extract` operations work with local audio and saved `result.json` files. They never submit a hosted provider request. Each operation supports `--json`, `--output-dir`, and zero-provider-cost `--price`. Run one operation at a time into a fresh output directory. Provider and caption options are rejected. A failed operation keeps completed artifacts and working files for inspection.
 
-The following chain uses the licensed 24-second recording and its matching [published-subtitle transcript](../../../../../../input/examples/video/README.md). Complete the [review/apply steps](../transcript-review/overview.md) first to create `runtime/examples/speech-workflows/reviewed/result.json`. Its subtitle segments are coarse; they cannot be used directly as an acoustic word reference. Alignment below supplies word evidence, while installed Whisperfile produces the candidate. Choose a fresh base directory if these outputs already exist.
+The following chain uses the licensed 24-second recording and its matching [published-subtitle transcript](../../../../../../input/examples/video/README.md). Complete the [review/apply steps](../transcript-review/overview.md) first to create `runtime/examples/speech-workflows/reviewed/result.json`. Its coarse subtitle segments cannot be used directly as an acoustic word reference. Alignment supplies word evidence, while installed Whisperfile produces the candidate.
 
 ### Force-align supplied text locally
 
@@ -17,9 +17,9 @@ bun --no-env-file install --cwd config/stt-alignment --frozen-lockfile --ignore-
 bun --no-env-file src/tools/install-alignment-model.ts
 ```
 
-The runtime graph pins onnxruntime-node 1.29.0 and the installer pins model revision `729c1a6730fb549c20a1c73a3d3f96f11020225e`. These commands are explicit one-time network prerequisites; alignment and default tests never download them. The installer downloads about 378 MB, verifies SHA-256 hashes, reuses matching files, and leaves conflicting files in place. Pass that installed ONNX directory to `--alignment-model`. PyTorch weights are rejected; keep a PyTorch folder separate from the ONNX directory.
+These commands are one-time network prerequisites; alignment never downloads the runtime or model. The installer downloads about 378 MB, verifies SHA-256 hashes, reuses matching files, and leaves conflicting files in place. Pass the installed ONNX directory to `--alignment-model`. PyTorch weights are rejected; keep them separate from the ONNX directory.
 
-The runtime supports macOS and Linux on x64 and ARM64. The default Docker image omits it; the optional `alignment` image target includes it. A compiled CLI needs Bun on PATH and, under the project root, `config/stt-alignment/node_modules/` and `src/cli/commands/stt/workflows/timing/stt-onnx-worker.js`.
+The runtime supports macOS and Linux on x64 and ARM64. The default Docker image omits it; the optional `alignment` image target includes it.
 
 Supply a saved transcript whose segments cover its complete text. Each segment needs a positive, non-overlapping range of at most 30 seconds on the input audio timeline. The matching reviewed fixture already supplies these spans; do not replace it with an unrelated transcript.
 
@@ -27,7 +27,7 @@ Supply a saved transcript whose segments cover its complete text. Each segment n
 bun autoshow extract input/examples/audio/01-two-speaker-speech-stereo.wav --align-transcript runtime/examples/speech-workflows/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h-onnx --output-dir runtime/examples/speech-workflows/aligned --json
 ```
 
-Original spelling and punctuation stay as display text. Unsupported letters or numerals fail. Spell numbers as spoken when the vocabulary cannot represent digits. Keep unheard or unsupported words in the transcript and fix the text from the recording. This install establishes English support only. Another language needs its own installed model and validation.
+Original spelling and punctuation stay as display text. Unsupported letters or numerals fail; review the text against the recording and spell numbers as spoken when the vocabulary cannot represent digits. This install establishes English support only. Another language needs its own installed model and validation.
 
 The aligner cannot restore missing transcript text, choose wording, separate overlapping speech on one channel, or infer speakers. Separate channels before alignment when each voice has its own channel. Speaker labels come from the supplied segments. Timing is relative to the supplied audio, and each segment offset is applied once. Apply a source video's additional audio offset when exporting captions.
 
@@ -35,13 +35,13 @@ The aligner cannot restore missing transcript text, choose wording, separate ove
 
 A successful run writes `result.json` and `alignment.json`, and keeps working files under `alignment-work/`. New timing is marked `aligned` and `manuallyVerified: false`.
 
-With this recording and pinned model, the default run rejects 23 of 67 words below `0.1`; it produces diagnostics, not `aligned/result.json`. Preserve that directory. The following separate diagnostic run deliberately accepts low-confidence ranges so comparison and calibration can be exercised:
+If the default run rejects low-confidence words, preserve its diagnostics. The following separate diagnostic run deliberately accepts those ranges so comparison and calibration can be exercised:
 
 ```bash
 bun autoshow extract input/examples/audio/01-two-speaker-speech-stereo.wav --align-transcript runtime/examples/speech-workflows/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h-onnx --alignment-min-confidence 0 --output-dir runtime/examples/speech-workflows/aligned-exploratory --json
 ```
 
-Its 67 word ranges retain all 23 low-confidence flags and `manuallyVerified: false`. Review them against the recording before relying on their boundaries. This diagnostic output does not establish acoustic accuracy or spoken-text correctness.
+The diagnostic result retains low-confidence flags and `manuallyVerified: false`. Review its ranges against the recording before relying on their boundaries.
 
 ### Compare saved word timing
 
@@ -52,11 +52,11 @@ bun autoshow extract input/examples/audio/01-two-speaker-speech-stereo.wav --pro
 bun autoshow extract runtime/examples/speech-workflows/whisper/result.json --timing-reference runtime/examples/speech-workflows/aligned-exploratory/result.json --output-dir runtime/examples/speech-workflows/timing-comparison --json
 ```
 
-`timing-comparison.json` reports ordered word matches, reference and candidate coverage, unmatched words, absolute start and end differences (median, p95, and maximum), how many matched words fall inside 50, 100, and 250 ms on both boundaries, drift by minute, timing provenance, and canonical speaker-label agreement. Coverage counts every word. Boundary statistics count matched words. The millisecond bands are fixed report settings. Invalid or empty word intervals are rejected. The original coarse subtitle fixture has no acoustic word evidence and is rejected as a direct reference.
+`timing-comparison.json` reports word coverage, unmatched words, boundary differences, drift, timing provenance, and exact speaker-label agreement. Coverage counts every word; boundary statistics count matched words. Invalid or empty word intervals are rejected. The original coarse subtitle fixture has no acoustic word evidence and is rejected as a direct reference.
 
 Compare excerpts that already correspond. Matching keeps word order and repeated words. Split a substantially divergent comparison into shorter matching excerpts. Speaker scores require the same canonical labels; this Whisperfile candidate has no reviewed character identities, so its speaker score is not an identity assessment.
 
-The report keeps the reference's provenance and marks a reference without provenance as unverified. It measures agreement with that reference. A defensible acoustic accuracy claim needs a manually verified reference. Automatic alignment, provider confidence, and stored millisecond timestamps are agreement evidence only.
+The report retains the reference's provenance and marks a reference without provenance as unverified. It measures agreement with that reference; acoustic accuracy requires an independently verified acoustic reference.
 
 ### Calibrate installed whisperfile timing
 
@@ -68,7 +68,7 @@ Whisperfile is the only calibration engine. `--whisper-calibration-model` defaul
 
 DTW word boundaries are estimated from token centers and marked `repaired`. `calibration.json` ranks measurable variants by lexical coverage, then by combined median start and end difference, and records local runtime. Calibration leaves transcription defaults unchanged. It makes no recommendation when no words match. A result applies only to the selected reference, engine, model, and executable version.
 
-The installed tiny bundle measured 57 matching words out of 67 against this diagnostic reference and recorded DTW as unsupported. Its recommendation is for agreement with that automatic, low-confidence reference only. Inspect `referenceProvenance`, `unsupportedVariants`, and `rejectedVariants` before interpreting a result. This word-timing artifact is separate from the shared test runner's [model timeout calibration](../../../../testing.md#shared-runner-behavior).
+Inspect `referenceProvenance`, `unsupportedVariants`, and `rejectedVariants` before interpreting a recommendation. With the diagnostic reference above, it measures agreement with automatic, low-confidence timing. This is separate from the shared test runner's [model timeout calibration](../../../../testing.md#shared-runner-behavior).
 
 ### Preserve and transcribe separate channels
 

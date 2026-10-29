@@ -81,154 +81,22 @@
           "costMultiplier": 1,
           "msPerSecond": 10000
         }
-      }
-    }
-  },
-  "fal": {
-    "description": "fal.ai hosted video generation",
-    "type": "api",
-    "billedDurations": [
-      5
-    ],
-    "models": {
-      "minimax/h3": {
-        "description": "MiniMax H3 multimodal video generation with native audio",
-        "pricingSourceUrl": "https://fal.ai/models/minimax/h3/text-to-video",
-        "pricingCheckedAt": "2026-08-06",
+      },
+      "grok-imagine-video-1.5-lite": {
+        "description": "Grok Imagine Video 1.5 Lite text and image video generation; 1080p upscaled from 720p",
+        "pricingSourceUrl": "https://docs.x.ai/developers/models/grok-imagine-video-1.5-lite",
+        "pricingCheckedAt": "2026-10-29",
         "pricingCurrency": "USD",
-        "pricingTier": "fal.ai public model pricing",
-        "pricingNotes": "fal.ai lists MiniMax H3 at $0.26 per generated second.",
-        "baseCostPerSecondCents": 26,
+        "pricingTier": "Public prepaid pay-as-you-go API; no recurring commitment required",
+        "pricingNotes": "Output costs $0.02/s at 480p, $0.03/s at 720p, and $0.14/s at 1080p (upscaled from 720p). Each input image costs $0.01. Text-to-video and image-to-video only; references, pinned frames and voice references unsupported. No Batch discount is published. Manual funding minimum and credit expiry are unknown; discounts, taxes and credits excluded.",
+        "baseCostPerSecondCents": 2,
+        "resolutionMultiplier720p": 1.5,
+        "resolutionMultiplier1080p": 7,
+        "inputImageCostCents": 1,
         "estimation": {
           "costMultiplier": 1,
-          "msPerSecond": 12000
+          "msPerSecond": 10000
         }
-      },
-      "bytedance/seedance-2.5/text-to-video": {
-        "pricingCheckedAt": "2026-09-11",
-        "pricingCurrency": "USD",
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 12000
-        },
-        "description": "bytedance/seedance-2.5/text-to-video with native audio",
-        "pricingSourceUrl": "https://fal.ai/models/bytedance/seedance-2.5/text-to-video",
-        "pricingTier": "Token-based billing, including reference-video duration",
-        "pricingNotes": "Published approximate output-second equivalents at 16:9. Token rate is $0.0214/1000 at 480p/720p, $0.0234/1000 at 1080p; reference videos apply 0.6 to the token rate and bill input plus output duration. Unknown input duration is budgeted at the 30.2s host limit. Audio on/off has the same price.",
-        "costPerSecondByResolutionCents": {
-          "480p": 22.05,
-          "720p": 47.3,
-          "1080p": 116.4
-        },
-        "baseCostPerSecondCents": 47.3
-      },
-      "bytedance/seedance-2.5/image-to-video": {
-        "pricingCheckedAt": "2026-09-11",
-        "pricingCurrency": "USD",
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 12000
-        },
-        "description": "bytedance/seedance-2.5/image-to-video with native audio",
-        "pricingSourceUrl": "https://fal.ai/models/bytedance/seedance-2.5/image-to-video",
-        "pricingTier": "Token-based billing, including reference-video duration",
-        "pricingNotes": "Published approximate output-second equivalents at 16:9. Token rate is $0.0214/1000 at 480p/720p, $0.0234/1000 at 1080p; reference videos apply 0.6 to the token rate and bill input plus output duration. Unknown input duration is budgeted at the 30.2s host limit. Audio on/off has the same price.",
-        "costPerSecondByResolutionCents": {
-          "480p": 22.05,
-          "720p": 47.3,
-          "1080p": 116.4
-        },
-        "baseCostPerSecondCents": 47.3
-      },
-      "bytedance/seedance-2.5/reference-to-video": {
-        "pricingCheckedAt": "2026-09-11",
-        "pricingCurrency": "USD",
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 12000
-        },
-        "description": "bytedance/seedance-2.5/reference-to-video with native audio",
-        "pricingSourceUrl": "https://fal.ai/models/bytedance/seedance-2.5/reference-to-video",
-        "pricingTier": "Token-based billing, including reference-video duration",
-        "pricingNotes": "Published approximate output-second equivalents at 16:9. Token rate is $0.0214/1000 at 480p/720p, $0.0234/1000 at 1080p; reference videos apply 0.6 to the token rate and bill input plus output duration. Unknown input duration is budgeted at the 30.2s host limit. Audio on/off has the same price.",
-        "costPerSecondByResolutionCents": {
-          "480p": 22.05,
-          "720p": 47.3,
-          "1080p": 116.4
-        },
-        "baseCostPerSecondCents": 47.3
-      },
-      "minimax/h3-max/text-to-video": {
-        "pricingCheckedAt": "2026-09-11",
-        "pricingCurrency": "USD",
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 12000
-        },
-        "description": "minimax/h3-max/text-to-video with native audio",
-        "pricingSourceUrl": "https://fal.ai/models/minimax/h3-max/text-to-video",
-        "pricingTier": "Regular per-output-second rates; promotional discount deliberately excluded",
-        "pricingNotes": "Conservative regular rates effective September 15, 2026 are used both before and after the promotional cutoff; text/image routes share the rate. No minimum.",
-        "costPerSecondByResolutionCents": {
-          "480p": 5.0,
-          "768p": 8.0,
-          "1080p": 16.0
-        },
-        "baseCostPerSecondCents": 8.0
-      },
-      "minimax/h3-max/image-to-video": {
-        "pricingCheckedAt": "2026-09-11",
-        "pricingCurrency": "USD",
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 12000
-        },
-        "description": "minimax/h3-max/image-to-video with native audio",
-        "pricingSourceUrl": "https://fal.ai/models/minimax/h3-max/image-to-video",
-        "pricingTier": "Regular per-output-second rates; promotional discount deliberately excluded",
-        "pricingNotes": "Conservative regular rates effective September 15, 2026 are used both before and after the promotional cutoff; text/image routes share the rate. No minimum.",
-        "costPerSecondByResolutionCents": {
-          "480p": 5.0,
-          "768p": 8.0,
-          "1080p": 16.0
-        },
-        "baseCostPerSecondCents": 8.0
-      },
-      "minimax/h3-max-turbo/text-to-video": {
-        "pricingCheckedAt": "2026-09-11",
-        "pricingCurrency": "USD",
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 12000
-        },
-        "description": "minimax/h3-max-turbo/text-to-video with native audio",
-        "pricingSourceUrl": "https://fal.ai/models/minimax/h3-max-turbo/text-to-video",
-        "pricingTier": "Regular per-output-second rates; promotional discount deliberately excluded",
-        "pricingNotes": "Conservative regular rates effective September 15, 2026 are used both before and after the promotional cutoff; text/image routes share the rate. No minimum.",
-        "costPerSecondByResolutionCents": {
-          "480p": 2.5,
-          "768p": 4.0,
-          "1080p": 8.0
-        },
-        "baseCostPerSecondCents": 4.0
-      },
-      "minimax/h3-max-turbo/image-to-video": {
-        "pricingCheckedAt": "2026-09-11",
-        "pricingCurrency": "USD",
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerSecond": 12000
-        },
-        "description": "minimax/h3-max-turbo/image-to-video with native audio",
-        "pricingSourceUrl": "https://fal.ai/models/minimax/h3-max-turbo/image-to-video",
-        "pricingTier": "Regular per-output-second rates; promotional discount deliberately excluded",
-        "pricingNotes": "Conservative regular rates effective September 15, 2026 are used both before and after the promotional cutoff; text/image routes share the rate. No minimum.",
-        "costPerSecondByResolutionCents": {
-          "480p": 2.5,
-          "768p": 4.0,
-          "1080p": 8.0
-        },
-        "baseCostPerSecondCents": 4.0
       }
     }
   }

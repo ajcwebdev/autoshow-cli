@@ -62,10 +62,11 @@ export const resolveComicTurns = (
 export const resolveComicNativeGroups = (
   context: NonNullable<CreateCurrentTtsRenderAttemptOptions['comicContext']>,
   turns: AttemptTurn[],
-  elevenLabsNative: boolean
+  elevenLabsNative: boolean,
+  model = 'eleven_v3'
 ): Array<{ turnIds: string[], providerTexts: string[] }> => {
   if (elevenLabsNative) {
-    return planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
+    return planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash })), undefined, model).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
   }
   return []
 }
@@ -102,14 +103,14 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
     const keys = Object.keys(normalizedTurnControls?.[turn.turnId]?.[options.target.service] ?? {})
     return keys.length > 0
   })
-  const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && !hasTurnControls
+  const elevenLabsNative = options.target.service === 'elevenlabs' && (options.target.model === 'eleven_v3' || options.target.model === 'eleven_v4') && !hasTurnControls
   const geminiNative = options.target.service === 'gemini' && !hasOverlapIntent && geminiNativeEligible(options.target.model, turns, options.target.transport === 'gemini-stream' ? 'pcm' : 'wav')
   const nativeEligible = canonicalTurns.length > 0 && (geminiNative || !hasSegmentedOnlyIntent && (elevenLabsNative))
   if (context.modePreference === 'native' && !nativeEligible) throw UsageError('Comic native mode requires a provider-native eligible target whose speaker, direction, control, and request limits can be represented exactly.')
   const native = context.modePreference !== 'segmented' && nativeEligible
   const strategy: ProviderRenderStrategy = native ? 'native-dialogue' : 'segmented'
   const nativeGroups = native
-    ? geminiNative ? planGeminiNativeGroups(options.target.model, turns, context.providerSpeakerLabelByTurnId) : resolveComicNativeGroups(context, turns, elevenLabsNative)
+    ? geminiNative ? planGeminiNativeGroups(options.target.model, turns, context.providerSpeakerLabelByTurnId) : resolveComicNativeGroups(context, turns, elevenLabsNative, options.target.model)
     : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined, chunks?: ResolvedTtsChunk[] }> = native
     ? nativeGroups

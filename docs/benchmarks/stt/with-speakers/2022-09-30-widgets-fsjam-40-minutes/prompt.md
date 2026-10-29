@@ -3,7 +3,7 @@ title: "2022-09-30-widgets-fsjam-40-minutes"
 slug: "2022-09-30-widgets-fsjam-40-minutes"
 duration: "Unknown"
 channel: "Unknown"
-url: "https://ajc.pics/autoshow/benchmarks/stt/2022-09-30-widgets-fsjam-40-minutes.mp3"
+url: "docs/benchmarks/stt/sources/2022-09-30-widgets-fsjam-40-minutes.mp3"
 ---
 
 This is a transcript with timestamps. Do not include advertisements in the summaries or descriptions. Do not actually write the transcript.

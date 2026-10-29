@@ -15,7 +15,7 @@ import type { LLMOptions, LLMTarget, Step3Metadata } from '~/types'
 export const WRITE_BENCHMARK_RERUN_PLAN = 'docs/benchmarks/text/write/rerun-plan.json'
 export const WRITE_BENCHMARK_RERUN_COMMAND = 'bun src/tools/rerun-write-benchmark.ts --run'
 const attempt = '02'
-const expectedFailures = 7
+const expectedFailures = 2
 const stem = (provider: string, model: string): string => `${provider}-${model}`.replace(/[/\\:*?"<>|]/g, '-')
 const json = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`
 
@@ -48,7 +48,7 @@ export type WriteBenchmarkRerunPlan = {
   providerConcurrency: 2
   selectionSha256: string
   cases: WriteBenchmarkRerunCase[]
-  requestCount: 7
+  requestCount: 2
   nativeEstimatedCostCents: number
   observedMaxOutputScenarioCostCents: number
   priorKnownCostCents: number
@@ -111,10 +111,6 @@ const scenarioFor = (provider: Step3Metadata['llmService'], receipt: BenchmarkSl
     const observed = peers.filter(peer => peer.provider === 'grok' && peer.metadata).sort((left, right) => right.metadata!.outputTokenCount - left.metadata!.outputTokenCount)[0]?.metadata
     return { inputTokens: observed?.inputTokenCount ?? nativeInput, outputTokens: observed?.outputTokenCount ?? nativeOutput, basis: 'Largest observed same-case Grok billed output, including reasoning. The original request has no output-token cap.' }
   }
-  if (provider === 'glm') {
-    return { inputTokens: Math.max(nativeInput, ...peers.filter(peer => peer.provider === 'glm').map(peer => peer.metadata?.inputTokenCount ?? 0)), outputTokens: 16000, basis: 'Maximum native GLM max_tokens=16000; input is the larger of native preflight and returned same-case GLM usage.' }
-  }
-  if (provider === 'together') return { inputTokens: nativeInput, outputTokens: receipt.model === 'kimi-k3' ? 131072 : 32768, basis: 'Native Together max_tokens with native preflight input; this scenario excludes additional input-tokenization variation.' }
   throw ValidationError(`No reviewed rerun spending scenario for ${provider}/${receipt.model}.`)
 }
 
@@ -178,7 +174,7 @@ export const buildWriteBenchmarkRerunPlan = async (originalPlanPath = WRITE_BENC
   if (targets.length !== expectedFailures) throw ValidationError(`Expected exactly ${expectedFailures} original failed or schema-invalid slots; found ${targets.length}. Reconcile the selection before dispatch.`)
   const content = {
     schemaVersion: 1 as const, originalPlanPath: toProjectRelativePath(originalPlanPath), originalPlanSha256: original.sha256,
-    originalPlanFingerprint: original.plan.fingerprint, attempt: attempt as '02', providerConcurrency: original.plan.providerConcurrency, selectionSha256: sha256Bytes(JSON.stringify(targets)), cases, requestCount: expectedFailures as 7,
+    originalPlanFingerprint: original.plan.fingerprint, attempt: attempt as '02', providerConcurrency: original.plan.providerConcurrency, selectionSha256: sha256Bytes(JSON.stringify(targets)), cases, requestCount: expectedFailures as 2,
     nativeEstimatedCostCents: targets.reduce((sum, provider) => sum + provider.nativeEstimatedCostCents, 0),
     observedMaxOutputScenarioCostCents: targets.reduce((sum, provider) => sum + provider.scenario.costCents, 0),
     priorKnownCostCents: knownCostCents, priorUnresolvedSlots: unresolvedSlots,
@@ -295,7 +291,7 @@ export const verifyWriteBenchmarkRerunCache = async (plan: WriteBenchmarkRerunPl
 const main = async (): Promise<void> => {
   const args = process.argv.slice(2)
   if (args.includes('--help')) {
-    writeCommandPayload('Usage: bun src/tools/rerun-write-benchmark.ts [--price | --prepare | --run | --verify-cache]\nDefault: local price-only JSON for exactly seven original failed or schema-invalid slots. --prepare pins an unapproved plan without creating new attempts. --run requires an explicit cost-specific authorization record and preserves originals. Existing rerun receipts always block repurchase. --verify-cache validates all existing rerun receipts and artifacts with network access blocked.' + '\n')
+    writeCommandPayload('Usage: bun src/tools/rerun-write-benchmark.ts [--price | --prepare | --run | --verify-cache]\nDefault: local price-only JSON for exactly two original failed or schema-invalid slots. --prepare pins an unapproved plan without creating new attempts. --run requires an explicit cost-specific authorization record and preserves originals. Existing rerun receipts always block repurchase. --verify-cache validates all existing rerun receipts and artifacts with network access blocked.' + '\n')
     return
   }
   if (args.length > 1 || args.some(arg => !['--price', '--prepare', '--run', '--verify-cache'].includes(arg))) throw UsageError('Choose one of --price, --prepare, --run or --verify-cache.')

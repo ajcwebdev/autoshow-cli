@@ -12,21 +12,16 @@ import {
   validateImageInputReferences
 } from '../../image-utils/image-inputs'
 
-export const GEMINI_NATIVE_ASPECT_RATIO_VALUES = ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'] as const
-export const GEMINI_IMAGE_SIZE_VALUES = ['1K'] as const
-export const GEMINI_IMAGE_RESPONSE_MODES = ['image', 'text-image'] as const
-
-const GEMINI_NATIVE_ASPECT_RATIOS = new Set<string>(GEMINI_NATIVE_ASPECT_RATIO_VALUES)
-const GEMINI_IMAGE_SIZES = new Set<string>(GEMINI_IMAGE_SIZE_VALUES)
+export { GEMINI_IMAGE_SIZE_VALUES, GEMINI_IMAGE_RESPONSE_MODES, GEMINI_NATIVE_ASPECT_RATIO_VALUES } from './gemini-image-options'
+import { GEMINI_IMAGE_RESPONSE_MODES, validateGeminiImageDimensions } from './gemini-image-options'
 const GEMINI_RESPONSE_MODES = new Set<string>(GEMINI_IMAGE_RESPONSE_MODES)
 
 export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget[] => {
   const models = options.geminiImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: GeminiImageModel = validateGeminiImageModel(rawModel)
-    validateEnumOption('Gemini', model, 'size', options.imageSize, GEMINI_IMAGE_SIZES)
+    validateGeminiImageDimensions(model, options)
     validateEnumOption('Gemini', model, 'response-mode', options.imageResponseMode, GEMINI_RESPONSE_MODES)
-    validateEnumOption('Gemini', model, 'aspect-ratio', options.imageAspectRatio, GEMINI_NATIVE_ASPECT_RATIOS)
     if (options.imageCount !== undefined) {
       throw unsupportedFlagError('Gemini', model, ['--count'], 'Gemini native image generation returns one image per request; omit --count.')
     }
@@ -41,7 +36,7 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
     assertNoUnsupportedFlags(options, ['imageQuality', 'imageFormat', 'imageBackground', 'imageCompression'], {
       provider: 'Gemini',
       model,
-      hint: 'Supported Gemini image options are --aspect-ratio, --size 1K, --response-mode, and --input references.'
+      hint: 'Supported Gemini image options are --aspect-ratio, --size (Lite: 1K; Nano Banana 2.1: 1K|2K|4K), --response-mode, and --input references.'
     })
 
     const request = {

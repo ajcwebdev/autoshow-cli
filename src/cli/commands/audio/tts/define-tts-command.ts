@@ -33,6 +33,7 @@ export const ttsCommand = defineCliCommand({
       ['bun autoshow tts input/examples/tts/01-tts-short.md --provider gemini --price', 'Estimate Gemini Flash-Lite speech with Kore'],
       ['bun autoshow tts input/examples/tts/01-tts-short.md --provider gemini --gemini-tts-mode batch --gemini-tts-batch-wait-seconds 0 --price', 'Estimate a remote Gemini Batch job; remove --price to submit'],
       ['bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v3', 'Generate speech with ElevenLabs'],
+      ['bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v4', 'Generate speech with ElevenLabs v4'],
       ['bun autoshow tts input/examples/tts/01-tts-short.md --provider elevenlabs=eleven_v3 --tts-voice YOUR_EXISTING_VOICE_ID', 'Use an existing ElevenLabs voice'],
       ['bun autoshow tts input/examples/tts/01-tts-short.md --provider soniox --model tts-rt-v2 --tts-voice Adrian --tts-language en --tts-speed 1 --price', 'Estimate Soniox REST speech'],
       ['bun autoshow tts input/examples/tts/01-tts-short.md --provider grok=grok-tts --tts-voice eve', 'Generate speech with a Grok voice']

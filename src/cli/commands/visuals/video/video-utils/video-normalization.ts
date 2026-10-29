@@ -49,7 +49,7 @@ export const normalizeGrokVideoResolution = (resolution: string | undefined, mod
   throw UsageError(`Invalid --resolution value "${resolution}" for Grok/${model ?? 'video'}. Expected ${GROK_VIDEO_RESOLUTIONS.join(', ')}.`)
 }
 
-export const GROK_VIDEO_ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'] as const
+export const GROK_VIDEO_ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '21:9', '5:2'] as const
 
 export const normalizeGrokVideoAspectRatio = (aspectRatio: string | undefined): string => {
   const allowed = new Set<string>(GROK_VIDEO_ASPECT_RATIOS)

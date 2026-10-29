@@ -1,5 +1,5 @@
 import type * as v from 'valibot'
-import type { ComicPanelSelection, DraftScenesCommandOptions, GenerateImagesCommandOptions, LocationView } from '~/types'
+import type { CharacterIdentityReference, ComicPanelSelection, DraftScenesCommandOptions, GenerateImagesCommandOptions, LocationView } from '~/types'
 
 export type ImageGenerationSize =
   | (typeof import('../image-workflow/image-services-image-types').IMAGE_GENERATION_SIZES)[number]
@@ -115,13 +115,7 @@ export type ResolvedReferenceImages = {
   priorPanelRefs: string[]
   secondaryRefs: string[]
   missingPrimaryCharacterRefs: string[]
-  characterReferences?: Array<{
-    key: string
-    name: string
-    description: string
-    referenceIndex: number
-    path: string
-  }>
+  characterReferences?: CharacterIdentityReference[]
   locationReferences?: Array<{
     key: string
     snapshotId: string

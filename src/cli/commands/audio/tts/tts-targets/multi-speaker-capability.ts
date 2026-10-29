@@ -15,7 +15,7 @@ export const getMultiSpeakerStrategy = (
   provider: TtsProvider,
   model?: string | undefined
 ): MultiSpeakerStrategy | undefined => {
-  if (provider === 'elevenlabs' && model === 'eleven_v3') return 'native'
+  if (provider === 'elevenlabs' && (model === 'eleven_v3' || model === 'eleven_v4')) return 'native'
   return MULTI_SPEAKER_CAPABILITY[provider]
 }
 

@@ -18,17 +18,21 @@ import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-
 // The exclusion decision owns historical identities; runtime code must contain no compatibility inventory.
 const decision = readFileSync('docs/adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md', 'utf8')
 const section = decision.split('<!-- excluded-tts-providers:start -->')[1]!.split('<!-- excluded-tts-providers:end -->')[0]!
-const excluded = section.split('\n').filter(line => /^\| [A-Z][a-z]+\s*\| `/.test(line)).map(line => {
-  const cells = line.split('|')
-  return { provider: cells[1]!.trim().toLowerCase(), models: [...cells[2]!.matchAll(/`([^`]+)`/g)].map(match => match[1]!) }
-})
+const excluded = [...section.matchAll(/^\*\*Provider: ([A-Z][a-z]+)\*\*\n\n- \*\*Model identifiers:\*\* (.+)\n- \*\*Removal decision:\*\* (.+)$/gm)].map(([, provider, models]) => ({
+  provider: provider!.toLowerCase(), models: [...models!.matchAll(/`([^`]+)`/g)].map(match => match[1]!)
+}))
 const dirs = setupContractSuiteLifecycle({ envKeys: [], tempPrefix: 'autoshow-excluded-provider-' })
 
 test('excluded provider decision remains disjoint from active selection, credentials and historical rates', () => {
-  expect(excluded).toHaveLength(4)
+  expect(excluded).toEqual([
+    { provider: 'hume', models: ['octave-1', 'octave-2'] },
+    { provider: 'cartesia', models: ['sonic-3.6-2026-08-27', 'sonic-3.5-2026-05-04', 'sonic-3', 'sonic-3.6', 'sonic-preview', 'sonic-2'] },
+    { provider: 'speechify', models: ['simba-3.2', 'simba-3.0', 'simba-english'] },
+    { provider: 'mistral', models: ['voxtral-mini-tts-2603'] }
+  ])
   const targets = collectTtsTargets(buildOptsFromFlags({ 'all-tts': true }))
-  expect(Object.values(getModelRegistry().tts).flatMap(provider => Object.keys(provider.models))).toHaveLength(7)
-  expect(targets).toHaveLength(7)
+  expect(Object.values(getModelRegistry().tts).flatMap(provider => Object.keys(provider.models))).toHaveLength(8)
+  expect(targets).toHaveLength(8)
   expect([...new Set(targets.map(target => target.service))].sort()).toEqual(
     ['elevenlabs', 'gemini', 'grok', 'inworld', 'openai', 'soniox']
   )

@@ -52,10 +52,11 @@ export const resolveGenericTurns = (
 export const resolveGenericNativeGroups = (
   turns: AttemptTurn[],
   registry: ReturnType<typeof parseSpeakerVoiceMappings>,
-  elevenLabsNative: boolean
+  elevenLabsNative: boolean,
+  model = 'eleven_v3'
 ): Array<{ turnIds: string[], providerTexts: string[] }> => {
   if (elevenLabsNative) {
-    return planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
+    return planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice })), undefined, model).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
   }
   return []
 }
@@ -90,14 +91,14 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
 
   const normalizedDialogue = registry ? normalizeDialogueFromOptions(options.sourceText, options.ttsOptions) : undefined
   const hasNativeBlockingIntent = canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
-  const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent
+  const elevenLabsNative = options.target.service === 'elevenlabs' && (options.target.model === 'eleven_v3' || options.target.model === 'eleven_v4') && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent
   const geminiNative = options.target.service === 'gemini' && registry !== undefined && geminiNativeEligible(options.target.model, turns, options.target.transport === 'gemini-stream' ? 'pcm' : 'wav')
   const native = elevenLabsNative || geminiNative
   const strategy: ProviderRenderStrategy = native ? 'native-dialogue' : 'segmented'
   const limit = chunkLimit(options.target)
 
   const nativeGroups = geminiNative ? planGeminiNativeGroups(options.target.model, turns) : native && registry
-    ? resolveGenericNativeGroups(turns, registry, elevenLabsNative)
+    ? resolveGenericNativeGroups(turns, registry, elevenLabsNative, options.target.model)
     : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[], chunks?: ResolvedTtsChunk[] }> = native
     ? nativeGroups

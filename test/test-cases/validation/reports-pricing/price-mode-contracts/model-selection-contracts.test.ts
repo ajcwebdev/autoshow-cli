@@ -16,7 +16,6 @@ import {
   MUSIC_PRICING_PROVIDERS
 } from '~/cli/commands/audio/music/music-utils/music-pricing'
 import {
-  SUPPORTED_FAL_IMAGE_MODELS,
   SUPPORTED_GEMINI_IMAGE_MODELS,
   SUPPORTED_GROK_IMAGE_MODELS,
   SUPPORTED_OPENAI_IMAGE_MODELS,
@@ -27,7 +26,6 @@ import {
   SUPPORTED_MINIMAX_MUSIC_MODELS
 } from '~/cli/commands/setup-and-utilities/models/music-models'
 import {
-  SUPPORTED_FAL_VIDEO_MODELS,
   SUPPORTED_GEMINI_VIDEO_MODELS,
   SUPPORTED_GROK_VIDEO_MODELS,
 } from '~/cli/commands/setup-and-utilities/models/video-models'
@@ -38,14 +36,12 @@ import { optionsForService } from '~/utils/pricing/model-selection'
 const IMAGE_MODELS: Record<string, readonly string[]> = {
   gemini: SUPPORTED_GEMINI_IMAGE_MODELS,
   openai: SUPPORTED_OPENAI_IMAGE_MODELS,
-  grok: SUPPORTED_GROK_IMAGE_MODELS,
-  fal: SUPPORTED_FAL_IMAGE_MODELS
+  grok: SUPPORTED_GROK_IMAGE_MODELS
 }
 
 const VIDEO_MODELS = {
   gemini: SUPPORTED_GEMINI_VIDEO_MODELS,
-  grok: SUPPORTED_GROK_VIDEO_MODELS,
-  fal: SUPPORTED_FAL_VIDEO_MODELS
+  grok: SUPPORTED_GROK_VIDEO_MODELS
 } as const satisfies Record<VideoProvider, readonly string[]>
 
 const MUSIC_MODELS = {
@@ -57,10 +53,10 @@ const MUSIC_MODELS = {
 describe('generation pricing model-selection tables', () => {
   test('tables preserve provider priority and expose both pass-through keys', () => {
     expect(IMAGE_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
-      'gemini', 'openai', 'grok', 'fal'
+      'gemini', 'openai', 'grok'
     ])
     expect(VIDEO_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
-      'gemini', 'grok', 'fal'
+      'gemini', 'grok'
     ])
     expect(MUSIC_PRICING_PROVIDERS.map(({ service }) => service)).toEqual([
       'elevenlabs', 'minimax', 'gemini'

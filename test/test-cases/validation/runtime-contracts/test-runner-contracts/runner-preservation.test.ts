@@ -7,7 +7,7 @@ import { runTestRunner } from '../../../../test-runner/runner'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 
 const LOCAL_SELECTION = 'test/test-cases/validation/runtime-contracts/test-runner-contracts/runner-preservation.test.ts'
-const MAPPED_SELECTION = 'test/test-cases/e2e/service/visuals/image/openai-gpt-image-2.test.ts'
+const MAPPED_SELECTION = 'test/test-cases/e2e/service/visuals/image/gemini-image-gen.test.ts'
 
 const withOutputRoot = async (fn: (root: string) => Promise<void>): Promise<void> => {
   const keys = ['AUTOSHOW_TEST_CLI_BUNDLE', 'AUTOSHOW_PROJECT_ROOT']
@@ -90,7 +90,7 @@ describe('price-only runner evidence preservation', () => {
       expect(report.run.mode).toBe('price')
       expect(report.summary).toMatchObject({ total: 1, passed: 1, failed: 0 })
       expect(report.summary.totalEstimatedCostCents).toBeGreaterThan(0)
-      expect(report.commands[0].name).toBe('image-openai-gpt-image-2')
+      expect(report.commands[0].name).toBe('image-gemini-gemini-3.1-flash-lite-image')
       expect(report.commands[0].args).toContain('--price')
       expect(await Bun.file(join(root, run!.name, 'junit.xml')).exists()).toBe(false)
     })

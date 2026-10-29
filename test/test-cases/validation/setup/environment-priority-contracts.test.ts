@@ -69,7 +69,10 @@ test('Docker shares its connection contract and publication keeps credentials ou
   const checkouts = Object.values(parsed.jobs).flatMap(job => job.steps ?? []).filter(step => step.uses?.startsWith('actions/checkout@'))
   expect(checkouts.length).toBeGreaterThan(0)
   for (const checkout of checkouts) expect(checkout.with?.['persist-credentials']).toBe(false)
-  expect(workflow).toContain('--password-stdin')
+  expect(workflow).toContain('uses: ./.github/actions/ghcr-login')
+  const login = await Bun.file('.github/actions/ghcr-login/action.yml').text()
+  expect(login).toContain('--password-stdin')
+  expect(login).not.toContain('https://x-access-token:')
 })
 
 test('readiness bounds stalled response bodies and refuses requests after the operation deadline', async () => {

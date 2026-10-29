@@ -3,7 +3,7 @@ set -euo pipefail
 
 case "${ARCH}" in amd64|arm64) ;; *) echo 'Expected ARCH=amd64|arm64' >&2; exit 1 ;; esac
 started_ns="$(date +%s%N)"
-image="ghcr.io/$(printf '%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+image="$(bash "$(dirname "${BASH_SOURCE[0]}")/docker-image-name.sh")"
 created="$(git show -s --format=%cI "${GITHUB_SHA}")"
 version="$(jq -er '.version' package.json)"
 metadata_file="$(mktemp)"

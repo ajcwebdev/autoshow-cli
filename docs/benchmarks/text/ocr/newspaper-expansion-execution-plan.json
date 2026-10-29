@@ -16,7 +16,7 @@
   "privateExecution": "input/examples/document/ocr-newspaper-expansion/execution.json",
   "spendingLedger": "input/examples/document/ocr-newspaper-expansion/spending-ledger.json",
   "executionCommand": "bun src/tools/ocr-newspaper-expansion-benchmark.ts --run",
-  "report": "docs/reports/ocr-newspaper-expansion-2026-10-23.md",
+  "report": "docs/reports/repository-improvement-actions.md",
   "scope": {
     "sourceInputs": 12,
     "sourcePages": 12,
@@ -35,13 +35,10 @@
       "openai": 4,
       "gemini": 4,
       "grok": 3,
-      "deepinfra": 4,
       "mistral": 3,
       "tesseract": 2
     },
-    "modelConcurrency": {
-      "deepinfra/google/gemma-4-31B-it": 1
-    },
+    "modelConcurrency": {},
     "requestTimeoutMs": 900000,
     "nyTimesLast": true,
     "retainedHoldsCountAgainstBudget": true
@@ -64,7 +61,24 @@
     "nativeProfileCents": 439.68310799999983,
     "adjustedProfileCents": 447.51536999999985,
     "caveat": "These are preserved pre-execution forecasts, not actual charges or invoice reconciliation. This completed batch used a dedicated guard under its own explicit $30 approval.",
-    "originalPlanningCaveat": "Planning scenarios, not hard billing ceilings. Fresh scoped guard and explicit output reservations are required before dispatch. Existing EFG approval and wrappers do not authorize or support this cohort."
+    "originalPlanningCaveat": "Planning scenarios, not hard billing ceilings. Fresh scoped guard and explicit output reservations are required before dispatch. Existing EFG approval and wrappers do not authorize or support this cohort.",
+    "threeAttemptsEachSlotExpanded": 4555.72653,
+    "snapshotReconciliation": {
+      "initial": {
+        "generatedAt": "2026-10-23T10:54:43.809Z",
+        "nativeCents": 390.8145,
+        "adjustedCents": 398.8209,
+        "source": "input/examples/document/ocr-newspaper-expansion/prior-executions/first-pass/price-preflight.json"
+      },
+      "refreshedBeforeCreditRetry": {
+        "generatedAt": "2026-10-23T11:26:37.700Z",
+        "nativeCents": 439.683108,
+        "adjustedCents": 447.51537,
+        "source": "input/examples/document/ocr-newspaper-expansion/price-preflight.json"
+      },
+      "ratesTargetsPlanAndCliUnchanged": true,
+      "changed": "Learned token estimates for nineteen token-priced models"
+    }
   },
   "targets": [
     {
@@ -84,20 +98,8 @@
       "model": "gpt-6-luna"
     },
     {
-      "provider": "openai",
-      "model": "gpt-6-astra"
-    },
-    {
-      "provider": "openai",
-      "model": "gpt-5.6-terra"
-    },
-    {
       "provider": "grok",
       "model": "grok-4.7"
-    },
-    {
-      "provider": "grok",
-      "model": "grok-4.5"
     },
     {
       "provider": "anthropic",
@@ -113,52 +115,14 @@
     },
     {
       "provider": "anthropic",
-      "model": "claude-fable-5-1"
-    },
-    {
-      "provider": "anthropic",
       "model": "claude-fable-5"
     },
     {
       "provider": "gemini",
-      "model": "gemini-4-argon"
-    },
-    {
-      "provider": "gemini",
       "model": "gemini-3.8-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.5-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.6-flash"
-    },
-    {
-      "provider": "gemini",
-      "model": "gemini-3.5-flash-lite"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "google/gemma-4-31B-it"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "Qwen/Qwen3.8-27B"
-    },
-    {
-      "provider": "deepinfra",
-      "model": "deepseek-ai/DeepSeek-V4.1-Flash"
     }
   ],
-  "excludedTargets": [
-    {
-      "provider": "mistral",
-      "model": "mistral-ocr-4-0",
-      "reason": "Unavailable in the preceding admitted runs; excluded from the latest21-target cohort."
-    }
-  ],
+  "excludedTargets": [],
   "cases": [
     {
       "id": "newspapers-expansion-bln-charter-aldermen",
@@ -607,7 +571,14 @@
         "path": "input/examples/document/ocr-newspaper-expansion/reconciliations/final-grok-nyt-accounting-review.json",
         "sha256": "5b79b8a7df8fb14dcb2dc5cdd00f479f0ea406b7247d5213e4648e49ced5cff1"
       }
-    ]
+    ],
+    "invoiceReview": {
+      "reviewedOn": "2026-10-26",
+      "status": "awaiting-provider-billing-evidence",
+      "retainedReceiptCount": 1,
+      "holdsReleased": 0,
+      "source": "ocr/reconciliation-2026-10-26/accounting-audit.json in docs/reports/repository-improvement-actions.evidence.zip"
+    }
   },
   "scoring": {
     "primaryVariant": "newspaper-reading-normalized-v1",
@@ -690,5 +661,338 @@
     "runCount": 64,
     "pageInstances": 96,
     "historicalTargetIdentities": 31
+  },
+  "reportingCohorts": {
+    "reviewDate": "2026-10-26",
+    "historicalSnapshot": "7cf20f1ac",
+    "historicalTargetCount": 21,
+    "historicalTargets": [
+      {
+        "provider": "tesseract",
+        "model": "tesseract"
+      },
+      {
+        "provider": "mistral",
+        "model": "mistral-ocr-4-1"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6.1-sol"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6-luna"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6-astra"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5.6-terra"
+      },
+      {
+        "provider": "grok",
+        "model": "grok-4.7"
+      },
+      {
+        "provider": "grok",
+        "model": "grok-4.5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-opus-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-haiku-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-fable-5-1"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-fable-5"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-4-argon"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite"
+      },
+      {
+        "provider": "deepinfra",
+        "model": "google/gemma-4-31B-it"
+      },
+      {
+        "provider": "deepinfra",
+        "model": "Qwen/Qwen3.8-27B"
+      },
+      {
+        "provider": "deepinfra",
+        "model": "deepseek-ai/DeepSeek-V4.1-Flash"
+      }
+    ],
+    "retainedTargetCount": 10,
+    "targetListSemantics": "The top-level targets or quote.models list is the retained reporting inventory after retirement. Execution scope, case slot counts, coverage, spending and approvals retain their original historical cohort. This metadata does not authorize redispatch.",
+    "historicalEvidence": "docs/reports/repository-improvement-actions.evidence.zip"
+  },
+  "coverageCohort": "historical-approved-21-target",
+  "historicalCohort": {
+    "targetCount": 21,
+    "targets": [
+      {
+        "provider": "tesseract",
+        "model": "tesseract"
+      },
+      {
+        "provider": "mistral",
+        "model": "mistral-ocr-4-1"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6.1-sol"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6-luna"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6-astra"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5.6-terra"
+      },
+      {
+        "provider": "grok",
+        "model": "grok-4.7"
+      },
+      {
+        "provider": "grok",
+        "model": "grok-4.5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-opus-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-haiku-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-fable-5-1"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-fable-5"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-4-argon"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite"
+      },
+      {
+        "provider": "deepinfra",
+        "model": "google/gemma-4-31B-it"
+      },
+      {
+        "provider": "deepinfra",
+        "model": "Qwen/Qwen3.8-27B"
+      },
+      {
+        "provider": "deepinfra",
+        "model": "deepseek-ai/DeepSeek-V4.1-Flash"
+      }
+    ],
+    "coverage": {
+      "attemptedSlots": 252,
+      "providerCompletedScorableSlots": 246,
+      "failedSlots": 6,
+      "notDispatchedSlots": 0,
+      "runningSlots": 0,
+      "completeInputs": 10,
+      "incompleteInputs": 2,
+      "semantics": "A provider-completed/scorable artifact is valid for scoring; completion does not establish exhaustive source coverage or visual correctness.",
+      "failureClassification": {
+        "outputLimit": 5,
+        "accountingAllowanceBreachWithNativeLengthFinish": 1
+      }
+    },
+    "incompleteOutputs": [
+      {
+        "caseId": "newspapers-expansion-perth-gazette-1833-03-02-p1",
+        "provider": "deepinfra",
+        "model": "google/gemma-4-31B-it",
+        "reason": "output-limit",
+        "qualityScore": null,
+        "retainedAccountingHold": false,
+        "nativeFinishReason": "length"
+      },
+      {
+        "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+        "provider": "grok",
+        "model": "grok-4.7",
+        "reason": "accounting-allowance-breach",
+        "qualityScore": null,
+        "retainedAccountingHold": true,
+        "nativeFinishReason": "length"
+      },
+      {
+        "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "reason": "output-limit",
+        "qualityScore": null,
+        "retainedAccountingHold": false,
+        "nativeFinishReason": "MAX_TOKENS"
+      },
+      {
+        "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+        "provider": "grok",
+        "model": "grok-4.5",
+        "reason": "output-limit",
+        "qualityScore": null,
+        "retainedAccountingHold": false,
+        "nativeFinishReason": "length"
+      },
+      {
+        "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+        "provider": "gemini",
+        "model": "gemini-3.5-flash",
+        "reason": "output-limit",
+        "qualityScore": null,
+        "retainedAccountingHold": false,
+        "nativeFinishReason": "MAX_TOKENS"
+      },
+      {
+        "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "reason": "output-limit",
+        "qualityScore": null,
+        "retainedAccountingHold": false,
+        "nativeFinishReason": "MAX_TOKENS"
+      }
+    ]
+  },
+  "currentCohort": {
+    "reviewDate": "2026-10-26",
+    "kind": "saved-public-retained-inventory",
+    "targets": [
+      {
+        "provider": "tesseract",
+        "model": "tesseract"
+      },
+      {
+        "provider": "mistral",
+        "model": "mistral-ocr-4-1"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6.1-sol"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6-luna"
+      },
+      {
+        "provider": "grok",
+        "model": "grok-4.7"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-opus-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-haiku-5-5"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-fable-5"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.8-flash"
+      }
+    ],
+    "targetCount": 10,
+    "sourceInputs": 12,
+    "selectedSlots": 120,
+    "providerCompletedScorableSlots": 118,
+    "failedSlots": 2,
+    "notDispatchedSlots": 0,
+    "runningSlots": 0,
+    "incompleteOutputs": [
+      {
+        "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+        "provider": "grok",
+        "model": "grok-4.7",
+        "reason": "accounting-allowance-breach",
+        "qualityScore": null,
+        "retainedAccountingHold": true,
+        "nativeFinishReason": "length",
+        "status": "failed",
+        "redispatchProhibited": true
+      },
+      {
+        "caseId": "newspapers-expansion-new-york-times-1929-10-24-p31",
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "reason": "output-limit",
+        "qualityScore": null,
+        "retainedAccountingHold": false,
+        "nativeFinishReason": "MAX_TOKENS",
+        "status": "failed",
+        "redispatchProhibited": false
+      }
+    ],
+    "historicalSpendingSeparate": true,
+    "executionAuthorized": false
   }
 }

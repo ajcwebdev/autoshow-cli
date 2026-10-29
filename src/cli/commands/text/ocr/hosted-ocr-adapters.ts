@@ -7,11 +7,9 @@ import type {
   HostedOcrRun,
   HostedOcrService
 } from '~/types'
-import { hasAnthropicOcr, hasDeepinfraOcr, hasGeminiOcr, hasGrokOcr, hasMistralOcr, hasOpenAIOcr } from './ocr-engine-selection'
+import { hasAnthropicOcr, hasGeminiOcr, hasGrokOcr, hasMistralOcr, hasOpenAIOcr } from './ocr-engine-selection'
 import { ANTHROPIC_OCR_LIMIT_SOURCE } from './ocr-services/anthropic-ocr/anthropic-ocr'
 import { runAnthropicOcr } from './ocr-services/anthropic-ocr/run-anthropic-ocr'
-import { DEEPINFRA_OCR_LIMIT_SOURCE } from './ocr-services/deepinfra-ocr/deepinfra-ocr'
-import { runDeepinfraOcr } from './ocr-services/deepinfra-ocr/run-deepinfra-ocr'
 import { GEMINI_OCR_LIMIT_SOURCE } from './ocr-services/gemini-ocr/gemini-ocr'
 import { runGeminiOcr } from './ocr-services/gemini-ocr/run-gemini-ocr'
 import { GROK_OCR_LIMIT_SOURCE } from './ocr-services/grok-ocr/grok-ocr'
@@ -166,27 +164,6 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
       chunkFormat: 'png',
       chunkExtension: 'png'
     })
-  },
-  {
-    service: 'deepinfra',
-    engine: 'deepinfra-ocr',
-    label: 'DeepInfra OCR',
-    limitSource: DEEPINFRA_OCR_LIMIT_SOURCE,
-    directImageFormats: ['png', 'jpg', 'webp'],
-    directImageSupportError: 'The DeepInfra OCR provider sends PNG/JPG/WEBP images to DeepInfra directly; PDF pages are rendered to PNG. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
-    selectModel: (opts) => hasDeepinfraOcr(opts) ? opts.deepinfraOcrModel as string : undefined,
-    request: async (request) => {
-      const run = await runDeepinfraOcr(request.inputPath, request.inputMetadata, request.ocrModel, pageRenderingProviderOptions(request))
-      return {
-        pages: run.pages,
-        extractionMethod: run.extractionMethod,
-        ocrService: 'deepinfra',
-        ocrModel: request.ocrModel,
-        totalPages: run.totalPages,
-        ...tokenUsage(run)
-      }
-    },
-    fallbackOptions: renderedPngPages
   }
 ]
 

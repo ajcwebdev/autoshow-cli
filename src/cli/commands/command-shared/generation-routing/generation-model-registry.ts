@@ -1,8 +1,6 @@
 import type { GenerationAllShortcutFlag, GenerationModality, GenerationModelEntry, ImageProvider, MusicProvider, VideoProvider } from '~/types'
 import {
   SUPPORTED_ELEVENLABS_MUSIC_MODELS,
-  SUPPORTED_FAL_IMAGE_MODELS,
-  SUPPORTED_FAL_VIDEO_MODELS,
   SUPPORTED_GEMINI_IMAGE_MODELS,
   SUPPORTED_GEMINI_MUSIC_MODELS,
   SUPPORTED_GEMINI_VIDEO_MODELS,
@@ -11,8 +9,6 @@ import {
   SUPPORTED_MINIMAX_MUSIC_MODELS,
   SUPPORTED_OPENAI_IMAGE_MODELS,
   validateElevenlabsMusicModel,
-  validateFalImageModel,
-  validateFalVideoModel,
   validateGeminiImageModel,
   validateGeminiMusicModel,
   validateGeminiVideoModel,
@@ -33,13 +29,11 @@ const IMAGE_MODEL_FACTS = {
   gemini: { supportedModels: SUPPORTED_GEMINI_IMAGE_MODELS, validateModel: validateGeminiImageModel },
   openai: { supportedModels: SUPPORTED_OPENAI_IMAGE_MODELS, validateModel: validateOpenAIImageModel },
   grok: { supportedModels: SUPPORTED_GROK_IMAGE_MODELS, validateModel: validateGrokImageModel },
-  fal: { supportedModels: SUPPORTED_FAL_IMAGE_MODELS, validateModel: validateFalImageModel }
 } as const satisfies Record<ImageProvider, ModelFacts>
 
 const VIDEO_MODEL_FACTS = {
   gemini: { supportedModels: SUPPORTED_GEMINI_VIDEO_MODELS, validateModel: validateGeminiVideoModel },
   grok: { supportedModels: SUPPORTED_GROK_VIDEO_MODELS, validateModel: validateGrokVideoModel },
-  fal: { supportedModels: SUPPORTED_FAL_VIDEO_MODELS, validateModel: validateFalVideoModel }
 } as const satisfies Record<VideoProvider, ModelFacts>
 
 const MUSIC_MODEL_FACTS = {

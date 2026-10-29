@@ -24,7 +24,7 @@ await writeFile(leafPath, JSON.stringify({
 afterAll(async () => { await rm(temporary, { recursive: true, force: true }) })
 
 const options = (promptFile: string) => buildOptsFromFlags({
-  openai: 'gpt-6-astra',
+  openai: 'gpt-6.1-sol',
   'prompt-file': promptFile
 }, {}, new Set(['openai', 'prompt-file']), { scope: 'write' })
 
@@ -66,7 +66,9 @@ test('custom JSON prompt estimates include the source and declared response leng
   if (step.step !== 'llm') throw new Error('Missing LLM estimate')
   expect(step.estimatedInputTokens).toBeGreaterThan(1500)
   expect(step.estimatedOutputTokens).toBe(3000)
-  expect(step.totalCost).toBeGreaterThan(15)
+  // GPT-6.1 Sol short-context rates: $2 input and $10 output per 1M tokens.
+  const inputTokens = step.estimatedInputTokens ?? Number.NaN
+  expect(step.totalCost).toBeCloseTo((inputTokens * 200 + 3000 * 1000) / 1_000_000)
 })
 
 test('larger source text increases custom prompt pricing without changing its output declaration', async () => {

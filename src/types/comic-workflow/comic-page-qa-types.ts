@@ -1,4 +1,4 @@
-import type { BlockingAuditStatus, BlockingHardCandidateStatus, PanelBundleData } from '~/types'
+import type { BlockingAuditStatus, BlockingHardCandidateStatus, CharacterIdentityReference, PanelBundleData } from '~/types'
 
 export type BlockingHardKeyPolicy = readonly BlockingHardCandidateStatus[]
 
@@ -101,6 +101,8 @@ export type PageQaEntry = {
   panelNumbers: number[]
   outputFile: string
   judgeModel: string
+  /** Binds reuse to the exact image, current reference inputs, and judge contract. Legacy entries remain historical evidence. */
+  inputSha256?: string
   hardFailure: boolean
   waivedChecks?: Array<{ panelNumber: number; check: 'shotPlanMatch'; reason: string }>
   repairPolicy?: {
@@ -141,7 +143,7 @@ export type PageQaRequest = {
   identityCards: string[]
   locationSheets: string[]
   designSheets?: string[] | undefined
-  characterReferences?: Array<{ key: string; description: string }> | undefined
+  characterReferences?: Array<Pick<CharacterIdentityReference, 'key' | 'description' | 'distinguishFrom'>> | undefined
   locationReferences?: Array<{ key: string; specification: string }> | undefined
   designReferences?: Array<{ key: string; usage: string }> | undefined
   rosterCards?: PageQaRosterCard[] | undefined

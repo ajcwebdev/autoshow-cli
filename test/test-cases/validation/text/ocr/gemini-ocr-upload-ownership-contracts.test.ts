@@ -166,7 +166,7 @@ describe('Gemini OCR upload ownership contracts', () => {
       })
     })
 
-    const result = await runGeminiOcr(path, { slug: 'large', pageCount: 1, format: 'pdf', fileSize: 50 * 1024 * 1024 + 1 }, 'gemini-3.5-flash-lite')
+    const result = await runGeminiOcr(path, { slug: 'large', pageCount: 1, format: 'pdf', fileSize: 50 * 1024 * 1024 + 1 }, 'gemini-3.8-flash')
 
     expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'OCR text' }])
     expect(uploadCount(calls)).toBe(1)

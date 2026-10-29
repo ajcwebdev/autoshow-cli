@@ -7,7 +7,6 @@ export const isLocalOcrTarget = (
   target.service === 'tesseract'
 
 export const getHostedOcrExecutionPriority = (target: OcrTarget): number => {
-  if (target.service === 'deepinfra') return 85
   if (target.service === 'anthropic') return 80
   if (target.service === 'gemini') return 75
   if (target.service === 'openai') return 70

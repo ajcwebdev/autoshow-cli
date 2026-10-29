@@ -148,12 +148,15 @@ export const resolveCharacterIdentityReferences = (
     const character = byKey.get(key)
     if (!character) throw ValidationError(`Snapshot ${manifest.snapshotId} does not contain required character "${key}"`, { stage: 'comic:identity-card' })
     const sources = getSources(runDirectory, character)
-    const path = sources.sheetPath === sources.sourcePath
+    const path = manifest.snapshotId === 'live' || sources.sheetPath === sources.sourcePath
       ? sources.sheetPath
       : options.compose === false
         ? getCharacterIdentityCardPath(runDirectory, manifest, key)
         : ensureCharacterIdentityCardSync(runDirectory, manifest, key)
-    references.push({ key, name: character.name, description: character.description, referenceIndex: references.length + 1, path })
+    references.push({
+      key, name: character.name, description: character.description, referenceIndex: references.length + 1, path,
+      ...(character.distinguishFrom !== undefined ? { distinguishFrom: character.distinguishFrom.map(cue => ({ ...cue })) } : {}),
+    })
   }
   return references
 }

@@ -8,7 +8,7 @@ import type {
 } from '~/types'
 import { advancePageQaRepairStagnation, createPageQaRepairStagnationState, isBlockingMaterialFailure, readReusablePageQaEntry } from './comic-page-qa'
 import type { QaAttemptAction, QaAttemptTotals, QaRepairRefusal, QaRestartReason, QaStagnationStop } from './comic-repair-attempt-types'
-import { evaluateGenerationAttempt, judgeQaImage, recordQaUsage, writeAttemptQaEvidence } from './comic-repair-evaluation'
+import { buildQaImageRequest, evaluateGenerationAttempt, judgeQaImage, recordQaUsage, writeAttemptQaEvidence } from './comic-repair-evaluation'
 import { resultWithTotals, throwQaRepairFailure } from './comic-repair-failure'
 import { runGenerationAttempt } from './comic-repair-generation'
 import { resolveQaRepairAction, resolveQaRepairDispatchReason, resolveRejectedQaRepair } from './comic-repair-transitions'
@@ -18,7 +18,7 @@ const preflightExistingOutput = async (
   totals: QaAttemptTotals
 ): Promise<{ qaEntry?: PageQaEntry | undefined, result?: GenerateWithQaRepairResult | undefined }> => {
   if (input.outputExists && !input.qaEnabled) return { result: resultWithTotals('skipped', undefined, totals) }
-  let qaEntry = input.outputExists && !input.force ? await readReusablePageQaEntry(input.outputPath, input.judgeModel) : undefined
+  let qaEntry = input.outputExists && !input.force ? await readReusablePageQaEntry(input.outputPath, input.judgeModel, buildQaImageRequest(input, input.outputPath)) : undefined
   if (input.outputExists && !input.force && !qaEntry && input.qaEnabled) {
     qaEntry = await judgeQaImage(input, input.outputPath)
     recordQaUsage(totals, qaEntry)

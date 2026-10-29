@@ -22,7 +22,7 @@ const fixture = async (fixtureOptions: { mistralZeroBased?: boolean } = {}) => {
     await Bun.write(join(root, path), serialized)
     return serialized
   }
-  const targets = [{ provider: 'tesseract', model: 'tesseract' }, fixtureOptions.mistralZeroBased ? { provider: 'mistral', model: 'mistral-ocr-4-1' } : { provider: 'deepinfra', model: 'fixture/model' }, { provider: 'openai', model: 'partial-model' }]
+  const targets = [{ provider: 'tesseract', model: 'tesseract' }, fixtureOptions.mistralZeroBased ? { provider: 'mistral', model: 'mistral-ocr-4-1' } : { provider: 'grok', model: 'fixture/model' }, { provider: 'openai', model: 'partial-model' }]
   const cases = [], pages = [], receipts = [], slotPaths: string[] = []
   for (const [index, id] of ['technical-code-fixture', 'historical-print-fixture', 'bc-rerun-fixture'].entries()) {
     const pageCount = index === 2 ? 2 : 1
@@ -92,7 +92,7 @@ describe('B/C saved-page OCR report assembly', () => {
     expect((await Bun.file(join(f.root, `${entry.runDir}/case-metadata.json`)).json()).coverage.successfulModels).toBe(2)
   })
   test('rejects zero-based or out-of-range indices from other providers even when artifacts are consistently rehashed', async () => {
-    for (const provider of ['tesseract', 'deepinfra', 'openai']) for (const index of [0, 2]) {
+    for (const provider of ['tesseract', 'grok', 'openai']) for (const index of [0, 2]) {
       const f = await fixture()
       const directory = f.slotPaths.find(path => path.includes(`${f.cases[2]!.id}-page-01/${provider}-`))!
       const manifest = await Bun.file(join(f.root, `${directory}/manifest.json`)).json()
@@ -130,7 +130,7 @@ describe('B/C saved-page OCR report assembly', () => {
     expect(manifest.items[0].providers.every((p: Record<string, unknown>) => !('result' in p))).toBe(true)
     expect(manifest.items[0].providers.find((p: { service: string }) => p.service === 'openai').status).toBe('failed')
     expect(await Bun.file(join(f.root, `${localRoot}/benchmark-runs/${entry.id}/providers/openai-partial-model/result.json`)).exists()).toBe(false)
-    const combined = await Bun.file(join(f.root, `${localRoot}/benchmark-runs/${entry.id}/providers/deepinfra-fixture%2Fmodel/result.json`)).json()
+    const combined = await Bun.file(join(f.root, `${localRoot}/benchmark-runs/${entry.id}/providers/grok-fixture%2Fmodel/result.json`)).json()
     expect(combined.pages.map((page: { pageNumber: number }) => page.pageNumber)).toEqual([1, 2])
     expect(combined.pages[0].text).toContain(secret)
     expect(await Bun.file(join(f.root, `${f.slotPaths[0]}/manifest.json`)).text()).toBe(saved)

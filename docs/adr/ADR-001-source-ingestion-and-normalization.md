@@ -4,15 +4,15 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-09-22
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
-- **Supersession:** URL route execution moved here from the retired record "Extract Execution and Artifact Contracts". OCR execution belongs to [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md), STT execution belongs to [ADR-009](ADR-009-stt-timing-captions-and-alignment.md), and pipeline state, resume, and dry-run planning belong to [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md). This record remains accepted authority for source classification, explicit URL routes and their execution, supported ebook normalization, discovery caches, and the normalized handoff to execution.
+- **Supersession:** Absorbs URL route execution from the retired record "Extract Execution and Artifact Contracts". OCR and STT execution remain with [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md) and [ADR-009](ADR-009-stt-timing-captions-and-alignment.md); pipeline state and resume remain with [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 
 ## Context
 
-Source ingestion must answer what the input is, which route it requires, and which normalized file enters extraction. It does not own OCR or STT provider execution or persistent run state.
+Source ingestion must answer what the input is, which route it requires, and which normalized source enters extraction.
 
-URL sources need a stable identity before extraction. An article is resumable URL extraction. An X Space is a separate route and is not resumable. Neither route may be inferred from the other or from provider metadata.
+URL sources need a stable identity before extraction. An article is resumable URL extraction. An X Space is a separate route and is not resumable; it must not be mistaken for an article.
 
 Discovery repeats expensive, non-authoritative work across independent CLI processes: video and collection lookups, local media probes, and batch-list parsing.
 
@@ -59,7 +59,7 @@ Why now: source routing, URL route execution, supported ebook conversion, and di
 
 ## Decision
 
-Classify each input, expand collections and batch lists, and normalize supported sources before extraction. The result is an explicitly routed, normalized file.
+Classify each input, expand collections and batch lists, and normalize supported sources before extraction. The result is an explicitly routed source, with a normalized file when conversion is required.
 
 This applies to:
 
@@ -77,17 +77,17 @@ It does not apply to:
 
 ### URL routes and execution
 
-`article` is a first-class URL route. It is never inferred from `x-space`, input family, or provider metadata. X Spaces keep their own route and stay non-resumable. Single-item and mixed-route batches keep those routes in the work plan and in `manifest.json`.
+Article and X Space inputs retain distinct `article` and `x-space` routes in the work plan and `manifest.json`, for both single-item and mixed-route batches. X Space runs cannot resume through the article route.
 
-URL adapters write domain artifacts. Provider progress is recorded only in the canonical manifest owned by [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md); raw responses and derived files are not resume authority. `extract --provider` and `resume` use the same route-qualified provider names.
+URL extraction writes its artifacts and records provider progress in the canonical `manifest.json` owned by [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md); raw responses and derived files are not resume authority. `extract` and `resume` select article backends through the shared `--provider` surface, using names such as `spider` without a route prefix. Local HTML always uses `defuddle`.
 
 ### Discovery caches
 
-Video lookups, YouTube collection expansion, local media probes, and batch-list parsing may reuse best-effort caches across CLI processes. Caches are never source-of-truth state. Local media probes and batch lists hit only when the file fingerprint is unchanged and the cached payload validates. Video lookups validate the cached payload before reuse. YouTube collection hits are keyed by URL and are not checked against the live collection. A read or validation failure degrades to a miss. A cache never changes classification or the normalized file handed to extraction.
+Video lookups, YouTube collection expansion, local media probes, and batch-list parsing may reuse caches across CLI processes. These caches are not resume authority. Local media and batch-list entries require an unchanged file fingerprint; video metadata is validated before reuse. YouTube collection entries are keyed by URL and are not refreshed against the live collection. Missing or malformed shared cache files become misses, while permission and other I/O failures propagate.
 
 ### Convertible ebooks
 
-Registered ebook inputs `mobi`, `azw3`, `fb2`, and `lit` convert with Calibre `ebook-convert` to a temporary EPUB, with `.azw` treated as `azw3` and `.prc` as `mobi`. Only that EPUB enters extraction, on the existing EPUB path. Unregistered extensions are not probed.
+Registered ebook inputs `mobi`, `azw3`, `fb2`, and `lit` convert with Calibre `ebook-convert` to a temporary EPUB, with `.azw` treated as `azw3` and `.prc` as `mobi`. That EPUB enters the existing EPUB extraction path, and metadata retains the original format and conversion chain. Unregistered ebook extensions are not sent to Calibre.
 
 `.acsm` files are not recognized, fulfilled, or provisioned. Provide a readable EPUB or PDF. DRM-protected ebooks remain unsupported.
 
@@ -95,7 +95,7 @@ Registered ebook inputs `mobi`, `azw3`, `fb2`, and `lit` convert with Calibre `e
 
 - Converting registered ebooks to EPUB reuses the chapter-aware extract path without parser dependencies or parallel extractors.
 - An explicit registry prevents unrelated files from being sent to Calibre.
-- Explicit URL routes and one selector list keep each new provider selectable without an inferred route or a second spelling.
+- Explicit URL routes and shared provider selection keep execution and resume consistent.
 - Discovery work is expensive and non-authoritative, so it is reused only under the validation rules in the Decision.
 - `.acsm` is a fulfillment document, not a readable book.
 
@@ -106,7 +106,7 @@ Positive outcomes:
 - Every command uses one classification and expansion result before extraction.
 - An X Space cannot be treated as an article during execution or resume.
 - Convertible ebooks get the same EPUB chapter path after a local, no-cost conversion, and new formats can be added through the registry.
-- Repeated discovery work can be reused without changing results.
+- Repeated discovery work can be reused, with local file changes invalidating cached entries.
 
 Negative outcomes:
 
@@ -123,8 +123,8 @@ Negative outcomes:
 
 **Trade-off 2**
 
-- **Gain:** Explicit `article` and `x-space` routes shared by extract and resume
-- **Sacrifice:** An unclassified URL family needs an explicit route before it can run
+- **Gain:** Explicit `article` and `x-space` identities prevent cross-route resume
+- **Sacrifice:** X Space runs remain outside the article resume path
 
 **Trade-off 3**
 
@@ -133,18 +133,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-Shipped in `download`, `metadata`, and `extract`: the convertible-ebook registry with Calibre conversion during document download, fingerprint-validated discovery caches, and the route-qualified URL selectors documented in the URL command guide.
-
-## API / Type Impact
-
-Convertible ebook runs record:
-
-- **`sourceFormat`:** `mobi`, `azw3`, `fb2`, or `lit` after alias resolution
-- **`normalizedFormat`:** `epub`
-- **`conversionChain`:** `["calibre"]`
-- **`normalizedFrom`:** original source format after extraction
-
-`extract` and `resume` accept the same route-qualified URL provider names, and a stored `x-space` item cannot resume as an `article`.
+Implemented by `src/cli/commands/sources/metadata/`, Calibre normalization in `src/cli/commands/sources/download/document/dl-document.ts`, and the URL provider registry in `src/cli/commands/command-shared/extract-routing/provider-registry/url-providers.ts`.
 
 ## Test Plan
 
@@ -152,10 +141,13 @@ Convertible ebook runs record:
 bun run check
 bun test test/test-cases/validation/text/ocr/epub-contracts/
 bun test test/test-cases/validation/providers/provider-selection-contracts/
+bun test test/test-cases/validation/runtime-contracts/file-cache-contracts.test.ts
 ```
 
-1. Convertible ebook detection, alias resolution, Calibre conversion, and conversion metadata.
-2. Extract and resume selectors stay equal to the canonical route-qualified target maps.
+1. Repository structure, type, naming, and documentation contracts.
+2. Convertible ebook detection, alias resolution, Calibre conversion, and conversion metadata.
+3. Registry-backed provider selection and article routing.
+4. Batch-list invalidation after local file changes and preservation of concurrent cache updates.
 
 ## References
 

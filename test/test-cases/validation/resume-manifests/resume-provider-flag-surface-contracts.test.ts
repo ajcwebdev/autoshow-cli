@@ -244,13 +244,12 @@ describe('resume provider flag surface', () => {
   test('resume accepts generic video mode and input flags but not provider-specific video flags', () => {
     expectResumeHasFlags([
       'mode',
-      'generate-audio',
       'input-image',
       'last-frame',
       'reference-image',
       'input-video',
-      'reference-video',
-      'reference-audio'
+      'reference-video'
     ])
+    expectResumeLacksFlags(['generate-audio', 'reference-audio'])
   })
 })

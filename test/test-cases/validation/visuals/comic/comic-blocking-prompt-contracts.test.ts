@@ -60,7 +60,7 @@ const prepareWorkspace = async () => {
       outlineSheet: `${character.key}.png`,
       sourceSha256: sheetSha256,
       sheetSha256,
-      model: 'gpt-image-2',
+      model: 'gpt-image-2.5-flare',
       createdAt: '2026-01-01T00:00:00.000Z',
     })),
   }, null, 2))
@@ -364,7 +364,12 @@ describe('panel bundles compiled from an imported plan', () => {
     expect(singlePrompt).not.toContain('"sourceSegments"')
     expect(singlePrompt).not.toContain('"blocking"')
 
-    const groupedData = buildComicPagePromptData([first, second])
+    const groupedData = buildComicPagePromptData([
+      { ...first, snapshotId: 'retired-first-snapshot' },
+      { ...second, snapshotId: 'retired-second-snapshot' },
+    ])
+    expect(groupedData.snapshotId).toBeUndefined()
+    expect(groupedData.panels.map(panel => panel.number)).toEqual([1, 2])
     expect(groupedData.blocking).toBeUndefined()
     expect(groupedData.planSha256).toBeUndefined()
     const groupedPrompt = buildComicPagePrompt(groupedData)
@@ -380,7 +385,7 @@ describe('panel bundles compiled from an imported plan', () => {
     const bundleSha256 = (await readPanelBundle(slug, 'panel-01')).bundle.planSha256!
     let requested = 0
     await captureLogEvents(async () => {
-      await expect(generatePanelImages(slug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'preflight-run', concurrency: 1, qa: false, panels: [1] }, {
+      await expect(generatePanelImages(slug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'preflight-run', concurrency: 1, qa: false, panels: [1] }, {
         requestImage: async () => { requested++; return { mode: 'generate', result: { imageBase64: '' } } },
         writeImage: async () => {},
       })).rejects.toThrow(`Panel bundle plan hash ${bundleSha256} does not match metadata/blocking-plan.json ${staleSha256}; rerun draft-scenes --only panel-prompts`)
@@ -393,7 +398,7 @@ describe('panel bundles compiled from an imported plan', () => {
     const calls: ComicImageRequestInput[] = []
     let judgments = 0
     await captureLogEvents(async () => {
-      await generatePanelImages(slug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'layout-guide-run', concurrency: 1, qa: true, maxRepairs: 1, panels: [1], blockingLayoutGuide: true }, {
+      await generatePanelImages(slug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'layout-guide-run', concurrency: 1, qa: true, maxRepairs: 1, panels: [1], blockingLayoutGuide: true }, {
         requestImage: async input => {
           calls.push(input)
           return { mode: 'generate', result: { imageBase64: BLOCKING_FIXTURE_TINY_PNG.toString('base64') } }
@@ -419,8 +424,8 @@ describe('panel bundles compiled from an imported plan', () => {
     expect(calls[1]!.normalizedPrompt).toContain('Dense-cast screen-space layout: the final reference image')
     expect(calls[0]!.normalizedPrompt).toContain('structural diagram only, never an art or identity reference')
     expect(calls[0]!.normalizedPrompt).toContain('1=peaches')
-    expect(await validatePriceReferenceGroup(getPanelPromptsDirectory(slug), [1], ['gpt-image-2'])).toBe(calls[0]!.referenceImages.length - 1)
-    expect(await validatePriceReferenceGroup(getPanelPromptsDirectory(slug), [1], ['gpt-image-2'], true)).toBe(calls[0]!.referenceImages.length)
+    expect(await validatePriceReferenceGroup(getPanelPromptsDirectory(slug), [1], ['gpt-image-2.5-flare'])).toBe(calls[0]!.referenceImages.length - 1)
+    expect(await validatePriceReferenceGroup(getPanelPromptsDirectory(slug), [1], ['gpt-image-2.5-flare'], true)).toBe(calls[0]!.referenceImages.length)
     expect(calls[1]!.referenceImages).toHaveLength(calls[0]!.referenceImages.length + 1)
   })
 })
@@ -532,11 +537,11 @@ describe('reference slot reservation', () => {
     const { trimOptionalContinuityReferences } = await import('~/cli/commands/visuals/comic/comic-utils/reference-capabilities')
     const required = Array.from({ length: 15 }, (_, index) => `required-${index + 1}.png`)
     const optional = ['optional-1.png', 'optional-2.png']
-    expect(trimOptionalContinuityReferences('gpt-image-2', required, optional).references).toEqual([...required, 'optional-1.png'])
-    const reserved = trimOptionalContinuityReferences('gpt-image-2', required, optional, { reserveSlots: 1 })
+    expect(trimOptionalContinuityReferences('gpt-image-2.5-flare', required, optional).references).toEqual([...required, 'optional-1.png'])
+    const reserved = trimOptionalContinuityReferences('gpt-image-2.5-flare', required, optional, { reserveSlots: 1 })
     expect(reserved.references).toEqual(required)
     expect(reserved.trimmed).toEqual(optional)
-    expect(trimOptionalContinuityReferences('gpt-image-2', required, [], { reserveSlots: 4 }).references).toEqual(required)
-    expect(() => trimOptionalContinuityReferences('gpt-image-2', Array.from({ length: 17 }, (_, index) => `required-${index + 1}.png`), [], { reserveSlots: 1 })).toThrow('Required character references')
+    expect(trimOptionalContinuityReferences('gpt-image-2.5-flare', required, [], { reserveSlots: 4 }).references).toEqual(required)
+    expect(() => trimOptionalContinuityReferences('gpt-image-2.5-flare', Array.from({ length: 17 }, (_, index) => `required-${index + 1}.png`), [], { reserveSlots: 1 })).toThrow('Required character references')
   })
 })

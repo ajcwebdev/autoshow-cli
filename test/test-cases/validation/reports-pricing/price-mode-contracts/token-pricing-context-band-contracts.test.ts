@@ -8,7 +8,7 @@ import { requireDefined } from '../../../../test-utils/value-assertions'
 
 const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'openai',
-  llmModel: 'gpt-5.6-sol',
+  llmModel: 'gpt-6.1-sol',
   processingTime: 1234,
   inputTokenCount: 300_000,
   outputTokenCount: 10_000,
@@ -21,19 +21,20 @@ const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Me
 })
 
 describe('price mode contracts', () => {
-  test('Astra pricing changes for the whole request strictly above 272K input tokens', () => {
-    const rates = requireDefined(getLlmCost('openai', 'gpt-6-astra'), 'Astra pricing')
+  test('GPT-6 Luna pricing changes for the whole request strictly above 272K input tokens', () => {
+    const rates = requireDefined(getLlmCost('openai', 'gpt-6-luna'), 'GPT-6 Luna pricing')
     const standard = computeTokenCost(rates, 272_000, 1000)
     const long = computeTokenCost(rates, 272_001, 1000)
-    expect(standard).toMatchObject({ inputCostPer1MCents: 1000, outputCostPer1MCents: 5000, totalCost: 277 })
-    expect(long).toMatchObject({ inputCostPer1MCents: 2000, outputCostPer1MCents: 7500 })
-    expect(long.totalCost).toBeCloseTo(551.502)
-    const entry = requireDefined(getModelRegistry().llm['openai']?.models['gpt-6-astra'], 'Astra registry entry')
-    expect(entry.tokenPricingBands?.map((band) => band.cachedInputCostPer1MCents)).toEqual([100, 200])
+    expect(standard).toMatchObject({ inputCostPer1MCents: 10, outputCostPer1MCents: 50 })
+    expect(standard.totalCost).toBeCloseTo(2.77)
+    expect(long).toMatchObject({ inputCostPer1MCents: 20, outputCostPer1MCents: 75 })
+    expect(long.totalCost).toBeCloseTo(5.51502)
+    const entry = requireDefined(getModelRegistry().llm['openai']?.models['gpt-6-luna'], 'GPT-6 Luna registry entry')
+    expect(entry.tokenPricingBands?.map((band) => band.cachedInputCostPer1MCents)).toEqual([1, 2])
   })
 
   const GROK_LLM_BAND_CASES = [
-    { model: 'grok-4.6', pricingCheckedAt: '2026-08-18', cachedInputCostPer1MCents: 50, longBandCachedInputCostPer1MCents: 100 }
+    { model: 'grok-4.5', cachedInputCostPer1MCents: 30, longBandCachedInputCostPer1MCents: 60 }
   ]
 
   for (const testCase of GROK_LLM_BAND_CASES) {
@@ -57,7 +58,6 @@ describe('price mode contracts', () => {
       })
       expect(computeTokenCost(rates, 200_001, 1000).totalCost).toBeCloseTo(81.2004)
       expect(entry).toMatchObject({
-        pricingCheckedAt: testCase.pricingCheckedAt,
         inputCostPer1MCents: 200,
         cachedInputCostPer1MCents: testCase.cachedInputCostPer1MCents,
         outputCostPer1MCents: 600
@@ -69,56 +69,40 @@ describe('price mode contracts', () => {
     })
   }
 
-  const GROK_OCR_BAND_CASES = [
-    { model: 'grok-4.5', pricingCheckedAt: '2026-07-23', cachedInputCostPer1MCents: 30, longBandCachedInputCostPer1MCents: 60 },
-    { model: 'grok-4.6', pricingCheckedAt: '2026-08-18', cachedInputCostPer1MCents: 50, longBandCachedInputCostPer1MCents: 100 }
-  ]
-
-  for (const testCase of GROK_OCR_BAND_CASES) {
-    test(`Grok ${testCase.model.replace('grok-', '')} OCR pricing uses published short and long context bands`, () => {
-      const rates = getExtractPricing('grok', testCase.model)
-      const entry = getModelRegistry().extract['grok']?.models[testCase.model] ?? getRetiredModelRate('extract', 'grok', testCase.model)
-      if (!entry || rates.inputCostPer1MCents === undefined || rates.outputCostPer1MCents === undefined) {
-        throw new Error(`Missing ${testCase.model} OCR pricing`)
+  test('Grok 4.7 OCR pricing switches to the long-context band at 200K input tokens', () => {
+      const rates = getExtractPricing('grok', 'grok-4.7')
+      const entry = requireDefined(getModelRegistry().extract['grok']?.models['grok-4.7'], 'Grok 4.7 OCR registry entry')
+      if (rates.inputCostPer1MCents === undefined || rates.outputCostPer1MCents === undefined) {
+        throw new Error('Missing grok-4.7 OCR pricing')
       }
+      const tokenRates = { ...rates, inputCostPer1MCents: rates.inputCostPer1MCents, outputCostPer1MCents: rates.outputCostPer1MCents }
 
-      expect(computeTokenCost({
-        ...rates,
-        inputCostPer1MCents: rates.inputCostPer1MCents,
-        outputCostPer1MCents: rates.outputCostPer1MCents
-      }, 200_000, 1000)).toMatchObject({
-        pricingBand: 'standard-up-to-200k',
+      expect(computeTokenCost(tokenRates, 199_999, 1000)).toMatchObject({
+        pricingBand: 'standard-below-200k',
         inputCostPer1MCents: 200,
         outputCostPer1MCents: 600
       })
-      expect(computeTokenCost({
-        ...rates,
-        inputCostPer1MCents: rates.inputCostPer1MCents,
-        outputCostPer1MCents: rates.outputCostPer1MCents
-      }, 200_001, 1000)).toMatchObject({
-        pricingBand: 'standard-over-200k',
+      expect(computeTokenCost(tokenRates, 200_000, 1000)).toMatchObject({
+        pricingBand: 'standard-at-least-200k',
         inputCostPer1MCents: 400,
         outputCostPer1MCents: 1200
       })
       expect(entry).toMatchObject({
-        pricingCheckedAt: testCase.pricingCheckedAt,
+        pricingCheckedAt: '2026-10-17',
         costPerMInputTokensCents: 200,
-        costPerMCachedInputTokensCents: testCase.cachedInputCostPer1MCents,
+        costPerMCachedInputTokensCents: 50,
         costPerMOutputTokensCents: 600
       })
-      expect(entry.tokenPricingBands?.[1]).toMatchObject({
-        cachedInputCostPer1MCents: testCase.longBandCachedInputCostPer1MCents
-      })
+      expect(entry.tokenPricingBands?.[1]).toMatchObject({ cachedInputCostPer1MCents: 100 })
       expect(rates).not.toHaveProperty('higherContextPricing')
     })
-  }
 
-  test('Grok 4.6 LLM preflight and actual costs propagate the long-context band', () => {
+  test('Grok 4.5 LLM preflight and actual costs propagate the long-context band', () => {
       const estimated = computeEstimatedCosts({
         applyCostMultipliers: false,
         llmTargets: [{
           service: 'grok',
-          model: 'grok-4.6',
+          model: 'grok-4.5',
           inputTokens: 200_001,
           outputTokens: 1000
         }]
@@ -126,7 +110,7 @@ describe('price mode contracts', () => {
       const actual = computeActualCosts({
         step3: buildStep3CostMetadata({
           llmService: 'grok',
-          llmModel: 'grok-4.6',
+          llmModel: 'grok-4.5',
           inputTokenCount: 200_001,
           outputTokenCount: 1000
         })
@@ -134,59 +118,43 @@ describe('price mode contracts', () => {
 
       expect(estimated.steps[0]).toMatchObject({
         provider: 'grok',
-        model: 'grok-4.6',
+        model: 'grok-4.5',
         cost: 81.2004,
         pricingBand: 'standard-over-200k'
       })
       expect(actual.steps[0]).toMatchObject({
         provider: 'grok',
-        model: 'grok-4.6',
+        model: 'grok-4.5',
         cost: 81.2004,
         pricingBand: 'standard-over-200k'
       })
       expect(actual.totalCost).toBeCloseTo(estimated.totalCost)
     })
 
-  const OPENAI_GPT56_BAND_CASES = [
+  const OPENAI_BAND_CASES = [
     {
-      model: 'gpt-5.6-sol',
-      shortInput: 400,
-      shortCached: 40,
-      shortOutput: 2000,
-      longInput: 800,
-      longCached: 80,
-      longOutput: 3000
+      model: 'gpt-6-luna',
+      ocr: true,
+      shortInput: 10,
+      shortCached: 1,
+      shortOutput: 50,
+      longInput: 20,
+      longCached: 2,
+      longOutput: 75
     },
     {
-      model: 'gpt-5.6-terra',
+      model: 'gpt-6.1-sol',
+      ocr: true,
       shortInput: 200,
-      shortCached: 20,
-      shortOutput: 1200,
+      shortCached: 10,
+      shortOutput: 1000,
       longInput: 400,
-      longCached: 40,
-      longOutput: 1800
-    },
-    {
-      model: 'gpt-5.6-luna',
-      shortInput: 20,
-      shortCached: 2,
-      shortOutput: 120,
-      longInput: 40,
-      longCached: 4,
-      longOutput: 180
+      longCached: 20,
+      longOutput: 1500
     }
   ] as const
 
-  test('Sol LLM and OCR retain the dated official promotion provenance without inventing a later tariff', () => {
-    // Official model page retrieved 2026-10-15; promotion is guaranteed at least
-    // through November 21, not documented to end automatically on that date.
-    for (const entry of [getRetiredModelRate('llm', 'openai', 'gpt-5.6-sol'), getRetiredModelRate('extract', 'openai', 'gpt-5.6-sol')]) {
-      expect(entry).toMatchObject({ pricingCheckedAt: '2026-10-15', pricingSourceUrl: 'https://developers.openai.com/api/docs/models/gpt-5.6-sol' })
-      expect(entry?.pricingNotes).toContain('at least through November 21, 2026; no later rate is assumed')
-    }
-  })
-
-  for (const testCase of OPENAI_GPT56_BAND_CASES) {
+  for (const testCase of OPENAI_BAND_CASES) {
     test(`OpenAI ${testCase.model} LLM pricing uses published short and long context bands`, () => {
       const rates = requireDefined(getLlmCost('openai', testCase.model), `${testCase.model} LLM pricing`)
       const standard = computeTokenCost(rates, 272_000, 1000)
@@ -210,7 +178,7 @@ describe('price mode contracts', () => {
       ])
     })
 
-    test(`OpenAI ${testCase.model} OCR pricing uses published short and long context bands`, () => {
+    if (testCase.ocr) test(`OpenAI ${testCase.model} OCR pricing uses published short and long context bands`, () => {
       const rates = getExtractPricing('openai', testCase.model)
       const entry = requireDefined(getModelRegistry().extract['openai']?.models[testCase.model] ?? getRetiredModelRate('extract', 'openai', testCase.model), `${testCase.model} active or historical OCR pricing`)
 
@@ -246,12 +214,12 @@ describe('price mode contracts', () => {
     })
   }
 
-  test('GPT-5.6 Terra LLM preflight and actual costs propagate the long-context band', () => {
+  test('GPT-6 Luna LLM preflight and actual costs propagate the long-context band', () => {
     const estimated = computeEstimatedCosts({
       applyCostMultipliers: false,
       llmTargets: [{
         service: 'openai',
-        model: 'gpt-5.6-terra',
+        model: 'gpt-6-luna',
         inputTokens: 272_001,
         outputTokens: 1000
       }]
@@ -259,22 +227,22 @@ describe('price mode contracts', () => {
     const actual = computeActualCosts({
       step3: buildStep3CostMetadata({
         llmService: 'openai',
-        llmModel: 'gpt-5.6-terra',
+        llmModel: 'gpt-6-luna',
         inputTokenCount: 272_001,
         outputTokenCount: 1000
       })
     })
 
-    const expectedCost = (272_001 / 1_000_000) * 400 + (1000 / 1_000_000) * 1800
+    const expectedCost = (272_001 / 1_000_000) * 20 + (1000 / 1_000_000) * 75
     expect(estimated.steps[0]).toMatchObject({
       provider: 'openai',
-      model: 'gpt-5.6-terra',
+      model: 'gpt-6-luna',
       pricingBand: 'standard-long-context'
     })
     expect(estimated.steps[0]?.cost).toBeCloseTo(expectedCost)
     expect(actual.steps[0]).toMatchObject({
       provider: 'openai',
-      model: 'gpt-5.6-terra',
+      model: 'gpt-6-luna',
       pricingBand: 'standard-long-context'
     })
     expect(actual.steps[0]?.cost).toBeCloseTo(expectedCost)

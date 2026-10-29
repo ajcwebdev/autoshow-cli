@@ -2,7 +2,7 @@ import { expect } from 'bun:test'
 import { requireCondition } from '../test-utils/require-condition'
 import { chmod, mkdir } from 'node:fs/promises'
 import { isAbsolute, join, posix, relative, resolve } from 'node:path'
-import { canonicalImageRepository, nativePlatform, parseImageReference } from './docker-options'
+import { canonicalImageRepository, nativePlatform, parseImageReference, validateContainerUser } from './docker-options'
 import type { DockerOptions, Platform, PullPolicy } from './docker-options'
 import { runDockerProcess } from '../../src/tools/docker-process'
 import type { ProcessOutcome, ProcessRunner } from '../../src/tools/docker-process'
@@ -39,11 +39,21 @@ export function mapArtifactPath(path: string, mounts: MountMapping[], relativeTo
   return mapped
 }
 
-export function containerArguments(identity: ImageIdentity, name: string, runId: string, mounts: MountMapping[], network: string, args: string[], entrypoint?: string): string[] {
+export interface ContainerRuntimePolicy { user?: string; restricted?: boolean }
+
+/** Existing mount permissions are part of the state contract, not something acceptance repairs. */
+export async function prepareAcceptanceDirectory(path: string): Promise<void> {
+  const created = await mkdir(path, { recursive: true })
+  if (created !== undefined) await chmod(path, 0o777)
+}
+
+export function containerArguments(identity: ImageIdentity, name: string, runId: string, mounts: MountMapping[], network: string, args: string[], entrypoint?: string, policy: ContainerRuntimePolicy = {}): string[] {
   const reference = parseImageReference(identity.reference)
   requireCondition(reference.digest === identity.digest || (reference.imageId === identity.imageId && reference.imageId === identity.digest), 'A verified immutable image reference is required')
   const result = ['run', '--rm', '--pull', 'never', '--name', name, '--label', `autoshow.acceptance=${runId}`, '--platform', identity.platform,
     '--network', network, '--workdir', '/workspace', '--env', 'NO_COLOR=1', '--env', 'CI=true', '--env', 'AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1']
+  if (policy.user) result.push('--user', validateContainerUser(policy.user))
+  if (policy.restricted) result.push('--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true')
   for (const mount of mounts) {
     requireCondition(!/[,\r\n]/.test(mount.host), 'Unsafe mount path')
     requireCondition(!['/app', '/app/src', '/app/node_modules'].includes(mount.container), 'Cannot replace image source')
@@ -143,20 +153,22 @@ export class DockerEngine {
       [join(cache, 'runtime'), '/app/runtime', false],
       [join(cache, 'home'), '/home/bun', false]
     ] as const) {
-      await mkdir(host, { recursive: true })
-      await chmod(host, 0o777)
+      await prepareAcceptanceDirectory(host)
       this.mounts.push({ host, container, readonly })
     }
   }
 
-  async repairCacheOwnership(): Promise<void> {
-    requireCondition(this.identity)
-    const mounts = this.mounts.filter(mount => ['/app/runtime', '/home/bun'].includes(mount.container))
-    expect(mounts.length, 'Cache ownership repair requires only the two asset mounts').toBe(2)
-    const name = `${this.runId}-${++this.sequence}`
-    const argv = containerArguments(this.identity, name, this.runId, mounts, 'none', ['-R', this.identity.user, '/app/runtime', '/home/bun'], 'chown')
-    argv.splice(1, 0, '--user', '0')
-    this.requireSuccess(await this.ownedCommand(name, argv, 120_000), 'Restore cache ownership to image user')
+  async verifyStateAccess(): Promise<void> {
+    const script = `import {mkdir,writeFile,readFile,rm} from 'node:fs/promises';
+const nonce=${JSON.stringify(`.${this.runId}-state-check`)};
+for(const root of ['/results','/app/runtime','/home/bun']) {
+ const directory=root+'/'+nonce; await mkdir(directory);
+ try {const file=directory+'/probe';await writeFile(file,'state-check');if(await readFile(file,'utf8')!=='state-check')throw new Error('State readback failed');}
+ finally {await rm(directory,{recursive:true});}
+}
+console.log(JSON.stringify({stateAccess:'passed',uid:process.getuid(),gid:process.getgid()}));`
+    this.requireSuccess(await this.container(['--no-env-file', '-e', script], 'none', 30_000, 'bun'),
+      'State mounts must be writable by the selected non-root user. Use --user UID:GID for host-owned caches; acceptance never repairs existing ownership or modes')
   }
 
   authorize(args: string[], network: string): void { this.authorized.set(JSON.stringify(args), network) }
@@ -171,7 +183,7 @@ export class DockerEngine {
     requireCondition(!this.interrupted, 'Acceptance interrupted')
     const name = `${this.runId}-${++this.sequence}`
     const mounts = this.mounts.map(mount => mount.container === '/fixtures' && writableFixtures ? { ...mount, readonly: false } : mount)
-    const argv = containerArguments(this.identity, name, this.runId, mounts, network, args, entrypoint)
+    const argv = containerArguments(this.identity, name, this.runId, mounts, network, args, entrypoint, this.options)
     return this.ownedCommand(name, argv, timeoutMs)
   }
 

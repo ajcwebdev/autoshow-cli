@@ -1,0 +1,5 @@
+Offline ASR assessment (2026-10-29T06:53:20.698Z): narration--2026-09-25_02-tts-hard--elevenlabs-eleven-v4. See docs/benchmarks/tts/assessment.md#narration--2026-09-25_02-tts-hard--elevenlabs-eleven-v4 and docs/benchmarks/tts/assessment.evidence.zip.
+
+Installed Whisper small.en screening: strict WER 10.94%, CER 2.13%, substitutions/deletions/insertions 7/0/0. Differences require adjudication and do not establish TTS errors. Full waveform decoding succeeded. Per-line timing attribution is unavailable; full-file signal intervals are recorded.
+
+Subjective pronunciation, speaker identity, emotional/control effect, seam/prosody, and perceptual ratings are excluded and unscored at the user’s instruction. No human listening or perceptual pass is claimed. No provider calls or synthesis reruns were made.

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { buildTtsDashboard, collectTtsDashboardSamples, readTtsAssessment, TTS_ASSESSMENT_EVIDENCE } from '../../../../.codex/skills/consensus/scripts/tts/build_tts_dashboard'
 import type { CombinedDashboardModel } from '../../../../.codex/skills/consensus/scripts/shared/combined_report_html'
 import { renderTabPanel } from '../../../../.codex/skills/consensus/scripts/shared/dashboard_client.js'
@@ -9,6 +9,8 @@ import { TTS_DASHBOARD_EVIDENCE } from '../../../../.codex/skills/consensus/scri
 import { hasAllDashboardTabs } from '../../../../.codex/skills/consensus/scripts/shared/build_combined_dashboard'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { getFfmpegBinary } from '~/utils/runtime-paths'
+import { TTS_AUDIO_DELIVERY_CATALOG, type TtsAudioDeliveryCatalog } from '../../../../.codex/skills/consensus/scripts/tts/tts_audio_delivery'
 
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex')
 const writeJson = (path: string, value: unknown) => {
@@ -33,7 +35,8 @@ test('TTS assessment uses word-weighted corpus edits and rejects stale, unbound,
     const archive = (value: unknown = evidence) => {
       writeFileSync(join(stage, 'assessment.json'), JSON.stringify(value))
       for (let i = 0; i < rows.length; i++) writeFileSync(join(stage, `transcript-${i}.txt`), 'exact retained transcript')
-      const names = ['assessment.json', ...rows.map(row => row.transcript)]
+      writeFileSync(join(stage, 'input.txt'), 'exact retained source input')
+      const names = ['assessment.json', 'input.txt', ...rows.map(row => row.transcript)]
       writeFileSync(join(stage, 'SHA256SUMS'), names.map(name => `${sha256(readFileSync(join(stage, name)))}  ${name}`).join('\n') + '\n')
       const next = join(dir, 'next.zip')
       if (existsSync(next)) unlinkSync(next)
@@ -55,6 +58,16 @@ test('TTS assessment uses word-weighted corpus edits and rejects stale, unbound,
     expect(() => readTtsAssessment(root, samples)).toThrow('Unbound')
     archive({ ...evidence, rows: [{ ...rows[0], comparison: { ...rows[0]!.comparison, wer: 0.2 } }, rows[1]] })
     expect(() => readTtsAssessment(root, samples)).toThrow('Invalid TTS assessment result')
+    const missingInput = 'test/fixtures/absent-tts-assessment-source.txt', inputSha256 = sha256(Buffer.from('exact retained source input'))
+    const retainedInput = { ...evidence, sources: [...sources, { path: missingInput, scope: 'project', sha256: inputSha256 }],
+      rows: [{ ...rows[0], input: missingInput, inputSha256, inputSnapshot: 'input.txt' }, rows[1]] }
+    archive(retainedInput)
+    expect(readTtsAssessment(root, samples)).toHaveLength(2)
+    archive({ ...retainedInput, rows: [{ ...retainedInput.rows[0], inputSha256: 'a'.repeat(64) }, rows[1]] })
+    expect(() => readTtsAssessment(root, samples)).toThrow('Stale TTS assessment source')
+    archive({ ...retainedInput, sources: [...sources, { path: missingInput, scope: 'project', sha256: 'a'.repeat(64) }],
+      rows: [{ ...retainedInput.rows[0], inputSha256: 'a'.repeat(64) }, rows[1]] })
+    expect(() => readTtsAssessment(root, samples)).toThrow('Stale TTS assessment source')
     archive()
     writeFileSync(join(root, '01-short/manifest.json'), '{}')
     expect(() => readTtsAssessment(root, samples)).toThrow('Stale TTS assessment source')
@@ -182,6 +195,73 @@ function fixture(root: string, run: string, options: {
   writeJson(join(runDir, 'manifest.json'), manifest)
   return { runDir, audioRef, manifest }
 }
+
+function approvedMp3Copy(root: string, source: ReturnType<typeof fixture>) {
+  const wav = join(source.runDir, source.audioRef.path), mp3 = wav.replace(/\.wav$/, '.mp3');
+  const conversion = Bun.spawnSync([getFfmpegBinary(), '-hide_banner', '-loglevel', 'error', '-nostdin', '-n', '-i', wav, '-c:a', 'libmp3lame', '-q:a', '0', mp3]);
+  if (conversion.exitCode !== 0) throw Error(conversion.stderr.toString());
+  const sourceBytes = readFileSync(wav), bytes = readFileSync(mp3);
+  const copy = { sourcePath: relative(root, wav), sourceSha256: sha256(sourceBytes), sourceBytes: sourceBytes.length,
+    path: relative(root, mp3), sha256: sha256(bytes), bytes: bytes.length, sampleRate: 24000, channels: 1, decodedSamples: 48000 };
+  const catalog: TtsAudioDeliveryCatalog = { schemaVersion: 1, approval: 'user-approved-mp3-replacement', encoder: 'libmp3lame -q:a 0', copies: [copy] };
+  const catalogPath = join(root, TTS_AUDIO_DELIVERY_CATALOG);
+  const save = () => writeJson(catalogPath, catalog);
+  save();
+  return { wav, mp3, sourceBytes, bytes, copy, catalog, catalogPath, save };
+}
+
+test('approved MP3 playback preserves original WAV assessment bindings and restores missing-copy metadata', async () => {
+  await withTempDir('tts-dashboard-mp3-assessment-', async dir => {
+    const context = mixedAssessmentFixture(dir);
+    context.archive();
+    const delivery = approvedMp3Copy(context.root, context.successful);
+    unlinkSync(delivery.wav);
+    const result = buildTtsDashboard(context.root);
+    expect(result.samples[0]!.audioHref).toEndWith('.mp3');
+    expect(result.samples[0]!.delivery).toMatchObject({ sourceSha256: context.successful.audioRef.sha256, sha256: delivery.copy.sha256, available: true });
+    expect(result.dashboardModel.sampleTables![0]!.rows[0]![9]!.display).toBe('MP3');
+    expect(result.dashboardModel.sampleTables![0]!.rows[0]![13]!.display).toBe('Original WAV ASR; subjective unscored');
+    expect(readTtsAssessment(context.root, result.samples)).toEqual(context.rows);
+    expect(result.dashboardModel.methodParagraphs.join(' ')).toContain('never relabeled as MP3 assessments');
+    unlinkSync(delivery.mp3);
+    const missing = buildTtsDashboard(context.root);
+    expect(missing.samples[0]!.delivery?.available).toBe(false);
+    expect(missing.samples[0]!.durationSeconds).toBe(2);
+    expect(missing.dashboardModel.sampleTables![0]!.rows[0]![9]!.display).toBe('MP3 (restore locally)');
+    expect(readTtsAssessment(context.root, missing.samples)).toEqual(context.rows);
+    // A checksummed assessment cannot substitute an unknown hash for either the
+    // original waveform or the approved delivery bytes, even when both are absent.
+    context.archive(context.rows.map(row => ({ ...row, audioSha256: 'a'.repeat(64) })), context.sources.map(source => source.path.endsWith('.wav') ? { ...source, sha256: 'a'.repeat(64) } : source));
+    expect(() => buildTtsDashboard(context.root)).toThrow('Unbound TTS assessment result');
+  });
+});
+
+test('approved MP3 playback rejects corrupt bytes, invalid decoded artifacts, stale sources and escaped paths', async () => {
+  await withTempDir('tts-dashboard-mp3-integrity-', async root => {
+    const source = fixture(root, '01-short'), delivery = approvedMp3Copy(root, source);
+    const original = buildTtsDashboard(root);
+    expect(original.samples[0]!.format).toBe('24 kHz / 1 ch / mp3');
+    const corrupt = Buffer.from(delivery.bytes), lastByte = corrupt.at(-1);
+    if (lastByte === undefined) throw new Error('Expected a nonempty MP3 delivery fixture');
+    corrupt[corrupt.length - 1] = lastByte ^ 1;
+    writeFileSync(delivery.mp3, corrupt);
+    expect(() => buildTtsDashboard(root)).toThrow('TTS delivery audio hash mismatch');
+    writeFileSync(delivery.mp3, delivery.bytes);
+    delivery.copy.sourceSha256 = 'f'.repeat(64); delivery.save();
+    expect(() => buildTtsDashboard(root)).toThrow('TTS delivery source hash mismatch');
+    delivery.copy.sourceSha256 = source.audioRef.sha256;
+    delivery.copy.path = '../outside.mp3'; delivery.save();
+    expect(() => buildTtsDashboard(root)).toThrow('Invalid TTS delivery path');
+    delivery.copy.path = relative(root, delivery.mp3);
+    const invalid = Buffer.from('not an MP3 artifact');
+    writeFileSync(delivery.mp3, invalid);
+    delivery.copy.bytes = invalid.length; delivery.copy.sha256 = sha256(invalid); delivery.save();
+    expect(() => buildTtsDashboard(root)).toThrow('Invalid TTS audio');
+    // Removing the explicit delivery selection restores normal WAV behavior.
+    unlinkSync(delivery.catalogPath);
+    expect(buildTtsDashboard(root).samples[0]!.audioHref).toEndWith('.wav');
+  });
+});
 
 describe('TTS dashboard metrics from archived audio', () => {
   test('selects an explicit nested rerun without adding a corpus input and rejects mismatched or corrupt evidence', async () => {

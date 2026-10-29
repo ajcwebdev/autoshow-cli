@@ -113,7 +113,7 @@ test('voice capability sets match the active provider policy and reject retired 
   expect(VOICE_LIFECYCLE_PROVIDERS).toEqual(VOICE_CATALOG_PROVIDERS)
   expect(DESIGN_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'inworld'])
   expect(CLONE_PROVIDERS).toEqual(['gemini', 'elevenlabs', 'grok', 'inworld'])
-  for (const provider of ['minimax', 'deepgram', 'fal', 'fish', 'deepinfra', 'mistral']) {
+  for (const provider of ['minimax', 'deepgram', 'fish', 'deepinfra', 'mistral']) {
     await rejectVoice(
       ['voice', 'import', 'hero', '--provider', provider, '--model', 'retired-model', '--voice-id', 'retired-voice', '--provenance-ref', 'project:casting', '--price'],
       `${provider} is no longer supported for TTS or voice management.`
@@ -233,7 +233,7 @@ test('voice design rejects catalog-only providers and unknown synthesis models',
   )
   await rejectVoice(
     ['voice', 'import', 'hero', '--provider', 'elevenlabs', '--model', 'eleven_multilingual_v2', '--voice-id', 'hpp4J3VqNfWAUOO0d1Us', '--provenance-ref', 'project:casting', '--price'],
-    'Voice management for elevenlabs requires --model eleven_v3.'
+    'Voice management for elevenlabs requires --model eleven_v3 or eleven_v4.'
   )
 })
 

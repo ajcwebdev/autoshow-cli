@@ -54,6 +54,7 @@ export const normalizeFinalImageEstimateRequest = (
     variations: options.variations ? [...options.variations] : ['canonical'],
     variationsSpecified: options.variations !== undefined,
     blockingLayoutGuide: options.blockingLayoutGuide === true,
+    ...(options.blockingHardKeys?.length ? { blockingHardKeys: options.blockingHardKeys } : {}),
     qa: options.qa === false
       ? { enabled: false }
       : {
@@ -137,12 +138,13 @@ export function estimateQaWork(
   estimate: FinalImageModeEstimate,
   inventory: FinalImagePageInventory | FinalImagePanelInventory,
 ): FinalImageQaWork | null {
-  if (!request.qa.enabled || estimate.totalOutputs === 0) return null
+  if (!request.qa.enabled) return null
 
   if (request.mode === 'page' && estimate.mode === 'page' && inventory.mode === 'page') {
     const outputs = inventory.pages.flatMap(page => page.outputs)
     const reusedReports = request.force ? 0 : outputs.filter(output => output.qaReportReusable).length
     const initialJudgeCalls = outputs.length - reusedReports
+    if (initialJudgeCalls === 0) return null
     return {
       mode: 'page',
       judgeModel: request.qa.judgeModel,
@@ -155,7 +157,10 @@ export function estimateQaWork(
     }
   }
 
-  const initialJudgeCalls = estimate.totalOutputs
+  const initialJudgeCalls = Math.max(estimate.totalOutputs, inventory.mode === 'page' ? estimate.totalOutputs : inventory.panels.reduce((total, panel) => total + panel.variations.reduce((sum, variation) => sum + (
+    request.force ? request.models.length : variation.pendingQaCount ?? (variation.qaReusable === undefined ? Number(!variation.allModelsExist) : Number(!variation.qaReusable))
+  ), 0), 0))
+  if (initialJudgeCalls === 0) return null
   const maximumRepairQaCalls = initialJudgeCalls * request.qa.maxRepairs
   const maximumComparisonJudgeCalls = maximumRepairQaCalls * 2
   const maximumAdditionalJudgeCalls = maximumRepairQaCalls + maximumComparisonJudgeCalls
@@ -229,7 +234,10 @@ export const estimateFinalImageInputUnits = (
       const calls = outputs * openaiModels.length
       initialCalls += calls
       initialReferenceInputs += calls * panel.referenceCount
-      const repairs = outputs * maxRepairs
+      const pendingQa = panel.variations.reduce((total, variation) => total + (
+        request.force ? request.models.length : variation.pendingQaCount ?? (variation.qaReusable === undefined ? Number(!variation.allModelsExist) : Number(!variation.qaReusable))
+      ), 0)
+      const repairs = pendingQa * maxRepairs
       maximumRepairCalls += repairs
       maximumRepairReferenceInputs += repairs * (panel.referenceCount + 1)
     }

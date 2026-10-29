@@ -6,7 +6,7 @@ import { priceDetails, priceLine, priceNotice, priceRows } from './price-estimat
 
 export const IMAGE_ESTIMATE_BASIS_NOTE = 'Per-image output cost only. Image input units are reported on the separate "Image input (modeled)" line when the estimate models them; text input costs are not estimated.'
 
-export const GEMINI_IMAGE_ESTIMATE_NOTE = 'Gemini costs use estimated1KImage (~$0.067/image) -- actual token costs vary.'
+export const GEMINI_IMAGE_ESTIMATE_NOTE = 'Gemini costs use the registry 1K output-image estimate; input and text/thinking output tokens are excluded. Actual token costs vary.'
 
 export const JUDGE_COST_BASIS_NOTE = 'Judge cost is separate from image-generation cost; actual vision token usage may vary. Each page-judge call is modeled at 8,000 input units (5,000 for the contract and its reference images, 1,000 for the blocking-ledger and audit-status paragraphs, and 2,000 for up to two low-detail roster identity cards) and 1,400 output units for the blockingAudit array.'
 
@@ -324,7 +324,7 @@ export const printReadyFinalImageEstimate = (
     }
     printPagePricingEstimate(result.pricing.primary)
     printImageInputEstimate(result.pricing.imageInput)
-    priceLine('Grouped pages use canonical character references followed by each distinct immutable location reference.')
+    priceLine('Grouped pages use current canonical character references followed by each distinct current location reference.')
     printPageQaEstimate(result)
     return
   }

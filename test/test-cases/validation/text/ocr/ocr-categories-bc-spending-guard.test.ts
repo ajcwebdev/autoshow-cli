@@ -14,7 +14,6 @@ import { runOpenAIOcr } from '~/cli/commands/text/ocr/ocr-services/openai-ocr/ru
 import { runAnthropicOcr } from '~/cli/commands/text/ocr/ocr-services/anthropic-ocr/run-anthropic-ocr'
 import { runGeminiOcr } from '~/cli/commands/text/ocr/ocr-services/gemini-ocr/run-gemini-ocr'
 import { runGrokOcr } from '~/cli/commands/text/ocr/ocr-services/grok-ocr/run-grok-ocr'
-import { runDeepinfraOcr } from '~/cli/commands/text/ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr'
 import { runMistralOcr } from '~/cli/commands/text/ocr/ocr-services/mistral-ocr/run-mistral-ocr'
 
 const roots: string[] = []
@@ -88,9 +87,9 @@ const fixture = async (provider = 'openai', model = 'gpt-6-astra') => {
 }
 
 describe('category B/C budget admission and supported provider request dispatch', () => {
-  test('all six native OCR adapters send a 3072-pixel PNG unchanged through the guard and decode a mocked text response', async () => {
+  test('all five native OCR adapters send a 3072-pixel PNG unchanged through the guard and decode a mocked text response', async () => {
     const bytes = await new Bun.Image(redDotPng).resize(3072, 2048).png().bytes()
-    const keys = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'DEEPINFRA_API_KEY', 'MISTRAL_API_KEY']
+    const keys = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'MISTRAL_API_KEY']
     const prior = Object.fromEntries(keys.map(key => [key, process.env[key]])), originalFetch = globalThis.fetch
     const pageText = 'Synthetic adapter contract text.'
     const envelope = JSON.stringify({ pages: [{ pageNumber: 1, text: pageText }] })
@@ -98,8 +97,7 @@ describe('category B/C budget admission and supported provider request dispatch'
       for (const key of keys) process.env[key] = 'nonbillable-mock-key'
       for (const [provider, model, run] of [
         ['openai', 'gpt-6-luna', runOpenAIOcr], ['anthropic', 'claude-haiku-5-5', runAnthropicOcr],
-        ['gemini', 'gemini-3.5-flash-lite', runGeminiOcr], ['grok', 'grok-4.7', runGrokOcr],
-        ['deepinfra', 'google/gemma-4-31B-it', runDeepinfraOcr], ['mistral', 'mistral-ocr-4-1', runMistralOcr]
+        ['gemini', 'gemini-3.5-flash', runGeminiOcr], ['grok', 'grok-4.7', runGrokOcr], ['mistral', 'mistral-ocr-4-1', runMistralOcr]
       ] as const) {
         const f = await fixture(provider, model)
         const imagePath = join(f.root, f.plan.pages[0]!.input); await mkdir(join(f.root, base, 'pages'), { recursive: true }); await Bun.write(imagePath, bytes)

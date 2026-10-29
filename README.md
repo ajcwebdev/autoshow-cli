@@ -76,12 +76,10 @@ These examples use hosted providers:
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-mini-tts-2025-12-15
-bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2 --size 1024x1024
+bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2.5-flare --size 1024x1024
 bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=gemini-omni-1.1-flash
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental
 ```
-
-The command guides cover provider choices, editing, voice registration, and staged comic production.
 
 ## Configuration and Pricing
 
@@ -95,10 +93,10 @@ bun autoshow setup --llm openai=gpt-6.1-sol --batch-limit 20 --max-cents 50
 Hosted and mixed-provider runs estimate cost before execution. Append `--price` to preview the estimate without running the job or making paid provider calls:
 
 ```bash
-bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2 --size 1024x1024 --price
+bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2.5-flare --size 1024x1024 --price
 ```
 
-`--max-cents` sets a hard budget; `--allow-over-budget` overrides it for one run. Provider plans can affect actual billing. See [configuration and budgets](./docs/commands/00-setup-and-utilities/setup.md#setting-defaults-and-configuration) for saved providers, voices, prompts, and other defaults.
+`--max-cents` blocks runs whose estimated cost exceeds the saved limit; `--allow-over-budget` overrides it for one run. Actual charges can differ from estimates. See [configuration and budgets](./docs/commands/00-setup-and-utilities/setup.md#setting-defaults-and-configuration) for saved providers, voices, prompts, and other defaults.
 
 ## Help and Output
 
@@ -122,6 +120,6 @@ bun run check
 bun t --price
 ```
 
-`bun t` itself now runs in live credential mode and executes the provider-backed suite, so it bills real providers; `bun t:local` is the no-cost fixture run.
+`bun t` uses configured credentials for paid provider tests; `bun t:local` runs without provider credentials.
 
-The [testing guide](./docs/commands/testing.md) covers targeted smoke tests and provider verification. Full-suite execution requires explicit approval under [repository rules](./AGENTS.md). Architecture details live in [diagrams](./docs/diagrams.md) and [design decisions](./docs/adr/README.md); hosted-model policy and live catalogs are covered by [ADR-010](./docs/adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) and `src/cli/commands/setup-and-utilities/models/`.
+The [testing guide](./docs/commands/testing.md) covers targeted smoke tests and provider verification. Full-suite execution requires explicit approval under [repository rules](./AGENTS.md). Architecture details live in [diagrams](./docs/diagrams.md) and [design decisions](./docs/adr/README.md).

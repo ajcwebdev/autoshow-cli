@@ -8,6 +8,7 @@ import { getPanelComicImagePath } from './scene-utils'
 import { loadAndVerifyCharacterReferenceSnapshot } from './character-reference-snapshot'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
 import { readReusablePageQaEntry } from '../comic-commands/generate-images/comic-page-qa'
+import type { PageQaRequest } from '~/types'
 import { CONTINUITY_BLOOPER_CATEGORIES, CONTINUITY_FURNITURE_STATUSES, CONTINUITY_HARD_KEYS, CONTINUITY_QA_SCHEMA_VERSION } from '../comic-commands/generate-images/continuity-qa'
 import { joinContinuityLabels, readContinuityLabels } from './continuity-labels'
 
@@ -331,8 +332,8 @@ export const isPageQaEntryReusableWithContinuity = (entry: PageQaEntry | undefin
   return !!continuity && typeof continuity === 'object' && continuity.schemaVersion === CONTINUITY_QA_SCHEMA_VERSION && Array.isArray(continuity.hardKeys) && typeof continuity.blooperCategory === 'string'
 }
 
-export const readReusablePageQaEntryForAudit = async (pagePath: string, model: string, options: { continuityRequired: boolean }): Promise<ContinuityPageQaEntry | undefined> => {
-  const entry = await readReusablePageQaEntry(pagePath, model)
+export const readReusablePageQaEntryForAudit = async (pagePath: string, model: string, options: { continuityRequired: boolean; request?: PageQaRequest }): Promise<ContinuityPageQaEntry | undefined> => {
+  const entry = await readReusablePageQaEntry(pagePath, model, options.request)
   return isPageQaEntryReusableWithContinuity(entry, options) ? entry : undefined
 }
 
@@ -348,7 +349,8 @@ export const loadContinuityAuditContext = async (
   const runDirectory = getSceneOutputDirectory(sceneSlug)
   const firstBundle = bundles[0]
   if (!firstBundle) throw ValidationError('Continuity audit requires at least one panel bundle.', { stage: 'comic:continuity-qa' })
-  const manifest = loadAndVerifyCharacterReferenceSnapshot(runDirectory, firstBundle.bundleData.snapshotId)
+  const rosterKeys = uniqueInOrder(bundles.flatMap(bundle => bundle.bundleData.panels.flatMap(panel => panel.characterKeys)))
+  const manifest = loadAndVerifyCharacterReferenceSnapshot(runDirectory, undefined, rosterKeys)
   const compose = options.composeCards !== false
   const failures: string[] = []
   const requests: ContinuityJudgeRequest[] = []

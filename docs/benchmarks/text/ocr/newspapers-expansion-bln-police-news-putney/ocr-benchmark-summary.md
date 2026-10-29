@@ -5,27 +5,27 @@
 ## Summary
 
 - Run directory: `input/examples/document/ocr-newspaper-expansion/benchmark-runs/newspapers-expansion-bln-police-news-putney`
-- Providers with page result files: 21
+- Providers with page result files: 10
 - Pages: 1
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - The publisher canonical reference is immutable; provider agreement diagnostics guide output review only.
 
 ## Page-Level Hybrid Sources
 
-| Selected Provider | Pages |
-| --- | ---: |
-| `deepinfra/google/gemma-4-31B-it` | 1 |
+| Selected Provider          | Pages |
+| -------------------------- | ----: |
+| `anthropic/claude-fable-5` | 1     |
 
 ## Outlier Signals
 
-| Signal | Page Count |
-| --- | ---: |
-| blankOutputPages | 0 |
-| repeatedTextPages | 0 |
-| majorLengthDriftPages | 0 |
-| highDisagreementPages | 0 |
-| werCerDivergencePages | 0 |
-| lowConfidencePages | 0 |
+| Signal                | Page Count |
+| --------------------- | ---------: |
+| blankOutputPages      | 0          |
+| repeatedTextPages     | 0          |
+| majorLengthDriftPages | 0          |
+| highDisagreementPages | 0          |
+| werCerDivergencePages | 0          |
+| lowConfidencePages    | 0          |
 
 ## Selective Adjudication
 
@@ -35,6 +35,6 @@
 
 ## Variant Distances
 
-| Reference | Candidate | WER | CER | Word Edits |
-| --- | --- | ---: | ---: | ---: |
-| `publisher-canonical` | `page-level-hybrid` | 0.00% | 0.00% | 0 |
+| Reference             | Candidate           | WER   | CER   | Word Edits |
+| --------------------- | ------------------- | ----: | ----: | ---------: |
+| `publisher-canonical` | `page-level-hybrid` | 0.00% | 0.00% | 0          |

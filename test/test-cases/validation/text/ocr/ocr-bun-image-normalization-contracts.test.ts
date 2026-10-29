@@ -149,8 +149,6 @@ describe('OCR Bun.Image normalization contracts', () => {
       { engine: 'openai-ocr', format: 'bmp' },
       { engine: 'gemini-ocr', format: 'gif' },
       { engine: 'gemini-ocr', format: 'bmp' },
-      { engine: 'deepinfra-ocr', format: 'bmp' },
-      { engine: 'deepinfra-ocr', format: 'gif' },
     ]
     const imageMagickCases: Array<{ engine: HostedExtractOcrEngine; format: string }> = [
       { engine: 'anthropic-ocr', format: 'tif' },
@@ -158,7 +156,6 @@ describe('OCR Bun.Image normalization contracts', () => {
       { engine: 'grok-ocr', format: 'tif' },
       { engine: 'grok-ocr', format: 'tiff' },
       { engine: 'gemini-ocr', format: 'tif' },
-      { engine: 'deepinfra-ocr', format: 'tif' },
     ]
     const directCases: Array<{ engine: HostedExtractOcrEngine; format: string }> = [
       { engine: 'mistral-ocr', format: 'tif' },
@@ -180,6 +177,8 @@ describe('OCR Bun.Image normalization contracts', () => {
       expect(resolveHostedDirectImageInputStrategy(entry.format, entry.engine)).toBe('direct')
     }
     expect(resolveHostedDirectImageInputStrategy('svg', 'grok-ocr')).toBe('unsupported')
+    // Retired DeepInfra OCR has no image route.
+    for (const format of ['png', 'bmp', 'gif', 'tif']) expect(resolveHostedDirectImageInputStrategy(format, 'deepinfra-ocr')).toBe('unsupported')
   })
 
   test('hosted OCR Bun.Image normalization writes PNG for provider-specific image gaps', async () => {

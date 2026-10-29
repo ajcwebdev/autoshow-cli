@@ -1,8 +1,8 @@
 # OCR Tests
 
-Local Tesseract and EPUB coverage, plus hosted PDF and image OCR for Anthropic, DeepInfra, Gemini, Mistral, and OpenAI. Grok coverage is image extraction.
+Local Tesseract and EPUB coverage, plus hosted PDF and image tests for Gemini and Mistral and image-only tests for Anthropic, Grok, and OpenAI.
 
-These `bun t` commands may call paid or quota-limited providers.
+The hosted suite makes provider calls and may incur charges; the local suite does not.
 
 ## Quick Start
 
@@ -13,6 +13,8 @@ bun t test/test-cases/e2e/service/text/ocr/
 ```
 
 ## Price Preflight
+
+`--price` estimates without running provider tests. `--budget 2500` runs eligible tests using a 25¢ estimate threshold per test key, not a total spending cap.
 
 ```bash
 bun t test/test-cases/e2e/service/text/ocr/ --price

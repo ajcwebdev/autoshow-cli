@@ -12,11 +12,20 @@ export const createOcrPreparationCache = (): OcrPreparationCache => ({
   nextRenderedPageIndex: 0
 })
 
+// Concurrent first renders must share one directory: caching the mkdtemp promise
+// rather than its result keeps each of them from creating a directory that
+// cleanup never sees.
 const getCacheTempDir = async (cache: OcrPreparationCache): Promise<string> => {
   if (!cache.tempDir) {
-    cache.tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-prep-'))
+    const created = mkdtemp(join(tmpdir(), 'autoshow-ocr-prep-'))
+    cache.tempDir = created
+    created.catch(() => {
+      if (cache.tempDir === created) {
+        cache.tempDir = undefined
+      }
+    })
   }
-  return cache.tempDir
+  return await cache.tempDir
 }
 
 export const getCachedRenderedPageImage = async (
@@ -92,7 +101,8 @@ export const cleanupOcrPreparationCache = async (
     } catch {
     }
   }))
-  if (cache.tempDir) {
-    await rm(cache.tempDir, { recursive: true, force: true })
+  const tempDir = await cache.tempDir?.catch(() => undefined)
+  if (tempDir) {
+    await rm(tempDir, { recursive: true, force: true })
   }
 }

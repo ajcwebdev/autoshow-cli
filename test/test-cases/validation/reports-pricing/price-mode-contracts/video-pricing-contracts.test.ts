@@ -72,10 +72,13 @@ describe('price mode contracts', () => {
       expect(cost({ geminiVideoModels: ['gemini-omni-1.1-flash'], videoResolution: '720p' })).toBe('$1.00')
     })
 
-  test('cheapest default text-to-video selection is fal.ai H3 Max Turbo text-to-video', () => {
+  test('cheapest default text-to-video selection is Grok Imagine Video 1.5 Lite', () => {
+      // Lite: 2 cents/second at its 8-second default; full: 64 cents; Omni: 100 cents.
       expect(selectCheapestDefaultTextVideoSelection()).toMatchObject({
-        provider: 'fal',
-        model: 'minimax/h3-max-turbo/text-to-video'
+        provider: 'grok',
+        model: 'grok-imagine-video-1.5-lite',
+        duration: 8,
+        totalCost: 16
       })
     })
 
@@ -90,6 +93,8 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('recraft-image')).toBeUndefined()
       expect(resolveCheapestModelForFlag('rev-stt')).toBeUndefined()
       expect(resolveCheapestModelForFlag('fal-ocr')).toBeUndefined()
+      expect(resolveCheapestModelForFlag('fal-image')).toBeUndefined()
+      expect(resolveCheapestModelForFlag('fal-video')).toBeUndefined()
       expect(resolveCheapestModelForFlag('gemini-music')).toBe('lyria-3.5')
       expect(resolveCheapestModelForFlag('elevenlabs-music')).toBe('music_v2')
       expect(resolveCheapestModelForFlag('minimax-music')).toBe('music-3.0')
@@ -102,9 +107,9 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('scrapecreators-stt')).toBe('youtube-transcript')
       expect(resolveCheapestModelForFlag('scrapecreators-stt')).toBe('youtube-transcript')
       expect(resolveCheapestModelForFlag('openai-ocr')).toBe('gpt-6-luna')
-      expect(resolveCheapestModelForFlag('grok-ocr')).toBe('grok-4.5')
+      expect(resolveCheapestModelForFlag('grok-ocr')).toBe('grok-4.7')
       expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-haiku-5-5')
-      expect(resolveCheapestModelForFlag('deepinfra-ocr')).toBe('google/gemma-4-31B-it')
+      expect(resolveCheapestModelForFlag('deepinfra-ocr')).toBeUndefined()
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBeUndefined()
       expect(resolveCheapestModelForFlag('gemini-video')).toBe('gemini-omni-1.1-flash')
       expect(resolveCheapestModelForFlag('glm-video')).toBeUndefined()

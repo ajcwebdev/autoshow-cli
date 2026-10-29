@@ -2,9 +2,11 @@
 
 Shared `bun t` runner behavior and the local and service test coverage map for the AutoShow CLI. Per-command coverage, price examples, and live selections live on the [command test pages](#command-test-pages).
 
-`bun t` runs in live credential mode. It loads `.env`, uses every configured hosted credential, and executes the service tests, so a full default run bills real providers. Use `bun t --price` for a no-cost estimate of the same selection, or `bun t:local` for the fixture-mode run that forwards no credentials and skips every live test. A default run has no budget ceiling: every selected test runs and no price preflight filters it. Pass `--budget` to set a per-command ceiling in hundredths of a cent; any command whose estimate exceeds it is skipped. Choose the selection and budget according to the repository spending policy.
+`bun t` runs in live credential mode: it loads `.env` and forwards configured hosted credentials, so selected service tests can bill real providers. Use `bun t --price` for no-cost estimates of mapped commands, or `bun t:local` with explicit paths for fixture mode, which forwards no hosted credentials and skips live service tests. Fixture mode does not block network access by download or tool tests. Without `--budget`, live tests are admitted without price filtering; the flag sets a per-test-key threshold, not a total spending cap.
 
-`bun run check` runs structure, name, type, and documentation example checks without loading `.env`. `bun run check:types` typechecks with the native compiler against `tsconfig.json`. `bun run check:types:tsc` runs the reference TypeScript compiler and reports the same diagnostics with a slower wall time. Normal `bun autoshow` commands still load `.env` because provider commands need credentials.
+Full-suite execution requires explicit user authorization, including fixture-mode runs. Default verification is `bun run check`, `bun t --price`, and targeted local tests. Estimate the complete related paid batch, including minimum billing, add-ons, and billable retries: totals below $1.00 USD are automatically authorized for the requested task; unknown estimates or totals of $1.00 USD or more require explicit approval naming the commands and expected cost/risk. Keep spending cumulative across related runs and retries.
+
+`bun run check` runs structure, name, type, and documentation example checks without loading `.env`. `bun run check:types` uses the native compiler against `tsconfig.json`; `bun run check:types:tsc` provides a reference TypeScript compiler cross-check. Normal `bun autoshow` commands load `.env` for provider credentials.
 
 ## Local Quick Start
 
@@ -20,12 +22,14 @@ bun test test/test-cases/validation/setup/
 For local extraction and rendering coverage:
 
 ```bash
-bun t \
+bun t:local \
   test/test-cases/e2e/local/sources/download/download-input-types-local-file.test.ts \
   test/test-cases/e2e/local/text/ocr/ \
   test/test-cases/e2e/local/stt/ \
   test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts
 ```
+
+Local extraction and rendering tests require their installed tools, models, and input fixtures; select only cases whose prerequisites are available when verifying without downloads.
 
 ## Service Quick Start
 
@@ -38,7 +42,7 @@ AUTOSHOW_TEST_CREDENTIAL_KEYS='["OPENAI_API_KEY"]' \
   bun --no-env-file run t:provider --budget 50 test/test-cases/e2e/service/audio/tts/
 ```
 
-`bun t` selects live mode from every registered hosted credential that is configured, so a normal run needs no credential allowlist. `t:provider` selects live mode, does not load `.env`, and forwards hosted credentials already present in the environment. Set `AUTOSHOW_TEST_CREDENTIAL_KEYS` to a JSON array of registered credential names, with those values exported, to pin that list. Tests that need an unlisted or missing credential are skipped. Without `--budget` the runner admits every selected live test. A direct `bun test` outside the runner fails closed. A budget may skip every selected test when no estimate fits.
+`t:provider` selects live mode without loading `.env` and forwards hosted credentials already present in the environment. Set `AUTOSHOW_TEST_CREDENTIAL_KEYS` to a JSON array of registered credential names, with those values exported, to restrict that list. Tests needing unlisted or missing credentials are skipped. Direct `bun test` does not authorize hosted execution; live budgeted tests fail closed without runner evidence. A budget may skip every selected live test when no estimate fits. The download examples exercise network sources without hosted AI credentials.
 
 ## Command Test Pages
 
@@ -58,13 +62,13 @@ Per-command coverage, price examples, and live selections live on these pages:
 
 - Pass file or directory paths under `test/test-cases/` to select tests.
 - Under `bun test`, passing tests print only the result line (`✓`, name, duration). Failing tests keep that `✗` line and the captured console output from that test.
-- `bun t` keeps the terminal failure-first. It hides `✓` and `»` result lines and Bun's end-of-run skipped list. A file header is printed only before a failure or other output from that file. When nothing has printed for 10 seconds, a `progress: N passed · N failed · N skipped · Ns` line shows the run is still going, with `Ns` as elapsed run time. After Bun exits, the runner prints a digest: each failed test with the first lines of its message, a skip summary that separates live service tests from other skips, the slowest non-skipped tests at or above one second, and model calibration recommendations. Timing recommendations leave out local engines (`whisperfile`, `tesseract`, and `defuddle`) because their wall-clock time mostly reflects CPU contention with concurrent tests. Every result line is still written to `runner.log`. Use `--verbose` to stream Bun's full output to the terminal as well.
-- `--max-concurrency` and `--parallel` default to the machine's available parallelism. E2E-only selections default `--parallel` to 32. Pass `--max-concurrency=<n>` or `--parallel=<n>` to override. `--concurrency` is not a Bun test flag and is rejected. `--retry` is rejected so each selected command and test runs at most once.
+- `bun t` hides passing and skipped result lines and prints a failure-first digest, skip summary, slowest tests, and model calibration recommendations. Quiet runs print progress after 10 seconds without output. Full result lines remain in `runner.log`; use `--verbose` to stream them to the terminal. Timing recommendations exclude local engines because concurrent CPU contention distorts their wall-clock measurements.
+- `--max-concurrency` and `--parallel` default to the machine's available parallelism. E2E-only selections default `--parallel` to 32. Pass `--max-concurrency=<n>` or `--parallel=<n>` to override. `--concurrency` and `--retry` are rejected; tests are not automatically repeated.
 - `--parallel` isolates test files. Use `--no-isolate` only as a temporary diagnostic escape hatch for a confirmed isolation or preload regression; it is not a supported default because it weakens file-level state separation.
 - Interrupting a run terminates local test descendants.
-- Each run writes artifacts under `./output/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. A normal `bun t` removes its own passing run directory, while `bun t --price` retains its report by default. Both preserve earlier runs. Use `--no-cleanup` to keep the current directory in either mode. Failed and interrupted runs retain their reports, logs, and per-test outputs.
-- `--cleanup` explicitly prunes prior directories confirmed by this runner's completion marker and matching successful report, then removes the current successful run. Active, failed, interrupted, legacy, unknown, and TTS/audio artifacts stay intact. If both cleanup flags appear, the last one wins.
-- Root files and `.test-cache/` survive cleanup. `latest.log` starts with the run summary and the uncapped digest, followed by the failed and skipped `report.json` entries, the runner log, and the tail of the command log. Test-mode runs regenerate `latest-model-calibration.json` from retained run metadata for model cost and timeout recommendations. It does not measure word boundaries. `.test-cache/` keeps file timings, the prebuilt CLI bundle, and the budget-preflight cache.
+- Each run writes artifacts under `output/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`. A normal `bun t` removes its own successful run directory unless it contains protected TTS/audio artifacts; `bun t --price` retains its report by default. Both preserve earlier runs. Use `--no-cleanup` to keep the current directory in either mode. Failed and interrupted runs retain their reports, logs, and per-test outputs.
+- `--cleanup` prunes earlier runs confirmed successful by this runner and removes the current successful run. Active, failed, interrupted, legacy, unknown, and TTS/audio artifacts stay intact. If both cleanup flags appear, the last one wins.
+- Root files and `.test-cache/` survive cleanup. `latest.log` keeps the run summary, detailed digest, failures, skips, runner log, and command-log tail. Test-mode runs regenerate `latest-model-calibration.json` from retained run metadata for model cost and timing-estimate recommendations.
 - Use `--no-adaptive-concurrency` to disable adaptive per-provider lane limits.
 
 ```bash
@@ -75,13 +79,7 @@ cat output/test-output/latest.log
 cat output/test-output/latest-model-calibration.json
 ```
 
-This targeted local run calls no hosted provider and never downloads tools or models. Native cases require installed FFmpeg/FFprobe and reuse the optional installed tiny/ONNX prerequisites from [local timing workflows](02-extract/stt/workflows/timing/overview.md); absent optional model cases are skipped explicitly. It verifies review/edit lineage, real caption serialization, channel merge/reconciliation, and valid and rejected timing artifacts. A validation-only run can legitimately report zero scanned model metadata files and no recommendations. The separate word-timing command writes `runtime/examples/speech-workflows/calibration/calibration.json`, retaining reference confidence and provenance; complete that guide's alignment and calibration steps before inspecting it:
-
-```bash
-cat runtime/examples/speech-workflows/calibration/calibration.json
-```
-
-Neither calibration artifact establishes spoken-text correctness or perceptual quality.
+This targeted local run calls no hosted provider and never downloads tools or models. Native cases require FFmpeg/FFprobe; optional tiny/ONNX cases use installed prerequisites and otherwise skip. It verifies review lineage, caption serialization, channel reconciliation, and valid and rejected timing artifacts. A validation-only run can report zero model metadata files and no recommendations. Runner calibration concerns cost and timing estimates; [word-timing calibration](02-extract/stt/workflows/timing/overview.md) is separate. Neither establishes spoken-text correctness or perceptual quality.
 
 Common selection and diagnostic flags are forwarded unchanged after AutoShow resolves path filters:
 
@@ -97,9 +95,9 @@ bun t test/test-cases/validation/ '--path-ignore-patterns=*provider*'
 
 Use `--shard=<index>/<count>` only with a curated set already proven local and no-cost. Timing balance does not classify provider cost or make an unreviewed selection safe.
 
-Interrupted TTS tests must not delete completed segment audio. Resume ambiguous real TTS work with `--allow-ambiguous-redispatch` so completed slots can be reused.
+Preserve interrupted or failed TTS output directories and temporary working directories. When automatic redispatch is blocked pending reconciliation, inspect retained evidence and estimate possible duplicate billing before using `--allow-ambiguous-redispatch`. Completed cached audio is reused, but missing audio may be purchased again; apply the cumulative spending rules above.
 
-`--price` uses the same path filters as a normal `bun t` run: append it to price-check mapped commands without running the live tests. `--budget <whole-number-hundredths-of-a-cent>` skips live tests whose estimates exceed that threshold; for example, `--budget 100` allows tests estimated at up to 1 cent. Command-specific examples live on the command test pages.
+`--price` maps the selected test paths to pricing commands without running the tests. Credential skips and Bun passthrough filters such as `--grep` do not narrow that command map. `--budget <whole-number-hundredths-of-a-cent>` skips live tests whose estimates exceed that threshold; for example, `--budget 100` allows tests estimated at up to 1 cent. Command-specific examples live on the command test pages.
 
 ```bash
 bun t --price
@@ -115,7 +113,7 @@ bun t test/test-cases/e2e/service/text/write/ --budget 2500
 
 ### Documentation examples
 
-`bun run check:docs` runs `test/test-cases/validation/cli/documentation-examples.test.ts`. It reads concrete `bun autoshow` and `bun as` examples from the README and `docs/commands/`, joins shell continuations, and checks command syntax, registered flags, and explicit provider/model selectors. Templates and shell expressions are excluded. Examples are parsed without running command handlers, accessing their inputs, or contacting providers. Moving prose or examples does not require refreshing a snapshot.
+`bun run check:docs` reads concrete `bun autoshow` and `bun as` examples from the README and `docs/commands/`, joins shell continuations, and checks command syntax, registered flags, and explicit `--provider provider=model` selectors. Templates and shell expressions are excluded. Examples are parsed without running command handlers, accessing their inputs, or contacting providers.
 
 Price behavior is covered by `bun t --price` and the local contracts under `test/test-cases/validation/reports-pricing/price-mode-contracts/`. The documentation check produces no cost reports or generated inventory.
 
@@ -125,7 +123,7 @@ Pull requests and pushes to `main` run the same work as `bun run check` and `bun
 
 ## Package Review
 
-The clean CI job runs `bun audit`, `bun dedupe --check`, and a production JSON license report. Package-manager commands may load `.env` even when `--no-env-file` is supplied.
+The package-hygiene CI job runs `bun audit`, `bun dedupe --check`, the reference compiler cross-check, and a production JSON license report. It retains dry-run audit-fix and prune reviews. Package-manager commands may load `.env` even when `--no-env-file` is supplied.
 
 Use this review sequence for every declared dependency or lockfile refresh:
 

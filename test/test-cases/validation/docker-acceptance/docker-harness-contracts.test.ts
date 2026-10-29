@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from 'bun:test'
-import { chmod, mkdtemp, mkdir, readdir, rm } from 'node:fs/promises'
+import { chmod, mkdtemp, mkdir, readdir, rm, stat } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { DockerEngine, containerArguments, mapArtifactPath } from '../../../docker-acceptance/docker-engine'
@@ -10,6 +10,7 @@ import { acceptancePassed, discoverOutputDir, runDockerAcceptance } from '../../
 import { dockerScenarios, mappedManifest, MODEL_SELECTORS, selectDockerScenarios } from '../../../docker-acceptance/docker-scenarios'
 import { containerFixture } from '../../../docker-acceptance/docker-fixtures'
 import { rejectionScenarios } from '../../../scenarios/local-cli-contracts'
+import { acquireAcceptanceCacheLease, releaseAcceptanceCacheLease } from '../../../docker-acceptance/docker-cache-lease'
 import type { LocalExecutionAdapter } from '../../../scenarios/local-cli-contracts'
 
 const roots: string[] = []
@@ -163,18 +164,58 @@ test('Docker client environment never includes credentials, provider overrides, 
   expect(dockerClientEnvironment({ PATH: '/bin', HOME: '/home/test', DOCKER_CONTEXT: 'desktop-linux', OPENAI_API_KEY: 'secret', MISTRAL_API_KEY: 'secret', AUTOSHOW_PROJECT_ROOT: '/checkout', BUN_ENV_FILE: '.env', HTTPS_PROXY: 'secret' })).toEqual({ PATH: '/bin', HOME: '/home/test', DOCKER_CONTEXT: 'desktop-linux' })
 })
 
-test('restored-cache ownership helper is offline and can only see the asset mounts', async () => {
+test('restored state keeps its permissions and explicit host identity is checked without root repair', async () => {
   const { engine, calls } = await harness()
   await engine.resolveImage()
+  engine.options.user = '1001:1001'
+  engine.options.restricted = true
+  const runtime = join(engine.options.cache, 'linux-arm64', 'runtime')
+  await mkdir(runtime, { recursive: true, mode: 0o750 })
+  await Bun.write(join(runtime, 'protected-paid-asset.txt'), 'preserved')
   await engine.prepareMounts()
-  await engine.repairCacheOwnership()
+  await engine.verifyStateAccess()
+  expect((await stat(runtime)).mode & 0o777).toBe(0o750)
+  expect(await Bun.file(join(runtime, 'protected-paid-asset.txt')).text()).toBe('preserved')
   const run = calls.find(call => call[0] === 'run')!
-  expect(run.slice(run.indexOf(pinned) + 1)).toEqual(['-R', 'bun', '/app/runtime', '/home/bun'])
-  expect(run).toContain('chown')
+  expect(run[run.indexOf('--user') + 1]).toBe('1001:1001')
+  expect(run[run.indexOf('--cap-drop') + 1]).toBe('ALL')
+  expect(run).toContain('no-new-privileges:true')
+  expect(run).toContain('AUTOSHOW_DISABLE_HTTP_KEEPALIVE=1')
+  expect(run).not.toContain('chown')
   expect(run).toContain('none')
-  expect(run.filter(arg => arg.startsWith('type=bind'))).toHaveLength(2)
-  expect(run.join('\n')).not.toContain('dst=/fixtures')
-  expect(run.join('\n')).not.toContain('dst=/results')
+  expect(run.join('\n')).toContain('dst=/fixtures,readonly')
+})
+
+test('runtime options reject root and malformed users before any Docker process', () => {
+  for (const user of ['0:0', '000:1000', '-1:1', 'bun', '1:4294967295', '4294967295:1', '1:1 --privileged']) {
+    expect(() => parseDockerOptions(['--user', user])).toThrow('non-root numeric UID:GID')
+  }
+  const selected = parseDockerOptions(['--user', '1234:5678', '--restricted'])
+  expect(selected.user).toBe('1234:5678')
+  expect(selected.restricted).toBe(true)
+  expect(parseDockerOptions([]).user).toBeUndefined()
+  expect(parseDockerOptions([]).restricted).toBe(false)
+  expect(() => parseDockerOptions(['--restricted', '--restricted'])).toThrow('Repeated option')
+})
+
+test('shared caches are leased exclusively and cleanup never removes replacement ownership or unknown files', async () => {
+  const { root } = await harness()
+  const cache = join(root, 'leased-cache')
+  const owner = { runId: 'first-run', pid: process.pid, output: 'evidence', startedAt: '2026-10-26T00:00:00Z' }
+  const lease = await acquireAcceptanceCacheLease(cache, owner)
+  const original = await Bun.file(join(lease.path, 'owner.json')).text()
+  await expect(acquireAcceptanceCacheLease(cache, { ...owner, runId: 'second-run' })).rejects.toThrow('Cache already in use')
+  expect(await Bun.file(join(lease.path, 'owner.json')).text()).toBe(original)
+  await expect(releaseAcceptanceCacheLease({ ...lease, runId: 'somebody-else' })).rejects.toThrow('ownership changed')
+  expect(await Bun.file(join(lease.path, 'owner.json')).text()).toBe(original)
+  await Bun.write(join(lease.path, 'unknown-asset'), 'keep')
+  await expect(releaseAcceptanceCacheLease(lease)).rejects.toThrow('unexpected files')
+  expect(await Bun.file(join(lease.path, 'unknown-asset')).text()).toBe('keep')
+  await rm(join(lease.path, 'unknown-asset'))
+  await releaseAcceptanceCacheLease(lease)
+  expect(await readdir(cache)).toEqual([])
+  const reused = await acquireAcceptanceCacheLease(cache, { ...owner, runId: 'next-run' })
+  await releaseAcceptanceCacheLease(reused)
 })
 
 test('mount mapping handles absolute and relative batch paths, spaces, and rejects traversal', async () => {

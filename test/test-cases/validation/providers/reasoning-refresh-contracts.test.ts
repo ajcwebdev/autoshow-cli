@@ -14,7 +14,7 @@ describe('Retained native reasoning documentation contracts', () => {
   // Native payloads follow the official effort/reasoning pages, refreshed 2026-10-17:
   // https://platform.claude.com/docs/en/build-with-claude/effort
   // https://docs.x.ai/developers/model-capabilities/legacy/chat-completions
-  for (const model of ['claude-fable-5-1', 'claude-sonnet-5-5', 'claude-opus-5-5']) {
+  for (const model of ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5']) {
     test(`${model} dispatch accepts xhigh and explicit default resets the override`, async () => {
       process.env['ANTHROPIC_API_KEY'] = 'test'
       const calls = installMockFetch(() => Response.json({ model, content: [{ type: 'text', text: '{"summary":"ok"}' }], usage: { input_tokens: 12, output_tokens: 6 } }))

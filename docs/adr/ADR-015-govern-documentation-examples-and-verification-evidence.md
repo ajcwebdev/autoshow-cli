@@ -4,41 +4,41 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-09-23
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
-- **Supersession:** Absorbs the evidence lifecycle and paid-approval authority of "Govern Benchmark Evidence and Generated-Report Architecture". That record's combined-report architecture is documented in [docs/benchmarks/README.md](../benchmarks/README.md), and its calibration and billing-authority rules live in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md). The September 23 revision replaces the documentation snapshot and cost-report workflow with direct tests of maintained CLI examples.
+- **Supersession:** Absorbs the evidence lifecycle and spending-authorization policy of "Govern Benchmark Evidence and Generated-Report Architecture". Its combined-report architecture lives in [docs/benchmarks/README.md](../benchmarks/README.md), and its calibration and billing-authority rules live in [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md).
 
 ## Context
 
 The root `README.md` and command guides hold maintained CLI examples that can drift toward invalid commands, flags, and model selectors. Historical evidence, templates, and shell expressions need a different treatment from concrete current invocations. Verifying documentation must not execute paid or stateful examples.
 
-Hosted-model refreshes need an evidence lifecycle distinct from model policy. Primary documentation establishes identity, capabilities, pricing, and limits; local contracts establish behavior without credentials; `--price` establishes a no-provider plan; a live calibration then needs immediate command-specific approval and is trustworthy only after its identity, completeness, usage, and artifact checks pass.
+Hosted-model refreshes need an evidence lifecycle distinct from model policy. Primary documentation establishes identity, capabilities, pricing, and limits; local contracts establish behavior without credentials; `--price` establishes a no-provider plan. Live calibration must follow the spending rules in `AGENTS.md`, and is trustworthy only after its identity, completeness, usage, and artifact checks pass.
 
-The initial repository-wide inventory mixed current guides with historical evidence and duplicated commands into generated reports. Snapshotting source locations also made prose movement require regeneration. The September 23 tooling cleanup retires that reporting workflow while retaining direct checks of the maintained command surface.
+Why now: The documentation inventory mixed maintained examples with historical evidence and required regeneration after prose moved; direct syntax checks keep current guides verifiable without that overhead.
 
 ## Options Considered
 
 ### Documentation scope
 
-**Option 1 (retired)**
+**Option 1 (selected)**
 
-- **Option:** Govern every command in the root `README.md` and all Markdown beneath `docs/` through one classified inventory and local verification policy
-- **Pros:** Matches the user-facing surface, catches cross-document drift, and makes unsafe examples explicit
-- **Cons:** Requires a classified inventory, risk-specific policies, and committed offline fixtures
-- **Quantitative Notes:** Covers every concrete AutoShow occurrence
+- **Option:** Parse concrete CLI examples in `README.md` and `docs/commands/` without snapshotting or executing them
+- **Pros:** Validates maintained command syntax and model selectors directly; moving prose requires no inventory refresh
+- **Cons:** Does not validate input-file existence, execution behavior, or historical examples outside those guides
+- **Quantitative Notes:** n/a
 
 **Option 2**
 
 - **Option:** Govern only the root `README.md`
 - **Pros:** Smallest scope
 - **Cons:** Leaves most user-facing invocations outside the contract
-- **Quantitative Notes:** Covers under a tenth of the concrete occurrences
+- **Quantitative Notes:** n/a
 
-**Option 3 (selected)**
+**Option 3**
 
-- **Option:** Parse concrete CLI examples in `README.md` and `docs/commands/`, including the testing guide, without snapshotting or executing them
-- **Pros:** Validates maintained command syntax and model selectors directly; moving prose requires no inventory refresh
-- **Cons:** Does not validate input-file existence, execution behavior, or historical examples outside those guides
+- **Option:** Maintain a classified inventory of current and historical documentation commands
+- **Pros:** Covers examples outside maintained user guides
+- **Cons:** Duplicates commands and requires inventory regeneration when prose moves
 - **Quantitative Notes:** n/a
 
 **Option 4**
@@ -52,8 +52,8 @@ The initial repository-wide inventory mixed current guides with historical evide
 
 **Option 1 (selected)**
 
-- **Option:** One evidence authority with command-specific paid approval
-- **Pros:** Source evidence, local proof, price preflight, paid execution, validation, and compaction form one auditable lifecycle
+- **Option:** One evidence lifecycle governed by the repository's spending rules
+- **Pros:** Source evidence, local proof, price preflight, authorized execution, validation, and preservation form one auditable lifecycle
 - **Cons:** Modality refreshes link here instead of embedding their own process
 - **Quantitative Notes:** Covers every hosted modality and the committed combined reports
 
@@ -68,57 +68,48 @@ The initial repository-wide inventory mixed current guides with historical evide
 
 - **Option:** Treat a successful provider response as sufficient evidence
 - **Pros:** Least validation work
-- **Cons:** Rejected; the 2026 STT and music runs retained collisions and incomplete artifacts after reported success
+- **Cons:** Rejected; transport success does not establish complete, unique, correct output artifacts
 - **Quantitative Notes:** n/a
-
-**Option 4**
-
-- **Option:** Skip live evidence entirely
-- **Pros:** No cost or quota risk
-- **Cons:** Leaves compatibility, timing, usage, and artifact claims unverified
-- **Quantitative Notes:** Appropriate when local contracts suffice, not as a rule
 
 ## Decision
 
-Check concrete `bun autoshow` and `bun as` examples in the root `README.md` and `docs/commands/` against the CLI parser and model registry. `bun run check:docs` runs the local documentation example test as part of `bun run check`. It reads shell/text fences and inline commands, joins shell continuations, and excludes templates and shell expressions. It never invokes the command handlers, reads example inputs, or contacts providers.
+Validate concrete `bun autoshow` and `bun as` examples in the root `README.md` and `docs/commands/` without executing them. Govern live provider evidence through no-cost preparation, spending authorization, artifact validation, and preservation of reusable results.
 
-The snapshot inventory, dedicated documentation fixtures, sandbox price runner, and six documentation cost reports are retired. Price behavior remains covered by the existing price preflight and local price contracts. Syntax validation does not establish that example inputs exist or that commands will succeed when executed. Govern live provider evidence through the existing lifecycle of no-cost preparation, paid approval, artifact validation, and post-validation compaction.
+`bun run check:docs`, included in `bun run check`, checks registered commands, flags, and explicit `--provider provider=model` selectors. It reads shell/text fences and inline commands, joins shell continuations, and excludes templates and shell expressions. Syntax validation does not establish that example inputs exist or that commands will succeed when executed; local behavioral tests and price preflight cover execution contracts.
 
 This applies to:
 
 - Concrete CLI examples in the root `README.md` and Markdown files recursively under `docs/commands/`.
-- The benchmark evidence lifecycle, paid-approval requirements, artifact validation, and compaction across every hosted modality, and the regeneration of committed reports under `docs/benchmarks/`.
+- The benchmark evidence lifecycle, spending authorization, artifact validation, and compaction across hosted modalities, and regeneration of reports under `docs/benchmarks/`.
 
 It does not apply to:
 
 - `AGENTS.md`, internal agent instruction files, ADRs, reports, diagrams, and Markdown fixtures under `input/` or test directories.
 - Templates, shell expressions, arbitrary external-tool commands, and execution of documentation examples.
-- Live execution of paid AI providers, third-party network endpoints, or destructive local commands.
+- CLI execution behavior beyond documentation parsing.
 - Registry, lifecycle, pricing-provenance, and calibration-promotion policy ([ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)).
 - The combined-report artifact format and ranking contract ([docs/benchmarks/README.md](../benchmarks/README.md)).
 - Single-run manifests and price planning ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
 
-### Benchmark evidence lifecycle and paid approval
+### Benchmark evidence lifecycle and spending authorization
 
 Every provider or model refresh follows this order:
 
 1. Refresh dated primary-source documentation with `links --refresh` ([ADR-011](ADR-011-links-selection-grammar-and-refresh-metadata.md)). Do not infer a current model from a moving alias or secondary catalog when primary documentation is available.
 2. Update the registry contract ([ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md)) and the command overviews under `docs/commands/`, and prove them with static checks and targeted no-network tests.
 3. Run the exact no-cost `--price` or `resume --price` command for the intended targets; price mode invokes no provider and mutates no manifest or artifact ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
-4. If live evidence is materially necessary, obtain immediate explicit approval naming the exact provider command and its cost or quota risk. Approval for implementation, another provider, an earlier phase, a failed attempt, or a preflight never authorizes the paid command, and a correction or rerun requires fresh approval.
+4. If live evidence is materially necessary, estimate the complete related batch, including minimum billing, add-ons, and billable retries. A total below $1.00 USD is automatically authorized for the requested task. An unknown estimate or total of $1.00 USD or more requires explicit approval naming the exact command or combination and expected cost/risk. Keep spending cumulative across related commands and reruns; do not split work to reset the threshold.
 5. Validate returned identity, provider and model state, source coverage, page or duration counts, attempt and retry data, usage and actual cost, output integrity, and artifact uniqueness. A provider-reported success is not trustworthy when checkpoints, paths, checksums, or normalized outputs prove collision or reuse.
-6. Compact only after trustworthy results exist: preserve canonical result envelopes and historical identity, remove regenerable checkpoints, splits, and derived files, then regenerate the combined reports and the dashboard from the compacted artifacts.
+6. Compact only after trustworthy results exist, preserving canonical result envelopes, historical identity, receipts, and reusable purchased outputs. Remove only safely regenerable artifacts, then regenerate the combined reports and dashboard. Preserve interrupted or failed TTS output and temporary working directories so cached paid audio can be reused.
 
 Published billing outranks an estimate and recorded cost outranks a reconstructed rate, as [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) records.
 
 ## Rationale
 
-The [documentation example test](../../test/test-cases/validation/cli/documentation-examples.test.ts) validates the current documents directly and includes deliberately invalid commands, flags, and model selectors to verify that stale references fail. It uses the CLI parser without dispatch, so even a parsed paid or stateful command cannot execute. The test runs on every supported host without a platform-specific sandbox or generated report artifacts.
-
 - Command references hold most user-facing invocations, so README-only contracts miss the primary surface.
 - Parsing examples without dispatch verifies the maintained syntax without running paid, stateful, or destructive commands.
 - Existing local behavioral tests and price preflight own execution verification; documentation does not need a second fixture and report system.
-- One evidence authority keeps paid approval, validation, and compaction from being restated in every refresh, and a provider's own success report has already proven insufficient.
+- One evidence lifecycle keeps spending authorization, validation, and preservation consistent across refreshes; a provider response alone does not establish artifact validity or quality.
 
 ## Consequences
 
@@ -126,13 +117,13 @@ Positive outcomes:
 
 - Concrete maintained examples stay aligned with the CLI's command names, registered flags, and explicit provider/model selectors.
 - Documentation validation has no execution path, generated inventory, or report-refresh requirement.
-- Paid live runs stay gated by command-specific approval.
+- Paid live runs follow cumulative spending authorization, with explicit approval when the estimate is unknown or reaches $1.00 USD.
 
 Negative outcomes:
 
 - Historical documents and shell/template examples are outside the automated syntax check.
 - Input existence, price semantics, and full execution correctness require the existing behavioral tests and preflight.
-- Every live calibration needs a fresh, exact approval, so evidence collection is slower than an ad-hoc run.
+- Evidence collection requires cost estimation and artifact validation beyond receiving a successful provider response.
 
 ## Trade-offs
 
@@ -154,14 +145,11 @@ Negative outcomes:
 **Trade-off 4**
 
 - **Gain:** Paid evidence that is validated, attributable, and regenerable from compacted artifacts
-- **Sacrifice:** Command-specific approval before every paid run and validation work after every provider response
+- **Sacrifice:** Batch cost estimation, explicit approval when required, and validation after provider responses
 
-## Follow-up Actions
+## Implementation Note
 
-- [x] Replace documentation inventory/report tooling with a parse-only example test under `test/`.
-- [x] Keep `check:docs` in the default repository check and validate current command references against registered flags and explicit provider/model selectors.
-- [x] Cover multiline examples, aliases, shell/template exclusions, and deliberately invalid commands in local tests.
-- [x] Retire documentation cost generation and orphan fixtures; retain price preflight and behavioral price contracts.
+The [documentation example test](../../test/test-cases/validation/cli/documentation-examples.test.ts) checks maintained examples without dispatch and covers continuations, aliases, shell/template exclusions, invalid commands and flags, and stale or mismatched provider/model selectors. `package.json` includes it in the default check. The former snapshot inventory and documentation cost-report workflow are retired.
 
 ## References
 

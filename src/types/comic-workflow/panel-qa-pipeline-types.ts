@@ -1,4 +1,4 @@
-import type { BlockingHardKeyPolicy, ComicImageGenerationDependencies, GenerateComicPagesOptions, GeneratePanelImagesOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, PageQaEntry, PageQaRosterCard, PanelBundleData } from '~/types'
+import type { BlockingHardKeyPolicy, CharacterIdentityReference, ComicImageGenerationDependencies, GenerateComicPagesOptions, GeneratePanelImagesOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, PageQaEntry, PageQaRosterCard, PanelBundleData } from '~/types'
 
 export type QaRepairCostEntry = {
   model: ImageGenerationModel
@@ -21,7 +21,7 @@ export type GenerateWithQaRepairInput = {
     primaryCharacterRefs?: string[] | undefined
     secondaryRefs?: string[] | undefined
     designReferences?: Array<{ path: string; key?: string; referenceIndex?: number; usage?: string }> | undefined
-    characterReferences?: Array<{ key: string; referenceIndex?: number; description: string }> | undefined
+    characterReferences?: Array<Pick<CharacterIdentityReference, 'key' | 'description' | 'distinguishFrom'> & { referenceIndex?: number }> | undefined
     locationReferences?: Array<{ key: string; referenceIndex?: number; specification: string }> | undefined
     rosterCharacterReferences?: PageQaRosterCard[] | undefined
   }

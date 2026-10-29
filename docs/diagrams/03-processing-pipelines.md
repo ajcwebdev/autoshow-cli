@@ -12,7 +12,7 @@ Media, document, article, text writing, transcript-video, and lyric-video flows.
 
 ## Media STT Pipeline
 
-`metadata` stops after metadata extraction, `download` stops after Step 1, `extract` runs Steps 1-2, and `write` runs Step 3 text generation over local `.md` / `.txt` (with follow-on generation commands for speech, images, video, and music).
+For media inputs, `metadata` stops after metadata extraction, `download` stops after Step 1, and `extract` runs Steps 1-2.
 
 ```
 media target
@@ -30,6 +30,7 @@ stage one shared audio artifact for transcription
   v
 Step 2: STT or YouTube captions
 ```
+
 When `--youtube-captions` is set, YouTube inputs first try caption extraction:
 
 ```
@@ -48,7 +49,8 @@ caption extraction
   +--> unavailable:
          fall back to selected STT providers
 ```
-The local STT provider is `whisperfile`. All others are hosted.
+
+Whisperfile runs locally; other audio STT providers are hosted.
 
 Output layout:
 
@@ -64,13 +66,14 @@ multi-provider, or one ScrapeCreators target:
     result.json
   manifest.json
 ```
+
 Provider failures do not discard the whole output directory. A run can finish as:
 
-| Status       | Meaning                                                                                                                             |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `full`       | Every requested provider succeeded. Skipped providers still leave the run `full` when every other provider succeeded.               |
-| `incomplete` | At least one provider succeeded while another failed or is missing, or no provider succeeded while one is missing or still running. |
-| `failed`     | No requested provider succeeded, and none are missing or still running.                                                             |
+| Status       | Meaning                                                                                       |
+| ------------ | --------------------------------------------------------------------------------------------- |
+| `full`       | At least one provider succeeded, and every other requested provider succeeded or was skipped. |
+| `incomplete` | A provider is missing or running, or at least one succeeded while another failed.             |
+| `failed`     | No requested provider succeeded, and none are missing or still running.                       |
 
 ## Document and Article Pipeline
 
@@ -116,7 +119,7 @@ single provider/native route:
 
 multi-provider OCR, fanout (default):
   providers/<service>-<model>/
-    extraction.txt
+    extraction.txt             # omitted with --out json
     result.json
   extraction.txt | result.json  # primary provider output when --primary-ocr is set
   manifest.json
@@ -143,10 +146,10 @@ Local HTML and default remote articles use Defuddle. Select Spider or Zyte expli
 
 ## Write Outputs
 
-For extracted transcripts, documents, articles, and local text write flows, Step 3 builds a prompt and runs the selected LLM providers:
+`write` runs Step 3 text generation over local `.md` / `.txt` files or directories of those files. URLs, media, documents, HTML, and X Spaces go through `extract` first; pass the extracted text to `write` separately.
 
 ```
-Step 2 result
+local .md/.txt source
   |
   v
 build prompt
@@ -171,11 +174,8 @@ write show notes
   |
   +--> show-note.md or show-note-<model>.md
 ```
-`write` always starts at Step 3. It treats `.md`/`.txt` files as the source corpus. URLs, media, documents, HTML, and X Spaces go through `extract` first.
 
 When two providers share a model id, the JSON, rendered markdown, and show-note filenames include the provider (`text-<provider>-<model>.json`, and the same stem for `text-*.md` and `show-note-*.md`).
-
-Project lyric draft mode engages when the input is a directory named `text` (or a `.md`/`.txt` under it) and `prompt.md` exists in that directory's parent (or `--prompt-file` is supplied). Defaults then use that `prompt.md`, optional `tracks.md` beside it, and rendered drafts in the sibling `lyrics` directory.
 
 ## Transcript Video Pipeline
 
@@ -191,7 +191,7 @@ existing extract output
 render transcript video
   |
   +--> build captions from provider result or --transcript-text
-  +--> render video with --audio and optional --font
+  +--> render video with resolved audio and optional --font
   +--> keep temporary files when --keep-tmp is set
   |
   v

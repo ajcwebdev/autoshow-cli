@@ -1,6 +1,7 @@
+import { validateGeminiImageDimensions } from '../image-generation-services/image-gemini/gemini-image-options'
 import { resolveGrokImageOptions } from '../image-generation-services/image-grok/grok-image-options'
 import { getImageInputCostPer1M, getImageModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateOpenAIImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateGeminiImageModel, validateGrokImageModel, validateOpenAIImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { deriveGenerationPricingProviders, IMAGE_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageInputEstimate, OpenAIImageQuality, ProviderModelSelectionSpec } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
@@ -94,6 +95,7 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
     switch (selection.service) {
       case 'gemini': {
         const model = validateGeminiImageModel(selection.model)
+        validateGeminiImageDimensions(model, options)
         const imageSize = options.imageSize ?? '1K'
         const meta = getImageModelMeta('gemini', model)
         const costPerImageCents = meta?.costPerImageBySizeCents?.[imageSize]
@@ -104,7 +106,7 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
           imageCount: 1,
           costPerImageCents,
           totalCost: costPerImageCents,
-          note: `Published Gemini standard-tier ${imageSize} output-image estimate; text/image input tokens are not included`
+          note: `Published Gemini standard-tier ${imageSize} output-image estimate; input tokens, text/thinking output tokens, and search grounding are excluded; no grounding tools enabled`
         })
         break
       }
@@ -142,22 +144,6 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
           totalCost: costPerImageCents * imageCount + inputImageCostCents,
           inputImageCount, inputImageCostCents,
           note: `Published xAI ${resolution} ${quality} output price plus ${inputImageCount} input images at ${inputImageRateCents} cent${inputImageRateCents === 1 ? '' : 's'} each per request. Account discounts and taxes excluded.`
-        })
-        break
-      }
-      case 'fal': {
-        const model = validateFalImageModel(selection.model)
-        const costPerImageCents = requireImageCost('fal', model, getImageModelMeta('fal', model)?.costPerImageCents, 'costPerImageCents')
-        const imageCount = Math.max(1, options.imageCount ?? 1)
-        estimates.push({
-          provider: 'fal',
-          model,
-          imageCount,
-          costPerImageCents,
-          totalCost: costPerImageCents * imageCount,
-          note: model === 'fal-ai/hidream-o1-image'
-            ? 'fal.ai bills HiDream per output megapixel; the local estimate uses the default one-megapixel output'
-            : 'Provisional fal.ai estimate derived from the endpoint billing unit and default runtime; actual compute-based billing may vary'
         })
         break
       }

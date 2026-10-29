@@ -4,7 +4,8 @@ import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/mode
 import type { ElevenlabsTtsModel, GrokTtsModel, InworldTtsModel, OpenAITtsModel, OpenAITtsVoiceSelection } from '~/types'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
-  'eleven_v3'
+  'eleven_v3',
+  'eleven_v4'
 ] as const satisfies readonly string[]
 
 export const ELEVENLABS_DEFAULT_VOICE_ID = 'hpp4J3VqNfWAUOO0d1Us'

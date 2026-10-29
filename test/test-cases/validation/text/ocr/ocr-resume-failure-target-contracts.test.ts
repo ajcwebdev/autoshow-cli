@@ -77,15 +77,16 @@ describe('OCR resume contracts', () => {
   })
 
   test('stored OCR targets include current hosted provider set', () => {
-    expect(parseStoredRequestedTarget({ service: 'deepinfra', model: 'google/gemma-4-31B-it' })).toEqual({
-      service: 'deepinfra',
-      model: 'google/gemma-4-31B-it'
+    expect(parseStoredRequestedTarget({ service: 'mistral', model: 'mistral-ocr-4-1' })).toEqual({
+      service: 'mistral',
+      model: 'mistral-ocr-4-1'
     })
   })
 
   for (const archived of [
-    { service: 'glm', model: 'glm-5.3-flash', engine: 'glm-ocr' },
-    { service: 'kimi', model: 'kimi-k3', engine: 'kimi-ocr' }
+    { service: 'glm', model: 'retired-model', engine: 'glm-ocr' },
+    { service: 'kimi', model: 'retired-model', engine: 'kimi-ocr' },
+    { service: 'deepinfra', model: 'retired-model', engine: 'deepinfra-ocr' }
   ] as const) {
     test(`archived ${archived.service} targets remain readable and cannot be dispatched`, () => {
       const target = parseStoredRequestedTarget(archived)
@@ -98,10 +99,12 @@ describe('OCR resume contracts', () => {
   }
 
   for (const obsolete of [
-    { glmOcrModel: 'glm-5.3-flash' },
-    { glmOcrModels: ['glm-5.3-flash'] },
-    { kimiOcrModel: 'kimi-k3' },
-    { kimiOcrModels: ['kimi-k3'] }
+    { glmOcrModel: 'retired-model' },
+    { glmOcrModels: ['retired-model'] },
+    { kimiOcrModel: 'retired-model' },
+    { kimiOcrModels: ['retired-model'] },
+    { deepinfraOcrModel: 'retired-model' },
+    { deepinfraOcrModels: ['retired-model'] }
   ]) {
     test(`obsolete ${Object.keys(obsolete)[0]} options reject before local extraction or HTTP`, async () => {
       const options = {

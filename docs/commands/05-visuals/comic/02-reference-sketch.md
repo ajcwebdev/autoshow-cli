@@ -1,6 +1,6 @@
 # comic reference-sketch
 
-`reference-sketch --character` generates a 3-view character outline sheet. `reference-sketch --location` generates one camera view: `establishing` by default, or `--view reverse|side`.
+`reference-sketch --character` generates a 3-view character reference sheet. `reference-sketch --location` generates one camera view: `establishing` by default, or `--view reverse|side`.
 
 See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, and the full walkthrough.
 
@@ -28,7 +28,7 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 | `-r, --revise`                         | Revise an existing registered sketch                                                           | `false`                     |
 | `--notes <text>`                       | Revision instructions; required with `--revise`                                                | none                        |
 | `--provider-concurrency <n>`           | Number of character sheet views to generate in parallel, and the request cap for location work | `7`                         |
-| `--concurrency-mode <ramp\|immediate>` | Ramp from one request (`ramp`) or start at the configured cap (`immediate`)                    | `ramp`                      |
+| `--concurrency-mode <ramp\|immediate>` | Location requests: ramp from one request or start at the configured cap                        | `ramp`                      |
 | `--qa` / `--no-qa`                     | Enable or disable location view QA; `--character` runs have no QA stage                        | enabled                     |
 | `--max-repairs <n>`                    | Maximum location repair attempts after the initial view                                        | `2`                         |
 | `--price`                              | Estimate generation costs without making API calls                                             | `false`                     |
@@ -37,17 +37,17 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 
 | Flag                                | Description                                                                                                                                       | Default                                                     |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `--provider <provider[=model]>`     | Use exactly one supported image model (see [Supported Models](./00-comic-overview.md#supported-models))                                           | `gpt-image-2`                                               |
-| `--size <size>`                     | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for `gpt-image-2` or GPT Image 2.5 (Flare/Sunburst)    | `1024x1536` for `--character`; `1536x1024` for `--location` |
+| `--provider <provider[=model]>`     | Use exactly one supported image model (see [Supported Models](./00-comic-overview.md#supported-models))                                           | `gpt-image-2.5-flare`                                       |
+| `--size <size>`                     | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for GPT Image 2.5 (Flare/Sunburst)                     | `1024x1536` for `--character`; `1536x1024` for `--location` |
 | `--quality <quality>`               | `low`, `medium`, `high`, or `auto`; Image 2.5 also supports `xhigh` and `max`. Only OpenAI applies it, and other providers use their own defaults | `medium` for `--character`; `high` for `--location`         |
 | `--llm-provider <provider[=model]>` | Text model that writes the location specification when the key is absent from the catalog                                                         | `gpt-6.1-sol`                                               |
 | `--qa-provider <provider[=model]>`  | QA model for location views; QA requires an OpenAI or Gemini vision-capable LLM                                                                   | `gpt-6.1-sol`                                               |
 
 ### Examples
 
-The [main Harborlight setup](./00-comic-overview.md#setup) already supplies original front-view cast drawings and a registered original establishing location image. It needs no hosted reference purchase. Those drawings are original designs, not generated turnarounds.
+The [main Harborlight setup](./00-comic-overview.md#setup) already supplies front-view cast drawings and a registered establishing location image. It needs no hosted reference purchase.
 
-These five examples are **optional reference variants**. First prepare a separate unused workspace, reset the variables below in that shell, and include the selected generation/QA/repairs in the [cumulative estimate](./00-comic-overview.md#cumulative-estimate). Do not replace references in the reviewed main run.
+These examples are **optional reference variants**. Prepare a separate unused workspace and include generation, QA, and repairs in the [cumulative estimate](./00-comic-overview.md#cumulative-estimate).
 
 ```bash
 bun --no-env-file src/tools/prepare-harborlight-comic.ts --root runtime/examples/harborlight-comic-references
@@ -58,37 +58,37 @@ RUN="$ROOT/run"
 CONFIG="$ROOT/empty-config.json"
 ```
 
-Generate Papa Bear's optional turnaround, quote Mira's equivalent, or deliberately revise the generated Papa Bear sheet. The revision example requires the first generation to have completed and been inspected; it is not a required second purchase.
+Generate Papa Bear's turnaround, quote Mira's equivalent, or revise the generated Papa Bear sheet. The revision example requires the first generation to have completed and been inspected.
 
 ```bash
-bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic reference-sketch --character mira --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2 --revise --notes "Keep the original adult human face, gray beard, and rust-orange coat consistent across all three views" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2.5-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --character mira --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2.5-flare --revise --notes "Keep the original adult human face, gray beard, and rust-orange coat consistent across all three views" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
-The original establishing view is already registered, so a plain establishing request would reuse it for $0. To price a deliberate hosted replacement, use `--revise`; a reverse view can use the original establishing reference directly. A reverse generated from `existing-canonical-art` has mixed lineage, which is retained in metadata. Neither command proves a new camera view exists until actual generation, validation and registration succeed.
+The establishing view is already registered, so a plain establishing request would reuse it for $0. To price a replacement, use `--revise`; a reverse view can use the establishing reference directly.
 
 ```bash
-bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --provider openai=gpt-image-2 --revise --notes "Preserve the fixed fire ring, bench, north path, and two pine trees; keep the campsite empty" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --view reverse --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --provider openai=gpt-image-2.5-flare --revise --notes "Preserve the fixed fire ring, bench, north path, and two pine trees; keep the campsite empty" --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --view reverse --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
-After accepting any replacement, inspect it and rebuild scene reference snapshots/panel prompts in that variant workspace. Return all five variables to the main setup before continuing the main walkthrough.
+Inspect each replacement before using it, then return the variables to the main setup before continuing the walkthrough.
 
 ### Behavior
 
 - When the location key is absent from the catalog, the establishing run uses `--llm-provider` to write a location specification from episode scripts whose slugline matches the location key. Reverse and side views require that establishing view.
 - A registered location view is left unchanged unless `--revise --notes` is supplied, and `--price` reports zero provider calls for that case. Fresh `--character` generation replaces the registered sheet. `--revise` never falls back to fresh generation.
-- `--character` writes the three-view sheet only after every view succeeds. Location QA, enabled by default, repairs a view up to `--max-repairs` times and registers only a passing view.
-- After updating character or location sketches, rerun `draft-scenes --only panel-prompts` for affected scenes.
+- `--character` writes the three-view sheet only after every view succeeds. With location QA enabled, the command repairs a view up to `--max-repairs` times and registers only a passing view.
+- Generation and QA read the current registered references directly. An asset-only update does not require rebuilding panel prompts.
 
 ### Location plans
 
-`input/locations/location-plans.json` is an optional floor plan per location. This command and the `draft-scenes` blocking stage read it.
+An optional `location-plans.json` under the locations root (default `input/locations/`) stores floor plans. This command and the `draft-scenes` blocking stage read it.
 
-Coordinates are meters. The origin is the establishing camera's ground point, `+x` is screen-right in the establishing image, and `+y` is depth into the room. An optional drawing lives under `input/locations/plans/`.
+Coordinates are meters. The origin is the establishing camera's ground point, `+x` is screen-right in the establishing image, and `+y` is depth into the room. An optional drawing lives under `plans/` within the locations root.
 
-When a plan exists, `--view reverse` or `--view side` follows it. A view still generates when the plan has no camera cell facing that way. Editing a plan does not change a view that is already registered.
+When a plan exists, reverse and side prompts and QA use its camera geometry. A missing camera cell facing that way does not block generation. Editing a plan does not change a view that is already registered.
 
 ### Price
 

@@ -11,6 +11,9 @@ export const ttsRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/audio/tts/elevenlabs-eleven-v3.test.ts', [
     command('tts-elevenlabs-eleven_v3', 'tts-elevenlabs-eleven_v3', ['src/cli/create-cli.ts', 'tts', 'test/test-cases/e2e/service/audio/tts/fixtures/natural-short.txt', '--provider', 'elevenlabs=eleven_v3', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/audio/tts/elevenlabs-eleven-v4.test.ts', [
+    command('tts-elevenlabs-eleven_v4', 'tts-elevenlabs-eleven_v4', ['src/cli/create-cli.ts', 'tts', 'test/test-cases/e2e/service/audio/tts/fixtures/natural-short.txt', '--provider', 'elevenlabs=eleven_v4', '--price']),
+  ]),
   ...exact('test/test-cases/e2e/service/audio/tts/inworld-realtime-tts-2.test.ts', [
     // The test only checks target collection, so this estimate is reported but gates no budget.
     reportOnly('tts-inworld-realtime-tts-2', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/01-tts-short.md', '--provider', 'inworld=realtime-tts-2', '--price']),

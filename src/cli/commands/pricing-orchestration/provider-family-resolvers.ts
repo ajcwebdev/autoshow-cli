@@ -9,7 +9,6 @@ import { estimatePagePricedExtraction, projectExtractTokenEstimate } from './ext
 const PAGE_PRICED_EXTRACT_PROVIDERS = new Set([
   'defuddle',
   'mistral',
-  'fal',
   'firecrawl',
   'glm-reader',
   'spider',

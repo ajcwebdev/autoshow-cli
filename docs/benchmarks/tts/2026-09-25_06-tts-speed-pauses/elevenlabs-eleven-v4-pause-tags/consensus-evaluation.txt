@@ -1,0 +1,5 @@
+Offline ASR assessment (2026-10-29T06:53:20.698Z): speed-pauses--elevenlabs-eleven-v4-pause-tags--elevenlabs-eleven-v4. See docs/benchmarks/tts/assessment.md#speed-pauses--elevenlabs-eleven-v4-pause-tags--elevenlabs-eleven-v4 and docs/benchmarks/tts/assessment.evidence.zip.
+
+Installed Whisper small.en screening: strict WER 0.00%, CER 0.00%, substitutions/deletions/insertions 0/0/0. Supplemental counting-number-fold WER 0.00% (normalized tokens 1–5 only; omissions preserved). Differences require adjudication and do not establish TTS errors. Full waveform decoding succeeded. Per-line timing attribution is unavailable; full-file signal intervals are recorded.
+
+Subjective pronunciation, speaker identity, emotional/control effect, seam/prosody, and perceptual ratings are excluded and unscored at the user’s instruction. No human listening or perceptual pass is claimed. No provider calls or synthesis reruns were made.

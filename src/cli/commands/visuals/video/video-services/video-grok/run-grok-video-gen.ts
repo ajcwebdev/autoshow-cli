@@ -1,4 +1,6 @@
 import * as v from 'valibot'
+import { validateGrokVideoRequest } from './grok-video-capabilities'
+import { requireGrokVideoDecoder, validateGrokVideoArtifact } from './grok-video-artifact'
 import type { GrokVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { runVideoGeneration } from '~/cli/commands/command-shared/media-generation/video-generation-scaffold'
@@ -51,12 +53,14 @@ export const runGrokVideoGen = async (
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   const mode = options.mode ?? 'text'
+  validateGrokVideoRequest(options.model, mode, options.referenceImages)
 
   return await runVideoGeneration({
     service: 'grok',
     model: options.model,
     outputDir,
     prepare: async () => {
+      requireGrokVideoDecoder()
       const duration = normalizeGrokVideoDuration(options.durationSeconds)
       const aspectRatio = normalizeGrokVideoAspectRatio(options.aspectRatio)
       const resolution = normalizeGrokVideoResolution(options.resolution, options.model)
@@ -134,6 +138,7 @@ export const runGrokVideoGen = async (
 
       const outputPath = context.artifactPath()
       await downloadVideoOutput(videoUrl, 'Grok', outputPath)
+      await validateGrokVideoArtifact(outputPath)
 
       return {
         artifactPaths: [outputPath],

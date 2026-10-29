@@ -112,6 +112,1026 @@
       {
         "step": "extract",
         "provider": "mistral",
+        "model": "mistral-ocr-4-1",
+        "costPer1kPagesCents": 400,
+        "pages": 1,
+        "effectiveReasoningEffort": "default",
+        "estimateType": "exact",
+        "totalCostCents": 0.4,
+        "caseCount": 5,
+        "totalForAllCasesCents": 2
+      },
+      {
+        "step": "extract",
+        "provider": "openai",
+        "model": "gpt-6.1-sol",
+        "inputCostPer1MCents": 200,
+        "outputCostPer1MCents": 1000,
+        "pages": 1,
+        "promptTokens": 1531,
+        "completionTokens": 944,
+        "effectiveReasoningEffort": "default",
+        "tokenEstimateSource": "profile",
+        "tokenEstimateConfidence": "healthy",
+        "pricingBand": "standard-short-context",
+        "estimateType": "heuristic",
+        "totalCostCents": 1.2502,
+        "caseCount": 5,
+        "totalForAllCasesCents": 6.2509999999999994
+      },
+      {
+        "step": "extract",
+        "provider": "openai",
+        "model": "gpt-6-luna",
+        "inputCostPer1MCents": 10,
+        "outputCostPer1MCents": 50,
+        "pages": 1,
+        "promptTokens": 1531,
+        "completionTokens": 1533,
+        "effectiveReasoningEffort": "default",
+        "tokenEstimateSource": "profile",
+        "tokenEstimateConfidence": "healthy",
+        "pricingBand": "standard-short-context",
+        "estimateType": "heuristic",
+        "totalCostCents": 0.09196000000000001,
+        "caseCount": 5,
+        "totalForAllCasesCents": 0.4598000000000001
+      },
+      {
+        "step": "extract",
+        "provider": "grok",
+        "model": "grok-4.7",
+        "inputCostPer1MCents": 200,
+        "outputCostPer1MCents": 600,
+        "pages": 1,
+        "promptTokens": 799,
+        "completionTokens": 1285,
+        "effectiveReasoningEffort": "default",
+        "tokenEstimateSource": "profile",
+        "tokenEstimateConfidence": "healthy",
+        "pricingBand": "standard-below-200k",
+        "estimateType": "heuristic",
+        "totalCostCents": 0.9307999999999998,
+        "caseCount": 5,
+        "totalForAllCasesCents": 4.653999999999999
+      },
+      {
+        "step": "extract",
+        "provider": "anthropic",
+        "model": "claude-opus-5-5",
+        "inputCostPer1MCents": 400,
+        "outputCostPer1MCents": 2000,
+        "pages": 1,
+        "promptTokens": 2547,
+        "completionTokens": 816,
+        "effectiveReasoningEffort": "default",
+        "tokenEstimateSource": "profile",
+        "tokenEstimateConfidence": "healthy",
+        "estimateType": "heuristic",
+        "totalCostCents": 2.6508,
+        "caseCount": 5,
+        "totalForAllCasesCents": 13.254
+      },
+      {
+        "step": "extract",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "inputCostPer1MCents": 200,
+        "outputCostPer1MCents": 1000,
+        "pages": 1,
+        "promptTokens": 2547,
+        "completionTokens": 840,
+        "effectiveReasoningEffort": "default",
+        "tokenEstimateSource": "profile",
+        "tokenEstimateConfidence": "healthy",
+        "estimateType": "heuristic",
+        "totalCostCents": 1.3494000000000002,
+        "caseCount": 5,
+        "totalForAllCasesCents": 6.747000000000001
+      },
+      {
+        "step": "extract",
+        "provider": "anthropic",
+        "model": "claude-haiku-5-5",
+        "inputCostPer1MCents": 10,
+        "outputCostPer1MCents": 50,
+        "pages": 1,
+        "promptTokens": 2547,
+        "completionTokens": 1000,
+        "effectiveReasoningEffort": "default",
+        "tokenEstimateSource": "profile",
+        "tokenEstimateConfidence": "healthy",
+        "pricingBand": "standard-up-to-100k",
+        "estimateType": "heuristic",
+        "totalCostCents": 0.07547000000000001,
+        "caseCount": 5,
+        "totalForAllCasesCents": 0.3773500000000001
+      },
+      {
+        "step": "extract",
+        "provider": "anthropic",
+        "model": "claude-fable-5",
+        "inputCostPer1MCents": 1000,
+        "outputCostPer1MCents": 5000,
+        "pages": 1,
+        "promptTokens": 2053,
+        "completionTokens": 833,
+        "effectiveReasoningEffort": "default",
+        "tokenEstimateSource": "profile",
+        "tokenEstimateConfidence": "healthy",
+        "estimateType": "heuristic",
+        "totalCostCents": 6.218,
+        "caseCount": 5,
+        "totalForAllCasesCents": 31.09
+      },
+      {
+        "step": "extract",
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "inputCostPer1MCents": 150,
+        "outputCostPer1MCents": 750,
+        "pages": 1,
+        "promptTokens": 1168,
+        "completionTokens": 546,
+        "effectiveReasoningEffort": "low",
+        "tokenEstimateSource": "profile",
+        "tokenEstimateConfidence": "healthy",
+        "estimateType": "heuristic",
+        "totalCostCents": 0.5847,
+        "caseCount": 5,
+        "totalForAllCasesCents": 2.9234999999999998
+      }
+    ]
+  },
+  "approval": {
+    "status": "approved",
+    "budgetCents": 500,
+    "evidence": "User approved up to $5",
+    "scope": "The five prepared English clean-typography images across all 22 quoted configured OCR targets; 105 hosted slots and reuse of five local pilot slots.",
+    "approvedAt": "2026-10-23T03:44:15.879Z"
+  },
+  "paidCommands": [
+    [
+      "bun",
+      "src/tools/ocr-clean-typography-benchmark.ts",
+      "--run"
+    ]
+  ],
+  "cases": [
+    {
+      "id": "clean-typography-phototest",
+      "input": "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/input.png",
+      "reference": "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/canonical-reference.txt",
+      "originalReference": "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/original.gold.txt",
+      "sourceRecord": null,
+      "sourceImageName": "phototest.tif",
+      "inputSha256": "6a6ea46b3db1fea659fbefb88fbd3a3cbeeee944e407a8c10072fb3ca527eaa7",
+      "referenceSha256": "76ef157baeb6ab275b7d90f310477a8060d5822aea2b2e05d480f459b016a6ed",
+      "width": 640,
+      "height": 480,
+      "format": "png",
+      "pageCount": 1,
+      "chars": 286,
+      "words": 60,
+      "sourceURL": "https://raw.githubusercontent.com/tesseract-ocr/test/232ff181c66516116ec0e84c4963f70de15050fd/testing/phototest.tif",
+      "sourceRevision": "232ff181c66516116ec0e84c4963f70de15050fd",
+      "annotationURL": "https://raw.githubusercontent.com/tesseract-ocr/test/232ff181c66516116ec0e84c4963f70de15050fd/testing/phototest.gold.txt",
+      "annotationFile": "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/original.gold.txt",
+      "annotationSha256": "76ef157baeb6ab275b7d90f310477a8060d5822aea2b2e05d480f459b016a6ed",
+      "rights": {
+        "license": "Apache-2.0",
+        "notice": "input/examples/document/ocr-clean-typography/source/tesseract-LICENSE.txt",
+        "redistributable": true
+      },
+      "attribution": "Tesseract OCR test project, testing/phototest, Apache-2.0; see source/tesseract-LICENSE.txt",
+      "serializationNotes": {
+        "independentReference": true,
+        "origin": "Publisher ground truth, never generated from benchmark OCR outputs or consensus.",
+        "serializerVersion": 1,
+        "blockSelection": "For OmniDocBench select one exact page_info.image_path record; retain nonignored top-level title/text_block elements, sorted by numeric order; use parent text once and do not descend into merge_list.",
+        "serialization": "Decode literal backslash-t as a tab; preserve actual newlines and punctuation, strip horizontal trailing whitespace from each line; join blocks with two LF; exactly one final LF. No Unicode normalization or lexical editing. Tesseract gold text is copied byte-for-byte.",
+        "typography": "Publisher list markers are retained: source hyphens can stand for printed circular/square bullets. Small-caps heading is serialized in the source's uppercase form. Apostrophe variants and spacing before !! follow publisher annotation. These are representation conventions, not strict glyph-level gold.",
+        "exclusions": "Decorative artwork, shapes, slide backgrounds/flags and watermark lettering are excluded where absent from publisher annotation; only annotated lexical content is scored."
+      },
+      "review": {
+        "visualReview": "All visible text compared against official gold; faithful, no lexical errata found.",
+        "exclusions": [],
+        "sourceErrata": []
+      },
+      "duplicateCheck": {
+        "existingCase": "01-test-picture",
+        "distinctNormalizedText": true,
+        "distinctImageBytes": true,
+        "normalizedTextSha256": "87dea7a8c7613d4696ea3b1671d4026fe9586fe8c777e2246b5e2434c5bd43e5"
+      },
+      "originalImage": {
+        "path": "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/original.tif",
+        "url": "https://raw.githubusercontent.com/tesseract-ocr/test/232ff181c66516116ec0e84c4963f70de15050fd/testing/phototest.tif",
+        "bytes": 38668,
+        "sha256": "d2241a1eb6d6cd2eb6544b8e228c2862c852b7467d16ed636caa32179b780692",
+        "decodedPixelSha256": "a2e2a9503c63a2a347cac119c29ca8dc8132cb28cf4b707d6e3ca3338efb91ce"
+      },
+      "status": "completed-available-targets",
+      "runDir": "docs/benchmarks/text/ocr/clean-typography-phototest",
+      "localPilot": {
+        "directory": "input/examples/document/ocr-clean-typography/local-pilot/clean-typography-phototest",
+        "status": "succeeded",
+        "provider": "tesseract",
+        "costCents": 0,
+        "processingTimeMs": 298,
+        "normalizedWer": 0,
+        "normalizedCer": 0,
+        "wordErrors": 0,
+        "referenceWords": 60,
+        "metricPolicy": "Existing consensus OCR lexical normalization; punctuation/case/whitespace differences are not strict glyph accuracy."
+      },
+      "providerCoverage": {
+        "expected": 22,
+        "localSucceeded": 1,
+        "hostedSucceeded": 20,
+        "hostedFailed": 1,
+        "pending": 0,
+        "failedTargets": []
+      },
+      "spending": {
+        "requestCount": 43,
+        "providerReportedCents": 8.58338,
+        "settledConservativeCents": 0,
+        "settledAccountedCents": 8.58338,
+        "heldReservationCents": 0,
+        "accountedCents": 8.58338,
+        "rejectedRequests": 23,
+        "unresolvedRequests": 0,
+        "costPolicy": "Provider-reported usage valued at reviewed rates, settled conservative upper bounds, and unresolved held reservations are separate. Price rows include all settled retry costs and retained reservations once; any conservative component makes the price an upper bound. Accounted cents are not invoice-reconciled charges."
+      }
+    },
+    {
+      "id": "clean-typography-suitcase",
+      "input": "input/examples/document/ocr-clean-typography/cases/clean-typography-suitcase/input.png",
+      "reference": "input/examples/document/ocr-clean-typography/cases/clean-typography-suitcase/canonical-reference.txt",
+      "originalReference": "input/examples/document/ocr-clean-typography/cases/clean-typography-suitcase/original.annotation.json",
+      "sourceRecord": "input/examples/document/ocr-clean-typography/cases/clean-typography-suitcase/original.annotation.json",
+      "sourceImageName": "PPT_english-studies-s6-on-the-road-resource-3_page_005.png",
+      "inputSha256": "2ca511bc6e9a707b810bbbc894d9432f8ffe167a4ef7dd633915104e01172670",
+      "referenceSha256": "8187ac89ddb13f303d8a4793a12ca27fba4a1e5672c0aa66a2c01602c3099df1",
+      "width": 2000,
+      "height": 1500,
+      "format": "png",
+      "pageCount": 1,
+      "chars": 264,
+      "words": 53,
+      "sourceURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/images/PPT_english-studies-s6-on-the-road-resource-3_page_005.png",
+      "sourceRevision": "aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec",
+      "annotationURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/OmniDocBench.json",
+      "annotationFile": "input/examples/document/ocr-clean-typography/source/OmniDocBench.json",
+      "annotationSha256": "a45cd84b04ad8b793e775089640e6b681209abea33ead54c1828ddca35fae496",
+      "rights": {
+        "license": "Research/noncommercial use only; underlying source-document rights remain separate.",
+        "notice": "input/examples/document/ocr-clean-typography/source/OmniDocBench-README.md",
+        "redistributable": false,
+        "localStorageOnly": true,
+        "benchmarkPublication": "Do not copy image/source text into public benchmark artifacts without a distribution-rights decision; use hashes, project-relative paths and source URLs."
+      },
+      "attribution": "OpenDataLab OmniDocBench, PPT2PDF subset, original document identified by sourceImageName; research/noncommercial only; see source/OmniDocBench-README.md",
+      "serializationNotes": {
+        "independentReference": true,
+        "origin": "Publisher ground truth, never generated from benchmark OCR outputs or consensus.",
+        "serializerVersion": 1,
+        "blockSelection": "For OmniDocBench select one exact page_info.image_path record; retain nonignored top-level title/text_block elements, sorted by numeric order; use parent text once and do not descend into merge_list.",
+        "serialization": "Decode literal backslash-t as a tab; preserve actual newlines and punctuation, strip horizontal trailing whitespace from each line; join blocks with two LF; exactly one final LF. No Unicode normalization or lexical editing. Tesseract gold text is copied byte-for-byte.",
+        "typography": "Publisher list markers are retained: source hyphens can stand for printed circular/square bullets. Small-caps heading is serialized in the source's uppercase form. Apostrophe variants and spacing before !! follow publisher annotation. These are representation conventions, not strict glyph-level gold.",
+        "exclusions": "Decorative artwork, shapes, slide backgrounds/flags and watermark lettering are excluded where absent from publisher annotation; only annotated lexical content is scored."
+      },
+      "review": {
+        "visualReview": "All annotated lexical text compared with full slide; no lexical errata found.",
+        "exclusions": [
+          "Decorative illustrations/shapes/background"
+        ],
+        "representation": [
+          "Parent merged block used once, all merge_list children ignored",
+          "Publisher list-marker glyph conventions preserved"
+        ],
+        "sourceErrata": []
+      },
+      "duplicateCheck": {
+        "existingCase": "01-test-picture",
+        "distinctNormalizedText": true,
+        "distinctImageBytes": true,
+        "normalizedTextSha256": "025f075abe4f8894627573e9001c4d816f9cf34c91dcec5ab27916313fd1e9b8"
+      },
+      "sourceRecordNotes": "Exact selected record parsed from pinned original annotation JSON and reserialized with indentation. Original JSON bytes retained in annotationFile.",
+      "status": "completed-available-targets",
+      "runDir": "docs/benchmarks/text/ocr/clean-typography-suitcase",
+      "localPilot": {
+        "directory": "input/examples/document/ocr-clean-typography/local-pilot/clean-typography-suitcase",
+        "status": "succeeded",
+        "provider": "tesseract",
+        "costCents": 0,
+        "processingTimeMs": 278,
+        "normalizedWer": 0.0196078431372549,
+        "normalizedCer": 0.008032128514056224,
+        "wordErrors": 1,
+        "referenceWords": 51,
+        "metricPolicy": "Existing consensus OCR lexical normalization; punctuation/case/whitespace differences are not strict glyph accuracy."
+      },
+      "providerCoverage": {
+        "expected": 22,
+        "localSucceeded": 1,
+        "hostedSucceeded": 20,
+        "hostedFailed": 1,
+        "pending": 0,
+        "failedTargets": []
+      },
+      "spending": {
+        "requestCount": 44,
+        "providerReportedCents": 22.701250999999996,
+        "settledConservativeCents": 0,
+        "settledAccountedCents": 22.701250999999996,
+        "heldReservationCents": 0,
+        "accountedCents": 22.701250999999996,
+        "rejectedRequests": 24,
+        "unresolvedRequests": 0,
+        "costPolicy": "Provider-reported usage valued at reviewed rates, settled conservative upper bounds, and unresolved held reservations are separate. Price rows include all settled retry costs and retained reservations once; any conservative component makes the price an upper bound. Accounted cents are not invoice-reconciled charges."
+      }
+    },
+    {
+      "id": "clean-typography-good-talk",
+      "input": "input/examples/document/ocr-clean-typography/cases/clean-typography-good-talk/input.png",
+      "reference": "input/examples/document/ocr-clean-typography/cases/clean-typography-good-talk/canonical-reference.txt",
+      "originalReference": "input/examples/document/ocr-clean-typography/cases/clean-typography-good-talk/original.annotation.json",
+      "sourceRecord": "input/examples/document/ocr-clean-typography/cases/clean-typography-good-talk/original.annotation.json",
+      "sourceImageName": "PPT_BaharMartonosi_page_005.png",
+      "inputSha256": "c872bf793a3c235d9f095ee999087456060718ed3b0606f1a4f2f67116df21b9",
+      "referenceSha256": "b829d2120657ee4b9a97d7ecc9cb827daac50d6152e5fb9c8a11b4dbea7c10d8",
+      "width": 2000,
+      "height": 1500,
+      "format": "png",
+      "pageCount": 1,
+      "chars": 220,
+      "words": 42,
+      "sourceURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/images/PPT_BaharMartonosi_page_005.png",
+      "sourceRevision": "aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec",
+      "annotationURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/OmniDocBench.json",
+      "annotationFile": "input/examples/document/ocr-clean-typography/source/OmniDocBench.json",
+      "annotationSha256": "a45cd84b04ad8b793e775089640e6b681209abea33ead54c1828ddca35fae496",
+      "rights": {
+        "license": "Research/noncommercial use only; underlying source-document rights remain separate.",
+        "notice": "input/examples/document/ocr-clean-typography/source/OmniDocBench-README.md",
+        "redistributable": false,
+        "localStorageOnly": true,
+        "benchmarkPublication": "Do not copy image/source text into public benchmark artifacts without a distribution-rights decision; use hashes, project-relative paths and source URLs."
+      },
+      "attribution": "OpenDataLab OmniDocBench, PPT2PDF subset, original document identified by sourceImageName; research/noncommercial only; see source/OmniDocBench-README.md",
+      "serializationNotes": {
+        "independentReference": true,
+        "origin": "Publisher ground truth, never generated from benchmark OCR outputs or consensus.",
+        "serializerVersion": 1,
+        "blockSelection": "For OmniDocBench select one exact page_info.image_path record; retain nonignored top-level title/text_block elements, sorted by numeric order; use parent text once and do not descend into merge_list.",
+        "serialization": "Decode literal backslash-t as a tab; preserve actual newlines and punctuation, strip horizontal trailing whitespace from each line; join blocks with two LF; exactly one final LF. No Unicode normalization or lexical editing. Tesseract gold text is copied byte-for-byte.",
+        "typography": "Publisher list markers are retained: source hyphens can stand for printed circular/square bullets. Small-caps heading is serialized in the source's uppercase form. Apostrophe variants and spacing before !! follow publisher annotation. These are representation conventions, not strict glyph-level gold.",
+        "exclusions": "Decorative artwork, shapes, slide backgrounds/flags and watermark lettering are excluded where absent from publisher annotation; only annotated lexical content is scored."
+      },
+      "review": {
+        "visualReview": "All annotated lexical text compared with full slide; no lexical errata found.",
+        "exclusions": [
+          "Decorative illustrations/shapes/background"
+        ],
+        "representation": [
+          "Parent merged block used once, all merge_list children ignored",
+          "Literal backslash-t converted to tab; small-caps heading kept as source uppercase; visible !! spacing follows source annotation",
+          "Publisher list-marker glyph conventions preserved"
+        ],
+        "sourceErrata": []
+      },
+      "duplicateCheck": {
+        "existingCase": "01-test-picture",
+        "distinctNormalizedText": true,
+        "distinctImageBytes": true,
+        "normalizedTextSha256": "175f57b7b6240e809dab58608817c549c63ce85d0621006be4ee01f0966a3a95"
+      },
+      "sourceRecordNotes": "Exact selected record parsed from pinned original annotation JSON and reserialized with indentation. Original JSON bytes retained in annotationFile.",
+      "status": "completed-available-targets",
+      "runDir": "docs/benchmarks/text/ocr/clean-typography-good-talk",
+      "localPilot": {
+        "directory": "input/examples/document/ocr-clean-typography/local-pilot/clean-typography-good-talk",
+        "status": "succeeded",
+        "provider": "tesseract",
+        "costCents": 0,
+        "processingTimeMs": 271,
+        "normalizedWer": 0.175,
+        "normalizedCer": 0.06280193236714976,
+        "wordErrors": 7,
+        "referenceWords": 40,
+        "metricPolicy": "Existing consensus OCR lexical normalization; punctuation/case/whitespace differences are not strict glyph accuracy."
+      },
+      "providerCoverage": {
+        "expected": 22,
+        "localSucceeded": 1,
+        "hostedSucceeded": 20,
+        "hostedFailed": 1,
+        "pending": 0,
+        "failedTargets": []
+      },
+      "spending": {
+        "requestCount": 43,
+        "providerReportedCents": 22.65976199999999,
+        "settledConservativeCents": 0,
+        "settledAccountedCents": 22.65976199999999,
+        "heldReservationCents": 0,
+        "accountedCents": 22.65976199999999,
+        "rejectedRequests": 23,
+        "unresolvedRequests": 0,
+        "costPolicy": "Provider-reported usage valued at reviewed rates, settled conservative upper bounds, and unresolved held reservations are separate. Price rows include all settled retry costs and retained reservations once; any conservative component makes the price an upper bound. Accounted cents are not invoice-reconciled charges."
+      }
+    },
+    {
+      "id": "clean-typography-federal-assistance",
+      "input": "input/examples/document/ocr-clean-typography/cases/clean-typography-federal-assistance/input.png",
+      "reference": "input/examples/document/ocr-clean-typography/cases/clean-typography-federal-assistance/canonical-reference.txt",
+      "originalReference": "input/examples/document/ocr-clean-typography/cases/clean-typography-federal-assistance/original.annotation.json",
+      "sourceRecord": "input/examples/document/ocr-clean-typography/cases/clean-typography-federal-assistance/original.annotation.json",
+      "sourceImageName": "PPT_LEP power point presentation-English-FINAL-10-31-07_page_006.png",
+      "inputSha256": "133153852e3b6d51235302c7d0fe9d0b9ea054d58cfb2d482dac2f7f01916b4e",
+      "referenceSha256": "b06f4296ccdb53b724619c5d2aaaf1e5166391bde5ce2e329c0b5388b1947ac1",
+      "width": 2000,
+      "height": 1500,
+      "format": "png",
+      "pageCount": 1,
+      "chars": 760,
+      "words": 108,
+      "sourceURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/images/PPT_LEP%20power%20point%20presentation-English-FINAL-10-31-07_page_006.png",
+      "sourceRevision": "aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec",
+      "annotationURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/OmniDocBench.json",
+      "annotationFile": "input/examples/document/ocr-clean-typography/source/OmniDocBench.json",
+      "annotationSha256": "a45cd84b04ad8b793e775089640e6b681209abea33ead54c1828ddca35fae496",
+      "rights": {
+        "license": "Research/noncommercial use only; underlying source-document rights remain separate.",
+        "notice": "input/examples/document/ocr-clean-typography/source/OmniDocBench-README.md",
+        "redistributable": false,
+        "localStorageOnly": true,
+        "benchmarkPublication": "Do not copy image/source text into public benchmark artifacts without a distribution-rights decision; use hashes, project-relative paths and source URLs."
+      },
+      "attribution": "OpenDataLab OmniDocBench, PPT2PDF subset, original document identified by sourceImageName; research/noncommercial only; see source/OmniDocBench-README.md",
+      "serializationNotes": {
+        "independentReference": true,
+        "origin": "Publisher ground truth, never generated from benchmark OCR outputs or consensus.",
+        "serializerVersion": 1,
+        "blockSelection": "For OmniDocBench select one exact page_info.image_path record; retain nonignored top-level title/text_block elements, sorted by numeric order; use parent text once and do not descend into merge_list.",
+        "serialization": "Decode literal backslash-t as a tab; preserve actual newlines and punctuation, strip horizontal trailing whitespace from each line; join blocks with two LF; exactly one final LF. No Unicode normalization or lexical editing. Tesseract gold text is copied byte-for-byte.",
+        "typography": "Publisher list markers are retained: source hyphens can stand for printed circular/square bullets. Small-caps heading is serialized in the source's uppercase form. Apostrophe variants and spacing before !! follow publisher annotation. These are representation conventions, not strict glyph-level gold.",
+        "exclusions": "Decorative artwork, shapes, slide backgrounds/flags and watermark lettering are excluded where absent from publisher annotation; only annotated lexical content is scored."
+      },
+      "review": {
+        "visualReview": "All annotated lexical text compared with full slide; no lexical errata found.",
+        "exclusions": [
+          "Decorative flags, watermark/coat-of-arms lettering not present in source annotation"
+        ],
+        "representation": [
+          "Parent merged block used once, all merge_list children ignored",
+          "Publisher list-marker glyph conventions preserved"
+        ],
+        "sourceErrata": []
+      },
+      "duplicateCheck": {
+        "existingCase": "01-test-picture",
+        "distinctNormalizedText": true,
+        "distinctImageBytes": true,
+        "normalizedTextSha256": "15ac55dcc8e3579f65b9af7e4167f8c8c6af859c4004c71771a494562716fd3f"
+      },
+      "sourceRecordNotes": "Exact selected record parsed from pinned original annotation JSON and reserialized with indentation. Original JSON bytes retained in annotationFile.",
+      "status": "completed-available-targets",
+      "runDir": "docs/benchmarks/text/ocr/clean-typography-federal-assistance",
+      "localPilot": {
+        "directory": "input/examples/document/ocr-clean-typography/local-pilot/clean-typography-federal-assistance",
+        "status": "succeeded",
+        "provider": "tesseract",
+        "costCents": 0,
+        "processingTimeMs": 483,
+        "normalizedWer": 0,
+        "normalizedCer": 0,
+        "wordErrors": 0,
+        "referenceWords": 102,
+        "metricPolicy": "Existing consensus OCR lexical normalization; punctuation/case/whitespace differences are not strict glyph accuracy."
+      },
+      "providerCoverage": {
+        "expected": 22,
+        "localSucceeded": 1,
+        "hostedSucceeded": 20,
+        "hostedFailed": 1,
+        "pending": 0,
+        "failedTargets": []
+      },
+      "spending": {
+        "requestCount": 44,
+        "providerReportedCents": 26.213399999999996,
+        "settledConservativeCents": 0,
+        "settledAccountedCents": 26.213399999999996,
+        "heldReservationCents": 0,
+        "accountedCents": 26.213399999999996,
+        "rejectedRequests": 24,
+        "unresolvedRequests": 0,
+        "costPolicy": "Provider-reported usage valued at reviewed rates, settled conservative upper bounds, and unresolved held reservations are separate. Price rows include all settled retry costs and retained reservations once; any conservative component makes the price an upper bound. Accounted cents are not invoice-reconciled charges."
+      }
+    },
+    {
+      "id": "clean-typography-language-teaching",
+      "input": "input/examples/document/ocr-clean-typography/cases/clean-typography-language-teaching/input.png",
+      "reference": "input/examples/document/ocr-clean-typography/cases/clean-typography-language-teaching/canonical-reference.txt",
+      "originalReference": "input/examples/document/ocr-clean-typography/cases/clean-typography-language-teaching/original.annotation.json",
+      "sourceRecord": "input/examples/document/ocr-clean-typography/cases/clean-typography-language-teaching/original.annotation.json",
+      "sourceImageName": "PPT_Keuk Chan Narith_page_005.png",
+      "inputSha256": "b8c2f9f11279a16a9769aa341d88e29b2abea62c2e135d1258db0138fc963ecb",
+      "referenceSha256": "4b94de156fb05b1d77a7531a2d65481e6c6a15e37e4855cd774efb71e87563a6",
+      "width": 2000,
+      "height": 1500,
+      "format": "png",
+      "pageCount": 1,
+      "chars": 173,
+      "words": 26,
+      "sourceURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/images/PPT_Keuk%20Chan%20Narith_page_005.png",
+      "sourceRevision": "aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec",
+      "annotationURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/OmniDocBench.json",
+      "annotationFile": "input/examples/document/ocr-clean-typography/source/OmniDocBench.json",
+      "annotationSha256": "a45cd84b04ad8b793e775089640e6b681209abea33ead54c1828ddca35fae496",
+      "rights": {
+        "license": "Research/noncommercial use only; underlying source-document rights remain separate.",
+        "notice": "input/examples/document/ocr-clean-typography/source/OmniDocBench-README.md",
+        "redistributable": false,
+        "localStorageOnly": true,
+        "benchmarkPublication": "Do not copy image/source text into public benchmark artifacts without a distribution-rights decision; use hashes, project-relative paths and source URLs."
+      },
+      "attribution": "OpenDataLab OmniDocBench, PPT2PDF subset, original document identified by sourceImageName; research/noncommercial only; see source/OmniDocBench-README.md",
+      "serializationNotes": {
+        "independentReference": true,
+        "origin": "Publisher ground truth, never generated from benchmark OCR outputs or consensus.",
+        "serializerVersion": 1,
+        "blockSelection": "For OmniDocBench select one exact page_info.image_path record; retain nonignored top-level title/text_block elements, sorted by numeric order; use parent text once and do not descend into merge_list.",
+        "serialization": "Decode literal backslash-t as a tab; preserve actual newlines and punctuation, strip horizontal trailing whitespace from each line; join blocks with two LF; exactly one final LF. No Unicode normalization or lexical editing. Tesseract gold text is copied byte-for-byte.",
+        "typography": "Publisher list markers are retained: source hyphens can stand for printed circular/square bullets. Small-caps heading is serialized in the source's uppercase form. Apostrophe variants and spacing before !! follow publisher annotation. These are representation conventions, not strict glyph-level gold.",
+        "exclusions": "Decorative artwork, shapes, slide backgrounds/flags and watermark lettering are excluded where absent from publisher annotation; only annotated lexical content is scored."
+      },
+      "review": {
+        "visualReview": "All annotated lexical text compared with full slide; no lexical errata found.",
+        "exclusions": [
+          "Decorative illustrations/shapes/background"
+        ],
+        "representation": [
+          "Parent merged block used once, all merge_list children ignored",
+          "Publisher list-marker glyph conventions preserved"
+        ],
+        "sourceErrata": []
+      },
+      "duplicateCheck": {
+        "existingCase": "01-test-picture",
+        "distinctNormalizedText": true,
+        "distinctImageBytes": true,
+        "normalizedTextSha256": "f943ed0310707b8e7b3ccc573609e6c74e9939d7571de439fc3c7932ac631ec6"
+      },
+      "sourceRecordNotes": "Exact selected record parsed from pinned original annotation JSON and reserialized with indentation. Original JSON bytes retained in annotationFile.",
+      "status": "completed-available-targets",
+      "runDir": "docs/benchmarks/text/ocr/clean-typography-language-teaching",
+      "localPilot": {
+        "directory": "input/examples/document/ocr-clean-typography/local-pilot/clean-typography-language-teaching",
+        "status": "succeeded",
+        "provider": "tesseract",
+        "costCents": 0,
+        "processingTimeMs": 299,
+        "normalizedWer": 0.09523809523809523,
+        "normalizedCer": 0.03125,
+        "wordErrors": 2,
+        "referenceWords": 21,
+        "metricPolicy": "Existing consensus OCR lexical normalization; punctuation/case/whitespace differences are not strict glyph accuracy."
+      },
+      "providerCoverage": {
+        "expected": 22,
+        "localSucceeded": 1,
+        "hostedSucceeded": 20,
+        "hostedFailed": 1,
+        "pending": 0,
+        "failedTargets": []
+      },
+      "spending": {
+        "requestCount": 44,
+        "providerReportedCents": 21.757579999999994,
+        "settledConservativeCents": 0,
+        "settledAccountedCents": 21.757579999999994,
+        "heldReservationCents": 3.968,
+        "accountedCents": 25.725579999999994,
+        "rejectedRequests": 23,
+        "unresolvedRequests": 1,
+        "costPolicy": "Provider-reported usage valued at reviewed rates, settled conservative upper bounds, and unresolved held reservations are separate. Price rows include all settled retry costs and retained reservations once; any conservative component makes the price an upper bound. Accounted cents are not invoice-reconciled charges."
+      }
+    }
+  ],
+  "bundleSha256": "58bd45fd405d209c3b23332f5622e214fbb992f21f8280a7744c4a9597681bfc",
+  "validation": {
+    "admissionCommand": [
+      "bun",
+      "src/tools/ocr-clean-typography-admission.ts"
+    ],
+    "status": "passed",
+    "realCasesAdmitted": 5,
+    "existingReferenceTextsCompared": 9,
+    "existingSourceImagesCompared": 1,
+    "targetedTests": {
+      "command": [
+        "bun",
+        "test",
+        "test/test-cases/validation/text/ocr/ocr-clean-typography-admission.test.ts"
+      ],
+      "passed": 24,
+      "assertions": 47
+    },
+    "repositoryCheck": {
+      "command": [
+        "bun",
+        "run",
+        "check"
+      ],
+      "status": "passed"
+    },
+    "defaultPricePreflight": {
+      "command": [
+        "bun",
+        "t",
+        "--price"
+      ],
+      "status": "passed",
+      "commandsPassed": 102,
+      "paidCalls": 0
+    },
+    "independentFinalAudit": "passed",
+    "paidCallsThisTask": 0,
+    "latest": {
+      "repositoryCheck": "passed",
+      "defaultPricePreflight": {
+        "passed": 102,
+        "paidDispatch": 0
+      },
+      "targetedTests": {
+        "passed": 85,
+        "assertions": 428,
+        "files": 7
+      },
+      "originalEvidenceHashesVerified": 630,
+      "independentAggregateComparisons": 930
+    }
+  },
+  "executionPolicy": {
+    "helper": "src/tools/ocr-clean-typography-benchmark.ts",
+    "command": [
+      "bun",
+      "src/tools/ocr-clean-typography-benchmark.ts",
+      "--run"
+    ],
+    "execution": "Sequential single-provider slots spanning the approved five-file/all-model combination; all completed slot evidence is reused.",
+    "spendingLedger": "input/examples/document/ocr-clean-typography/spending-ledger.json",
+    "guard": "src/tools/ocr-clean-typography-spending-guard.ts",
+    "outputLimitException": {
+      "provider": "openai",
+      "maxOutputTokens": 16384,
+      "reason": "A finite output ceiling is necessary for request-level budget reservations; native reasoning remains unchanged."
+    },
+    "inputTokenAllowance": 64000,
+    "inputTokenAllowanceIsMeasured": false,
+    "privateSourceArtifacts": true,
+    "originalLogicalFanoutCommands": [
+      [
+        "bun",
+        "src/cli/create-cli.ts",
+        "extract",
+        "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/input.png",
+        "--all-providers",
+        "--all-local",
+        "--output-dir",
+        "docs/benchmarks/text/ocr/clean-typography-phototest",
+        "--json"
+      ],
+      [
+        "bun",
+        "src/cli/create-cli.ts",
+        "extract",
+        "input/examples/document/ocr-clean-typography/cases/clean-typography-suitcase/input.png",
+        "--all-providers",
+        "--all-local",
+        "--output-dir",
+        "docs/benchmarks/text/ocr/clean-typography-suitcase",
+        "--json"
+      ],
+      [
+        "bun",
+        "src/cli/create-cli.ts",
+        "extract",
+        "input/examples/document/ocr-clean-typography/cases/clean-typography-good-talk/input.png",
+        "--all-providers",
+        "--all-local",
+        "--output-dir",
+        "docs/benchmarks/text/ocr/clean-typography-good-talk",
+        "--json"
+      ],
+      [
+        "bun",
+        "src/cli/create-cli.ts",
+        "extract",
+        "input/examples/document/ocr-clean-typography/cases/clean-typography-federal-assistance/input.png",
+        "--all-providers",
+        "--all-local",
+        "--output-dir",
+        "docs/benchmarks/text/ocr/clean-typography-federal-assistance",
+        "--json"
+      ],
+      [
+        "bun",
+        "src/cli/create-cli.ts",
+        "extract",
+        "input/examples/document/ocr-clean-typography/cases/clean-typography-language-teaching/input.png",
+        "--all-providers",
+        "--all-local",
+        "--output-dir",
+        "docs/benchmarks/text/ocr/clean-typography-language-teaching",
+        "--json"
+      ]
+    ],
+    "openAIBillingControls": {
+      "serviceTier": "default",
+      "cacheLifetime": "30m",
+      "inputReservationMultiplier": 1.25,
+      "accounting": "Use complete provider cache components at reviewed Standard rates; otherwise conservatively value all input at 1.25x and label an upper bound. Require returned default tier; stop on ambiguity.",
+      "sources": [
+        "https://developers.openai.com/api/docs/guides/prompt-caching",
+        "https://developers.openai.com/api/docs/guides/fast-mode"
+      ]
+    }
+  },
+  "execution": {
+    "status": "completed-available-targets-mistral-4-0-unavailable",
+    "completedAt": "2026-10-23T07:27:33.220Z",
+    "hostedSlotsAttempted": 105,
+    "hostedSucceeded": 100,
+    "hostedFailed": 5,
+    "failedTargets": [],
+    "localSucceeded": 5,
+    "localResultsReused": 5,
+    "hostedRequestsThisExecution": 5,
+    "cumulativeHostedRequests": 218,
+    "settledUsageAtReviewedRatesCents": 101.915373,
+    "settledConservativeCents": 0,
+    "accountedProviderCostCents": 105.883373,
+    "unresolvedReservationsCents": 3.968,
+    "remainingApprovedCents": 394.116627,
+    "costPolicy": "Accounted cost includes reviewed-rate usage and the full unresolved HTTP 503 reservation. It is a conservative spending record, not an invoice reconciliation.",
+    "privateEvidence": "input/examples/document/ocr-clean-typography/execution.json",
+    "spendingLedger": "input/examples/document/ocr-clean-typography/spending-ledger.json",
+    "cliSnapshot": {
+      "path": "output/benchmark-cache/ocr-clean-typography-cli-73c2f0623a35f48241b065fbfd4dfbe3abc533423b16ffbdb07d373e97c1ee65.js",
+      "sha256": "73c2f0623a35f48241b065fbfd4dfbe3abc533423b16ffbdb07d373e97c1ee65"
+    },
+    "preDispatchReconciliation": "input/examples/document/ocr-clean-typography/pre-dispatch-reconciliation.json",
+    "authenticationReconciliation": "input/examples/document/ocr-clean-typography/authentication-retry-reconciliation-2026-10-23.json",
+    "importErrorRecovery": "input/examples/document/ocr-clean-typography/import-error-recovery-2026-10-23.json",
+    "http503AndRateRecovery": "input/examples/document/ocr-clean-typography/503-and-rate-recovery-2026-10-23.json",
+    "manualReconciliation": {
+      "path": "input/examples/document/ocr-clean-typography/reconciliations/2026-10-23-language-teaching-flash-lite-503.json",
+      "sha256": "a59b35f588f34ec37abc36074ba7ab0700e7ed6a4fb462a23f2b33aaf805fe9f"
+    },
+    "retryPolicy": "Reuse all completed journals. No automatic redispatch of failed slots. HTTP 503 retained its full 3.968-cent reservation and received one explicitly recorded recovery invocation within the same $5 approval; billing remains unresolved. Quota-zero and invalid-model responses were not retried.",
+    "integration": {
+      "archiveRunCount": 27,
+      "totalPages": 59,
+      "archivedProviderIdentities": 31,
+      "supportedProviderIdentities": 22,
+      "newCaseReportCount": 5,
+      "newLocalScoredResults": 5,
+      "newHostedScoredResults": 100,
+      "originalEvidenceFilesUnchanged": 630,
+      "pendingCategoriesExecuted": 0,
+      "originalLocalPilotFilesUnchanged": 10,
+      "pendingInventoryUnchanged": false,
+      "independentPerOutputMetricComparisons": 1100,
+      "independentAggregateComparisons": 930,
+      "publicCaseArtifactsAudited": 45,
+      "uniqueDocumentCount": 24,
+      "uniqueSourcePages": 40,
+      "context": "Historical A/B/C integration snapshot; currentArchive records later completed expansions",
+      "preparedAcquisitionRecordsUnchanged": true
+    },
+    "priorAuthenticationAttempt": {
+      "status": "partial-local-results-hosted-authentication-rejected",
+      "completedAt": "2026-10-23T03:47:50.054Z",
+      "hostedSlotsAttempted": 105,
+      "hostedSucceeded": 0,
+      "hostedAuthenticationRejections": 105,
+      "httpStatusCounts": {
+        "400": 10,
+        "401": 95
+      },
+      "localSucceeded": 5,
+      "localResultsReused": 5,
+      "accountedProviderCostCents": 0,
+      "unresolvedReservationsCents": 0,
+      "remainingApprovedCents": 500,
+      "privateEvidence": "input/examples/document/ocr-clean-typography/execution.json",
+      "spendingLedger": "input/examples/document/ocr-clean-typography/spending-ledger.json",
+      "preDispatchReconciliation": "input/examples/document/ocr-clean-typography/pre-dispatch-reconciliation.json",
+      "retryPolicy": "No automatic retry of failed slots. Valid local credentials and reconciliation of rejected attempts are required before reusing the existing approval.",
+      "integration": {
+        "archiveRunCount": 14,
+        "totalPages": 30,
+        "archivedProviderIdentities": 31,
+        "supportedProviderIdentities": 22,
+        "newCaseReportCount": 5,
+        "newLocalScoredResults": 5,
+        "newHostedScoredResults": 0,
+        "originalEvidenceFilesUnchanged": 630,
+        "otherDashboardTabsUnchanged": 6,
+        "independentAggregateComparisons": 930
+      }
+    },
+    "retry": {
+      "status": "completed-available-targets",
+      "requestedDate": "2026-10-23",
+      "scope": "Five Gemini Argon quota-rejected slots after the user enabled API billing; 95 hosted and five local successes reused.",
+      "command": [
+        "bun",
+        "src/tools/ocr-clean-typography-benchmark.ts",
+        "--run"
+      ],
+      "freshNativeEstimatedCents": 152.20702,
+      "openAIAllInputCacheWriteCushionCents": 2.3738875,
+      "cacheAdjustedPlanningCents": 154.5809075,
+      "sameTokenStructuredRepairPlanningCents": 437.8456825,
+      "approvalBudgetCents": 500,
+      "priorProviderCostCents": 0,
+      "credentialPreflight": "input/examples/document/ocr-clean-typography/credential-preflight-2026-10-23.json",
+      "authenticationReconciliation": "input/examples/document/ocr-clean-typography/authentication-retry-reconciliation-2026-10-23.json",
+      "preservedPriorAttempt": "input/examples/document/ocr-clean-typography/prior-attempts/2026-10-23-authentication-rejected",
+      "spendingLedgerRetained": true,
+      "completedAt": "2026-10-23T07:27:33.220Z",
+      "hostedSucceeded": 100,
+      "hostedFailed": 5,
+      "newHostedResponses": 5
+    },
+    "priorBillingAttempt": {
+      "status": "completed-with-provider-failures-and-retained-reservation",
+      "completedAt": "2026-10-23T05:37:13.829Z",
+      "hostedSlotsAttempted": 105,
+      "hostedSucceeded": 95,
+      "hostedFailed": 10,
+      "failedTargets": [],
+      "localSucceeded": 5,
+      "localResultsReused": 5,
+      "hostedRequestsThisExecution": 108,
+      "cumulativeHostedRequests": 213,
+      "settledUsageAtReviewedRatesCents": 97.987373,
+      "settledConservativeCents": 0,
+      "accountedProviderCostCents": 101.955373,
+      "unresolvedReservationsCents": 3.968,
+      "remainingApprovedCents": 398.044627,
+      "costPolicy": "Accounted cost includes reviewed-rate usage and the full unresolved HTTP 503 reservation. It is a conservative spending record, not an invoice reconciliation.",
+      "privateEvidence": "input/examples/document/ocr-clean-typography/execution.json",
+      "spendingLedger": "input/examples/document/ocr-clean-typography/spending-ledger.json",
+      "cliSnapshot": {
+        "path": "output/benchmark-cache/ocr-clean-typography-cli-73c2f0623a35f48241b065fbfd4dfbe3abc533423b16ffbdb07d373e97c1ee65.js",
+        "sha256": "73c2f0623a35f48241b065fbfd4dfbe3abc533423b16ffbdb07d373e97c1ee65"
+      },
+      "preDispatchReconciliation": "input/examples/document/ocr-clean-typography/pre-dispatch-reconciliation.json",
+      "authenticationReconciliation": "input/examples/document/ocr-clean-typography/authentication-retry-reconciliation-2026-10-23.json",
+      "importErrorRecovery": "input/examples/document/ocr-clean-typography/import-error-recovery-2026-10-23.json",
+      "http503AndRateRecovery": "input/examples/document/ocr-clean-typography/503-and-rate-recovery-2026-10-23.json",
+      "manualReconciliation": {
+        "path": "input/examples/document/ocr-clean-typography/reconciliations/2026-10-23-language-teaching-flash-lite-503.json",
+        "sha256": "a59b35f588f34ec37abc36074ba7ab0700e7ed6a4fb462a23f2b33aaf805fe9f"
+      },
+      "retryPolicy": "Reuse all completed journals. No automatic redispatch of failed slots. HTTP 503 retained its full 3.968-cent reservation and received one explicitly recorded recovery invocation within the same $5 approval; billing remains unresolved. Quota-zero and invalid-model responses were not retried.",
+      "integration": {
+        "archiveRunCount": 14,
+        "totalPages": 30,
+        "archivedProviderIdentities": 31,
+        "supportedProviderIdentities": 22,
+        "newCaseReportCount": 5,
+        "newLocalScoredResults": 5,
+        "newHostedScoredResults": 95,
+        "originalEvidenceFilesUnchanged": 630,
+        "pendingCategoriesExecuted": 0,
+        "originalLocalPilotFilesUnchanged": 10,
+        "pendingInventoryUnchanged": true,
+        "independentPerOutputMetricComparisons": 1100,
+        "independentAggregateComparisons": 930,
+        "publicCaseArtifactsAudited": 45
+      },
+      "priorAuthenticationAttempt": {
+        "status": "partial-local-results-hosted-authentication-rejected",
+        "completedAt": "2026-10-23T03:47:50.054Z",
+        "hostedSlotsAttempted": 105,
+        "hostedSucceeded": 0,
+        "hostedAuthenticationRejections": 105,
+        "httpStatusCounts": {
+          "400": 10,
+          "401": 95
+        },
+        "localSucceeded": 5,
+        "localResultsReused": 5,
+        "accountedProviderCostCents": 0,
+        "unresolvedReservationsCents": 0,
+        "remainingApprovedCents": 500,
+        "privateEvidence": "input/examples/document/ocr-clean-typography/execution.json",
+        "spendingLedger": "input/examples/document/ocr-clean-typography/spending-ledger.json",
+        "preDispatchReconciliation": "input/examples/document/ocr-clean-typography/pre-dispatch-reconciliation.json",
+        "retryPolicy": "No automatic retry of failed slots. Valid local credentials and reconciliation of rejected attempts are required before reusing the existing approval.",
+        "integration": {
+          "archiveRunCount": 14,
+          "totalPages": 30,
+          "archivedProviderIdentities": 31,
+          "supportedProviderIdentities": 22,
+          "newCaseReportCount": 5,
+          "newLocalScoredResults": 5,
+          "newHostedScoredResults": 0,
+          "originalEvidenceFilesUnchanged": 630,
+          "otherDashboardTabsUnchanged": 6,
+          "independentAggregateComparisons": 930
+        }
+      },
+      "retry": {
+        "status": "completed-with-provider-failures",
+        "requestedDate": "2026-10-23",
+        "scope": "The same five pinned inputs and 21 hosted targets; reuse five completed local results.",
+        "command": [
+          "bun",
+          "src/tools/ocr-clean-typography-benchmark.ts",
+          "--run"
+        ],
+        "freshNativeEstimatedCents": 152.20702,
+        "openAIAllInputCacheWriteCushionCents": 2.3738875,
+        "cacheAdjustedPlanningCents": 154.5809075,
+        "sameTokenStructuredRepairPlanningCents": 437.8456825,
+        "approvalBudgetCents": 500,
+        "priorProviderCostCents": 0,
+        "credentialPreflight": "input/examples/document/ocr-clean-typography/credential-preflight-2026-10-23.json",
+        "authenticationReconciliation": "input/examples/document/ocr-clean-typography/authentication-retry-reconciliation-2026-10-23.json",
+        "preservedPriorAttempt": "input/examples/document/ocr-clean-typography/prior-attempts/2026-10-23-authentication-rejected",
+        "spendingLedgerRetained": true,
+        "completedAt": "2026-10-23T05:37:13.829Z",
+        "hostedSucceeded": 95,
+        "hostedFailed": 10
+      }
+    },
+    "latestGeminiRecovery": {
+      "status": "completed",
+      "requestedAfterBillingSetup": true,
+      "requestedScope": "All missing OCR in categories 1-3",
+      "newSuccessfulArgonSlots": 5,
+      "reusedHostedSuccesses": 95,
+      "reusedLocalSuccesses": 5,
+      "archive": "input/examples/document/ocr-clean-typography/prior-attempts/2026-10-23-gemini-billing-enabled"
+    },
+    "currentArchive": {
+      "updatedAt": "2026-10-23T09:31:01.357Z",
+      "archiveRunCount": 52,
+      "totalPageInstances": 84,
+      "uniqueDocumentCount": 44,
+      "uniqueSourcePages": 60,
+      "baselineVariantCount": 8,
+      "repeatedSourcePages": 24,
+      "usableOutputs": 1169,
+      "intendedSlots": 1191,
+      "primaryAccuracyScores": 1064,
+      "partialReferenceDiagnosticOutputs": 105,
+      "completedPreparedAdditions": 35,
+      "remainingPreparedAdditions": 0
+    }
+  },
+  "remainingCategoriesExecution": {
+    "categories": [
+      5,
+      6,
+      7
+    ],
+    "status": "completed-with-one-baseline-output-limit-failure",
+    "plan": "docs/benchmarks/text/ocr/categories-efg-execution-plan.json",
+    "report": "docs/reports/repository-improvement-actions.md",
+    "accountedCents": 1002.679785,
+    "completedNewInputs": 15,
+    "remainingNewInputs": 0
+  },
+  "reportingCohorts": {
+    "reviewDate": "2026-10-26",
+    "historicalSnapshot": "7cf20f1ac",
+    "historicalTargetCount": 22,
+    "historicalTargets": [
+      {
+        "step": "extract",
+        "provider": "tesseract",
+        "model": "tesseract",
+        "pages": 1,
+        "effectiveReasoningEffort": "default",
+        "estimateType": "exact",
+        "totalCostCents": 0,
+        "caseCount": 5,
+        "totalForAllCasesCents": 0
+      },
+      {
+        "step": "extract",
+        "provider": "mistral",
         "model": "mistral-ocr-4-0",
         "costPer1kPagesCents": 400,
         "pages": 1,
@@ -463,889 +1483,9 @@
         "caseCount": 5,
         "totalForAllCasesCents": 0.1918
       }
-    ]
-  },
-  "approval": {
-    "status": "approved",
-    "budgetCents": 500,
-    "evidence": "User approved up to $5",
-    "scope": "The five prepared English clean-typography images across all 22 quoted configured OCR targets; 105 hosted slots and reuse of five local pilot slots.",
-    "approvedAt": "2026-10-23T03:44:15.879Z"
-  },
-  "paidCommands": [
-    [
-      "bun",
-      "src/tools/ocr-clean-typography-benchmark.ts",
-      "--run"
-    ]
-  ],
-  "cases": [
-    {
-      "id": "clean-typography-phototest",
-      "input": "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/input.png",
-      "reference": "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/canonical-reference.txt",
-      "originalReference": "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/original.gold.txt",
-      "sourceRecord": null,
-      "sourceImageName": "phototest.tif",
-      "inputSha256": "6a6ea46b3db1fea659fbefb88fbd3a3cbeeee944e407a8c10072fb3ca527eaa7",
-      "referenceSha256": "76ef157baeb6ab275b7d90f310477a8060d5822aea2b2e05d480f459b016a6ed",
-      "width": 640,
-      "height": 480,
-      "format": "png",
-      "pageCount": 1,
-      "chars": 286,
-      "words": 60,
-      "sourceURL": "https://raw.githubusercontent.com/tesseract-ocr/test/232ff181c66516116ec0e84c4963f70de15050fd/testing/phototest.tif",
-      "sourceRevision": "232ff181c66516116ec0e84c4963f70de15050fd",
-      "annotationURL": "https://raw.githubusercontent.com/tesseract-ocr/test/232ff181c66516116ec0e84c4963f70de15050fd/testing/phototest.gold.txt",
-      "annotationFile": "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/original.gold.txt",
-      "annotationSha256": "76ef157baeb6ab275b7d90f310477a8060d5822aea2b2e05d480f459b016a6ed",
-      "rights": {
-        "license": "Apache-2.0",
-        "notice": "input/examples/document/ocr-clean-typography/source/tesseract-LICENSE.txt",
-        "redistributable": true
-      },
-      "attribution": "Tesseract OCR test project, testing/phototest, Apache-2.0; see source/tesseract-LICENSE.txt",
-      "serializationNotes": {
-        "independentReference": true,
-        "origin": "Publisher ground truth, never generated from benchmark OCR outputs or consensus.",
-        "serializerVersion": 1,
-        "blockSelection": "For OmniDocBench select one exact page_info.image_path record; retain nonignored top-level title/text_block elements, sorted by numeric order; use parent text once and do not descend into merge_list.",
-        "serialization": "Decode literal backslash-t as a tab; preserve actual newlines and punctuation, strip horizontal trailing whitespace from each line; join blocks with two LF; exactly one final LF. No Unicode normalization or lexical editing. Tesseract gold text is copied byte-for-byte.",
-        "typography": "Publisher list markers are retained: source hyphens can stand for printed circular/square bullets. Small-caps heading is serialized in the source's uppercase form. Apostrophe variants and spacing before !! follow publisher annotation. These are representation conventions, not strict glyph-level gold.",
-        "exclusions": "Decorative artwork, shapes, slide backgrounds/flags and watermark lettering are excluded where absent from publisher annotation; only annotated lexical content is scored."
-      },
-      "review": {
-        "visualReview": "All visible text compared against official gold; faithful, no lexical errata found.",
-        "exclusions": [],
-        "sourceErrata": []
-      },
-      "duplicateCheck": {
-        "existingCase": "01-test-picture",
-        "distinctNormalizedText": true,
-        "distinctImageBytes": true,
-        "normalizedTextSha256": "87dea7a8c7613d4696ea3b1671d4026fe9586fe8c777e2246b5e2434c5bd43e5"
-      },
-      "originalImage": {
-        "path": "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/original.tif",
-        "url": "https://raw.githubusercontent.com/tesseract-ocr/test/232ff181c66516116ec0e84c4963f70de15050fd/testing/phototest.tif",
-        "bytes": 38668,
-        "sha256": "d2241a1eb6d6cd2eb6544b8e228c2862c852b7467d16ed636caa32179b780692",
-        "decodedPixelSha256": "a2e2a9503c63a2a347cac119c29ca8dc8132cb28cf4b707d6e3ca3338efb91ce"
-      },
-      "status": "completed-available-targets",
-      "runDir": "docs/benchmarks/text/ocr/clean-typography-phototest",
-      "localPilot": {
-        "directory": "input/examples/document/ocr-clean-typography/local-pilot/clean-typography-phototest",
-        "status": "succeeded",
-        "provider": "tesseract",
-        "costCents": 0,
-        "processingTimeMs": 298,
-        "normalizedWer": 0,
-        "normalizedCer": 0,
-        "wordErrors": 0,
-        "referenceWords": 60,
-        "metricPolicy": "Existing consensus OCR lexical normalization; punctuation/case/whitespace differences are not strict glyph accuracy."
-      },
-      "providerCoverage": {
-        "expected": 22,
-        "localSucceeded": 1,
-        "hostedSucceeded": 20,
-        "hostedFailed": 1,
-        "pending": 0,
-        "failedTargets": [
-          "mistral/mistral-ocr-4-0"
-        ]
-      },
-      "spending": {
-        "requestCount": 43,
-        "providerReportedCents": 8.58338,
-        "settledConservativeCents": 0,
-        "settledAccountedCents": 8.58338,
-        "heldReservationCents": 0,
-        "accountedCents": 8.58338,
-        "rejectedRequests": 23,
-        "unresolvedRequests": 0,
-        "costPolicy": "Provider-reported usage valued at reviewed rates, settled conservative upper bounds, and unresolved held reservations are separate. Price rows include all settled retry costs and retained reservations once; any conservative component makes the price an upper bound. Accounted cents are not invoice-reconciled charges."
-      }
-    },
-    {
-      "id": "clean-typography-suitcase",
-      "input": "input/examples/document/ocr-clean-typography/cases/clean-typography-suitcase/input.png",
-      "reference": "input/examples/document/ocr-clean-typography/cases/clean-typography-suitcase/canonical-reference.txt",
-      "originalReference": "input/examples/document/ocr-clean-typography/cases/clean-typography-suitcase/original.annotation.json",
-      "sourceRecord": "input/examples/document/ocr-clean-typography/cases/clean-typography-suitcase/original.annotation.json",
-      "sourceImageName": "PPT_english-studies-s6-on-the-road-resource-3_page_005.png",
-      "inputSha256": "2ca511bc6e9a707b810bbbc894d9432f8ffe167a4ef7dd633915104e01172670",
-      "referenceSha256": "8187ac89ddb13f303d8a4793a12ca27fba4a1e5672c0aa66a2c01602c3099df1",
-      "width": 2000,
-      "height": 1500,
-      "format": "png",
-      "pageCount": 1,
-      "chars": 264,
-      "words": 53,
-      "sourceURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/images/PPT_english-studies-s6-on-the-road-resource-3_page_005.png",
-      "sourceRevision": "aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec",
-      "annotationURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/OmniDocBench.json",
-      "annotationFile": "input/examples/document/ocr-clean-typography/source/OmniDocBench.json",
-      "annotationSha256": "a45cd84b04ad8b793e775089640e6b681209abea33ead54c1828ddca35fae496",
-      "rights": {
-        "license": "Research/noncommercial use only; underlying source-document rights remain separate.",
-        "notice": "input/examples/document/ocr-clean-typography/source/OmniDocBench-README.md",
-        "redistributable": false,
-        "localStorageOnly": true,
-        "benchmarkPublication": "Do not copy image/source text into public benchmark artifacts without a distribution-rights decision; use hashes, project-relative paths and source URLs."
-      },
-      "attribution": "OpenDataLab OmniDocBench, PPT2PDF subset, original document identified by sourceImageName; research/noncommercial only; see source/OmniDocBench-README.md",
-      "serializationNotes": {
-        "independentReference": true,
-        "origin": "Publisher ground truth, never generated from benchmark OCR outputs or consensus.",
-        "serializerVersion": 1,
-        "blockSelection": "For OmniDocBench select one exact page_info.image_path record; retain nonignored top-level title/text_block elements, sorted by numeric order; use parent text once and do not descend into merge_list.",
-        "serialization": "Decode literal backslash-t as a tab; preserve actual newlines and punctuation, strip horizontal trailing whitespace from each line; join blocks with two LF; exactly one final LF. No Unicode normalization or lexical editing. Tesseract gold text is copied byte-for-byte.",
-        "typography": "Publisher list markers are retained: source hyphens can stand for printed circular/square bullets. Small-caps heading is serialized in the source's uppercase form. Apostrophe variants and spacing before !! follow publisher annotation. These are representation conventions, not strict glyph-level gold.",
-        "exclusions": "Decorative artwork, shapes, slide backgrounds/flags and watermark lettering are excluded where absent from publisher annotation; only annotated lexical content is scored."
-      },
-      "review": {
-        "visualReview": "All annotated lexical text compared with full slide; no lexical errata found.",
-        "exclusions": [
-          "Decorative illustrations/shapes/background"
-        ],
-        "representation": [
-          "Parent merged block used once, all merge_list children ignored",
-          "Publisher list-marker glyph conventions preserved"
-        ],
-        "sourceErrata": []
-      },
-      "duplicateCheck": {
-        "existingCase": "01-test-picture",
-        "distinctNormalizedText": true,
-        "distinctImageBytes": true,
-        "normalizedTextSha256": "025f075abe4f8894627573e9001c4d816f9cf34c91dcec5ab27916313fd1e9b8"
-      },
-      "sourceRecordNotes": "Exact selected record parsed from pinned original annotation JSON and reserialized with indentation. Original JSON bytes retained in annotationFile.",
-      "status": "completed-available-targets",
-      "runDir": "docs/benchmarks/text/ocr/clean-typography-suitcase",
-      "localPilot": {
-        "directory": "input/examples/document/ocr-clean-typography/local-pilot/clean-typography-suitcase",
-        "status": "succeeded",
-        "provider": "tesseract",
-        "costCents": 0,
-        "processingTimeMs": 278,
-        "normalizedWer": 0.0196078431372549,
-        "normalizedCer": 0.008032128514056224,
-        "wordErrors": 1,
-        "referenceWords": 51,
-        "metricPolicy": "Existing consensus OCR lexical normalization; punctuation/case/whitespace differences are not strict glyph accuracy."
-      },
-      "providerCoverage": {
-        "expected": 22,
-        "localSucceeded": 1,
-        "hostedSucceeded": 20,
-        "hostedFailed": 1,
-        "pending": 0,
-        "failedTargets": [
-          "mistral/mistral-ocr-4-0"
-        ]
-      },
-      "spending": {
-        "requestCount": 44,
-        "providerReportedCents": 22.701250999999996,
-        "settledConservativeCents": 0,
-        "settledAccountedCents": 22.701250999999996,
-        "heldReservationCents": 0,
-        "accountedCents": 22.701250999999996,
-        "rejectedRequests": 24,
-        "unresolvedRequests": 0,
-        "costPolicy": "Provider-reported usage valued at reviewed rates, settled conservative upper bounds, and unresolved held reservations are separate. Price rows include all settled retry costs and retained reservations once; any conservative component makes the price an upper bound. Accounted cents are not invoice-reconciled charges."
-      }
-    },
-    {
-      "id": "clean-typography-good-talk",
-      "input": "input/examples/document/ocr-clean-typography/cases/clean-typography-good-talk/input.png",
-      "reference": "input/examples/document/ocr-clean-typography/cases/clean-typography-good-talk/canonical-reference.txt",
-      "originalReference": "input/examples/document/ocr-clean-typography/cases/clean-typography-good-talk/original.annotation.json",
-      "sourceRecord": "input/examples/document/ocr-clean-typography/cases/clean-typography-good-talk/original.annotation.json",
-      "sourceImageName": "PPT_BaharMartonosi_page_005.png",
-      "inputSha256": "c872bf793a3c235d9f095ee999087456060718ed3b0606f1a4f2f67116df21b9",
-      "referenceSha256": "b829d2120657ee4b9a97d7ecc9cb827daac50d6152e5fb9c8a11b4dbea7c10d8",
-      "width": 2000,
-      "height": 1500,
-      "format": "png",
-      "pageCount": 1,
-      "chars": 220,
-      "words": 42,
-      "sourceURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/images/PPT_BaharMartonosi_page_005.png",
-      "sourceRevision": "aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec",
-      "annotationURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/OmniDocBench.json",
-      "annotationFile": "input/examples/document/ocr-clean-typography/source/OmniDocBench.json",
-      "annotationSha256": "a45cd84b04ad8b793e775089640e6b681209abea33ead54c1828ddca35fae496",
-      "rights": {
-        "license": "Research/noncommercial use only; underlying source-document rights remain separate.",
-        "notice": "input/examples/document/ocr-clean-typography/source/OmniDocBench-README.md",
-        "redistributable": false,
-        "localStorageOnly": true,
-        "benchmarkPublication": "Do not copy image/source text into public benchmark artifacts without a distribution-rights decision; use hashes, project-relative paths and source URLs."
-      },
-      "attribution": "OpenDataLab OmniDocBench, PPT2PDF subset, original document identified by sourceImageName; research/noncommercial only; see source/OmniDocBench-README.md",
-      "serializationNotes": {
-        "independentReference": true,
-        "origin": "Publisher ground truth, never generated from benchmark OCR outputs or consensus.",
-        "serializerVersion": 1,
-        "blockSelection": "For OmniDocBench select one exact page_info.image_path record; retain nonignored top-level title/text_block elements, sorted by numeric order; use parent text once and do not descend into merge_list.",
-        "serialization": "Decode literal backslash-t as a tab; preserve actual newlines and punctuation, strip horizontal trailing whitespace from each line; join blocks with two LF; exactly one final LF. No Unicode normalization or lexical editing. Tesseract gold text is copied byte-for-byte.",
-        "typography": "Publisher list markers are retained: source hyphens can stand for printed circular/square bullets. Small-caps heading is serialized in the source's uppercase form. Apostrophe variants and spacing before !! follow publisher annotation. These are representation conventions, not strict glyph-level gold.",
-        "exclusions": "Decorative artwork, shapes, slide backgrounds/flags and watermark lettering are excluded where absent from publisher annotation; only annotated lexical content is scored."
-      },
-      "review": {
-        "visualReview": "All annotated lexical text compared with full slide; no lexical errata found.",
-        "exclusions": [
-          "Decorative illustrations/shapes/background"
-        ],
-        "representation": [
-          "Parent merged block used once, all merge_list children ignored",
-          "Literal backslash-t converted to tab; small-caps heading kept as source uppercase; visible !! spacing follows source annotation",
-          "Publisher list-marker glyph conventions preserved"
-        ],
-        "sourceErrata": []
-      },
-      "duplicateCheck": {
-        "existingCase": "01-test-picture",
-        "distinctNormalizedText": true,
-        "distinctImageBytes": true,
-        "normalizedTextSha256": "175f57b7b6240e809dab58608817c549c63ce85d0621006be4ee01f0966a3a95"
-      },
-      "sourceRecordNotes": "Exact selected record parsed from pinned original annotation JSON and reserialized with indentation. Original JSON bytes retained in annotationFile.",
-      "status": "completed-available-targets",
-      "runDir": "docs/benchmarks/text/ocr/clean-typography-good-talk",
-      "localPilot": {
-        "directory": "input/examples/document/ocr-clean-typography/local-pilot/clean-typography-good-talk",
-        "status": "succeeded",
-        "provider": "tesseract",
-        "costCents": 0,
-        "processingTimeMs": 271,
-        "normalizedWer": 0.175,
-        "normalizedCer": 0.06280193236714976,
-        "wordErrors": 7,
-        "referenceWords": 40,
-        "metricPolicy": "Existing consensus OCR lexical normalization; punctuation/case/whitespace differences are not strict glyph accuracy."
-      },
-      "providerCoverage": {
-        "expected": 22,
-        "localSucceeded": 1,
-        "hostedSucceeded": 20,
-        "hostedFailed": 1,
-        "pending": 0,
-        "failedTargets": [
-          "mistral/mistral-ocr-4-0"
-        ]
-      },
-      "spending": {
-        "requestCount": 43,
-        "providerReportedCents": 22.65976199999999,
-        "settledConservativeCents": 0,
-        "settledAccountedCents": 22.65976199999999,
-        "heldReservationCents": 0,
-        "accountedCents": 22.65976199999999,
-        "rejectedRequests": 23,
-        "unresolvedRequests": 0,
-        "costPolicy": "Provider-reported usage valued at reviewed rates, settled conservative upper bounds, and unresolved held reservations are separate. Price rows include all settled retry costs and retained reservations once; any conservative component makes the price an upper bound. Accounted cents are not invoice-reconciled charges."
-      }
-    },
-    {
-      "id": "clean-typography-federal-assistance",
-      "input": "input/examples/document/ocr-clean-typography/cases/clean-typography-federal-assistance/input.png",
-      "reference": "input/examples/document/ocr-clean-typography/cases/clean-typography-federal-assistance/canonical-reference.txt",
-      "originalReference": "input/examples/document/ocr-clean-typography/cases/clean-typography-federal-assistance/original.annotation.json",
-      "sourceRecord": "input/examples/document/ocr-clean-typography/cases/clean-typography-federal-assistance/original.annotation.json",
-      "sourceImageName": "PPT_LEP power point presentation-English-FINAL-10-31-07_page_006.png",
-      "inputSha256": "133153852e3b6d51235302c7d0fe9d0b9ea054d58cfb2d482dac2f7f01916b4e",
-      "referenceSha256": "b06f4296ccdb53b724619c5d2aaaf1e5166391bde5ce2e329c0b5388b1947ac1",
-      "width": 2000,
-      "height": 1500,
-      "format": "png",
-      "pageCount": 1,
-      "chars": 760,
-      "words": 108,
-      "sourceURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/images/PPT_LEP%20power%20point%20presentation-English-FINAL-10-31-07_page_006.png",
-      "sourceRevision": "aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec",
-      "annotationURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/OmniDocBench.json",
-      "annotationFile": "input/examples/document/ocr-clean-typography/source/OmniDocBench.json",
-      "annotationSha256": "a45cd84b04ad8b793e775089640e6b681209abea33ead54c1828ddca35fae496",
-      "rights": {
-        "license": "Research/noncommercial use only; underlying source-document rights remain separate.",
-        "notice": "input/examples/document/ocr-clean-typography/source/OmniDocBench-README.md",
-        "redistributable": false,
-        "localStorageOnly": true,
-        "benchmarkPublication": "Do not copy image/source text into public benchmark artifacts without a distribution-rights decision; use hashes, project-relative paths and source URLs."
-      },
-      "attribution": "OpenDataLab OmniDocBench, PPT2PDF subset, original document identified by sourceImageName; research/noncommercial only; see source/OmniDocBench-README.md",
-      "serializationNotes": {
-        "independentReference": true,
-        "origin": "Publisher ground truth, never generated from benchmark OCR outputs or consensus.",
-        "serializerVersion": 1,
-        "blockSelection": "For OmniDocBench select one exact page_info.image_path record; retain nonignored top-level title/text_block elements, sorted by numeric order; use parent text once and do not descend into merge_list.",
-        "serialization": "Decode literal backslash-t as a tab; preserve actual newlines and punctuation, strip horizontal trailing whitespace from each line; join blocks with two LF; exactly one final LF. No Unicode normalization or lexical editing. Tesseract gold text is copied byte-for-byte.",
-        "typography": "Publisher list markers are retained: source hyphens can stand for printed circular/square bullets. Small-caps heading is serialized in the source's uppercase form. Apostrophe variants and spacing before !! follow publisher annotation. These are representation conventions, not strict glyph-level gold.",
-        "exclusions": "Decorative artwork, shapes, slide backgrounds/flags and watermark lettering are excluded where absent from publisher annotation; only annotated lexical content is scored."
-      },
-      "review": {
-        "visualReview": "All annotated lexical text compared with full slide; no lexical errata found.",
-        "exclusions": [
-          "Decorative flags, watermark/coat-of-arms lettering not present in source annotation"
-        ],
-        "representation": [
-          "Parent merged block used once, all merge_list children ignored",
-          "Publisher list-marker glyph conventions preserved"
-        ],
-        "sourceErrata": []
-      },
-      "duplicateCheck": {
-        "existingCase": "01-test-picture",
-        "distinctNormalizedText": true,
-        "distinctImageBytes": true,
-        "normalizedTextSha256": "15ac55dcc8e3579f65b9af7e4167f8c8c6af859c4004c71771a494562716fd3f"
-      },
-      "sourceRecordNotes": "Exact selected record parsed from pinned original annotation JSON and reserialized with indentation. Original JSON bytes retained in annotationFile.",
-      "status": "completed-available-targets",
-      "runDir": "docs/benchmarks/text/ocr/clean-typography-federal-assistance",
-      "localPilot": {
-        "directory": "input/examples/document/ocr-clean-typography/local-pilot/clean-typography-federal-assistance",
-        "status": "succeeded",
-        "provider": "tesseract",
-        "costCents": 0,
-        "processingTimeMs": 483,
-        "normalizedWer": 0,
-        "normalizedCer": 0,
-        "wordErrors": 0,
-        "referenceWords": 102,
-        "metricPolicy": "Existing consensus OCR lexical normalization; punctuation/case/whitespace differences are not strict glyph accuracy."
-      },
-      "providerCoverage": {
-        "expected": 22,
-        "localSucceeded": 1,
-        "hostedSucceeded": 20,
-        "hostedFailed": 1,
-        "pending": 0,
-        "failedTargets": [
-          "mistral/mistral-ocr-4-0"
-        ]
-      },
-      "spending": {
-        "requestCount": 44,
-        "providerReportedCents": 26.213399999999996,
-        "settledConservativeCents": 0,
-        "settledAccountedCents": 26.213399999999996,
-        "heldReservationCents": 0,
-        "accountedCents": 26.213399999999996,
-        "rejectedRequests": 24,
-        "unresolvedRequests": 0,
-        "costPolicy": "Provider-reported usage valued at reviewed rates, settled conservative upper bounds, and unresolved held reservations are separate. Price rows include all settled retry costs and retained reservations once; any conservative component makes the price an upper bound. Accounted cents are not invoice-reconciled charges."
-      }
-    },
-    {
-      "id": "clean-typography-language-teaching",
-      "input": "input/examples/document/ocr-clean-typography/cases/clean-typography-language-teaching/input.png",
-      "reference": "input/examples/document/ocr-clean-typography/cases/clean-typography-language-teaching/canonical-reference.txt",
-      "originalReference": "input/examples/document/ocr-clean-typography/cases/clean-typography-language-teaching/original.annotation.json",
-      "sourceRecord": "input/examples/document/ocr-clean-typography/cases/clean-typography-language-teaching/original.annotation.json",
-      "sourceImageName": "PPT_Keuk Chan Narith_page_005.png",
-      "inputSha256": "b8c2f9f11279a16a9769aa341d88e29b2abea62c2e135d1258db0138fc963ecb",
-      "referenceSha256": "4b94de156fb05b1d77a7531a2d65481e6c6a15e37e4855cd774efb71e87563a6",
-      "width": 2000,
-      "height": 1500,
-      "format": "png",
-      "pageCount": 1,
-      "chars": 173,
-      "words": 26,
-      "sourceURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/images/PPT_Keuk%20Chan%20Narith_page_005.png",
-      "sourceRevision": "aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec",
-      "annotationURL": "https://huggingface.co/datasets/opendatalab/OmniDocBench/resolve/aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec/OmniDocBench.json",
-      "annotationFile": "input/examples/document/ocr-clean-typography/source/OmniDocBench.json",
-      "annotationSha256": "a45cd84b04ad8b793e775089640e6b681209abea33ead54c1828ddca35fae496",
-      "rights": {
-        "license": "Research/noncommercial use only; underlying source-document rights remain separate.",
-        "notice": "input/examples/document/ocr-clean-typography/source/OmniDocBench-README.md",
-        "redistributable": false,
-        "localStorageOnly": true,
-        "benchmarkPublication": "Do not copy image/source text into public benchmark artifacts without a distribution-rights decision; use hashes, project-relative paths and source URLs."
-      },
-      "attribution": "OpenDataLab OmniDocBench, PPT2PDF subset, original document identified by sourceImageName; research/noncommercial only; see source/OmniDocBench-README.md",
-      "serializationNotes": {
-        "independentReference": true,
-        "origin": "Publisher ground truth, never generated from benchmark OCR outputs or consensus.",
-        "serializerVersion": 1,
-        "blockSelection": "For OmniDocBench select one exact page_info.image_path record; retain nonignored top-level title/text_block elements, sorted by numeric order; use parent text once and do not descend into merge_list.",
-        "serialization": "Decode literal backslash-t as a tab; preserve actual newlines and punctuation, strip horizontal trailing whitespace from each line; join blocks with two LF; exactly one final LF. No Unicode normalization or lexical editing. Tesseract gold text is copied byte-for-byte.",
-        "typography": "Publisher list markers are retained: source hyphens can stand for printed circular/square bullets. Small-caps heading is serialized in the source's uppercase form. Apostrophe variants and spacing before !! follow publisher annotation. These are representation conventions, not strict glyph-level gold.",
-        "exclusions": "Decorative artwork, shapes, slide backgrounds/flags and watermark lettering are excluded where absent from publisher annotation; only annotated lexical content is scored."
-      },
-      "review": {
-        "visualReview": "All annotated lexical text compared with full slide; no lexical errata found.",
-        "exclusions": [
-          "Decorative illustrations/shapes/background"
-        ],
-        "representation": [
-          "Parent merged block used once, all merge_list children ignored",
-          "Publisher list-marker glyph conventions preserved"
-        ],
-        "sourceErrata": []
-      },
-      "duplicateCheck": {
-        "existingCase": "01-test-picture",
-        "distinctNormalizedText": true,
-        "distinctImageBytes": true,
-        "normalizedTextSha256": "f943ed0310707b8e7b3ccc573609e6c74e9939d7571de439fc3c7932ac631ec6"
-      },
-      "sourceRecordNotes": "Exact selected record parsed from pinned original annotation JSON and reserialized with indentation. Original JSON bytes retained in annotationFile.",
-      "status": "completed-available-targets",
-      "runDir": "docs/benchmarks/text/ocr/clean-typography-language-teaching",
-      "localPilot": {
-        "directory": "input/examples/document/ocr-clean-typography/local-pilot/clean-typography-language-teaching",
-        "status": "succeeded",
-        "provider": "tesseract",
-        "costCents": 0,
-        "processingTimeMs": 299,
-        "normalizedWer": 0.09523809523809523,
-        "normalizedCer": 0.03125,
-        "wordErrors": 2,
-        "referenceWords": 21,
-        "metricPolicy": "Existing consensus OCR lexical normalization; punctuation/case/whitespace differences are not strict glyph accuracy."
-      },
-      "providerCoverage": {
-        "expected": 22,
-        "localSucceeded": 1,
-        "hostedSucceeded": 20,
-        "hostedFailed": 1,
-        "pending": 0,
-        "failedTargets": [
-          "mistral/mistral-ocr-4-0"
-        ]
-      },
-      "spending": {
-        "requestCount": 44,
-        "providerReportedCents": 21.757579999999994,
-        "settledConservativeCents": 0,
-        "settledAccountedCents": 21.757579999999994,
-        "heldReservationCents": 3.968,
-        "accountedCents": 25.725579999999994,
-        "rejectedRequests": 23,
-        "unresolvedRequests": 1,
-        "costPolicy": "Provider-reported usage valued at reviewed rates, settled conservative upper bounds, and unresolved held reservations are separate. Price rows include all settled retry costs and retained reservations once; any conservative component makes the price an upper bound. Accounted cents are not invoice-reconciled charges."
-      }
-    }
-  ],
-  "bundleSha256": "58bd45fd405d209c3b23332f5622e214fbb992f21f8280a7744c4a9597681bfc",
-  "validation": {
-    "admissionCommand": [
-      "bun",
-      "src/tools/ocr-clean-typography-admission.ts"
     ],
-    "status": "passed",
-    "realCasesAdmitted": 5,
-    "existingReferenceTextsCompared": 9,
-    "existingSourceImagesCompared": 1,
-    "targetedTests": {
-      "command": [
-        "bun",
-        "test",
-        "test/test-cases/validation/text/ocr/ocr-clean-typography-admission.test.ts"
-      ],
-      "passed": 24,
-      "assertions": 47
-    },
-    "repositoryCheck": {
-      "command": [
-        "bun",
-        "run",
-        "check"
-      ],
-      "status": "passed"
-    },
-    "defaultPricePreflight": {
-      "command": [
-        "bun",
-        "t",
-        "--price"
-      ],
-      "status": "passed",
-      "commandsPassed": 102,
-      "paidCalls": 0
-    },
-    "independentFinalAudit": "passed",
-    "paidCallsThisTask": 0,
-    "latest": {
-      "repositoryCheck": "passed",
-      "defaultPricePreflight": {
-        "passed": 102,
-        "paidDispatch": 0
-      },
-      "targetedTests": {
-        "passed": 85,
-        "assertions": 428,
-        "files": 7
-      },
-      "originalEvidenceHashesVerified": 630,
-      "independentAggregateComparisons": 930
-    }
-  },
-  "executionPolicy": {
-    "helper": "src/tools/ocr-clean-typography-benchmark.ts",
-    "command": [
-      "bun",
-      "src/tools/ocr-clean-typography-benchmark.ts",
-      "--run"
-    ],
-    "execution": "Sequential single-provider slots spanning the approved five-file/all-model combination; all completed slot evidence is reused.",
-    "spendingLedger": "input/examples/document/ocr-clean-typography/spending-ledger.json",
-    "guard": "src/tools/ocr-clean-typography-spending-guard.ts",
-    "outputLimitException": {
-      "provider": "openai",
-      "maxOutputTokens": 16384,
-      "reason": "A finite output ceiling is necessary for request-level budget reservations; native reasoning remains unchanged."
-    },
-    "inputTokenAllowance": 64000,
-    "inputTokenAllowanceIsMeasured": false,
-    "privateSourceArtifacts": true,
-    "originalLogicalFanoutCommands": [
-      [
-        "bun",
-        "src/cli/create-cli.ts",
-        "extract",
-        "input/examples/document/ocr-clean-typography/cases/clean-typography-phototest/input.png",
-        "--all-providers",
-        "--all-local",
-        "--output-dir",
-        "docs/benchmarks/text/ocr/clean-typography-phototest",
-        "--json"
-      ],
-      [
-        "bun",
-        "src/cli/create-cli.ts",
-        "extract",
-        "input/examples/document/ocr-clean-typography/cases/clean-typography-suitcase/input.png",
-        "--all-providers",
-        "--all-local",
-        "--output-dir",
-        "docs/benchmarks/text/ocr/clean-typography-suitcase",
-        "--json"
-      ],
-      [
-        "bun",
-        "src/cli/create-cli.ts",
-        "extract",
-        "input/examples/document/ocr-clean-typography/cases/clean-typography-good-talk/input.png",
-        "--all-providers",
-        "--all-local",
-        "--output-dir",
-        "docs/benchmarks/text/ocr/clean-typography-good-talk",
-        "--json"
-      ],
-      [
-        "bun",
-        "src/cli/create-cli.ts",
-        "extract",
-        "input/examples/document/ocr-clean-typography/cases/clean-typography-federal-assistance/input.png",
-        "--all-providers",
-        "--all-local",
-        "--output-dir",
-        "docs/benchmarks/text/ocr/clean-typography-federal-assistance",
-        "--json"
-      ],
-      [
-        "bun",
-        "src/cli/create-cli.ts",
-        "extract",
-        "input/examples/document/ocr-clean-typography/cases/clean-typography-language-teaching/input.png",
-        "--all-providers",
-        "--all-local",
-        "--output-dir",
-        "docs/benchmarks/text/ocr/clean-typography-language-teaching",
-        "--json"
-      ]
-    ],
-    "openAIBillingControls": {
-      "serviceTier": "default",
-      "cacheLifetime": "30m",
-      "inputReservationMultiplier": 1.25,
-      "accounting": "Use complete provider cache components at reviewed Standard rates; otherwise conservatively value all input at 1.25x and label an upper bound. Require returned default tier; stop on ambiguity.",
-      "sources": [
-        "https://developers.openai.com/api/docs/guides/prompt-caching",
-        "https://developers.openai.com/api/docs/guides/fast-mode"
-      ]
-    }
-  },
-  "execution": {
-    "status": "completed-available-targets-mistral-4-0-unavailable",
-    "completedAt": "2026-10-23T07:27:33.220Z",
-    "hostedSlotsAttempted": 105,
-    "hostedSucceeded": 100,
-    "hostedFailed": 5,
-    "failedTargets": [
-      {
-        "provider": "mistral",
-        "model": "mistral-ocr-4-0",
-        "cases": 5,
-        "httpStatus": 400,
-        "reason": "Model unavailable in the current API catalog; no invented OCR output."
-      }
-    ],
-    "localSucceeded": 5,
-    "localResultsReused": 5,
-    "hostedRequestsThisExecution": 5,
-    "cumulativeHostedRequests": 218,
-    "settledUsageAtReviewedRatesCents": 101.915373,
-    "settledConservativeCents": 0,
-    "accountedProviderCostCents": 105.883373,
-    "unresolvedReservationsCents": 3.968,
-    "remainingApprovedCents": 394.116627,
-    "costPolicy": "Accounted cost includes reviewed-rate usage and the full unresolved HTTP 503 reservation. It is a conservative spending record, not an invoice reconciliation.",
-    "privateEvidence": "input/examples/document/ocr-clean-typography/execution.json",
-    "spendingLedger": "input/examples/document/ocr-clean-typography/spending-ledger.json",
-    "cliSnapshot": {
-      "path": "output/benchmark-cache/ocr-clean-typography-cli-73c2f0623a35f48241b065fbfd4dfbe3abc533423b16ffbdb07d373e97c1ee65.js",
-      "sha256": "73c2f0623a35f48241b065fbfd4dfbe3abc533423b16ffbdb07d373e97c1ee65"
-    },
-    "preDispatchReconciliation": "input/examples/document/ocr-clean-typography/pre-dispatch-reconciliation.json",
-    "authenticationReconciliation": "input/examples/document/ocr-clean-typography/authentication-retry-reconciliation-2026-10-23.json",
-    "importErrorRecovery": "input/examples/document/ocr-clean-typography/import-error-recovery-2026-10-23.json",
-    "http503AndRateRecovery": "input/examples/document/ocr-clean-typography/503-and-rate-recovery-2026-10-23.json",
-    "manualReconciliation": {
-      "path": "input/examples/document/ocr-clean-typography/reconciliations/2026-10-23-language-teaching-flash-lite-503.json",
-      "sha256": "a59b35f588f34ec37abc36074ba7ab0700e7ed6a4fb462a23f2b33aaf805fe9f"
-    },
-    "retryPolicy": "Reuse all completed journals. No automatic redispatch of failed slots. HTTP 503 retained its full 3.968-cent reservation and received one explicitly recorded recovery invocation within the same $5 approval; billing remains unresolved. Quota-zero and invalid-model responses were not retried.",
-    "integration": {
-      "archiveRunCount": 27,
-      "totalPages": 59,
-      "archivedProviderIdentities": 31,
-      "supportedProviderIdentities": 22,
-      "newCaseReportCount": 5,
-      "newLocalScoredResults": 5,
-      "newHostedScoredResults": 100,
-      "originalEvidenceFilesUnchanged": 630,
-      "pendingCategoriesExecuted": 0,
-      "originalLocalPilotFilesUnchanged": 10,
-      "pendingInventoryUnchanged": false,
-      "independentPerOutputMetricComparisons": 1100,
-      "independentAggregateComparisons": 930,
-      "publicCaseArtifactsAudited": 45,
-      "uniqueDocumentCount": 24,
-      "uniqueSourcePages": 40,
-      "context": "Historical A/B/C integration snapshot; currentArchive records later completed expansions",
-      "preparedAcquisitionRecordsUnchanged": true
-    },
-    "priorAuthenticationAttempt": {
-      "status": "partial-local-results-hosted-authentication-rejected",
-      "completedAt": "2026-10-23T03:47:50.054Z",
-      "hostedSlotsAttempted": 105,
-      "hostedSucceeded": 0,
-      "hostedAuthenticationRejections": 105,
-      "httpStatusCounts": {
-        "400": 10,
-        "401": 95
-      },
-      "localSucceeded": 5,
-      "localResultsReused": 5,
-      "accountedProviderCostCents": 0,
-      "unresolvedReservationsCents": 0,
-      "remainingApprovedCents": 500,
-      "privateEvidence": "input/examples/document/ocr-clean-typography/execution.json",
-      "spendingLedger": "input/examples/document/ocr-clean-typography/spending-ledger.json",
-      "preDispatchReconciliation": "input/examples/document/ocr-clean-typography/pre-dispatch-reconciliation.json",
-      "retryPolicy": "No automatic retry of failed slots. Valid local credentials and reconciliation of rejected attempts are required before reusing the existing approval.",
-      "integration": {
-        "archiveRunCount": 14,
-        "totalPages": 30,
-        "archivedProviderIdentities": 31,
-        "supportedProviderIdentities": 22,
-        "newCaseReportCount": 5,
-        "newLocalScoredResults": 5,
-        "newHostedScoredResults": 0,
-        "originalEvidenceFilesUnchanged": 630,
-        "otherDashboardTabsUnchanged": 6,
-        "independentAggregateComparisons": 930
-      }
-    },
-    "retry": {
-      "status": "completed-available-targets",
-      "requestedDate": "2026-10-23",
-      "scope": "Five Gemini Argon quota-rejected slots after the user enabled API billing; 95 hosted and five local successes reused.",
-      "command": [
-        "bun",
-        "src/tools/ocr-clean-typography-benchmark.ts",
-        "--run"
-      ],
-      "freshNativeEstimatedCents": 152.20702,
-      "openAIAllInputCacheWriteCushionCents": 2.3738875,
-      "cacheAdjustedPlanningCents": 154.5809075,
-      "sameTokenStructuredRepairPlanningCents": 437.8456825,
-      "approvalBudgetCents": 500,
-      "priorProviderCostCents": 0,
-      "credentialPreflight": "input/examples/document/ocr-clean-typography/credential-preflight-2026-10-23.json",
-      "authenticationReconciliation": "input/examples/document/ocr-clean-typography/authentication-retry-reconciliation-2026-10-23.json",
-      "preservedPriorAttempt": "input/examples/document/ocr-clean-typography/prior-attempts/2026-10-23-authentication-rejected",
-      "spendingLedgerRetained": true,
-      "completedAt": "2026-10-23T07:27:33.220Z",
-      "hostedSucceeded": 100,
-      "hostedFailed": 5,
-      "newHostedResponses": 5
-    },
-    "priorBillingAttempt": {
-      "status": "completed-with-provider-failures-and-retained-reservation",
-      "completedAt": "2026-10-23T05:37:13.829Z",
-      "hostedSlotsAttempted": 105,
-      "hostedSucceeded": 95,
-      "hostedFailed": 10,
-      "failedTargets": [
-        {
-          "provider": "gemini",
-          "model": "gemini-4-argon",
-          "cases": 5,
-          "httpStatus": 429,
-          "reason": "Account returned a zero free-tier quota; no OCR output or quality score."
-        },
-        {
-          "provider": "mistral",
-          "model": "mistral-ocr-4-0",
-          "cases": 5,
-          "httpStatus": 400,
-          "reason": "Provider returned Invalid model: mistral-ocr-4-0; no OCR output or quality score."
-        }
-      ],
-      "localSucceeded": 5,
-      "localResultsReused": 5,
-      "hostedRequestsThisExecution": 108,
-      "cumulativeHostedRequests": 213,
-      "settledUsageAtReviewedRatesCents": 97.987373,
-      "settledConservativeCents": 0,
-      "accountedProviderCostCents": 101.955373,
-      "unresolvedReservationsCents": 3.968,
-      "remainingApprovedCents": 398.044627,
-      "costPolicy": "Accounted cost includes reviewed-rate usage and the full unresolved HTTP 503 reservation. It is a conservative spending record, not an invoice reconciliation.",
-      "privateEvidence": "input/examples/document/ocr-clean-typography/execution.json",
-      "spendingLedger": "input/examples/document/ocr-clean-typography/spending-ledger.json",
-      "cliSnapshot": {
-        "path": "output/benchmark-cache/ocr-clean-typography-cli-73c2f0623a35f48241b065fbfd4dfbe3abc533423b16ffbdb07d373e97c1ee65.js",
-        "sha256": "73c2f0623a35f48241b065fbfd4dfbe3abc533423b16ffbdb07d373e97c1ee65"
-      },
-      "preDispatchReconciliation": "input/examples/document/ocr-clean-typography/pre-dispatch-reconciliation.json",
-      "authenticationReconciliation": "input/examples/document/ocr-clean-typography/authentication-retry-reconciliation-2026-10-23.json",
-      "importErrorRecovery": "input/examples/document/ocr-clean-typography/import-error-recovery-2026-10-23.json",
-      "http503AndRateRecovery": "input/examples/document/ocr-clean-typography/503-and-rate-recovery-2026-10-23.json",
-      "manualReconciliation": {
-        "path": "input/examples/document/ocr-clean-typography/reconciliations/2026-10-23-language-teaching-flash-lite-503.json",
-        "sha256": "a59b35f588f34ec37abc36074ba7ab0700e7ed6a4fb462a23f2b33aaf805fe9f"
-      },
-      "retryPolicy": "Reuse all completed journals. No automatic redispatch of failed slots. HTTP 503 retained its full 3.968-cent reservation and received one explicitly recorded recovery invocation within the same $5 approval; billing remains unresolved. Quota-zero and invalid-model responses were not retried.",
-      "integration": {
-        "archiveRunCount": 14,
-        "totalPages": 30,
-        "archivedProviderIdentities": 31,
-        "supportedProviderIdentities": 22,
-        "newCaseReportCount": 5,
-        "newLocalScoredResults": 5,
-        "newHostedScoredResults": 95,
-        "originalEvidenceFilesUnchanged": 630,
-        "pendingCategoriesExecuted": 0,
-        "originalLocalPilotFilesUnchanged": 10,
-        "pendingInventoryUnchanged": true,
-        "independentPerOutputMetricComparisons": 1100,
-        "independentAggregateComparisons": 930,
-        "publicCaseArtifactsAudited": 45
-      },
-      "priorAuthenticationAttempt": {
-        "status": "partial-local-results-hosted-authentication-rejected",
-        "completedAt": "2026-10-23T03:47:50.054Z",
-        "hostedSlotsAttempted": 105,
-        "hostedSucceeded": 0,
-        "hostedAuthenticationRejections": 105,
-        "httpStatusCounts": {
-          "400": 10,
-          "401": 95
-        },
-        "localSucceeded": 5,
-        "localResultsReused": 5,
-        "accountedProviderCostCents": 0,
-        "unresolvedReservationsCents": 0,
-        "remainingApprovedCents": 500,
-        "privateEvidence": "input/examples/document/ocr-clean-typography/execution.json",
-        "spendingLedger": "input/examples/document/ocr-clean-typography/spending-ledger.json",
-        "preDispatchReconciliation": "input/examples/document/ocr-clean-typography/pre-dispatch-reconciliation.json",
-        "retryPolicy": "No automatic retry of failed slots. Valid local credentials and reconciliation of rejected attempts are required before reusing the existing approval.",
-        "integration": {
-          "archiveRunCount": 14,
-          "totalPages": 30,
-          "archivedProviderIdentities": 31,
-          "supportedProviderIdentities": 22,
-          "newCaseReportCount": 5,
-          "newLocalScoredResults": 5,
-          "newHostedScoredResults": 0,
-          "originalEvidenceFilesUnchanged": 630,
-          "otherDashboardTabsUnchanged": 6,
-          "independentAggregateComparisons": 930
-        }
-      },
-      "retry": {
-        "status": "completed-with-provider-failures",
-        "requestedDate": "2026-10-23",
-        "scope": "The same five pinned inputs and 21 hosted targets; reuse five completed local results.",
-        "command": [
-          "bun",
-          "src/tools/ocr-clean-typography-benchmark.ts",
-          "--run"
-        ],
-        "freshNativeEstimatedCents": 152.20702,
-        "openAIAllInputCacheWriteCushionCents": 2.3738875,
-        "cacheAdjustedPlanningCents": 154.5809075,
-        "sameTokenStructuredRepairPlanningCents": 437.8456825,
-        "approvalBudgetCents": 500,
-        "priorProviderCostCents": 0,
-        "credentialPreflight": "input/examples/document/ocr-clean-typography/credential-preflight-2026-10-23.json",
-        "authenticationReconciliation": "input/examples/document/ocr-clean-typography/authentication-retry-reconciliation-2026-10-23.json",
-        "preservedPriorAttempt": "input/examples/document/ocr-clean-typography/prior-attempts/2026-10-23-authentication-rejected",
-        "spendingLedgerRetained": true,
-        "completedAt": "2026-10-23T05:37:13.829Z",
-        "hostedSucceeded": 95,
-        "hostedFailed": 10
-      }
-    },
-    "latestGeminiRecovery": {
-      "status": "completed",
-      "requestedAfterBillingSetup": true,
-      "requestedScope": "All missing OCR in categories 1-3",
-      "newSuccessfulArgonSlots": 5,
-      "reusedHostedSuccesses": 95,
-      "reusedLocalSuccesses": 5,
-      "archive": "input/examples/document/ocr-clean-typography/prior-attempts/2026-10-23-gemini-billing-enabled"
-    },
-    "currentArchive": {
-      "updatedAt": "2026-10-23T09:31:01.357Z",
-      "archiveRunCount": 52,
-      "totalPageInstances": 84,
-      "uniqueDocumentCount": 44,
-      "uniqueSourcePages": 60,
-      "baselineVariantCount": 8,
-      "repeatedSourcePages": 24,
-      "usableOutputs": 1169,
-      "intendedSlots": 1191,
-      "primaryAccuracyScores": 1064,
-      "partialReferenceDiagnosticOutputs": 105,
-      "completedPreparedAdditions": 35,
-      "remainingPreparedAdditions": 0
-    }
-  },
-  "remainingCategoriesExecution": {
-    "categories": [
-      5,
-      6,
-      7
-    ],
-    "status": "completed-with-one-baseline-output-limit-failure",
-    "plan": "docs/benchmarks/text/ocr/categories-efg-execution-plan.json",
-    "report": "docs/reports/ocr-remaining-categories-pricing-2026-10-23.md",
-    "accountedCents": 1002.679785,
-    "completedNewInputs": 15,
-    "remainingNewInputs": 0
+    "retainedTargetCount": 10,
+    "targetListSemantics": "The top-level targets or quote.models list is the retained reporting inventory after retirement. Execution scope, case slot counts, coverage, spending and approvals retain their original historical cohort. This metadata does not authorize redispatch.",
+    "historicalEvidence": "docs/reports/repository-improvement-actions.evidence.zip"
   }
 }

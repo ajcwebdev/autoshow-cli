@@ -1,7 +1,6 @@
 import { createModelValidator, createRetiringModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 export const SUPPORTED_MISTRAL_OCR_MODELS = [
-  'mistral-ocr-4-0',
   'mistral-ocr-4-1'
 ] as const satisfies readonly string[]
 
@@ -9,16 +8,13 @@ export const validateMistralOcrModel = createModelValidator(SUPPORTED_MISTRAL_OC
 
 export const SUPPORTED_OPENAI_OCR_MODELS = [
   'gpt-6.1-sol',
-  'gpt-6-luna',
-  'gpt-6-astra',
-  'gpt-5.6-terra',
+  'gpt-6-luna'
 ] as const satisfies readonly string[]
 
 export const validateOpenAIOcrModel = createRetiringModelValidator('extract', 'openai', SUPPORTED_OPENAI_OCR_MODELS, 'openai-ocr')
 
 export const SUPPORTED_GROK_OCR_MODELS = [
-  'grok-4.7',
-  'grok-4.5'
+  'grok-4.7'
 ] as const satisfies readonly string[]
 
 export const validateGrokOcrModel = createRetiringModelValidator('extract', 'grok', SUPPORTED_GROK_OCR_MODELS, 'grok-ocr')
@@ -27,28 +23,13 @@ export const SUPPORTED_ANTHROPIC_OCR_MODELS = [
   'claude-opus-5-5',
   'claude-sonnet-5-5',
   'claude-haiku-5-5',
-  'claude-fable-5-1',
   'claude-fable-5'
 ] as const satisfies readonly string[]
 
 export const validateAnthropicOcrModel = createRetiringModelValidator('extract', 'anthropic', SUPPORTED_ANTHROPIC_OCR_MODELS, 'anthropic-ocr')
 
 export const SUPPORTED_GEMINI_OCR_MODELS = [
-  'gemini-4-argon',
-  'gemini-3.8-flash',
-  'gemini-3.5-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash-lite'
+  'gemini-3.8-flash'
 ] as const satisfies readonly string[]
 
 export const validateGeminiOcrModel = createRetiringModelValidator('extract', 'gemini', SUPPORTED_GEMINI_OCR_MODELS, 'gemini-ocr')
-
-export const DEFAULT_DEEPINFRA_OCR_MODEL = 'google/gemma-4-31B-it'
-
-export const SUPPORTED_DEEPINFRA_OCR_MODELS = [
-  DEFAULT_DEEPINFRA_OCR_MODEL,
-  'Qwen/Qwen3.8-27B',
-  'deepseek-ai/DeepSeek-V4.1-Flash'
-] as const satisfies readonly string[]
-
-export const validateDeepinfraOcrModel = createModelValidator(SUPPORTED_DEEPINFRA_OCR_MODELS, 'deepinfra-ocr')

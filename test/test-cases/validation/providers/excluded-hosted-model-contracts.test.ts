@@ -12,7 +12,7 @@ const decision = readFileSync('docs/adr/ADR-010-hosted-model-registry-lifecycle-
 const section = decision.split('<!-- excluded-hosted-models:start -->')[1]!.split('<!-- excluded-hosted-models:end -->')[0]!
 const tuples = [...section.matchAll(/`stt\/([^/`]+)\/([^`]+)`/g)].map(([, service, model]) => ({ service: service!, model: model! }))
 
-test('the ADR-010 decision table lists the three excluded STT tuples', () => {
+test('the ADR-010 decision records list the three excluded STT tuples', () => {
   expect(tuples).toEqual([
     { service: 'cloudflare', model: '@cf/deepgram/nova-3' },
     { service: 'together', model: 'nvidia/nemotron-3.5-asr-streaming-0.6b' },

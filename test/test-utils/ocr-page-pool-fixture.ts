@@ -14,7 +14,7 @@ export const pageResult = (pageNumber: number, target: OcrTarget) => ({
 export const runPool = async (overrides: Partial<Parameters<typeof runOcrPagePool>[0]> = {}) => {
   const targets: OcrTarget[] = [
     { service: 'openai', model: 'gpt-6.1-sol' },
-    { service: 'mistral', model: 'mistral-ocr-4-0' }
+    { service: 'mistral', model: 'mistral-ocr-4-1' }
   ]
   let clock = 1_000
   return await runOcrPagePool({

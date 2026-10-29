@@ -182,12 +182,8 @@ const buildSketchPromptData = (
 
     return panel
   })
-  if (bundleDataList.some(bundle => bundle.snapshotId !== firstBundle.snapshotId)) {
-    throw ValidationError('Sketch chunks cannot mix character reference snapshot IDs', { stage: 'comic:generate-sketches' })
-  }
   return v.parse(PanelBundleDataSchema, {
     schemaVersion: 4,
-    snapshotId: firstBundle.snapshotId,
     title: firstBundle.title,
     location: firstBundle.location,
     panels,

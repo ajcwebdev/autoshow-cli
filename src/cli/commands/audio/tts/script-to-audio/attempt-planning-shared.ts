@@ -79,8 +79,10 @@ export const buildCapabilityFixture = (
     : 'turn-synthesis' as const
   const scope = { provider: target.service, feature, model: target.model, transport }
   const documentationEvidence = withIdentity({
-    checkedAt: CAPABILITY_CHECKED_AT,
-    sourceRefs: CAPABILITY_SOURCE_REFS[target.service]
+    checkedAt: target.service === 'elevenlabs' && target.model === 'eleven_v4' ? '2026-10-29T00:00:00.000Z' : CAPABILITY_CHECKED_AT,
+    sourceRefs: target.service === 'elevenlabs' && target.model === 'eleven_v4'
+      ? ['https://elevenlabs.io/docs/overview/models#character-limits', 'https://elevenlabs.io/docs/overview/capabilities/text-to-speech/eleven-v4', 'https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert-with-timestamps', 'https://elevenlabs.io/docs/eleven-api/quickstart']
+      : CAPABILITY_SOURCE_REFS[target.service]
   }, 'evidenceHash')
   const hasProtectedSpeakerAssets = Object.keys(target.protectedSpeakerVoiceAssets ?? {}).length > 0
   const voiceKinds = target.protectedVoiceAsset

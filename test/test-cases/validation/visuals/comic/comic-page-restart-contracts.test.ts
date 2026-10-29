@@ -63,7 +63,7 @@ describe('page repair restart and stagnation', () => {
       result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'content' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['wording'], editInstructions: 'Correct the wording.', repairAssessment: repairAssessment({ issueVisibility: 'directly-visible', expectedBenefit: 'meaningful', recommendation: 'targeted-edit', rationale: 'The lettering contradicts the script.' }) }], summary: 'Persistent dialogue mismatch.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
-    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 7 }, {
+    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 7 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 || calls.length === 3 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) },
       judgePage: async () => failedEntry(),
@@ -95,7 +95,7 @@ describe('page repair restart and stagnation', () => {
       result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: panelNumber !== 1, dialogueIssueKind: panelNumber === 1 ? ('content' as const) : ('none' as const), speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: panelNumber === 1 ? ['wording'] : [], editInstructions: panelNumber === 1 ? 'Correct the wording.' : '' })), summary: 'Persistent grouped dialogue mismatch.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
-    await expect(generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 7 }, {
+    await expect(generateComicPages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 7 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 || calls.length === 3 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) },
       judgePage: async () => failedEntry(),

@@ -3,30 +3,29 @@
 ## Summary
 
 - Run directory: `input/examples/document/ocr-categories-bc-run/benchmark-runs/bc-rerun-04-pages-don-quixote`
-- Providers with page result files: 21
+- Providers with page result files: 10
 - Pages: 4
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.
 
 ## Page-Level Hybrid Sources
 
-| Selected Provider | Pages |
-| --- | ---: |
-| `anthropic/claude-fable-5-1` | 1 |
-| `anthropic/claude-opus-5-5` | 1 |
-| `deepinfra/Qwen/Qwen3.8-27B` | 1 |
-| `gemini/gemini-3.5-flash` | 1 |
+| Selected Provider           | Pages |
+| --------------------------- | ----: |
+| `grok/grok-4.7`             | 2     |
+| `anthropic/claude-fable-5`  | 1     |
+| `anthropic/claude-opus-5-5` | 1     |
 
 ## Outlier Signals
 
-| Signal | Page Count |
-| --- | ---: |
-| blankOutputPages | 0 |
-| repeatedTextPages | 0 |
-| majorLengthDriftPages | 0 |
-| highDisagreementPages | 0 |
-| werCerDivergencePages | 0 |
-| lowConfidencePages | 0 |
+| Signal                | Page Count |
+| --------------------- | ---------: |
+| blankOutputPages      | 0          |
+| repeatedTextPages     | 0          |
+| majorLengthDriftPages | 0          |
+| highDisagreementPages | 0          |
+| werCerDivergencePages | 0          |
+| lowConfidencePages    | 0          |
 
 ## Selective Adjudication
 
@@ -36,6 +35,6 @@
 
 ## Variant Distances
 
-| Reference | Candidate | WER | CER | Word Edits |
-| --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 1.65% | 0.34% | 22 |
+| Reference              | Candidate           | WER   | CER   | Word Edits |
+| ---------------------- | ------------------- | ----: | ----: | ---------: |
+| `status-quo-consensus` | `page-level-hybrid` | 1.05% | 0.28% | 14         |

@@ -21,7 +21,7 @@ const fixture = async () => {
     await Bun.write(join(root, path), bytes)
     return bytes
   }
-  const targets = [{ provider: 'tesseract', model: 'tesseract' }, { provider: 'deepinfra', model: 'google/gemma-fixture' }, { provider: 'openai', model: 'failed-fixture' }]
+  const targets = [{ provider: 'tesseract', model: 'tesseract' }, { provider: 'grok', model: 'xai/grok-fixture' }, { provider: 'openai', model: 'failed-fixture' }]
   const cases = []
   const receipts = []
   for (const [index, pin] of CLEAN_TYPOGRAPHY_SOURCE_PINS.entries()) {
@@ -48,7 +48,7 @@ const fixture = async () => {
     for (const target of targets.slice(1)) {
       const directory = `${rootPath}/slots/${id}/${`${target.provider}-${target.model}`.replace(/[^a-zA-Z0-9_.-]/g, '-')}`
       let manifestSha256: string | null = null
-      const successful = target.provider === 'deepinfra'
+      const successful = target.provider === 'grok'
       if (successful) {
         const artifactDir = cleanTypographyReportArtifactDir(target.provider, target.model)
         const bytes = await write(`${directory}/manifest.json`, manifest(target.provider, target.model, artifactDir))
@@ -106,9 +106,9 @@ describe('clean typography private report assembly', () => {
     expect(publicManifest.items[0].providers).toHaveLength(3)
     expect(publicManifest.items[0].providers.every((provider: Record<string, unknown>) => !('result' in provider))).toBe(true)
     expect(publicManifest.items[0].metadata.cost.actual.totalCost).toBe(7.25)
-    const hosted = publicManifest.items[0].providers.find((provider: { service: string }) => provider.service === 'deepinfra')
-    expect(hosted.artifactDir).toBe('providers/deepinfra-google%2Fgemma-fixture')
-    const source = `${rootPath}/slots/${id}/deepinfra-google-gemma-fixture/${hosted.artifactDir}`
+    const hosted = publicManifest.items[0].providers.find((provider: { service: string }) => provider.service === 'grok')
+    expect(hosted.artifactDir).toBe('providers/grok-xai%2Fgrok-fixture')
+    const source = `${rootPath}/slots/${id}/grok-xai-grok-fixture/${hosted.artifactDir}`
     const destination = `${rootPath}/benchmark-runs/${id}/${hosted.artifactDir}`
     for (const name of ['result.json', 'extraction.txt']) expect(await Bun.file(join(f.root, `${destination}/${name}`)).bytes()).toEqual(await Bun.file(join(f.root, `${source}/${name}`)).bytes())
     expect(await Bun.file(join(f.root, pilot)).text()).toBe(before)
@@ -141,7 +141,7 @@ describe('clean typography private report assembly', () => {
       settledAccountedCents: 1, heldReservationCents: 7, accountedCents: 8 })
     await buildCleanTypographyReports(f.options)
     const manifest = await Bun.file(join(f.root, `${f.cases[0]!.runDir}/manifest.json`)).json()
-    expect(manifest.items[0].metadata.cost.actual.steps.find((row: { provider: string }) => row.provider === 'deepinfra'))
+    expect(manifest.items[0].metadata.cost.actual.steps.find((row: { provider: string }) => row.provider === 'grok'))
       .toMatchObject({ cost: 1, costSource: 'conservative_upper_bound' })
     const metric = await Bun.file(join(f.root, `${f.cases[0]!.runDir}/provider-comparison-report.json`)).json()
     expect(metric.notes.join(' ')).toContain('conservative upper bound')
@@ -170,12 +170,12 @@ describe('clean typography private report assembly', () => {
     await f.write(path, ledger)
     await buildCleanTypographyReports(f.options)
     const manifest = await Bun.file(join(f.root, `${entry.runDir}/manifest.json`)).json()
-    const price = manifest.items[0].metadata.cost.actual.steps.find((row: { provider: string }) => row.provider === 'deepinfra')
+    const price = manifest.items[0].metadata.cost.actual.steps.find((row: { provider: string }) => row.provider === 'grok')
     expect(price).toMatchObject({ cost: 4.218, costSource: 'conservative_upper_bound',
       costBreakdown: { reviewedUsageCents: 0.25, settledConservativeCents: 0, heldReservationCents: 3.968, accountedCents: 4.218 } })
     expect(manifest.source.coverage.spending).toMatchObject({ providerReportedCents: 0.25, heldReservationCents: 10.968, accountedCents: 11.218 })
     expect(manifest.items[0].metadata.cost.actual.totalCost).toBe(11.218)
-    expect(manifest.items[0].providers.find((row: { service: string }) => row.service === 'deepinfra').status).toBe('succeeded')
+    expect(manifest.items[0].providers.find((row: { service: string }) => row.service === 'grok').status).toBe('succeeded')
     const metric = await Bun.file(join(f.root, `${entry.runDir}/provider-comparison-report.json`)).json()
     expect(metric.notes.join(' ')).toContain('3.968000 retained unresolved cents')
     expect(metric.costPolicy).toContain('upper bound')
@@ -183,11 +183,11 @@ describe('clean typography private report assembly', () => {
   })
   test('rejects a changed completed-slot manifest and mismatched journal source identity', async () => {
     const f = await fixture(), entry = f.cases[0]!
-    const directory = `${rootPath}/slots/${entry.id}/deepinfra-google-gemma-fixture`
+    const directory = `${rootPath}/slots/${entry.id}/grok-xai-grok-fixture`
     await f.write(`${directory}/manifest.json`, '{}')
     await expect(buildCleanTypographyReports(f.options)).rejects.toThrow('Saved manifest hash changed')
     const g = await fixture(), other = g.cases[0]!
-    const path = `${rootPath}/slots/${other.id}/deepinfra-google-gemma-fixture/dispatch.json`
+    const path = `${rootPath}/slots/${other.id}/grok-xai-grok-fixture/dispatch.json`
     const journal = await Bun.file(join(g.root, path)).json(); journal.referenceSha256 = '0'.repeat(64)
     await g.write(path, journal)
     await expect(buildCleanTypographyReports(g.options)).rejects.toThrow('Dispatch journal identity')

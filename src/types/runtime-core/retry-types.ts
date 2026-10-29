@@ -3,7 +3,6 @@ export type RetryClass =
   | 'filesystem_visibility'
   | 'runtime_subprocess_transient'
   | 'runtime_http_read'
-  | 'runtime_http_paid_result'
   | 'runtime_http_poll'
   | 'runtime_http_create_conservative'
 

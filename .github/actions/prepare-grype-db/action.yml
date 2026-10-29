@@ -1,0 +1,60 @@
+name: Prepare Grype database
+description: Restore, update when needed, validate and date-cache the Grype database without scanning a dummy document.
+inputs:
+  evidence-dir:
+    description: Directory receiving grype-db-status.json
+    required: true
+  grype-version:
+    description: Reviewed Grype release used to prepare the database
+    default: v0.121.0
+  cache-key-salt:
+    description: Extra Grype database cache key discriminator
+    default: ''
+  install-grype:
+    description: Install the reviewed Grype binary; false when the caller already installed it
+    default: 'true'
+outputs:
+  db-dir:
+    description: Prepared database cache directory
+    value: ${{ steps.paths.outputs.db-dir }}
+  db-built:
+    description: Build timestamp from validated database status
+    value: ${{ steps.prepare.outputs.db-built }}
+runs:
+  using: composite
+  steps:
+    - id: paths
+      shell: bash
+      run: |
+        set -euo pipefail
+        printf 'today=%s\n' "$(date -u +%Y-%m-%d)" >> "${GITHUB_OUTPUT}"
+        printf 'db-dir=%s\n' "${RUNNER_TEMP}/grype-db" >> "${GITHUB_OUTPUT}"
+    - name: Install reviewed Grype
+      if: inputs.install-grype != 'false'
+      shell: bash
+      env:
+        INSTALL_SYFT: 'false'
+        GRYPE_VERSION: ${{ inputs.grype-version }}
+      run: bash "${GITHUB_ACTION_PATH}/../scan-image/install-scan-tools.sh"
+    - name: Restore the Grype vulnerability database
+      id: cache
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+      with:
+        path: ${{ steps.paths.outputs.db-dir }}
+        key: grype-db-v6-${{ inputs.grype-version }}-${{ steps.paths.outputs.today }}${{ inputs.cache-key-salt }}
+        restore-keys: |
+          grype-db-v6-${{ inputs.grype-version }}-
+    - name: Prepare and validate Grype database
+      id: prepare
+      shell: bash
+      env:
+        GRYPE_DB_CACHE_DIR: ${{ steps.paths.outputs.db-dir }}
+        DB_UPDATE_REQUIRED: ${{ steps.cache.outputs.cache-hit != 'true' }}
+        EVIDENCE_DIR: ${{ inputs.evidence-dir }}
+      run: bash "${GITHUB_ACTION_PATH}/prepare-grype-db.sh"
+    - name: Retain today's validated Grype database
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+      with:
+        path: ${{ steps.paths.outputs.db-dir }}
+        key: ${{ steps.cache.outputs.cache-primary-key }}

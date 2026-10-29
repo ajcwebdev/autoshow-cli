@@ -13,7 +13,7 @@ describe('canonical page reference assembly', () => {
     const { locationSheets } = await createMultiLocationFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
     const qaRequests: Array<{ locationSheets: string[]; locationSpecifications: string[] }> = []
-    await generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'pages', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 0 }, {
+    await generateComicPages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'pages', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 0 }, {
       requestImage: async input => { calls.push(input); return { mode: 'generate', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) },
       judgePage: async request => {
@@ -29,7 +29,7 @@ describe('canonical page reference assembly', () => {
     expect(qaRequests[0]?.locationSheets).toEqual(locationSheets)
     expect(qaRequests[0]?.locationSpecifications).toEqual(['quarters', 'hallway'])
 
-    await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'panels', concurrency: 1, panels: [2], qa: false }, {
+    await generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'panels', concurrency: 1, panels: [2], qa: false }, {
       requestImage: async input => { calls.push(input); return { mode: 'generate', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) },
     })
@@ -37,17 +37,17 @@ describe('canonical page reference assembly', () => {
     expect(calls[1]?.referenceImages).not.toContain(locationSheets[0])
   })
 
-  test('uses each canonical character image once followed by the immutable scene location image', async () => {
+  test('uses each canonical character image once followed by the current canonical location image', async () => {
     const sceneSlug = `location-contract-${crypto.randomUUID()}`
     const { runDirectory, locationSheet } = await createSceneFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
-    const stats = await generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 2, panels: [1, 2], panelsPerImage: 2, qa: false }, {
+    const stats = await generateComicPages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 2, panels: [1, 2], panelsPerImage: 2, qa: false }, {
       requestImage: async input => { calls.push(input); return { mode: 'generate', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) },
     })
     expect(calls).toHaveLength(1)
     expect(calls[0]?.referenceImages.at(-1)).toBe(locationSheet)
-    expect(calls[0]?.referenceImages[0]).toEndWith('hero/reference.png')
+    expect(calls[0]?.referenceImages[0]).toBe(join(runDirectory, 'input', 'characters', 'hero.png'))
     expect(calls[0]?.referenceImages).toHaveLength(2)
     expect(calls[0]?.normalizedPrompt).toContain('Exhaustive prose shot plan')
     expect(calls[0]?.normalizedPrompt).toContain('immutable canonical location reference')

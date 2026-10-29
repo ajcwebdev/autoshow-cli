@@ -1,12 +1,15 @@
 import { afterEach } from 'bun:test'
 import { mkdir, rm } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
+import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import {
   buildContinuityJudgeEntry
 } from '~/cli/commands/visuals/comic/comic-commands/generate-images/continuity-qa'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
 import type { ContinuityJudgeEntry, ContinuityJudgeRequest, ContinuityJudgeResult, ContinuityLabelsFile, PageQaEntry, PanelBundleData } from '~/types'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
+import { createLiveLocationFixture } from '../../../../test-utils/live-location-reference-fixture'
 export type FixturePanel = { number: number; characterKeys: string[]; locationKey?: string }
 export const setupContinuityContractFixtures = () => {
   const temporaryDirectories: string[] = []
@@ -35,21 +38,9 @@ export const setupContinuityContractFixtures = () => {
     temporaryDirectories.push(runDirectory)
     beginSceneRun(sceneSlug, { outputDir: runDirectory })
     const characters = ['hero', 'rival']
-    for (const key of characters) {
-      const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', key)
-      await mkdir(characterRoot, { recursive: true })
-      await Bun.write(join(characterRoot, 'reference.png'), tinyPng)
-    }
-    await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: characters.map(key => ({ key, name: key === 'hero' ? 'Hero' : 'Rival', description: key === 'hero' ? 'Test hero in a blue uniform' : 'Test rival in a red coat', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: `assets/character-references/character-snapshot/${key}/reference.png`, sha256: sha }, { role: 'source-image', path: `assets/character-references/character-snapshot/${key}/reference.png`, sha256: sha }] })) }))
+    await createLiveCharacterFixture(runDirectory, characters.map(key => ({ key, name: key === 'hero' ? 'Hero' : 'Rival', description: key === 'hero' ? 'Test hero in a blue uniform' : 'Test rival in a red coat', image: `${key}.png`, outlineSheet: `${key}.png`, aliases: [] })))
     const locationKeys = Array.from(new Set(panels.map(panel => panel.locationKey ?? 'cargo-bay')))
-    const snapshots = []
-    for (const key of locationKeys) {
-      const sheet = join(runDirectory, 'assets', 'location-references', `location-${key}`, `${key}.png`)
-      await mkdir(dirname(sheet), { recursive: true })
-      await Bun.write(sheet, tinyPng)
-      snapshots.push({ schemaVersion: 3, snapshotId: `location-${key}`, locationKey: key, specification: `${key}: a loading door stays left of a fixed control booth.`, sourceScripts: ['scripts/02-script/01.md'], views: [{ view: 'establishing', generationId: 'v1', imageSha256: sha, path: `assets/location-references/location-${key}/${key}.png`, label: `establishing view of ${key}` }] })
-    }
-    await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 3, snapshots }))
+    await createLiveLocationFixture(runDirectory, locationKeys.map(key => ({ key, name: key, specification: `${key}: a loading door stays left of a fixed control booth.`, sourceScripts: ['scripts/02-script/01.md'] })), tinyPng)
     for (const panel of panels) {
       const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-${String(panel.number).padStart(2, '0')}`)
       await mkdir(directory, { recursive: true })
@@ -107,6 +98,7 @@ export const setupContinuityContractFixtures = () => {
 
   afterEach(async () => {
     resetSceneRunContext()
+    configureCharactersRoot('input/characters')
     await Promise.all(temporaryDirectories.splice(0).map(path => rm(path, { recursive: true, force: true })))
   })
   return { temporaryDirectories, tinyPng, sha, JUDGE_MODEL, locationOf, panelBundle, createSceneFixture, continuityResult, entryFor, judgeRequest, pageQaEntry, labelsFile, verdicts }

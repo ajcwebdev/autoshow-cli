@@ -28,8 +28,8 @@ export const prepareSegmentedTurnText = (
   text: string,
   target: TtsTarget,
   delivery?: string | undefined
-) => target.service === 'elevenlabs' && target.model === 'eleven_v3'
-  ? prepareElevenLabsDialogueText(text, delivery)
+) => target.service === 'elevenlabs' && (target.model === 'eleven_v3' || target.model === 'eleven_v4')
+  ? prepareElevenLabsDialogueText(text, delivery, target.model)
   : preparedText(text)
 
 export const serializesComicDelivery = (

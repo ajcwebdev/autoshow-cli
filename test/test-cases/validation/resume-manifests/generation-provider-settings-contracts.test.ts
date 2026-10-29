@@ -28,12 +28,12 @@ const only = <T,>(values: T[]): T => {
 
 describe('generation provider settings in run records', () => {
   test('OpenAI image records runner defaults when no overrides are given', async () => {
-    const target = only(collectOpenAIImageTargets({ openaiImageModels: ['gpt-image-2'] } as ImageGenOptions))
+    const target = only(collectOpenAIImageTargets({ openaiImageModels: ['gpt-image-2.5-flare'] } as ImageGenOptions))
     const { options, settings } = await writeAndReadSettings('image', target)
     expect(options).toEqual({})
     expect(settings?.settingsSchema).toBe('openai.image.v1')
     expect(settings?.request).toEqual({
-      model: 'gpt-image-2',
+      model: 'gpt-image-2.5-flare',
       mode: 'generation',
       count: 1,
       size: 'auto',
@@ -46,7 +46,7 @@ describe('generation provider settings in run records', () => {
 
   test('OpenAI image records explicit overrides instead of defaults', async () => {
     const target = only(collectOpenAIImageTargets({
-      openaiImageModels: ['gpt-image-2'],
+      openaiImageModels: ['gpt-image-2.5-flare'],
       imageCount: 2,
       imageSize: '1024x1536',
       imageQuality: 'high',

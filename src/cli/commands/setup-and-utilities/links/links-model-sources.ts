@@ -15,7 +15,6 @@ export const UNDOCUMENTED_MODEL_IDS: ReadonlyMap<string, string> = new Map<strin
 
   ['stt/scrapecreators/youtube-transcript', 'Registry label for the /v1/youtube/video/transcript endpoint, which has no model ID.'],
   ['stt/mistral/voxtral-mini-2602', 'Mistral\'s model card renders the API name in the browser; its guides say voxtral-mini-latest.'],
-  ['extract/mistral/mistral-ocr-4-0', 'Mistral\'s model card renders the API name in the browser; its guides say mistral-ocr-latest.'],
   ['extract/mistral/mistral-ocr-4-1', 'Mistral\'s model card renders the API name in the browser; its guides say mistral-ocr-latest.']
 ])
 

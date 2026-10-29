@@ -43,7 +43,7 @@ globalThis.fetch = async (input, init) => {
   return Response.json({ id: 'resp_harborlight_test', object: 'response', status: 'completed', model, output: [{ id: 'msg_harborlight_test', type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: readFileSync(${JSON.stringify(sceneFile)}, 'utf8'), annotations: [] }] }], usage: { input_tokens: 200, output_tokens: 200, total_tokens: 400 } })
  }
  if (url === 'https://api.openai.com/v1/images/edits' || url === 'https://api.openai.com/v1/images/generations') {
-  if (model !== 'gpt-image-2') throw new Error('Unexpected comic image model')
+  if (model !== 'gpt-image-2.5-flare') throw new Error('Unexpected comic image model')
   return Response.json({ created: 1792012800, data: [{ b64_json: readFileSync('input/examples/comic/harborlight/harborlight-camp.png').toString('base64') }], usage: { input_tokens: 20, output_tokens: 20, total_tokens: 40 } })
  }
  if (url === 'https://api.openai.com/v1/audio/speech') {
@@ -128,19 +128,19 @@ test('controlled hosted scene, sketch sheet and final panels feed real snapshots
   const noVoices = await w.cli(['generate-audio', w.script, '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--price'])
   expect(noVoices.code).not.toBe(0)
   expect(await w.calls()).toHaveLength(1)
-  await w.success(['generate-images', w.script, '--target', 'sketches', '--provider', 'openai=gpt-image-2'], true)
+  await w.success(['generate-images', w.script, '--target', 'sketches', '--provider', 'openai=gpt-image-2.5-flare'], true)
   expect((await w.calls()).filter(url => url.includes('/images/'))).toHaveLength(1)
   const sketchRunId = await selectedImageRunId(w.run), sketchPath = join(w.run, `sketches/${sketchRunId}/panels-01-04.png`)
   expect(await Bun.file(sketchPath).exists()).toBe(true)
   const sketchBytes = new Uint8Array(await Bun.file(sketchPath).arrayBuffer())
   await expect(publishHarborlightPanels(w.root, sketchRunId)).rejects.toThrow('Select one completed single-model canonical individual-panel run')
-  await w.success(['generate-images', w.script, '--target', 'images', '--provider', 'openai=gpt-image-2', '--no-qa', '--max-repairs', '0'], true)
+  await w.success(['generate-images', w.script, '--target', 'images', '--provider', 'openai=gpt-image-2.5-flare', '--no-qa', '--max-repairs', '0'], true)
   expect((await w.calls()).filter(url => url.includes('/images/'))).toHaveLength(5)
   const imageRunId = await selectedImageRunId(w.run)
   expect(imageRunId).not.toBe(sketchRunId)
   const imageStates = (await readManifest(w.run))!.items[0]!.providers.filter(provider => provider.operation === 'comic-image')
   expect(imageStates).toHaveLength(1)
-  expect(imageStates[0]).toMatchObject({ status: 'succeeded', model: 'gpt-image-2', options: { target: 'images', panelsPerImage: 1 }, metadata: { runId: imageRunId } })
+  expect(imageStates[0]).toMatchObject({ status: 'succeeded', model: 'gpt-image-2.5-flare', options: { target: 'images', panelsPerImage: 1 }, metadata: { runId: imageRunId } })
   await publishHarborlightPanels(w.root, imageRunId)
   expect(new Uint8Array(await Bun.file(sketchPath).arrayBuffer())).toEqual(sketchBytes)
   await w.success(['review', w.script, '--export-doc'])
@@ -152,7 +152,7 @@ test('controlled synthetic dialogue supports decoded local audio and synchronize
   await Bun.write(w.sceneFile, JSON.stringify(sceneResponse(structured)))
   await w.success(['draft-scenes', w.script, '--only', 'scene', '--panel-count', '4', '--provider', 'openai=gpt-6.1-sol'], true)
   await w.success(['draft-scenes', w.script, '--only', 'panel-prompts'])
-  await w.success(['generate-images', w.script, '--target', 'images', '--provider', 'openai=gpt-image-2', '--no-qa', '--max-repairs', '0'], true)
+  await w.success(['generate-images', w.script, '--target', 'images', '--provider', 'openai=gpt-image-2.5-flare', '--no-qa', '--max-repairs', '0'], true)
   // Test-only approved snapshot: never copied to user fixtures or presented as a reviewed real voice.
   const structuredRef = createStructuredScriptArtifactRef(bytes), sceneRunIdentity = computeSceneRunIdentity(structured.sourceIdentity, structuredRef), createdAt = (await readManifest(w.run))!.createdAt
   const dialogue = createComicDialoguePlan({ structuredScript: structured, sourceIdentity: structured.sourceIdentity, structuredScriptRef: structuredRef, sceneRunIdentity, createdAt })

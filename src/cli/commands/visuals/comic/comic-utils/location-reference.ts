@@ -1,14 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { mkdir } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
-import { checksumFile } from '../comic-commands/process-scenes/character-utils'
 import { loadCharacterCatalog } from './character-reference-config'
 import { AppValidationError, InfraError, ValidationError } from '~/utils/error-handler'
-import { getLocationReferencesDirectory, getSceneAssetsDirectory } from './project-paths'
-import type { CurrentLocationReference, LocationReferenceCatalog, LocationReferenceEntry, LocationReferenceSnapshotManifestV3, LocationReferenceSnapshotV3, LocationReferenceSnapshotView, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView, LocationViewLineage } from '~/types'
-import { atomicWriteJson } from '~/utils/filesystem'
-import { copyFileExact } from '~/utils/bun-file-io'
+import { getSceneAssetsDirectory } from './project-paths'
+import type { CurrentLocationReference, LocationReferenceCatalog, LocationReferenceEntry, LocationReferenceSnapshotManifestV3, LocationReferenceSnapshotV3, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView, LocationViewLineage } from '~/types'
 
 export const LOCATION_VIEWS = ['establishing', 'reverse', 'side'] as const
 export const LOCATION_VIEW_LINEAGES = ['clean', 'mixed'] as const
@@ -139,9 +135,13 @@ const parseSketchManifest = (value: unknown, path: string): LocationSketchManife
 }
 
 export const readLocationSketchManifest = async (): Promise<LocationSketchManifest> => {
+  return readLocationSketchManifestSync()
+}
+
+export const readLocationSketchManifestSync = (): LocationSketchManifest => {
   const path = getLocationSketchManifestPath()
-  if (!(await Bun.file(path).exists())) return { schemaVersion: 2, sketches: [] }
-  try { return parseSketchManifest(JSON.parse(await Bun.file(path).text()), path) }
+  if (!existsSync(path)) return { schemaVersion: 2, sketches: [] }
+  try { return parseSketchManifest(JSON.parse(readFileSync(path, 'utf8')), path) }
   catch (error) {
     if (error instanceof AppValidationError) throw error
     throw ValidationError(`Invalid location sketch manifest JSON at ${path}`, { stage: 'comic:location-reference', cause: error instanceof Error ? error : undefined })
@@ -162,17 +162,22 @@ export const resolveRegisteredLocationImagePath = (image: string): string => res
 export const specificationHash = (specification: string): string => new Bun.CryptoHasher('sha256').update(specification).digest('hex')
 
 export const requireCurrentLocationReference = async (rawLocation: string): Promise<CurrentLocationReference> => {
-  const catalog = await readLocationReferenceCatalog()
+  return requireCurrentLocationReferenceSync(rawLocation)
+}
+
+export const requireCurrentLocationReferenceSync = (rawLocation: string, options: { requireCurrentSpecification?: boolean } = {}): CurrentLocationReference => {
+  const catalog = readLocationReferenceCatalogSync()
   const entry = resolveLocationCatalogEntry(rawLocation, catalog)
-  const manifest = await readLocationSketchManifest()
+  const manifest = readLocationSketchManifestSync()
   const registration = manifest.sketches.find(item => item.locationKey === entry.key)
   if (!registration) throw ValidationError(`Location "${entry.key}" has no registered establishing reference. Run: bun autoshow comic reference-sketch --location ${entry.key}`, { stage: 'comic:location-reference' })
-  if (registration.specificationSha256 !== specificationHash(entry.specification)) throw ValidationError(`Registered location reference for "${entry.key}" is stale`, { stage: 'comic:location-reference' })
+  if (options.requireCurrentSpecification !== false && registration.specificationSha256 !== specificationHash(entry.specification)) throw ValidationError(`Registered location reference for "${entry.key}" is stale`, { stage: 'comic:location-reference' })
   const views = []
   for (const view of registration.views) {
     const imagePath = resolveRegisteredLocationImagePath(view.image)
-    if (!(await Bun.file(imagePath).exists())) throw InfraError(`Registered location ${view.view} image is missing: ${imagePath}`, { stage: 'comic:location-reference' })
-    if (view.imageSha256 !== await checksumFile(imagePath)) throw ValidationError(`Registered location ${view.view} image for "${entry.key}" is modified`, { stage: 'comic:location-reference' })
+    if (!existsSync(imagePath)) throw InfraError(`Registered location ${view.view} image is missing: ${imagePath}`, { stage: 'comic:location-reference' })
+    const checksum = new Bun.CryptoHasher('sha256').update(readFileSync(imagePath)).digest('hex')
+    if (view.imageSha256 !== checksum) throw ValidationError(`Registered location ${view.view} image for "${entry.key}" is modified`, { stage: 'comic:location-reference' })
     views.push({ ...view, imagePath })
   }
   return { entry, registration, views, sheetPath: views[0]!.imagePath }
@@ -184,38 +189,23 @@ export const getLocationSnapshotViewFilename = (key: string, view: LocationView)
 
 export const describeLocationSnapshotView = (key: string, view: LocationView): string => `${view} view of ${key}`
 
-const snapshotCurrentLocationReference = async (runDirectory: string, current: CurrentLocationReference): Promise<LocationReferenceSnapshotV3> => {
-  const snapshotId = `${Date.now()}-${crypto.randomUUID().slice(0, 12)}`
-  const directory = join(getLocationReferencesDirectory(runDirectory), snapshotId)
-  await mkdir(directory, { recursive: true })
-  const views: LocationReferenceSnapshotView[] = []
-  for (const view of current.views) {
-    const destination = join(directory, getLocationSnapshotViewFilename(current.entry.key, view.view))
-    await copyFileExact(view.imagePath, destination)
-    const copiedSha256 = await checksumFile(destination)
-    if (copiedSha256 !== view.imageSha256) throw InfraError(`Location ${view.view} snapshot copy for "${current.entry.key}" does not match the registered image`, { stage: 'comic:location-reference' })
-    views.push({
-      view: view.view,
-      generationId: view.generationId,
-      imageSha256: view.imageSha256,
-      path: relative(runDirectory, destination).replace(/\\/g, '/'),
-      label: describeLocationSnapshotView(current.entry.key, view.view),
-    })
-  }
-  return {
-    schemaVersion: LOCATION_SNAPSHOT_SCHEMA_VERSION,
-    snapshotId,
-    locationKey: current.entry.key,
-    specification: current.entry.specification,
-    sourceScripts: [...current.entry.sourceScripts],
-    views,
-  }
-}
+const describeCurrentLocationReference = (runDirectory: string, current: CurrentLocationReference): LocationReferenceSnapshotV3 => ({
+  schemaVersion: LOCATION_SNAPSHOT_SCHEMA_VERSION,
+  snapshotId: `live:${current.entry.key}`,
+  locationKey: current.entry.key,
+  specification: current.entry.specification,
+  sourceScripts: [...current.entry.sourceScripts],
+  views: current.views.map(view => ({
+    view: view.view,
+    generationId: view.generationId,
+    imageSha256: view.imageSha256,
+    path: relative(runDirectory, view.imagePath).replace(/\\/g, '/'),
+    label: describeLocationSnapshotView(current.entry.key, view.view),
+  })),
+})
 
 export const createLocationReferenceSnapshots = async (runDirectory: string, locationKeys: string[]): Promise<LocationReferenceSnapshotManifestV3> => {
   const snapshots: LocationReferenceSnapshotV3[] = []
-  for (const key of Array.from(new Set(locationKeys))) snapshots.push(await snapshotCurrentLocationReference(runDirectory, await requireCurrentLocationReference(key)))
-  const manifest: LocationReferenceSnapshotManifestV3 = { schemaVersion: LOCATION_SNAPSHOT_SCHEMA_VERSION, snapshots }
-  await atomicWriteJson(getLocationReferenceSnapshotsPath(runDirectory), manifest)
-  return manifest
+  for (const key of Array.from(new Set(locationKeys))) snapshots.push(describeCurrentLocationReference(runDirectory, requireCurrentLocationReferenceSync(key, { requireCurrentSpecification: false })))
+  return { schemaVersion: LOCATION_SNAPSHOT_SCHEMA_VERSION, snapshots }
 }

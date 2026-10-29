@@ -17,17 +17,17 @@ describe('OCR manifest logging contracts', () => {
 
     expect(summary.runSummary?.entries[0]).toMatchObject({
       step: 'Extract',
-      providerModel: 'openai/gpt-5.6-luna',
+      providerModel: 'openai/gpt-6-luna',
       predictedCostCents: 0.58044,
       actualCostCents: 0.3075
     })
     expect(summary.promptUsage?.entries[0]).toMatchObject({
       step: 'Extract',
-      providerModel: 'openai/gpt-5.6-luna',
+      providerModel: 'openai/gpt-6-luna',
       usage: '6000/1500 tok'
     })
     expect(summary.ocrCostCalculation?.entries[0]).toMatchObject({
-      providerModel: 'openai/gpt-5.6-luna',
+      providerModel: 'openai/gpt-6-luna',
       pages: 2,
       predictedInputs: '5972/3688 tok',
       actualInputs: '6000/1500 tok',
@@ -64,29 +64,29 @@ describe('OCR manifest logging contracts', () => {
 
     expect(summary.runSummary?.entries[1]).toMatchObject({
       step: 'Extract (partial)',
-      providerModel: 'deepinfra/deepinfra-latest (failed partial)',
+      providerModel: 'grok/grok-4.7 (failed partial)',
       actualCostSource: 'partial_provider_usage',
       actualInputMetric: 'pages',
       actualInputValue: 227
     })
     expect(summary.promptUsage?.entries[1]).toMatchObject({
       step: 'Extract (partial)',
-      providerModel: 'deepinfra/deepinfra-latest (failed partial)',
+      providerModel: 'grok/grok-4.7 (failed partial)',
       usage: '971207/107681 tok / 227/228 pages'
     })
     expect(summary.ocrCostCalculation?.entries[1]).toMatchObject({
-      providerModel: 'deepinfra/deepinfra-latest (failed partial)',
+      providerModel: 'grok/grok-4.7 (failed partial)',
       pages: '227/228',
       actualInputs: '971207/107681 tok; partial failed',
       actualCostCents: 0.7
     })
 
-    expect(summary.runSummary?.entries[1]?.providerModel).toContain('deepinfra/deepinfra-latest (failed partial)')
+    expect(summary.runSummary?.entries[1]?.providerModel).toContain('grok/grok-4.7 (failed partial)')
   })
 
   test('partial OCR metadata aggregates local cached page-result tokens without leaking source names', async () => {
     const outputDir = await mkdtemp(join(process.cwd(), '.autoshow-partial-ocr-'))
-    const target = { service: 'deepinfra' as const, model: 'deepinfra-latest' }
+    const target = { service: 'grok' as const, model: 'grok-4.7' }
     const pageResultsDir = join(outputDir, 'providers', getOcrTargetDirectoryName(target), 'page-results')
 
     try {
@@ -99,9 +99,9 @@ describe('OCR manifest logging contracts', () => {
         pageNumber: 1,
         run: {
           pages: [{ pageNumber: 1, method: 'ocr', text: 'alpha page' }],
-          extractionMethod: 'deepinfra-ocr',
-          ocrService: 'deepinfra',
-          ocrModel: 'deepinfra-latest',
+          extractionMethod: 'grok-ocr',
+          ocrService: 'grok',
+          ocrModel: 'grok-4.7',
           totalPages: 1,
           promptTokens: 10,
           completionTokens: 3
@@ -115,9 +115,9 @@ describe('OCR manifest logging contracts', () => {
         pageNumber: 2,
         run: {
           pages: [{ pageNumber: 2, method: 'ocr', text: 'beta page' }],
-          extractionMethod: 'deepinfra-ocr',
-          ocrService: 'deepinfra',
-          ocrModel: 'deepinfra-latest',
+          extractionMethod: 'grok-ocr',
+          ocrService: 'grok',
+          ocrModel: 'grok-4.7',
           totalPages: 1,
           promptTokens: 20,
           completionTokens: 4
@@ -130,9 +130,9 @@ describe('OCR manifest logging contracts', () => {
         pageNumber: 3,
         run: {
           pages: [{ pageNumber: 3, method: 'ocr', text: 'source-less page' }],
-          extractionMethod: 'deepinfra-ocr',
-          ocrService: 'deepinfra',
-          ocrModel: 'deepinfra-latest',
+          extractionMethod: 'grok-ocr',
+          ocrService: 'grok',
+          ocrModel: 'grok-4.7',
           totalPages: 1,
           promptTokens: 100,
           completionTokens: 100
@@ -143,7 +143,7 @@ describe('OCR manifest logging contracts', () => {
         outputDir,
         requestedTargets: [target],
         failuresByIndex: new Map([[0, {
-          message: 'DeepInfra OCR page 3 timed out after 10m',
+          message: 'Grok OCR page 3 timed out after 10m',
           category: 'timeout',
           failureKind: 'timeout',
           retryable: true,
@@ -155,7 +155,7 @@ describe('OCR manifest logging contracts', () => {
 
       expect(partial).toHaveLength(1)
       expect(partial[0]).toMatchObject({
-        extractionMethod: 'deepinfra-ocr',
+        extractionMethod: 'grok-ocr',
         totalPages: 3,
         completedPages: 2,
         failedPages: 1,

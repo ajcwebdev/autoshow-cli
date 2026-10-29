@@ -19,14 +19,14 @@ const page = (pageNumber: number, text: string): PageResult => ({
 
 describe('OCR PDF chapter detection contracts', () => {
   for (const selection of [
-    { llmService: 'glm', llmModel: 'glm-5.3' },
-    { llmService: 'kimi', llmModel: 'kimi-k3' },
-    { llmService: 'together', llmModel: 'glm-5.3' },
+    { llmService: 'glm', llmModel: 'retired-model' },
+    { llmService: 'kimi', llmModel: 'retired-model' },
+    { llmService: 'together', llmModel: 'retired-model' },
     { llmService: 'unknown', llmModel: 'model' },
     { llmService: '__proto__', llmModel: 'model' },
     { llmService: 'openai', llmModel: 'unimplemented-model' },
     { llmService: 'openai', llmModel: '__proto__' },
-    { llmService: 'anthropic', llmModel: 'claude-sonnet-5' }
+    { llmService: 'anthropic', llmModel: 'claude-sonnet-4' }
   ]) {
     test(`unsupported chapter LLM ${selection.llmService}/${selection.llmModel} rejects before reading the dossier`, async () => {
       await expect(resolveLlmCandidates({
@@ -341,7 +341,7 @@ describe('OCR PDF chapter detection contracts', () => {
       languages: 'eng',
       tokenEstimate: 2,
       ocrService: 'gemini',
-      ocrModel: 'gemini-3.5-flash',
+      ocrModel: 'gemini-3.8-flash',
       chapterExport: {
         sourceFormat: 'pdf',
         mode: 'chapters',

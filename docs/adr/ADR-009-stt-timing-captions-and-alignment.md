@@ -4,9 +4,9 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-11
-- **Date Updated:** 2026-09-22
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
-- **Supersession:** Absorbs the STT execution, timing provenance, caption export, local alignment, channel merge, and speaker-reconciliation authority of "Extract Execution and Artifact Contracts", including its September 2026 STT caption and timing archive. OCR execution moved to [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md) and URL execution to [ADR-001](ADR-001-source-ingestion-and-normalization.md). This record is the accepted authority for Step 2 STT execution and the public STT artifacts.
+- **Supersession:** Absorbs the STT execution and artifact decisions from "Extract Execution and Artifact Contracts". OCR execution moved to [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md) and URL execution to [ADR-001](ADR-001-source-ingestion-and-normalization.md).
 
 ## Context
 
@@ -30,23 +30,23 @@ Why now: the September 2026 STT audit needed one execution and artifact contract
 - **Option:** Depend on native subtitle exports or the transcript-video renderer
 - **Pros:** Reuses provider formatting or an established rendering path
 - **Cons:** Leaves integrations without native exports uncovered and couples captions to inference or video rendering
-- **Quantitative Notes:** Rejected
+- **Quantitative Notes:** n/a
 
 **Option 3**
 
 - **Option:** Replace missing or invalid provider boundaries with uniformly spaced words and treat automatic alignment as verified timing
 - **Pros:** Superficially consistent word cues
 - **Cons:** Hides source defects and confuses interpolation with acoustic evidence
-- **Quantitative Notes:** Rejected; a live sample had 12 zero-duration words out of 24
+- **Quantitative Notes:** Rejected; observed zero-duration words require explicit repair provenance
 
 ## Decision
 
-STT owns its adapters, retries, response handling, normalized output, and artifacts, above the provider identity shared with URL and OCR extraction. Canonical timing evidence is saved before any caption file is written, and captions, local alignment, comparison, channel merges, and reviewed speaker maps are derived from it without repeating provider inference. `extract --provider` and `resume` use the same route-qualified STT names, and a stored STT run cannot resume as OCR.
+Save canonical STT evidence before caption export and derive captions, local alignment, comparisons, channel merges, and reviewed text or speaker maps without repeating provider inference. `extract --provider` and `resume` use the same STT provider selectors, and a stored STT run cannot resume as OCR.
 
 This applies to:
 
 - STT execution, retries, response handling, normalized output, and Step 2 artifact writes.
-- Timing provenance, caption exports, local alignment and comparison, channel merging, reviewed speaker-label reconciliation, and per-model diarization capability labels.
+- Timing provenance, caption exports, local alignment and comparison, channel merging, offline transcript review, reviewed speaker-label reconciliation, and per-model diarization capability labels.
 
 It does not apply to:
 
@@ -60,26 +60,26 @@ It does not apply to:
 
 ### Timing evidence and captions
 
-`result.json` stores numeric word ranges, text, confidence, speakers, raw and chunk evidence, and applied source offsets before any caption file is written. Timing is labeled native, token-derived, aligned, generated, repaired, caption-span, interpolated, or mixed. A retained `rawResponse` is evidence, not a promise that every wire field was kept. Fractional offsets stay fractional, each source offset is applied once, and a local speaker ID is scoped to its chunk or channel, so matching IDs do not by themselves mean the same person.
+`result.json` preserves the available word ranges, text, confidence, speakers, source offsets, and provider evidence before caption export. Timing labels distinguish native, derived, aligned, generated, repaired, caption-span, interpolated, and mixed evidence. Fractional offsets stay fractional and are applied once. Speaker IDs are scoped to their chunk or channel; matching IDs alone do not establish the same person.
 
 Caption export checks finite, nonnegative, positive-duration intervals, duplicate spans, and full transcript coverage, and keeps valid overlaps and original provider boundaries. It fills an uncovered or invalid word only when a usable segment bound exists, counts that inference, and fails when uncovered text has no usable timing. `captions.json` records cue timing, quality, invalid and inferred counts, format limits, and warnings; it is derived output and not resume authority.
 
-Fresh media is transcribed once per selected model. Canonical results and successful provider state are saved first, and captions are exported outside the transcription retry loop, so an export failure keeps the transcription and writes diagnostics. Export from a saved result is local and needs neither the audio nor a video renderer. An optional native subtitle file reuses the same inference or completed job; a native split-chunk file stays on provider-relative time, while a combined export uses the recording timeline. Requesting native exports on resume does not create export jobs for a target that already succeeded, and resume rejects a transcription setting change that would reuse incompatible evidence.
+Canonical results and successful provider state are saved before caption export, outside the transcription retry loop, so an export failure preserves the transcription. Export from a saved result is local and needs neither the audio nor a video renderer. Optional native subtitle files reuse the same inference or completed job; split files keep provider-relative time, while a combined local export uses the recording timeline. Resume keeps completed targets and rejects transcription setting changes that would reuse incompatible evidence.
 
 Diarization support is resolved for the concrete model and labeled documented, provisional, or live-tested. Together diarization defaults off. Mistral `voxtral-mini-2602` returns native word timing only with diarization off and segments with it. A generated Gemini timestamp or speaker hypothesis, a retrieved caption, and a channel label are not a native acoustic measurement or a verified identity.
 
 ### Local alignment, channels, and speakers
 
-Local forced alignment needs supplied text whose segments are complete, positive, and non-overlapping, plus explicit paths to an installed model and runtime. Original evidence and hashes are preserved, new timing is marked aligned and `manuallyVerified: false`, and a word below the configured confidence threshold is withheld from publication and kept in diagnostics. Comparison scores ordered lexical matches, coverage, boundary error, tolerance bands, speaker-label agreement, and signed drift, and rejects an invalid interval. Calibration does not change transcription defaults.
+Local forced alignment needs supplied text with complete, positive, non-overlapping segment ranges of at most 30 seconds, an explicit installed model path, and the separately installed alignment runtime. New timing is marked aligned and `manuallyVerified: false`. Any word below the configured confidence threshold blocks the aligned `result.json`; diagnostics, working files, and the original transcript remain available. Comparison measures ordered lexical matches, coverage, boundary error, speaker-label agreement, and drift, and rejects invalid intervals. Calibration does not change transcription defaults.
 
-Channel extraction keeps every stream at its original sample rate. Merge checks full text coverage, applies offsets once, preserves overlaps, and rejects a result that is already merged. Speaker reconciliation requires an explicit map tied to the source SHA-256 and a review reason; it does not infer identity from the audio. These local workflows write separate derived files, leave the source files in place, and show zero provider cost under `--price`. Flags, setup, and examples are in the [STT command guide](../commands/02-extract/stt/overview.md) and [local timing and speaker workflows](../commands/02-extract/stt/workflows/timing/overview.md#local-timing-and-speaker-workflows).
+Channel extraction preserves the original sample rate. Merge checks full text coverage, applies offsets once, preserves overlaps, and rejects already merged results. Speaker reconciliation requires an explicit map tied to the source SHA-256 and a review reason; it does not infer identity from audio. Offline transcript review similarly binds edits to the source hash, expected words, and a reason, then writes a separate reviewed result without overwriting its source. Local workflows preserve existing files and report zero provider cost under `--price`; flags and examples belong in the command guides under References.
 
 ## Rationale
 
 - Full text coverage and explicit timing labels stop a dropped word or an inferred interval from being presented as native word evidence.
 - Saving a successful transcription before caption export allows a later local export without a second provider charge.
 - Diarization capability resolved per concrete model keeps documented, provisional, and live-tested support from being read as the same claim.
-- Automatic-reference measurements and one live model sample support only the claims those samples can carry, not general acoustic accuracy or speaker identity.
+- Automatic references and live endpoint checks do not establish general acoustic accuracy or verified speaker identity.
 
 ## Consequences
 
@@ -110,17 +110,17 @@ Negative outcomes:
 **Trade-off 3**
 
 - **Gain:** Local alignment, comparison, and calibration without a provider charge
-- **Sacrifice:** Explicit model and runtime paths, withheld low-confidence words, and results marked aligned or repaired rather than verified
+- **Sacrifice:** Separate model and runtime installation, rejection of low-confidence alignment, and results marked aligned or repaired rather than verified
 
 ## Implementation Note
 
-`extract` ships this contract for STT, with `result.json`, `captions.json`, the five caption formats, optional native subtitle exports, and the local alignment, comparison, channel, and speaker-map workflows. The command guides under References are the operator surface for flags, artifact names, and examples.
+`extract` implements this contract through `src/cli/commands/stt/stt-utils/stt-result-artifacts.ts` and the caption, timing, and transcript-review workflows under `src/cli/commands/stt/workflows/`.
 
 ### STT Caption and Timing Archive
 
-The September 2026 caption and timing follow-ups closed on 2026-09-10, and the limits below still bound what a passing STT run may claim. Automatic English references were built from existing local files and are marked `manuallyVerified: false`; they are not acoustic ground truth. Alignment cannot recover omitted speech, decide wording, separate overlapping voices, or verify speakers, its confidence is an emission score rather than a calibrated probability, and two English excerpts do not establish a hosted-provider ranking, multilingual or overlapping-speaker accuracy, number handling, or verified speaker identity.
+The September 2026 audit used automatic English references marked `manuallyVerified: false`, not acoustic ground truth. Alignment cannot recover omitted speech, decide wording, separate overlapping voices, or verify speakers. Its confidence is an emission score rather than a calibrated probability; those samples do not establish provider rankings or accuracy for other languages or overlapping speech.
 
-One approved six-second Together `nvidia/parakeet-tdt-0.6b-v3` run with diarization returned 24 words, 12 of them zero-duration; SRT and VTT export kept all 24 words, reported 12 invalid and 12 inferred timings, and left the native intervals unchanged. That sample sets `diarizationValidation: live-tested` for endpoint compatibility only. It is not verified speaker identity, not uniformly valid native word timing, and not a timing ranking, and it stays out of timing comparisons.
+A Together `nvidia/parakeet-tdt-0.6b-v3` diarization sample returned zero-duration words that caption export repaired without changing native evidence. Its `live-tested` capability label establishes endpoint compatibility only, and the sample remains excluded from timing comparisons.
 
 ## Test Plan
 
@@ -147,4 +147,5 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - Related ADR: [ADR-018](ADR-018-derive-cli-help-from-registries-and-generalize-provider-flags.md) — STT generic option flags and registry-derived help
 - STT command guide: [`docs/commands/02-extract/stt/overview.md`](../commands/02-extract/stt/overview.md)
 - Local STT timing and speaker workflows: [STT timing guide](../commands/02-extract/stt/workflows/timing/overview.md#local-timing-and-speaker-workflows)
+- Offline transcript review: [Transcript review guide](../commands/02-extract/stt/workflows/transcript-review/overview.md)
 - Extract command guide: [`docs/commands/02-extract/overview.md`](../commands/02-extract/overview.md)

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-10-15
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
 - **Supersession:** Replaces per-modality registry and reasoning configurations. Absorbs the calibration and billing-authority rules of "Govern Benchmark Evidence and Generated-Report Architecture" and the comic model-resolution decision of "Integrate Comic with Shared Model and Native CLI Infrastructure". This record is the accepted authority for selector identity, lifecycle, capability, reasoning, and pricing across write, OCR, STT, TTS, music, image, and video, and for every command that resolves models through the central registries. The benchmark evidence lifecycle and paid-approval rules live in [ADR-015](ADR-015-govern-documentation-examples-and-verification-evidence.md), and the combined-report architecture is documented in [docs/benchmarks/README.md](../benchmarks/README.md).
 
@@ -42,13 +42,6 @@ Why now: refreshes across every modality kept restating these rules, comic carri
 - **Quantitative Notes:** n/a
 
 **Option 4**
-
-- **Option:** Update selector validators without a shared policy
-- **Pros:** Small diffs
-- **Cons:** Can advertise models with wrong pricing, capabilities, defaults, or resume behavior
-- **Quantitative Notes:** n/a
-
-**Option 5**
 
 - **Option:** Mirror provider aliases and capability names directly
 - **Pros:** Follows upstream documentation closely
@@ -89,7 +82,7 @@ It does not apply to:
 
 ### Registry consumers
 
-Comic resolves LLM, image, QA, dialogue, and sound-effect models, prices, and hosted generation through these registries and keeps no private model list. Image selections omit fal, text selections match `write`, and QA selections are the vision-capable OpenAI and Gemini models. `--provider` and role-scoped `--<role>-provider` validate central registry IDs; comic domain rules such as target values, grid combinations, and reference-sheet modes are unchanged by registry resolution.
+Comic resolves LLM, image, QA, dialogue, and sound-effect models, prices, and hosted generation through these registries and keeps no private model list. Image selections match `image`, text selections match `write`, and QA selections are the vision-capable OpenAI and Gemini models. `--provider` and role-scoped `--<role>-provider` validate central registry IDs.
 
 ### Concrete selector identity
 
@@ -105,53 +98,89 @@ Every provider addition and refresh must document route-specific billing eligibi
 
 #### Excluded integrations
 
-On September 25, 2026, Hume, Cartesia, and Speechify TTS were removed at the user's direction, including their adapters, selectors, credentials, configuration, historical rates, and committed benchmark records. This policy exclusion supersedes ordinary model retirement and historical-rate retention for these providers. Ignored local inputs, outputs, credentials, and purchased audio remain untouched. Excluded selectors and saved settings fail locally; no compatibility aliases or automatic substitutions are provided.
+On September 25, 2026, Hume, Cartesia, and Speechify TTS were removed at the user's direction. This policy exclusion supersedes ordinary model retirement and historical-rate retention for these providers. Existing local assets remain untouched. Excluded selectors and saved settings fail locally without substitution.
 
 <!-- excluded-tts-providers:start -->
-| Provider  | Model identifiers                                                                                  | Removal decision                                                                                                                                  |
-| --------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hume      | `octave-1`, `octave-2`                                                                             | [Official FAQ](https://dev.hume.ai/docs/text-to-speech-tts/faq): Free and Starter cannot buy additional TTS usage; Creator or higher is required. |
-| Cartesia  | `sonic-3.6-2026-08-27`, `sonic-3.5-2026-05-04`, `sonic-3`, `sonic-3.6`, `sonic-preview`, `sonic-2` | [Official pricing](https://www.cartesia.ai/pricing): monthly plans supply model credits and paid subscribers receive overages.                    |
-| Speechify | `simba-3.2`, `simba-3.0`, `simba-english`                                                          | [Official API pricing](https://speechify.ai/pricing), rechecked 2026-09-25: Free cannot top up; continued usage requires a paid monthly plan.     |
-| Mistral   | `voxtral-mini-tts-2603`                                                                            | TTS and voice management removed; STT/OCR retained                                                                                                |
+
+**Provider: Hume**
+
+- **Model identifiers:** `octave-1`, `octave-2`
+- **Removal decision:** [Official FAQ](https://dev.hume.ai/docs/text-to-speech-tts/faq): Free and Starter cannot buy additional TTS usage; Creator or higher is required.
+
+**Provider: Cartesia**
+
+- **Model identifiers:** `sonic-3.6-2026-08-27`, `sonic-3.5-2026-05-04`, `sonic-3`, `sonic-3.6`, `sonic-preview`, `sonic-2`
+- **Removal decision:** [Official pricing](https://www.cartesia.ai/pricing): monthly plans supply model credits and paid subscribers receive overages.
+
+**Provider: Speechify**
+
+- **Model identifiers:** `simba-3.2`, `simba-3.0`, `simba-english`
+- **Removal decision:** [Official API pricing](https://speechify.ai/pricing), rechecked 2026-09-25: Free cannot top up; continued usage requires a paid monthly plan.
+
+**Provider: Mistral**
+
+- **Model identifiers:** `voxtral-mini-tts-2603`
+- **Removal decision:** TTS and voice management removed; STT/OCR retained
+
 <!-- excluded-tts-providers:end -->
 
-Mistral TTS and voice management were removed on September 25, 2026. Its STT/OCR models, pricing, credentials, shared REST client, and resume paths remain supported. Removed TTS selectors, controls, saved settings, reference-audio inputs, voice commands, and resume attempts fail locally without substitution. Existing Mistral manifests, benchmark evidence, registered assets, purchased audio, and remote voices remain intact; removal triggers no cleanup or remote deletion.
+Mistral TTS and voice management were removed on September 25, 2026; its STT/OCR support remains. Removed TTS selections, saved settings, voice commands, and resume attempts fail locally without substitution. Existing manifests, registered assets, purchased audio, and remote voices remain intact.
 
 The removed utterance endpoint was the only implementation of `--tts-trailing-silence`; that flag and its saved configuration key are removed too.
 
-
-On October 15, 2026, Firecrawl URL extraction, Supadata URL extraction and STT, Happy Scribe STT, and GLM Reader URL extraction were removed from active support. Firecrawl, Supadata, and Happy Scribe require recurring paid plans for continued usage. GLM Reader is excluded because the implemented REST route lacks a verified price and billing eligibility contract; this does not establish that the route is subscription-gated. Ordinary GLM write and OCR support remained active until the October 18 removal below.
+On October 15, 2026, Firecrawl URL extraction, Supadata URL extraction and STT, Happy Scribe STT, and GLM Reader URL extraction were removed. The dated billing review below excluded the first three providers for requiring recurring paid plans and GLM Reader for lacking a verified REST price and billing eligibility contract.
 
 <!-- excluded-extraction-providers:start -->
-| Provider     | Removed category/model tuples                    | Dated primary evidence and decision                                                                                                                                                                                                                                                       |
-| ------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Firecrawl    | `extract/firecrawl/firecrawl`                    | [Billing](https://docs.firecrawl.dev/billing), checked 2026-10-15: Free has no pay-as-you-go option; additional credits require a paid plan.                                                                                                                                              |
-| Supadata     | `extract/supadata/supadata`, `stt/supadata/auto` | [Pricing](https://supadata.ai/pricing), checked 2026-10-15: Free cannot recharge; paid subscriptions unlock recharge.                                                                                                                                                                     |
-| Happy Scribe | `stt/happyscribe/auto`                           | [Plans and pricing](https://help.happyscribe.com/en/articles/6906232-plans-and-pricing), published 2026-07-23 and checked 2026-10-15: the pay-as-you-go Starter offer was retired; one-off AI transcription requires a subscription.                                                      |
-| GLM Reader   | `extract/glm-reader/glm-reader`                  | [REST Reader](https://docs.z.ai/api-reference/tools/web-reader) and [pricing](https://docs.z.ai/guides/overview/pricing), checked 2026-10-15: no verified REST Reader tariff or independent billing entitlement. The Web Search price and Coding Plan Reader MCP are different contracts. |
+
+**Provider: Firecrawl**
+
+- **Removed category/model tuples:** `extract/firecrawl/firecrawl`
+- **Dated primary evidence and decision:** [Billing](https://docs.firecrawl.dev/billing), checked 2026-10-15: Free has no pay-as-you-go option; additional credits require a paid plan.
+
+**Provider: Supadata**
+
+- **Removed category/model tuples:** `extract/supadata/supadata`, `stt/supadata/auto`
+- **Dated primary evidence and decision:** [Pricing](https://supadata.ai/pricing), checked 2026-10-15: Free cannot recharge; paid subscriptions unlock recharge.
+
+**Provider: Happy Scribe**
+
+- **Removed category/model tuples:** `stt/happyscribe/auto`
+- **Dated primary evidence and decision:** [Plans and pricing](https://help.happyscribe.com/en/articles/6906232-plans-and-pricing), published 2026-07-23 and checked 2026-10-15: the pay-as-you-go Starter offer was retired; one-off AI transcription requires a subscription.
+
+**Provider: GLM Reader**
+
+- **Removed category/model tuples:** `extract/glm-reader/glm-reader`
+- **Dated primary evidence and decision:** [REST Reader](https://docs.z.ai/api-reference/tools/web-reader) and [pricing](https://docs.z.ai/guides/overview/pricing), checked 2026-10-15: no verified REST Reader tariff or independent billing entitlement. The Web Search price and Coding Plan Reader MCP are different contracts.
+
 <!-- excluded-extraction-providers:end -->
 
-These five tuples leave active selectors, model catalogs, live pricing, setup credentials, saved configuration, dispatch, and examples together. The provider-only `--stt-organization-id` and `--stt-chunk-size` flags are removed. Defuddle failures stop with the extraction error; no automatic Firecrawl fallback or other paid substitute is attempted, including article downloads and documentation links.
+These five tuples are excluded from active selection and dispatch. Their provider-only `--stt-organization-id` and `--stt-chunk-size` flags are removed. Defuddle failures stop with the extraction error; article downloads and documentation links do not silently fall back to a paid provider.
 
-Existing manifests, raw results, benchmark evidence, transcripts, cached media, remote jobs, and recorded costs remain intact. Historical identifiers and frozen rate references remain available for reading completed artifacts and reconstructing old estimates; GLM Reader's former Web Search-based estimate remains explicitly historical and unverified. Recorded charges retain precedence over those estimates. Completed provider states may be reused alongside newly selected active targets. An unfinished excluded target, an explicit excluded selection, or obsolete saved configuration fails locally before credential lookup or network dispatch, without changing the old target or selecting a replacement.
+Existing completed artifacts and recorded costs remain intact. Historical rates remain available; GLM Reader's former Web Search-based estimate is historical and unverified. Completed provider states may be reused alongside newly selected active targets. An unfinished excluded target, explicit excluded selection, or obsolete saved configuration fails locally before credential lookup or dispatch without substitution.
 
 On October 17, 2026, the model tuples below were excluded while their providers stay active. They are decisions, not pending additions: provider-model research must not recommend them again unless new primary evidence directly addresses the recorded reason, and restoring one needs a user decision.
 
 <!-- excluded-hosted-models:start -->
-| Provider   | Excluded category/model tuples                                                                             | Decision                                                                                                                                                                                                                                                                                                                                  |
-| ---------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cloudflare | `stt/cloudflare/@cf/deepgram/nova-3`                                                                       | Removed at the user's direction after the [October 2026 STT benchmarks](../benchmarks/README.md#october-2026-stt-refresh): direct Deepgram `deepgram=nova-3` was about 20% cheaper ($0.258/hr against $0.312/hr) and about 6.6x faster with diarization, with comparable quality (92.82 against 93.60). Cloudflare Whisper models remain. |
-| Together   | `stt/together/nvidia/nemotron-3.5-asr-streaming-0.6b`, `stt/together/nvidia/nemotron-3-asr-streaming-0.6b` | Not batch-callable: Together's transcription page lists them, but a 2026-10-17 `POST /v1/audio/transcriptions` request for Nemotron 3.5 returned 400 "This model only supports WebSocket streaming." Streaming transcription is outside current STT dispatch.                                                                             |
+
+**Provider: Cloudflare**
+
+- **Excluded category/model tuples:** `stt/cloudflare/@cf/deepgram/nova-3`
+- **Decision:** Removed at the user's direction after the [October 2026 STT benchmarks](../benchmarks/README.md#october-2026-stt-refresh) found direct Deepgram `deepgram=nova-3` cheaper and faster with comparable quality. Cloudflare Whisper models remain.
+
+**Provider: Together**
+
+- **Excluded category/model tuples:** `stt/together/nvidia/nemotron-3.5-asr-streaming-0.6b`, `stt/together/nvidia/nemotron-3-asr-streaming-0.6b`
+- **Decision:** Not batch-callable: Together's transcription page lists them, but a 2026-10-17 `POST /v1/audio/transcriptions` request for Nemotron 3.5 returned 400 "This model only supports WebSocket streaming." Streaming transcription is outside current STT dispatch.
+
 <!-- excluded-hosted-models:end -->
 
-These tuples leave selectors, registries, live pricing, defaults, `--all-*` expansion, and examples. Explicit selections fail locally before dispatch. Finished benchmark results for Cloudflare Nova-3 keep their identity, and its rate stays in historical pricing so they remain priced. The rejected Nemotron attempt is retained as an error artifact.
+Explicit selections of these tuples fail locally before dispatch. Finished Cloudflare Nova-3 benchmark results keep their identity and historical pricing.
 
 ### Complete runtime contract
 
 Adding, replacing, or retiring a selector updates the public contract together: accepted names, published prices and limits, bare-provider defaults, exact `--all-*` membership, model capabilities (modes, voices, languages, formats, durations, resolutions, references, and reasoning), help and examples, price preflight, resume, and the identity kept after active support ends.
 
-A provider or model that can run can also be resumed, and extract follows the STT or OCR route stored for that item. Invalid model or control combinations fail locally before price calculation, credential lookup, or dispatch. A listed model exposes only the controls it implements. A stored result keeps the provider that produced it.
+A hosted provider or model that can run can also be resumed, and extract follows the media, document, or article route stored for that item. Invalid model or control combinations fail locally before price calculation, credential lookup, or dispatch. A listed model exposes only the controls it implements. A stored result keeps the provider that produced it.
 
 ### Lifecycle, defaults, expansion, and retirement
 
@@ -161,9 +190,7 @@ Bare-provider selection uses the cheapest active default-eligible model unless a
 
 Retired names are rejected for new runs and omitted from defaults, help, current config, and `--all-*`. When a concrete successor exists, the error names it and leaves the stored identity unchanged. Finished manifests and benchmark artifacts keep the model they stored; an unfinished retired target cannot run under the old name, and choosing the successor adds a new target. Historical pricing keeps the rates of removed models so committed runs can be repriced, and the cost recorded on a run remains the authority for that run.
 
-On October 18, 2026, the user retired six selectors from both write and OCR: `gemini-3.7-flash` → `gemini-3.8-flash`, `claude-sonnet-5` → `claude-sonnet-5-5`, `claude-opus-5` → `claude-opus-5-5`, `grok-4.6` → `grok-4.7`, `gpt-5.6-sol` → `gpt-6.1-sol`, and `gpt-5.6-luna` → `gpt-6-luna`. Gemini 3.7 Flash was officially deprecated and routed to 3.8; the remaining five removals were project decisions to use already implemented newer options. GPT-5.6 Terra remains active. Comic drafting, QA, and revision comparisons now default to GPT-6.1 Sol. Historical rates retain cache rates, context bands, and pricing provenance; existing calibration and purchased benchmark evidence retain the original model identity. The active catalog has 17 write routes and 24 hosted OCR routes.
-
-Later on October 18, 2026, the user removed Kimi and GLM from all active workflows. This removes direct write routes `kimi/kimi-k3`, `glm/glm-5.3`, and `glm/glm-5.3-flash`; Together write routes `together/kimi-k3`, `together/glm-5.3`, and `together/glm-5.3-flash`; and OCR routes `kimi/kimi-k2.6`, `kimi/kimi-k3`, and `glm/glm-5.3-flash`. Their adapters, model selectors, defaults, config keys, setup credentials, provider links, examples, and live verification definitions are removed, including chapter extraction and comic LLM dispatch. Together STT remains supported. The active catalog now has 11 write routes and 21 hosted OCR routes. Old selections fail locally without dispatch or substitution. Purchased outputs, benchmark reports, frozen rates, and metadata readers retain historical identities; they do not enable new requests. The dashboard defaults to its current CLI-supported model view, with historical results available through its toggle.
+The October 2026 user-directed removals of retired write/OCR routes, fal, and OpenAI `gpt-image-2` explicitly waived historical-rate and committed benchmark-evidence retention for those removals. Kimi and GLM write/OCR, Together writing, DeepInfra OCR, and fal image/video remain unavailable without substitution; Together and DeepInfra STT remain supported. Current model membership and defaults belong to the live catalogs, rather than a dated inventory in this policy.
 
 ### Pricing provenance
 
@@ -177,7 +204,7 @@ Bundled OCR token profiles may override individual registry components only for 
 
 ### Normalized reasoning
 
-`--reasoning-effort <default|disabled|minimal|low|medium|high|xhigh|max>` is the public reasoning control for hosted LLM write and OCR, and for commands that dispatch them. Each model states whether reasoning is unsupported, optional, or required, whether `disabled` is legal, and which levels it accepts; unsupported combinations fail before pricing or dispatch. Omitting the flag leaves the model's default unchanged, and explicit `default` sends no override.
+`--reasoning-effort <default|disabled|minimal|low|medium|high|xhigh|max>` is the public reasoning control for hosted LLM write and OCR, and for commands that dispatch them. Each model states whether reasoning is unsupported, optional, or required, whether `disabled` is legal, and which levels it accepts; unsupported combinations fail before pricing or dispatch. Omitting the flag retains the command's default policy, including `low` for Gemini 3 OCR. Explicit `default` clears the CLI override and delegates to the provider default.
 
 When the flag affects behavior, write and OCR manifests, estimates, result diagnostics, and resume identity store the requested policy and the effective policy, and resume rejects an explicit policy that differs from the stored effective policy. A provider level outside these eight values is exposed only after the public enum grows to include it.
 
@@ -233,188 +260,17 @@ The policy is in force in the hosted registries under `src/cli/commands/setup-an
 
 ### Reasoning calibration and provider vocabulary review (2026-09-23)
 
-All 345 planned cases completed, 341 qualified, and 50 OCR policy profiles passed component promotion. This closed the calibration and enum-review follow-ups for the reviewed catalog and measured contexts. General write token and timing heuristics remain provisional: three short summaries cannot establish long-form generation latency or reasoning cost, so the measured policy differences below do not justify a global multiplier. Unmeasured OCR contexts also remain provisional.
+The September 23 review completed the reasoning vocabulary and calibration follow-ups for its measured contexts. It retained the eight-value public enum. Current model-specific support is declared in the live registries; the review does not establish support for later models or provider vocabulary.
 
-#### Provider-contract decisions
+The retained OCR calibration profiles come from three original fictional English prose sources, Harbor, Meadow and Summit, rendered as single-page 1020×1320 images. The fixtures remain in `test/fixtures/reasoning-calibration/`, and the promoted component medians remain in `src/cli/commands/setup-and-utilities/models/ocr-calibration-profiles.json`. Profiles apply only to the exact provider, model, image mode, page-count band and effective reasoning policy represented by those samples. General write heuristics, other document modes, page bands and unmeasured policies remain provisional.
 
-Before paid execution, the CLI refreshed 39 primary documents for OpenAI, Anthropic, Kimi, Grok and then 33 for Gemini, GLM, DeepInfra and Together. The dated review found no justified ninth public reasoning value. The eight-value definition was centralized across parsing, schemas, persisted profiles and audits; documented Anthropic/Grok xhigh support was added and unsupported direct Kimi K3 medium was removed. These findings describe the September 23 catalog, not a continuing monitoring service.
+Qualification required matching model and effective policy, finite provider usage, positive timing, recorded usage cost and a nonempty decoded artifact. Write also required valid structured output and the expected returned model identity. OCR required one successful attempt covering the source image, matching page and text artifacts, and source-text equality after removing case, punctuation and whitespace. Failed, partial, retried or text-incorrect OCR outputs were excluded from promotion.
 
-| Provider                   | Documented contract and decision                                                                                                                                          | Primary source                                                                                                                                                                       |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| OpenAI                     | Astra accepts low through max including xhigh. No ultra effort is documented for these API models. Provider `none` is represented by existing `disabled` where supported. | [Astra](https://developers.openai.com/api/docs/models/gpt-6-astra), [reasoning](https://developers.openai.com/api/docs/guides/reasoning)                                             |
-| Anthropic                  | Fable 5.1, Fable 5, Sonnet 5 and Opus 5 accept xhigh. Adaptive is a thinking mode, not another effort value. Sonnet 5 standard rates remain $2/$10.                       | [Effort](https://platform.claude.com/docs/en/build-with-claude/effort), [pricing](https://platform.claude.com/docs/en/about-claude/pricing)                                          |
-| xAI                        | Grok 4.6 accepts xhigh; Grok 4.5 does not.                                                                                                                                | [Reasoning](https://docs.x.ai/developers/model-capabilities/text/reasoning)                                                                                                          |
-| Kimi                       | K3 accepts low, high and max, excluding medium. Explicit default delegates to upstream; omitted CLI effort selects low.                                                   | [Reasoning effort](https://platform.kimi.ai/docs/guide/use-reasoning-effort.md), [K3 repository](https://github.com/MoonshotAI/Kimi-K3/blob/main/README.md)                          |
-| Gemini                     | Existing minimal/low/medium/high vocabulary covers documented model levels; budget and thinking configuration fields are separate controls.                               | [Thinking](https://ai.google.dev/gemini-api/docs/thinking)                                                                                                                           |
-| GLM / Together / DeepInfra | Reviewed thinking modes, hosted IDs and effort controls; no additional public enum value is substantiated for the selected models.                                        | [GLM thinking](https://docs.z.ai/guides/capabilities/thinking-mode), [Together reasoning](https://docs.together.ai/docs/reasoning), [DeepInfra models](https://deepinfra.com/models) |
+Each promoted OCR component required at least three distinct healthy sources in the same context, all observations on the same side of the registry estimate, and median absolute percentage error greater than 20%, using the observation as denominator. The promoted value is the observed median. Published prices and scheduler timing were not changed by token calibration.
 
-Anthropic had canceled its scheduled September price increase, so Sonnet 5 retained standard rates of $2/$10 per million input/output tokens and the stale price explanation was corrected.
+These checks establish write transport, identity, usage and structured-artifact integrity, plus normalized text correctness for OCR. They do not establish summary factual correctness, writing quality, punctuation fidelity or layout fidelity. Recorded usage costs are rate-based calculations, not account invoices.
 
-#### Implementation lessons
-
-- Forward the reasoning option through the actual `write` and image-document OCR entry points. Live diagnostic runs exposed both handoffs dropping the option, despite accurate price-plan identity and working direct adapter tests.
-- Carry Anthropic and Grok xhigh through real adapters. Kimi medium fails locally before credentials or dispatch. Tests cover omitted, override and explicit default/reset behavior.
-- Include Gemini's separately reported thought tokens in billed write completion usage exactly once. Providers whose output totals already include reasoning retain their totals.
-- Read xhigh from persisted OCR token profiles and evidence audits. The previous profile reader rejected its own xhigh output.
-- Bundle qualified OCR component medians in `src/cli/commands/setup-and-utilities/models/ocr-calibration-profiles.json`. With no learned local profile, an exact provider/model/image/page-band/policy match uses these values and reports `tokenEstimateSource: calibrated-registry`. Components that fail the gate retain their registry estimates. Other contexts do not borrow these profiles. Learned local profiles retain precedence.
-- Preserve all completed paid outputs. The runner skips existing receipts/manifests and stops new scheduling on identity mismatch or Anthropic credit rejection. Explicit credit retries require a fresh exact preflight and archive prior rejection receipts; ambiguous failures are never automatically repurchased.
-
-#### Qualification, promotion and limits
-
-The plan contains 345 cases. Each model receives explicit `default`, `low`, and its highest supported effort; non-OpenAI models that additionally expose xhigh receive that level too. The fixtures are three original, fictional English operations reviews: Harbor, Meadow and Summit. Write uses each plaintext source with the `shortSummary` structured preset; OCR uses matching 1020×1320 images, one page per run. This is a small prose calibration corpus, not a ranking benchmark or an exhaustive test of every intermediate effort, disabled mode, language, page layout, context tier or modality.
-
-Qualification requires exactly one full manifest item, matching selected identity and effective policy, finite provider usage and positive timing, recorded usage cost, and a nonempty decoded artifact. Write additionally requires the expected returned model ID and valid structured output. OCR requires one successful provider attempt, one covered image page, agreement between the canonical page and text artifact, and source-text equality after removing case, punctuation and whitespace. Hashes identify artifacts; they do not establish quality. Identical OCR text across providers is expected when the same source is transcribed correctly.
-
-Write qualification establishes transport, identity, usage and structured-artifact integrity. It does not establish summary factual correctness or comparative writing quality. OCR additionally checks normalized text correctness, but not punctuation fidelity or visual layout. No audio or perceptual claims are made. OCR retries, partial results, text errors and policy mismatches cannot supply promoted samples.
-
-For each OCR component, promotion requires at least three distinct healthy sources in the same provider/model/mode/page-band/policy group, every observation on the same side of the registry estimate, and median absolute percentage error greater than 20%, using the observation as denominator. The promoted value is the observed median. Timing measurements include wall-clock variability; this run does not promote scheduler or global latency settings. Published prices and `costMultiplier: 1` remain separate from token-shape calibration.
-
-Four original OCR outputs were excluded: Gemma 4 default/high changed “downloaded” to “download” in Meadow; Terra low changed Harbor's 7600 to 3600; Terra max changed Summit's “could” to “can”. The corresponding groups remain below the three-source gate. Errors were retained rather than replaced with favorable reruns.
-
-#### Execution and spending
-
-The user explicitly approved all paid commands in advance. The initial 345-case preflight estimated $4.7110. After repairing OCR dispatch and retaining 15 compatible default outputs, the repeat full-plan estimate was $4.5799; that figure includes slots subsequently reused. Anthropic credit exhaustion produced 72 explicit HTTP 400 rejections. After the user confirmed replenishment, their exact retry plan estimated $1.7612. These plans overlap and must not be added as if they were separate complete purchases.
-
-The diagnostic write pilot and 43 OCR runs made before the handoff fixes were recorded separately and excluded from calibration; their recorded costs total $1.1325. The current plan recorded $4.0946 including disqualified outputs, and total recorded usage cost including diagnostics was $5.2272 (totals rounded independently). Recorded costs are usage multiplied by configured rates, not account invoices: cache discounts, introductory tariffs, tax, credits, and unreported billable retries can differ. In particular, Gemini standard registry rates conservatively exceed its temporary introductory tariff. No account invoice was retrieved.
-
-#### Qualified observations and promotions
-
-The complete policy medians are retained because they explain which components changed and which remained provisional. “—” means no component was promoted. Medians use qualified samples only; recorded current-plan cost includes all completed outputs. These are historical observations, not a model ranking.
-
-<details>
-<summary>September 23 measurements by route, provider, model and policy</summary>
-
-<!-- reasoning-calibration:start -->
-341 of 345 planned samples qualify. Recorded current-plan cost: $4.0946 (includes disqualified completed outputs; excludes earlier diagnostic runs).
-
-| Route / provider / model                              | Policy  | Qualified | Median input | Median output | Median ms | Promoted OCR input / output |
-| ----------------------------------------------------- | ------- | --------- | ------------ | ------------- | --------- | --------------------------- |
-| write / openai / gpt-6-astra                          | default | 3/3       | 427          | 41            | 2120      | — / —                       |
-| write / openai / gpt-6-astra                          | low     | 3/3       | 427          | 43            | 2394      | — / —                       |
-| write / openai / gpt-6-astra                          | max     | 3/3       | 427          | 673           | 9446      | — / —                       |
-| write / openai / gpt-5.6-sol                          | default | 3/3       | 427          | 42            | 1527      | — / —                       |
-| write / openai / gpt-5.6-sol                          | low     | 3/3       | 427          | 41            | 1845      | — / —                       |
-| write / openai / gpt-5.6-sol                          | max     | 3/3       | 427          | 137           | 2298      | — / —                       |
-| write / openai / gpt-5.6-terra                        | default | 3/3       | 427          | 43            | 1528      | — / —                       |
-| write / openai / gpt-5.6-terra                        | low     | 3/3       | 427          | 44            | 1553      | — / —                       |
-| write / openai / gpt-5.6-terra                        | max     | 3/3       | 427          | 124           | 1928      | — / —                       |
-| write / openai / gpt-5.6-luna                         | default | 3/3       | 427          | 111           | 1692      | — / —                       |
-| write / openai / gpt-5.6-luna                         | low     | 3/3       | 427          | 105           | 1709      | — / —                       |
-| write / openai / gpt-5.6-luna                         | max     | 3/3       | 427          | 181           | 2116      | — / —                       |
-| write / gemini / gemini-3.8-flash                     | default | 3/3       | 437          | 421           | 2496      | — / —                       |
-| write / gemini / gemini-3.8-flash                     | low     | 3/3       | 437          | 38            | 839       | — / —                       |
-| write / gemini / gemini-3.8-flash                     | high    | 3/3       | 437          | 639           | 3334      | — / —                       |
-| write / gemini / gemini-3.7-flash                     | default | 3/3       | 437          | 309           | 2553      | — / —                       |
-| write / gemini / gemini-3.7-flash                     | low     | 3/3       | 437          | 34            | 2112      | — / —                       |
-| write / gemini / gemini-3.7-flash                     | high    | 3/3       | 437          | 549           | 2721      | — / —                       |
-| write / anthropic / claude-fable-5-1                  | default | 3/3       | 888          | 68            | 4290      | — / —                       |
-| write / anthropic / claude-fable-5-1                  | low     | 3/3       | 888          | 65            | 3925      | — / —                       |
-| write / anthropic / claude-fable-5-1                  | max     | 3/3       | 888          | 1052          | 12548     | — / —                       |
-| write / anthropic / claude-fable-5-1                  | xhigh   | 3/3       | 888          | 530           | 10248     | — / —                       |
-| write / anthropic / claude-sonnet-5                   | default | 3/3       | 886          | 60            | 1936      | — / —                       |
-| write / anthropic / claude-sonnet-5                   | low     | 3/3       | 886          | 60            | 3066      | — / —                       |
-| write / anthropic / claude-sonnet-5                   | max     | 3/3       | 886          | 66            | 2130      | — / —                       |
-| write / anthropic / claude-sonnet-5                   | xhigh   | 3/3       | 886          | 60            | 2409      | — / —                       |
-| write / anthropic / claude-opus-5                     | default | 3/3       | 886          | 76            | 2558      | — / —                       |
-| write / anthropic / claude-opus-5                     | low     | 3/3       | 886          | 71            | 2435      | — / —                       |
-| write / anthropic / claude-opus-5                     | max     | 3/3       | 886          | 80            | 2404      | — / —                       |
-| write / anthropic / claude-opus-5                     | xhigh   | 3/3       | 886          | 90            | 2210      | — / —                       |
-| write / grok / grok-4.6                               | default | 3/3       | 1102         | 39            | 37823     | — / —                       |
-| write / grok / grok-4.6                               | low     | 3/3       | 1102         | 41            | 4138      | — / —                       |
-| write / grok / grok-4.6                               | xhigh   | 3/3       | 1103         | 37            | 44650     | — / —                       |
-| write / glm / glm-5.3                                 | default | 3/3       | 472          | 1083          | 22459     | — / —                       |
-| write / glm / glm-5.3                                 | low     | 3/3       | 472          | 42            | 3400      | — / —                       |
-| write / glm / glm-5.3                                 | max     | 3/3       | 472          | 995           | 17651     | — / —                       |
-| write / glm / glm-5.3-flash                           | default | 3/3       | 472          | 1305          | 35559     | — / —                       |
-| write / glm / glm-5.3-flash                           | low     | 3/3       | 472          | 48            | 1693      | — / —                       |
-| write / glm / glm-5.3-flash                           | max     | 3/3       | 472          | 1184          | 10878     | — / —                       |
-| write / kimi / kimi-k3                                | default | 3/3       | 529          | 665           | 20304     | — / —                       |
-| write / kimi / kimi-k3                                | low     | 3/3       | 530          | 159           | 7518      | — / —                       |
-| write / kimi / kimi-k3                                | max     | 3/3       | 529          | 264           | 10578     | — / —                       |
-| write / together / kimi-k3                            | default | 3/3       | 577          | 210           | 2215      | — / —                       |
-| write / together / kimi-k3                            | low     | 3/3       | 578          | 139           | 1718      | — / —                       |
-| write / together / kimi-k3                            | max     | 3/3       | 577          | 532           | 4680      | — / —                       |
-| write / together / glm-5.3                            | default | 3/3       | 411          | 39            | 978       | — / —                       |
-| write / together / glm-5.3                            | low     | 3/3       | 411          | 37            | 570       | — / —                       |
-| write / together / glm-5.3                            | max     | 3/3       | 411          | 36            | 338       | — / —                       |
-| write / together / glm-5.3-flash                      | default | 3/3       | 411          | 1096          | 17408     | — / —                       |
-| write / together / glm-5.3-flash                      | low     | 3/3       | 411          | 44            | 1042      | — / —                       |
-| write / together / glm-5.3-flash                      | max     | 3/3       | 411          | 1110          | 21600     | — / —                       |
-| extract / anthropic / claude-fable-5-1                | default | 3/3       | 2034         | 519           | 8987      | — / 519                     |
-| extract / anthropic / claude-fable-5-1                | low     | 3/3       | 2034         | 519           | 8963      | — / 519                     |
-| extract / anthropic / claude-fable-5-1                | max     | 3/3       | 2034         | 519           | 9409      | — / 519                     |
-| extract / anthropic / claude-fable-5-1                | xhigh   | 3/3       | 2034         | 519           | 9149      | — / 519                     |
-| extract / anthropic / claude-fable-5                  | default | 3/3       | 2032         | 519           | 8169      | — / 519                     |
-| extract / anthropic / claude-fable-5                  | low     | 3/3       | 2032         | 519           | 8357      | — / 519                     |
-| extract / anthropic / claude-fable-5                  | max     | 3/3       | 2032         | 1881          | 19788     | — / 1881                    |
-| extract / anthropic / claude-fable-5                  | xhigh   | 3/3       | 2032         | 519           | 8426      | — / 519                     |
-| extract / anthropic / claude-sonnet-5                 | default | 3/3       | 2032         | 481           | 5874      | — / —                       |
-| extract / anthropic / claude-sonnet-5                 | low     | 3/3       | 2032         | 481           | 5701      | — / —                       |
-| extract / anthropic / claude-sonnet-5                 | max     | 3/3       | 2032         | 1089          | 9544      | — / 1089                    |
-| extract / anthropic / claude-sonnet-5                 | xhigh   | 3/3       | 2032         | 516           | 5795      | — / —                       |
-| extract / anthropic / claude-opus-5                   | default | 3/3       | 2032         | 498           | 7511      | — / —                       |
-| extract / anthropic / claude-opus-5                   | low     | 3/3       | 2032         | 498           | 8365      | — / —                       |
-| extract / anthropic / claude-opus-5                   | max     | 3/3       | 2032         | 498           | 8049      | — / —                       |
-| extract / anthropic / claude-opus-5                   | xhigh   | 3/3       | 2032         | 498           | 8329      | — / —                       |
-| extract / deepinfra / google/gemma-4-31B-it           | default | 2/3       | 338          | 308           | 10952     | — / —                       |
-| extract / deepinfra / google/gemma-4-31B-it           | low     | 3/3       | 341          | 812           | 22077     | 341 / —                     |
-| extract / deepinfra / google/gemma-4-31B-it           | high    | 2/3       | 341          | 896           | 24499     | — / —                       |
-| extract / deepinfra / Qwen/Qwen3.8-27B                | default | 3/3       | 1383         | 307           | 9579      | 1383 / 307                  |
-| extract / deepinfra / Qwen/Qwen3.8-27B                | low     | 3/3       | 1411         | 353           | 11623     | 1411 / 353                  |
-| extract / deepinfra / Qwen/Qwen3.8-27B                | high    | 3/3       | 1423         | 328           | 9078      | 1423 / 328                  |
-| extract / deepinfra / deepseek-ai/DeepSeek-V4.1-Flash | default | 3/3       | 898          | 294           | 3635      | 898 / 294                   |
-| extract / deepinfra / deepseek-ai/DeepSeek-V4.1-Flash | low     | 3/3       | 924          | 366           | 6080      | — / 366                     |
-| extract / deepinfra / deepseek-ai/DeepSeek-V4.1-Flash | high    | 3/3       | 924          | 402           | 4366      | — / 402                     |
-| extract / gemini / gemini-3.8-flash                   | default | 3/3       | 1179         | 1118          | 3406      | — / 1118                    |
-| extract / gemini / gemini-3.8-flash                   | low     | 3/3       | 1179         | 340           | 2054      | — / 340                     |
-| extract / gemini / gemini-3.8-flash                   | high    | 3/3       | 1179         | 4778          | 17491     | — / —                       |
-| extract / gemini / gemini-3.7-flash                   | default | 3/3       | 1179         | 1073          | 4516      | — / 1073                    |
-| extract / gemini / gemini-3.7-flash                   | low     | 3/3       | 1179         | 656           | 2564      | — / 656                     |
-| extract / gemini / gemini-3.7-flash                   | high    | 3/3       | 1179         | 1224          | 4101      | — / 1224                    |
-| extract / gemini / gemini-3.5-flash                   | default | 3/3       | 1179         | 1738          | 7390      | — / 1738                    |
-| extract / gemini / gemini-3.5-flash                   | low     | 3/3       | 1179         | 340           | 2040      | — / 340                     |
-| extract / gemini / gemini-3.5-flash                   | high    | 3/3       | 1179         | 1855          | 6525      | — / 1855                    |
-| extract / gemini / gemini-3.6-flash                   | default | 3/3       | 1179         | 2038          | 8990      | — / 2038                    |
-| extract / gemini / gemini-3.6-flash                   | low     | 3/3       | 1179         | 324           | 2266      | — / 324                     |
-| extract / gemini / gemini-3.6-flash                   | high    | 3/3       | 1179         | 2377          | 10286     | — / 2377                    |
-| extract / gemini / gemini-3.5-flash-lite              | default | 3/3       | 1179         | 340           | 1670      | — / 340                     |
-| extract / gemini / gemini-3.5-flash-lite              | low     | 3/3       | 1179         | 294           | 1639      | — / 294                     |
-| extract / gemini / gemini-3.5-flash-lite              | high    | 3/3       | 1179         | 1054          | 3224      | — / —                       |
-| extract / glm / glm-5.3-flash                         | default | 3/3       | 1828         | 309           | 6405      | 1828 / 309                  |
-| extract / glm / glm-5.3-flash                         | low     | 3/3       | 1828         | 280           | 6692      | 1828 / 280                  |
-| extract / glm / glm-5.3-flash                         | max     | 3/3       | 1828         | 318           | 6130      | 1828 / 318                  |
-| extract / grok / grok-4.5                             | default | 3/3       | 1934         | 277           | 5172      | 1934 / 277                  |
-| extract / grok / grok-4.5                             | low     | 3/3       | 1934         | 295           | 14662     | 1934 / 295                  |
-| extract / grok / grok-4.5                             | high    | 3/3       | 1934         | 277           | 10739     | 1934 / 277                  |
-| extract / grok / grok-4.6                             | default | 3/3       | 2076         | 295           | 25855     | 2076 / 295                  |
-| extract / grok / grok-4.6                             | low     | 3/3       | 2076         | 284           | 10399     | 2076 / 284                  |
-| extract / grok / grok-4.6                             | xhigh   | 3/3       | 2077         | 295           | 27887     | 2077 / 295                  |
-| extract / kimi / kimi-k3                              | default | 3/3       | 1957         | 920           | 30026     | 1957 / 920                  |
-| extract / kimi / kimi-k3                              | low     | 3/3       | 1958         | 664           | 21640     | 1958 / 664                  |
-| extract / kimi / kimi-k3                              | max     | 3/3       | 1957         | 731           | 20627     | 1957 / 731                  |
-| extract / openai / gpt-6-astra                        | default | 3/3       | 1682         | 294           | 3985      | — / 294                     |
-| extract / openai / gpt-6-astra                        | low     | 3/3       | 1682         | 294           | 4467      | — / 294                     |
-| extract / openai / gpt-6-astra                        | max     | 3/3       | 1682         | 820           | 9051      | — / —                       |
-| extract / openai / gpt-5.6-sol                        | default | 3/3       | 1682         | 294           | 3360      | — / 294                     |
-| extract / openai / gpt-5.6-sol                        | low     | 3/3       | 1682         | 294           | 2270      | — / 294                     |
-| extract / openai / gpt-5.6-sol                        | max     | 3/3       | 1682         | 727           | 4487      | — / 727                     |
-| extract / openai / gpt-5.6-terra                      | default | 3/3       | 1682         | 294           | 2330      | — / 294                     |
-| extract / openai / gpt-5.6-terra                      | low     | 2/3       | 1682         | 296.5         | 2253      | — / —                       |
-| extract / openai / gpt-5.6-terra                      | max     | 2/3       | 1682         | 1318          | 8362      | — / —                       |
-| extract / openai / gpt-5.6-luna                       | default | 3/3       | 1682         | 638           | 4237      | — / 638                     |
-| extract / openai / gpt-5.6-luna                       | low     | 3/3       | 1682         | 291           | 3074      | — / 291                     |
-| extract / openai / gpt-5.6-luna                       | max     | 3/3       | 1682         | 1278          | 5739      | — / 1278                    |
-<!-- reasoning-calibration:end -->
-
-</details>
-
-#### Provenance and historical verification
-
-The three original Harbor, Meadow and Summit text/image fixtures remain in `test/fixtures/reasoning-calibration/`. The reviewed evidence bundle contained 1,874 original files plus `SHA256SUMS`: exact preflights, per-case manifests, artifacts and execution receipts, credit-rejection history, excluded diagnostic runs, documentation refreshes and fixture inputs. Its integrity check passed before consolidation. The separate report and evidence bundle were retired on September 23 after retaining their decisions, complete policy medians, exclusions, spending and primary-source references here; raw receipts and source-document snapshots are no longer packaged with this ADR. Existing local paid outputs under `output/adr-010-calibration/` were left in place.
-
-Historical verification passed `bun run check` (structure, names, types and documentation contracts covering 415 unique commands), `bun t --price` (97/97 price-only cases), and the since-retired documentation price verifier (15 offline examples). Targeted option resolution, provider selection, reasoning adapters, entry-point dispatch, artifact qualification, OCR token audit, pricing and CLI-help contracts passed 596 tests across 103 files without provider calls. These are the original review results; mocked contracts establish payload behavior, not output quality.
-
-The completed calibration runner and summary generator were retired on September 23, including their investigation-specific credit-rejection retry modes. The policy medians above, bundled `ocr-calibration-profiles.json`, original fixtures, and existing local paid outputs remain. `test/test-cases/validation/reports-pricing/bundled-ocr-calibration-contracts.test.ts` preserves the runtime checks for exact image/page/policy matching and registry fallback. Future calibration requires a new scoped plan under the existing evidence and spending rules; this record no longer advertises a regeneration or paid rerun command.
+The investigation runner, separate report and raw evidence bundle were retired after review. The retained fixtures, profiles and qualification rules preserve the basis of the shipped estimates; existing local paid outputs were left intact. Future calibration requires a scoped plan under the evidence and spending rules in [ADR-015](ADR-015-govern-documentation-examples-and-verification-evidence.md).
 
 ## API / Type Impact
 
@@ -437,11 +293,6 @@ bun test test/test-cases/validation/providers/provider-selection-contracts/
 3. Deterministic defaults, exact `--all-*` expansion, and run-to-resume inventory parity.
 
 Verification is local and no-cost.
-
-## Follow-up Actions
-
-- [x] Calibrate materially different reasoning levels and provisional model heuristics — September 23: 345 completed cases, 341 qualified samples, 50 scoped OCR token profiles. Write usage and timing are recorded by policy; general write and unmeasured-context heuristics remain explicitly provisional. The [historical calibration record](#reasoning-calibration-and-provider-vocabulary-review-2026-09-23) preserves exclusions, spending, provenance and measurements.
-- [x] Evaluate provider-specific reasoning levels outside the eight-value surface through explicit public-enum expansion — September 23: primary-source review found no justified ninth value for registered models. Retain the eight-value enum, centralize its consumers, expose documented Anthropic/Grok xhigh support, and reject unsupported Kimi K3 medium. See the [dated evaluation](#provider-contract-decisions) and [expansion gate](#normalized-reasoning).
 
 ## References
 

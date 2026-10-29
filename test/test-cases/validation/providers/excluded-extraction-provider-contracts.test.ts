@@ -32,7 +32,7 @@ const urlState = (service: HtmlArticleBackend, status: 'succeeded' | 'missing' |
 
 test('excluded tuples stay outside the active model inventory, credentials and expansion', () => {
   const registry = getModelRegistry()
-  expect(Object.fromEntries(Object.entries(registry).map(([category, services]) => [category, Object.values(services).reduce((n, service) => n + Object.keys(service.models).length, 0)]))).toEqual({ stt: 31, extract: 24, llm: 11, tts: 7, image: 13, music: 4, video: 17 })
+  expect(Object.fromEntries(Object.entries(registry).map(([category, services]) => [category, Object.values(services).reduce((n, service) => n + Object.keys(service.models).length, 0)]))).toEqual({ stt: 31, extract: 12, llm: 8, tts: 7, image: 4, music: 4, video: 2 })
   expect(URL_ARTICLE_BACKENDS).toEqual(['defuddle', 'spider', 'zyte'])
   expect(Object.keys(URL_ARTICLE_PROVIDER_ADAPTERS)).toEqual(['defuddle', 'spider', 'zyte'])
   for (const provider of excludedStt) expect(registry.stt[provider]).toBeUndefined()
@@ -47,7 +47,13 @@ test('excluded tuples stay outside the active model inventory, credentials and e
   expect(all.some(target => excludedStt.includes(target.service as typeof excludedStt[number]))).toBe(false)
   const decision = readFileSync('docs/adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md', 'utf8')
   const section = decision.split('<!-- excluded-extraction-providers:start -->')[1]!.split('<!-- excluded-extraction-providers:end -->')[0]!
-  expect([...section.matchAll(/`(?:extract|stt)\//g)]).toHaveLength(5)
+  expect([...section.matchAll(/`((?:extract|stt)\/[^`]+)`/g)].map(([, tuple]) => tuple)).toEqual([
+    'extract/firecrawl/firecrawl',
+    'extract/supadata/supadata',
+    'stt/supadata/auto',
+    'stt/happyscribe/auto',
+    'extract/glm-reader/glm-reader'
+  ])
 })
 
 test('generic selectors, obsolete flags and direct old runtime settings fail locally without substitution', async () => {

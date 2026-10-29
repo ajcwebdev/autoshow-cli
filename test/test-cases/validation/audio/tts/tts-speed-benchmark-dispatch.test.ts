@@ -30,7 +30,7 @@ for (const suite of ['emotion', 'speed-pauses']) {
         return new Response(audio, { headers: { 'content-type': 'audio/wav' } })
       })
       const options: TtsOptions = {
-        ...buildOptsFromFlags(entry.flags),
+        ...buildOptsFromFlags(entry.flags, {}, new Set(Object.keys(entry.flags)), { scope: 'tts' }),
         ttsTurnControls: normalizeTtsTurnControls(entry.turnControls),
         ttsChunkConcurrency: 1,
         ttsProviderConcurrency: 1,
@@ -46,6 +46,18 @@ for (const suite of ['emotion', 'speed-pauses']) {
       await runTtsForTargets(source, await dirs.make(), options, targets)
       const bodies = calls.map(call => call.bodyJson!)
       expect(bodies.length).toBeGreaterThan(0)
+      if (entry.provider === 'elevenlabs') {
+        // HTTP contract: native tags stay in text and model_id is explicit.
+        expect(calls).toHaveLength(1)
+        expect(calls[0]).toMatchObject({
+          url: 'https://api.elevenlabs.io/v1/text-to-speech/hpp4J3VqNfWAUOO0d1Us?output_format=mp3_44100_128',
+          method: 'POST',
+          bodyJson: { model_id: entry.model, text: entry.lines.join('\n') }
+        })
+        if (entry.model === 'eleven_v4') expect(bodies[0]?.['voice_settings']).toEqual({ stability: 0.5 })
+        expect(bodies[0]?.['instructions']).toBeUndefined()
+        expect((bodies[0]?.['voice_settings'] as Record<string, unknown>)?.['speed']).toBeUndefined()
+      }
       const texts = bodies.flatMap(body => entry.provider === 'gemini'
           ? (body['input'] as Array<{ content: Array<{ text: string }> }>).flatMap(input => input.content.map(content => content.text))
           : [body['text'] ?? body['input'] ?? body['transcript']])

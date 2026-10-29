@@ -14,6 +14,8 @@ Live write tests need the matching provider key: `OPENAI_API_KEY`, `ANTHROPIC_AP
 
 ## Price Preflight
 
+`--price` estimates the mapped write commands without running provider tests. `--budget 2500` runs eligible live tests with a 25¢ estimate threshold per test key; it does not cap total spending.
+
 ```bash
 bun t test/test-cases/e2e/service/text/write/ --price
 bun t test/test-cases/e2e/service/text/write/ --budget 2500

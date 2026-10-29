@@ -44,6 +44,7 @@ export const runElevenLabsTts = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
+  validateElevenLabsVoiceSettings(options.model, options.controls?.voiceSettings)
   const apiKey = requireTtsCredential('elevenlabs')
 
   const baseURL = ELEVENLABS_DEFAULT_BASE_URL
@@ -52,7 +53,6 @@ export const runElevenLabsTts = async (
     throw ValidationError('ElevenLabs TTS input text is empty', { stage: 'tts:elevenlabs' })
   }
 
-  validateElevenLabsVoiceSettings(options.model, options.controls?.voiceSettings)
   const startTime = Date.now()
   const voiceId = options.voiceId?.trim() ?? ELEVENLABS_DEFAULT_VOICE_ID
   const outputFormat = options.controls?.responseFormat ?? ELEVENLABS_TTS_OUTPUT_FORMAT

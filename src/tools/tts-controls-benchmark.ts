@@ -10,6 +10,7 @@ import { validateTtsRenderInputsForTargets } from '~/cli/commands/audio/tts/run-
 import { normalizeTtsTurnControls } from '~/cli/commands/audio/tts/tts-targets/tts-invocation-controls'
 import { configurePinnedRunDir } from '~/cli/commands/command-shared/run-dir'
 import type { TtsTurnControls } from '~/types'
+import { resolveTtsAudioDelivery } from '../../.codex/skills/consensus/scripts/tts/tts_audio_delivery'
 
 const controlValue = v.union([v.string(), v.number(), v.boolean(), v.null()])
 const planSchema = v.object({
@@ -120,8 +121,13 @@ for (const entry of plan.cases) {
     reuse = prior.items?.length === 1 && prior.items[0].providers?.length === 1 && prior.items[0].providers[0].status === 'succeeded'
     if (!reuse) throw UsageError(`Incomplete run at ${directory}; reconcile it before another paid attempt`)
     const ref = prior.items[0].providers[0].metadata.ttsAudio.archive.finalRef
-    const hash = new Bun.CryptoHasher('sha256').update(await Bun.file(`${directory}/${ref.path}`).arrayBuffer()).digest('hex')
-    if (hash !== ref.sha256) throw UsageError(`Cached audio hash mismatch: ${directory}`)
+    const delivery = resolveTtsAudioDelivery(resolve(outputDir ?? ledger.outputBase ?? 'docs/benchmarks/tts'), resolve(directory, ref.path), ref.sha256)
+    if (delivery) {
+      if (!delivery.available) throw UsageError(`Restore the approved cached MP3 before continuing: ${delivery.path}`)
+    } else {
+      const hash = new Bun.CryptoHasher('sha256').update(await Bun.file(`${directory}/${ref.path}`).arrayBuffer()).digest('hex')
+      if (hash !== ref.sha256) throw UsageError(`Cached audio hash mismatch: ${directory}`)
+    }
   }
   preparedCases.push({ entry, options, targets, estimate, authorizationCents, fingerprint, directory, reuse })
 }

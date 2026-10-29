@@ -3,16 +3,16 @@
 ## Summary
 
 - Run directory: `docs/benchmarks/text/ocr/1-page-newspaper`
-- Providers with page result files: 27
+- Providers with page result files: 8
 - Pages: 1
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.
 
 ## Page-Level Hybrid Sources
 
-| Selected Provider | Pages |
-| ----------------- | ----: |
-| `kimi/kimi-k3`    | 1     |
+| Selected Provider             | Pages |
+| ----------------------------- | ----: |
+| `anthropic/claude-sonnet-5-5` | 1     |
 
 ## Outlier Signals
 
@@ -20,19 +20,19 @@
 | --------------------- | ---------: |
 | blankOutputPages      | 0          |
 | repeatedTextPages     | 0          |
-| majorLengthDriftPages | 1          |
+| majorLengthDriftPages | 0          |
 | highDisagreementPages | 1          |
-| werCerDivergencePages | 1          |
-| lowConfidencePages    | 1          |
+| werCerDivergencePages | 0          |
+| lowConfidencePages    | 0          |
 
 ## Selective Adjudication
 
 - Candidate pages: 1
 - Low-confidence threshold: 0.72
-- High-disagreement threshold: 0.677672
+- High-disagreement threshold: 0.260207
 
 ## Variant Distances
 
 | Reference              | Candidate           | WER   | CER   | Word Edits |
 | ---------------------- | ------------------- | ----: | ----: | ---------: |
-| `status-quo-consensus` | `page-level-hybrid` | 1.36% | 0.62% | 32         |
+| `status-quo-consensus` | `page-level-hybrid` | 2.92% | 1.70% | 69         |

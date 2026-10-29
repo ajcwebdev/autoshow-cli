@@ -20,7 +20,7 @@ import { ALL_STEP_CONCURRENCY_SCOPES, resolveStepConcurrency } from '~/cli/flags
 const OCR_MODEL_KEYS = [
   'mistralOcrModels', 'openaiOcrModels',
   'grokOcrModels', 'anthropicOcrModels',
-  'geminiOcrModels', 'deepinfraOcrModels',
+  'geminiOcrModels',
 ] as const satisfies readonly OcrRuntimeOptionKey[]
 
 export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => {

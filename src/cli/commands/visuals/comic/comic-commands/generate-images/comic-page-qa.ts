@@ -1,12 +1,12 @@
 import { basename, dirname, join } from 'node:path'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { getOpenAIClientConfig } from '~/cli/commands/text/write/write-services/write-openai/openai-utils'
-import type { BlockingHardKeyPolicy, PageQaCharacterCue, PageQaEntry, PageQaRepairDecision, PageQaRepairStagnationState, PageQaRequest, PageQaResult, PanelBundleData } from '~/types'
+import type { BlockingHardKeyPolicy, CharacterIdentityReference, PageQaCharacterCue, PageQaEntry, PageQaRepairDecision, PageQaRepairStagnationState, PageQaRequest, PageQaResult, PanelBundleData } from '~/types'
 import { InfraError, UsageError, ValidationError } from '~/utils/error-handler'
 import { geminiGenerateContent, geminiUserContent } from '~/utils/gemini/gemini-rest'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { resolveCredential } from '~/utils/validate/env-utils'
-import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
+import { isRecord } from '~/utils/value-helpers'
 import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script-utils/llm-cost'
 import { BLOCKING_AUDIT_STATUSES } from '../../schemas/blocking-plan-schemas'
 import { parseComicPageQaResult } from './comic-page-qa-result-parser'
@@ -231,14 +231,26 @@ const buildBlockingAuditParagraphs = (
   return [...ledgerParagraphs, ...statusGuide, ...rosterParagraph, ...cueParagraph]
 }
 
+export const resolvePageQaCharacterCues = (characterReferences: readonly Pick<CharacterIdentityReference, 'key' | 'distinguishFrom'>[]): PageQaCharacterCue[] => {
+  const seen = new Set<string>()
+  return characterReferences.flatMap(reference => {
+    if (seen.has(reference.key)) return []
+    seen.add(reference.key)
+    const distinguishFrom = reference.distinguishFrom ?? []
+    return distinguishFrom.length > 0
+      ? [{ characterKey: reference.key, distinguishFrom: distinguishFrom.map(cue => ({ ...cue })) }]
+      : []
+  })
+}
+
 export const buildComicPageQaPrompt = (
   panelData: PanelBundleData,
-  characterReferences: Array<{ key: string; description: string }> = [],
+  characterReferences: Array<Pick<CharacterIdentityReference, 'key' | 'description' | 'distinguishFrom'>> = [],
   locationReferences: Array<{ key: string; specification: string }> = [],
   designReferences: Array<{ key: string; usage: string }> = [],
   options: { rosterCards?: ReadonlyArray<{ key: string; name?: string | undefined }> | undefined; characterCues?: readonly PageQaCharacterCue[] | undefined } = {},
 ): string => [
-  'Judge this generated comic output strictly. The first image is the generated output. Following images are ordered canonical character references, followed by every immutable canonical location reference, then every mapped immutable canonical design reference, each in first-panel-appearance order.',
+  'Judge this generated comic output strictly. The first image is the generated output. Following images are ordered current canonical character references, followed by every current canonical location reference, then every mapped current canonical design reference, each in first-panel-appearance order.',
   `Location mapping: ${panelData.panels.map(panel => `panel ${panel.number} -> ${panel.locationKey}`).join('; ')}. Judge each panel only against its mapped location reference.`,
   'Evaluate panels left-to-right. Location identity, set continuity, source-instruction precedence, shot-plan framing/staging, exact cast, dialogue wording and completeness, and bubble-tail/speaker attribution are hard requirements. Artifacts, harmless typography substitutions, minor identity stylization variance, and aesthetic scores are advisory only. For every failed panel return concise actionable editInstructions in this same response.',
   'Separately assess whether spending one image-edit call followed by conservative pairwise comparison is likely to create a clear net improvement. A QA failure remains a failure even when repairAssessment recommends retain-current. Recommend targeted-edit when the defect is unequivocally visible, materially affects panel reading, has concrete actionable instructions, and is supported with high confidence. Record scope, isolation, and collateral risk honestly; diffuse, multi-region, shared-attribute, or generative-redraw work may use the comparison-protected lane and is not automatically a retain-current recommendation. Use retain-current for false-positive or source-authorized premises, hidden or out-of-frame details, marginal or merely decorative differences, ambiguous evidence, vague aesthetic preferences, or a correction too underspecified to compare. Required cast, unmistakable identity, dialogue-content, speaker-attribution, and source-precedence failures are meaningful story-contract failures and cannot be labeled expectedBenefit none. Classify editIsolation as isolated-single-region only for one subject/object and one contiguous region; use shared-attribute when the edited attribute must change on one or more visually similar nearby subjects while remaining different on another, multi-region for independent corrections or separate regions, and generative-redraw for hands, limbs, faces, anatomy, or other structural regeneration. List concrete preservationRequirements for every targeted edit.',
@@ -252,7 +264,7 @@ export const buildComicPageQaPrompt = (
   `Canonical location specifications: ${locationReferences.length > 0 ? locationReferences.map(reference => `${reference.key}: ${reference.specification}`).join(' | ') : 'none supplied; rely on the ordered canonical location images.'}`,
   `Canonical design requirements: ${designReferences.length > 0 ? designReferences.map(reference => `${reference.key}: ${reference.usage}`).join(' | ') : 'none supplied.'}`,
   'A mapped canonical design reference is a hard source-precedence requirement. Fail sourcePrecedence when the generated panel unmistakably redesigns, replaces, relabels, or omits a design whose usage requires it to be visible. Do not require a design in panels to which it is not mapped.',
-  ...buildBlockingAuditParagraphs(panelData, options.rosterCards ?? [], options.characterCues ?? []),
+  ...buildBlockingAuditParagraphs(panelData, options.rosterCards ?? [], options.characterCues ?? resolvePageQaCharacterCues(characterReferences)),
   'Source panel data:', JSON.stringify(panelData, null, 2),
   'Return only the requested JSON.',
 ].join('\n\n')
@@ -265,22 +277,44 @@ export const buildPageQaImageInputs = async (
   ...(await Promise.all(rosterCardPaths.map(async path => ({ type: 'input_image' as const, image_url: await dataUrl(path), detail: 'low' as const })))),
 ]
 
-export const resolvePageQaCharacterCues = (characterKeys: readonly string[]): PageQaCharacterCue[] => {
-  let catalog: ReturnType<typeof loadCharacterCatalog>
-  try { catalog = loadCharacterCatalog() } catch { return [] }
-  const known = new Set(catalog.characterKeys)
-  return characterKeys
-    .filter((key, index) => known.has(key as never) && characterKeys.indexOf(key) === index)
-    .flatMap(key => {
-      const distinguishFrom = catalog.get(key as never).distinguishFrom ?? []
-      return distinguishFrom.length > 0 ? [{ characterKey: key, distinguishFrom: [...distinguishFrom] }] : []
-    })
+export const fingerprintPageQaInputs = async (request: PageQaRequest): Promise<string> => {
+  const imagePaths = [request.pagePath, ...request.identityCards, ...request.locationSheets, ...(request.designSheets ?? [])]
+  const rosterCards = request.rosterCards ?? []
+  const images = await Promise.all([...imagePaths, ...rosterCards.map(card => card.path)].map(async (path, index) => ({
+    sha256: new Bun.CryptoHasher('sha256').update(await Bun.file(path).arrayBuffer()).digest('hex'),
+    mimeType: imageMimeType(path),
+    detail: index < imagePaths.length ? 'high' : 'low',
+  })))
+  return new Bun.CryptoHasher('sha256').update(JSON.stringify({
+    contract: 'comic-page-qa-inputs-v1',
+    reportSchemaVersion: PAGE_QA_REPORT_SCHEMA_VERSION,
+    schema: PAGE_QA_SCHEMA,
+    model: request.model,
+    prompt: buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [], request.locationReferences ?? [], request.designReferences ?? [], { rosterCards, characterCues: request.characterCues }),
+    referenceMetadata: {
+      characters: (request.characterReferences ?? []).map(reference => ({ key: reference.key, description: reference.description, distinguishFrom: reference.distinguishFrom ?? [] })),
+      locations: (request.locationReferences ?? []).map(reference => ({ key: reference.key, specification: reference.specification })),
+      designs: (request.designReferences ?? []).map(reference => ({ key: reference.key, usage: reference.usage })),
+      roster: rosterCards.map(card => ({ key: card.key, name: card.name })),
+      characterCues: request.characterCues ?? resolvePageQaCharacterCues(request.characterReferences ?? []),
+    },
+    blockingHardKeys: [...(request.blockingHardKeys ?? [])].sort(),
+    images,
+  })).digest('hex')
 }
 
-export const judgeComicPage = async (request: PageQaRequest): Promise<PageQaEntry> => {
+export const judgePageWithBoundInputs = async (request: PageQaRequest, judge: (request: PageQaRequest) => Promise<PageQaEntry>): Promise<PageQaEntry> => {
+  const inputSha256 = await fingerprintPageQaInputs(request)
+  const entry = await judge(request)
+  if (await fingerprintPageQaInputs(request) !== inputSha256) {
+    throw ValidationError('Comic QA inputs changed during judgment; the verdict cannot be reused for the current inputs.', { stage: 'comic:page-qa' })
+  }
+  return { ...entry, inputSha256 }
+}
+
+const judgeComicPageInputs = async (request: PageQaRequest): Promise<PageQaEntry> => {
   const rosterCards = request.rosterCards ?? []
-  const characterCues = request.characterCues ?? resolvePageQaCharacterCues(request.panelData.panels.flatMap(panel => panel.characterKeys))
-  const prompt = buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [], request.locationReferences ?? [], request.designReferences ?? [], { rosterCards, characterCues })
+  const prompt = buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [], request.locationReferences ?? [], request.designReferences ?? [], { rosterCards, characterCues: request.characterCues })
   const imagePaths = [request.pagePath, ...request.identityCards, ...request.locationSheets, ...(request.designSheets ?? [])]
   const rosterCardPaths = rosterCards.map(card => card.path)
   const provider = resolveComicQaProvider(request.model)
@@ -327,12 +361,45 @@ export const judgeComicPage = async (request: PageQaRequest): Promise<PageQaEntr
   }
 }
 
-export const readReusablePageQaEntry = async (pagePath: string, model: string): Promise<PageQaEntry | undefined> => {
+export const judgeComicPage = async (request: PageQaRequest): Promise<PageQaEntry> => await judgePageWithBoundInputs(request, judgeComicPageInputs)
+
+const isValidCachedPageQaEntry = (entry: Record<string, unknown>, request: PageQaRequest): boolean => {
+  const expectedPanels = request.panelData.panels.map(panel => panel.number)
+  if (entry['pageNumber'] !== request.pageNumber || typeof entry['hardFailure'] !== 'boolean'
+    || !Array.isArray(entry['panelNumbers']) || entry['panelNumbers'].length !== expectedPanels.length
+    || entry['panelNumbers'].some((number, index) => number !== expectedPanels[index])) return false
+  const usage = entry['usage']
+  if (!isRecord(usage) || !['inputTokens', 'outputTokens', 'totalTokens'].every(key => Number.isSafeInteger(usage[key]) && (usage[key] as number) >= 0)
+    || typeof usage['costUsd'] !== 'number' || !Number.isFinite(usage['costUsd']) || usage['costUsd'] < 0
+    || usage['totalTokens'] !== (usage['inputTokens'] as number) + (usage['outputTokens'] as number)) return false
+  const result = entry['result']
+  if (!isRecord(result) || !Array.isArray(result['panels'])
+    || result['panels'].some((panel, index) => !isRecord(panel) || panel['panelNumber'] !== expectedPanels[index])) return false
+  try {
+    // The public result type permits these optional fields; validate supplied values without changing the retained verdict.
+    const validated = parseComicPageQaResult(JSON.stringify({
+      ...result,
+      panels: result['panels'].map(panel => ({
+        blockingMatch: true, axisSideMatch: true, blockingAudit: [],
+        repairAssessment: { issueVisibility: 'not-assessable', expectedBenefit: 'none', editScope: 'diffuse', editIsolation: 'multi-region', collateralRisk: 'high', confidence: 'low', recommendation: 'retain-current', preservationRequirements: [], rationale: 'No repair assessment retained.' },
+        ...panel,
+      })),
+    }), expectedPanels)
+    return entry['hardFailure'] === hasHardPageQaFailure(validated, { blockingHardKeys: request.blockingHardKeys ?? [] })
+  } catch { return false }
+}
+
+export const readReusablePageQaEntry = async (pagePath: string, model: string, request?: PageQaRequest): Promise<PageQaEntry | undefined> => {
+  if (!request || request.model !== model || request.pagePath !== pagePath) return undefined
   const reportPath = join(dirname(pagePath), 'page-qa-report.json')
   if (!(await Bun.file(reportPath).exists())) return undefined
   try {
-    const report = JSON.parse(await Bun.file(reportPath).text()) as { schemaVersion?: number; pages?: PageQaEntry[] }
-    return report.schemaVersion === PAGE_QA_REPORT_SCHEMA_VERSION ? report.pages?.find(entry => entry.outputFile === basename(pagePath) && entry.judgeModel === model) : undefined
+    const report: unknown = JSON.parse(await Bun.file(reportPath).text())
+    if (!isRecord(report) || report['schemaVersion'] !== PAGE_QA_REPORT_SCHEMA_VERSION || !Array.isArray(report['pages'])) return undefined
+    const inputSha256 = await fingerprintPageQaInputs(request)
+    return report['pages'].find((entry): entry is PageQaEntry => isRecord(entry)
+      && entry['outputFile'] === basename(pagePath) && entry['judgeModel'] === model && entry['inputSha256'] === inputSha256
+      && isValidCachedPageQaEntry(entry, request))
   } catch { return undefined }
 }
 

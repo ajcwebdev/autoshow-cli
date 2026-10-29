@@ -2,9 +2,11 @@ import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { collectTtsDashboardSamples } from '../../.codex/skills/consensus/scripts/tts/build_tts_dashboard'
+import { TTS_AUDIO_DELIVERY_CATALOG } from '../../.codex/skills/consensus/scripts/tts/tts_audio_delivery'
 import { writePortableFileSync } from '../../.codex/skills/consensus/scripts/shared/portable_paths'
 import { transcribeWhisperfile } from '~/cli/commands/stt/local/whisperfile/transcribe'
 import { toProjectRelativePath } from '~/utils/project-root'
+import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { InfraError, UsageError, ValidationError } from '~/utils/error-handler'
 
@@ -31,6 +33,7 @@ interface CachedTranscript { schemaVersion: number; cacheKey: string; engineSha2
 export function collectAssessmentSources(root: string, engineSha256: string): AssessmentSource[] {
   const sources = collectTtsDashboardSamples(root).filter(row => row.status === 'succeeded').map(row => {
     if (!row.audioHref || row.durationSeconds === null) throw ValidationError('Selected recording is unavailable')
+    if (row.delivery?.available === false) throw ValidationError(`Restore the approved MP3 before reassessment: ${row.audioHref}`)
     const manifest = join(dirname(root), row.manifestHref)
     const m = readJson<Manifest>(manifest), item = m.items[0]!
     const provider = item.providers.find(p => p.service + '/' + p.model === row.providerKey)!
@@ -43,7 +46,7 @@ export function collectAssessmentSources(root: string, engineSha256: string): As
     const timelinePath = join(runRoot, p.archive.timelineRef.path), timelineBytes = readFileSync(timelinePath)
     if (hash(timelineBytes) !== p.archive.timelineRef.sha256) throw ValidationError('Assessment timeline hash mismatch')
     const timeline = JSON.parse(timelineBytes.toString()) as { timing: { turns?: Turn[] } }
-    const bindings = [manifest, input, timelinePath, ...(controls ? [controlsPath] : [])].map(path => ({ path: toProjectRelativePath(path), sha256: hash(readFileSync(path)) }))
+    const bindings = [manifest, input, timelinePath, ...(controls ? [controlsPath] : []), ...(row.delivery ? [join(root, TTS_AUDIO_DELIVERY_CATALOG)] : [])].map(path => ({ path: toProjectRelativePath(path), sha256: hash(readFileSync(path)) }))
     const reference = controls ? controls.spokenLines.join('\n') : inputBytes.toString().trim()
     const id = `${row.suite}--${basename(row.run)}--${row.providerKey.replace(/[^a-zA-Z0-9.-]+/g, '-')}`
     const inputSha256 = hash(inputBytes), audioSha256 = hash(readFileSync(audio))
@@ -135,7 +138,7 @@ async function command(args: string[]): Promise<string> {
 }
 
 export async function verifyAssessmentAudio(path: string): Promise<void> {
-  await command(['ffmpeg', '-nostdin', '-v', 'error', '-xerror', '-i', path, '-f', 'null', '-'])
+  await command([getFfmpegBinary(), '-nostdin', '-v', 'error', '-xerror', '-i', path, '-f', 'null', '-'])
 }
 
 export async function transcribeAssessmentSource(source: AssessmentSource, cacheRoot: string, engineSha256: string): Promise<void> {
@@ -214,7 +217,7 @@ export async function publishAssessment(root: string, sources: AssessmentSource[
     const transcript = `transcripts/${source.id}.txt`, rawTranscript = `transcripts/${source.id}.whisper.json`, inputSnapshot = `inputs/${source.id}.txt`
     addEvidence(transcript, transcriptBytes); addEvidence(rawTranscript, readFileSync(join(cache, 'transcription.json'))); addEvidence(inputSnapshot, readFileSync(source.input))
     let silences: Silence[] = []
-    if (source.suite !== 'narration') silences = parseSilences(await command(['ffmpeg', '-nostdin', '-hide_banner', '-i', source.audio, '-af', 'silencedetect=noise=-40dB:d=0.08', '-f', 'null', '-']), source.durationSeconds)
+    if (source.suite !== 'narration') silences = parseSilences(await command([getFfmpegBinary(), '-nostdin', '-hide_banner', '-i', source.audio, '-af', 'silencedetect=noise=-40dB:d=0.08', '-f', 'null', '-']), source.durationSeconds)
     const perTurn = source.controls && source.turns.length === source.controls.spokenLines.length
       ? source.turns.map((turn, i) => turnSilenceMetrics(turn, silences, source.controls!.spokenLines[i]!)) : []
     const speedOrder = source.suite === 'speed-pauses' && perTurn.length === 5
@@ -269,7 +272,7 @@ export async function publishAssessment(root: string, sources: AssessmentSource[
   markdown += table(['Case', 'Provider/model', 'Suite', 'WER', 'CER', 'S/D/I', 'Disposition'], rows.map(row => [`[${row.run}](#${row.id.toLowerCase()})`, row.providerKey, row.suite, fmt(row.comparison.wer), fmt(row.cer), `${row.comparison.substitutions}/${row.comparison.deletions}/${row.comparison.insertions}`, row.asrDisposition])) + '\n\n'
   for (const row of rows) {
     const relativeAudio = row.audio.replace(/^docs\/benchmarks\/tts\//, ''), relativeManifest = row.manifest.replace(/^docs\/benchmarks\/tts\//, '')
-    markdown += `<a id="${row.id.toLowerCase()}"></a>\n### ${row.run} — ${row.providerKey}\n\n[Selected WAV](${relativeAudio}); [manifest](${relativeManifest}); source: ${row.input}. Audio SHA-256: \`${row.audioSha256}\`. Input SHA-256: \`${row.inputSha256}\`. Render: \`${row.renderIdentity}\`; result: \`${row.resultIdentity}\`. Transcript: \`${row.transcript}\` (SHA-256 \`${row.transcriptSha256}\`).\n\nFull waveform decoding succeeded. ASR WER ${fmt(row.comparison.wer)}, CER ${fmt(row.cer)}, substitutions/deletions/insertions ${row.comparison.substitutions}/${row.comparison.deletions}/${row.comparison.insertions} over ${row.comparison.referenceWords} reference words. ${row.asrDisposition}. These differences are ASR evidence, not confirmed synthesis errors.\n\n`
+    markdown += `<a id="${row.id.toLowerCase()}"></a>\n### ${row.run} — ${row.providerKey}\n\n[Selected audio](${relativeAudio}); [manifest](${relativeManifest}); source: ${row.input}. Audio SHA-256: \`${row.audioSha256}\`. Input SHA-256: \`${row.inputSha256}\`. Render: \`${row.renderIdentity}\`; result: \`${row.resultIdentity}\`. Transcript: \`${row.transcript}\` (SHA-256 \`${row.transcriptSha256}\`).\n\nFull waveform decoding succeeded. ASR WER ${fmt(row.comparison.wer)}, CER ${fmt(row.cer)}, substitutions/deletions/insertions ${row.comparison.substitutions}/${row.comparison.deletions}/${row.comparison.insertions} over ${row.comparison.referenceWords} reference words. ${row.asrDisposition}. These differences are ASR evidence, not confirmed synthesis errors.\n\n`
     if (row.comparison.differences.length) markdown += `First differences: ${row.comparison.differences.slice(0, 12).map(d => `${d.kind} ${JSON.stringify(d.reference)} → ${JSON.stringify(d.hypothesis)}`).join('; ')}. Complete ordered differences are in assessment.json.\n\n`
     if (row.suite !== 'narration') {
       markdown += `Native mechanism: ${row.mechanism}. ${row.perLineMeasurementLimitation ?? 'The five lines have separate assembled-turn timing.'}\n\n`

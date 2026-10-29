@@ -4,15 +4,15 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-09-02
-- **Date Updated:** 2026-09-22
+- **Date Updated:** 2026-10-28
 - **Verification Status:** Passed
 - **Supersession:** Absorbs "Compile a Text-First Blocking Plan Into a Panel Ledger" and "Draft Episode Scripts From Prose Treatments" in full, plus the `comic review` mechanics from the 2026-09-10 amendment of "Integrate Comic with Shared Model and Native CLI Infrastructure". This record owns the text-to-validated-scene stages: `comic draft-treatment`, `comic draft-scenes` and its blocking stage, `comic review`, and the blocking-derived lines and checks in `comic generate-images`. The canonical and deprecated review command names are owned by [ADR-006](ADR-006-top-level-command-boundaries-and-deprecations.md).
 
 ## Context
 
-The `comic` pipeline starts from an episode script: a title, a scene heading, a bold slugline that resolves against the location catalog, panel notes, and bold speaker labels. Every later stage reads that script and none accepts prose. A treatment names characters and places that are not in the catalogs yet, and a bootstrapped catalog entry needs a style seed image that already exists. The scene stage otherwise lets the model choose the panel count, so a fixed count has to be a checked contract.
+The `comic` pipeline starts from an episode script with scene headings, catalog-resolvable sluglines, panel notes, and speaker labels. A prose treatment needs adaptation into that format and may introduce characters and locations that require catalog entries and an existing style seed image. A fixed panel count also needs validation rather than a prompt hint.
 
-Panels are generated one bundle at a time and no pixels cross between panels, so nothing recorded where a character stood in the previous panel or who was on stage but out of frame. The page judge saw only its own panel and its own cast, and the only repair was an image edit seeded with the failed image, which keeps the pose it was asked to change. The recurring defects were side flips, seat swaps, a set piece that changes footprint, a character intruding into a panel they are not in, and a crowd that vanishes between panels. Human review of a drafted scene also needed a local round trip that does not regenerate the sheet or touch the authored script.
+Independent panel generation originally lacked persistent staging and off-frame cast information. Recurring defects included side flips, seat swaps, changing set geometry, intruding characters, and disappearing crowds; edits seeded with a failed image could preserve the faulty pose. Human review also needed a local notes round trip that leaves the authored script unchanged.
 
 Why now: the first treatment that was not already a script arrived, and an episode review produced a written list of continuity defects that three rounds of prose prohibitions had failed to fix, while the later stages were stable enough that a front stage emitting their script shape is cheaper and safer than a second pipeline.
 
@@ -24,7 +24,7 @@ Why now: the first treatment that was not already a script arrived, and an episo
 
 - **Option:** Add `comic draft-treatment`, a front stage that makes one structured LLM call, validates the draft locally, writes the episode script the later stages already read, and merges new character and location entries into the catalogs; add `draft-scenes --panel-count` so the scene stage keeps the authored count
 - **Pros:** Every later stage runs unchanged; the script is a reviewable, hand-editable source; the fixed count is checked when drafting and again at scene validation
-- **Cons:** Two hosted calls on the path to scene JSON; a style seed image must exist first
+- **Cons:** Adds a hosted drafting call before scene preparation; a style seed image must exist first
 - **Quantitative Notes:** One drafting call with one retry; no new provider
 
 **Option 2**
@@ -46,14 +46,14 @@ Why now: the first treatment that was not already a script arrived, and an episo
 **Option 1 (selected)**
 
 - **Option:** A structured blocking plan compiled to a per-panel prose ledger, with an audit-only continuity judge, a blocking-class restart lane, script staging directives, and per-location geometry records
-- **Pros:** Continuity becomes typed data that deterministic validators reject before any paid call; the image prompt and the judge read one derived source of truth; every new hard check ships advisory behind a per-key policy
+- **Pros:** Contradictory staging can be rejected before image generation; the image prompt and judge share one derived source of truth; blocking checks remain advisory until explicitly promoted
 - **Cons:** A plan schema, a coordinate frame, and a deterministic compiler to keep satisfied; a hand-authored plan is real work per scene
-- **Quantitative Notes:** One added LLM call per scene of up to 3,000 output units
+- **Quantitative Notes:** One blocking drafting call per scene, with one validation retry; importing a plan makes no provider call
 
 **Option 2**
 
 - **Option:** Cross-panel QA only: a second vision judge comparing each candidate against an anchor panel and its predecessor
-- **Pros:** Detects every defect class without changing generation
+- **Pros:** Can measure continuity defects without changing generation
 - **Cons:** Detects but never prevents, and costs one judge call per panel on every run
 - **Quantitative Notes:** Adopted as the measurement layer, not the mechanism
 
@@ -67,14 +67,14 @@ Why now: the first treatment that was not already a script arrived, and an episo
 **Option 4**
 
 - **Option:** Location coverage and floor plans: a geometry record per location, a generated plan view, and camera-matched view selection
-- **Pros:** Fixes the set-geometry defect class directly
-- **Cons:** A generated overhead view contradicts the establishing-camera contract and the hash-locked view set
+- **Pros:** Gives set geometry explicit constraints
+- **Cons:** A generated overhead view can conflict with the establishing camera and registered views
 - **Quantitative Notes:** Geometry records and camera-matched selection adopted; generated plan views dropped
 
 **Option 5**
 
 - **Option:** A rendered top-down blocking card as a required image reference, plus a continuity contact sheet of prior panels
-- **Pros:** A picture of the stage is unambiguous
+- **Pros:** Makes intended staging visible
 - **Cons:** Spends a scarce reference slot on a diagram the model does not read as staging, and a contact sheet reintroduces cross-panel pixels
 - **Quantitative Notes:** Rejected as a reference image
 
@@ -87,27 +87,25 @@ Why now: the first treatment that was not already a script arrived, and an episo
 
 ## Decision
 
-The comic pipeline starts from an episode script and a typed blocking plan. `comic draft-treatment` adapts prose into that script and bootstraps the catalogs, `comic draft-scenes` keeps the authored panel count and compiles scene staging into a per-panel ledger that the image prompt and the page judge both read, and `comic review` closes the human review loop locally.
+The comic pipeline uses an episode script with an optional typed blocking plan. `comic draft-treatment` adapts prose into that script and bootstraps the catalogs, `comic draft-scenes` enforces an explicit panel count and compiles staging into a shared generation and QA ledger, and `comic review` closes the human review loop locally.
 
 ### Treatment drafting
 
-`comic draft-treatment <treatment-path>` adapts a `.md`, `.txt`, or locally extracted `.pdf` treatment into `input/scripts/<episode>-script/<scene>-<slug>.md`. The script's panel count satisfies `--panel-count`, an exact number or a range. Narration is written under `NARRATION` labels and `--speaker` lines are dialogue. `--voice-pacing` defaults to `exclusive`, one voice per panel; `mixed` allows narration and dialogue in the same panel. New characters and locations merge into the catalogs without changing existing keys, hand-edited descriptions stay in place, and ambiguous aliases are dropped and reported. A draft that fails validation writes nothing under `input/`; a failed draft retries once. The run is recorded under `output/<timestamp>_<slug>-treatment/metadata/treatment/`, and the merge report lists the `reference-sketch` command for every added key.
+`comic draft-treatment <treatment-path>` adapts a `.md`, `.txt`, or locally extracted `.pdf` treatment into an episode script. Its `--panel-count` accepts an exact number or range. `--voice-pacing` defaults to `exclusive`, one voice per panel; `mixed` allows narration and dialogue together. New characters and locations merge without replacing existing keys or hand-edited descriptions, and ambiguous aliases are dropped and reported. Validation retries once; a draft that remains invalid leaves `input/` unchanged. The merge report identifies the references that must be generated before panel prompts are built.
 
-`draft-scenes --panel-count <n>` keeps that count. The command fails before any call when the script's panel notes differ, and a scene response that violates the count retries once.
+`draft-scenes --panel-count <n>` keeps that count. The scene stage rejects a mismatched authored panel-note count before its drafting call, and a scene response that violates the count retries once.
 
 ### Blocking plan and panel ledger
 
-Scene staging is authored or drafted as a typed `metadata/blocking-plan.json` (schemaVersion 1) in a coordinate frame anchored to each location's establishing camera, validated by deterministic arithmetic before any paid call, and compiled deterministically into a per-panel `blocking` object. The derived prose lines of that object are the single source of truth for the image prompt and the page judge. The plan carries stage states forward until a cited exit move removes a character, and a panel whose camera sees an unlisted character is rejected at draft time with a message naming the character and the camera.
+Scene staging is authored or drafted as `metadata/blocking-plan.json` in a coordinate frame anchored to each location's establishing camera. Local validation rejects contradictory geometry before publication and image generation; generated plans may require a paid validation retry. A compiled per-panel ledger supplies both the image prompt and the page judge. Characters remain on stage until a cited exit removes them, and scene validation rejects a camera view that exposes an unlisted character.
 
-`comic draft-scenes` drafts or imports the plan through `--blocking-plan`, `--no-blocking`, `--rebind`, and `--reconcile-from-directives`, leaves a reviewed scene JSON in place, and writes panel citations that are not already on the scene to `metadata/blocking-bindings.json` (schemaVersion 1). Script staging directives are parsed from the screenplay into the structured script. Reviewers get `metadata/blocking/plan-overview.svg`, `panel-NN.svg`, and `blocking-ledger.md`, plus a `panel-NN-layout.png` diagram for any panel whose ledger has at least six visible characters; `--blocking-layout-guide` attaches that diagram as a structural reference for such a panel. Per-location geometry lives in `input/locations/location-plans.json`, hashed separately from the location specification so editing a floor plan does not mark a registered view stale, and location views are selected by camera match.
+`comic draft-scenes` can draft a plan, import one with `--blocking-plan`, skip it with `--no-blocking`, remap source citations with `--rebind`, or apply reviewed script directives with `--reconcile-from-directives`. Import and rebind preserve an existing reviewed scene. Local blocking diagrams and a ledger support review; `--blocking-layout-guide` optionally supplies a structural diagram for panels with at least six visible characters. Per-location geometry lives in `input/locations/location-plans.json`, independently of reference-image freshness, and location views are selected by camera match.
 
-`comic generate-images` appends the ledger and roster lines to the image prompt and gives the page judge a low-detail identity card for every roster character absent from the panel. The judge records `blockingMatch`, `axisSideMatch`, and `blockingAudit`. Every blocking status ships advisory and `--blocking-hard-keys` promotes individual keys to hard; `scale-wrong` and `crowd-uniform` are recorded in `blockingAudit` and cannot be promoted. When an individual-panel attempt has at least one promoted blocking-class hard failure (`blockingAudit` or `axisSideMatch`) and every hard failure is spatial (those, shot plan, or set continuity), the next attempt regenerates from the canonical references with the ledger appended instead of editing the failed image. `--qa-only --continuity-qa` runs the audit-only continuity judge against human labels and, with `--labels`, reports precision and recall per key.
+`comic generate-images` uses the ledger and off-frame roster to guide generation and QA. Blocking checks are advisory by default; `--blocking-hard-keys` promotes selected checks, while `scale-wrong` and `crowd-uniform` remain advisory. Within the repair budget, an individual-panel failure involving a promoted blocking check and only spatial hard failures can trigger regeneration from canonical references instead of an edit. `--qa-only --continuity-qa` runs the audit-only continuity judge; adding `--labels` reports precision and recall against human labels.
 
 ### Local review
 
-`comic review <script>` writes the HTML sheet by default. `--export-doc` also writes the shared-document export. `--notes <path>` processes notes only and does not regenerate the sheet. A missing script, a blank notes path, or an unknown flag is rejected, and combining `--notes` with `--export-doc` fails before any artifact is written. Only notes processing requires the character catalog. Both modes are local with no `--price` option, and the result identifier is `comic review`.
-
-The sheet and optional export refresh `metadata/review/review-sheet.html` and `metadata/review/export-doc.md` in place. Notes write `metadata/review/review-notes-<run-id>.md`, leave the authored script, scene JSON, and structured script unchanged, and report unmatched notes and unresolved script lines. Generated sheets tell reviewers to run `comic review <script> --notes <path>`, so the round trip is two invocations with human review between them. Review reads and writes the staging directives and the local blocking diagrams, and preserves parsed sound intent as [ADR-013](ADR-013-comic-scene-audio-and-presentation.md) requires.
+`comic review <script>` writes a local HTML sheet, with a shared-document export when `--export-doc` is set. `--notes <path>` instead maps reviewer notes to paste-ready staging directives and reports unmatched notes and unresolved script lines. It cannot be combined with `--export-doc`. Neither mode changes the script, scene JSON, or structured script; users apply accepted directives and run a separate reconcile pass. Parsed sound intent remains intact as [ADR-013](ADR-013-comic-scene-audio-and-presentation.md) requires.
 
 This applies to:
 
@@ -128,9 +126,9 @@ It does not apply to:
 
 - The existing script shape is the narrowest stable seam, so emitting it leaves audio binding and slideshow timing unchanged.
 - Checking the panel count in both stages makes a fixed count a contract rather than a prompt hint.
-- The defect classes are spatial and prose prohibitions had already failed on them, so only typed data can support an arithmetic rejection before spend.
+- The defects are spatial, and typed staging supports deterministic checks before image generation.
 - Deriving every prompt line and judge line from one compiled object removes the contradiction where set anchors and character positions were both forced into world space.
-- A restart from the canonical references is the repair that can move a person; an edit seeded with the failed image preserves the pose it was asked to change.
+- Restarting from canonical references avoids conditioning a spatial repair on the faulty pose in the failed image.
 - Shipping every blocking status advisory lets a precision gate promote one key at a time, because a false hard failure costs a full regeneration.
 - A local review sheet and a notes-only mode close the human loop without a provider call and without touching the authored sources.
 
@@ -139,14 +137,14 @@ It does not apply to:
 Positive outcomes:
 
 - A treatment becomes a reviewable script and catalog in one command, and the rest of the production is the documented `comic` walkthrough.
-- A character the script stops mentioning stays on their mark, and an intruding character is reported by the judge rather than unrecognized.
+- The plan retains off-frame cast and gives the judge evidence to identify intruding characters.
 - Every new continuity check is measurable against human labels before it is enforced.
 
 Negative outcomes:
 
-- A valid style seed image must be created or copied before the first treatment run, and the location catalog's single `styleImage` is shared across projects.
+- A valid style seed image must be created or copied before the first treatment run, and one `styleImage` serves every location in a catalog.
 - A scene needs a reviewed plan before its strongest checks mean anything, and a hand-authored plan for a long scene is substantial work.
-- The modeled judge input rose from 5,000 to 8,000 units per call and output from 1,200 to 1,400.
+- The ledger and off-frame references increase judge input and cost.
 - A wrong plan is a source of false hard failures, and the blocking-class restart lane spends a full generation whenever it fires.
 
 ## Trade-offs
@@ -158,13 +156,13 @@ Negative outcomes:
 
 **Trade-off 2**
 
-- **Gain:** Deterministic rejection of contradictory staging before any paid call
+- **Gain:** Deterministic rejection of contradictory staging before image generation
 - **Sacrifice:** A schema, a coordinate frame, and a validator surface that every future staging feature must keep satisfied
 
 **Trade-off 3**
 
 - **Gain:** A repair lane that can move a character instead of editing around them
-- **Sacrifice:** Blocking-class repairs cost a full image generation and skip the order-swapped comparison passes an edit candidate must pass
+- **Sacrifice:** Blocking-class repairs cost a full image generation
 
 **Trade-off 4**
 
@@ -173,22 +171,19 @@ Negative outcomes:
 
 ## Implementation Note
 
-`comic draft-treatment`, `draft-scenes --panel-count`, the blocking stage with its plan, bindings, and review diagrams, the blocking judge fields and restart lane in `generate-images`, the audit-only continuity judge, and the two-mode `comic review` command have all shipped. Operator behavior is in the command guides under References.
+Treatment adaptation, blocking compilation and repair, and local review are implemented under `src/cli/commands/visuals/comic/comic-commands/draft-treatment/`, `src/cli/commands/visuals/comic/comic-utils/blocking-plan-compile.ts`, `src/cli/commands/visuals/comic/comic-commands/generate-images/`, and `src/cli/commands/visuals/comic/comic-commands/review/`. Operator behavior is in the command guides under References.
 
 ## Test Plan
 
-Prepare the demonstration characters root and copy the bundled style seed using the [treatment examples](../commands/05-visuals/comic/07-draft-treatment.md#examples) before running the price command below.
-
 ```bash
-bun run check
-bun test test/test-cases/validation/visuals/comic
-bun test test/test-cases/validation/cli/option-resolution-contracts/
-bun --no-env-file autoshow comic draft-treatment input/examples/comic/harborlight-camp-treatment.md --episode 02 --scene 02 --slug harborlight-camp-treatment --speaker papa-bear --speaker mira --panel-count 20-25 --characters-root runtime/examples/harborlight-comic-treatment/characters --style-seed harborlight-camp--style-seed.png --config-path runtime/examples/harborlight-comic-treatment/empty-config.json --price
+bun test test/test-cases/validation/visuals/comic/comic-treatment-draft-validation-contracts.test.ts test/test-cases/validation/visuals/comic/comic-treatment-catalog-merge-contracts.test.ts test/test-cases/validation/visuals/comic/comic-scene-panel-count-contracts.test.ts
+bun test test/test-cases/validation/visuals/comic/comic-blocking-validation-contracts.test.ts test/test-cases/validation/visuals/comic/comic-blocking-compilation-contracts.test.ts test/test-cases/validation/visuals/comic/comic-blocking-qa-contracts.test.ts
+bun test test/test-cases/validation/visuals/comic/comic-review-command-contracts.test.ts
 ```
 
-1. The comic suite proves treatment rendering, idempotent catalog merges, the panel-count contract, plan validation, deterministic compilation, the blocking audit and restart lane, the continuity audit report, staging-directive parsing, and both review modes against local fixtures.
-2. Option resolution proves every flag parses, rejects invalid values, and keeps its default.
-3. `--price` reports the drafting call without a provider call or writes.
+1. Treatment tests check invalid drafts, catalog merges, and the panel-count contract using local fixtures.
+2. Blocking tests check geometry validation, compilation, and QA repair policy with mocked providers; they do not establish visual quality or judge precision.
+3. Review tests check local mode selection, validation, and preservation of authored artifacts.
 
 ## Follow-up Actions
 
@@ -197,7 +192,6 @@ bun --no-env-file autoshow comic draft-treatment input/examples/comic/harborligh
 - [ ] Reviewed geometry records — Pending
 - [ ] Rendered blocking card and coverage keyframes — Pending
 - [ ] Decide how a first-try production should promote judge-retained originals — Pending
-  Either a `generate-images` flag that promotes retained originals when every hard failure is set-continuity, or documented guidance to rerun the failed panels with `--no-qa`.
 - [ ] Decide whether a per-location style image should replace the catalog-wide `styleImage` — Pending
 
 ## References

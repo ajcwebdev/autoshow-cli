@@ -24,7 +24,7 @@ Generate music from a text prompt with hosted providers, or render local lyric v
 bun autoshow setup --step music
 ```
 
-The music setup step checks hosted music API keys and lyric-video tools: `ffmpeg`, `ffprobe`, and the local whisperfile `small.en` bundle.
+The music setup step checks hosted music API keys, verifies `ffmpeg` and `ffprobe`, and installs the local whisperfile `small.en` bundle. Lyric overlays require FFmpeg's `ass` filter or the Pango/ImageMagick fallback renderer.
 
 ### Environment
 
@@ -49,10 +49,10 @@ bun autoshow music --batch input/<dir>
 
 `music` has two mutually exclusive modes:
 
-| Mode                  | Required input                            | Description                                                                       |
-| --------------------- | ----------------------------------------- | --------------------------------------------------------------------------------- |
-| Hosted generation     | `<prompt-or-text-file>` with `--provider` | Generates music with hosted ElevenLabs, MiniMax, or Gemini and writes MP3 outputs |
-| Lyric-video rendering | `--audio <file>` or `--batch <dir>`       | Uses local whisperfile captions and ffmpeg to write MP4/VTT/SRT outputs           |
+| Mode                  | Required input                                   | Description                                                                       |
+| --------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Hosted generation     | `<prompt-or-text-file>` and a provider selection | Generates music with hosted ElevenLabs, MiniMax, or Gemini and writes MP3 outputs |
+| Lyric-video rendering | `--audio <file>` or `--batch <dir>`              | Uses local whisperfile captions and ffmpeg to write MP4/VTT/SRT outputs           |
 
 Hosted generation uses saved `defaults.music` settings unless explicitly overridden. Without a saved selection, choose `--provider` or `--all-providers`. Local lyric-video mode does not load hosted defaults.
 
@@ -62,18 +62,18 @@ Do not mix a hosted prompt or `--provider`, `--all-providers`, `--duration`, `--
 
 Hosted generation flags:
 
-| Flag                                   | Description                                                                                                                                          |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--provider provider[=model]`          | Hosted music provider/model selector; repeat to run multiple targets                                                                                 |
-| `--all-providers`                      | Enable every supported hosted music provider/model                                                                                                   |
-| `--provider-concurrency <n>`           | Hosted music providers/models to run concurrently; default `7`                                                                                       |
-| `--concurrency-mode <ramp\|immediate>` | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                                                                 |
-| `--duration <seconds>`                 | Requested music duration                                                                                                                             |
-| `--lyrics-file <path>`                 | Lyrics file (`.md` or `.txt`); MiniMax and Gemini use the lyrics as written, ElevenLabs uses headers such as `Verse 1` or `Chorus` as song structure |
-| `--instrumental`                       | Force instrumental generation for providers that support it; takes precedence over `--lyrics-file`                                                   |
-| `--price`                              | Show the estimate and the output path, then exit without rendering or creating the run directory                                                     |
-| `--max-model-cents <n>`                | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price`                            |
-| `--output-dir <dir>`                   | Global flag: pin an exact run directory instead of `output/<timestamp>_music-gen/`                                                                   |
+| Flag                                   | Description                                                                                                                                                                          |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--provider provider[=model]`          | Hosted music provider/model selector; repeat to run multiple targets                                                                                                                 |
+| `--all-providers`                      | Enable every supported hosted music provider/model                                                                                                                                   |
+| `--provider-concurrency <n>`           | Hosted music providers/models to run concurrently; default `7`                                                                                                                       |
+| `--concurrency-mode <ramp\|immediate>` | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                                                                                                 |
+| `--duration <seconds>`                 | Requested music duration                                                                                                                                                             |
+| `--lyrics-file <path>`                 | Lyrics file (`.md` or `.txt`); MiniMax receives the lyrics directly, Gemini includes them in the prompt, and ElevenLabs uses headers such as `Verse 1` or `Chorus` as song structure |
+| `--instrumental`                       | Request instrumental generation; takes precedence over `--lyrics-file`                                                                                                               |
+| `--price`                              | Show the estimate and the output path, then exit without rendering or creating the run directory                                                                                     |
+| `--max-model-cents <n>`                | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price`                                                            |
+| `--output-dir <dir>`                   | Global flag: pin an exact run directory instead of `output/<timestamp>_music-gen/`                                                                                                   |
 
 Lyric-video flags:
 
@@ -89,7 +89,6 @@ See [Provider Capabilities](#provider-capabilities) for the per-model matrix.
 
 ```bash
 bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider minimax=music-3.0
-bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider minimax=music-3.0 --price
 bun autoshow music "chill lo-fi beat" --all-providers --max-model-cents 10 --price
 ```
 
@@ -129,7 +128,7 @@ bun autoshow music "ambient piano instrumental with soft tape saturation" --prov
 
 MiniMax Music and Lyrics API access has been closed to new users since August 20, 2026. Existing qualified paying users can continue on PAYG; retaining this model does not establish access for a new account. [MiniMax pricing and access notice](https://platform.minimax.io/docs/pricing/overview).
 
-MiniMax ignores `--duration`. When `--lyrics-file` is omitted, generated lyrics are included in the `--price` estimate. Prompts are capped at 2000 characters and lyrics at 3500 characters.
+MiniMax ignores `--duration`. Without `--lyrics-file` or `--instrumental`, the estimate includes the lyrics-generation charge. Prompts longer than 2000 characters are truncated with a warning; lyrics longer than 3500 characters are rejected.
 
 ### Gemini
 
@@ -142,7 +141,6 @@ MiniMax ignores `--duration`. When `--lyrics-file` is omitted, generated lyrics 
 
 ```bash
 bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3.5
-bun autoshow music "cinematic synth pop with verses, chorus, and bridge" --provider gemini=lyria-3.5 --duration 120
 bun autoshow music input/examples/tts/01-tts-short.md --provider gemini=lyria-3.5 --lyrics-file input/examples/tts/01-tts-short.md
 ```
 
@@ -172,11 +170,11 @@ With `--captions`, output names come from the caption file, not the audio file. 
 
 ## Provider Capabilities
 
-✅ supported, ⚠️ partial or qualified, ❌ not exposed. Rows are newest first. Recency marks: ✅ 2026-04-01 or later, ⚠️ 2026-01-01 through 2026-03-31, ❌ before 2026-01-01. Pricing: ✅ cheapest third, ⚠️ middle third, ❌ most expensive third. Cost rank is cheapest first. All providers support `--instrumental`.
+All providers support `--instrumental`; Gemini expresses it and supplied lyrics as prompt instructions. Pricing below uses the CLI's current rates; use `--price` for the selected run's estimate.
 
-| Provider                | Released     | Duration                    | Duration control | Lyrics                             | Output                    | Pricing                                          | Cost rank |
-| ----------------------- | ------------ | --------------------------- | ---------------- | ---------------------------------- | ------------------------- | ------------------------------------------------ | --------- |
-| ElevenLabs `music_v2_5` | ✅ 2026-09-11 | ✅ 3–600s                    | ✅ `--duration`   | ✅ `--lyrics-file` with sections    | ✅ 48 kHz / 192 kbps MP3   | ❌ $0.15/min ($0.45 at the 180s default estimate) | 3/3       |
-| Gemini `lyria-3.5`      | ✅ 2026-09-04 | ⚠️ Full song; 120s estimate | ⚠️ Prompt only   | ✅ File or generated text/structure | ✅ 44.1 kHz stereo MP3     | ✅ $0.08/song request                             | 1/3       |
-| MiniMax `music-3.0`     | ✅ 2026-08-13 | ✅ Up to 5 minutes           | ❌ Ignored        | ✅ `--lyrics-file` or generated     | ✅ 44.1 kHz / 256 kbps MP3 | ⚠️ $0.15/track (+$0.01 generated lyrics)         | 2/3       |
-| ElevenLabs `music_v2`   | ✅ 2026-05-26 | ✅ 3–600s                    | ✅ `--duration`   | ✅ `--lyrics-file` with sections    | ✅ 48 kHz / 192 kbps MP3   | ❌ $0.15/min ($0.45 at the 180s default estimate) | 3/3       |
+| Provider                | Duration                 | Duration control | Lyrics                           | Output                  | Pricing                                        |
+| ----------------------- | ------------------------ | ---------------- | -------------------------------- | ----------------------- | ---------------------------------------------- |
+| ElevenLabs `music_v2_5` | 3–600s                   | `--duration`     | `--lyrics-file` with sections    | 48 kHz / 192 kbps MP3   | $0.15/min ($0.45 at the 180s default estimate) |
+| Gemini `lyria-3.5`      | Full song; 120s estimate | Prompt hint      | File or generated text/structure | 44.1 kHz stereo MP3     | $0.08/song request                             |
+| MiniMax `music-3.0`     | Up to 5 minutes          | Ignored          | `--lyrics-file` or generated     | 44.1 kHz / 256 kbps MP3 | $0.15/track (+$0.01 generated lyrics)          |
+| ElevenLabs `music_v2`   | 3–600s                   | `--duration`     | `--lyrics-file` with sections    | 48 kHz / 192 kbps MP3   | $0.15/min ($0.45 at the 180s default estimate) |

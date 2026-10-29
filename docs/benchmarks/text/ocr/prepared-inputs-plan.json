@@ -2356,7 +2356,6 @@
     ],
     "remainingUnexecutedPreparedCount": 20,
     "completedPreparedCount": 10,
-    "failedOnlyTarget": "mistral/mistral-ocr-4-0",
     "cases": [
       {
         "id": "technical-code-nbitcoin",
@@ -2441,7 +2440,7 @@
     ],
     "accountedCategoryBCProviderCents": 1191.112991,
     "laterCategoryGenerationAuthorized": false,
-    "category4PricingReport": "docs/reports/ocr-category-4-pricing-2026-10-23.md",
+    "category4PricingReport": "docs/reports/repository-improvement-actions.md",
     "scope": "Historical B/C completion snapshot before category D authorization"
   },
   "category4ExecutionUpdate": {
@@ -2479,7 +2478,7 @@
     "totalPlannedAdditionsIncludingA": 35,
     "successfulPreparedModelOutputsIncludingA": 735,
     "intendedPreparedModelOutputsIncludingA": 735,
-    "report": "docs/reports/ocr-remaining-categories-pricing-2026-10-23.md"
+    "report": "docs/reports/repository-improvement-actions.md"
   },
   "categories5To7ExecutionUpdate": {
     "updatedAt": "2026-10-23T09:31:01.358Z",
@@ -2499,6 +2498,6 @@
     "intendedSlots": 399,
     "failedBaselineSlots": 1,
     "accountedCents": 1002.679785,
-    "report": "docs/reports/ocr-remaining-categories-pricing-2026-10-23.md"
+    "report": "docs/reports/repository-improvement-actions.md"
   }
 }

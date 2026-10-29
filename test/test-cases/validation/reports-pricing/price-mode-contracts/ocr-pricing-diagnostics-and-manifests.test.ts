@@ -7,7 +7,7 @@ import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import type { CommandPricingOptions, ExtractionMetadata } from '~/types'
 import {
-  DEEPINFRA_OCR_PROVIDER_CASE,
+  GROK_OCR_PROVIDER_CASE,
   MULTI_PAGE_PDF,
   buildHostedOcrPricingOptions,
   findPricingNoteKeys,
@@ -280,7 +280,7 @@ describe('price mode contracts', () => {
   test('OCR manifest fallback estimates apply the same calibrated multiplier as price mode', async () => {
       const profilePath = missingHostedOcrProfilePath()
       const actualMetadata: ExtractionMetadata = {
-        extractionMethod: 'pdf+deepinfra-ocr',
+        extractionMethod: 'pdf+grok-ocr',
         totalPages: 3,
         ocrPages: 3,
         textPages: 0,
@@ -288,32 +288,32 @@ describe('price mode contracts', () => {
         dpi: 300,
         languages: 'eng',
         tokenEstimate: 10_000,
-        ocrService: 'deepinfra',
-        ocrModel: 'google/gemma-4-31B-it',
+        ocrService: 'grok',
+        ocrModel: 'grok-4.7',
         promptTokens: 1,
         completionTokens: 1
       }
       const priceEstimate = await buildAggregatedPriceEstimate('extract', MULTI_PAGE_PDF, {
-        ...buildHostedOcrPricingOptions([DEEPINFRA_OCR_PROVIDER_CASE]),
+        ...buildHostedOcrPricingOptions([GROK_OCR_PROVIDER_CASE]),
         hostedOcrTokenProfilePath: profilePath
       } as CommandPricingOptions & { hostedOcrTokenProfilePath: string })
       const fallbackEstimated = resolveExtractEstimatedCosts(undefined, actualMetadata, { hostedOcrTokenProfilePath: profilePath })
       const observedEstimate = resolveExtractObservedEstimateCosts(actualMetadata)
-      const multiplier = getExtractEstimation('deepinfra', 'google/gemma-4-31B-it').costMultiplier
+      const multiplier = getExtractEstimation('grok', 'grok-4.7').costMultiplier
 
       expect(multiplier).toBe(1)
       expect(fallbackEstimated.totalCost).toBeCloseTo(priceEstimate.totalEstimatedCost)
       expect(fallbackEstimated.steps[0]).toMatchObject({
-        provider: 'deepinfra',
-        model: 'google/gemma-4-31B-it',
+        provider: 'grok',
+        model: 'grok-4.7',
         pageCount: 3,
         costMultiplier: multiplier,
         tokenEstimateSource: 'registry',
         tokenEstimateConfidence: 'none'
       })
       expect(observedEstimate.steps[0]).toMatchObject({
-        provider: 'deepinfra',
-        model: 'google/gemma-4-31B-it',
+        provider: 'grok',
+        model: 'grok-4.7',
         promptTokens: 1,
         completionTokens: 1,
         costMultiplier: 1,

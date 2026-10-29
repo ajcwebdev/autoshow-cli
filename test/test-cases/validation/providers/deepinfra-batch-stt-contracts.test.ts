@@ -62,7 +62,7 @@ describe('DeepInfra batch STT catalog contracts', () => {
     expect([...SUPPORTED_DEEPINFRA_STT_MODELS]).toEqual(CATALOG.map((entry) => entry.model))
     for (const { model } of CATALOG) expect(validateDeepinfraSttModel(model)).toBe(model)
     // Streaming-only Together identities and chat-only DeepInfra ids stay out of the STT selector.
-    for (const rejected of ['nvidia/nemotron-3-asr-streaming-0.6b', 'nvidia/nemotron-3.5-asr-streaming-0.6b', 'Qwen/Qwen3.8-27B', 'mistralai/Voxtral-Mini-2507']) {
+    for (const rejected of ['nvidia/nemotron-3-asr-streaming-0.6b', 'nvidia/nemotron-3.5-asr-streaming-0.6b', 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'mistralai/Voxtral-Mini-2507']) {
       expect(() => validateDeepinfraSttModel(rejected)).toThrow('Invalid model')
     }
   })

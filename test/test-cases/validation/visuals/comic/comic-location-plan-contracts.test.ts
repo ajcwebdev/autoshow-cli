@@ -217,7 +217,7 @@ describe('reviewed geometry facts for alternate location views', () => {
     const judgedFacts: Array<string | undefined> = []
     const models: string[] = []
     const { events } = await captureLogEvents(async () => {
-      await locationReferenceSketchCommand({ location: 'cargo-bay', view: 'reverse', qa: true, maxRepairs: 1, imageModels: ['gpt-image-2'] }, {
+      await locationReferenceSketchCommand({ location: 'cargo-bay', view: 'reverse', qa: true, maxRepairs: 1, imageModels: ['gpt-image-2.5-flare'] }, {
         requestImage: async (prompt, _references, model) => { prompts.push(prompt); models.push(model); return { mode: 'generate', result: { imageBase64: image.toString('base64') } } },
         writeImage: async path => { await Bun.write(path, image) },
         judgeView: async input => { judgedFacts.push(input.cameraFacts); return qa() },
@@ -225,7 +225,7 @@ describe('reviewed geometry facts for alternate location views', () => {
       })
     })
     expect(prompts).toHaveLength(1)
-    expect(models).toEqual(['gpt-image-2'])
+    expect(models).toEqual(['gpt-image-2.5-flare'])
     expect(prompts[0]).toContain('Camera cell "door"')
     expect(prompts[0]).toContain('Reviewed geometry for the reverse view')
     expect(judgedFacts[0]).toContain('Camera cell "door"')

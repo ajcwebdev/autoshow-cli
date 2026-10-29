@@ -3,6 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { isRecord, loadCanonicalRunRecord, readCanonicalManifest } from "../shared/pipeline_manifest";
+import { getFfprobeBinary } from '../../../../../src/utils/runtime-paths';
 
 export interface AudioProperties {
   durationSeconds: number;
@@ -175,7 +176,7 @@ export function discoverAudioFiles(
 export async function probeAudio(audioPath: string): Promise<AudioProperties> {
   const proc = Bun.spawn(
     [
-      "ffprobe",
+      getFfprobeBinary(),
       "-v", "error",
       "-show_entries", "format=duration,bit_rate:stream=sample_rate,channels,codec_name",
       "-of", "json",

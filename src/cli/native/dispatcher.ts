@@ -16,6 +16,7 @@ import { cookieFlagNameFromSpelling, commandAcceptsGlobalFlag, unsupportedCookie
 import { getUnknownFlagSpellings } from './unknown-flag-spellings'
 import { UsageError } from '~/utils/error-handler'
 import { readRegisteredStepConcurrencyScopes, readStepConcurrencyAssignments } from '~/cli/flags/service-selector-normalization/step-concurrency-scopes'
+import { resolveProjectMaintenanceRoots, withProjectWriterLease } from '~/utils/project-maintenance-lease'
 
 const formatVersion = (version: string): string =>
   version.startsWith('v') ? version : `v${version}`
@@ -31,6 +32,11 @@ const PIPELINE_STEP_BY_COMMAND: Readonly<Record<string, string>> = {
   music: 'step-7-music',
   comic: 'step-8-comic'
 }
+
+const WORKSPACE_WRITER_COMMANDS = new Set(['comic', 'image', 'resume', 'tts', 'video', 'music', 'extract', 'write', 'download', 'metadata', 'links', 'voice'])
+
+export const commandRequiresProjectWriterLease = (commandName: string, flags: Readonly<Record<string, unknown>>): boolean =>
+  flags['price'] !== true && WORKSPACE_WRITER_COMMANDS.has(commandName.split(' ', 1)[0] ?? '')
 
 export const dispatchNativeCli = async (
   argv: string[],
@@ -158,7 +164,10 @@ export const dispatchNativeCli = async (
   const commandRoot = commandName.split(' ', 1)[0] as string
   const pipelineStep = PIPELINE_STEP_BY_COMMAND[commandRoot]
   await runWithLogContext({ command: commandName, ...(pipelineStep ? { step: pipelineStep } : {}) }, async () => {
-    await command.handler(ctx)
+    const execute = async (): Promise<void> => { await command.handler(ctx) }
+    if (commandRequiresProjectWriterLease(commandName, parsed.flags)) {
+      await withProjectWriterLease(await resolveProjectMaintenanceRoots(process.cwd(), parsed.flags, parsed.parameters), execute)
+    } else await execute()
   })
 
   const startedAtMs = store['startedAtMs']

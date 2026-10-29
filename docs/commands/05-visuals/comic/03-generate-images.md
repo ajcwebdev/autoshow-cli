@@ -40,45 +40,45 @@ See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, 
 | `--promote <policy>`                   | Revision promotion policy; revision mode requires `clear-winners`                                                                                                                                                                                                             | none                                  |
 | `--qa-provider <provider[=model]>`     | Vision judge model; QA supports OpenAI and Gemini vision-capable LLMs                                                                                                                                                                                                         | `openai=gpt-6.1-sol`                  |
 | `--max-repairs <n>`                    | Non-negative integer limit of eligible repair attempts after the initial image                                                                                                                                                                                                | generation `2`; audit/revision `0`    |
-| `--bloopers`                           | Copy every non-promoted panel attempt into `output/bloopers/` with a provenance sidecar for the blooper reel                                                                                                                                                                  | `false`                               |
+| `--bloopers`                           | Copy non-promoted attempts from successful panel renders into `output/bloopers/` with provenance sidecars                                                                                                                                                                     | `false`                               |
 | `--stop-on-provider-error`             | Abort the remaining panels on the first provider error instead of continuing; already written attempts are preserved and the run exits non-zero                                                                                                                               | `false`                               |
-| `--credit-preflight`                   | Verify the provider credential and account credit with one zero-cost models request before any paid call; in `--price` mode it only reports that it would run                                                                                                                 | `false`                               |
+| `--credit-preflight`                   | Check OpenAI model-list access with a zero-cost request; credit and image-generation admission remain unverified. `--price` only reports the check                                                                                                                            | `false`                               |
 | `--price`                              | Estimate API costs without making API calls                                                                                                                                                                                                                                   | `false`                               |
 
 ### Advanced Options
 
-| Flag                            | Description                                                                                                                                       | Default                 |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| `--provider <provider[=model]>` | Use one or more supported image models (see [Supported Models](./00-comic-overview.md#supported-models))                                          | `openai=gpt-image-2`    |
-| `--variation <name[,name...]>`  | Generate final images with a comma-separated list of prompt variations: `canonical`, `animation-polish`, `cinematic-depth`                        | `canonical`             |
-| `--size <size>`                 | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for `gpt-image-2` or GPT Image 2.5 (Flare/Sunburst)    | `1536x1024`             |
-| `--quality <quality>`           | `low`, `medium`, `high`, or `auto`; Image 2.5 also supports `xhigh` and `max`. Only OpenAI applies this flag; other providers use their defaults. | `high`                  |
-| `--panels-per-image <n>`        | Number of ordered panels per generated image; overrides both stage defaults                                                                       | final `1`; sketches `6` |
-| `--grid <columns>x<rows>`       | Compose generated individual final panels into local page grids, such as `2x3`; requires `--panels-per-image 1` and `--size 1536x1024`            | none                    |
+| Flag                            | Description                                                                                                                                       | Default                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `--provider <provider[=model]>` | Use one or more supported image models (see [Supported Models](./00-comic-overview.md#supported-models))                                          | `openai=gpt-image-2.5-flare` |
+| `--variation <name[,name...]>`  | Generate final images with a comma-separated list of prompt variations: `canonical`, `animation-polish`, `cinematic-depth`                        | `canonical`                  |
+| `--size <size>`                 | Image size: `1536x1024`, `1024x1024`, `1024x1536`, `auto`, or a custom `WIDTHxHEIGHT` size for GPT Image 2.5 (Flare/Sunburst)                     | `1536x1024`                  |
+| `--quality <quality>`           | `low`, `medium`, `high`, or `auto`; Image 2.5 also supports `xhigh` and `max`. Only OpenAI applies this flag; other providers use their defaults. | `high`                       |
+| `--panels-per-image <n>`        | Number of ordered panels per generated image; overrides both stage defaults                                                                       | final `1`; sketches `6`      |
+| `--grid <columns>x<rows>`       | Compose generated individual final panels into local page grids, such as `2x3`; requires `--panels-per-image 1` and `--size 1536x1024`            | none                         |
 
 ### Examples
 
 Use the variables and fresh workspace from the [Harborlight setup](./00-comic-overview.md#setup). These examples share the same four-panel scene.
 
-Prerequisite: reviewed four-panel `scene.json`, current reference snapshots and complete panel prompt bundles from the walkthrough. Execute only the chosen image mode after the cumulative estimate. `sketches` followed by `images` is the main route; `both` is its combined alternative, not an extra required purchase.
+Prerequisite: reviewed four-panel `scene.json`, current registered canonical references, and complete panel prompt bundles from the walkthrough. Generation and QA resolve the latest canonical files and descriptions directly without per-scene reference copies. Execute only the chosen image mode after the cumulative estimate. `sketches` followed by `images` is the main route; `both` is its combined alternative, not an extra required purchase.
 
 ```bash
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target sketches --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --provider openai=gpt-image-2 --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target both --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 1,3 --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --grid 2x2 --panels-per-image 1 --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --provider openai=gpt-image-2 --provider gemini=gemini-3.1-flash-lite-image --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --variation animation-polish,cinematic-depth --provider openai=gpt-image-2 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target sketches --provider openai=gpt-image-2.5-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --provider openai=gpt-image-2.5-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target both --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 1,3 --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --grid 2x2 --panels-per-image 1 --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --provider openai=gpt-image-2.5-flare --provider gemini=gemini-3.1-flash-lite-image --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --variation animation-polish,cinematic-depth --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
-Grid, subset, multiple-model, and variation commands are optional price-only comparisons. Select at most the accepted alternatives; variation/page outputs are not automatically canonical slideshow panels. The four-panel scene has no panels 5–7.
+Grid, subset, multiple-model, and variation commands are optional price-only comparisons. Select at most the accepted alternatives; variation/page outputs are not automatically canonical slideshow panels.
 
 After generation, inspect the selected `panels/<image-run-id>/` candidate files and use the [local canonical publication step](./00-comic-overview.md#4-build-panel-prompts-generate-images-and-review). The commands below read canonical `panels/panel-NN.png` files, not nested candidate runs.
 
 #### Optional audit and revision prerequisites
 
-These examples deliberately require artifacts produced and reviewed **after** canonical images exist. There is no fabricated labels file or revision plan in the source bundle. QA-only can be priced once those images exist:
+Audit and revision commands require reviewed canonical images. QA-only can be priced once those images exist:
 
 ```bash
 bun --no-env-file autoshow comic generate-images "$SCRIPT" --qa-only --max-repairs 0 --panels 1-4 --qa-provider openai=gpt-6.1-sol --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
@@ -90,10 +90,10 @@ For continuity evaluation, a reviewer must first author `$RUN/qa/continuity-labe
 bun --no-env-file autoshow comic generate-images "$SCRIPT" --qa-only --max-repairs 0 --continuity-qa --labels "$RUN/qa/continuity-labels.json" --trusted-anchor-panel 1 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
-Revision evaluation additionally needs `$RUN/qa/revision-plan.json` with this scene's fingerprint and actual script, panel, contract, references and prior-QA hashes, frozen issues and correction notes for panels 2 and 4. See [revision evaluation mode](#revision-evaluation-mode) and its [validated plan schema/fingerprint helper](../../../../src/cli/commands/visuals/comic/comic-commands/generate-images/revision-plan-validation.ts). An empty template or another scene's plan is rejected. This bounded experiment reserves an edit and two comparisons per pending panel, and belongs in the cumulative estimate.
+Revision evaluation also needs `$RUN/qa/revision-plan.json` with this scene's current input hashes, frozen issues, and correction notes for panels 2 and 4. See [revision evaluation mode](#revision-evaluation-mode) and its [validated plan schema/fingerprint helper](../../../../src/cli/commands/visuals/comic/comic-commands/generate-images/revision-plan-validation.ts). An empty template or another scene's plan is rejected. This bounded experiment reserves an edit and two comparisons per pending panel, and belongs in the cumulative estimate.
 
 ```bash
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 2,4 --provider openai=gpt-image-2 --qa-provider openai=gpt-6.1-sol --revision-plan "$RUN/qa/revision-plan.json" --max-repairs 0 --promote clear-winners --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 2,4 --provider openai=gpt-image-2.5-flare --qa-provider openai=gpt-6.1-sol --revision-plan "$RUN/qa/revision-plan.json" --max-repairs 0 --promote clear-winners --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 `--force` is a separate deliberate regeneration policy. Preserve the reviewed run and choose a copied compatible workspace before using it; it does not update the script or prompt bundle.
@@ -105,42 +105,40 @@ bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --pan
 - Sketch panel selections must be contiguous. Use `--target images` for a non-contiguous list such as `1,3,7`.
 - `--panels-per-image` above 1 and `--grid` write page images under `pages/`. A `--grid` last page leaves unused cells blank.
 - Every image run nests files under a run id: `panels/<run-id>/`, `pages/<run-id>/`, and `sketches/<run-id>/`. Multiple models add a `<model>` directory. `--variation` nests final images as `panels/<run-id>/<variation>/<model>/` and `pages/<run-id>/<variation>/<model>/`.
-- With `--qa`, only final images that pass the judge are kept. See [Conservative individual-panel repairs](#conservative-individual-panel-repairs).
-- `--qa-only` judges existing canonical individual panels and requires `--target images`, `--panels-per-image 1`, QA enabled, and `--max-repairs 0`. It rejects `--force`, grids, variations, grouped pages, image-generation options, the layout guide, and revision mode. Hard failures stay in the report. The run writes `qa/panel-audit-<run-id>/page-qa-report.{json,md}` and `qa-only-audit.json`. Canonical images and the scene manifest stay unchanged, and each run judges the selected panels again. `--price` counts judge calls only.
+- With `--qa`, only passing new candidates are published; failed attempts remain available for inspection. A judge pass does not replace human review. See [Conservative individual-panel repairs](#conservative-individual-panel-repairs).
+- `--qa-only` judges existing canonical individual panels and requires `--target images`, `--panels-per-image 1`, QA enabled, and `--max-repairs 0`. It rejects `--force`, grids, variations, grouped pages, image-generation options, the layout guide, and revision mode. Hard failures stay in the report. The run writes `qa/panel-audit-<run-id>/page-qa-report.{json,md}` and `qa-only-audit.json`. Canonical images and the scene manifest stay unchanged. Without continuity mode, each audit judges the selected panels again. `--price` counts judge calls only.
 - `--continuity-qa` adds a continuity report for each selected panel on the same `--qa-provider`: axis, cast, screen side, posture, placement, wardrobe, and furniture against the location anchor and predecessor, plus a blooper category and a repair route. The audit writes findings only.
 - Continuity anchors by location. `--trusted-anchor-panel` (or the labels file's `trustedAnchorPanel`) anchors every panel of that location, including after the scene leaves and returns. A location with no trusted panel anchors on its first panel in scene order. The predecessor is the previous panel in the same contiguous visit.
-- A continuity run writes `qa/continuity-audit-<run-id>/` and extends `qa-only-audit.json`. `--continuity-only` skips the page judge and writes no `page-qa-report.{json,md}`. A saved page-QA entry is reused when it already includes continuity for the same judge model.
-- `--labels` reads `qa/continuity-labels.json`: `schemaVersion`, `sceneSlug`, nullable `trustedAnchorPanel`, `labeled`, `labeler`, `date`, and `pairs` of `[reference, candidate]` panels with verdicts for `side-flip`, `seat-swap`, `furniture-spin`, `intruder`, `vanishing-crowd`, and `wardrobe-swap`. `labeled` must be `true`; an unfilled template is rejected. The report then includes per-key precision and recall. `--price` adds one judge call per selected panel, and `--continuity-only` omits the page-judge calls.
+- A continuity run writes `qa/continuity-audit-<run-id>/` and extends `qa-only-audit.json`. `--continuity-only` skips the page judge and writes no `page-qa-report.{json,md}`. A saved page-QA entry is reused only when its judge model and complete current inputs match and it already includes continuity; the continuity judge still runs.
+- `--labels` requires reviewed labels in the linked schema; an unfilled template is rejected. The report adds per-key precision and recall. `--price` adds one continuity judge call per selected panel, and `--continuity-only` omits the page-judge calls.
 - A panel with a compiled blocking ledger is generated and judged from that ledger. Declared set anchors stay in frame; other anchors may be cropped. A character drawn into a panel that does not list them is `unlisted-on-stage`. A panel without a ledger is not blocking-audited.
 - `--blocking-layout-guide` attaches `metadata/blocking/panel-NN-layout.png` for an individual panel whose ledger shows at least six visible named characters. Sparser panels skip it. `--price` counts the guide as a reference on the initial image and on each repair.
-- A spatial-only hard-failure set (blocking, axis, shot plan, or set continuity) regenerates that individual panel from the canonical references. A set that also includes a dialogue failure edits the failed image. The replacement becomes canonical only after it passes QA.
+- A hard-failure set that includes a promoted blocking or axis check and only spatial failures regenerates the individual panel from canonical references instead of editing it. Other eligible failures use the edit path. A replacement is published only after it passes QA.
 
 #### Blooper ledger
 
-- `--bloopers` copies every attempt whose bytes differ from the promoted panel to `output/bloopers/<episode>/<scene-slug>/panel-NN-attempt-N.png`, with a JSON sidecar for the panel, attempt, model, QA verdict, and a category (`side-flip`, `seat-swap`, `furniture-spin`, `intruder`, `vanishing-crowd`, `wardrobe-swap`, or `other`).
+- After a successful panel render, `--bloopers` copies attempts whose bytes differ from the published panel to `output/bloopers/<episode>/<scene-slug>/panel-NN-attempt-N.png`, with a JSON sidecar identifying the panel, attempt, model, QA verdict, and continuity category.
 - Each run appends `output/bloopers/bloopers.json` and rewrites `output/bloopers/README.md`. The promoted image stays out of that tree, and nothing under `output/bloopers/` is canonical.
 
 #### Conservative individual-panel repairs
 
 A hard-contract finding stays a QA failure even when no repair is purchased. Ambiguous, hidden, low-confidence, or vague findings are left unedited. A directly visible, high-confidence failure may be edited up to `--max-repairs`, using the failed image, the reviewed contract, and the canonical references.
 
-The edit replaces the canonical panel only when it passes QA and is a clear improvement on the original. The same hard-failure set restarts once from the canonical references, then stops. An oscillating failure set stops. A new initial image that still fails stays unpromoted. Failed attempts remain on disk and in the page QA report.
+A repair that removes hard failures without adding another failure can proceed without pairwise comparisons. Otherwise, two order-swapped comparisons must agree that it is a meaningful improvement without regression. Publication still requires a QA pass. Repeated failures allow one restart from canonical references; unresolved or oscillating failures stop. Failed candidates remain unpromoted, on disk and in the page QA report.
 
-Grouped page repairs retry up to `--max-repairs` without that confidence gate. Individual-panel `--price` reserves one image edit, one candidate QA call, and two comparison calls for every possible repair. A repair that the confidence gate skips is absent from the calls that run.
+Grouped page repairs retry up to `--max-repairs` without that confidence gate. Individual-panel `--price` reserves one image edit or regeneration, one candidate QA call, and two comparison calls for every possible repair. Actual work may use fewer calls.
 
 #### Revision evaluation mode
 
 `--revision-plan` tests whether one targeted edit should replace an existing canonical panel. The plan fingerprint must match the selected scene and panels. It freezes the panels, the issue, the correction note, and the hashes of the script, prior QA, original panel, reviewed contract, and canonical references.
 
-Revision mode requires `--target images`, `--panels-per-image 1`, `--provider openai=gpt-image-2`, `--qa-provider openai=gpt-6.1-sol`, and `--max-repairs 0`; these values are inferred when omitted. Promotion requires explicit `--promote clear-winners` authorization. Revision mode rejects `--force`, `--qa-only`, `--no-qa`, sketches, grouped pages, grids, variations, multiple image models, and the normal repair loop.
+Revision mode requires `--target images`, `--panels-per-image 1`, `--provider openai=gpt-image-2.5-flare`, `--qa-provider openai=gpt-6.1-sol`, and `--max-repairs 0`; these values are inferred when omitted. Promotion requires explicit `--promote clear-winners` authorization. Revision mode rejects `--force`, `--qa-only`, `--no-qa`, sketches, grouped pages, grids, variations, multiple image models, and the normal repair loop.
 
-Revision comparisons always use two order-swapped judgments, inferred without a flag. The hidden `--comparison-passes 2` compatibility setting remains accepted; other values are rejected.
-
-Each pending panel receives one edit that uses only the frozen correction note. A failed, malformed, interrupted, or ambiguous panel is closed and is not sent again. Each completed candidate is compared with the original twice, with the image order swapped on the second pass. A failed or malformed comparison closes that panel.
+Each pending panel receives at most one edit using the frozen correction note. Failed, malformed, interrupted, or ambiguous work is not sent again. Each completed candidate is compared with the original twice, with the image order swapped on the second pass. Both comparisons must complete successfully for promotion.
 
 The candidate replaces the canonical panel only when the frozen importance is meaningful, both comparisons prefer the candidate, both find the targeted issue materially improved, and neither finds a major regression or new preservation damage. Every other outcome keeps the original bytes.
 
-Evidence resumes by plan fingerprint under `revision-evaluations/<experiment-id>-<fingerprint-prefix>/`. Each panel directory holds `original.png`, at most one `candidate.png`, the comparison records, and `panel-ledger.json`. The run root holds the copied plan and `revision-evaluation.json`. Resume preserves an incompatible or unidentified comparison and its images, and it closes an in-flight panel as ambiguous.
+Evidence resumes by plan fingerprint under `revision-evaluations/<experiment-id>-<fingerprint-prefix>/`, retaining originals, candidates, comparisons, and the copied plan. Incompatible or unidentified evidence is preserved; interrupted in-flight work is marked ambiguous and is not repurchased automatically.
 
 Revision `--price` checks the plan and source hashes without writes or provider calls. It prices each pending image edit and the two comparisons still owed for a pending or uncompared candidate. Finished evidence is reused.
 

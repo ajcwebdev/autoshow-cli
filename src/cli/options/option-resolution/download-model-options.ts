@@ -20,7 +20,6 @@ import {
   validateCloudflareSttModel,
   validateAnthropicOcrModel,
   validateGeminiOcrModel,
-  validateDeepinfraOcrModel,
   validateMistralOcrModel,
   validateOpenAIOcrModel,
   validateGrokOcrModel,
@@ -36,10 +35,8 @@ import {
   validateGeminiImageModel,
   validateGrokImageModel,
   validateOpenAIImageModel,
-  validateFalImageModel,
   validateGeminiVideoModel,
-  validateGrokVideoModel,
-  validateFalVideoModel
+  validateGrokVideoModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { AllShortcutFlag, BuildOptsDefaults, FlagOccurrenceValue, RepeatableModelFlag } from '~/types'
 import { appendUnique, expandAllShortcutModels } from './model-flag-selection'
@@ -53,7 +50,7 @@ export const readRuntimeModelOptions = (
   allShortcutFlags: Record<AllShortcutFlag, boolean>,
   _defaults: BuildOptsDefaults
 ) => {
-  const removedFlags = ['glm', 'kimi', 'together', 'glm-ocr', 'kimi-ocr']
+  const removedFlags = ['glm', 'kimi', 'together', 'glm-ocr', 'kimi-ocr', 'deepinfra-ocr', 'fal-image', 'fal-video']
     .filter(key => flags[key] !== undefined && flags[key] !== null)
   if (removedFlags.length > 0) {
     throw UsageError(`Provider selections ${removedFlags.join(', ')} are no longer supported. Remove them and select an active provider explicitly. AutoShow will not silently substitute a different model identity.`)
@@ -95,7 +92,6 @@ export const readRuntimeModelOptions = (
     grokOcrModels: readValidatedMany('grok-ocr', validateGrokOcrModel),
     anthropicOcrModels: readValidatedMany('anthropic-ocr', validateAnthropicOcrModel),
     geminiOcrModels: readValidatedMany('gemini-ocr', validateGeminiOcrModel),
-    deepinfraOcrModels: readValidatedMany('deepinfra-ocr', validateDeepinfraOcrModel),
     openaiModels: readValidatedMany('openai', validateOpenAIModel),
     geminiModels: readValidatedMany('gemini', validateGeminiModel),
     anthropicModels: readValidatedMany('anthropic', validateAnthropicModel),
@@ -109,12 +105,10 @@ export const readRuntimeModelOptions = (
     geminiImageModels: readValidatedMany('gemini-image', validateGeminiImageModel),
     openaiImageModels: readValidatedMany('openai-image', validateOpenAIImageModel),
     grokImageModels: readValidatedMany('grok-image', validateGrokImageModel),
-    falImageModels: readValidatedMany('fal-image', validateFalImageModel),
     elevenlabsMusicModels: readValidatedMany('elevenlabs-music', validateElevenlabsMusicModel),
     minimaxMusicModels: readValidatedMany('minimax-music', validateMinimaxMusicModel),
     geminiMusicModels: readValidatedMany('gemini-music', validateGeminiMusicModel),
     geminiVideoModels: readValidatedMany('gemini-video', validateGeminiVideoModel),
-    grokVideoModels: readValidatedMany('grok-video', validateGrokVideoModel),
-    falVideoModels: readValidatedMany('fal-video', validateFalVideoModel)
+    grokVideoModels: readValidatedMany('grok-video', validateGrokVideoModel)
   }
 }

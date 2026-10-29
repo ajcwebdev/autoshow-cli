@@ -1,6 +1,6 @@
 # metadata
 
-Collect and display metadata for media, documents, articles, or X Spaces without downloading.
+Collect and display metadata for media, documents, articles, or X Spaces. Remote documents are fetched temporarily for inspection.
 
 ## Outline
 
@@ -13,13 +13,14 @@ Collect and display metadata for media, documents, articles, or X Spaces without
 ```bash
 bun autoshow metadata <input> [flags]
 ```
+
 ## Supported Inputs
 
 | Input                                                                 | Behavior                                                         |
 | --------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | YouTube / Twitch / TikTok URL                                         | Collect video metadata                                           |
 | Direct media URL (`.mp3`, `.mp4`, etc.)                               | Collect media metadata                                           |
-| Direct document or image URL (`.pdf`, `.epub`, `.docx`, `.png`, etc.) | Collect document metadata                                        |
+| Direct document or image URL (`.pdf`, `.epub`, `.docx`, `.png`, etc.) | Fetch temporarily and collect document metadata                  |
 | Remote article / HTML URL                                             | Collect article metadata; choose a backend with `--url-provider` |
 | X/Twitter Space URL, raw Space ID, or X/Twitter post URL              | Collect Space metadata, including linked posts and users         |
 | Local `.html` / `.htm` file                                           | Collect article metadata with local `defuddle`                   |
@@ -28,7 +29,7 @@ bun autoshow metadata <input> [flags]
 | YouTube channel or playlist URL                                       | Batch metadata for latest videos                                 |
 | RSS / podcast feed URL                                                | Batch metadata for latest episodes                               |
 | URL list file (`.md` / `.txt`)                                        | Batch the selected listed inputs                                 |
-| Directory                                                             | Batch metadata for each supported local input                    |
+| Directory                                                             | Recursively collect metadata for supported local files           |
 
 **Supported document formats:** PDF, EPUB, MOBI, AZW3, AZW, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, CBZ
 
@@ -94,10 +95,11 @@ A batch run writes a parent directory and one child directory per item:
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
   manifest.json
-  YYYY-MM-DD-slug/   # when the item has a content date
-  slug/              # otherwise
+  item-slug/
     manifest.json
 ```
+
+Child directory names include a `YYYY-MM-DD-` prefix when a content date is available.
 
 `--save --markdown` also writes `metadata.md` in the single-run directory or in each batch child directory. `manifest.json` is written even without `--save`.
 
@@ -117,34 +119,31 @@ bun autoshow metadata https://example.com/feed --batch-limit 3
 bun autoshow metadata input/examples/batch/2-urls.md --batch-limit all --save --markdown
 ```
 
-YouTube examples require a public source you select. Replace these template values before running them; install `yt-dlp` with `setup`. For a channel or playlist, check one discovered item before choosing a larger batch limit.
+Choose a public YouTube source and install `yt-dlp` with `setup`. For a channel or playlist, start with one item.
 
 ```bash
 YOUTUBE_URL='<your-public-youtube-watch-url>'
 YOUTUBE_BATCH_URL='<your-public-youtube-channel-or-playlist-url>'
 bun autoshow metadata "$YOUTUBE_URL"
-bun autoshow metadata "$YOUTUBE_URL" --markdown
 bun autoshow metadata "$YOUTUBE_URL" --save --markdown
 bun autoshow metadata "$YOUTUBE_BATCH_URL" --batch-limit 1
 ```
 
-The three watch-URL commands demonstrate alternative output modes; choose the one you need. Successful metadata does not guarantee that a later media download or captions request will succeed.
+Successful metadata does not guarantee that a later media download or captions request will succeed.
 
-For X, set `X_BEARER_TOKEN` for a project with access to your selected Space or linked post. Replace the template and review your X API access and billing terms before requesting metadata. The metadata request itself uses the X API. AutoShow does not estimate X API read charges; `--price` does not establish that this request is free or that the account can read the source.
+For X, choose a Space or linked post your API project can access and set `X_BEARER_TOKEN`. AutoShow does not estimate X API read charges; `--price` does not establish that the metadata request is free or that the account can read the source.
 
 ```bash
 X_SPACE_URL='<your-accessible-x-space-url>'
 bun autoshow metadata "$X_SPACE_URL"
 ```
 
-Inspect returned metadata and access errors before using the source in another command. See the [X extraction guide](../../02-extract/url/overview.md#x-space-path) for post-URL and raw Space-ID alternatives.
+See the [X extraction guide](../../02-extract/url/overview.md#x-space-path) for post-URL and raw Space-ID alternatives.
 
 ## Setup and Environment
 
 Setup details are in [`setup.md`](../../00-setup-and-utilities/setup.md).
 
 YouTube inputs may be rate-limited or challenged. Follow the [YouTube cookies guide](../../00-setup-and-utilities/cookies.md), then rerun `metadata`.
-
-X Space URLs, raw Space IDs, and X post URLs require `X_BEARER_TOKEN`.
 
 Hosted article backends selected with `--url-provider` need the matching API key (`SPIDER_API_KEY` or `ZYTE_API_KEY`). Local `defuddle` does not.

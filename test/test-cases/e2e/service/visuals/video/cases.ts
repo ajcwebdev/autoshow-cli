@@ -11,10 +11,3 @@ export const grokVideo = {
   envVarKey: 'XAI_API_KEY',
   envVarDescription: 'Grok video generation',
 } as const
-
-export const falVideo = {
-  provider: 'fal',
-  videoService: 'fal',
-  envVarKey: 'FAL_API_KEY',
-  envVarDescription: 'fal.ai video generation',
-} as const

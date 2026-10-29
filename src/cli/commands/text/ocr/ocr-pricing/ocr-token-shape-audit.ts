@@ -89,10 +89,7 @@ const metricAudit = (
 const usageBasis = (provider: TokenPricedOcrProvider): OcrTokenShapeAuditBucket['usageBasis'] =>
   provider === 'gemini'
     ? 'candidate-plus-thoughts'
-    // Historical Kimi evidence retains its original accounting label.
-    : provider === 'kimi'
-      ? 'reported-prompt-completion'
-      : 'canonical-prompt-completion'
+    : 'canonical-prompt-completion'
 
 const collectManifestItems = async (
   runDirectory: string,

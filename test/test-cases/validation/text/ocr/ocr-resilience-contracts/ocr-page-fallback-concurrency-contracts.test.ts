@@ -7,12 +7,12 @@ import { basePdfMetadata,createOcrPreparationCache,join,jsonResponse,prefillRend
 
 describe('OCR resilience contracts', () => {
 
-  test('DeepInfra rendered page OCR uses the shared fallback default concurrency without adaptive throttling', async () => {
+  test('Grok rendered page OCR uses the shared fallback default concurrency without adaptive throttling', async () => {
     const previousFetch = globalThis.fetch
     const previousEnv = {
-      DEEPINFRA_API_KEY: process.env['DEEPINFRA_API_KEY']
+      XAI_API_KEY: process.env['XAI_API_KEY']
     }
-    const tempDir = await makeTempDir('autoshow-deepinfra-default-page-concurrency-')
+    const tempDir = await makeTempDir('autoshow-grok-default-page-concurrency-')
     const inputPath = join(tempDir, 'input.pdf')
     const renderDir = join(tempDir, 'renders')
     const cache = createOcrPreparationCache()
@@ -31,13 +31,13 @@ describe('OCR resilience contracts', () => {
       const imagePart = content.find(part => part['type'] === 'image_url')
       const imageUrl = (imagePart?.['image_url'] as Record<string, unknown> | undefined)?.['url']
       if (typeof imageUrl !== 'string') {
-        throw new Error('DeepInfra test request did not include an image URL')
+        throw new Error('Grok test request did not include an image URL')
       }
       const encoded = imageUrl.split(',')[1] ?? ''
       const decoded = Buffer.from(encoded, 'base64').toString('utf8')
       const match = /rendered page (\d+)/.exec(decoded)
       if (!match?.[1]) {
-        throw new Error(`DeepInfra test request used unexpected image data: ${decoded}`)
+        throw new Error(`Grok test request used unexpected image data: ${decoded}`)
       }
       return Number(match[1])
     }
@@ -45,7 +45,7 @@ describe('OCR resilience contracts', () => {
     try {
       await Bun.write(inputPath, '%PDF-1.7 test placeholder')
       await prefillRenderedPageCache(cache, renderDir, inputPath, pages, 300)
-      process.env['DEEPINFRA_API_KEY'] = 'test-key'
+      process.env['XAI_API_KEY'] = 'test-key'
       installMockFetch(async (call) => {
         const pageNumber = readPageNumber(call.bodyJson ?? {})
         starts.push(pageNumber)
@@ -82,7 +82,7 @@ describe('OCR resilience contracts', () => {
         outputDir: tempDir,
         ocrPreparationCache: cache,
         ocrConcurrency: undefined,
-        deepinfraOcrModel: 'google/gemma-4-31B-it'
+        grokOcrModel: 'grok-4.7'
       } as ExtractionOptions)
 
       for (let attempt = 0; attempt < 500 && starts.length < 10; attempt++) {
@@ -101,10 +101,10 @@ describe('OCR resilience contracts', () => {
     } finally {
       releaseFirstWindow?.()
       globalThis.fetch = previousFetch
-      if (previousEnv.DEEPINFRA_API_KEY === undefined) {
-        delete process.env['DEEPINFRA_API_KEY']
+      if (previousEnv.XAI_API_KEY === undefined) {
+        delete process.env['XAI_API_KEY']
       } else {
-        process.env['DEEPINFRA_API_KEY'] = previousEnv.DEEPINFRA_API_KEY
+        process.env['XAI_API_KEY'] = previousEnv.XAI_API_KEY
       }
       await rm(tempDir, { recursive: true, force: true })
     }

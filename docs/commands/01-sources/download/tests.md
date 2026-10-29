@@ -1,6 +1,6 @@
 # Download Tests
 
-Coverage for local files, hosted media URLs, feeds, and streaming sources. The first command stays on this machine. The second downloads from the network.
+Coverage for local files, hosted media URLs, feeds, and streaming sources. The first command uses local fixtures and a loopback RSS server. The second downloads from external sites and depends on their availability and the installed download tools.
 
 ## Quick Start
 
@@ -16,13 +16,13 @@ bun t \
 
 ## Coverage
 
-- Local runs cover audio files, documents, and RSS feed batching.
+- Local runs cover audio files, PDFs, and RSS feed batching.
 - Network runs cover direct media URLs, URL lists, YouTube, and Twitch.
 - yt-dlp option and passthrough checks that do not download anything are in `test/test-cases/validation/sources/download/`.
 
 ## Price Preflight
 
-`download` has no provider cost. `--price` on these paths only prints a report.
+These download tests make no billable provider calls. `bun t --price` on these paths runs mapped price-only checks instead of the download tests; it does not verify that downloads work.
 
 ## Related Docs
 

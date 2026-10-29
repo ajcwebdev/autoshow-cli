@@ -1,6 +1,7 @@
 import type { GrokVideoModel, VideoGenOptions, VideoMode, VideoTarget } from '~/types'
 import { validateGrokVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { UsageError } from '~/utils/error-handler'
+import { grokVideoModes } from './grok-video-capabilities'
 import { runGrokVideoGen } from './run-grok-video-gen'
 import { isSupportedOrSkippedForAllVideo, requireReferenceImagesForProvider } from '../../video-utils/video-mode-validation'
 import { normalizeGrokVideoAspectRatio, normalizeGrokVideoDuration, normalizeGrokVideoResolution } from '../../video-utils/video-normalization'
@@ -11,7 +12,7 @@ export const collectGrokVideoTargets = (options: VideoGenOptions, mode: VideoMod
 
   return models.flatMap((rawModel) => {
     const model: GrokVideoModel = validateGrokVideoModel(rawModel)
-    if (!isSupportedOrSkippedForAllVideo(options, 'grok', model, mode, ['text', 'image-to-video', 'reference-to-video'])) {
+    if (!isSupportedOrSkippedForAllVideo(options, 'grok', model, mode, grokVideoModes(model))) {
       return []
     }
     const effective = {

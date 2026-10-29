@@ -31,9 +31,9 @@ describe('option resolution contracts', () => {
   test('comic final image paths nest under the resolved run directory; variations add prefixes', () => {
       const base = getSceneOutputDirectory('scene-one')
       expect(getPanelComicImagePath('scene-one', 1)).toBe(join(base, 'panels', 'panel-01.png'))
-      expect(getPanelComicImagePath('scene-one', 1, 'gpt-image-2')).toBe(join(base, 'panels', 'gpt-image-2', 'panel-01.png'))
-      expect(getPanelComicImagePath('scene-one', 1, 'gpt-image-2', 'animation-polish')).toBe(join(base, 'panels', 'animation-polish', 'gpt-image-2', 'panel-01.png'))
-      expect(getPageComicImagePath('scene-one', 1, [1, 2], 'gpt-image-2', 'cinematic-depth')).toBe(join(base, 'pages', 'cinematic-depth', 'gpt-image-2', 'page-01-panels-01-02.png'))
+      expect(getPanelComicImagePath('scene-one', 1, 'gpt-image-2.5-flare')).toBe(join(base, 'panels', 'gpt-image-2.5-flare', 'panel-01.png'))
+      expect(getPanelComicImagePath('scene-one', 1, 'gpt-image-2.5-flare', 'animation-polish')).toBe(join(base, 'panels', 'animation-polish', 'gpt-image-2.5-flare', 'panel-01.png'))
+      expect(getPageComicImagePath('scene-one', 1, [1, 2], 'gpt-image-2.5-flare', 'cinematic-depth')).toBe(join(base, 'pages', 'cinematic-depth', 'gpt-image-2.5-flare', 'page-01-panels-01-02.png'))
     })
 
   test('comic final image prompt variations apply only non-canonical prompt prefixes', () => {

@@ -260,13 +260,9 @@ export const buildComicPagePromptData = (
     return panel
   })
 
-  if (bundleDataList.some(bundle => bundle.snapshotId !== firstBundle.snapshotId)) {
-    throw ValidationError('Page image panels cannot mix character reference snapshot IDs', { stage: 'comic:page-utils' })
-  }
   const singleBundle = bundleDataList.length === 1 ? firstBundle : undefined
   return v.parse(PanelBundleDataSchema, {
     schemaVersion: 4,
-    snapshotId: firstBundle.snapshotId,
     title: firstBundle.title,
     location: firstBundle.location,
     panels,

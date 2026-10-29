@@ -27,10 +27,10 @@ describe('comic character handling flat-reference contracts', () => {
     await writeFile(sheetPath, 'current-sheet')
     await writeFile(getCharacterSketchManifestPath(charactersRoot), JSON.stringify({ schemaVersion: 1, sketches: [{
       characterKey: 'hero', generationId: 'prior', origin: 'generated', sourceImage: 'hero.webp', outlineSheet: 'hero--outline-sheet.png',
-      sourceSha256: await checksumFile(join(charactersRoot, 'hero.webp')), sheetSha256: await checksumFile(sheetPath), model: 'gpt-image-2', createdAt: new Date().toISOString(),
+      sourceSha256: await checksumFile(join(charactersRoot, 'hero.webp')), sheetSha256: await checksumFile(sheetPath), model: 'gpt-image-2.5-flare', createdAt: new Date().toISOString(),
     }] }))
     const referenceCalls: string[][] = []
-    await characterSketchCommand({ character: 'hero', revise: true, notes: 'Fix eyes', imageModels: ['gpt-image-2'], concurrency: 1 }, {
+    await characterSketchCommand({ character: 'hero', revise: true, notes: 'Fix eyes', imageModels: ['gpt-image-2.5-flare'], concurrency: 1 }, {
       createGenerationId: () => 'revision',
       requestImage: async (_prompt, references) => { referenceCalls.push(references); return { mode: 'edit', result: { imageBase64: 'ignored' } } },
       writeImage: async path => { await writeFile(path, 'view') },

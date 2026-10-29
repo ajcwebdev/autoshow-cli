@@ -10,45 +10,40 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 installOpenAIRestContractHooks()
 
 describe('OpenAI REST response and chat contracts', () => {
-  test('Astra selector preserves the exact model ID and supports xhigh', () => {
-    const opts = buildOptsFromFlags({ openai: 'gpt-6-astra', 'reasoning-effort': 'xhigh' })
-    expect(opts.openaiModels).toEqual(['gpt-6-astra'])
+  test('Sol selector preserves the exact model ID and supports xhigh; removed Astra rejects locally', () => {
+    const opts = buildOptsFromFlags({ openai: 'gpt-6.1-sol', 'reasoning-effort': 'xhigh' })
+    expect(opts.openaiModels).toEqual(['gpt-6.1-sol'])
     expect(opts.reasoningEffort).toBe('xhigh')
-    expect(buildOptsFromFlags({ openai: 'gpt-6.1-sol' }).openaiModels).toEqual(['gpt-6.1-sol'])
+    expect(() => buildOptsFromFlags({ openai: 'gpt-6-astra' })).toThrow('Invalid model "gpt-6-astra" for --llm openai[=model]. Allowed values: gpt-6.1-sol, gpt-6-luna')
   })
 
   for (const effort of [undefined, 'default', 'low', 'medium', 'high', 'xhigh', 'max'] as const) {
-    test(`Astra sends native chapter lyric schema with ${effort ?? 'omitted'} reasoning`, async () => {
+    test(`Sol sends native chapter lyric schema with ${effort ?? 'omitted'} reasoning`, async () => {
       process.env['OPENAI_API_KEY'] = 'openai-key'
       const schema = await resolveStructuredSchema(['rapSongChapter'])
       const calls = installFetch(() => jsonResponse({
-        model: 'gpt-6-astra', output_text: '{"title":"A file"}',
+        model: 'gpt-6.1-sol', output_text: '{"title":"A file"}',
         usage: { input_tokens: 100, output_tokens: 20, total_tokens: 120 }
       }))
-      const result = await runOpenAIModel('Adapt the transcript.', 'gpt-6-astra', {
+      const result = await runOpenAIModel('Adapt the transcript.', 'gpt-6.1-sol', {
         ...structuredOpts, schema: schema.jsonSchema, requestedReasoningEffort: effort
       })
       expect(calls).toHaveLength(1)
       expect(calls[0]?.url).toEndWith('/responses')
       expect(calls[0]?.bodyJson).toMatchObject({
-        model: 'gpt-6-astra', text: { format: { type: 'json_schema', strict: true, schema: schema.jsonSchema } }
+        model: 'gpt-6.1-sol', text: { format: { type: 'json_schema', strict: true, schema: schema.jsonSchema } }
       })
       if (effort === undefined || effort === 'default') {
         expect(calls[0]?.bodyJson).not.toHaveProperty('reasoning')
       } else {
         expect(calls[0]?.bodyJson?.['reasoning']).toEqual({ effort })
       }
-      expect(result.metadata).toMatchObject({ llmModel: 'gpt-6-astra', effectiveReasoningEffort: effort ?? 'default' })
+      expect(result.metadata).toMatchObject({ llmModel: 'gpt-6.1-sol', effectiveReasoningEffort: effort ?? 'default' })
     })
   }
 
-  test('Astra and Sol reject disabled/minimal reasoning before HTTP', async () => {
+  test('Sol rejects disabled/minimal reasoning before HTTP', async () => {
     const calls = installFetch(() => { throw new Error('Unexpected provider call') })
-    for (const effort of ['disabled', 'minimal'] as const) {
-      await expect(runOpenAIModel('Adapt.', 'gpt-6-astra', {
-        ...structuredOpts, requestedReasoningEffort: effort
-      })).rejects.toThrow('does not support')
-    }
     for (const effort of ['disabled', 'minimal'] as const) {
       await expect(runOpenAIModel('Adapt.', 'gpt-6.1-sol', {
         ...structuredOpts, requestedReasoningEffort: effort

@@ -11,7 +11,7 @@ const writeTokenRun = async (
   completionTokens: number,
   effectiveReasoningEffort: 'disabled' | 'xhigh' | 'unspecified',
   status: 'full' | 'incomplete' = 'full',
-  target = { service: 'kimi', model: 'kimi-k2.6' }
+  target = { service: 'grok', model: 'grok-4.7' }
 ): Promise<void> => {
   await mkdir(directory, { recursive: true })
   await writeManifest(directory, createManifest('extract', 'single', [
@@ -44,9 +44,8 @@ describe('OCR token-shape evidence audit', () => {
       const targets = [
         { service: 'gemini', model: 'gemini-3.8-flash' },
         { service: 'openai', model: 'gpt-6.1-sol' },
-        { service: 'kimi', model: 'kimi-k2.6' },
-        { service: 'glm', model: 'glm-5.3-flash' },
-        { service: 'gemini', model: 'gemini-3.7-flash' },
+        { service: 'anthropic', model: 'claude-opus-4-7' },
+        { service: 'gemini', model: 'gemini-3.1-flash-lite' },
         { service: 'gemini', model: 'unimplemented-pro-model' }
       ]
       const runs = targets.map((_target, index) => join(dir, String(index)))
@@ -60,14 +59,14 @@ describe('OCR token-shape evidence audit', () => {
       ])
       const historical = await auditOcrTokenShapes({ runDirectories: runs, includeAllTokenProviders: true })
       expect(historical.buckets).toHaveLength(targets.length)
-      expect(historical.buckets.find(row => row.provider === 'kimi')?.usageBasis).toBe('reported-prompt-completion')
+      expect(historical.buckets.find(row => row.provider === 'anthropic')?.usageBasis).toBe('canonical-prompt-completion')
     })
   })
 
   test('preserves xhigh policy in historical evidence rather than collapsing it to unspecified', async () => {
     await withTempDir('autoshow-ocr-token-audit-xhigh-', async dir => {
       const runs = [join(dir, 'a'), join(dir, 'b'), join(dir, 'c')]
-      for (const run of runs) await writeTokenRun(run, 1000, 500, 'xhigh', 'full', { service: 'grok', model: 'grok-4.6' })
+      for (const run of runs) await writeTokenRun(run, 1000, 500, 'xhigh', 'full', { service: 'grok', model: 'grok-4.7' })
       const report = await auditOcrTokenShapes({ runDirectories: runs, includeAllTokenProviders: true })
       expect(report.buckets).toHaveLength(1)
       expect(report.buckets[0]?.effectiveReasoningEffort).toBe('xhigh')
@@ -96,12 +95,12 @@ describe('OCR token-shape evidence audit', () => {
       expect(report.excludedSamples.incomplete).toBe(1)
       expect(report.buckets).toHaveLength(1)
       expect(report.buckets[0]).toMatchObject({
-        provider: 'kimi',
-        model: 'kimi-k2.6',
+        provider: 'grok',
+        model: 'grok-4.7',
         ocrMode: 'image',
         pageCountBand: '1',
         effectiveReasoningEffort: 'disabled',
-        usageBasis: 'reported-prompt-completion',
+        usageBasis: 'canonical-prompt-completion',
         healthySampleCount: 3,
         promotionEligible: true,
         decision: 'promote-component-shape',
@@ -126,8 +125,8 @@ describe('OCR token-shape evidence audit', () => {
       await writeFile(profilePath, JSON.stringify({
         version: 1,
         profiles: [{
-          provider: 'kimi',
-          model: 'kimi-k2.6',
+          provider: 'grok',
+          model: 'grok-4.7',
           ocrMode: 'image',
           pageCountBand: '1',
           pageCount: 1,

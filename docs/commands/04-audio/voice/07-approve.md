@@ -10,15 +10,15 @@ See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and 
 bun autoshow voice approve <registration-id> [flags]
 ```
 
-The registration must already be a ready, auditioned generation. Approval is local and does not call a provider. One subject can keep a separate current approval for each provider, model, and profile.
+The registration must already be a ready, auditioned generation. Consent-bound voices also require current consent permitting new synthesis. Approval is local and does not call a provider. One subject can keep a separate current approval for each provider, model, and profile.
 
 ### Options
 
-| Flag                       | Description                                                     |
-| -------------------------- | --------------------------------------------------------------- |
-| `--generation-id <sha256>` | Optional unless more than one generation could match            |
-| `--actor-id <id>`          | Required opaque approving actor ID                              |
-| `--price`                  | Validate and estimate without provider calls or artifact writes |
+| Flag                       | Description                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| `--generation-id <sha256>` | Defaults to the current or unique latest generation; required when ambiguous |
+| `--actor-id <id>`          | Required opaque approving actor ID                                           |
+| `--price`                  | Validate and estimate without provider calls or artifact writes              |
 
 ### Examples
 

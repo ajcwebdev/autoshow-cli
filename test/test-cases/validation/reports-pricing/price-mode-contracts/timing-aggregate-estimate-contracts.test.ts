@@ -18,7 +18,7 @@ describe('price mode contracts', () => {
           estimatedOutputTokens: 400,
           totalCost: 1
         },
-        { step: 'image', provider: 'openai', model: 'gpt-image-2', imageCount: 2, totalCost: 1 },
+        { step: 'image', provider: 'openai', model: 'gpt-image-2.5-flare', imageCount: 2, totalCost: 1 },
         { step: 'video', provider: 'gemini', model: 'gemini-omni-1.1-flash', durationSeconds: 4, totalCost: 1 },
         { step: 'music', provider: 'gemini', model: 'lyria-3.5', durationSeconds: 120, lyricsSource: 'generated', totalCost: 1 }
       ]

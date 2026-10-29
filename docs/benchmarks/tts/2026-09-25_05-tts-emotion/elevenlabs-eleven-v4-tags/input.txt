@@ -1,0 +1,5 @@
+[whispers] I am whispering. This is just for you.
+[sarcastic] I sound sarcastic. Oh, great. More work. Just what I need.
+[excited] I sound excited! This is GREAT news! I cannot wait!
+[angry] I sound angry. That is not fair! I said no!
+[sad] I sound sad. I miss my friend. I wish they were here.

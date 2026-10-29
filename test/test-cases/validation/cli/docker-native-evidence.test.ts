@@ -9,12 +9,13 @@ const repository = resolve(import.meta.dir, '../../../..')
 const imageId = `sha256:${'a'.repeat(64)}`, digest = `sha256:${'b'.repeat(64)}`, revision = 'c'.repeat(40)
 type Failure = 'wrong-arch' | 'wrong-revision' | 'invalid-id' | 'invalid-notices' | 'invalid-packages' | 'invalid-pins' | 'empty-rendering' | 'capture-failed'
 
-async function capture(arch: 'amd64' | 'arm64', release: boolean, failure?: Failure) {
+async function capture(arch: 'amd64' | 'arm64', release: boolean, failure?: Failure, repositoryName = 'Owner/AutoShow-CLI') {
   const root = await mkdtemp(join(tmpdir(), 'docker-native-evidence-'))
   roots.push(root)
   const bin = join(root, 'bin'), source = join(root, 'src/tools'), notices = join(root, 'notices')
   await Promise.all([mkdir(bin), mkdir(source, { recursive: true }), mkdir(notices)])
   await copyFile(join(repository, 'src/tools/docker-capture-native-evidence.sh'), join(source, 'docker-capture-native-evidence.sh'))
+  await copyFile(join(repository, 'src/tools/docker-image-name.sh'), join(source, 'docker-image-name.sh'))
   await Bun.write(join(notices, 'copyright'), 'Synthetic notice bytes\n')
   const archive = join(root, 'notices.tar.gz')
   const packed = Bun.spawnSync(['tar', '-czf', archive, '-C', notices, 'copyright'], { stdout: 'pipe', stderr: 'pipe' })
@@ -43,7 +44,7 @@ else if(args[0] === 'run') {
   await chmod(join(bin, 'docker'), 0o755)
   const env = {
     PATH: `${bin}:${process.env['PATH'] ?? ''}`, ARCH: arch, GITHUB_SHA: revision,
-    GITHUB_REPOSITORY: 'Owner/AutoShow-CLI', GITHUB_ENV: join(root, 'github-env'), IMAGE_DIGEST: digest,
+    GITHUB_REPOSITORY: repositoryName, GITHUB_ENV: join(root, 'github-env'), IMAGE_DIGEST: digest,
     IMAGE_REFERENCE: `autoshow-audit:${revision}`, EVIDENCE_DIR: 'runtime/dependency-evidence',
     CAPTURE_TEST_BUN: process.execPath, CAPTURE_TEST_SHIM: shim, CAPTURE_TEST_LOG: log,
     CAPTURE_TEST_ARCH: arch, CAPTURE_TEST_NOTICES: archive, CAPTURE_TEST_FAILURE: failure ?? ''
@@ -52,7 +53,7 @@ else if(args[0] === 'run') {
   const command = release ? ['bash', '-c', action.runs.steps[0]!.run!] : ['bash', join(source, 'docker-capture-native-evidence.sh')]
   const child = Bun.spawn(command, { cwd: root, env, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' })
   const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()])
-  const calls = (await Bun.file(log).text()).trim().split('\n').map(line => JSON.parse(line) as string[])
+  const calls = await Bun.file(log).exists() ? (await Bun.file(log).text()).trim().split('\n').map(line => JSON.parse(line) as string[]) : []
   return { root, code, stdout, stderr, calls, evidence: join(root, release ? `runtime/ci/docker-${arch}` : 'runtime/dependency-evidence') }
 }
 
@@ -97,6 +98,14 @@ test('wrong image platform, revision, and identity stop capture before any conta
     expect(result.calls.some(args => args[0] === 'run')).toBe(false)
     expect(await Bun.file(join(result.evidence, 'native-evidence.json')).exists()).toBe(false)
   }
+})
+
+test('the release audit rejects invalid repository identities before pulling or inspecting an image', async () => {
+  const result = await capture('amd64', true, undefined, 'owner/invalid repo')
+  expect(result.code).toBe(2)
+  expect(result.stderr).toContain('Expected a valid owner/repository identity')
+  expect(result.calls).toEqual([])
+  expect(await Bun.file(join(result.evidence, 'native-evidence.json')).exists()).toBe(false)
 })
 
 test('failed capture and invalid package, notice, pin, and capability artifacts cannot emit completed evidence', async () => {
