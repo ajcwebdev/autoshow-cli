@@ -55,25 +55,25 @@ const buildGrokSerializer: SerializerBuilder = ({ controls }) => ({ endpointKind
 
 const buildInworldSerializer: SerializerBuilder = ({ target, controls }) => ({ endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: inworldTtsRequestControls(target.model, controls.string('steeringPrompt'), controls.number('speed')) })
 
-const buildElevenLabsSerializer: SerializerBuilder = ({ target, strategy, controls }) => {
-  validateElevenLabsVoiceSettings(target.model, {
-    speed: controls.number('speed'), similarity_boost: controls.number('similarityBoost'),
-    style: controls.number('style'), use_speaker_boost: controls.boolean('useSpeakerBoost'),
-  })
-  const dialogueSettings = { ...(controls.number('stability') !== undefined ? { stability: controls.number('stability') } : {}), ...(controls.number('similarityBoost') !== undefined ? { similarity: controls.number('similarityBoost') } : {}) }
-  if (strategy === 'native-dialogue') return {
-    endpointKind: 'text-to-dialogue-with-timestamps',
-    serializerVersion: 'elevenlabs.dialogue.phase-3-v1',
-    controls: {
-      outputFormat: controls.string('responseFormat') ?? ELEVENLABS_TTS_OUTPUT_FORMAT,
-      modelId: target.model,
-      ...(Object.keys(dialogueSettings).length > 0 ? { settings: dialogueSettings } : {}),
-      ...(controls.stringArray('pronunciationDictionaryLocators')?.length ? { pronunciationDictionaryLocators: controls.stringArray('pronunciationDictionaryLocators')!.map(parseElevenLabsDictionaryLocator) } : {}),
-      ...(controls.string('languageCode') ? { languageCode: controls.string('languageCode') } : {}),
-      ...(controls.number('seed') !== undefined ? { seed: controls.number('seed') } : {}),
-      ...(controls.string('textNormalization') ? { textNormalization: controls.string('textNormalization') } : {}),
-    },
-  }
+const buildElevenLabsDialogueSerializer = (
+  target: TtsTarget,
+  controls: ControlReader,
+  dialogueSettings: Readonly<Record<string, number | undefined>>
+): ProviderSerializerDescriptor => ({
+  endpointKind: 'text-to-dialogue-with-timestamps',
+  serializerVersion: 'elevenlabs.dialogue.phase-3-v1',
+  controls: {
+    outputFormat: controls.string('responseFormat') ?? ELEVENLABS_TTS_OUTPUT_FORMAT,
+    modelId: target.model,
+    ...(Object.keys(dialogueSettings).length > 0 ? { settings: dialogueSettings } : {}),
+    ...(controls.stringArray('pronunciationDictionaryLocators')?.length ? { pronunciationDictionaryLocators: controls.stringArray('pronunciationDictionaryLocators')!.map(parseElevenLabsDictionaryLocator) } : {}),
+    ...(controls.string('languageCode') ? { languageCode: controls.string('languageCode') } : {}),
+    ...(controls.number('seed') !== undefined ? { seed: controls.number('seed') } : {}),
+    ...(controls.string('textNormalization') ? { textNormalization: controls.string('textNormalization') } : {}),
+  },
+})
+
+const buildElevenLabsSpeechSerializer = (controls: ControlReader): ProviderSerializerDescriptor => {
   const voiceSettings = {
     ...(controls.number('stability') !== undefined ? { stability: controls.number('stability') } : {}),
     ...(controls.number('similarityBoost') !== undefined ? { similarity_boost: controls.number('similarityBoost') } : {}),
@@ -100,6 +100,16 @@ const buildElevenLabsSerializer: SerializerBuilder = ({ target, strategy, contro
       ...(pronunciationDictionaryLocators?.length ? { pronunciationDictionaryLocators } : {}),
     },
   }
+}
+
+const buildElevenLabsSerializer: SerializerBuilder = ({ target, strategy, controls }) => {
+  validateElevenLabsVoiceSettings(target.model, {
+    speed: controls.number('speed'), similarity_boost: controls.number('similarityBoost'),
+    style: controls.number('style'), use_speaker_boost: controls.boolean('useSpeakerBoost'),
+  })
+  const dialogueSettings = { ...(controls.number('stability') !== undefined ? { stability: controls.number('stability') } : {}), ...(controls.number('similarityBoost') !== undefined ? { similarity: controls.number('similarityBoost') } : {}) }
+  if (strategy === 'native-dialogue') return buildElevenLabsDialogueSerializer(target, controls, dialogueSettings)
+  return buildElevenLabsSpeechSerializer(controls)
 }
 
 const SERIALIZER_BUILDERS = {

@@ -88,12 +88,12 @@ const resolveAttemptLayout = (
   }
 }
 
-const prepareRecoveredExecution = async (
+const bindRecoveredSlots = (
   options: CreateCurrentTtsRenderAttemptOptions,
-  purePlan: PureAttemptPlan,
-  layout: ReturnType<typeof resolveAttemptLayout>
-) => {
-  const { planned, renderPlanId, renderIdentity } = purePlan
+  planned: PureAttemptPlan['planned'],
+  renderPlanId: PureAttemptPlan['renderPlanId'],
+  renderIdentity: PureAttemptPlan['renderIdentity']
+): Map<string, CurrentTtsRecoveredGenerationSlot> => {
   if ((options.recoveredSlots?.length ?? 0) > 0 && planned.strategy !== 'segmented') throw UsageError('Recovered TTS generation slots may seed only an immutable segmented render.')
   const recoveredBySlot = new Map<string, CurrentTtsRecoveredGenerationSlot>()
   for (const recovered of options.recoveredSlots ?? []) {
@@ -110,6 +110,16 @@ const prepareRecoveredExecution = async (
     ) throw UsageError('Recovered TTS batch output does not bind one exact immutable generation slot.')
     recoveredBySlot.set(recovered.value.generationSlotId, recovered)
   }
+  return recoveredBySlot
+}
+
+const prepareRecoveredExecution = async (
+  options: CreateCurrentTtsRenderAttemptOptions,
+  purePlan: PureAttemptPlan,
+  layout: ReturnType<typeof resolveAttemptLayout>
+) => {
+  const { planned, renderPlanId, renderIdentity } = purePlan
+  const recoveredBySlot = bindRecoveredSlots(options, planned, renderPlanId, renderIdentity)
   const unresolvedSlots = planned.slots.filter(slot => !recoveredBySlot.has(slot.generationSlotId))
   const requestedSlotLimit = options.ttsOptions.ttsMaxGenerationSlots
   if (requestedSlotLimit !== undefined && (!Number.isSafeInteger(requestedSlotLimit) || requestedSlotLimit <= 0)) throw UsageError('TTS maximum generation slots must be a positive safe integer.')

@@ -140,36 +140,46 @@ function discoverRuns(rootDir: string): OcrRunRef[] {
   });
 }
 
-function collectSamples(runs: OcrRunRef[]): Map<string, { provider: string; model: string; samples: ProviderSample[] }> {
-  const byProvider = new Map<string, { provider: string; model: string; samples: ProviderSample[] }>();
-  for (const run of runs) {
-    const report = JSON.parse(readFileSync(run.reportPath, "utf8")) as SingleRunReport;
-    const primaryQualityAvailable = report.evaluation?.primaryRegionAccuracyAvailable !== false;
-    const groups = report.providerGroups ?? {};
-    for (const groupValue of Object.values(groups)) {
-      for (const detail of groupValue.providers ?? []) {
-        const providerKey = detail.providerKey;
-        if (!providerKey) {
-          continue;
-        }
-        const existing = byProvider.get(providerKey) ?? {
-          provider: detail.provider ?? providerKey,
-          model: detail.model ?? "",
-          samples: [],
-        };
-        existing.samples.push({
-          runName: run.runName,
-          group: normalizeGroup(detail.group),
-          pageCount: run.pageCount,
-          score: primaryQualityAvailable ? detail.metrics?.score ?? null : null,
-          processingTimeMs: detail.processingTimeMs ?? null,
-          costCents: detail.costCents ?? null,
-          werBreakdown: primaryQualityAvailable ? detail.werBreakdown ?? null : null,
-          cerBreakdown: primaryQualityAvailable ? detail.cerBreakdown ?? null : null,
-        });
-        byProvider.set(providerKey, existing);
+type ProviderSamples = { provider: string; model: string; samples: ProviderSample[] };
+
+function providerSample(run: OcrRunRef, detail: ReportProviderDetail, primaryQualityAvailable: boolean): ProviderSample {
+  return {
+    runName: run.runName,
+    group: normalizeGroup(detail.group),
+    pageCount: run.pageCount,
+    score: primaryQualityAvailable ? detail.metrics?.score ?? null : null,
+    processingTimeMs: detail.processingTimeMs ?? null,
+    costCents: detail.costCents ?? null,
+    werBreakdown: primaryQualityAvailable ? detail.werBreakdown ?? null : null,
+    cerBreakdown: primaryQualityAvailable ? detail.cerBreakdown ?? null : null,
+  };
+}
+
+function collectRunSamples(byProvider: Map<string, ProviderSamples>, run: OcrRunRef): void {
+  const report = JSON.parse(readFileSync(run.reportPath, "utf8")) as SingleRunReport;
+  const primaryQualityAvailable = report.evaluation?.primaryRegionAccuracyAvailable !== false;
+  const groups = report.providerGroups ?? {};
+  for (const groupValue of Object.values(groups)) {
+    for (const detail of groupValue.providers ?? []) {
+      const providerKey = detail.providerKey;
+      if (!providerKey) {
+        continue;
       }
+      const existing = byProvider.get(providerKey) ?? {
+        provider: detail.provider ?? providerKey,
+        model: detail.model ?? "",
+        samples: [],
+      };
+      existing.samples.push(providerSample(run, detail, primaryQualityAvailable));
+      byProvider.set(providerKey, existing);
     }
+  }
+}
+
+function collectSamples(runs: OcrRunRef[]): Map<string, ProviderSamples> {
+  const byProvider = new Map<string, ProviderSamples>();
+  for (const run of runs) {
+    collectRunSamples(byProvider, run);
   }
   return byProvider;
 }

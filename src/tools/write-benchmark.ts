@@ -163,24 +163,45 @@ export const installWriteBenchmarkFetchGuard = (): (() => void) => {
   return () => { globalThis.fetch = original }
 }
 
+const caseInputsChanged = (prepared: PreparedCase, entry: WriteBenchmarkCase): boolean =>
+  sha256Bytes(prepared.source) !== entry.sourceSha256 || sha256Bytes(prepared.prompt) !== entry.promptSha256 || sha256Bytes(JSON.stringify(prepared.schema.jsonSchema)) !== entry.schemaSha256
+const cachedSlotIdentityChanged = (existing: BenchmarkSlot, expected: { plan: WriteBenchmarkPlan; entry: WriteBenchmarkCase; target: BenchmarkTarget }): boolean =>
+  existing.planFingerprint !== expected.plan.fingerprint || existing.caseId !== expected.entry.id || existing.provider !== expected.target.service || existing.model !== expected.target.model
+const dispatchableService = (target: BenchmarkTarget): LLMService => {
+  const registeredModels = getModelRegistry().llm[target.service]?.models
+  if (!['openai', 'gemini', 'anthropic', 'grok'].includes(target.service) || !registeredModels || !Object.hasOwn(registeredModels, target.model)) throw ValidationError(`Retired or unsupported benchmark model ${target.service}/${target.model}; new dispatch is blocked. Existing receipts remain available for cache verification.`)
+  return target.service as LLMService
+}
+type FailureEvidence = { errorMetadata: ReturnType<typeof extractErrorMetadata>; rawResponse: unknown; rawUsage: unknown }
+const failureEvidence = (error: unknown): FailureEvidence => {
+  const errorMetadata = extractErrorMetadata(error)
+  const rawResponse = errorMetadata['rawResponse']
+  const rawUsage = errorMetadata['rawProviderUsage'] ?? (isRecord(rawResponse) ? rawResponse['usage'] ?? rawResponse['usageMetadata'] : undefined)
+  return { errorMetadata, rawResponse, rawUsage }
+}
+const failedUsageResult = (usage: unknown, { errorMetadata, rawUsage }: FailureEvidence) => ({ text: '', usage, rawProviderUsage: sanitizeFailureValue(rawUsage), returnedModel: typeof errorMetadata['returnedModel'] === 'string' ? errorMetadata['returnedModel'] : undefined,
+  requestSettings: isRecord(errorMetadata['requestSettings']) ? errorMetadata['requestSettings'] : undefined })
+const failureArtifact = (target: BenchmarkTarget, slot: BenchmarkSlot, error: unknown, { errorMetadata, rawResponse, rawUsage }: FailureEvidence) => ({
+  schemaVersion: 1, provider: target.service, model: target.model, error: { name: error instanceof Error ? error.name : 'Error', message: slot.error, status: getErrorStatus(error), metadata: sanitizeFailureValue(errorMetadata) }, billing: slot.billing,
+  responseRepresentation: 'Decoded adapter response; original HTTP bytes are unavailable. Credential redaction and project path normalization are applied; original decoded serialization hash is retained.',
+  ...(rawResponse !== undefined ? { rawResponse: sanitizeFailureValue(rawResponse), originalDecodedResponseSha256: sha256Bytes(JSON.stringify(rawResponse)) } : {}),
+  ...(rawUsage !== undefined ? { rawProviderUsage: sanitizeFailureValue(rawUsage) } : {})
+})
+
 export const runWriteBenchmarkSlot = async (plan: WriteBenchmarkPlan, entry: WriteBenchmarkCase, prepared: PreparedCase, target: BenchmarkTarget): Promise<BenchmarkSlot> => {
-  if (sha256Bytes(prepared.source) !== entry.sourceSha256 || sha256Bytes(prepared.prompt) !== entry.promptSha256 || sha256Bytes(JSON.stringify(prepared.schema.jsonSchema)) !== entry.schemaSha256) {
-    throw ValidationError(`Benchmark case inputs changed before dispatch: ${entry.id}`)
-  }
+  if (caseInputsChanged(prepared, entry)) throw ValidationError(`Benchmark case inputs changed before dispatch: ${entry.id}`)
   const stem = safeStem(target.service, target.model)
   const slotPath = join(entry.runDir, `slot-${stem}.json`)
   if (await Bun.file(slotPath).exists()) {
     const existing = await Bun.file(slotPath).json() as BenchmarkSlot
-    if (existing.planFingerprint !== plan.fingerprint || existing.caseId !== entry.id || existing.provider !== target.service || existing.model !== target.model) throw ValidationError(`Cached slot identity changed: ${toProjectRelativePath(slotPath)}`)
+    if (cachedSlotIdentityChanged(existing, { plan, entry, target })) throw ValidationError(`Cached slot identity changed: ${toProjectRelativePath(slotPath)}`)
     for (const [name, expected] of Object.entries(existing.artifactHashes ?? {})) {
       if (name !== name.split(/[/\\]/).pop()) throw ValidationError('Cached artifact must be a file within its run directory.')
       if (!await Bun.file(join(entry.runDir, name)).exists() || sha256Bytes(await Bun.file(join(entry.runDir, name)).text()) !== expected) throw ValidationError(`Cached artifact missing or changed: ${toProjectRelativePath(join(entry.runDir, name))}; redispatch is blocked.`)
     }
     return existing
   }
-  const registeredModels = getModelRegistry().llm[target.service]?.models
-  if (!['openai', 'gemini', 'anthropic', 'grok'].includes(target.service) || !registeredModels || !Object.hasOwn(registeredModels, target.model)) throw ValidationError(`Retired or unsupported benchmark model ${target.service}/${target.model}; new dispatch is blocked. Existing receipts remain available for cache verification.`)
-  const activeService = target.service as LLMService
+  const activeService = dispatchableService(target)
   await mkdir(entry.runDir, { recursive: true })
   const slot: BenchmarkSlot = { schemaVersion: 1, planFingerprint: plan.fingerprint, caseId: entry.id, provider: target.service, model: target.model, status: 'dispatch-started', startedAt: new Date().toISOString() }
   // Exclusive creation and fsync bind an irreversible attempt before any network request.
@@ -211,23 +232,17 @@ export const runWriteBenchmarkSlot = async (plan: WriteBenchmarkPlan, entry: Wri
   } catch (error) {
     slot.status = 'failed'
     slot.error = stripProjectRoot(sanitizeArtifactText(error instanceof Error ? error.message : String(error)))
-    const errorMetadata = extractErrorMetadata(error)
-    const rawResponse = errorMetadata['rawResponse']
-    const rawUsage = errorMetadata['rawProviderUsage'] ?? (isRecord(rawResponse) ? rawResponse['usage'] ?? rawResponse['usageMetadata'] : undefined)
+    const evidence = failureEvidence(error), { rawUsage } = evidence
     if (!slot.metadata && rawUsage !== undefined) {
       const usage = target.service === 'grok' && isRecord(rawUsage) ? normalizeGrokChatUsage(rawUsage) : rawUsage
-      const timing = await runWithLLMInstrumentation(prepared.prompt, async () => ({ text: '', usage, rawProviderUsage: sanitizeFailureValue(rawUsage), returnedModel: typeof errorMetadata['returnedModel'] === 'string' ? errorMetadata['returnedModel'] : undefined,
-        requestSettings: isRecord(errorMetadata['requestSettings']) ? errorMetadata['requestSettings'] : undefined }))
+      const timing = await runWithLLMInstrumentation(prepared.prompt, async () => failedUsageResult(usage, evidence))
       if (timing.tokenCountSource === 'provider_usage') {
         slot.metadata = { ...buildStep3Metadata(target.service, target.model, { ...timing, processingTime: Date.now() - started }), outputFileName: '', structuredMode: 'native', structuredPresetNames: prepared.schema.presetNames, validationFailed: true }
       }
     }
     setSlotBilling(slot)
     const failureName = `failure-${stem}.json`
-    const failure = { schemaVersion: 1, provider: target.service, model: target.model, error: { name: error instanceof Error ? error.name : 'Error', message: slot.error, status: getErrorStatus(error), metadata: sanitizeFailureValue(errorMetadata) }, billing: slot.billing,
-      responseRepresentation: 'Decoded adapter response; original HTTP bytes are unavailable. Credential redaction and project path normalization are applied; original decoded serialization hash is retained.',
-      ...(rawResponse !== undefined ? { rawResponse: sanitizeFailureValue(rawResponse), originalDecodedResponseSha256: sha256Bytes(JSON.stringify(rawResponse)) } : {}),
-      ...(rawUsage !== undefined ? { rawProviderUsage: sanitizeFailureValue(rawUsage) } : {}) }
+    const failure = failureArtifact(target, slot, error, evidence)
     try { await saveArtifact(failureName, json(failure)) }
     catch (evidenceError) { slot.failureEvidenceError = stripProjectRoot(sanitizeArtifactText(evidenceError instanceof Error ? evidenceError.message : String(evidenceError))) }
   }

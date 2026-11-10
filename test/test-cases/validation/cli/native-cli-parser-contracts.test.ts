@@ -283,6 +283,13 @@ describe('native CLI parser contracts', () => {
       .toThrow(NativeMissingFlagValueError)
   })
 
+  test('treats flags named after Object.prototype members as unknown instead of as value flags', () => {
+    for (const flag of ['--constructor', '--toString', '--__proto__', '--hasOwnProperty', '--no-constructor', '--valueOf=1']) {
+      const parsed = parseNativeCli(['run', 'input.txt', flag], commands, globalFlags)
+      expect(parsed.rawParsed.flagOccurrences.map(occurrence => occurrence.known), flag).toEqual([false])
+    }
+  })
+
   test('formats unknown flags from raw occurrences without exposing inline values or duplicates', async () => {
     const argv = [
       'run',

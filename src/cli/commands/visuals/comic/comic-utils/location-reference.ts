@@ -63,11 +63,14 @@ const normalizeTypedLocationKey = (value: string): string => value
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '')
 
+const isInvalidLocationEntry = (entry: LocationReferenceEntry): boolean =>
+  !entry || !LOCATION_KEY_PATTERN.test(entry.key) || !entry.name?.trim() || (entry.aliases !== undefined && (!Array.isArray(entry.aliases) || !entry.aliases.every(alias => typeof alias === 'string' && alias.trim()))) || (entry.referenceDirectory !== undefined && (typeof entry.referenceDirectory !== 'string' || !entry.referenceDirectory.trim())) || (entry.referenceFilename !== undefined && (typeof entry.referenceFilename !== 'string' || !entry.referenceFilename.trim())) || !entry.specification?.trim() || !Array.isArray(entry.sourceScripts) || !entry.sourceScripts.every(item => typeof item === 'string')
+
 const parseCatalog = (value: unknown, path: string): LocationReferenceCatalog => {
   const data = value as Partial<LocationReferenceCatalog>
   if (data?.schemaVersion !== 1 || typeof data.styleImage !== 'string' || !Array.isArray(data.locations)) throw ValidationError(`Invalid location catalog at ${path}`, { stage: 'comic:location-reference' })
   for (const entry of data.locations) {
-    if (!entry || !LOCATION_KEY_PATTERN.test(entry.key) || !entry.name?.trim() || (entry.aliases !== undefined && (!Array.isArray(entry.aliases) || !entry.aliases.every(alias => typeof alias === 'string' && alias.trim()))) || (entry.referenceDirectory !== undefined && (typeof entry.referenceDirectory !== 'string' || !entry.referenceDirectory.trim())) || (entry.referenceFilename !== undefined && (typeof entry.referenceFilename !== 'string' || !entry.referenceFilename.trim())) || !entry.specification?.trim() || !Array.isArray(entry.sourceScripts) || !entry.sourceScripts.every(item => typeof item === 'string')) throw ValidationError(`Invalid location entry in ${path}`, { stage: 'comic:location-reference' })
+    if (isInvalidLocationEntry(entry)) throw ValidationError(`Invalid location entry in ${path}`, { stage: 'comic:location-reference' })
     if (entry.referenceDirectory !== undefined) validateReferenceDirectory(entry.referenceDirectory, `Location "${entry.key}" referenceDirectory`)
     if (entry.referenceFilename !== undefined) validateReferenceFilename(entry.referenceFilename, `Location "${entry.key}" referenceFilename`)
   }

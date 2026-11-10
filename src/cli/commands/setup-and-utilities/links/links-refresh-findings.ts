@@ -31,21 +31,64 @@ const findConfiguredLocation = (registry: ModelLinksData, url: string): { provid
   return undefined
 }
 
+type ReportLinkFinding = (status: LinksRefreshFinding['status'], detail: string) => void
+
+const collectConfiguredTargets = (
+  entries: readonly LinksRefreshLinkMetadata[],
+  registry: ModelLinksData
+): Map<string, string> => {
+  const configuredTargets = new Map<string, string>()
+  for (const url of [...Object.values(registry).flatMap(sections => Object.values(sections).flat()), ...entries.map(entry => entry.sourceUrl)]) {
+    if (!configuredTargets.has(normalizeLinkForComparison(url))) configuredTargets.set(normalizeLinkForComparison(url), url)
+  }
+  return configuredTargets
+}
+
+// Reports where a link moved to. Returns true when it moved to a login wall, so the caller skips the entry's body checks.
+const reportRedirectAndCheckLoginWall = (
+  entry: LinksRefreshLinkMetadata,
+  configuredTargets: ReadonlyMap<string, string>,
+  report: ReportLinkFinding
+): boolean => {
+  const movedTo = entry.finalUrl ? normalizeLinkForComparison(entry.finalUrl) : undefined
+  if (entry.finalUrl && movedTo !== undefined && movedTo !== normalizeLinkForComparison(entry.sourceUrl)) {
+    // A login wall answers 200 with a page body, so it has to be recognised before the content is trusted.
+    if (LOGIN_URL_PATTERN.test(entry.finalUrl)) {
+      report('login-redirect', entry.finalUrl)
+      return true
+    }
+    const configured = configuredTargets.get(movedTo)
+    report(configured && configured !== entry.sourceUrl ? 'duplicate-target' : 'redirect', entry.finalUrl)
+  }
+  return false
+}
+
+// Hashes and token counts cannot tell a provider's edit from the converter dropping content. This can.
+const describeConversionLoss = (entry: LinksRefreshLinkMetadata): string | undefined => {
+  const lost = entry.conversion?.lostIdentifiers ?? []
+  if (
+    entry.conversion && entry.conversion.identifierCount >= CONVERSION_MIN_IDENTIFIERS &&
+    lost.length >= CONVERSION_MIN_LOST && lost.length / entry.conversion.identifierCount >= CONVERSION_LOST_SHARE
+  ) {
+    const named = lost.slice(0, CONVERSION_DETAIL_IDENTIFIERS).join(', ')
+    const more = lost.length > CONVERSION_DETAIL_IDENTIFIERS ? `, and ${lost.length - CONVERSION_DETAIL_IDENTIFIERS} more` : ''
+    return `the page still has ${lost.length} of ${entry.conversion.identifierCount} identifiers that the previous capture held and this one lost: ${named}${more}`
+  }
+  return undefined
+}
+
 // A link can be fetched and hashed without being useful: it may have moved, landed on a sign-in page, or returned
 // the same body as another link (a provider's fallback page answers 200 for paths that no longer exist).
 export const collectLinksRefreshFindings = (
   entries: readonly LinksRefreshLinkMetadata[],
   registry: ModelLinksData
 ): LinksRefreshFinding[] => {
-  const configuredTargets = new Map<string, string>()
-  for (const url of [...Object.values(registry).flatMap(sections => Object.values(sections).flat()), ...entries.map(entry => entry.sourceUrl)]) {
-    if (!configuredTargets.has(normalizeLinkForComparison(url))) configuredTargets.set(normalizeLinkForComparison(url), url)
-  }
+  const configuredTargets = collectConfiguredTargets(entries, registry)
   const firstUrlByHash = new Map<string, string>()
   const findings: LinksRefreshFinding[] = []
 
   for (const entry of entries) {
-    const report = (status: LinksRefreshFinding['status'], detail: string): void => {
+    const report: ReportLinkFinding = (status, detail) => {
       findings.push({ sourceUrl: entry.sourceUrl, ...findConfiguredLocation(registry, entry.sourceUrl), status, detail })
     }
 
@@ -55,16 +98,8 @@ export const collectLinksRefreshFindings = (
       continue
     }
 
-    const movedTo = entry.finalUrl ? normalizeLinkForComparison(entry.finalUrl) : undefined
-    if (entry.finalUrl && movedTo !== undefined && movedTo !== normalizeLinkForComparison(entry.sourceUrl)) {
-      // A login wall answers 200 with a page body, so it has to be recognised before the content is trusted.
-      if (LOGIN_URL_PATTERN.test(entry.finalUrl)) {
-        report('login-redirect', entry.finalUrl)
-        continue
-      }
-      const configured = configuredTargets.get(movedTo)
-      report(configured && configured !== entry.sourceUrl ? 'duplicate-target' : 'redirect', entry.finalUrl)
-    }
+    const movedToLoginWall = reportRedirectAndCheckLoginWall(entry, configuredTargets, report)
+    if (movedToLoginWall) continue
 
     if (entry.status === 'empty') {
       report('empty', 'The response body was empty.')
@@ -81,19 +116,8 @@ export const collectLinksRefreshFindings = (
       report('shrunk', `${entry.previousTokenCount} -> ${entry.tokenCount} tokens`)
     }
 
-    // Hashes and token counts cannot tell a provider's edit from the converter dropping content. This can.
-    const lost = entry.conversion?.lostIdentifiers ?? []
-    if (
-      entry.conversion && entry.conversion.identifierCount >= CONVERSION_MIN_IDENTIFIERS &&
-      lost.length >= CONVERSION_MIN_LOST && lost.length / entry.conversion.identifierCount >= CONVERSION_LOST_SHARE
-    ) {
-      const named = lost.slice(0, CONVERSION_DETAIL_IDENTIFIERS).join(', ')
-      const more = lost.length > CONVERSION_DETAIL_IDENTIFIERS ? `, and ${lost.length - CONVERSION_DETAIL_IDENTIFIERS} more` : ''
-      report(
-        'conversion-loss',
-        `the page still has ${lost.length} of ${entry.conversion.identifierCount} identifiers that the previous capture held and this one lost: ${named}${more}`
-      )
-    }
+    const conversionLoss = describeConversionLoss(entry)
+    if (conversionLoss !== undefined) report('conversion-loss', conversionLoss)
   }
 
   return findings

@@ -80,6 +80,29 @@ export const getConfiguredProviderKey = <TTarget extends ProviderIdentity, TMeta
   ? config.getProviderKey(toProviderIdentity(provider))
   : getResumeProviderKey(provider)
 
+const assertSavedWriteModelsSupported = (item: PipelineManifestItem): void => {
+  for (const provider of item.providers) {
+    if (typeof provider.model === 'string' && !getModelRegistry().llm[provider.service]?.models[provider.model]) throw UsageError(`Unsupported saved write model ${provider.service}/${provider.model}. Existing artifacts are preserved.`)
+  }
+}
+
+const parseExistingGenerationEntries = <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  item: PipelineManifestItem
+): TMetadata[] | undefined => config.parseManifestEntries
+  ? config.parseManifestEntries(item.metadata)
+  : Array.isArray(item.metadata[config.metadataKey])
+    ? item.metadata[config.metadataKey] as TMetadata[]
+    : []
+
+const describeUnresumableGenerationManifest = <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>
+): string => config.selectionMode === 'additive-stored'
+  ? `This ${config.stepLabel} manifest.json does not contain canonical resume input/provider state. `
+    + 'Re-run the original command to produce a resumable manifest.'
+  : `This ${config.stepLabel.toLowerCase()} manifest.json does not contain resumable ${config.metadataKey} LLM metadata. `
+    + `Re-run the original command to produce a resumable ${config.stepLabel.toLowerCase()} manifest.`
+
 export async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
@@ -135,16 +158,8 @@ export async function prepareGenerationResume<TTarget extends ProviderIdentity, 
     }
     return undefined
   }
-  if (config.kind === 'write') {
-    for (const provider of item.providers) {
-      if (typeof provider.model === 'string' && !getModelRegistry().llm[provider.service]?.models[provider.model]) throw UsageError(`Unsupported saved write model ${provider.service}/${provider.model}. Existing artifacts are preserved.`)
-    }
-  }
-  const existingEntries = config.parseManifestEntries
-    ? config.parseManifestEntries(item.metadata)
-    : Array.isArray(item.metadata[config.metadataKey])
-      ? item.metadata[config.metadataKey] as TMetadata[]
-      : []
+  if (config.kind === 'write') assertSavedWriteModelsSupported(item)
+  const existingEntries = parseExistingGenerationEntries(config, item)
   const storedProviders = config.selectionMode === 'additive-stored'
     ? parseStoredRequestedProviders(item)
     : undefined
@@ -154,12 +169,7 @@ export async function prepareGenerationResume<TTarget extends ProviderIdentity, 
 
   if (invalidManifest) {
     if (throwOnInvalid) {
-      throw UsageError(config.selectionMode === 'additive-stored'
-        ? `This ${config.stepLabel} manifest.json does not contain canonical resume input/provider state. `
-          + 'Re-run the original command to produce a resumable manifest.'
-        : `This ${config.stepLabel.toLowerCase()} manifest.json does not contain resumable ${config.metadataKey} LLM metadata. `
-          + `Re-run the original command to produce a resumable ${config.stepLabel.toLowerCase()} manifest.`
-      )
+      throw UsageError(describeUnresumableGenerationManifest(config))
     }
     return undefined
   }

@@ -69,25 +69,34 @@ const rootDirectory = async (root: string): Promise<string> => {
   return await realpath(path)
 }
 
+type ScopedRoot = { path: string; group: string; keeper: boolean }
+type MediaGroup = MediaConsolidationConfig['groups'][number]
+const rootsConflict = (earlier: ScopedRoot, path: string, group: MediaGroup, keeper: boolean): boolean =>
+  (nested(earlier.path, path) || nested(path, earlier.path)) && !(earlier.group === group.id && earlier.keeper !== keeper)
+const addGroupRoots = (group: MediaGroup, roots: ScopedRoot[]): void => {
+  for (const [keeper, values] of [[false, group.roots], [true, group.keeperRoots ?? []]] as const) for (const path of values) {
+    relativePath(path)
+    for (const earlier of roots) if (rootsConflict(earlier, path, group, keeper)) throw UsageError(`Overlapping media roots: ${earlier.path} and ${path}`)
+    roots.push({ path, group: group.id, keeper })
+  }
+}
+const groupValue = (group: MediaGroup, ids: Set<string>, roots: ScopedRoot[]): void => {
+  if (!group || typeof group.id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(group.id) || ids.has(group.id)) throw UsageError('Invalid or duplicate media group id')
+  ids.add(group.id)
+  if (!Array.isArray(group.roots) || !group.roots.length || !Array.isArray(group.extensions) || !group.extensions.length || group.keeperRoots !== undefined && !Array.isArray(group.keeperRoots)) throw UsageError(`Invalid roots or extensions: ${group.id}`)
+  for (const ext of group.extensions) if (typeof ext !== 'string' || !MEDIA_EXTENSIONS.has(ext)) throw UsageError(`Nonmedia extension is not permitted: ${String(ext)}`)
+  addGroupRoots(group, roots)
+}
+const validPreservationExtension = (ext: unknown): boolean => typeof ext === 'string' && /^\.[a-z0-9-]+$/.test(ext) && !MEDIA_EXTENSIONS.has(ext) && !SECRET_EXTENSIONS.has(ext)
 const configValue = (value: unknown): MediaConsolidationConfig => {
   const config = value as MediaConsolidationConfig
   if (!config || config.schemaVersion !== 1 || !Array.isArray(config.groups) || !config.groups.length) throw UsageError('Expected schemaVersion 1 and at least one media group')
   const ids = new Set<string>()
-  const roots: Array<{ path: string; group: string; keeper: boolean }> = []
-  for (const group of config.groups) {
-    if (!group || typeof group.id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(group.id) || ids.has(group.id)) throw UsageError('Invalid or duplicate media group id')
-    ids.add(group.id)
-    if (!Array.isArray(group.roots) || !group.roots.length || !Array.isArray(group.extensions) || !group.extensions.length || group.keeperRoots !== undefined && !Array.isArray(group.keeperRoots)) throw UsageError(`Invalid roots or extensions: ${group.id}`)
-    for (const ext of group.extensions) if (typeof ext !== 'string' || !MEDIA_EXTENSIONS.has(ext)) throw UsageError(`Nonmedia extension is not permitted: ${String(ext)}`)
-    for (const [keeper, values] of [[false, group.roots], [true, group.keeperRoots ?? []]] as const) for (const path of values) {
-      relativePath(path)
-      for (const earlier of roots) if ((nested(earlier.path, path) || nested(path, earlier.path)) && !(earlier.group === group.id && earlier.keeper !== keeper)) throw UsageError(`Overlapping media roots: ${earlier.path} and ${path}`)
-      roots.push({ path, group: group.id, keeper })
-    }
-  }
+  const roots: ScopedRoot[] = []
+  for (const group of config.groups) groupValue(group, ids, roots)
   if (config.preservationRoots !== undefined && !Array.isArray(config.preservationRoots)) throw UsageError('Invalid preservationRoots')
   for (const path of config.preservationRoots ?? []) relativePath(path)
-  if (config.preservationExtensions !== undefined && (!Array.isArray(config.preservationExtensions) || config.preservationExtensions.some(ext => typeof ext !== 'string' || !/^\.[a-z0-9-]+$/.test(ext) || MEDIA_EXTENSIONS.has(ext) || SECRET_EXTENSIONS.has(ext)))) throw UsageError('Invalid preservationExtensions')
+  if (config.preservationExtensions !== undefined && (!Array.isArray(config.preservationExtensions) || config.preservationExtensions.some(ext => !validPreservationExtension(ext)))) throw UsageError('Invalid preservationExtensions')
   return config
 }
 
@@ -127,6 +136,35 @@ const outputOutsideInputs = (config: MediaConsolidationConfig, configPath: strin
   for (const path of allRoots) if (nested(path, output) || nested(output, path)) throw ValidationError(`Output overlaps a source or config path: ${path}`)
 }
 
+const markDuplicateTargets = (stream: MediaBaseline[], keeper: MediaBaseline): void => {
+  for (const row of stream) {
+    if (row === keeper || row.sourceKind === 'keeper') continue
+    row.keeperPath = keeper.path
+    if (row.nlink > 1) { row.requiresExtraReview = true; row.replacementBlockedReason = 'source-has-hardlinks' }
+    else row.plannedReplacement = true
+  }
+}
+/** Choose one keeper per identical content stream and mark the remaining target rows for replacement or review. */
+const planDuplicateSets = (mediaFiles: MediaBaseline[]): { duplicateSets: DuplicateSet[]; streams: Map<string, MediaBaseline[]>; uniqueContentBytes: number } => {
+  const streams = new Map<string, MediaBaseline[]>()
+  for (const row of mediaFiles) {
+    const key = `${row.bytes}:${row.sha256}`
+    const stream = streams.get(key) ?? []; stream.push(row); streams.set(key, stream)
+  }
+  const duplicateSets: DuplicateSet[] = []
+  let uniqueContentBytes = 0
+  for (const stream of streams.values()) {
+    stream.sort((a, b) => Number(b.sourceKind === 'keeper') - Number(a.sourceKind === 'keeper') || compare(a.path, b.path))
+    const keeper = stream[0]!
+    uniqueContentBytes += keeper.bytes
+    if (stream.length < 2) continue
+    markDuplicateTargets(stream, keeper)
+    duplicateSets.push({ sha256: keeper.sha256, bytes: keeper.bytes, keeperPath: keeper.path, paths: stream.map(row => row.path), replacementPaths: stream.filter(row => row.plannedReplacement).map(row => row.path) })
+  }
+  duplicateSets.sort((a, b) => compare(a.keeperPath, b.keeperPath))
+  return { duplicateSets, streams, uniqueContentBytes }
+}
+
 export const buildMediaConsolidationPlan = async (projectRoot: string, scopeConfigPath: string): Promise<MediaConsolidationPlan> => {
   const root = await rootDirectory(projectRoot)
   relativePath(scopeConfigPath)
@@ -162,26 +200,7 @@ export const buildMediaConsolidationPlan = async (projectRoot: string, scopeConf
   if (selected.has(scopeConfigPath)) throw ValidationError('The scope config cannot be a media input')
   const preservedFiles: Baseline[] = []
   for (const path of [...preservedPaths].sort(compare)) preservedFiles.push(await fileBaseline(root, path))
-  const streams = new Map<string, MediaBaseline[]>()
-  for (const row of mediaFiles) {
-    const key = `${row.bytes}:${row.sha256}`
-    const stream = streams.get(key) ?? []; stream.push(row); streams.set(key, stream)
-  }
-  const duplicateSets: DuplicateSet[] = []
-  let uniqueContentBytes = 0
-  for (const stream of streams.values()) {
-    stream.sort((a, b) => Number(b.sourceKind === 'keeper') - Number(a.sourceKind === 'keeper') || compare(a.path, b.path))
-    const keeper = stream[0]!
-    uniqueContentBytes += keeper.bytes
-    if (stream.length < 2) continue
-    for (const row of stream) if (row !== keeper && row.sourceKind !== 'keeper') {
-      row.keeperPath = keeper.path
-      if (row.nlink > 1) { row.requiresExtraReview = true; row.replacementBlockedReason = 'source-has-hardlinks' }
-      else row.plannedReplacement = true
-    }
-    duplicateSets.push({ sha256: keeper.sha256, bytes: keeper.bytes, keeperPath: keeper.path, paths: stream.map(row => row.path), replacementPaths: stream.filter(row => row.plannedReplacement).map(row => row.path) })
-  }
-  duplicateSets.sort((a, b) => compare(a.keeperPath, b.keeperPath))
+  const { duplicateSets, streams, uniqueContentBytes } = planDuplicateSets(mediaFiles)
   const mediaBytes = mediaFiles.reduce((sum, row) => sum + row.bytes, 0)
   return {
     schemaVersion: 1, operation: 'prepare-only', strategy: 'copy-on-write-regular-file-replacement', requiresSeparateApproval: true, preserveSourcePaths: true,

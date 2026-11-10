@@ -173,6 +173,15 @@ export const hydrateComicManifestDefaults = (manifest: PipelineManifest): Pipeli
   }
 }
 
+const isGeminiTtsBatchJobsPointer = (jobs: unknown, manifest: Record<string, unknown>): boolean =>
+  isRecord(jobs)
+  && hasOnlyKeys(jobs, ['schemaVersion', 'provider', 'kind', 'path'])
+  && jobs['schemaVersion'] === 1
+  && jobs['provider'] === 'gemini'
+  && jobs['kind'] === 'tts-batch-jobs'
+  && jobs['path'] === 'gemini-provider-jobs.json'
+  && manifest['command'] === 'tts'
+
 export const parseManifest = (
   rootDir: string,
   value: unknown
@@ -194,7 +203,7 @@ export const parseManifest = (
   }
 
   const jobs = value['providerJobs']
-  if (jobs !== undefined && (!isRecord(jobs) || !hasOnlyKeys(jobs, ['schemaVersion', 'provider', 'kind', 'path']) || jobs['schemaVersion'] !== 1 || jobs['provider'] !== 'gemini' || jobs['kind'] !== 'tts-batch-jobs' || jobs['path'] !== 'gemini-provider-jobs.json' || value['command'] !== 'tts')) return undefined
+  if (jobs !== undefined && !isGeminiTtsBatchJobsPointer(jobs, value)) return undefined
 
   const items = value['items'].map((item) => parseManifestItem(rootDir, item))
   if (

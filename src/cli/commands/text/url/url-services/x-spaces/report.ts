@@ -81,6 +81,68 @@ function formatPostRow(post: SpacePostReference): string {
   ].map(escapeMarkdown).join(" | ");
 }
 
+function formatSourceLine(source: SpacesArtifact["sources"][number]): string {
+  const counts = [
+    source.discovered_ids !== undefined ? `${source.discovered_ids} ids` : undefined,
+    source.discovered_spaces !== undefined ? `${source.discovered_spaces} spaces` : undefined,
+    source.posts !== undefined ? `${source.posts} posts` : undefined,
+    source.invalid_lines !== undefined && source.invalid_lines > 0 ? `${source.invalid_lines} invalid` : undefined,
+  ].filter(Boolean).join(", ");
+  return `- ${source.label}${counts ? ` (${counts})` : ""}`;
+}
+
+function appendSourceLines(lines: string[], artifact: SpacesArtifact): void {
+  if (artifact.sources.length === 0) {
+    lines.push("- None");
+    return;
+  }
+
+  for (const source of artifact.sources) {
+    lines.push(formatSourceLine(source));
+  }
+}
+
+function appendSpaceRows(lines: string[], artifact: SpacesArtifact): void {
+  if (artifact.spaces.length === 0) {
+    lines.push("_No Spaces found._");
+    return;
+  }
+
+  lines.push(
+    "Title | State | Scheduled | Started | Ended | Creator | Hosts | Speakers | Participants | Posts | URL",
+    "--- | --- | --- | --- | --- | --- | --- | --- | ---: | --- | ---"
+  );
+
+  for (const space of artifact.spaces) {
+    lines.push(formatSpaceRow(space));
+  }
+}
+
+function appendPostsSection(lines: string[], artifact: SpacesArtifact): void {
+  if (artifact.posts.length > 0) {
+    lines.push("", "## Posts", "");
+    lines.push(
+      "Post | Author | Created | Referenced Spaces | Text",
+      "--- | --- | --- | --- | ---"
+    );
+
+    for (const post of artifact.posts) {
+      lines.push(formatPostRow(post));
+    }
+  }
+}
+
+function appendErrorsSection(lines: string[], artifact: SpacesArtifact): void {
+  if (artifact.errors.length > 0) {
+    lines.push("", "## Errors", "");
+
+    for (const error of artifact.errors) {
+      const id = error.id ? ` (${error.id})` : "";
+      lines.push(`- ${escapeMarkdown(error.source)}${id}: ${escapeMarkdown(error.detail)}`);
+    }
+  }
+}
+
 export function renderSpacesMarkdown(artifact: SpacesArtifact): string {
   const lines = [
     "# X Spaces Report",
@@ -103,56 +165,11 @@ export function renderSpacesMarkdown(artifact: SpacesArtifact): string {
   }
 
   lines.push("", "## Sources", "");
-
-  if (artifact.sources.length === 0) {
-    lines.push("- None");
-  } else {
-    for (const source of artifact.sources) {
-      const counts = [
-        source.discovered_ids !== undefined ? `${source.discovered_ids} ids` : undefined,
-        source.discovered_spaces !== undefined ? `${source.discovered_spaces} spaces` : undefined,
-        source.posts !== undefined ? `${source.posts} posts` : undefined,
-        source.invalid_lines !== undefined && source.invalid_lines > 0 ? `${source.invalid_lines} invalid` : undefined,
-      ].filter(Boolean).join(", ");
-      lines.push(`- ${source.label}${counts ? ` (${counts})` : ""}`);
-    }
-  }
-
+  appendSourceLines(lines, artifact);
   lines.push("", "## Spaces", "");
-
-  if (artifact.spaces.length === 0) {
-    lines.push("_No Spaces found._");
-  } else {
-    lines.push(
-      "Title | State | Scheduled | Started | Ended | Creator | Hosts | Speakers | Participants | Posts | URL",
-      "--- | --- | --- | --- | --- | --- | --- | --- | ---: | --- | ---"
-    );
-
-    for (const space of artifact.spaces) {
-      lines.push(formatSpaceRow(space));
-    }
-  }
-
-  if (artifact.posts.length > 0) {
-    lines.push("", "## Posts", "");
-    lines.push(
-      "Post | Author | Created | Referenced Spaces | Text",
-      "--- | --- | --- | --- | ---"
-    );
-
-    for (const post of artifact.posts) {
-      lines.push(formatPostRow(post));
-    }
-  }
-
-  if (artifact.errors.length > 0) {
-    lines.push("", "## Errors", "");
-
-    for (const error of artifact.errors) {
-      const id = error.id ? ` (${error.id})` : "";
-      lines.push(`- ${escapeMarkdown(error.source)}${id}: ${escapeMarkdown(error.detail)}`);
-    }
-  }
+  appendSpaceRows(lines, artifact);
+  appendPostsSection(lines, artifact);
+  appendErrorsSection(lines, artifact);
 
   lines.push("");
   return lines.join("\n");

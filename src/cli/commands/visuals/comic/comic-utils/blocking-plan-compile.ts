@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { BlockingBindings, BlockingCompileOptions, BlockingPlan, BlockingScenePanelInput, BlockingStageState, CompiledBlockingLedgerEntry, CompiledBlockingLines, CompiledPanelBlocking, SceneBlockingCompilation } from '~/types'
+import type { BlockingBindings, BlockingCameraSetup, BlockingCompileOptions, BlockingPlan, BlockingScenePanelInput, BlockingStageState, CompiledBlockingLedgerEntry, CompiledBlockingLines, CompiledPanelBlocking, SceneBlockingCompilation } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 import { sha256Bytes } from '~/utils/value-helpers'
 import { BLOCKING_GEOMETRY, cameraHeadingDeg, depthBandFromForward, distance, facingRelativeToCamera, nearestRegisteredView, projectAnchor, projectPoint, regionInFrame, round2, screenSideFromLateral } from './blocking-geometry'
@@ -75,27 +75,17 @@ export const buildBlockingLines = (blocking: Omit<CompiledPanelBlocking, 'lines'
   return { camera: cameraLine, ledger, offFrame, wardrobe, extras, dressing, anchors }
 }
 
-export const compileBlockingForPanel = (plan: BlockingPlan, panel: BlockingScenePanelInput, bindings?: BlockingBindings | undefined, options: BlockingCompileOptions = {}): CompiledPanelBlocking => {
-  const blocking = resolvePanelBlocking(panel, bindings)
-  if (!blocking) throw ValidationError(`Panel ${panel.number} has no blocking citation and no binding`, { stage: COMPILE_STAGE })
-  const camera = plan.cameraSetups.find(item => item.id === blocking.cameraSetupId)
-  if (!camera) throw ValidationError(`Panel ${panel.number} cites unknown camera setup "${blocking.cameraSetupId}"`, { stage: COMPILE_STAGE })
-  if (!options.segmentOrder && !blocking.stageStateId) {
-    throw ValidationError(`Panel ${panel.number} cannot derive its stage state without a segment order; pass options.segmentOrder (the structured script segment ids in script order) or cite blocking.stageStateId explicitly`, { stage: COMPILE_STAGE })
-  }
-  const state = deriveStateForPanel(plan, panel, options.segmentOrder ?? [], bindings)
-  if (!state) throw ValidationError(`Panel ${panel.number} has no active stage state`, { stage: COMPILE_STAGE })
-  const location = plan.locations.find(item => item.locationKey === state.locationKey)
-  const planSha256 = options.planSha256 ?? hashBlockingPlan(plan)
-  const headingDeg = round2(cameraHeadingDeg(camera))
-  const cropped = new Set(blocking.croppedOnStage.map(item => item.characterKey))
+const describeOffFrameSide = (projection: ReturnType<typeof projectPoint>): string =>
+  projection.forward <= 0 ? 'behind the camera' : `${projection.lateral < 0 ? 'screen-left' : 'screen-right'} of frame`
+
+const projectStageRoster = (plan: BlockingPlan, state: BlockingStageState, camera: BlockingCameraSetup, cropped: ReadonlySet<string>): Pick<CompiledPanelBlocking, 'ledger' | 'offFrameRoster'> => {
   const ledger: CompiledBlockingLedgerEntry[] = []
   const offFrameRoster: CompiledPanelBlocking['offFrameRoster'] = []
   for (const mark of state.characters) {
     const projection = projectPoint(camera, mark.position)
     if (projection.inFrame === 'out' || cropped.has(mark.characterKey)) {
       if (projection.inFrame === 'out') {
-        const side = projection.forward <= 0 ? 'behind the camera' : `${projection.lateral < 0 ? 'screen-left' : 'screen-right'} of frame`
+        const side = describeOffFrameSide(projection)
         const anchor = nearestAnchorNote(plan, state, mark)
         offFrameRoster.push({ characterKey: mark.characterKey, note: `on stage ${side}${anchor ? ` at the ${anchor}` : ''}` })
       }
@@ -113,22 +103,21 @@ export const compileBlockingForPanel = (plan: BlockingPlan, panel: BlockingScene
       lateral: projection.lateral,
     })
   }
-  const extrasInFrame = state.extras
-    .filter(extras => regionInFrame(camera, extras.region))
-    .map(extras => ({ ensembleKey: extras.ensembleKey, count: extras.count, variety: [...extras.variety], exclude: [...extras.exclude], props: [...extras.props] }))
+  return { ledger, offFrameRoster }
+}
+
+const collectDressingInFrame = (state: BlockingStageState, location: BlockingPlan['locations'][number] | undefined, camera: BlockingCameraSetup): string[] => {
   const dressingParts: string[] = []
   if (state.dressing) dressingParts.push(state.dressing)
   for (const item of location?.dressing ?? []) {
     if (projectPoint(camera, item.position).inFrame !== 'out') dressingParts.push(`${item.key}: ${item.description}`)
   }
-  const anchorsInFrame = (location?.anchors ?? [])
-    .filter(anchor => projectPoint(camera, anchor.position).inFrame !== 'out')
-    .map(anchor => {
-      const projection = projectAnchor(camera, anchor)
-      return { key: anchor.key, screenSide: projection.screenSide, depthBand: projection.depthBand, seenFrom: projection.seenFrom, projection: projection.projection }
-    })
+  return dressingParts
+}
+
+const compilePanelAxis = (state: BlockingStageState, camera: BlockingCameraSetup, blocking: NonNullable<ReturnType<typeof resolvePanelBlocking>>): CompiledPanelBlocking['axis'] => {
   const cameraSide = cameraAxisSide(state, camera)
-  const axis = state.actionAxis
+  return state.actionAxis
     ? {
       from: state.actionAxis.from,
       to: state.actionAxis.to,
@@ -138,6 +127,34 @@ export const compileBlockingForPanel = (plan: BlockingPlan, panel: BlockingScene
       axisBreak: blocking.axisBreak,
     }
     : null
+}
+
+export const compileBlockingForPanel = (plan: BlockingPlan, panel: BlockingScenePanelInput, bindings?: BlockingBindings | undefined, options: BlockingCompileOptions = {}): CompiledPanelBlocking => {
+  const blocking = resolvePanelBlocking(panel, bindings)
+  if (!blocking) throw ValidationError(`Panel ${panel.number} has no blocking citation and no binding`, { stage: COMPILE_STAGE })
+  const camera = plan.cameraSetups.find(item => item.id === blocking.cameraSetupId)
+  if (!camera) throw ValidationError(`Panel ${panel.number} cites unknown camera setup "${blocking.cameraSetupId}"`, { stage: COMPILE_STAGE })
+  if (!options.segmentOrder && !blocking.stageStateId) {
+    throw ValidationError(`Panel ${panel.number} cannot derive its stage state without a segment order; pass options.segmentOrder (the structured script segment ids in script order) or cite blocking.stageStateId explicitly`, { stage: COMPILE_STAGE })
+  }
+  const state = deriveStateForPanel(plan, panel, options.segmentOrder ?? [], bindings)
+  if (!state) throw ValidationError(`Panel ${panel.number} has no active stage state`, { stage: COMPILE_STAGE })
+  const location = plan.locations.find(item => item.locationKey === state.locationKey)
+  const planSha256 = options.planSha256 ?? hashBlockingPlan(plan)
+  const headingDeg = round2(cameraHeadingDeg(camera))
+  const cropped = new Set(blocking.croppedOnStage.map(item => item.characterKey))
+  const { ledger, offFrameRoster } = projectStageRoster(plan, state, camera, cropped)
+  const extrasInFrame = state.extras
+    .filter(extras => regionInFrame(camera, extras.region))
+    .map(extras => ({ ensembleKey: extras.ensembleKey, count: extras.count, variety: [...extras.variety], exclude: [...extras.exclude], props: [...extras.props] }))
+  const dressingParts = collectDressingInFrame(state, location, camera)
+  const anchorsInFrame = (location?.anchors ?? [])
+    .filter(anchor => projectPoint(camera, anchor.position).inFrame !== 'out')
+    .map(anchor => {
+      const projection = projectAnchor(camera, anchor)
+      return { key: anchor.key, screenSide: projection.screenSide, depthBand: projection.depthBand, seenFrom: projection.seenFrom, projection: projection.projection }
+    })
+  const axis = compilePanelAxis(state, camera, blocking)
   const withoutLines: Omit<CompiledPanelBlocking, 'lines'> = {
     planSha256,
     stageStateId: state.id,

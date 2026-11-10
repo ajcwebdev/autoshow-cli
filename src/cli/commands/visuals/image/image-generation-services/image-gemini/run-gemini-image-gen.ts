@@ -20,6 +20,30 @@ const describeGeminiEmptyImageReason = (
   return reasons.length > 0 ? ` (${reasons.join(', ')})` : ''
 }
 
+type GeminiImageResponse = Awaited<ReturnType<typeof geminiGenerateContent>>
+
+const requireGeminiResponseParts = (response: GeminiImageResponse) => {
+  const candidates = response.candidates ?? []
+  if (candidates.length === 0 || !candidates[0]?.content?.parts) {
+    throw InfraError(
+      `No image content in Gemini response${describeGeminiEmptyImageReason(response)}`,
+      { stage: 'image:gemini' }
+    )
+  }
+  return candidates[0].content.parts
+}
+
+const assertGeminiInlineImagePayload = (inlineData: { mimeType?: string | undefined }, bytes: Buffer, imageData: string): void => {
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(inlineData.mimeType ?? '')) throw InfraError('Unsupported image MIME type', { stage: 'image:gemini' })
+  if (bytes.length === 0 || bytes.toString('base64') !== imageData) throw InfraError('Invalid base64 image', { stage: 'image:gemini' })
+}
+
+const assertGeminiDecodedImageEncoding = (metadata: { width?: number | undefined; height?: number | undefined; format?: string | undefined }, extension: string): void => {
+  if (!metadata.width || !metadata.height || !['png', 'jpeg', 'webp'].includes(metadata.format ?? '')) throw InfraError('Unsupported image encoding', { stage: 'image:gemini' })
+  const expectedFormat = extension === 'jpg' ? 'jpeg' : extension
+  if (metadata.format !== expectedFormat) throw InfraError('Image MIME type disagrees with decoded encoding', { stage: 'image:gemini' })
+}
+
 export const runGeminiImageGen = async (
   prompt: string,
   outputDir: string,
@@ -68,43 +92,33 @@ export const runGeminiImageGen = async (
       )
       const providerReturnedModel = getProviderReturnedModel(options.model, response)
 
-      const candidates = response.candidates ?? []
-      if (candidates.length === 0 || !candidates[0]?.content?.parts) {
-        throw InfraError(
-          `No image content in Gemini response${describeGeminiEmptyImageReason(response)}`,
-          { stage: 'image:gemini' }
-        )
-      }
+      const parts = requireGeminiResponseParts(response)
 
       const imagePaths: string[] = []
       // Gemini picks the encoding itself and reports it per part, so the artifact is named after the
       // bytes it actually returned instead of an assumed PNG.
       const imageFormats: string[] = []
-      for (const part of candidates[0].content.parts) {
-        if (part.inlineData && part.thought !== true) {
-          const imageData = part.inlineData.data
-          if (!imageData) continue
-          const extension = mimeToExtension(part.inlineData.mimeType)
-          const outputPath = context.artifactPath(extension, imagePaths.length)
-          const bytes = Buffer.from(imageData, 'base64')
-          if (options.model === 'gemini-nano-banana-2.1') {
-            try {
-              if (!['image/png', 'image/jpeg', 'image/webp'].includes(part.inlineData.mimeType ?? '')) throw InfraError('Unsupported image MIME type', { stage: 'image:gemini' })
-              if (bytes.length === 0 || bytes.toString('base64') !== imageData) throw InfraError('Invalid base64 image', { stage: 'image:gemini' })
-              const image = new Bun.Image(bytes)
-              const metadata = await image.metadata()
-              if (!metadata.width || !metadata.height || !['png', 'jpeg', 'webp'].includes(metadata.format ?? '')) throw InfraError('Unsupported image encoding', { stage: 'image:gemini' })
-              const expectedFormat = extension === 'jpg' ? 'jpeg' : extension
-              if (metadata.format !== expectedFormat) throw InfraError('Image MIME type disagrees with decoded encoding', { stage: 'image:gemini' })
-              await image.png().bytes()
-            } catch (error) {
-              throw InfraError('Gemini returned invalid image bytes', { stage: 'image:gemini', cause: error })
-            }
+      for (const part of parts) {
+        if (!(part.inlineData && part.thought !== true)) continue
+        const imageData = part.inlineData.data
+        if (!imageData) continue
+        const extension = mimeToExtension(part.inlineData.mimeType)
+        const outputPath = context.artifactPath(extension, imagePaths.length)
+        const bytes = Buffer.from(imageData, 'base64')
+        if (options.model === 'gemini-nano-banana-2.1') {
+          try {
+            assertGeminiInlineImagePayload(part.inlineData, bytes, imageData)
+            const image = new Bun.Image(bytes)
+            const metadata = await image.metadata()
+            assertGeminiDecodedImageEncoding(metadata, extension)
+            await image.png().bytes()
+          } catch (error) {
+            throw InfraError('Gemini returned invalid image bytes', { stage: 'image:gemini', cause: error })
           }
-          await Bun.write(outputPath, bytes)
-          imagePaths.push(outputPath)
-          imageFormats.push(extension)
         }
+        await Bun.write(outputPath, bytes)
+        imagePaths.push(outputPath)
+        imageFormats.push(extension)
       }
 
       if (imagePaths.length === 0) {

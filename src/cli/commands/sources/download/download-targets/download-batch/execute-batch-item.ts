@@ -1,5 +1,5 @@
-import { isSttPartialCompletionError } from '~/cli/commands/stt/batch'
-import type { BatchItemOutcome, ExecuteBatchItemContext } from '~/types'
+import { isSttPartialCompletionError, type SttPartialCompletionError } from '~/cli/commands/stt/batch'
+import type { BatchItemOutcome, ExecuteBatchItemContext, PipelineItemRecord } from '~/types'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { isolateCommandResult } from '~/utils/app-logger/result-emitter'
 import { attachOutputDir, getErrorOutputDir, getPipelineItemErrorCount, getPipelineItemStatus, readBatchChildItemRecord } from './pipeline-item-record-state'
@@ -7,6 +7,61 @@ import { buildSttBatchItemDetail, logBatchItemStatus } from './download-batch-su
 
 const formatProviderFailureDetail = (count: number): string =>
   String(count) + ' provider failure' + (count === 1 ? '' : 's')
+
+const finishSttLikeItem = (
+  item: string,
+  itemRecord: PipelineItemRecord | null,
+  errorCount: number
+): BatchItemOutcome => {
+  const completionStatus = getPipelineItemStatus(itemRecord) ?? (errorCount > 0 ? 'incomplete' : 'full')
+  if (completionStatus === 'full') {
+    logBatchItemStatus('success', item, 'done')
+    return { itemRecord, errorCount, status: 'ok' }
+  }
+
+  if (completionStatus === 'failed') {
+    logBatchItemStatus('error', item, 'failed', 'no STT provider outputs completed')
+    return { itemRecord, errorCount, status: 'failed' }
+  }
+
+  logBatchItemStatus('warn', item, 'incomplete', buildSttBatchItemDetail(itemRecord))
+  return { itemRecord, errorCount, status: 'incomplete' }
+}
+
+const finishSttPartialFailure = (
+  item: string,
+  error: SttPartialCompletionError,
+  itemRecord: PipelineItemRecord
+): BatchItemOutcome => {
+  const errorCount = getPipelineItemErrorCount(itemRecord)
+  if (error.completionStatus === 'failed') {
+    logBatchItemStatus('error', item, 'failed', error.message)
+    return { itemRecord, errorCount, status: 'failed', failureError: error }
+  }
+
+  logBatchItemStatus('warn', item, 'incomplete', buildSttBatchItemDetail(itemRecord))
+  return { itemRecord, errorCount, status: 'incomplete', failureError: error }
+}
+
+const finishRecordedFailure = (
+  item: string,
+  error: unknown,
+  itemRecord: PipelineItemRecord
+): BatchItemOutcome | undefined => {
+  const errorCount = getPipelineItemErrorCount(itemRecord)
+  const completionStatus = getPipelineItemStatus(itemRecord) ?? (errorCount > 0 ? 'incomplete' : undefined)
+
+  if (completionStatus === 'failed') {
+    logBatchItemStatus('error', item, 'failed', error instanceof Error ? error.message : String(error))
+    return { itemRecord, errorCount, status: 'failed', failureError: error }
+  }
+
+  if (completionStatus === 'incomplete') {
+    logBatchItemStatus('warn', item, 'done', formatProviderFailureDetail(errorCount))
+    return { itemRecord, errorCount, status: 'partial', failureError: error }
+  }
+  return undefined
+}
 
 export const executeBatchItem = async <TOptions extends object>(
   ctx: ExecuteBatchItemContext<TOptions>,
@@ -27,22 +82,16 @@ export const executeBatchItem = async <TOptions extends object>(
       const errorCount = getPipelineItemErrorCount(itemRecord)
 
       if (ctx.sttLike) {
-        const completionStatus = getPipelineItemStatus(itemRecord) ?? (errorCount > 0 ? 'incomplete' : 'full')
-        if (completionStatus === 'full') {
-          logBatchItemStatus('success', item, 'done')
-          return { itemRecord, errorCount, status: 'ok' }
-        }
-
-        if (completionStatus === 'failed') {
-          logBatchItemStatus('error', item, 'failed', 'no STT provider outputs completed')
-          return { itemRecord, errorCount, status: 'failed' }
-        }
-
-        logBatchItemStatus('warn', item, 'incomplete', buildSttBatchItemDetail(itemRecord))
-        return { itemRecord, errorCount, status: 'incomplete' }
+        return finishSttLikeItem(item, itemRecord, errorCount)
       }
 
-      if (errorCount > 0) {
+      const completionStatus = getPipelineItemStatus(itemRecord)
+      if (completionStatus === 'failed') {
+        logBatchItemStatus('error', item, 'failed', 'no provider outputs completed')
+        return { itemRecord, errorCount, status: 'failed' }
+      }
+
+      if (completionStatus === 'incomplete' || errorCount > 0) {
         logBatchItemStatus('warn', item, 'done', formatProviderFailureDetail(errorCount))
         return { itemRecord, errorCount, status: 'partial' }
       }
@@ -52,30 +101,15 @@ export const executeBatchItem = async <TOptions extends object>(
     } catch (error) {
       if (ctx.sttLike && isSttPartialCompletionError(error)) {
         const itemRecord = attachOutputDir(await readBatchChildItemRecord(error.outputDir, ctx.command), error.outputDir)
-        const errorCount = getPipelineItemErrorCount(itemRecord)
-        if (error.completionStatus === 'failed') {
-          logBatchItemStatus('error', item, 'failed', error.message)
-          return { itemRecord, errorCount, status: 'failed', failureError: error }
-        }
-
-        logBatchItemStatus('warn', item, 'incomplete', buildSttBatchItemDetail(itemRecord))
-        return { itemRecord, errorCount, status: 'incomplete', failureError: error }
+        return finishSttPartialFailure(item, error, itemRecord)
       }
 
       const errorOutputDir = getErrorOutputDir(error)
       if (errorOutputDir && !ctx.sttLike) {
         const itemRecord = attachOutputDir(await readBatchChildItemRecord(errorOutputDir, ctx.command), errorOutputDir)
-        const errorCount = getPipelineItemErrorCount(itemRecord)
-        const completionStatus = getPipelineItemStatus(itemRecord) ?? (errorCount > 0 ? 'incomplete' : undefined)
-
-        if (completionStatus === 'failed') {
-          logBatchItemStatus('error', item, 'failed', error instanceof Error ? error.message : String(error))
-          return { itemRecord, errorCount, status: 'failed', failureError: error }
-        }
-
-        if (completionStatus === 'incomplete') {
-          logBatchItemStatus('warn', item, 'done', formatProviderFailureDetail(errorCount))
-          return { itemRecord, errorCount, status: 'partial', failureError: error }
+        const outcome = finishRecordedFailure(item, error, itemRecord)
+        if (outcome) {
+          return outcome
         }
       }
 

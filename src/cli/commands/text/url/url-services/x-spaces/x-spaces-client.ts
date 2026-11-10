@@ -108,6 +108,18 @@ function mergeXListResponse<TData, TResponse extends MergeableXListResponse<TDat
   }
 }
 
+function addSpaceIdsFromPost(spaceIds: Set<string>, post: XPost): void {
+  for (const url of post.entities?.urls ?? []) {
+    for (const candidate of [url.expanded_url, url.unwound_url, url.url]) {
+      if (candidate) {
+        extractSpaceIdsFromText(candidate).forEach((id) => spaceIds.add(id));
+      }
+    }
+  }
+
+  extractSpaceIdsFromText(post.text).forEach((id) => spaceIds.add(id));
+}
+
 export class XApiClient implements SpacesClientContract {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
@@ -239,15 +251,7 @@ export class XApiClient implements SpacesClientContract {
         tweets.push(...response.data);
 
         for (const tweet of response.data) {
-          for (const url of tweet.entities?.urls ?? []) {
-            for (const candidate of [url.expanded_url, url.unwound_url, url.url]) {
-              if (candidate) {
-                extractSpaceIdsFromText(candidate).forEach((id) => spaceIds.add(id));
-              }
-            }
-          }
-
-          extractSpaceIdsFromText(tweet.text).forEach((id) => spaceIds.add(id));
+          addSpaceIdsFromPost(spaceIds, tweet);
         }
       }
 

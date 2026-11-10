@@ -188,6 +188,53 @@ const validatePayloadManifestAgainstCandidate = async (
   return undefined
 }
 
+const installedManifestMatchesPayload = (
+  manifest: ManagedPrebuiltArtifactManifest,
+  payload: ManagedPrebuiltPayloadManifest
+): boolean =>
+  manifest.macosDeploymentTarget === payload.macosDeploymentTarget
+  && sameJson(manifest.sources, payload.sources)
+  && sameJson(manifest.buildFlags, payload.buildFlags)
+  && sameJson(manifest.producer, payload.producer)
+  && sameJson(manifest.payload, payload.payload)
+
+const expectedInstalledRelease = (
+  candidate: ManagedPrebuiltCandidate,
+  release: ManagedPrebuiltReleaseManifest
+) => ({
+  revision: candidate.revision,
+  url: candidate.url,
+  archiveName: candidate.archiveName,
+  archiveSha256: candidate.archiveSha256,
+  releaseManifestIdentity: release.identity,
+  releaseManifestSha256: candidate.releaseManifestSha256,
+  payloadManifestSha256: release.payloadManifestSha256,
+  signingIdentity: candidate.expectedSigningIdentity,
+  teamId: candidate.expectedTeamId,
+  notarizationSubmissionId: release.notarization.submissionId,
+  notarizationStatus: release.notarization.status,
+  sbomName: release.sbom.name,
+  sbomSha256: release.sbom.sha256,
+  provenanceSubjectDigest: release.provenance.subjectDigest,
+  producerCommit: release.producerCommit,
+  licenseReviewReferences: release.licenseReviewReferences
+}) satisfies ManagedPrebuiltArtifactManifest['release']
+
+const packageInventoryIssue = (
+  manifest: ManagedPrebuiltArtifactManifest,
+  payload: ManagedPrebuiltPayloadManifest,
+  actualPaths: string[]
+): string | undefined => {
+  const expectedPaths = manifest.packageFiles.map(file => file.path).sort()
+  if (new Set(expectedPaths).size !== expectedPaths.length || !sameJson(actualPaths, expectedPaths)) return 'installed package file inventory does not match the manifest'
+  const embeddedExpectedPaths = [MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME, ...payload.payload.map(file => file.path), ...payload.license.noticePaths].sort()
+  if (new Set(embeddedExpectedPaths).size !== embeddedExpectedPaths.length || !sameJson(expectedPaths, embeddedExpectedPaths)) return 'installed package inventory does not match the embedded manifest'
+  return undefined
+}
+
+const validationFailureFromError = (error: unknown): { healthy: false, reason: string } =>
+  validationFailure(error instanceof Error ? error.message : String(error))
+
 const validateManagedPrebuiltArtifact = async (
   tool: ManagedArtifactToolId,
   options: {
@@ -217,46 +264,27 @@ const validateManagedPrebuiltArtifact = async (
     if (sha256Bytes(payloadManifestBytes) !== release.payloadManifestSha256) return validationFailure('embedded payload manifest SHA-256 does not match the release manifest')
     payload = parseManagedPrebuiltPayloadManifest(JSON.parse(payloadManifestBytes) as unknown)
   } catch (error) {
-    return validationFailure(error instanceof Error ? error.message : String(error))
+    return validationFailureFromError(error)
   }
   try {
     const identityIssue = await validateCommonIdentity(tool, manifest, options)
     if (identityIssue) return validationFailure(identityIssue)
   } catch (error) {
-    return validationFailure(error instanceof Error ? error.message : String(error))
+    return validationFailureFromError(error)
   }
   const payloadIssue = await validatePayloadManifestAgainstCandidate(tool, payload, candidate, release)
   if (payloadIssue) return validationFailure(payloadIssue)
-  if (manifest.macosDeploymentTarget !== payload.macosDeploymentTarget || !sameJson(manifest.sources, payload.sources) || !sameJson(manifest.buildFlags, payload.buildFlags) || !sameJson(manifest.producer, payload.producer) || !sameJson(manifest.payload, payload.payload)) return validationFailure('installed manifest does not match the embedded payload manifest')
-  const expectedRelease = {
-    revision: candidate.revision,
-    url: candidate.url,
-    archiveName: candidate.archiveName,
-    archiveSha256: candidate.archiveSha256,
-    releaseManifestIdentity: release.identity,
-    releaseManifestSha256: candidate.releaseManifestSha256,
-    payloadManifestSha256: release.payloadManifestSha256,
-    signingIdentity: candidate.expectedSigningIdentity,
-    teamId: candidate.expectedTeamId,
-    notarizationSubmissionId: release.notarization.submissionId,
-    notarizationStatus: release.notarization.status,
-    sbomName: release.sbom.name,
-    sbomSha256: release.sbom.sha256,
-    provenanceSubjectDigest: release.provenance.subjectDigest,
-    producerCommit: release.producerCommit,
-    licenseReviewReferences: release.licenseReviewReferences
-  } satisfies ManagedPrebuiltArtifactManifest['release']
+  if (!installedManifestMatchesPayload(manifest, payload)) return validationFailure('installed manifest does not match the embedded payload manifest')
+  const expectedRelease = expectedInstalledRelease(candidate, release)
   if (!sameJson(manifest.release, expectedRelease)) return validationFailure('installed release provenance does not match candidate metadata')
   let actualPaths: string[]
   try {
     actualPaths = await listRegularPackageFiles(toolDir)
   } catch (error) {
-    return validationFailure(error instanceof Error ? error.message : String(error))
+    return validationFailureFromError(error)
   }
-  const expectedPaths = manifest.packageFiles.map(file => file.path).sort()
-  if (new Set(expectedPaths).size !== expectedPaths.length || !sameJson(actualPaths, expectedPaths)) return validationFailure('installed package file inventory does not match the manifest')
-  const embeddedExpectedPaths = [MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME, ...payload.payload.map(file => file.path), ...payload.license.noticePaths].sort()
-  if (new Set(embeddedExpectedPaths).size !== embeddedExpectedPaths.length || !sameJson(expectedPaths, embeddedExpectedPaths)) return validationFailure('installed package inventory does not match the embedded manifest')
+  const inventoryIssue = packageInventoryIssue(manifest, payload, actualPaths)
+  if (inventoryIssue) return validationFailure(inventoryIssue)
   try {
     for (const file of manifest.packageFiles) {
       if (await sha256File(join(toolDir, file.path)) !== file.sha256) return validationFailure(`package file hash mismatch for ${file.path}`)
@@ -268,7 +296,7 @@ const validateManagedPrebuiltArtifact = async (
       await verifySignature(join(toolDir, file.path), payload.trust)
     }
   } catch (error) {
-    return validationFailure(error instanceof Error ? error.message : String(error))
+    return validationFailureFromError(error)
   }
   return {
     healthy: true,

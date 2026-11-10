@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-10-28
+- **Date Updated:** 2026-10-31
 - **Verification Status:** Passed
 - **Supersession:** Absorbs "Reduce the Environment-Variable Surface Area" in full. Docker distribution and the container credential boundary are governed by [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md). This record is the accepted authority for host setup, the toolchain lifecycle, and the environment-variable surface.
 
@@ -143,6 +143,24 @@ It does not apply to:
 - Error classes and rendering. The missing-credential contract uses the error taxonomy that [ADR-005](ADR-005-cli-error-result-and-retry-contract.md) owns.
 - The payload-limit behavior of `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES`, which [ADR-019](ADR-019-read-successful-http-bodies-whole-under-a-payload-class-ceiling.md) owns. This record admits it as a production override with no CLI equivalent.
 
+### Shared command-budget reservations
+
+Operator batches may pass `AUTOSHOW_BUDGET_LEDGER`, `AUTOSHOW_BUDGET_CENTS`, and `AUTOSHOW_BUDGET_RESERVE_CENTS` to independent CLI processes. All three values are required together; caps and per-invocation reservations use positive safe-integer cents. `--require-shared-budget` requires this scope and gives Docker wrappers a capability check: an older image rejects the flag instead of silently ignoring the environment variables. Supported execution roots are `write`, `extract`, `download`, `tts`, `image`, `video`, and `music`; other execution paths fail closed while the scope is enabled. Help/version and valid price-only execution do not reserve an allocation.
+
+The shared ledger uses a bounded, owner-checked filesystem lock and atomic replacement with file/directory synchronization before execution. Each ledger has an immutable cap. Reservations, completed allocations, and uncertain outcomes count cumulatively across processes. Stale locks and unfinished receipts are never automatically removed. Symlinks, FIFOs, corrupt accounting, and mismatched budgets fail closed.
+
+The native dispatcher reserves before its handler. A runtime scope forces existing whole-command pricing gates, rejects incomplete suite pricing, and prevents `--allow-over-budget` from bypassing the reservation. Shared paid-create retry and REST boundaries require accepted pricing. Success conservatively books the full declared allocation; failure retains it as uncertain. A killed process leaves its durable reservation held. Neither state presents an estimate as a reconciled provider invoice.
+
+This is cumulative command-admission accounting, not a provider-enforced monetary cap. Actual charges can differ from estimates, and external programs or API calls outside these CLI handlers do not participate. Existing project spending approvals and model choices continue to govern execution. Application-funded fallback policies in other products are outside this decision.
+
+`src/utils/spending-ledger.ts` owns reservations and explicit reconciliation; `src/utils/runtime-spending-budget.ts` owns invocation scope. Operators use `src/tools/spending-ledger-command.ts` to inspect bounded status and reconcile outstanding receipts with an explicit ID, immutable cap, integer-cent charge, billing evidence, and confirmation that all participating processes are stopped and provider requests resolved. The tool requires `--confirm-stopped`; this is an operator declaration, not automatic proof of remote completion. A charge above its reservation persists a fatal state and blocks further admission. See [shared runtime budgeting](../commands/00-setup-and-utilities/usage.md#shared-runtime-budget) for commands and limitations.
+
+#### October 31 offline Docker acceptance
+
+The current working-tree production target was built locally with `docker build --target production -t autoshow-cli:local -t autoshow-cli:uss-acampo -t autoshow-cli:biofeedback-local .`; all three tags resolve to image `sha256:e1fb57823f260be6b788e9a130aaf5d05d5f9f79f3fecd5baf77305e7520c3c2`. A final cached rebuild included the Gemini TTS budget guards, and SHA-256 comparisons matched all 17 changed or new CLI source files against their container copies. No image was published.
+
+Containers ran with `--network none`, synthetic inputs, and no real credentials mounted. Help/version, missing-scope rejection, and the actual native `write` command's excessive-estimate rejection passed. The rejected command retained its one-cent uncertain reservation, a second invocation could not enter the exhausted ledger, and the image's operator helper reported the hold and reconciled it to zero only with explicit evidence and `--confirm-stopped`. This verifies offline admission and recovery behavior, not hosted provider pricing or invoice enforcement. Compact help output produced a 378-byte summary and a complete 4,158-byte artifact whose SHA-256 and `0600` permissions were verified; the image's default non-root user also passed a host-mount write check. All smoke containers and synthetic fixtures were removed, the three local image tags were preserved, and Docker Desktop was returned to its initially stopped state. No provider calls were made.
+
 ## Rationale
 
 - Managed runtime assets pin versions and checksums and avoid mutating host system state, matching how whisperfile and model assets were already delivered.
@@ -199,12 +217,14 @@ Setup and doctor are implemented under `src/cli/commands/setup-and-utilities/set
 bun run check
 bun test test/test-cases/validation/setup/
 bun test test/test-cases/validation/cli/child-env-contracts.test.ts
+bun test test/test-cases/validation/runtime-contracts/spending-ledger.test.ts test/test-cases/validation/runtime-contracts/runtime-spending-budget.test.ts
 ```
 
 1. Interrupted downloads resume, corrupt downloads fail closed on checksum mismatch, and partial installs exit non-zero.
 2. `setup --doctor` stays advisory and `setup --doctor --strict` exits 2 for missing configured credentials and other readiness warnings.
 3. `.env.example` stays aligned with the credential list.
 4. A spawned child does not see unrelated provider credentials.
+5. Independent processes cannot oversubscribe a shared allocation; interrupted/uncertain work remains held until explicit evidence reconciles it. Focused local tests cover unsafe filesystem inputs, forced pricing, unsupported-command rejection, unchanged ordinary execution, and the operator interface. No live provider billing-cap claim is made.
 
 ## References
 

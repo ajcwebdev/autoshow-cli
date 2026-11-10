@@ -263,8 +263,7 @@ const failWithExitCode = (message: string, exitCode: number): never => {
   })
 }
 
-export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promise<void> => {
-  const outputRoot = getOutputRootAbsolute(PROJECT_ROOT)
+const readLyricVideoFlags = (flags: Record<string, unknown>) => {
   const batchFlag = typeof flags['batch'] === 'string' ? flags['batch'] : undefined
   const batch = typeof batchFlag === 'string' && batchFlag.length > 0
   const audioFlag = typeof flags['audio'] === 'string' ? flags['audio'] : undefined
@@ -285,6 +284,13 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
   }
 
   const model = validateWhisperfileModel(modelRaw)
+
+  return { batchFlag, batch, audioFlag, captionsFlag, model, font, price }
+}
+
+export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promise<void> => {
+  const outputRoot = getOutputRootAbsolute(PROJECT_ROOT)
+  const { batchFlag, batch, audioFlag, captionsFlag, model, font, price } = readLyricVideoFlags(flags)
 
   if (batch) {
     const inputRoot = resolveUserPath(batchFlag!)

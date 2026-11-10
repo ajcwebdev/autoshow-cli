@@ -10,11 +10,63 @@ import { resolveCaptionWordCoverage } from './caption-word-coverage'
 import { buildTranscriptionCues, TRANSCRIPT_CUE_LIMITS } from '../../../audio/music/lyrics-video/cue-builder'
 import { DEFAULT_CAPTION_FORMAT, formatEditorCaptions, resolveCaptionFormats } from './caption-editor-formats'
 import { UsageError, ValidationError } from '~/utils/error-handler'
+import type { TranscriptionResult } from '~/types'
 
-export const runCaptionExport = async (input: string | undefined, flags: Record<string, unknown>, destination?: string, videoSource?: string): Promise<string> => {
+const wrapCaptionText = (text: string, lineWidth: number): string => {
+  const lines: string[] = []
+  for (const word of text.split(/\s+/)) {
+    const previous = lines.at(-1)
+    if (previous && previous.length + word.length + 1 <= lineWidth) lines[lines.length - 1] += ' ' + word
+    else lines.push(word)
+  }
+  return lines.join('\n')
+}
+
+const trimOverlappingCueDisplayTimes = (
+  captionCues: { index: number, start: number, end: number }[]
+): { cue: number; originalEnd: number; end: number; reason: string }[] => {
+  const displayTimingAdjustments: { cue: number; originalEnd: number; end: number; reason: string }[] = []
+  for (let index = 0; index < captionCues.length - 1; index++) {
+    const cue = captionCues[index]!, next = captionCues[index + 1]!
+    if (cue.end <= next.start) continue
+    if (cue.end - next.start > .15 || next.start <= cue.start) throw ValidationError('Overlapping caption cues require manual layout before embedding; transcript evidence is unchanged.')
+    displayTimingAdjustments.push({ cue: cue.index, originalEnd: cue.end, end: next.start, reason: 'End the display cue at the next cue start to prevent container-specific overlap truncation; word evidence is unchanged.' })
+    cue.end = next.start
+  }
+  return displayTimingAdjustments
+}
+
+const buildCaptionFormatNotes = (formats: readonly string[]): string[] => [
+  ...(formats.includes('lrc') ? ['LRC stores cue starts only, rounded to centiseconds. Full ranges remain in this sidecar.'] : []),
+  ...(formats.includes('ass') ? ['ASS display times are rounded to centiseconds, with a minimum one-centisecond display duration. Full ranges remain in this sidecar.'] : [])
+]
+
+const resolveCaptionTimingQuality = (result: TranscriptionResult, coverage: { inferredWords: number }): string => {
+  if (result.evidence?.timingQuality === 'generated') return 'generated'
+  if (coverage.inferredWords > 0) return (result.evidence?.words?.length ?? 0) > 0 ? 'mixed' : 'segment_interpolated'
+  return result.evidence?.timingQuality ?? 'coarse'
+}
+
+const buildCaptionLayoutWarnings = (
+  captionCues: readonly { index: number, start: number, end: number, text: string }[],
+  maxCps: number,
+  maxLines: number
+): { cue: number, reason: string }[] => captionCues.flatMap(cue => [
+  ...(cue.text.length / (cue.end - cue.start) > maxCps ? [{ cue: cue.index, reason: 'reading-speed' }] : []),
+  ...(cue.text.split('\n').length > maxLines ? [{ cue: cue.index, reason: 'line-count' }] : [])
+])
+
+const resolveCaptionResultPath = (input: string | undefined, flags: Record<string, unknown>): string => {
   const source = flags['transcript-result'] ?? input
   if (typeof source !== 'string' || !source.trim()) throw UsageError('--captions requires a saved result.json file or a directory containing result.json.')
-  let path = resolve(source)
+  return resolve(source)
+}
+
+const resolveCaptionEmbeddingSource = (input: string | undefined, flags: Record<string, unknown>, videoSource: string | undefined): string =>
+  videoSource ?? (typeof flags['caption-video-source'] === 'string' ? flags['caption-video-source'] : input) ?? ''
+
+export const runCaptionExport = async (input: string | undefined, flags: Record<string, unknown>, destination?: string, videoSource?: string): Promise<string> => {
+  let path = resolveCaptionResultPath(input, flags)
   if ((await statPath(path)).isDirectory()) path = join(path, 'result.json')
   const { formats, mode, lineWidth, maxLines, maxCps, limits } = validateCaptionOptions(flags)
   const result = parseStoredTranscriptionResult(await Bun.file(path).json())
@@ -24,31 +76,13 @@ export const runCaptionExport = async (input: string | undefined, flags: Record<
   const exportResult = { ...result, evidence: { ...result.evidence, words: coverage.words } }
   const { cues } = buildTranscriptionCues(exportResult, limits)
   if (!cues.length) throw ValidationError('The saved result contains no usable caption timing.')
-  const wrap = (text: string): string => {
-    const lines: string[] = []
-    for (const word of text.split(/\s+/)) {
-      const previous = lines.at(-1)
-      if (previous && previous.length + word.length + 1 <= lineWidth) lines[lines.length - 1] += ' ' + word
-      else lines.push(word)
-    }
-    return lines.join('\n')
-  }
-  const embeddingSource = videoSource ?? (typeof flags['caption-video-source'] === 'string' ? flags['caption-video-source'] : input) ?? ''
+  const embeddingSource = resolveCaptionEmbeddingSource(input, flags, videoSource)
   const sourceTimelineOffsetSeconds = flags['caption-offset'] !== undefined ? Number(flags['caption-offset']) : destination && flags['embed-captions'] === true
     ? Number((await probeCaptionMedia(embeddingSource)).streams.find(stream => stream.codec_type === 'audio')?.start_time ?? 0)
     : 0
   if (!Number.isFinite(sourceTimelineOffsetSeconds)) throw ValidationError('Unable to determine source audio timeline offset.')
-  const captionCues = cues.map(cue => ({ ...cue, start: cue.start + sourceTimelineOffsetSeconds, end: cue.end + sourceTimelineOffsetSeconds })).map(cue => ({ ...cue, text: flags['caption-speakers'] === false || !cue.speaker ? cue.text : `[${cue.speaker}] ${cue.text}` })).map(cue => ({ ...cue, text: wrap(cue.text) }))
-  const displayTimingAdjustments: { cue: number; originalEnd: number; end: number; reason: string }[] = []
-  if (flags['embed-captions'] === true) {
-    for (let index = 0; index < captionCues.length - 1; index++) {
-      const cue = captionCues[index]!, next = captionCues[index + 1]!
-      if (cue.end <= next.start) continue
-      if (cue.end - next.start > .15 || next.start <= cue.start) throw ValidationError('Overlapping caption cues require manual layout before embedding; transcript evidence is unchanged.')
-      displayTimingAdjustments.push({ cue: cue.index, originalEnd: cue.end, end: next.start, reason: 'End the display cue at the next cue start to prevent container-specific overlap truncation; word evidence is unchanged.' })
-      cue.end = next.start
-    }
-  }
+  const captionCues = cues.map(cue => ({ ...cue, start: cue.start + sourceTimelineOffsetSeconds, end: cue.end + sourceTimelineOffsetSeconds })).map(cue => ({ ...cue, text: flags['caption-speakers'] === false || !cue.speaker ? cue.text : `[${cue.speaker}] ${cue.text}` })).map(cue => ({ ...cue, text: wrapCaptionText(cue.text, lineWidth) }))
+  const displayTimingAdjustments = flags['embed-captions'] === true ? trimOverlappingCueDisplayTimes(captionCues) : []
   if (flags['price'] === true) {
     l.report.result({ dryRun: true, estimate: { steps: [], totalEstimatedCostCents: 0 } }, 'Caption export provider cost: 0 cents')
     return path
@@ -62,12 +96,9 @@ export const runCaptionExport = async (input: string | undefined, flags: Record<
   for (const { format, content } of serialized) await writeFile(join(output, `captions.${format}`), content, { flag: 'wx' })
   await writeFile(join(output, 'captions.json'), JSON.stringify({
     source: path, sourceTimelineOffsetSeconds, formats, mode, limits, lineWidth, maxLines, maxCps, displayTimingAdjustments,
-    formatNotes: [...(formats.includes('lrc') ? ['LRC stores cue starts only, rounded to centiseconds. Full ranges remain in this sidecar.'] : []), ...(formats.includes('ass') ? ['ASS display times are rounded to centiseconds, with a minimum one-centisecond display duration. Full ranges remain in this sidecar.'] : [])],
-    timingQuality: result.evidence?.timingQuality === 'generated' ? 'generated' : coverage.inferredWords > 0 ? ((result.evidence?.words?.length ?? 0) > 0 ? 'mixed' : 'segment_interpolated') : result.evidence?.timingQuality ?? 'coarse',
-    layoutWarnings: captionCues.flatMap(cue => [
-      ...(cue.text.length / (cue.end - cue.start) > maxCps ? [{ cue: cue.index, reason: 'reading-speed' }] : []),
-      ...(cue.text.split('\n').length > maxLines ? [{ cue: cue.index, reason: 'line-count' }] : [])
-    ]),
+    formatNotes: buildCaptionFormatNotes(formats),
+    timingQuality: resolveCaptionTimingQuality(result, coverage),
+    layoutWarnings: buildCaptionLayoutWarnings(captionCues, maxCps, maxLines),
     inferredWords: coverage.inferredWords, invalidWords: coverage.invalidWords,
     note: 'Millisecond serialization does not imply millisecond acoustic accuracy. Interpolated and generated timings are estimates.',
     cues: captionCues

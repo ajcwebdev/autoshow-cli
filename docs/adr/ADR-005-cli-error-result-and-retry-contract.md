@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-10-28
+- **Date Updated:** 2026-10-31
 - **Verification Status:** Passed
 - **Supersession:** Absorbs "Unify the Logging and Error-Handling Vocabulary" and "Adopt Table-Free Text, JSON Results, and Safe Retry Ownership".
 
@@ -74,6 +74,8 @@ The error kinds are `usage`, `provider_http`, `retry_exhausted`, `validation`, `
 
 The two output modes are default text with one line per diagnostic event and the versioned `--json` protocol. JSON mode emits diagnostics on stderr and one terminal result on stdout. Text diagnostics use stderr when stdout is piped; an interactive terminal can show informational events on stdout. Help, version, and `metadata --markdown` write their text document to stdout; `metadata --markdown` cannot be combined with `--json`. Terminal tables and `--log-format` are removed. A later failure replaces a prepared success, and a missing or duplicate terminal result is an internal error; text mode does not emit the JSON result envelope.
 
+`--json --result-file <new-path>` is an opt-in projection of that protocol for agents. The complete sanitized terminal envelope is stored in a new private file, and stdout contains one result marked `resultMode: "summary"` with bounded counts/error previews and the artifact's path, bytes and SHA-256. The summary is at most 8 KiB. Full nested result and pricing data remain in the artifact. Creating the artifact happens before dispatch; existing files/symlinks are rejected, new parents use mode `0700`, and the file uses `0600`. Write failures produce a failing command result rather than claiming an unavailable artifact. Raw payload helpers are rejected within this mode, including isolated workflows. Ordinary `--json` and diagnostic logging retain their existing contracts. Result artifacts are disposable projections, not new resume or provenance authorities.
+
 A paid create is sent again only for HTTP 425 or 429, or when the provider's structured verdict says the admission was rejected and may be retried, unless the failure is explicitly non-retryable or identifies a billing or quota problem. A replay-safe upload may retry a timeout or network failure, and a read of an already accepted provider result may retry. An ambiguous paid admission stops automatic retries. Persisted TTS runs, including comic audio, require a later invocation with `--allow-ambiguous-redispatch` to authorize repurchasing unrecoverable work while preserving saved evidence and completed audio. A provider-directed delay waits at most five minutes. Exhausted retries or polling do not start another attempt within that invocation.
 
 This applies to:
@@ -134,6 +136,8 @@ Negative outcomes:
 
 In JSON mode, log records use `{ schemaVersion: 1, type: "log", timestamp, runId, level, category, message, command?, step?, context?, metadata?, error? }` on stderr. Terminal records use `{ schemaVersion: 1, type: "result", timestamp, runId, command?, status, exitCode, durationMs, message, data?, error?, hints? }` on stdout. `--json=false` and `--no-json` select text mode. Diagnostic level controls never suppress the JSON terminal result. Native parser errors are usage errors and exit 2.
 
+Compact result projections add `resultMode: "summary"` and `artifact: { path, bytes, sha256 }`; their `data` contains bounded field names, counts and representative errors. Consumers needing exact data must read and, when crossing process/storage boundaries, verify the referenced complete artifact. `--result-file` requires `--json` and does not authorize provider calls.
+
 ## Test Plan
 
 ```bash
@@ -141,13 +145,14 @@ bun run check
 bun t --price
 bun test test/test-cases/validation/runtime-contracts/app-error-contracts.test.ts test/test-cases/validation/runtime-contracts/output-vocabulary-contracts.test.ts
 bun test test/test-cases/validation/runtime-contracts/retry-policy-contracts.test.ts test/test-cases/validation/runtime-contracts/retry-create-admission-contracts.test.ts
-bun test test/test-cases/validation/cli/json-output-contracts.test.ts test/test-cases/validation/cli/required-image-model-contracts.test.ts
+bun test test/test-cases/validation/cli/json-output-contracts.test.ts test/test-cases/validation/cli/result-artifact-contracts.test.ts test/test-cases/validation/cli/required-image-model-contracts.test.ts
 ```
 
 1. Error contracts and source enforcement hold, including usage exit 2, default operational exit 1, structured hints, and the image-policy exit 64 override.
 2. Text diagnostics stay one physical line per event and use stderr when stdout is piped; JSON mode emits one terminal result on stdout with diagnostics on stderr, and `--log-format` exits 2.
 3. A paid create retries only an explicit 425 or 429 or a rejected-and-retryable verdict; timeouts, network loss, and unknown outcomes stop, and exhaustion does not start another attempt.
 4. The price pass runs every mapped estimate command once and reads structured cost data without calling a provider.
+5. Compact mode preserves complete deep data and numeric pricing/usage, redacts secrets, bounds summary bytes, matches the stored checksum, rejects overwrites and path replacement, and preserves successful/failed command exit codes. Raw writes cannot bypass compact mode through isolated workflows.
 
 ## References
 

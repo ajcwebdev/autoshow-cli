@@ -71,6 +71,27 @@ const listFlag = (parsed: ComicParsedArgs, name: string): string[] => {
   return values.flatMap(item => String(item).split(',')).map(item => item.trim()).filter(Boolean)
 }
 
+const assertPanelCountCombination = (output: ParsedDraftCommandArgs): void => {
+  if (output.panelCount === undefined) return
+  if (output.only !== undefined && output.only !== 'scene') throw UsageError('--panel-count only applies to the scene stage; use --only scene or a full run')
+  if (output.rebind) throw UsageError('--panel-count cannot be combined with --rebind')
+  if (output.reconcileFromDirectives) throw UsageError('--panel-count cannot be combined with --reconcile-from-directives')
+}
+
+const assertReconcileCombination = (output: ParsedDraftCommandArgs): void => {
+  if (!output.reconcileFromDirectives) return
+  if (output.only !== undefined) throw UsageError('--reconcile-from-directives cannot be combined with --only; it is a standalone no-provider pass over the reviewed scene')
+  if (output.rebind) throw UsageError('--reconcile-from-directives cannot be combined with --rebind')
+  if (output.blockingPlan !== undefined) throw UsageError('--reconcile-from-directives cannot be combined with --blocking-plan')
+}
+
+const assertBlockingStageCombination = (output: ParsedDraftCommandArgs): void => {
+  if (output.rebind && output.only !== 'blocking') throw UsageError('--rebind requires --only blocking')
+  if (output.rebind && output.blockingPlan !== undefined) throw UsageError('--rebind cannot be combined with --blocking-plan')
+  if (output.blockingPlan !== undefined && output.only !== undefined && output.only !== 'blocking') throw UsageError('--blocking-plan only applies to the blocking stage; use --only blocking or a full run')
+  if (output.blocking === false && (output.only === 'blocking' || output.blockingPlan !== undefined || output.rebind)) throw UsageError('--no-blocking cannot be combined with --only blocking, --blocking-plan, or --rebind')
+}
+
 export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDraftCommandArgs => {
   const scriptPath = readScriptPath(parsed)
   const output: ParsedDraftCommandArgs = { showHelp: false, scriptPath: scriptPath as string }
@@ -97,20 +118,9 @@ export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDra
   if (enabledFlag(parsed, 'reconcile-from-directives') === true) output.reconcileFromDirectives = true
   const panelCount = stringFlag(parsed, 'panel-count')
   if (panelCount !== undefined) output.panelCount = parsePanelCount(panelCount)
-  if (output.panelCount !== undefined) {
-    if (output.only !== undefined && output.only !== 'scene') throw UsageError('--panel-count only applies to the scene stage; use --only scene or a full run')
-    if (output.rebind) throw UsageError('--panel-count cannot be combined with --rebind')
-    if (output.reconcileFromDirectives) throw UsageError('--panel-count cannot be combined with --reconcile-from-directives')
-  }
-  if (output.reconcileFromDirectives) {
-    if (output.only !== undefined) throw UsageError('--reconcile-from-directives cannot be combined with --only; it is a standalone no-provider pass over the reviewed scene')
-    if (output.rebind) throw UsageError('--reconcile-from-directives cannot be combined with --rebind')
-    if (output.blockingPlan !== undefined) throw UsageError('--reconcile-from-directives cannot be combined with --blocking-plan')
-  }
-  if (output.rebind && output.only !== 'blocking') throw UsageError('--rebind requires --only blocking')
-  if (output.rebind && output.blockingPlan !== undefined) throw UsageError('--rebind cannot be combined with --blocking-plan')
-  if (output.blockingPlan !== undefined && output.only !== undefined && output.only !== 'blocking') throw UsageError('--blocking-plan only applies to the blocking stage; use --only blocking or a full run')
-  if (output.blocking === false && (output.only === 'blocking' || output.blockingPlan !== undefined || output.rebind)) throw UsageError('--no-blocking cannot be combined with --only blocking, --blocking-plan, or --rebind')
+  assertPanelCountCombination(output)
+  assertReconcileCombination(output)
+  assertBlockingStageCombination(output)
   return output
 }
 
@@ -199,6 +209,19 @@ export const coerceAndValidateReview = (parsed: ComicParsedArgs): ParsedReviewNo
   return coerceAndValidateReviewSheet(parsed, REVIEW_COMMAND)
 }
 
+const assertReferenceSketchCombination = (output: ParsedReferenceSketchArgs): void => {
+  if (output.imageModels && output.imageModels.length !== 1) {
+    throw UsageError('comic reference-sketch accepts exactly one --provider')
+  }
+  if (Number(Boolean(output.character)) + Number(Boolean(output.location)) !== 1) {
+    throw UsageError('Exactly one of --character or --location is required')
+  }
+  if (output.character && output.view) throw UsageError('--view is only valid with --location')
+  validateImageSizeForModels(output.size, output.imageModels)
+  if (output.revise && !output.notes) throw UsageError('--notes is required when using --revise')
+  if (output.notes && !output.revise) throw UsageError('--notes requires --revise')
+}
+
 export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): ParsedReferenceSketchArgs => {
   if (parsed.rawParsed.explicitFlags.has('qa-only') || getUnknownFlagSpellings(parsed.rawParsed).includes('--qa-only')) throw UsageError('--qa-only is not supported by comic reference-sketch; use comic generate-images for panel audits.')
   if (stringFlag(parsed, 'character')) {
@@ -235,16 +258,7 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
   if (enabledFlag(parsed, 'price') === true) output.price = true
   assignSharedImageOptions(parsed, output)
 
-  if (output.imageModels && output.imageModels.length !== 1) {
-    throw UsageError('comic reference-sketch accepts exactly one --provider')
-  }
-  if (Number(Boolean(output.character)) + Number(Boolean(output.location)) !== 1) {
-    throw UsageError('Exactly one of --character or --location is required')
-  }
-  if (output.character && output.view) throw UsageError('--view is only valid with --location')
-  validateImageSizeForModels(output.size, output.imageModels)
-  if (output.revise && !output.notes) throw UsageError('--notes is required when using --revise')
-  if (output.notes && !output.revise) throw UsageError('--notes requires --revise')
+  assertReferenceSketchCombination(output)
   return output
 }
 

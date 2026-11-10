@@ -10,6 +10,7 @@ import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { formatDuration, formatEstimatedCostWithExactCents } from '~/utils/app-logger/formatters'
 import { buildTtsBatchEstimateSummary } from './tts-batch-summary'
+import { assertRuntimeBudgetEstimate } from '~/utils/runtime-spending-budget'
 
 const formatCents = (amount: number): string => `${amount.toFixed(3)}¢`
 
@@ -100,6 +101,7 @@ export const enforceTtsBatchBudget = (
   maxCents: number | undefined,
   allowOverBudget: boolean
 ): void => {
+  assertRuntimeBudgetEstimate(totalEstimatedCost)
   if (maxCents === undefined || totalEstimatedCost <= maxCents) {
     return
   }

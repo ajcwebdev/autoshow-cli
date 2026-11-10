@@ -10,6 +10,13 @@ const paeth = (left: number, above: number, corner: number): number => {
   return a <= b && a <= c ? left : b <= c ? above : corner
 }
 interface Chunk { type: string, data: Uint8Array }
+interface ScanlineGeometry { width: number, height: number, channels: number, stride: number }
+interface PngColorModel { color: number, palette: Uint8Array | undefined, transparency: Uint8Array | undefined, transparent: DataView | undefined }
+
+const assertSupportedChunkType = (type: string): void => {
+  if (type === 'acTL' || type === 'fcTL' || type === 'fdAT') throw new AppValidationError('Animated PNG lossless normalization is unsupported')
+  if (type[0] === type[0]!.toUpperCase() && !['IHDR', 'PLTE', 'IDAT', 'IEND'].includes(type)) throw new AppValidationError('Unsupported critical PNG chunk')
+}
 const chunks = (bytes: Uint8Array): Chunk[] => {
   if (!equal(bytes.subarray(0, 8), signature)) throw new AppValidationError('Lossless PNG normalization requires valid PNG bytes')
   const result: Chunk[] = []
@@ -19,8 +26,7 @@ const chunks = (bytes: Uint8Array): Chunk[] => {
     if (offset + length + 12 > bytes.length) throw new AppValidationError('Truncated PNG chunk')
     const type = Buffer.from(bytes.subarray(offset + 4, offset + 8)).toString('ascii')
     if (!/^[A-Za-z]{4}$/.test(type) || Bun.hash.crc32(bytes.subarray(offset + 4, offset + length + 8)) !== view.getUint32(length + 8)) throw new AppValidationError('Invalid PNG chunk checksum/type')
-    if (type === 'acTL' || type === 'fcTL' || type === 'fdAT') throw new AppValidationError('Animated PNG lossless normalization is unsupported')
-    if (type[0] === type[0]!.toUpperCase() && !['IHDR', 'PLTE', 'IDAT', 'IEND'].includes(type)) throw new AppValidationError('Unsupported critical PNG chunk')
+    assertSupportedChunkType(type)
     result.push({ type, data: bytes.subarray(offset + 8, offset + length + 8) })
     offset += length + 12
     if (type === 'IEND') { ended = true; break }
@@ -30,18 +36,25 @@ const chunks = (bytes: Uint8Array): Chunk[] => {
   return result
 }
 
-/** Exact RGBA8 samples, row-major, with no color transform or premultiplication. Unsupported PNG encodings fail closed. */
-export const decodePngRgba8 = (bytes: Uint8Array) => {
-  const records = chunks(bytes), header = records[0]!.data
+const readPngHeader = (header: Uint8Array): ScanlineGeometry & { color: number } => {
   if (header.length !== 13) throw new AppValidationError('Invalid PNG header')
   const view = new DataView(header.buffer, header.byteOffset, header.byteLength), width = view.getUint32(0), height = view.getUint32(4), color = header[9]!
   const channels = ({ 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 } as Record<number, number>)[color]
   if (!width || !height || width * height > maximumPixels || header[8] !== 8 || !channels || header[10] !== 0 || header[11] !== 0 || header[12] !== 0) throw new AppValidationError('Lossless normalization supports only bounded noninterlaced 8-bit PNGs')
+  return { width, height, channels, stride: width * channels, color }
+}
+
+const inflateScanlines = (records: readonly Chunk[], geometry: ScanlineGeometry): Uint8Array => {
   const idat = records.filter(c => c.type === 'IDAT')
   if (!idat.length || records.filter(c => c.type === 'PLTE').length > 1 || records.filter(c => c.type === 'tRNS').length > 1) throw new AppValidationError('Missing/duplicate PNG image data')
-  const stride = width * channels, size = height * (stride + 1)
+  const size = geometry.height * (geometry.stride + 1)
   const inflated = inflateSync(Buffer.concat(idat.map(c => c.data)), { maxOutputLength: size })
   if (inflated.length !== size) throw new AppValidationError('PNG scanline size mismatch')
+  return inflated
+}
+
+const unfilterScanlines = (inflated: Uint8Array, geometry: ScanlineGeometry): Uint8Array => {
+  const { height, stride, channels } = geometry
   const samples = new Uint8Array(stride * height)
   for (let y = 0; y < height; y++) {
     const filter = inflated[y * (stride + 1)]!
@@ -53,25 +66,52 @@ export const decodePngRgba8 = (bytes: Uint8Array) => {
       samples[index] = (inflated[y * (stride + 1) + x + 1]! + predictor) & 255
     }
   }
+  return samples
+}
+
+const invalidPalette = (color: number, palette: Uint8Array | undefined): boolean | number =>
+  color === 3 && (!palette?.length || palette.length % 3 || palette.length > 768)
+
+const invalidTransparency = (color: number, palette: Uint8Array | undefined, transparency: Uint8Array | undefined): boolean | undefined =>
+  transparency && (color === 0 && transparency.length !== 2 || color === 2 && transparency.length !== 6 || color === 3 && transparency.length > (palette?.length ?? 0) / 3 || color === 4 || color === 6)
+
+const readPngColorModel = (records: readonly Chunk[], color: number): PngColorModel => {
   const palette = records.find(c => c.type === 'PLTE')?.data, transparency = records.find(c => c.type === 'tRNS')?.data
-  if (color === 3 && (!palette?.length || palette.length % 3 || palette.length > 768)
-    || transparency && (color === 0 && transparency.length !== 2 || color === 2 && transparency.length !== 6 || color === 3 && transparency.length > (palette?.length ?? 0) / 3 || color === 4 || color === 6)) throw new AppValidationError('Invalid PNG palette/transparency')
+  if (invalidPalette(color, palette) || invalidTransparency(color, palette, transparency)) throw new AppValidationError('Invalid PNG palette/transparency')
   const transparent = transparency ? new DataView(transparency.buffer, transparency.byteOffset, transparency.byteLength) : undefined
+  return { color, palette, transparency, transparent }
+}
+
+const grayRgba = (samples: Uint8Array, source: number, { color, transparent }: PngColorModel): number[] => {
+  const gray = samples[source]!
+  return [gray, gray, gray, color === 4 ? samples[source + 1]! : transparent?.getUint16(0) === gray ? 0 : 255]
+}
+
+const rgbRgba = (samples: Uint8Array, source: number, { color, transparent }: PngColorModel): number[] => {
+  const r = samples[source]!, g = samples[source + 1]!, b = samples[source + 2]!
+  return [r, g, b, color === 6 ? samples[source + 3]! : transparent && transparent.getUint16(0) === r && transparent.getUint16(2) === g && transparent.getUint16(4) === b ? 0 : 255]
+}
+
+const paletteRgba = (samples: Uint8Array, source: number, { palette, transparency }: PngColorModel): number[] => {
+  const index = samples[source]!
+  if (index * 3 + 2 >= palette!.length) throw new AppValidationError('PNG palette index outside palette')
+  return [palette![index * 3]!, palette![index * 3 + 1]!, palette![index * 3 + 2]!, transparency?.[index] ?? 255]
+}
+
+const expandToRgba8 = (samples: Uint8Array, geometry: ScanlineGeometry, model: PngColorModel): Uint8Array => {
+  const { width, height, channels } = geometry, { color } = model
+  const toRgba = color === 0 || color === 4 ? grayRgba : color === 2 || color === 6 ? rgbRgba : paletteRgba
   const pixels = new Uint8Array(width * height * 4)
-  for (let i = 0; i < width * height; i++) {
-    const source = i * channels, target = i * 4
-    if (color === 0 || color === 4) {
-      const gray = samples[source]!
-      pixels.set([gray, gray, gray, color === 4 ? samples[source + 1]! : transparent?.getUint16(0) === gray ? 0 : 255], target)
-    } else if (color === 2 || color === 6) {
-      const r = samples[source]!, g = samples[source + 1]!, b = samples[source + 2]!
-      pixels.set([r, g, b, color === 6 ? samples[source + 3]! : transparent && transparent.getUint16(0) === r && transparent.getUint16(2) === g && transparent.getUint16(4) === b ? 0 : 255], target)
-    } else {
-      const index = samples[source]!
-      if (index * 3 + 2 >= palette!.length) throw new AppValidationError('PNG palette index outside palette')
-      pixels.set([palette![index * 3]!, palette![index * 3 + 1]!, palette![index * 3 + 2]!, transparency?.[index] ?? 255], target)
-    }
-  }
+  for (let i = 0; i < width * height; i++) pixels.set(toRgba(samples, i * channels, model), i * 4)
+  return pixels
+}
+
+/** Exact RGBA8 samples, row-major, with no color transform or premultiplication. Unsupported PNG encodings fail closed. */
+export const decodePngRgba8 = (bytes: Uint8Array) => {
+  const records = chunks(bytes), geometry = readPngHeader(records[0]!.data)
+  const samples = unfilterScanlines(inflateScanlines(records, geometry), geometry)
+  const pixels = expandToRgba8(samples, geometry, readPngColorModel(records, geometry.color))
+  const { width, height } = geometry
   return { width, height, pixels, pixelSha256: sha256(pixels) }
 }
 
@@ -87,6 +127,52 @@ export const assertPngPixelIdentity = (original: Uint8Array, transport: Uint8Arr
   if (expected.width !== actual.width || expected.height !== actual.height || !equal(expected.pixels, actual.pixels)) throw new AppValidationError('PNG transport changed decoded pixels')
 }
 
+const detectRedundantChannels = (pixels: Uint8Array): { gray: boolean, opaque: boolean } => {
+  let gray = true, opaque = true
+  for (let i = 0; i < pixels.length; i += 4) { if (pixels[i] !== pixels[i + 1] || pixels[i] !== pixels[i + 2]) gray = false; if (pixels[i + 3] !== 255) opaque = false }
+  return { gray, opaque }
+}
+
+const transportColorType = (gray: boolean, opaque: boolean): { color: number, channels: number } =>
+  ({ color: gray ? opaque ? 0 : 4 : opaque ? 2 : 6, channels: gray ? opaque ? 1 : 2 : opaque ? 3 : 4 })
+
+const reduceRedundantChannels = (pixels: Uint8Array, width: number, height: number): { color: number, channels: number, samples: Uint8Array } => {
+  const { gray, opaque } = detectRedundantChannels(pixels), { color, channels } = transportColorType(gray, opaque)
+  const samples = new Uint8Array(width * height * channels)
+  for (let i = 0; i < width * height; i++) {
+    const source = i * 4, target = i * channels
+    if (gray) { samples[target] = pixels[source]!; if (!opaque) samples[target + 1] = pixels[source + 3]! }
+    else { samples.set(pixels.subarray(source, source + channels), target) }
+  }
+  return { color, channels, samples }
+}
+
+const filterScanline = (samples: Uint8Array, geometry: ScanlineGeometry, y: number, filter: number): { row: Uint8Array<ArrayBuffer>, score: number } => {
+  const { stride, channels } = geometry, row = new Uint8Array(stride)
+  let score = 0
+  for (let x = 0; x < stride; x++) {
+    const index = y * stride + x, left = x >= channels ? samples[index - channels]! : 0, above = y ? samples[index - stride]! : 0,
+      corner = y && x >= channels ? samples[index - stride - channels]! : 0
+    const predictor = filter === 0 ? 0 : filter === 1 ? left : filter === 2 ? above : filter === 3 ? Math.floor((left + above) / 2) : paeth(left, above, corner)
+    const value = (samples[index]! - predictor) & 255
+    row[x] = value; score += Math.min(value, 256 - value)
+  }
+  return { row, score }
+}
+
+const filterScanlines = (samples: Uint8Array, geometry: ScanlineGeometry): Uint8Array => {
+  const { height, stride } = geometry, filtered = new Uint8Array(height * (stride + 1))
+  for (let y = 0; y < height; y++) {
+    let best = new Uint8Array(stride), bestScore = Infinity, bestFilter = 0
+    for (let filter = 0; filter <= 4; filter++) {
+      const { row, score } = filterScanline(samples, geometry, y, filter)
+      if (score < bestScore) { bestScore = score; best = row; bestFilter = filter }
+    }
+    filtered[y * (stride + 1)] = bestFilter; filtered.set(best, y * (stride + 1) + 1)
+  }
+  return filtered
+}
+
 /** Deterministic PNG-only transport encoding. Removes only provably redundant gray/RGB/alpha channels, never quantizes, resizes or changes pixels. */
 export const losslesslyCompressPng = async (original: Uint8Array) => {
   // Native header probing and bounded full sample decoding must agree before
@@ -95,32 +181,8 @@ export const losslesslyCompressPng = async (original: Uint8Array) => {
   const decoded = decodePngRgba8(original)
   if (native.format !== 'png' || native.width !== decoded.width || native.height !== decoded.height) throw new AppValidationError('Native PNG dimensions disagree with decoded samples')
   const { width, height, pixels } = decoded
-  let gray = true, opaque = true
-  for (let i = 0; i < pixels.length; i += 4) { if (pixels[i] !== pixels[i + 1] || pixels[i] !== pixels[i + 2]) gray = false; if (pixels[i + 3] !== 255) opaque = false }
-  const color = gray ? opaque ? 0 : 4 : opaque ? 2 : 6, channels = gray ? opaque ? 1 : 2 : opaque ? 3 : 4
-  const samples = new Uint8Array(width * height * channels)
-  for (let i = 0; i < width * height; i++) {
-    const source = i * 4, target = i * channels
-    if (gray) { samples[target] = pixels[source]!; if (!opaque) samples[target + 1] = pixels[source + 3]! }
-    else { samples.set(pixels.subarray(source, source + channels), target) }
-  }
-  const stride = width * channels, filtered = new Uint8Array(height * (stride + 1))
-  for (let y = 0; y < height; y++) {
-    let best = new Uint8Array(stride), bestScore = Infinity, bestFilter = 0
-    for (let filter = 0; filter <= 4; filter++) {
-      const row = new Uint8Array(stride)
-      let score = 0
-      for (let x = 0; x < stride; x++) {
-        const index = y * stride + x, left = x >= channels ? samples[index - channels]! : 0, above = y ? samples[index - stride]! : 0,
-          corner = y && x >= channels ? samples[index - stride - channels]! : 0
-        const predictor = filter === 0 ? 0 : filter === 1 ? left : filter === 2 ? above : filter === 3 ? Math.floor((left + above) / 2) : paeth(left, above, corner)
-        const value = (samples[index]! - predictor) & 255
-        row[x] = value; score += Math.min(value, 256 - value)
-      }
-      if (score < bestScore) { bestScore = score; best = row; bestFilter = filter }
-    }
-    filtered[y * (stride + 1)] = bestFilter; filtered.set(best, y * (stride + 1) + 1)
-  }
+  const { color, channels, samples } = reduceRedundantChannels(pixels, width, height)
+  const filtered = filterScanlines(samples, { width, height, channels, stride: width * channels })
   const header = new Uint8Array(13), headerView = new DataView(header.buffer)
   headerView.setUint32(0, width); headerView.setUint32(4, height); header[8] = 8; header[9] = color
   // Preserve color/physical interpretation; channel-specific bKGD and incidental

@@ -4,6 +4,17 @@ import { withOcrPageRequestRetry } from './ocr-retry'
 import { assertHostedOcrImageWithinLimits, buildHostedOcrImageResult, readHostedOcrImageDataUrl } from './hosted-ocr-utils'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
+type ChatImageOcrRequest = {
+  config: OpenAIRestConfig
+  imagePath: string
+  format: DocumentMetadata['format']
+  model: string
+  pageNumber: number
+  pageLabel: string
+  onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
+  reasoningPolicy?: MappedReasoningPolicy | undefined
+}
+
 export const createChatImageOcrRunner = <TExtractionMethod extends string>(
   profile: ChatImageOcrProfile<TExtractionMethod>
 ): (
@@ -21,16 +32,8 @@ export const createChatImageOcrRunner = <TExtractionMethod extends string>(
     requestedReasoningEffort?: NormalizedReasoningEffort | undefined
     effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
   }> => {
-  const runImage = async (
-    config: OpenAIRestConfig,
-    imagePath: string,
-    format: DocumentMetadata['format'],
-    model: string,
-    pageNumber: number,
-    pageLabel: string,
-    onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined,
-    reasoningPolicy?: MappedReasoningPolicy | undefined
-  ): Promise<HostedOcrImageResult> => {
+  const runImage = async (request: ChatImageOcrRequest): Promise<HostedOcrImageResult> => {
+    const { config, imagePath, format, model, pageNumber, pageLabel, onRetryable, reasoningPolicy } = request
     await assertHostedOcrImageWithinLimits(imagePath, pageLabel, {
       providerLabel: profile.providerLabel,
       maxBytes: profile.maxImageBytes,
@@ -81,16 +84,16 @@ export const createChatImageOcrRunner = <TExtractionMethod extends string>(
       requestedReasoningEffort: opts.reasoningEffort
     })
     const config = profile.getConfig(baseUrl)
-    const result = await runImage(
+    const result = await runImage({
       config,
-      filePath,
-      step1Metadata.format,
+      imagePath: filePath,
+      format: step1Metadata.format,
       model,
-      1,
-      typeof opts.documentPageNumber === 'number' ? `page ${opts.documentPageNumber}` : 'input image',
-      opts.onRetryable,
-      policy
-    )
+      pageNumber: 1,
+      pageLabel: typeof opts.documentPageNumber === 'number' ? `page ${opts.documentPageNumber}` : 'input image',
+      onRetryable: opts.onRetryable,
+      reasoningPolicy: policy
+    })
     return {
       pages: [result.page],
       extractionMethod: profile.extractionMethod,

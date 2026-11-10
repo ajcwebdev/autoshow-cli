@@ -47,11 +47,45 @@ const readPersistedProviderResponse = async (rootDir: string, root: string, ordi
   }
 }
 
-const readAdmission = async (rootDir: string, plan: SoundEffectRenderPlan, task: SoundEffectRenderTask): Promise<{
+type RetainedAdmission = {
   nextOrdinal: number
   recovered?: SoundEffectGenerationResponse | undefined
   blocker?: string | undefined
-}> => {
+}
+
+const admissionOrdinals = (names: readonly string[]): number[] => [...new Set(names.flatMap(name => {
+  const match = /^(\d{4})-(?:dispatch-started|terminal|provider-response)\.(?:json|audio)$/u.exec(name)
+  return match?.[1] ? [Number(match[1])] : []
+}))].sort((left, right) => left - right)
+
+const nextAdmissionOrdinal = (ordinals: readonly number[]): number => Math.max(0, ...ordinals) + 1
+
+const assertStartedAdmissionIdentity = (started: SoundEffectAdmissionStarted, plan: SoundEffectRenderPlan, task: SoundEffectRenderTask, ordinal: number): void => {
+  const { eventId: _startedId, ...startedBase } = started
+  if (started.state !== 'dispatch-started' || started.renderPlanId !== plan.renderPlanId || started.requestIdentity !== task.requestIdentity || started.requestOrdinal !== ordinal || started.targetKey !== plan.target.targetKey || started.eventId !== hashCanonicalTtsValue(startedBase)) throw UsageError('Retained sound-effect dispatch admission identity is invalid.')
+}
+
+const assertTerminalAdmissionIdentity = (terminal: SoundEffectAdmissionTerminal, plan: SoundEffectRenderPlan, task: SoundEffectRenderTask, ordinal: number): void => {
+  const { eventId: _terminalId, ...terminalBase } = terminal
+  if (terminal.renderPlanId !== plan.renderPlanId || terminal.requestIdentity !== task.requestIdentity || terminal.requestOrdinal !== ordinal || terminal.targetKey !== plan.target.targetKey || terminal.eventId !== hashCanonicalTtsValue(terminalBase)) throw UsageError('Retained sound-effect terminal admission identity is invalid.')
+}
+
+const unterminatedAdmission = (task: SoundEffectRenderTask, ordinals: readonly number[], recovered: SoundEffectGenerationResponse | undefined): RetainedAdmission => {
+  if (recovered) return { nextOrdinal: nextAdmissionOrdinal(ordinals), recovered }
+  return { nextOrdinal: nextAdmissionOrdinal(ordinals), blocker: `Sound-effect request ${task.requestIdentity} has an ambiguous provider admission and cannot be repurchased automatically.` }
+}
+
+const terminatedAdmission = (task: SoundEffectRenderTask, ordinals: readonly number[], terminal: SoundEffectAdmissionTerminal, recovered: SoundEffectGenerationResponse | undefined): RetainedAdmission | undefined => {
+  if (recovered && (terminal.state === 'ambiguous' || terminal.state === 'provider-succeeded')) return { nextOrdinal: nextAdmissionOrdinal(ordinals), recovered }
+  if (terminal.state === 'ambiguous') return { nextOrdinal: nextAdmissionOrdinal(ordinals), blocker: `Sound-effect request ${task.requestIdentity} has an ambiguous provider admission and cannot be repurchased automatically${terminal.sanitizedReason ? `: ${terminal.sanitizedReason}` : '.'}` }
+  if (terminal.state === 'provider-succeeded') {
+    if (!recovered) return { nextOrdinal: nextAdmissionOrdinal(ordinals), blocker: `Sound-effect request ${task.requestIdentity} succeeded remotely but its response is incomplete; automatic redispatch is blocked.` }
+    return { nextOrdinal: nextAdmissionOrdinal(ordinals), recovered }
+  }
+  return undefined
+}
+
+const readAdmission = async (rootDir: string, plan: SoundEffectRenderPlan, task: SoundEffectRenderTask): Promise<RetainedAdmission> => {
   const relativeRoot = admissionRoot(plan, task)
   let names: string[]
   try { names = await readdir(join(rootDir, relativeRoot)) }
@@ -59,37 +93,25 @@ const readAdmission = async (rootDir: string, plan: SoundEffectRenderPlan, task:
     if (hasErrorCode(error, 'ENOENT')) return { nextOrdinal: 1 }
     throw error
   }
-  const ordinals = [...new Set(names.flatMap(name => {
-    const match = /^(\d{4})-(?:dispatch-started|terminal|provider-response)\.(?:json|audio)$/u.exec(name)
-    return match?.[1] ? [Number(match[1])] : []
-  }))].sort((left, right) => left - right)
+  const ordinals = admissionOrdinals(names)
   for (const ordinal of ordinals) {
     const startedPath = `${relativeRoot}/${admissionOrdinal(ordinal)}-dispatch-started.json`
     let started: SoundEffectAdmissionStarted
     try { started = JSON.parse((await readContainedArtifactFile(rootDir, startedPath)).bytes.toString('utf8')) as SoundEffectAdmissionStarted }
-    catch { return { nextOrdinal: Math.max(0, ...ordinals) + 1, blocker: `Sound-effect request ${task.requestIdentity} has incomplete admission evidence.` } }
-    const { eventId: _startedId, ...startedBase } = started
-    if (started.state !== 'dispatch-started' || started.renderPlanId !== plan.renderPlanId || started.requestIdentity !== task.requestIdentity || started.requestOrdinal !== ordinal || started.targetKey !== plan.target.targetKey || started.eventId !== hashCanonicalTtsValue(startedBase)) throw UsageError('Retained sound-effect dispatch admission identity is invalid.')
+    catch { return { nextOrdinal: nextAdmissionOrdinal(ordinals), blocker: `Sound-effect request ${task.requestIdentity} has incomplete admission evidence.` } }
+    assertStartedAdmissionIdentity(started, plan, task, ordinal)
     const recovered = await readPersistedProviderResponse(rootDir, relativeRoot, ordinal)
     let terminal: SoundEffectAdmissionTerminal | undefined
     try { terminal = JSON.parse((await readContainedArtifactFile(rootDir, `${relativeRoot}/${admissionOrdinal(ordinal)}-terminal.json`)).bytes.toString('utf8')) as SoundEffectAdmissionTerminal }
     catch (error) {
       if (!isMissingArtifactError(error)) throw error
     }
-    if (!terminal) {
-      if (recovered) return { nextOrdinal: Math.max(0, ...ordinals) + 1, recovered }
-      return { nextOrdinal: Math.max(0, ...ordinals) + 1, blocker: `Sound-effect request ${task.requestIdentity} has an ambiguous provider admission and cannot be repurchased automatically.` }
-    }
-    const { eventId: _terminalId, ...terminalBase } = terminal
-    if (terminal.renderPlanId !== plan.renderPlanId || terminal.requestIdentity !== task.requestIdentity || terminal.requestOrdinal !== ordinal || terminal.targetKey !== plan.target.targetKey || terminal.eventId !== hashCanonicalTtsValue(terminalBase)) throw UsageError('Retained sound-effect terminal admission identity is invalid.')
-    if (recovered && (terminal.state === 'ambiguous' || terminal.state === 'provider-succeeded')) return { nextOrdinal: Math.max(0, ...ordinals) + 1, recovered }
-    if (terminal.state === 'ambiguous') return { nextOrdinal: Math.max(0, ...ordinals) + 1, blocker: `Sound-effect request ${task.requestIdentity} has an ambiguous provider admission and cannot be repurchased automatically${terminal.sanitizedReason ? `: ${terminal.sanitizedReason}` : '.'}` }
-    if (terminal.state === 'provider-succeeded') {
-      if (!recovered) return { nextOrdinal: Math.max(0, ...ordinals) + 1, blocker: `Sound-effect request ${task.requestIdentity} succeeded remotely but its response is incomplete; automatic redispatch is blocked.` }
-      return { nextOrdinal: Math.max(0, ...ordinals) + 1, recovered }
-    }
+    if (!terminal) return unterminatedAdmission(task, ordinals, recovered)
+    assertTerminalAdmissionIdentity(terminal, plan, task, ordinal)
+    const settled = terminatedAdmission(task, ordinals, terminal, recovered)
+    if (settled) return settled
   }
-  return { nextOrdinal: Math.max(0, ...ordinals) + 1 }
+  return { nextOrdinal: nextAdmissionOrdinal(ordinals) }
 }
 
 const writeAdmissionStarted = async (rootDir: string, plan: SoundEffectRenderPlan, task: SoundEffectRenderTask, ordinal: number): Promise<void> => {

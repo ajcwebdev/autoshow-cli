@@ -5,24 +5,26 @@ const withoutUtf8Bom = (input: Uint8Array): Uint8Array =>
     ? input.subarray(3)
     : input
 
-const isIncompleteUtf8Suffix = (input: Uint8Array): boolean => {
+const incompleteUtf8Prefix = (input: Uint8Array): string | undefined => {
   const decoder = new TextDecoder('utf-8', { fatal: true })
+  let prefix: string
   try {
-    decoder.decode(input, { stream: true })
+    prefix = decoder.decode(input, { stream: true })
   } catch {
-    return false
+    return undefined
   }
   try {
     decoder.decode()
-    return false
+    return undefined
   } catch {
-    return true
+    return prefix
   }
 }
 
-const isCompletableJsonPrefix = (text: string): boolean => {
-  const trimmed = text.trim()
-  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return false
+type JsonPrefixScan = { stack: string[], inString: boolean, escaped: boolean }
+
+/** Returns undefined when a closer does not match the innermost open container. */
+const scanJsonPrefix = (trimmed: string): JsonPrefixScan | undefined => {
   const stack: string[] = []
   let inString = false
   let escaped = false
@@ -40,24 +42,33 @@ const isCompletableJsonPrefix = (text: string): boolean => {
     if (char === '{' || char === '[') stack.push(char)
     if (char === '}' || char === ']') {
       const expected = char === '}' ? '{' : '['
-      if (stack.pop() !== expected) return false
+      if (stack.pop() !== expected) return undefined
     }
   }
-  if (!inString && stack.length === 0) return false
-  const closers = stack.toReversed().map((opening) => opening === '{' ? '}' : ']').join('')
-  const candidates: string[] = []
-  if (inString) {
-    let stringClose = '"'
-    if (escaped) {
-      const unicodeEscape = trimmed.match(/\\u([0-9a-fA-F]{0,3})$/)
-      stringClose = unicodeEscape
-        ? `${'0'.repeat(4 - unicodeEscape[1]!.length)}"`
-        : `\\"`
-    }
-    candidates.push(stringClose, `${stringClose}:null`)
-  } else {
-    candidates.push('', 'null', '0', 'e', 'ue', 'rue', 'se', 'lse', 'alse', 'l', 'll', 'ull', ':null', '"value":null')
+  return { stack, inString, escaped }
+}
+
+const jsonPrefixCompletionCandidates = (trimmed: string, scan: JsonPrefixScan): string[] => {
+  if (!scan.inString) {
+    return ['', 'null', '0', 'e', 'ue', 'rue', 'se', 'lse', 'alse', 'l', 'll', 'ull', ':null', '"value":null']
   }
+  let stringClose = '"'
+  // The scanner has already consumed the escape marker after reading `u`,
+  // but a crash can still leave its four hexadecimal digits unfinished.
+  const unicodeEscape = trimmed.match(/\\u([0-9a-fA-F]{0,3})$/)
+  if (unicodeEscape) stringClose = `${'0'.repeat(4 - unicodeEscape[1]!.length)}"`
+  else if (scan.escaped) stringClose = `\\"`
+  return [stringClose, `${stringClose}:null`]
+}
+
+const isCompletableJsonPrefix = (text: string): boolean => {
+  const trimmed = text.trim()
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return false
+  const scan = scanJsonPrefix(trimmed)
+  if (!scan) return false
+  if (!scan.inString && scan.stack.length === 0) return false
+  const closers = scan.stack.toReversed().map((opening) => opening === '{' ? '}' : ']').join('')
+  const candidates = jsonPrefixCompletionCandidates(trimmed, scan)
   return candidates.some((candidate) => {
     try {
       JSON.parse(`${trimmed}${candidate}${closers}`)
@@ -69,7 +80,7 @@ const isCompletableJsonPrefix = (text: string): boolean => {
 }
 
 const throwMalformedJsonl = (label: string, error?: Error | null): never => {
-      throw UsageError(`${label} contains a malformed complete JSONL record.`, error ? { cause: error } : {})
+  throw UsageError(`${label} contains a malformed complete JSONL record.`, error ? { cause: error } : {})
 }
 
 export const parseJsonlBytes = (
@@ -100,7 +111,8 @@ export const parseJsonlBytes = (
   try {
     tailText = new TextDecoder('utf-8', { fatal: true }).decode(tail)
   } catch (error) {
-    if (options.allowTornFinalRecord && isIncompleteUtf8Suffix(tail)) return values
+    const prefix = options.allowTornFinalRecord ? incompleteUtf8Prefix(tail) : undefined
+    if (prefix !== undefined && isCompletableJsonPrefix(`${prefix}\ufffd`)) return values
     return throwMalformedJsonl(options.label, error instanceof Error ? error : null)
   }
   try {

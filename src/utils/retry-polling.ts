@@ -18,14 +18,18 @@ const resolveNextPollDelayMs = <T>(
   return Math.min(opts.maxIntervalMs, currentIntervalMs * 2)
 }
 
-const throwPollExhausted = (
-  operationName: string,
-  stopReason: string,
-  pollCount: number,
-  maxPolls: number | undefined,
-  deadlineMs: number,
-  elapsedMs: number,
+type PollExhaustion = {
+  operationName: string
+  stopReason: string
+  pollCount: number
+  maxPolls: number | undefined
+  deadlineMs: number
+  elapsedMs: number
   lastPoll: Record<string, unknown> | undefined
+}
+
+const throwPollExhausted = (
+  { operationName, stopReason, pollCount, maxPolls, deadlineMs, elapsedMs, lastPoll }: PollExhaustion
 ): never => {
   const maxAttempts = maxPolls ?? pollCount
   throw new AppError(formatRetryExhaustedMessage(operationName, pollCount, maxAttempts, stopReason, elapsedMs), {
@@ -123,15 +127,15 @@ export const pollUntil = async <T>(opts: PollOptions<T>): Promise<T> => {
     }
 
     if (typeof maxPolls === 'number' && pollCount >= maxPolls) {
-      throwPollExhausted(
+      throwPollExhausted({
         operationName,
-        'max polls reached',
+        stopReason: 'max polls reached',
         pollCount,
         maxPolls,
-        opts.deadlineMs,
-        Date.now() - startedAt,
+        deadlineMs: opts.deadlineMs,
+        elapsedMs: Date.now() - startedAt,
         lastPoll
-      )
+      })
     }
 
     intervalMs = intervalSchedule
@@ -140,13 +144,13 @@ export const pollUntil = async <T>(opts: PollOptions<T>): Promise<T> => {
   }
 
   abortSignal?.throwIfAborted()
-  return throwPollExhausted(
+  return throwPollExhausted({
     operationName,
-    'deadline exceeded',
+    stopReason: 'deadline exceeded',
     pollCount,
     maxPolls,
-    opts.deadlineMs,
-    Date.now() - startedAt,
+    deadlineMs: opts.deadlineMs,
+    elapsedMs: Date.now() - startedAt,
     lastPoll
-  )
+  })
 }

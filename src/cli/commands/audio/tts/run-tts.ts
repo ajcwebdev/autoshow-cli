@@ -349,6 +349,9 @@ const publishPreparedStatesBeforeDispatch = async (input: {
   input.dispatchBarrier.passed = true
 }
 
+const describeProviderFailure = (sanitized: SanitizedProviderError | undefined): string =>
+  sanitized ? [sanitized.message, sanitized.providerMessage && sanitized.providerMessage !== sanitized.message ? sanitized.providerMessage : undefined, sanitized.requestId ? `request_id=${sanitized.requestId}` : undefined].filter((value): value is string => value !== undefined).join(' ') : 'TTS target failed without exposing provider response details.'
+
 const runPreparedTtsTarget = async (input: {
   target: TtsTarget
   workspaceDir: string
@@ -403,7 +406,7 @@ const runPreparedTtsTarget = async (input: {
   } catch (error) {
     const failure = await attempt.finalizeFailure(error, providerRunCompleted ? 'assembly' : undefined)
     const sanitized = (failure.error as SanitizedProviderError | undefined) ?? sanitizeError(error, providerRunCompleted ? 'assembly' : 'synthesis')
-    const providerDiagnostic = sanitized ? [sanitized.message, sanitized.providerMessage && sanitized.providerMessage !== sanitized.message ? sanitized.providerMessage : undefined, sanitized.requestId ? `request_id=${sanitized.requestId}` : undefined].filter((value): value is string => value !== undefined).join(' ') : 'TTS target failed without exposing provider response details.'
+    const providerDiagnostic = describeProviderFailure(sanitized)
     const recoveryDiagnostic = await describeFailedTtsRecovery({ rootDir: recoveryRoot(outputDir, sourceContext), state: failure, target, sourceText: input.text, ttsOptions: options, sourceContext })
     throw InfraError(recoveryDiagnostic ? `${providerDiagnostic} ${recoveryDiagnostic}` : providerDiagnostic, {
       stage: sanitized?.stage ?? `tts:${target.service}`,

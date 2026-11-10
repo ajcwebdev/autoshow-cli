@@ -82,21 +82,31 @@ export const appendUnique = <T>(values: T[], value: T): void => {
   }
 }
 
+const readModelFlagSourceValues = (
+  flagName: RepeatableModelFlag,
+  flags: Record<string, unknown>,
+  rawOccurrences: Partial<Record<RepeatableModelFlag, FlagOccurrenceValue[]>>
+): FlagOccurrenceValue[] | undefined => {
+  const occurrences = rawOccurrences[flagName]
+  if (occurrences && occurrences.length > 0) {
+    return occurrences
+  }
+  if (Array.isArray(flags[flagName])) {
+    return (flags[flagName] as unknown[]).flatMap((entry) =>
+      typeof entry === 'string' || entry === true ? [entry] : []
+    )
+  }
+  return typeof flags[flagName] === 'string' || flags[flagName] === true
+    ? [flags[flagName] as string | boolean]
+    : undefined
+}
+
 export const normalizeModelFlagOccurrences = (
   flagName: RepeatableModelFlag,
   flags: Record<string, unknown>,
   rawOccurrences: Partial<Record<RepeatableModelFlag, FlagOccurrenceValue[]>>
 ): string[] | undefined => {
-  const occurrences = rawOccurrences[flagName]
-  const sourceValues: FlagOccurrenceValue[] | undefined = occurrences && occurrences.length > 0
-    ? occurrences
-    : Array.isArray(flags[flagName])
-      ? (flags[flagName] as unknown[]).flatMap((entry) =>
-          typeof entry === 'string' || entry === true ? [entry] : []
-        )
-      : typeof flags[flagName] === 'string' || flags[flagName] === true
-        ? [flags[flagName] as string | boolean]
-        : undefined
+  const sourceValues = readModelFlagSourceValues(flagName, flags, rawOccurrences)
 
   if (!sourceValues || sourceValues.length === 0) {
     return undefined
@@ -157,6 +167,80 @@ export const expandAllShortcutModels = (
   return mergedSelections.length > 0 ? mergedSelections : undefined
 }
 
+type Step2SelectionEntry = (typeof STEP2_PROVIDER_ENTRIES)[number]
+type Step2SelectionOriginInputs = {
+  flags: Record<string, unknown>
+  explicitFlags: Set<string>
+  rawOccurrences: Partial<Record<RepeatableModelFlag, FlagOccurrenceValue[]>>
+  allShortcutFlags: Record<AllShortcutFlag, boolean>
+  configuredFlags: Set<string>
+}
+
+const resolveFixedSelectionOrigin = (
+  entry: Step2SelectionEntry,
+  { flags, explicitFlags, allShortcutFlags }: Step2SelectionOriginInputs
+): Step2ProviderSelectionOrigin | undefined => {
+  const rawValue = flags[entry.flagName]
+  const normalizedValue = typeof rawValue === 'string' ? rawValue.trim().toLowerCase() : undefined
+  const allShortcutSelected = entry.allShortcut !== undefined && allShortcutFlags[entry.allShortcut]
+  const directSelected = normalizedValue === entry.targetService
+    || (normalizedValue === undefined && entry.targetService === 'defuddle' && !allShortcutSelected)
+
+  if (!allShortcutSelected && !directSelected) {
+    return undefined
+  }
+
+  if (explicitFlags.has(entry.flagName) && directSelected) {
+    return 'explicit'
+  }
+  return allShortcutSelected ? 'all-shortcut' : 'default'
+}
+
+const resolveBooleanSelectionOrigin = (
+  entry: Step2SelectionEntry,
+  { flags, explicitFlags, allShortcutFlags }: Step2SelectionOriginInputs
+): Step2ProviderSelectionOrigin | undefined => {
+  if (!isStep2BooleanProviderSelected(entry.flagName, flags, allShortcutFlags)) {
+    return undefined
+  }
+
+  if (explicitFlags.has(entry.flagName)) {
+    return 'explicit'
+  }
+  return entry.allShortcut !== undefined && allShortcutFlags[entry.allShortcut] ? 'all-shortcut' : 'default'
+}
+
+const resolveModelSelectionOrigin = (
+  entry: Step2SelectionEntry,
+  { flags, explicitFlags, rawOccurrences, allShortcutFlags, configuredFlags }: Step2SelectionOriginInputs
+): Step2ProviderSelectionOrigin | undefined => {
+  if (entry.allShortcut !== undefined && allShortcutFlags[entry.allShortcut]) {
+    const isExplicitSttSelection = entry.step === 'stt'
+      && (explicitFlags.has(entry.flagName) || configuredFlags.has(entry.flagName))
+    return isExplicitSttSelection ? 'explicit' : 'all-shortcut'
+  }
+
+  const models = normalizeModelFlagOccurrences(entry.flagName as RepeatableModelFlag, flags, rawOccurrences)
+  if (!models || models.length === 0) {
+    return undefined
+  }
+
+  return explicitFlags.has(entry.flagName) ? 'explicit' : 'default'
+}
+
+const resolveStep2SelectionOrigin = (
+  entry: Step2SelectionEntry,
+  inputs: Step2SelectionOriginInputs
+): Step2ProviderSelectionOrigin | undefined => {
+  if (entry.selection.type === 'fixed') {
+    return resolveFixedSelectionOrigin(entry, inputs)
+  }
+  if (entry.selection.type === 'boolean') {
+    return resolveBooleanSelectionOrigin(entry, inputs)
+  }
+  return resolveModelSelectionOrigin(entry, inputs)
+}
+
 export const resolveStep2SelectionOrigins = (
   flags: Record<string, unknown>,
   explicitFlags: Set<string>,
@@ -165,53 +249,13 @@ export const resolveStep2SelectionOrigins = (
   configuredFlags: Set<string> = new Set()
 ): Partial<Record<string, Step2ProviderSelectionOrigin>> => {
   const origins: Partial<Record<string, Step2ProviderSelectionOrigin>> = {}
-  const isExplicitOrConfiguredSttSelection = (flagName: string): boolean =>
-    explicitFlags.has(flagName) || configuredFlags.has(flagName)
+  const inputs: Step2SelectionOriginInputs = { flags, explicitFlags, rawOccurrences, allShortcutFlags, configuredFlags }
 
   for (const entry of STEP2_PROVIDER_ENTRIES) {
-    if (entry.selection.type === 'fixed') {
-      const rawValue = flags[entry.flagName]
-      const normalizedValue = typeof rawValue === 'string' ? rawValue.trim().toLowerCase() : undefined
-      const allShortcutSelected = entry.allShortcut !== undefined && allShortcutFlags[entry.allShortcut]
-      const directSelected = normalizedValue === entry.targetService
-        || (normalizedValue === undefined && entry.targetService === 'defuddle' && !allShortcutSelected)
-
-      if (!allShortcutSelected && !directSelected) {
-        continue
-      }
-
-      origins[entry.flagName] = explicitFlags.has(entry.flagName) && directSelected
-        ? 'explicit'
-        : allShortcutSelected
-          ? 'all-shortcut'
-          : 'default'
-      continue
+    const origin = resolveStep2SelectionOrigin(entry, inputs)
+    if (origin !== undefined) {
+      origins[entry.flagName] = origin
     }
-
-    if (entry.selection.type === 'boolean') {
-      if (!isStep2BooleanProviderSelected(entry.flagName, flags, allShortcutFlags)) {
-        continue
-      }
-
-      origins[entry.flagName] = explicitFlags.has(entry.flagName)
-        ? 'explicit'
-        : entry.allShortcut !== undefined && allShortcutFlags[entry.allShortcut]
-          ? 'all-shortcut'
-          : 'default'
-      continue
-    }
-
-    if (entry.allShortcut !== undefined && allShortcutFlags[entry.allShortcut]) {
-      origins[entry.flagName] = entry.step === 'stt' && isExplicitOrConfiguredSttSelection(entry.flagName) ? 'explicit' : 'all-shortcut'
-      continue
-    }
-
-    const models = normalizeModelFlagOccurrences(entry.flagName as RepeatableModelFlag, flags, rawOccurrences)
-    if (!models || models.length === 0) {
-      continue
-    }
-
-    origins[entry.flagName] = explicitFlags.has(entry.flagName) ? 'explicit' : 'default'
   }
 
   return origins

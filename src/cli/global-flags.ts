@@ -27,6 +27,7 @@ export const GLOBAL_FLAG_DEFINITIONS = {
   'characters-root': strFlag(colorizeHelpDescription('Directory of comic character reference images and characters-reference.json (default: input/characters)')),
   'bin-dir': strFlag(colorizeHelpDescription(`Directory of external tool binaries (${BIN_DIR_TOOL_NAMES.join(', ')}) to use before the managed install and PATH`)),
   'allow-over-budget': boolFlag(colorizeHelpDescription('Continue even if cost estimate exceeds the configured budget limit')),
+  'require-shared-budget': boolFlag(colorizeHelpDescription('Require configured shared budget enforcement before running this command')),
   verbose: boolFlag(colorizeHelpDescription('Enable debug-level logging')),
   quiet: {
     description: colorizeHelpDescription('Suppress non-error diagnostics; JSON terminal results are always emitted'),
@@ -36,6 +37,7 @@ export const GLOBAL_FLAG_DEFINITIONS = {
     negatable: false
   },
   json: boolFlag(colorizeHelpDescription('Emit versioned diagnostic records on stderr and one terminal result on stdout')),
+  'result-file': strFlag(colorizeHelpDescription('With --json, save the full sanitized result to a new private file and emit a bounded summary')),
   'log-level': strFlag(colorizeHelpDescription(`Minimum log level: ${formatValueList(LOG_LEVELS)}`), 'info'),
   color: {
     description: colorizeHelpDescription('Force ANSI colors on, or use --no-color to disable (overrides FORCE_COLOR/NO_COLOR; default: auto-detect TTY)'),

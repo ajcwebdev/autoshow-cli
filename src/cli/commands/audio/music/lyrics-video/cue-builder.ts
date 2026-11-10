@@ -82,22 +82,81 @@ const flushWordCue = (
   })
 }
 
+const countedWords = (entries: TranscriptionEvidenceWord[]): number =>
+  entries.reduce((total, entry) => isPunctuationOnly(entry.text.trim()) ? total : total + 1, 0)
+
+const countProjectedLines = (projectedText: string, limits: CueBuildLimits): number => {
+  let projectedLines = 1
+  let lineLength = 0
+  for (const token of projectedText.split(/\s+/)) {
+    const nextLength = lineLength === 0 ? token.length : lineLength + 1 + token.length
+    if (lineLength > 0 && nextLength > (limits.maxCharactersPerLine ?? Infinity)) {
+      projectedLines++
+      lineLength = token.length
+    } else lineLength = nextLength
+  }
+  return projectedLines
+}
+
+type PendingCue = { words: TranscriptionEvidenceWord[], text: string }
+
+const shouldBreakBeforeWord = (
+  pending: PendingCue,
+  word: TranscriptionEvidenceWord,
+  token: string,
+  limits: CueBuildLimits
+): boolean => {
+  const projectedText = appendCueToken(pending.text, token)
+  const projectedLines = countProjectedLines(projectedText, limits)
+  const previousWord = pending.words[pending.words.length - 1]
+  const gapFromPrevious = previousWord ? word.startSeconds - previousWord.endSeconds : 0
+  const currentDuration = previousWord && pending.words[0]
+    ? word.endSeconds - pending.words[0]!.startSeconds
+    : 0
+  const speakerChanged = previousWord !== undefined
+    && word.speaker !== previousWord.speaker
+
+  return pending.words.length > 0
+    && !isPunctuationOnly(token)
+    && (
+      speakerChanged
+      || gapFromPrevious >= limits.hardBreakGapSeconds
+      || countedWords(pending.words) >= limits.maxWordsPerCue
+      || projectedLines > (limits.maxLinesPerCue ?? Infinity)
+      || projectedText.length > limits.maxCharactersPerCue
+      || currentDuration >= limits.maxCueDurationSeconds
+    )
+}
+
+const shouldBreakAfterWord = (
+  pending: PendingCue,
+  word: TranscriptionEvidenceWord,
+  nextWord: TranscriptionEvidenceWord | undefined,
+  limits: CueBuildLimits
+): boolean => {
+  const gapToNext = nextWord ? nextWord.startSeconds - word.endSeconds : Number.POSITIVE_INFINITY
+  const cueDuration = word.endSeconds - pending.words[0]!.startSeconds
+
+  return countedWords(pending.words) >= limits.maxWordsPerCue
+    || pending.text.length >= limits.maxCharactersPerCue
+    || cueDuration >= limits.maxCueDurationSeconds
+    || gapToNext >= limits.hardBreakGapSeconds
+    || (/[.!?]$/.test(pending.text) && countedWords(pending.words) >= 3)
+    || (/[,:;]$/.test(pending.text) && countedWords(pending.words) >= 2 && gapToNext >= 0.25)
+}
+
 const buildFromWords = (
   words: TranscriptionEvidenceWord[],
   limits: CueBuildLimits
 ): CaptionCue[] => {
   const cues: CaptionCue[] = []
-  let currentWords: TranscriptionEvidenceWord[] = []
-  let currentText = ''
+  const pending: PendingCue = { words: [], text: '' }
 
   const flushCurrentCue = (): void => {
-    flushWordCue(cues, currentWords, currentText)
-    currentWords = []
-    currentText = ''
+    flushWordCue(cues, pending.words, pending.text)
+    pending.words = []
+    pending.text = ''
   }
-
-  const countedWords = (entries: TranscriptionEvidenceWord[]): number =>
-    entries.reduce((total, entry) => isPunctuationOnly(entry.text.trim()) ? total : total + 1, 0)
 
   for (let index = 0; index < words.length; index += 1) {
     const word = words[index]!
@@ -106,54 +165,14 @@ const buildFromWords = (
       continue
     }
 
-    const projectedText = appendCueToken(currentText, token)
-    let projectedLines = 1
-    let lineLength = 0
-    for (const token of projectedText.split(/\s+/)) {
-      const nextLength = lineLength === 0 ? token.length : lineLength + 1 + token.length
-      if (lineLength > 0 && nextLength > (limits.maxCharactersPerLine ?? Infinity)) {
-        projectedLines++
-        lineLength = token.length
-      } else lineLength = nextLength
-    }
-    const previousWord = currentWords[currentWords.length - 1]
-    const gapFromPrevious = previousWord ? word.startSeconds - previousWord.endSeconds : 0
-    const currentDuration = previousWord && currentWords[0]
-      ? word.endSeconds - currentWords[0]!.startSeconds
-      : 0
-    const speakerChanged = previousWord !== undefined
-      && word.speaker !== previousWord.speaker
-
-    if (
-      currentWords.length > 0
-      && !isPunctuationOnly(token)
-      && (
-        speakerChanged
-        || gapFromPrevious >= limits.hardBreakGapSeconds
-        || countedWords(currentWords) >= limits.maxWordsPerCue
-        || projectedLines > (limits.maxLinesPerCue ?? Infinity)
-        || projectedText.length > limits.maxCharactersPerCue
-        || currentDuration >= limits.maxCueDurationSeconds
-      )
-    ) {
+    if (shouldBreakBeforeWord(pending, word, token, limits)) {
       flushCurrentCue()
     }
 
-    currentWords.push(word)
-    currentText = appendCueToken(currentText, token)
+    pending.words.push(word)
+    pending.text = appendCueToken(pending.text, token)
 
-    const nextWord = words[index + 1]
-    const gapToNext = nextWord ? nextWord.startSeconds - word.endSeconds : Number.POSITIVE_INFINITY
-    const cueDuration = word.endSeconds - currentWords[0]!.startSeconds
-
-    if (
-      countedWords(currentWords) >= limits.maxWordsPerCue
-      || currentText.length >= limits.maxCharactersPerCue
-      || cueDuration >= limits.maxCueDurationSeconds
-      || gapToNext >= limits.hardBreakGapSeconds
-      || (/[.!?]$/.test(currentText) && countedWords(currentWords) >= 3)
-      || (/[,:;]$/.test(currentText) && countedWords(currentWords) >= 2 && gapToNext >= 0.25)
-    ) {
+    if (shouldBreakAfterWord(pending, word, words[index + 1], limits)) {
       flushCurrentCue()
     }
   }

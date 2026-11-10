@@ -143,80 +143,113 @@ export function textStep3Entries(manifestRecord: TextManifestRecord): JsonObject
   return entries;
 }
 
-export function buildTextProviderRows(runDir: string, manifestRecord: TextManifestRecord): TextProviderRow[] {
-  return textStep3Entries(manifestRecord).map((entry, index) => {
-    const service = asString(entry.llmService);
-    const model = asString(entry.llmModel);
-    if (!service || !model) {
-      throw new Error(`Text benchmark metadata.step3[${index}] must include llmService and llmModel.`);
-    }
-    const inputTokenCount = asNumber(entry.inputTokenCount) ?? 0;
-    const outputTokenCount = asNumber(entry.outputTokenCount) ?? 0;
-    const totalTokenCount = inputTokenCount + outputTokenCount;
-    const cost = findCostStep(manifestRecord, service, model);
-    const timing = findTimingStep(manifestRecord, service, model);
-    const processingTimeMs = timing?.processingTimeMs ?? asNumber(entry.processingTime);
-    const msPerUnit = timing?.msPerUnit
-      ?? (processingTimeMs !== null && totalTokenCount > 0 ? round3(processingTimeMs / (totalTokenCount / 1000)) : null);
-    const group = "service";
-    const actualCostCents = cost?.source === "actual" ? cost.costCents : null;
-    const estimatedCostCents = cost?.source === "estimated" ? cost.costCents : null;
-    const costCents = group === "local" ? 0 : actualCostCents ?? estimatedCostCents;
-    const outputFileName = asString(entry.outputFileName);
-    const outputPath = outputFileName ? join(runDir, outputFileName) : null;
-    const outputExists = outputPath ? existsSync(outputPath) : false;
-    const outputByteSize = outputPath && outputExists ? statSync(outputPath).size : null;
-    const automatedQualityScore = asNumber(entry.automatedQualityScore) ?? asNumber(entry.textQualityScore);
-    const humanQualityScore = asNumber(entry.humanQualityScore);
+type TextTimingStep = ReturnType<typeof findTimingStep>;
 
-    return {
-      providerKey: `${service}/${model}`,
-      provider: service,
-      model,
-      group,
-      llmService: service,
-      llmModel: model,
-      processingTimeMs,
-      actualProcessingTimeMs: timing?.source === "actual" ? timing.processingTimeMs : null,
-      estimatedProcessingTimeMs: timing?.source === "estimated" ? timing.processingTimeMs : null,
-      msPerUnit,
-      throughputValue: timing?.throughputValue ?? null,
-      throughputUnit: timing?.throughputUnit ?? null,
-      rateBasis: timing?.rateBasis ?? (msPerUnit !== null ? "1KTokens" : null),
-      timingScope: timing?.timingScope ?? (timing?.source === "actual" ? "wall" : null),
-      inputMetric: timing?.inputMetric ?? (totalTokenCount > 0 ? "tokens" : null),
-      inputValue: timing?.inputValue ?? (totalTokenCount > 0 ? totalTokenCount : null),
-      timingSource: timing?.source ?? (processingTimeMs !== null ? "metadata.step3.processingTime" : null),
-      costCents,
-      actualCostCents,
-      estimatedCostCents,
-      costSource: cost?.source ?? (group === "local" ? "local_zero" : null),
+function textSourcedProcessingTimes(timing: TextTimingStep) {
+  return {
+    actualProcessingTimeMs: timing?.source === "actual" ? timing.processingTimeMs : null,
+    estimatedProcessingTimeMs: timing?.source === "estimated" ? timing.processingTimeMs : null,
+  };
+}
+
+function textTimingDescriptors(
+  timing: TextTimingStep,
+  processingTimeMs: number | null,
+  msPerUnit: number | null,
+  totalTokenCount: number,
+) {
+  return {
+    throughputValue: timing?.throughputValue ?? null,
+    throughputUnit: timing?.throughputUnit ?? null,
+    rateBasis: timing?.rateBasis ?? (msPerUnit !== null ? "1KTokens" : null),
+    timingScope: timing?.timingScope ?? (timing?.source === "actual" ? "wall" : null),
+    inputMetric: timing?.inputMetric ?? (totalTokenCount > 0 ? "tokens" : null),
+    inputValue: timing?.inputValue ?? (totalTokenCount > 0 ? totalTokenCount : null),
+    timingSource: timing?.source ?? (processingTimeMs !== null ? "metadata.step3.processingTime" : null),
+  };
+}
+
+function textCostAmounts(cost: ReturnType<typeof findCostStep>, group: "local" | "service") {
+  const actualCostCents = cost?.source === "actual" ? cost.costCents : null;
+  const estimatedCostCents = cost?.source === "estimated" ? cost.costCents : null;
+  const costCents = group === "local" ? 0 : actualCostCents ?? estimatedCostCents;
+  return { costCents, actualCostCents, estimatedCostCents };
+}
+
+function textOutputFields(runDir: string, entry: JsonObject) {
+  const outputFileName = asString(entry.outputFileName);
+  const outputPath = outputFileName ? join(runDir, outputFileName) : null;
+  const outputExists = outputPath ? existsSync(outputPath) : false;
+  const outputByteSize = outputPath && outputExists ? statSync(outputPath).size : null;
+  return { outputFileName, outputExists, outputByteSize };
+}
+
+function textQualityFields(automatedQualityScore: number | null, humanQualityScore: number | null) {
+  return {
+    automatedQualityScore,
+    humanQualityScore,
+    qualityMetric: automatedQualityScore !== null ? "explicit text quality score" : null,
+    qualityValue: automatedQualityScore,
+    qualityLabel: automatedQualityScore !== null ? `${automatedQualityScore.toFixed(2)} explicit text quality score` : null,
+  };
+}
+
+function textProviderRow(runDir: string, manifestRecord: TextManifestRecord, entry: JsonObject, index: number): TextProviderRow {
+  const service = asString(entry.llmService);
+  const model = asString(entry.llmModel);
+  if (!service || !model) {
+    throw new Error(`Text benchmark metadata.step3[${index}] must include llmService and llmModel.`);
+  }
+  const inputTokenCount = asNumber(entry.inputTokenCount) ?? 0;
+  const outputTokenCount = asNumber(entry.outputTokenCount) ?? 0;
+  const totalTokenCount = inputTokenCount + outputTokenCount;
+  const cost = findCostStep(manifestRecord, service, model);
+  const timing = findTimingStep(manifestRecord, service, model);
+  const processingTimeMs = timing?.processingTimeMs ?? asNumber(entry.processingTime);
+  const msPerUnit = timing?.msPerUnit
+    ?? (processingTimeMs !== null && totalTokenCount > 0 ? round3(processingTimeMs / (totalTokenCount / 1000)) : null);
+  const group = "service";
+  const costAmounts = textCostAmounts(cost, group);
+  const output = textOutputFields(runDir, entry);
+  const automatedQualityScore = asNumber(entry.automatedQualityScore) ?? asNumber(entry.textQualityScore);
+  const humanQualityScore = asNumber(entry.humanQualityScore);
+
+  return {
+    providerKey: `${service}/${model}`,
+    provider: service,
+    model,
+    group,
+    llmService: service,
+    llmModel: model,
+    processingTimeMs,
+    ...textSourcedProcessingTimes(timing),
+    msPerUnit,
+    ...textTimingDescriptors(timing, processingTimeMs, msPerUnit, totalTokenCount),
+    ...costAmounts,
+    costSource: cost?.source ?? (group === "local" ? "local_zero" : null),
+    inputTokenCount,
+    outputTokenCount,
+    totalTokenCount,
+    tokenCountSource: asString(entry.tokenCountSource),
+    providerUsage: isRecord(entry.providerUsage) ? entry.providerUsage : null,
+    rawProviderUsage: entry.rawProviderUsage ?? null,
+    ...output,
+    structuredMode: asString(entry.structuredMode),
+    structuredPresetNames: Array.isArray(entry.structuredPresetNames) ? entry.structuredPresetNames : [],
+    ...textQualityFields(automatedQualityScore, humanQualityScore),
+    metrics: {
       inputTokenCount,
       outputTokenCount,
       totalTokenCount,
-      tokenCountSource: asString(entry.tokenCountSource),
-      providerUsage: isRecord(entry.providerUsage) ? entry.providerUsage : null,
-      rawProviderUsage: entry.rawProviderUsage ?? null,
-      outputFileName,
-      outputExists,
-      outputByteSize,
-      structuredMode: asString(entry.structuredMode),
-      structuredPresetNames: Array.isArray(entry.structuredPresetNames) ? entry.structuredPresetNames : [],
-      automatedQualityScore,
-      humanQualityScore,
-      qualityMetric: automatedQualityScore !== null ? "explicit text quality score" : null,
-      qualityValue: automatedQualityScore,
-      qualityLabel: automatedQualityScore !== null ? `${automatedQualityScore.toFixed(2)} explicit text quality score` : null,
-      metrics: {
-        inputTokenCount,
-        outputTokenCount,
-        totalTokenCount,
-        msPerUnit,
-        ...(automatedQualityScore !== null ? { automatedQualityScore, textQualityScore: automatedQualityScore } : {}),
-        ...(humanQualityScore !== null ? { humanQualityScore } : {}),
-      },
-    };
-  }).sort((left, right) => {
+      msPerUnit,
+      ...(automatedQualityScore !== null ? { automatedQualityScore, textQualityScore: automatedQualityScore } : {}),
+      ...(humanQualityScore !== null ? { humanQualityScore } : {}),
+    },
+  };
+}
+
+export function buildTextProviderRows(runDir: string, manifestRecord: TextManifestRecord): TextProviderRow[] {
+  return textStep3Entries(manifestRecord).map((entry, index) => textProviderRow(runDir, manifestRecord, entry, index)).sort((left, right) => {
     if (left.group !== right.group) return left.group.localeCompare(right.group);
     return left.providerKey.localeCompare(right.providerKey);
   });

@@ -14,37 +14,53 @@ import { CAPABILITY_CHECKED_AT, CAPABILITY_SOURCE_REFS, EPOCH, withIdentity } fr
 import { paidSlotOutputFormat } from './tts-slot-output-format'
 import { chunkLimit } from './comic-segmented-audio'
 
+const PHASE_FAILURE_MESSAGES = new Map<string, string>([
+  ['static-validation', 'TTS target validation failed before provider dispatch.'],
+  ['readiness', 'TTS execution readiness failed before provider dispatch.'],
+  ['admission', 'TTS provider request admission failed.'],
+  ['selection', 'TTS take selection failed.'],
+  ['assembly', 'TTS audio assembly failed.'],
+  ['reconciliation', 'TTS retained provider evidence reconciliation failed.']
+])
+
+const sanitizedFailureMessage = (status: number | undefined, phase: SanitizedProviderError['phase']): string =>
+  status !== undefined
+    ? `TTS provider request failed with HTTP status ${status}.`
+    : PHASE_FAILURE_MESSAGES.get(phase) ?? 'TTS provider synthesis failed.'
+
+const sanitizedErrorName = (error: unknown): string | undefined =>
+  error instanceof Error && error.name ? sanitizeLogText(error.name).slice(0, 120) : undefined
+
+const sanitizedProviderMessage = (error: unknown): string | undefined =>
+  error instanceof Error && error.message
+    ? sanitizeLogText(error.message).replace(/\s+/gu, ' ').trim().slice(0, 600)
+    : undefined
+
+const readSanitizedRequestId = (metadata: Record<string, unknown>, headers: Headers | undefined): string | undefined =>
+  (typeof metadata['requestId'] === 'string' ? metadata['requestId'] : undefined) ?? headers?.get('x-request-id') ?? headers?.get('request-id') ?? headers?.get('cf-ray') ?? undefined
+
+// Truthiness on purpose: status 0 falls through to the metadata code, while the message above tests `!== undefined`.
+const sanitizedErrorCode = (status: number | undefined, metadata: Record<string, unknown>): string =>
+  status ? `http_${status}` : typeof metadata['code'] === 'string' ? sanitizeLogText(metadata['code']).slice(0, 120) : 'tts_target_failed'
+
+const isSanitizedFailureRetryable = (status: number | undefined): boolean =>
+  status === 408 || status === 425 || status === 429 || (status !== undefined && status >= 500)
+
 export const sanitizeError = (error: unknown, phase: SanitizedProviderError['phase']): SanitizedProviderError => {
   const metadata = extractErrorMetadata(error)
   const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
   const stage = typeof metadata['stage'] === 'string' ? sanitizeLogText(metadata['stage']).slice(0, 160) : undefined
-  const errorName = error instanceof Error && error.name ? sanitizeLogText(error.name).slice(0, 120) : undefined
-  const providerMessage = error instanceof Error && error.message
-    ? sanitizeLogText(error.message).replace(/\s+/gu, ' ').trim().slice(0, 600)
-    : undefined
+  const errorName = sanitizedErrorName(error)
+  const providerMessage = sanitizedProviderMessage(error)
   const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
-  const requestId = (typeof metadata['requestId'] === 'string' ? metadata['requestId'] : undefined) ?? headers?.get('x-request-id') ?? headers?.get('request-id') ?? headers?.get('cf-ray') ?? undefined
+  const requestId = readSanitizedRequestId(metadata, headers)
   const retryAfterMs = parseRetryAfterMs(headers)
   const explicitRetryable = typeof metadata['retryable'] === 'boolean' ? metadata['retryable'] : undefined
-  const message = status !== undefined
-    ? `TTS provider request failed with HTTP status ${status}.`
-    : phase === 'static-validation'
-      ? 'TTS target validation failed before provider dispatch.'
-      : phase === 'readiness'
-        ? 'TTS execution readiness failed before provider dispatch.'
-        : phase === 'admission'
-          ? 'TTS provider request admission failed.'
-          : phase === 'selection'
-            ? 'TTS take selection failed.'
-            : phase === 'assembly'
-              ? 'TTS audio assembly failed.'
-              : phase === 'reconciliation'
-                ? 'TTS retained provider evidence reconciliation failed.'
-                : 'TTS provider synthesis failed.'
-  const retryable = explicitRetryable ?? (status === 408 || status === 425 || status === 429 || (status !== undefined && status >= 500))
+  const message = sanitizedFailureMessage(status, phase)
+  const retryable = explicitRetryable ?? isSanitizedFailureRetryable(status)
   return {
     phase,
-    code: status ? `http_${status}` : typeof metadata['code'] === 'string' ? sanitizeLogText(metadata['code']).slice(0, 120) : 'tts_target_failed',
+    code: sanitizedErrorCode(status, metadata),
     message,
     retryable,
     ...(status !== undefined ? { status } : {}),

@@ -26,19 +26,25 @@ function contained(root: string, value: string): string {
   return resolve(root, value);
 }
 
+const invalidCatalog = (value: TtsAudioDeliveryCatalog): boolean =>
+  value.schemaVersion !== 1 || value.approval !== 'user-approved-mp3-replacement' || typeof value.encoder !== 'string' || !value.encoder || !Array.isArray(value.copies) || !value.copies.length;
+
+const invalidBinding = (copy: TtsAudioDeliveryCopy, sources: Set<string>, outputs: Set<string>): boolean =>
+  !copy.sourcePath.endsWith('.wav') || copy.path !== copy.sourcePath.replace(/\.wav$/, '.mp3') || sources.has(copy.sourcePath) || outputs.has(copy.path) ||
+  !digest(copy.sourceSha256) || !digest(copy.sha256) || !positiveInteger(copy.sourceBytes) || !positiveInteger(copy.bytes) || copy.bytes >= copy.sourceBytes ||
+  !positiveInteger(copy.sampleRate) || !positiveInteger(copy.channels) || !positiveInteger(copy.decodedSamples);
+
 // The original render identity stays authoritative for synthesis and historical
 // assessments. This catalog binds a user-approved playback copy to those bytes.
 export function resolveTtsAudioDelivery(root: string, source: string, sourceSha256: string): (TtsAudioDeliveryCopy & { absolutePath: string; available: boolean }) | null {
   const catalogPath = join(root, TTS_AUDIO_DELIVERY_CATALOG);
   if (!existsSync(catalogPath)) return null;
   const value = JSON.parse(readFileSync(catalogPath, 'utf8')) as TtsAudioDeliveryCatalog;
-  if (value.schemaVersion !== 1 || value.approval !== 'user-approved-mp3-replacement' || typeof value.encoder !== 'string' || !value.encoder || !Array.isArray(value.copies) || !value.copies.length) throw Error('Invalid TTS audio delivery catalog');
+  if (invalidCatalog(value)) throw Error('Invalid TTS audio delivery catalog');
   const sources = new Set<string>(), outputs = new Set<string>();
   for (const copy of value.copies) {
     contained(root, copy.sourcePath); contained(root, copy.path);
-    if (!copy.sourcePath.endsWith('.wav') || copy.path !== copy.sourcePath.replace(/\.wav$/, '.mp3') || sources.has(copy.sourcePath) || outputs.has(copy.path) ||
-      !digest(copy.sourceSha256) || !digest(copy.sha256) || !positiveInteger(copy.sourceBytes) || !positiveInteger(copy.bytes) || copy.bytes >= copy.sourceBytes ||
-      !positiveInteger(copy.sampleRate) || !positiveInteger(copy.channels) || !positiveInteger(copy.decodedSamples)) throw Error('Invalid or duplicate TTS audio delivery binding');
+    if (invalidBinding(copy, sources, outputs)) throw Error('Invalid or duplicate TTS audio delivery binding');
     sources.add(copy.sourcePath); outputs.add(copy.path);
   }
   const sourcePath = relative(resolve(root), resolve(source)).split('\\').join('/');

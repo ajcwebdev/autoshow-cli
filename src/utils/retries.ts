@@ -3,6 +3,7 @@ import { classifyPaidCreateRetry, classifyRetryFloor, decideRetryAttempt } from 
 import { computeRetryDelay, getRetryPolicy, resolveRetryAttemptLimit } from './retry-policy'
 import { resolveAttemptSignal, sleepWithAbortSignal } from './retry-abortable-delay'
 import { buildRetryAttemptMetadata, logRetryAttempt, throwRetryExhausted } from './retry-diagnostics'
+import { assertRuntimeBudgetDispatch } from './runtime-spending-budget'
 
 export { NON_RETRYABLE_STATUS_CODES, RETRYABLE_STATUS_CODES, NETWORK_FAILURE_SPELLINGS, NETWORK_FAILURE_CODES, MAX_PROVIDER_RETRY_AFTER_MS, isRetryableStatus, isNonRetryableStatus, parseRetryAfterMs, isAbortError, isTimeoutError, readRetrySignals, classifyPaidCreateRetry, classifyRetryFloor, classifyFetchRetry } from './retry-classification'
 export { getRetryPolicyForClass } from './retry-policy'
@@ -15,6 +16,7 @@ export const withRetry = async <T>(
   operation: (signal?: AbortSignal) => Promise<T>,
   classifier?: RetryClassifier
 ): Promise<T> => {
+  if (ctx.retryClass === 'runtime_http_create_conservative') assertRuntimeBudgetDispatch()
   ctx.abortSignal?.throwIfAborted()
   const policy = getRetryPolicy(ctx.retryClass, ctx.policy)
   // Paid create class must never fall through to the generic floor when a caller omits the classifier.

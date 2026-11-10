@@ -141,34 +141,43 @@ const resolveTocCandidatePage = (
   return { page: nearbyAnchor ?? titleSearchPage ?? predictedPage, mappedPage, printedFallbackPage, nearbyAnchor, titleSearchPage, usedPrintedFallback }
 }
 
+const describeUnanchoredTocSource = (
+  titleSearchPage: number | undefined,
+  mappedPage: number | undefined,
+  usedPrintedFallback: boolean
+): ResolvedPdfChapter['source'] => {
+  if (titleSearchPage) return 'toc-title-search'
+  if (mappedPage) return 'toc-page-map'
+  return usedPrintedFallback ? 'toc-printed-page' : 'toc'
+}
+
+const scoreUnanchoredTocConfidence = (
+  entry: PdfTocEntry,
+  titleSearchPage: number | undefined,
+  mappedPage: number | undefined,
+  usedPrintedFallback: boolean
+): number => {
+  if (titleSearchPage) return 0.82
+  if (mappedPage) return 0.76
+  if (usedPrintedFallback) return 0.7
+  return typeof entry.printedPage === 'string' ? 0.74 : 0.81
+}
+
 const describeTocCandidate = (
   entry: PdfTocEntry,
   resolution: TocCandidateResolution
 ): Pick<ResolvedPdfChapter, 'source' | 'confidence'> => {
   const { mappedPage, printedFallbackPage, nearbyAnchor, titleSearchPage, usedPrintedFallback } = resolution
-  const source = nearbyAnchor
-    ? usedPrintedFallback
-      ? (nearbyAnchor === printedFallbackPage ? 'toc-printed-page+anchor' : 'toc-printed-page+retarget')
-      : (nearbyAnchor === mappedPage ? 'toc-page-map+anchor' : 'toc-page-map+retarget')
-    : titleSearchPage
-      ? 'toc-title-search'
-      : mappedPage
-        ? 'toc-page-map'
-        : usedPrintedFallback
-          ? 'toc-printed-page'
-          : 'toc'
-  const confidence = nearbyAnchor
-    ? (nearbyAnchor === mappedPage ? 0.84 : 0.88)
-    : titleSearchPage
-      ? 0.82
-      : mappedPage
-        ? 0.76
-        : usedPrintedFallback
-          ? 0.7
-          : typeof entry.printedPage === 'string'
-            ? 0.74
-            : 0.81
-  return { source, confidence }
+  if (!nearbyAnchor) {
+    return {
+      source: describeUnanchoredTocSource(titleSearchPage, mappedPage, usedPrintedFallback),
+      confidence: scoreUnanchoredTocConfidence(entry, titleSearchPage, mappedPage, usedPrintedFallback)
+    }
+  }
+  const source = usedPrintedFallback
+    ? (nearbyAnchor === printedFallbackPage ? 'toc-printed-page+anchor' : 'toc-printed-page+retarget')
+    : (nearbyAnchor === mappedPage ? 'toc-page-map+anchor' : 'toc-page-map+retarget')
+  return { source, confidence: nearbyAnchor === mappedPage ? 0.84 : 0.88 }
 }
 
 export const buildTocCandidates = (

@@ -54,6 +54,27 @@ describe('Bun.JSONL crash-torn readers', () => {
     })).toThrow('malformed complete JSONL record')
   })
 
+  test('ignores torn Unicode escapes in string values and object keys but rejects invalid escapes', () => {
+    const prefix = '{"id":1}\n'
+    for (const digits of ['', '1', '12', '123']) {
+      for (const tail of [`{"text":"\\u${digits}`, `{"\\u${digits}`]) {
+        expect(parseJsonlBytes(encode(prefix + tail), { allowTornFinalRecord: true, label: 'Fixture' })).toEqual([{ id: 1 }])
+        expect(() => parseJsonlBytes(encode(prefix + tail), { allowTornFinalRecord: false, label: 'Fixture' })).toThrow('malformed complete JSONL record')
+      }
+    }
+    expect(() => parseJsonlBytes(encode(prefix + '{"text":"\\u12x'), {
+      allowTornFinalRecord: true, label: 'Fixture'
+    })).toThrow('malformed complete JSONL record')
+  })
+
+  test('a torn UTF-8 suffix cannot conceal an already malformed JSON record', () => {
+    for (const prefix of ['not-json', '{"id":}', '{"text":', '{"text":"\\x']) {
+      expect(() => parseJsonlBytes(new Uint8Array([...encode(prefix), 0xe2, 0x82]), {
+        allowTornFinalRecord: true, label: 'Fixture'
+      })).toThrow('malformed complete JSONL record')
+    }
+  })
+
   test('test metrics reader accepts a torn suffix but rejects a complete malformed line', async () => {
     const directory = await tempDirs.make()
     const path = join(directory, 'metrics.ndjson')

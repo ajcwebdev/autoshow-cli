@@ -41,29 +41,7 @@ const buildSpiderScrapeRequest = (
   return body
 }
 
-const parseSpiderResponse = (payload: unknown): { markdown: string, web: WebArticleMetadata } => {
-  const firstResult = Array.isArray(payload) ? payload[0] : payload
-  if (typeof firstResult === 'string') {
-    const markdown = normalizeMarkdown(firstResult)
-    if (markdown.length === 0) {
-      throw ValidationError('Spider returned empty article markdown.', { stage: 'url:spider' })
-    }
-    return {
-      markdown,
-      web: { wordCount: countWords(markdown) }
-    }
-  }
-
-  if (!isRecord(firstResult)) {
-    throw ValidationError('Spider returned an invalid JSON payload.', { stage: 'url:spider' })
-  }
-
-  const data = isRecord(firstResult['data']) ? firstResult['data'] : firstResult
-  const markdown = normalizeMarkdown(data['markdown'] ?? data['content'] ?? data['text'] ?? data['raw'])
-  if (markdown.length === 0) {
-    throw ValidationError('Spider returned empty article markdown.', { stage: 'url:spider' })
-  }
-
+const buildSpiderWebMetadata = (data: Record<string, unknown>, markdown: string): WebArticleMetadata => {
   const metadata = isRecord(data['metadata']) ? data['metadata'] : {}
   const title = getSpiderValue(data, metadata, 'title')
   const author = getSpiderValue(data, metadata, 'author', 'byline')
@@ -87,8 +65,33 @@ const parseSpiderResponse = (payload: unknown): { markdown: string, web: WebArti
   if (published) web.published = published
   if (language) web.language = language
   if (description) web.description = description
+  return web
+}
 
-  return { markdown, web }
+const parseSpiderResponse = (payload: unknown): { markdown: string, web: WebArticleMetadata } => {
+  const firstResult = Array.isArray(payload) ? payload[0] : payload
+  if (typeof firstResult === 'string') {
+    const markdown = normalizeMarkdown(firstResult)
+    if (markdown.length === 0) {
+      throw ValidationError('Spider returned empty article markdown.', { stage: 'url:spider' })
+    }
+    return {
+      markdown,
+      web: { wordCount: countWords(markdown) }
+    }
+  }
+
+  if (!isRecord(firstResult)) {
+    throw ValidationError('Spider returned an invalid JSON payload.', { stage: 'url:spider' })
+  }
+
+  const data = isRecord(firstResult['data']) ? firstResult['data'] : firstResult
+  const markdown = normalizeMarkdown(data['markdown'] ?? data['content'] ?? data['text'] ?? data['raw'])
+  if (markdown.length === 0) {
+    throw ValidationError('Spider returned empty article markdown.', { stage: 'url:spider' })
+  }
+
+  return { markdown, web: buildSpiderWebMetadata(data, markdown) }
 }
 
 const runSpiderScrape = async (

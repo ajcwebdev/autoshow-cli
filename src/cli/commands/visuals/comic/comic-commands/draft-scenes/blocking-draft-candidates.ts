@@ -17,7 +17,28 @@ const hydrateCitation = (value: unknown, segmentHashes: Map<string, string>, ove
   if (overwrite || typeof existing !== 'string' || existing.length === 0) value['sourceSegmentSha256'] = hash
 }
 
-export const hydrateBlockingPlan = (raw: unknown, inputs: Pick<BlockingPlanInputs, 'sceneSlug' | 'structuredScript' | 'structuredScriptSha256' | 'locationSpecifications' | 'locationPlans'>, options: { mode: 'llm' | 'import'; model: string | null; overwriteCitations: boolean }): unknown => {
+type BlockingHydrationInputs = Pick<BlockingPlanInputs, 'sceneSlug' | 'structuredScript' | 'structuredScriptSha256' | 'locationSpecifications' | 'locationPlans'>
+
+const hydrateItemCitations = (owner: Record<string, unknown>, listKey: string, citationKey: string, hydrate: (value: unknown) => void): void => {
+  for (const item of Array.isArray(owner[listKey]) ? owner[listKey] : []) if (isRecord(item)) hydrate(item[citationKey])
+}
+
+const hydrateLocation = (location: Record<string, unknown>, inputs: BlockingHydrationInputs, hydrate: (value: unknown) => void): void => {
+  const key = typeof location['locationKey'] === 'string' ? location['locationKey'] : ''
+  const specification = inputs.locationSpecifications[key]
+  if (specification) location['specificationSha256'] = specificationHash(specification.specification)
+  location['geometrySource'] = inputs.locationPlans?.plans.some(plan => plan.locationKey === key) ? 'location-plans' : 'specification'
+  hydrateItemCitations(location, 'suppressedAnchors', 'citation', hydrate)
+  hydrateItemCitations(location, 'dressing', 'citation', hydrate)
+}
+
+const hydrateStageState = (state: Record<string, unknown>, hydrate: (value: unknown) => void): void => {
+  hydrate(state['startsAt'])
+  hydrateItemCitations(state, 'characters', 'wardrobeCitation', hydrate)
+  hydrateItemCitations(state, 'moves', 'citation', hydrate)
+}
+
+export const hydrateBlockingPlan = (raw: unknown, inputs: BlockingHydrationInputs, options: { mode: 'llm' | 'import'; model: string | null; overwriteCitations: boolean }): unknown => {
   if (!isRecord(raw)) return raw
   const segmentHashes = new Map(inputs.structuredScript.sourceSegments.map(segment => [segment.id, hashSourceSegmentText(segment.text)] as const))
   const hydrate = (value: unknown): void => hydrateCitation(value, segmentHashes, options.overwriteCitations)
@@ -26,23 +47,10 @@ export const hydrateBlockingPlan = (raw: unknown, inputs: Pick<BlockingPlanInput
   raw['structuredScriptSha256'] = inputs.structuredScriptSha256
   raw['generatedBy'] = { mode: options.mode, model: options.model }
   if (Array.isArray(raw['locations'])) {
-    for (const location of raw['locations']) {
-      if (!isRecord(location)) continue
-      const key = typeof location['locationKey'] === 'string' ? location['locationKey'] : ''
-      const specification = inputs.locationSpecifications[key]
-      if (specification) location['specificationSha256'] = specificationHash(specification.specification)
-      location['geometrySource'] = inputs.locationPlans?.plans.some(plan => plan.locationKey === key) ? 'location-plans' : 'specification'
-      for (const suppressed of Array.isArray(location['suppressedAnchors']) ? location['suppressedAnchors'] : []) if (isRecord(suppressed)) hydrate(suppressed['citation'])
-      for (const dressing of Array.isArray(location['dressing']) ? location['dressing'] : []) if (isRecord(dressing)) hydrate(dressing['citation'])
-    }
+    for (const location of raw['locations']) if (isRecord(location)) hydrateLocation(location, inputs, hydrate)
   }
   if (Array.isArray(raw['stageStates'])) {
-    for (const state of raw['stageStates']) {
-      if (!isRecord(state)) continue
-      hydrate(state['startsAt'])
-      for (const mark of Array.isArray(state['characters']) ? state['characters'] : []) if (isRecord(mark)) hydrate(mark['wardrobeCitation'])
-      for (const move of Array.isArray(state['moves']) ? state['moves'] : []) if (isRecord(move)) hydrate(move['citation'])
-    }
+    for (const state of raw['stageStates']) if (isRecord(state)) hydrateStageState(state, hydrate)
   }
   return raw
 }

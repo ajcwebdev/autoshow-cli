@@ -25,92 +25,101 @@ const assertValidMusicDuration = (durationSeconds: number | undefined): void => 
   }
 }
 
+const estimateElevenlabsMusicCost = (options: EstimateMusicCostOptions, selectedModel: string): MusicCostEstimate => {
+  const model = validateElevenlabsMusicModel(selectedModel)
+  const modelMeta = getMusicModelMeta('elevenlabs', model)
+  const ratePerMinute = modelMeta?.costPerMinuteCents
+  const lyricsSource: MusicCostEstimate['lyricsSource'] = options.musicInstrumental ? 'none' : 'generated'
+
+  if (ratePerMinute === undefined) {
+    throw InternalError(`Rate unavailable in model registry for ElevenLabs music model: ${model}`, { stage: 'music:pricing' })
+  }
+
+  const durationSeconds = options.musicDuration ?? DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    throw ValidationError(`Invalid music duration: ${durationSeconds}`, { stage: 'music:pricing' })
+  }
+
+  return {
+    provider: 'elevenlabs',
+    model,
+    durationSeconds,
+    totalCost: ratePerMinute * (durationSeconds / 60),
+    lyricsSource,
+    note: options.musicDuration !== undefined
+      ? `Estimated using ${formatRate(ratePerMinute)}/minute (standard API rate)`
+      : `Estimated using default ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}s duration at ${formatRate(ratePerMinute)}/minute`
+  }
+}
+
+const estimateMinimaxMusicCost = (options: EstimateMusicCostOptions, selectedModel: string): MusicCostEstimate => {
+  const model = validateMinimaxMusicModel(selectedModel)
+  const modelMeta = getMusicModelMeta('minimax', model)
+  const baseCost = modelMeta?.costPerTrackCents
+  const lyricsAddonCost = modelMeta?.lyricsCostPerTrackCents ?? 0
+  const supportsInstrumental = isMinimaxInstrumentalMusicModel(model)
+  const lyricsSource: MusicCostEstimate['lyricsSource'] = options.musicInstrumental && supportsInstrumental
+    ? 'none'
+    : options.musicLyricsFile ? 'provided' : 'generated'
+
+  if (baseCost === undefined) {
+    throw InternalError(`Rate unavailable in model registry for MiniMax music model: ${model}`, { stage: 'music:pricing' })
+  }
+
+  const lyricsCost = lyricsSource === 'generated' ? lyricsAddonCost : 0
+  return {
+    provider: 'minimax',
+    model,
+    durationSeconds: DEFAULT_MINIMAX_MUSIC_DURATION_SECONDS,
+    totalCost: baseCost + lyricsCost,
+    lyricsSource,
+    note: lyricsSource === 'generated'
+      ? `Includes ${formatRate(lyricsAddonCost)} lyrics generation add-on`
+      : lyricsSource === 'none'
+        ? 'Instrumental mode omits lyrics generation'
+        : 'Assumes provided lyrics; no lyrics-generation add-on'
+  }
+}
+
+const estimateGeminiMusicCost = (options: EstimateMusicCostOptions, selectedModel: string): MusicCostEstimate => {
+  const model = validateGeminiMusicModel(selectedModel)
+  const modelMeta = getMusicModelMeta('gemini', model)
+  const baseCost = modelMeta?.costPerTrackCents
+  const lyricsSource: MusicCostEstimate['lyricsSource'] = options.musicInstrumental
+    ? 'none'
+    : options.musicLyricsFile
+      ? 'provided'
+      : 'generated'
+
+  if (baseCost === undefined) {
+    throw InternalError(`Rate unavailable in model registry for Gemini music model: ${model}`, { stage: 'music:pricing' })
+  }
+
+  return {
+    provider: 'gemini',
+    model,
+    durationSeconds: options.musicDuration ?? DEFAULT_GEMINI_MUSIC_DURATION_SECONDS,
+    totalCost: baseCost,
+    lyricsSource,
+    note: `Gemini ${model} is billed per song request; timing estimate uses ${options.musicDuration ?? DEFAULT_GEMINI_MUSIC_DURATION_SECONDS}s.`
+  }
+}
+
 export const estimateMusicCosts = (options: EstimateMusicCostOptions): MusicCostEstimate[] => {
   assertValidMusicDuration(options.musicDuration)
 
   const results: MusicCostEstimate[] = []
   for (const selection of collectSelections(options, MUSIC_PRICING_PROVIDERS)) {
     switch (selection.service) {
-      case 'elevenlabs': {
-        const model = validateElevenlabsMusicModel(selection.model)
-        const modelMeta = getMusicModelMeta('elevenlabs', model)
-        const ratePerMinute = modelMeta?.costPerMinuteCents
-        const lyricsSource: MusicCostEstimate['lyricsSource'] = options.musicInstrumental ? 'none' : 'generated'
-
-        if (ratePerMinute === undefined) {
-          throw InternalError(`Rate unavailable in model registry for ElevenLabs music model: ${model}`, { stage: 'music:pricing' })
-        }
-
-        const durationSeconds = options.musicDuration ?? DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS
-        if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
-          throw ValidationError(`Invalid music duration: ${durationSeconds}`, { stage: 'music:pricing' })
-        }
-
-        results.push({
-          provider: 'elevenlabs',
-          model,
-          durationSeconds,
-          totalCost: ratePerMinute * (durationSeconds / 60),
-          lyricsSource,
-          note: options.musicDuration !== undefined
-            ? `Estimated using ${formatRate(ratePerMinute)}/minute (standard API rate)`
-            : `Estimated using default ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}s duration at ${formatRate(ratePerMinute)}/minute`
-        })
+      case 'elevenlabs':
+        results.push(estimateElevenlabsMusicCost(options, selection.model))
         break
-      }
-      case 'minimax': {
-        const model = validateMinimaxMusicModel(selection.model)
-        const modelMeta = getMusicModelMeta('minimax', model)
-        const baseCost = modelMeta?.costPerTrackCents
-        const lyricsAddonCost = modelMeta?.lyricsCostPerTrackCents ?? 0
-        const supportsInstrumental = isMinimaxInstrumentalMusicModel(model)
-        const lyricsSource: MusicCostEstimate['lyricsSource'] = options.musicInstrumental && supportsInstrumental
-          ? 'none'
-          : options.musicLyricsFile ? 'provided' : 'generated'
-
-        if (baseCost === undefined) {
-          throw InternalError(`Rate unavailable in model registry for MiniMax music model: ${model}`, { stage: 'music:pricing' })
-        }
-
-        const lyricsCost = lyricsSource === 'generated' ? lyricsAddonCost : 0
-        results.push({
-          provider: 'minimax',
-          model,
-          durationSeconds: DEFAULT_MINIMAX_MUSIC_DURATION_SECONDS,
-          totalCost: baseCost + lyricsCost,
-          lyricsSource,
-          note: lyricsSource === 'generated'
-            ? `Includes ${formatRate(lyricsAddonCost)} lyrics generation add-on`
-            : lyricsSource === 'none'
-              ? 'Instrumental mode omits lyrics generation'
-              : 'Assumes provided lyrics; no lyrics-generation add-on'
-        })
+      case 'minimax':
+        results.push(estimateMinimaxMusicCost(options, selection.model))
         break
-      }
-      case 'gemini': {
-        const model = validateGeminiMusicModel(selection.model)
-        const modelMeta = getMusicModelMeta('gemini', model)
-        const baseCost = modelMeta?.costPerTrackCents
-        const lyricsSource: MusicCostEstimate['lyricsSource'] = options.musicInstrumental
-          ? 'none'
-          : options.musicLyricsFile
-            ? 'provided'
-            : 'generated'
-
-        if (baseCost === undefined) {
-          throw InternalError(`Rate unavailable in model registry for Gemini music model: ${model}`, { stage: 'music:pricing' })
-        }
-
-        results.push({
-          provider: 'gemini',
-          model,
-          durationSeconds: options.musicDuration ?? DEFAULT_GEMINI_MUSIC_DURATION_SECONDS,
-          totalCost: baseCost,
-          lyricsSource,
-          note: `Gemini ${model} is billed per song request; timing estimate uses ${options.musicDuration ?? DEFAULT_GEMINI_MUSIC_DURATION_SECONDS}s.`
-        })
+      case 'gemini':
+        results.push(estimateGeminiMusicCost(options, selection.model))
         break
-      }
     }
   }
 

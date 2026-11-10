@@ -166,6 +166,46 @@ export const normalizeElevenLabsDialogueTiming = (input: {
   return { availability: 'timed', clock: 'take-audio-ms', provenance: 'provider-alignment', turns: turns as Array<{ turnId: string, subjectKey: string, startMs: number, endMs: number }>, ...(timedCharacters.length > 0 ? { characters: timedCharacters } : {}) }
 }
 
+type ElevenLabsDialogueRequestInput = {
+  batch: ElevenLabsNativeDialogueBatch
+  options: { model: ElevenlabsTtsModel, controls?: ElevenLabsTtsRequestControls | undefined }
+  outputFormat: string
+  settings: { stability?: number, similarity?: number }
+  dictionaries: ReturnType<typeof parseElevenLabsDictionaryLocator>[] | undefined
+}
+
+const buildElevenLabsDialogueRequest = ({ batch, options, outputFormat, settings, dictionaries }: ElevenLabsDialogueRequestInput) => {
+  const requestBody = {
+    inputs: batch.turns.map(turn => ({ text: turn.preparedText.providerText, voice_id: turn.voiceId })),
+    model_id: options.model,
+    ...(Object.keys(settings).length > 0 ? { settings } : {}),
+    ...(dictionaries?.length ? { pronunciation_dictionary_locators: dictionaries } : {}),
+    ...(options.controls?.languageCode ? { language_code: options.controls.languageCode } : {}),
+    ...(typeof options.controls?.seed === 'number' ? { seed: options.controls.seed } : {}),
+    ...(options.controls?.textNormalization ? { apply_text_normalization: options.controls.textNormalization } : {})
+  }
+  const requestControls = {
+    outputFormat,
+    modelId: options.model,
+    ...(Object.keys(settings).length > 0 ? { settings } : {}),
+    ...(dictionaries?.length ? { pronunciationDictionaryLocators: dictionaries } : {}),
+    ...(options.controls?.languageCode ? { languageCode: options.controls.languageCode } : {}),
+    ...(typeof options.controls?.seed === 'number' ? { seed: options.controls.seed } : {}),
+    ...(options.controls?.textNormalization ? { textNormalization: options.controls.textNormalization } : {})
+  }
+  return { requestBody, requestControls }
+}
+
+const decodeElevenLabsDialogueAudio = (payload: ElevenLabsDialogueTimingResponse & { audio_base64?: unknown }) => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw InfraError('ElevenLabs Text-to-Dialogue returned a malformed response.', { stage: 'tts:elevenlabs' })
+  if (typeof payload.audio_base64 !== 'string' || !payload.audio_base64) throw InfraError('ElevenLabs Text-to-Dialogue returned no audio.', { stage: 'tts:elevenlabs' })
+  const decoded = Buffer.from(payload.audio_base64, 'base64')
+  if (decoded.toString('base64') !== payload.audio_base64) throw InfraError('ElevenLabs Text-to-Dialogue returned malformed base64 audio.', { stage: 'tts:elevenlabs' })
+  const bytes = Uint8Array.from(decoded)
+  if (bytes.byteLength === 0) throw InfraError('ElevenLabs Text-to-Dialogue returned empty audio.', { stage: 'tts:elevenlabs' })
+  return bytes
+}
+
 export const runElevenLabsNativeDialogue = async (
   turns: readonly ElevenLabsNativeDialogueTurn[],
   outputDir: string,
@@ -204,24 +244,7 @@ export const runElevenLabsNativeDialogue = async (
     for (const [batchIndex, batch] of batches.entries()) {
       options.abortSignal?.throwIfAborted()
       const chunkIndex = batchIndex + 1
-      const requestBody = {
-        inputs: batch.turns.map(turn => ({ text: turn.preparedText.providerText, voice_id: turn.voiceId })),
-        model_id: options.model,
-        ...(Object.keys(settings).length > 0 ? { settings } : {}),
-        ...(dictionaries?.length ? { pronunciation_dictionary_locators: dictionaries } : {}),
-        ...(options.controls?.languageCode ? { language_code: options.controls.languageCode } : {}),
-        ...(typeof options.controls?.seed === 'number' ? { seed: options.controls.seed } : {}),
-        ...(options.controls?.textNormalization ? { apply_text_normalization: options.controls.textNormalization } : {})
-      }
-      const requestControls = {
-        outputFormat,
-        modelId: options.model,
-        ...(Object.keys(settings).length > 0 ? { settings } : {}),
-        ...(dictionaries?.length ? { pronunciationDictionaryLocators: dictionaries } : {}),
-        ...(options.controls?.languageCode ? { languageCode: options.controls.languageCode } : {}),
-        ...(typeof options.controls?.seed === 'number' ? { seed: options.controls.seed } : {}),
-        ...(options.controls?.textNormalization ? { textNormalization: options.controls.textNormalization } : {})
-      }
+      const { requestBody, requestControls } = buildElevenLabsDialogueRequest({ batch, options, outputFormat, settings, dictionaries })
       const payload = await withHostedTtsRetry({ operationName: `elevenlabs-dialogue-${chunkIndex}`, abortSignal: options.abortSignal }, async (signal, attempt) => await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'text-to-dialogue-with-timestamps',
@@ -242,12 +265,7 @@ export const runElevenLabsNativeDialogue = async (
         await accepted({ fields: { httpStatus: response.status } })
         return await readHttpPayloadJson(response, 'ElevenLabs Text-to-Dialogue response', { stage: 'tts:elevenlabs-dialogue' }) as ElevenLabsDialogueTimingResponse & { audio_base64?: unknown }
       }))
-      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw InfraError('ElevenLabs Text-to-Dialogue returned a malformed response.', { stage: 'tts:elevenlabs' })
-      if (typeof payload.audio_base64 !== 'string' || !payload.audio_base64) throw InfraError('ElevenLabs Text-to-Dialogue returned no audio.', { stage: 'tts:elevenlabs' })
-      const decoded = Buffer.from(payload.audio_base64, 'base64')
-      if (decoded.toString('base64') !== payload.audio_base64) throw InfraError('ElevenLabs Text-to-Dialogue returned malformed base64 audio.', { stage: 'tts:elevenlabs' })
-      const bytes = Uint8Array.from(decoded)
-      if (bytes.byteLength === 0) throw InfraError('ElevenLabs Text-to-Dialogue returned empty audio.', { stage: 'tts:elevenlabs' })
+      const bytes = decodeElevenLabsDialogueAudio(payload)
       const path = `${outputDir}/speech-elevenlabs-dialogue-${String(chunkIndex).padStart(3, '0')}.${elevenLabsChunkExtension(outputFormat)}`
       await Bun.write(path, bytes)
       const timing = normalizeElevenLabsDialogueTiming({ response: payload, turns: batch.turns })

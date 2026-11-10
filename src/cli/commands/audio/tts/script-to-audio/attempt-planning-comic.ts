@@ -71,8 +71,7 @@ export const resolveComicNativeGroups = (
   return []
 }
 
-export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _capabilityFixtureHash?: string): PlannedInputs => {
-  const context = options.comicContext!
+const assertComicRenderContext = (context: NonNullable<CreateCurrentTtsRenderAttemptOptions['comicContext']>): void => {
   if (context.operation !== 'comic-audio') throw UsageError('Comic render context requires operation comic-audio.')
   if (canonicalTtsJson(context.sourceIdentity) !== canonicalTtsJson(context.dialoguePlan.sourceIdentity)) throw UsageError('Comic dialogue plan does not bind the exact source identity.')
   if (context.dialoguePlan.dialoguePlanId !== hashCanonicalTtsValue({
@@ -85,6 +84,11 @@ export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _
     nodes: context.dialoguePlan.nodes,
   })) throw UsageError('Comic dialogue plan identity is invalid.')
   if (context.voiceSnapshot.dialoguePlanId !== context.dialoguePlan.dialoguePlanId || context.voiceSnapshot.sceneRunIdentity !== context.dialoguePlan.sceneRunIdentity) throw UsageError('Comic voice snapshot does not bind the selected scene/dialogue plan.')
+}
+
+export const planComicInputs = (options: CreateCurrentTtsRenderAttemptOptions, _capabilityFixtureHash?: string): PlannedInputs => {
+  const context = options.comicContext!
+  assertComicRenderContext(context)
 
   const canonicalTurns = flattenPlanTurns(context.dialoguePlan)
   const normalizedTurnControls = normalizeTtsTurnControls(

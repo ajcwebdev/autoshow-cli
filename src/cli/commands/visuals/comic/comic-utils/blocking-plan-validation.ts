@@ -56,6 +56,105 @@ const validateCitation = (citation: BlockingCitation, path: string, segmentsById
   return segment
 }
 
+type StageStateScope = {
+  issues: BlockingValidationIssue[]
+  segmentsById: Map<string, SourceSegment>
+  segmentIndices: ReadonlyMap<string, number>
+  requireCharacter: (key: string, path: string) => void
+  context: BlockingValidationContext
+  previousStateIndex: number
+  previousState: BlockingStageState | undefined
+}
+
+const validateStageStateStart = (state: BlockingStageState, path: string, scope: StageStateScope): void => {
+  const { issues } = scope
+  const startSegment = validateCitation(state.startsAt, `${path}.startsAt`, scope.segmentsById, issues)
+  if (!startSegment) return
+  if (startSegment.location.key !== state.locationKey) {
+    issues.push(issue('state-location-mismatch', path, `Blocking plan stage state "${state.id}" starts at segment "${startSegment.id}" whose location is "${startSegment.location.key}", not "${state.locationKey}"`))
+  }
+  const startIndex = scope.segmentIndices.get(startSegment.id) ?? Number.POSITIVE_INFINITY
+  if (startIndex <= scope.previousStateIndex && scope.previousState) {
+    issues.push(issue('state-order', path, `Blocking plan stage states are not in script order: "${state.id}" starts before "${scope.previousState.id}" ends`))
+  }
+  scope.previousStateIndex = startIndex
+}
+
+const validateStageMarks = (state: BlockingStageState, path: string, location: BlockingPlan['locations'][number] | undefined, scope: StageStateScope): Set<string> => {
+  const { issues } = scope
+  const seatsByKey = new Map<string, { position: { x: number; y: number } }>([
+    ...(location?.anchors.map(anchor => [anchor.key, anchor] as const) ?? []),
+    ...(location?.dressing.map(item => [item.key, item] as const) ?? []),
+  ])
+  const dressingSeatKeys = new Set(location?.dressing.map(item => item.key) ?? [])
+  const onStage = new Set<string>()
+  state.characters.forEach((mark, markIndex) => {
+    const markPath = `${path}.characters[${markIndex}]`
+    scope.requireCharacter(mark.characterKey, markPath)
+    if (onStage.has(mark.characterKey)) issues.push(issue('duplicate-mark', markPath, `Blocking plan stage state "${state.id}" places "${mark.characterKey}" more than once`))
+    onStage.add(mark.characterKey)
+    const seat = mark.seatAnchorKey === null ? undefined : seatsByKey.get(mark.seatAnchorKey)
+    if (mark.seatAnchorKey !== null && location && !seat) {
+      issues.push(issue('unknown-seat', markPath, `Blocking plan stage state "${state.id}" seats "${mark.characterKey}" on unknown anchor "${mark.seatAnchorKey}"`))
+    }
+    if (seat && mark.seatAnchorKey !== null && dressingSeatKeys.has(mark.seatAnchorKey) && distance(mark.position, seat.position) > BLOCKING_GEOMETRY.reviewedAnchorToleranceM) {
+      issues.push(issue('seat-mark-deviates', markPath, `Blocking plan stage state "${state.id}" places "${mark.characterKey}" ${round2(distance(mark.position, seat.position))} m from seat "${mark.seatAnchorKey}"`))
+    }
+    if (mark.wardrobeCitation) validateCitation(mark.wardrobeCitation, `${markPath}.wardrobeCitation`, scope.segmentsById, issues)
+  })
+  return onStage
+}
+
+const validateStageExtras = (state: BlockingStageState, path: string, scope: StageStateScope): void => {
+  const extrasKeys = new Set<string>()
+  state.extras.forEach((extras, extrasIndex) => {
+    const extrasPath = `${path}.extras[${extrasIndex}]`
+    scope.requireCharacter(extras.ensembleKey, extrasPath)
+    if (extrasKeys.has(extras.ensembleKey)) scope.issues.push(issue('duplicate-extras', extrasPath, `Blocking plan stage state "${state.id}" lists extras "${extras.ensembleKey}" more than once`))
+    extrasKeys.add(extras.ensembleKey)
+  })
+}
+
+const validateStageActionAxis = (state: BlockingStageState, path: string, onStage: ReadonlySet<string>, scope: StageStateScope): void => {
+  const { issues } = scope
+  if (!state.actionAxis) return
+  for (const endpoint of [state.actionAxis.from, state.actionAxis.to]) {
+    if (!onStage.has(endpoint)) issues.push(issue('axis-off-stage', `${path}.actionAxis`, `Blocking plan stage state "${state.id}" action axis names "${endpoint}" who is not on stage`))
+  }
+  if (state.actionAxis.from === state.actionAxis.to) issues.push(issue('axis-degenerate', `${path}.actionAxis`, `Blocking plan stage state "${state.id}" action axis must run between two different characters`))
+}
+
+const validateStageMoves = (state: BlockingStageState, path: string, scope: StageStateScope): void => {
+  const { issues, context } = scope
+  state.moves.forEach((move, moveIndex) => {
+    const movePath = `${path}.moves[${moveIndex}]`
+    scope.requireCharacter(move.characterKey, movePath)
+    const segment = validateCitation(move.citation, `${movePath}.citation`, scope.segmentsById, issues)
+    if (segment && !segmentNamesCharacter(segment, move.characterKey, context.catalog, context.structuredScript.beats)) {
+      issues.push(issue('move-uncited', movePath, `Blocking plan move "${move.type}" for "${move.characterKey}" cites segment "${segment.id}" which does not name that character`))
+    }
+  })
+}
+
+const validateCastContinuity = (state: BlockingStageState, path: string, previousState: BlockingStageState, onStage: ReadonlySet<string>, scope: StageStateScope): void => {
+  const { issues } = scope
+  const before = new Set(previousState.characters.map(mark => mark.characterKey))
+  const exits = new Set(state.moves.filter(move => move.type === 'exit').map(move => move.characterKey))
+  const enters = new Set(state.moves.filter(move => move.type === 'enter').map(move => move.characterKey))
+  for (const key of before) {
+    if (!onStage.has(key) && !exits.has(key)) issues.push(issue('cast-dropped', path, `Blocking plan stage state "${state.id}" drops "${key}" without an exit move`))
+  }
+  for (const key of onStage) {
+    if (!before.has(key) && !enters.has(key)) issues.push(issue('cast-added', path, `Blocking plan stage state "${state.id}" adds "${key}" without an enter move`))
+  }
+  for (const key of exits) {
+    if (onStage.has(key)) issues.push(issue('exit-still-on-stage', path, `Blocking plan stage state "${state.id}" has an exit move for "${key}" who is still on stage`))
+  }
+  for (const key of enters) {
+    if (before.has(key)) issues.push(issue('enter-already-on-stage', path, `Blocking plan stage state "${state.id}" has an enter move for "${key}" who was already on stage`))
+  }
+}
+
 export const validateBlockingPlan = (plan: BlockingPlan, context: BlockingValidationContext): BlockingValidationIssue[] => {
   const issues: BlockingValidationIssue[] = []
   const segments = context.structuredScript.sourceSegments
@@ -114,85 +213,22 @@ export const validateBlockingPlan = (plan: BlockingPlan, context: BlockingValida
     if (!locationsByKey.has(locationKey)) issues.push(issue('missing-location', 'locations', `Blocking plan has no location map for "${locationKey}"`))
   }
 
+  const scope: StageStateScope = { issues, segmentsById, segmentIndices, requireCharacter, context, previousStateIndex: Number.NEGATIVE_INFINITY, previousState: undefined }
   const stateIds = new Set<string>()
-  let previousStateIndex = Number.NEGATIVE_INFINITY
-  let previousState: BlockingStageState | undefined
   plan.stageStates.forEach((state, stateIndex) => {
     const path = `stageStates[${stateIndex}]`
     if (stateIds.has(state.id)) issues.push(issue('duplicate-state', path, `Blocking plan lists stage state "${state.id}" more than once`))
     stateIds.add(state.id)
     const location = locationsByKey.get(state.locationKey)
     if (!location) issues.push(issue('unknown-location', path, `Blocking plan stage state "${state.id}" uses location "${state.locationKey}" which has no location map`))
-    const startSegment = validateCitation(state.startsAt, `${path}.startsAt`, segmentsById, issues)
-    if (startSegment) {
-      if (startSegment.location.key !== state.locationKey) {
-        issues.push(issue('state-location-mismatch', path, `Blocking plan stage state "${state.id}" starts at segment "${startSegment.id}" whose location is "${startSegment.location.key}", not "${state.locationKey}"`))
-      }
-      const startIndex = segmentIndices.get(startSegment.id) ?? Number.POSITIVE_INFINITY
-      if (startIndex <= previousStateIndex && previousState) {
-        issues.push(issue('state-order', path, `Blocking plan stage states are not in script order: "${state.id}" starts before "${previousState.id}" ends`))
-      }
-      previousStateIndex = startIndex
-    }
-    const seatsByKey = new Map<string, { position: { x: number; y: number } }>([
-      ...(location?.anchors.map(anchor => [anchor.key, anchor] as const) ?? []),
-      ...(location?.dressing.map(item => [item.key, item] as const) ?? []),
-    ])
-    const dressingSeatKeys = new Set(location?.dressing.map(item => item.key) ?? [])
-    const onStage = new Set<string>()
-    state.characters.forEach((mark, markIndex) => {
-      const markPath = `${path}.characters[${markIndex}]`
-      requireCharacter(mark.characterKey, markPath)
-      if (onStage.has(mark.characterKey)) issues.push(issue('duplicate-mark', markPath, `Blocking plan stage state "${state.id}" places "${mark.characterKey}" more than once`))
-      onStage.add(mark.characterKey)
-      const seat = mark.seatAnchorKey === null ? undefined : seatsByKey.get(mark.seatAnchorKey)
-      if (mark.seatAnchorKey !== null && location && !seat) {
-        issues.push(issue('unknown-seat', markPath, `Blocking plan stage state "${state.id}" seats "${mark.characterKey}" on unknown anchor "${mark.seatAnchorKey}"`))
-      }
-      if (seat && mark.seatAnchorKey !== null && dressingSeatKeys.has(mark.seatAnchorKey) && distance(mark.position, seat.position) > BLOCKING_GEOMETRY.reviewedAnchorToleranceM) {
-        issues.push(issue('seat-mark-deviates', markPath, `Blocking plan stage state "${state.id}" places "${mark.characterKey}" ${round2(distance(mark.position, seat.position))} m from seat "${mark.seatAnchorKey}"`))
-      }
-      if (mark.wardrobeCitation) validateCitation(mark.wardrobeCitation, `${markPath}.wardrobeCitation`, segmentsById, issues)
-    })
-    const extrasKeys = new Set<string>()
-    state.extras.forEach((extras, extrasIndex) => {
-      const extrasPath = `${path}.extras[${extrasIndex}]`
-      requireCharacter(extras.ensembleKey, extrasPath)
-      if (extrasKeys.has(extras.ensembleKey)) issues.push(issue('duplicate-extras', extrasPath, `Blocking plan stage state "${state.id}" lists extras "${extras.ensembleKey}" more than once`))
-      extrasKeys.add(extras.ensembleKey)
-    })
-    if (state.actionAxis) {
-      for (const endpoint of [state.actionAxis.from, state.actionAxis.to]) {
-        if (!onStage.has(endpoint)) issues.push(issue('axis-off-stage', `${path}.actionAxis`, `Blocking plan stage state "${state.id}" action axis names "${endpoint}" who is not on stage`))
-      }
-      if (state.actionAxis.from === state.actionAxis.to) issues.push(issue('axis-degenerate', `${path}.actionAxis`, `Blocking plan stage state "${state.id}" action axis must run between two different characters`))
-    }
-    state.moves.forEach((move, moveIndex) => {
-      const movePath = `${path}.moves[${moveIndex}]`
-      requireCharacter(move.characterKey, movePath)
-      const segment = validateCitation(move.citation, `${movePath}.citation`, segmentsById, issues)
-      if (segment && !segmentNamesCharacter(segment, move.characterKey, context.catalog, context.structuredScript.beats)) {
-        issues.push(issue('move-uncited', movePath, `Blocking plan move "${move.type}" for "${move.characterKey}" cites segment "${segment.id}" which does not name that character`))
-      }
-    })
-    if (previousState && previousState.locationKey === state.locationKey) {
-      const before = new Set(previousState.characters.map(mark => mark.characterKey))
-      const exits = new Set(state.moves.filter(move => move.type === 'exit').map(move => move.characterKey))
-      const enters = new Set(state.moves.filter(move => move.type === 'enter').map(move => move.characterKey))
-      for (const key of before) {
-        if (!onStage.has(key) && !exits.has(key)) issues.push(issue('cast-dropped', path, `Blocking plan stage state "${state.id}" drops "${key}" without an exit move`))
-      }
-      for (const key of onStage) {
-        if (!before.has(key) && !enters.has(key)) issues.push(issue('cast-added', path, `Blocking plan stage state "${state.id}" adds "${key}" without an enter move`))
-      }
-      for (const key of exits) {
-        if (onStage.has(key)) issues.push(issue('exit-still-on-stage', path, `Blocking plan stage state "${state.id}" has an exit move for "${key}" who is still on stage`))
-      }
-      for (const key of enters) {
-        if (before.has(key)) issues.push(issue('enter-already-on-stage', path, `Blocking plan stage state "${state.id}" has an enter move for "${key}" who was already on stage`))
-      }
-    }
-    previousState = state
+    validateStageStateStart(state, path, scope)
+    const onStage = validateStageMarks(state, path, location, scope)
+    validateStageExtras(state, path, scope)
+    validateStageActionAxis(state, path, onStage, scope)
+    validateStageMoves(state, path, scope)
+    const { previousState } = scope
+    if (previousState && previousState.locationKey === state.locationKey) validateCastContinuity(state, path, previousState, onStage, scope)
+    scope.previousState = state
   })
 
   const cameraIds = new Set<string>()

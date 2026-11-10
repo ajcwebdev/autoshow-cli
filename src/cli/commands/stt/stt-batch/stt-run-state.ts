@@ -45,63 +45,64 @@ const STT_SERVICES = new Set<string>([
 const isSttService = (value: unknown): value is string =>
   typeof value === 'string' && STT_SERVICES.has(value)
 
+type Step2Billing = NonNullable<Step2Metadata['billing']>
+
+const isNonnegativeFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0
+
+const STEP2_BILLING_NUMBER_FIELDS = [
+  'creditsUsed',
+  'creditRateCents',
+  'inputTokens',
+  'outputTokens',
+  'totalTokens',
+  'audioInputTokens',
+  'textInputTokens',
+  'totalCost'
+] as const
+
+const parseStoredStep2Billing = (value: Record<string, unknown>): Step2Billing | undefined => {
+  if (!isRecord(value['billing'])) {
+    return undefined
+  }
+  const parsedBilling: Step2Billing = {}
+  for (const field of STEP2_BILLING_NUMBER_FIELDS) {
+    if (isNonnegativeFiniteNumber(value['billing'][field])) {
+      parsedBilling[field] = value['billing'][field] as number
+    }
+  }
+  if (
+    value['billing']['source'] === 'provider_usage'
+    || value['billing']['source'] === 'provider_quote'
+    || value['billing']['source'] === 'response_header'
+    || value['billing']['source'] === 'registry_fallback'
+  ) {
+    parsedBilling.source = value['billing']['source']
+  }
+  if (
+    value['billing']['mode'] === 'url'
+    || value['billing']['mode'] === 'duration'
+    || value['billing']['mode'] === 'order'
+    || value['billing']['mode'] === 'token'
+    || value['billing']['mode'] === 'segment_sum'
+  ) {
+    parsedBilling.mode = value['billing']['mode']
+  }
+  return Object.keys(parsedBilling).length > 0 ? parsedBilling : undefined
+}
+
 export const parseStoredStep2Metadata = (value: unknown): Step2Metadata | undefined => {
-  if (!isRecord(value) || !isSttService(value['transcriptionService']) || typeof value['transcriptionModel'] !== 'string') {
+  if (!isRecord(value) || !isSttService(value['transcriptionService']) || typeof value['transcriptionModel'] !== 'string' || !value['transcriptionModel'].trim()) {
     return undefined
   }
 
-  if (typeof value['processingTime'] !== 'number' || typeof value['tokenCount'] !== 'number') {
+  if (!isNonnegativeFiniteNumber(value['processingTime']) || !isNonnegativeFiniteNumber(value['tokenCount'])) {
     return undefined
   }
 
   const timings = parseStoredStep2TimingMetadata(value['timings'])
   const runtime = parseStep2RuntimeMetadata(value['runtime'])
-  let billing: Step2Metadata['billing'] | undefined
-  if (isRecord(value['billing'])) {
-    const parsedBilling: NonNullable<Step2Metadata['billing']> = {}
-    if (typeof value['billing']['creditsUsed'] === 'number') {
-      parsedBilling.creditsUsed = value['billing']['creditsUsed']
-    }
-    if (typeof value['billing']['creditRateCents'] === 'number') {
-      parsedBilling.creditRateCents = value['billing']['creditRateCents']
-    }
-    if (typeof value['billing']['inputTokens'] === 'number') {
-      parsedBilling.inputTokens = value['billing']['inputTokens']
-    }
-    if (typeof value['billing']['outputTokens'] === 'number') {
-      parsedBilling.outputTokens = value['billing']['outputTokens']
-    }
-    if (typeof value['billing']['totalTokens'] === 'number') {
-      parsedBilling.totalTokens = value['billing']['totalTokens']
-    }
-    if (typeof value['billing']['audioInputTokens'] === 'number') {
-      parsedBilling.audioInputTokens = value['billing']['audioInputTokens']
-    }
-    if (typeof value['billing']['textInputTokens'] === 'number') {
-      parsedBilling.textInputTokens = value['billing']['textInputTokens']
-    }
-    if (typeof value['billing']['totalCost'] === 'number') {
-      parsedBilling.totalCost = value['billing']['totalCost']
-    }
-    if (
-      value['billing']['source'] === 'provider_usage'
-      || value['billing']['source'] === 'provider_quote'
-      || value['billing']['source'] === 'response_header'
-      || value['billing']['source'] === 'registry_fallback'
-    ) {
-      parsedBilling.source = value['billing']['source']
-    }
-    if (
-      value['billing']['mode'] === 'url'
-      || value['billing']['mode'] === 'duration'
-      || value['billing']['mode'] === 'order'
-      || value['billing']['mode'] === 'token'
-      || value['billing']['mode'] === 'segment_sum'
-    ) {
-      parsedBilling.mode = value['billing']['mode']
-    }
-    billing = Object.keys(parsedBilling).length > 0 ? parsedBilling : undefined
-  }
+  const billing = parseStoredStep2Billing(value)
 
   return {
     transcriptionService: value['transcriptionService'] as Step2Metadata['transcriptionService'],

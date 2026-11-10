@@ -68,6 +68,36 @@ const unixExpiry = (value: unknown): string | undefined => typeof value === 'num
   ? new Date(value * 1000).toISOString()
   : undefined
 
+const voiceRequiresVerification = (voice: JsonObject): boolean => {
+  const fineTuning = voice['fine_tuning'] && typeof voice['fine_tuning'] === 'object' && !Array.isArray(voice['fine_tuning']) ? voice['fine_tuning'] as JsonObject : undefined
+  const fineState = fineTuning?.['state'] && typeof fineTuning['state'] === 'object' && !Array.isArray(fineTuning['state'])
+    ? Object.values(fineTuning['state'] as JsonObject).map(item => trimmedString(item)).filter(Boolean)
+    : []
+  return fineState.some(state => state === 'not_verified' || state === 'not_started')
+}
+
+const voiceOrigin = (source: ProviderVoiceCatalogEntry['source'], category: string | undefined): ProviderVoiceCatalogEntry['origin'] => source === 'shared-library'
+  ? 'community-library'
+  : category === 'generated'
+    ? 'designed'
+    : category === 'cloned'
+      ? 'instant-clone'
+      : source === 'account'
+        ? 'imported-custom'
+        : 'provider-stock'
+
+const voiceState = (expiresAt: string | undefined, requiresVerification: boolean): ProviderVoiceCatalogEntry['state'] => expiresAt && Date.parse(expiresAt) <= Date.now()
+  ? 'expired'
+  : requiresVerification ? 'verification-required' : 'available'
+
+const sanitizedVoiceMetadata = (voice: JsonObject, sharing: JsonObject | undefined, category: string | undefined): ProviderVoiceCatalogEntry['sanitizedMetadata'] => ({
+  ...(category ? { category } : {}),
+  ...(trimmedString(voice['public_owner_id']) ? { publicOwnerId: trimmedString(voice['public_owner_id']) as string } : {}),
+  ...(typeof voice['is_owner'] === 'boolean' ? { isOwner: voice['is_owner'] } : {}),
+  ...(typeof sharing?.['notice_period'] === 'number' ? { noticePeriodDays: sharing['notice_period'] } : {}),
+  defaultVoiceExpiryRecognized: ELEVENLABS_DEFAULT_VOICE_EXPIRY,
+})
+
 const mapVoice = (value: unknown, source: ProviderVoiceCatalogEntry['source']): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
   const resourceId = trimmedString(voice['voice_id']) ?? trimmedString(voice['id'])
@@ -77,20 +107,8 @@ const mapVoice = (value: unknown, source: ProviderVoiceCatalogEntry['source']): 
   const sharing = voice['sharing'] && typeof voice['sharing'] === 'object' && !Array.isArray(voice['sharing']) ? voice['sharing'] as JsonObject : undefined
   const expiresAt = unixExpiry(sharing?.['disable_at_unix'])
     ?? (category === 'premade' && voice['is_legacy'] === true ? ELEVENLABS_DEFAULT_VOICE_EXPIRY : undefined)
-  const fineTuning = voice['fine_tuning'] && typeof voice['fine_tuning'] === 'object' && !Array.isArray(voice['fine_tuning']) ? voice['fine_tuning'] as JsonObject : undefined
-  const fineState = fineTuning?.['state'] && typeof fineTuning['state'] === 'object' && !Array.isArray(fineTuning['state'])
-    ? Object.values(fineTuning['state'] as JsonObject).map(item => trimmedString(item)).filter(Boolean)
-    : []
-  const requiresVerification = fineState.some(state => state === 'not_verified' || state === 'not_started')
-  const origin = source === 'shared-library'
-    ? 'community-library' as const
-    : category === 'generated'
-      ? 'designed' as const
-      : category === 'cloned'
-        ? 'instant-clone' as const
-        : source === 'account'
-          ? 'imported-custom' as const
-          : 'provider-stock' as const
+  const requiresVerification = voiceRequiresVerification(voice)
+  const origin = voiceOrigin(source, category)
   return {
     provider: 'elevenlabs',
     resourceId,
@@ -101,17 +119,9 @@ const mapVoice = (value: unknown, source: ProviderVoiceCatalogEntry['source']): 
     ...(trimmedString(voice['description']) ? { description: trimmedString(voice['description']) } : {}),
     labels: labels(voice['labels']),
     modelIds: stringArray(voice['high_quality_base_model_ids']),
-    state: expiresAt && Date.parse(expiresAt) <= Date.now()
-      ? 'expired'
-      : requiresVerification ? 'verification-required' : 'available',
+    state: voiceState(expiresAt, requiresVerification),
     ...(expiresAt ? { expiresAt } : {}),
-    sanitizedMetadata: {
-      ...(category ? { category } : {}),
-      ...(trimmedString(voice['public_owner_id']) ? { publicOwnerId: trimmedString(voice['public_owner_id']) as string } : {}),
-      ...(typeof voice['is_owner'] === 'boolean' ? { isOwner: voice['is_owner'] } : {}),
-      ...(typeof sharing?.['notice_period'] === 'number' ? { noticePeriodDays: sharing['notice_period'] } : {}),
-      defaultVoiceExpiryRecognized: ELEVENLABS_DEFAULT_VOICE_EXPIRY,
-    }
+    sanitizedMetadata: sanitizedVoiceMetadata(voice, sharing, category),
   }
 }
 

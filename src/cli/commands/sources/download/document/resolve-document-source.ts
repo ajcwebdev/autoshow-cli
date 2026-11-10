@@ -6,6 +6,85 @@ import { InfraError } from '~/utils/error-handler'
 import { sourceDownloadSignal, writeHttpPayloadToFile } from '~/utils/http-payload'
 import { settleCleanups } from '~/utils/settle-cleanups'
 
+type HeaderExtensionRule = {
+  extension: string
+  dispositionMarkers: readonly string[]
+  contentTypeFragment?: string
+  contentTypePrefix?: string
+}
+
+type PathnameExtensionRule = { extension: string, suffixes: readonly string[] }
+
+const HEADER_RULES_BEFORE_EBOOKS: readonly HeaderExtensionRule[] = [
+  { extension: '.epub', dispositionMarkers: ['.epub'], contentTypeFragment: 'application/epub+zip' },
+  { extension: '.docx', dispositionMarkers: ['.docx'], contentTypeFragment: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+  { extension: '.pptx', dispositionMarkers: ['.pptx'], contentTypeFragment: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+  { extension: '.xlsx', dispositionMarkers: ['.xlsx'], contentTypeFragment: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  { extension: '.odt', dispositionMarkers: ['.odt'], contentTypeFragment: 'application/vnd.oasis.opendocument.text' },
+  { extension: '.ods', dispositionMarkers: ['.ods'], contentTypeFragment: 'application/vnd.oasis.opendocument.spreadsheet' },
+  { extension: '.odp', dispositionMarkers: ['.odp'], contentTypeFragment: 'application/vnd.oasis.opendocument.presentation' }
+]
+
+const HEADER_RULES_AFTER_EBOOKS: readonly HeaderExtensionRule[] = [
+  { extension: '.png', dispositionMarkers: ['.png'], contentTypePrefix: 'image/png' },
+  { extension: '.jpg', dispositionMarkers: ['.jpg', '.jpeg'], contentTypePrefix: 'image/jpeg' },
+  { extension: '.tif', dispositionMarkers: ['.tif', '.tiff'], contentTypePrefix: 'image/tiff' },
+  { extension: '.pdf', dispositionMarkers: ['.pdf'], contentTypeFragment: 'application/pdf' }
+]
+
+const PATHNAME_RULES_BEFORE_EBOOKS: readonly PathnameExtensionRule[] = [
+  { extension: '.pdf', suffixes: ['.pdf'] },
+  { extension: '.epub', suffixes: ['.epub'] },
+  { extension: '.docx', suffixes: ['.docx'] },
+  { extension: '.pptx', suffixes: ['.pptx'] },
+  { extension: '.xlsx', suffixes: ['.xlsx'] },
+  { extension: '.odt', suffixes: ['.odt'] },
+  { extension: '.ods', suffixes: ['.ods'] },
+  { extension: '.odp', suffixes: ['.odp'] }
+]
+
+const PATHNAME_RULES_AFTER_EBOOKS: readonly PathnameExtensionRule[] = [
+  { extension: '.png', suffixes: ['.png'] },
+  { extension: '.jpg', suffixes: ['.jpg', '.jpeg'] },
+  { extension: '.tif', suffixes: ['.tif', '.tiff'] }
+]
+
+const matchHeaderRule = (
+  rules: readonly HeaderExtensionRule[],
+  lowerContentDisposition: string,
+  lowerContentType: string
+): string | undefined => rules.find(rule =>
+  rule.dispositionMarkers.some(marker => lowerContentDisposition.includes(marker))
+  || (rule.contentTypeFragment !== undefined && lowerContentType.includes(rule.contentTypeFragment))
+  || (rule.contentTypePrefix !== undefined && lowerContentType.startsWith(rule.contentTypePrefix))
+)?.extension
+
+const matchPathnameRule = (rules: readonly PathnameExtensionRule[], pathname: string): string | undefined =>
+  rules.find(rule => rule.suffixes.some(suffix => pathname.endsWith(suffix)))?.extension
+
+const extensionFromHeaders = (lowerContentDisposition: string, lowerContentType: string): string | undefined => {
+  const leading = matchHeaderRule(HEADER_RULES_BEFORE_EBOOKS, lowerContentDisposition, lowerContentType)
+  if (leading) return leading
+  for (const extension of CONVERTIBLE_EBOOK_EXTENSIONS) {
+    if (lowerContentDisposition.includes(extension)) return extension
+  }
+  return matchHeaderRule(HEADER_RULES_AFTER_EBOOKS, lowerContentDisposition, lowerContentType)
+}
+
+const extensionFromPathname = (url: string): string | undefined => {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase()
+    const leading = matchPathnameRule(PATHNAME_RULES_BEFORE_EBOOKS, pathname)
+    if (leading) return leading
+    for (const extension of CONVERTIBLE_EBOOK_EXTENSIONS) {
+      if (pathname.endsWith(extension)) return extension
+    }
+    return matchPathnameRule(PATHNAME_RULES_AFTER_EBOOKS, pathname)
+  } catch {
+    return undefined
+  }
+}
+
 const extensionFromUrl = (
   url: string,
   contentType?: string | null,
@@ -14,41 +93,9 @@ const extensionFromUrl = (
   const lowerContentType = contentType?.toLowerCase() ?? ''
   const lowerContentDisposition = contentDisposition?.toLowerCase() ?? ''
 
-  if (lowerContentDisposition.includes('.epub') || lowerContentType.includes('application/epub+zip')) return '.epub'
-  if (lowerContentDisposition.includes('.docx') || lowerContentType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document')) return '.docx'
-  if (lowerContentDisposition.includes('.pptx') || lowerContentType.includes('application/vnd.openxmlformats-officedocument.presentationml.presentation')) return '.pptx'
-  if (lowerContentDisposition.includes('.xlsx') || lowerContentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) return '.xlsx'
-  if (lowerContentDisposition.includes('.odt') || lowerContentType.includes('application/vnd.oasis.opendocument.text')) return '.odt'
-  if (lowerContentDisposition.includes('.ods') || lowerContentType.includes('application/vnd.oasis.opendocument.spreadsheet')) return '.ods'
-  if (lowerContentDisposition.includes('.odp') || lowerContentType.includes('application/vnd.oasis.opendocument.presentation')) return '.odp'
-  for (const extension of CONVERTIBLE_EBOOK_EXTENSIONS) {
-    if (lowerContentDisposition.includes(extension)) return extension
-  }
-  if (lowerContentDisposition.includes('.png') || lowerContentType.startsWith('image/png')) return '.png'
-  if (lowerContentDisposition.includes('.jpg') || lowerContentDisposition.includes('.jpeg') || lowerContentType.startsWith('image/jpeg')) return '.jpg'
-  if (lowerContentDisposition.includes('.tif') || lowerContentDisposition.includes('.tiff') || lowerContentType.startsWith('image/tiff')) return '.tif'
-  if (lowerContentDisposition.includes('.pdf') || lowerContentType.includes('application/pdf')) return '.pdf'
-
-  try {
-    const pathname = new URL(url).pathname.toLowerCase()
-    if (pathname.endsWith('.pdf')) return '.pdf'
-    if (pathname.endsWith('.epub')) return '.epub'
-    if (pathname.endsWith('.docx')) return '.docx'
-    if (pathname.endsWith('.pptx')) return '.pptx'
-    if (pathname.endsWith('.xlsx')) return '.xlsx'
-    if (pathname.endsWith('.odt')) return '.odt'
-    if (pathname.endsWith('.ods')) return '.ods'
-    if (pathname.endsWith('.odp')) return '.odp'
-    for (const extension of CONVERTIBLE_EBOOK_EXTENSIONS) {
-      if (pathname.endsWith(extension)) return extension
-    }
-    if (pathname.endsWith('.png')) return '.png'
-    if (pathname.endsWith('.jpg') || pathname.endsWith('.jpeg')) return '.jpg'
-    if (pathname.endsWith('.tif') || pathname.endsWith('.tiff')) return '.tif'
-  } catch {
-  }
-
-  return '.pdf'
+  return extensionFromHeaders(lowerContentDisposition, lowerContentType)
+    ?? extensionFromPathname(url)
+    ?? '.pdf'
 }
 
 export const downloadDocumentUrlToTempFile = async (

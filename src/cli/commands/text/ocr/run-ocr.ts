@@ -50,6 +50,60 @@ const writeExtractionTextCheckpoint = async (
   await writeFile(`${opts.outputDir}/extraction.txt`, text)
 }
 
+const resolveNormalizedSourceFormat = (step1Metadata: DocumentMetadata): string | undefined =>
+  typeof step1Metadata.sourceFormat === 'string'
+    && step1Metadata.sourceFormat.length > 0
+    && step1Metadata.sourceFormat !== step1Metadata.format
+    ? step1Metadata.sourceFormat
+    : undefined
+
+const resolveSourceConversionChain = (step1Metadata: DocumentMetadata): string[] | undefined =>
+  Array.isArray(step1Metadata.conversionChain) && step1Metadata.conversionChain.length > 0
+    ? [...step1Metadata.conversionChain]
+    : undefined
+
+const assertAtMostOneOcrEngine = (opts: ExtractionOptions): void => {
+  const ocrEngineCount = countSelectedOcrEngines(opts)
+
+  if (!hasPreparedMarkdownInput(opts) && ocrEngineCount > 1) {
+    throw UsageError('Use at most one OCR provider at a time. Select one with --provider provider[=model].')
+  }
+}
+
+const isPdfChunkOnlyRequest = (format: DocumentMetadata['format'], opts: ExtractionOptions): boolean =>
+  format === 'pdf' && opts.chapterFiles === false && typeof opts.chapterChunkLimitChars === 'number'
+
+const warnInactiveChapterExportFlags = (
+  format: DocumentMetadata['format'],
+  epubExportFlagsActive: boolean,
+  pdfChunkOnlyRequested: boolean
+): void => {
+  if (format !== 'epub' && format !== 'pdf' && epubExportFlagsActive) {
+    l.warn(CHAPTER_EXPORT_FLAGS_IGNORED_WARNING, { category: 'pipeline' })
+  }
+  if (pdfChunkOnlyRequested) {
+    l.warn(PDF_LENGTH_WITHOUT_CHAPTERS_WARNING, { category: 'pipeline' })
+  }
+}
+
+const resolveExtractedPdfPageCount = (extracted: FormatExtractionResult, step1Metadata: DocumentMetadata): number => {
+  const extractedPdfPageCount = extracted.pages.length > 0
+    ? Math.max(...extracted.pages.map((page) => page.pageNumber))
+    : 0
+  return Math.max(
+    extractedPdfPageCount,
+    step1Metadata.pageCount,
+    extracted.reportedTotalPages ?? 0
+  )
+}
+
+const resolvePdfChapterArtifactOptions = (step1Metadata: DocumentMetadata, opts: ExtractionOptions) => ({
+  ...(typeof step1Metadata.title === 'string' ? { title: step1Metadata.title } : {}),
+  ...(typeof step1Metadata.author === 'string' ? { author: step1Metadata.author } : {}),
+  ...(typeof opts.password === 'string' ? { password: opts.password } : {}),
+  ...(typeof opts.chapterChunkLimitChars === 'number' ? { chunkLimitChars: opts.chapterChunkLimitChars } : {})
+})
+
 export const runOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
@@ -57,32 +111,17 @@ export const runOcr = async (
 ): Promise<{ result: ExtractionResult, step2Metadata: ExtractionMetadata, artifactFiles?: EpubArtifactFile[] }> => {
   const start = Date.now()
 
-  const normalizedFrom: string | undefined = typeof step1Metadata.sourceFormat === 'string'
-    && step1Metadata.sourceFormat.length > 0
-    && step1Metadata.sourceFormat !== step1Metadata.format
-    ? step1Metadata.sourceFormat
-    : undefined
-  const conversionChain: string[] | undefined = Array.isArray(step1Metadata.conversionChain) && step1Metadata.conversionChain.length > 0
-    ? [...step1Metadata.conversionChain]
-    : undefined
+  const normalizedFrom = resolveNormalizedSourceFormat(step1Metadata)
+  const conversionChain = resolveSourceConversionChain(step1Metadata)
 
-  const ocrEngineCount = countSelectedOcrEngines(opts)
-
-  if (!hasPreparedMarkdownInput(opts) && ocrEngineCount > 1) {
-    throw UsageError('Use at most one OCR provider at a time. Select one with --provider provider[=model].')
-  }
+  assertAtMostOneOcrEngine(opts)
 
   const format = step1Metadata.format
   const inputAdapter = resolveOcrInputAdapter(format, opts)
   const epubExportFlagsActive = hasEpubExportFlags(opts)
-  const pdfChunkOnlyRequested = format === 'pdf' && opts.chapterFiles === false && typeof opts.chapterChunkLimitChars === 'number'
+  const pdfChunkOnlyRequested = isPdfChunkOnlyRequest(format, opts)
 
-  if (format !== 'epub' && format !== 'pdf' && epubExportFlagsActive) {
-    l.warn(CHAPTER_EXPORT_FLAGS_IGNORED_WARNING, { category: 'pipeline' })
-  }
-  if (pdfChunkOnlyRequested) {
-    l.warn(PDF_LENGTH_WITHOUT_CHAPTERS_WARNING, { category: 'pipeline' })
-  }
+  warnInactiveChapterExportFlags(format, epubExportFlagsActive, pdfChunkOnlyRequested)
 
   let extracted: FormatExtractionResult
 
@@ -114,14 +153,7 @@ export const runOcr = async (
   let chapterExportSummary = extracted.chapterExportSummary
   let pdfChapterDetectionSummary = extracted.pdfChapterDetectionSummary
 
-  const extractedPdfPageCount = extracted.pages.length > 0
-    ? Math.max(...extracted.pages.map((page) => page.pageNumber))
-    : 0
-  const resolvedPdfPageCount = Math.max(
-    extractedPdfPageCount,
-    step1Metadata.pageCount,
-    extracted.reportedTotalPages ?? 0
-  )
+  const resolvedPdfPageCount = resolveExtractedPdfPageCount(extracted, step1Metadata)
   const pdfChapterFilesRequested = format === 'pdf'
     && shouldAttemptPdfChapterExport(opts.chapterFiles, resolvedPdfPageCount)
 
@@ -133,10 +165,7 @@ export const runOcr = async (
       filePath,
       pages: extracted.pages,
       mode: pdfChapterMode,
-      ...(typeof step1Metadata.title === 'string' ? { title: step1Metadata.title } : {}),
-      ...(typeof step1Metadata.author === 'string' ? { author: step1Metadata.author } : {}),
-      ...(typeof opts.password === 'string' ? { password: opts.password } : {}),
-      ...(typeof opts.chapterChunkLimitChars === 'number' ? { chunkLimitChars: opts.chapterChunkLimitChars } : {})
+      ...resolvePdfChapterArtifactOptions(step1Metadata, opts)
     })
     artifactFiles = pdfChapterOutput.files
     chapterExportSummary = pdfChapterOutput.summary as Record<string, unknown> | undefined

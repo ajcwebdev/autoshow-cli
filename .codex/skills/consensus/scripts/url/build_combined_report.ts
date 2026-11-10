@@ -266,6 +266,38 @@ function qualityByProvider(surface: SourceRankingSurface | undefined): Map<strin
   );
 }
 
+function collectGroupSamples(
+  groups: Record<UrlCombinedGroup, Map<string, CollectedUrlProvider>>,
+  run: UrlCombinedRun,
+  report: SingleRunReport,
+  group: UrlCombinedGroup,
+): void {
+  const qualityValues = qualityByProvider(report.rankingSurfaces?.[group]);
+  for (const detail of report.providerGroups?.[group]?.providers ?? []) {
+    if (!detail.providerKey) {
+      continue;
+    }
+    const existing = groups[group].get(detail.providerKey) ?? {
+      providerKey: detail.providerKey,
+      provider: detail.provider ?? detail.providerKey,
+      model: detail.model ?? detail.provider ?? detail.providerKey,
+      group,
+      samples: [],
+    };
+    existing.samples.push({
+      runName: run.runName,
+      group,
+      automatedQuality: qualityValues.get(detail.providerKey) ?? null,
+      wer: finiteOrNull(detail.metrics?.wer),
+      cer: finiteOrNull(detail.metrics?.cer),
+      contentCoverage: finiteOrNull(detail.metrics?.contentCoverage),
+      processingTimeMs: finiteOrNull(detail.processingTimeMs),
+      costCents: group === "local" ? 0 : finiteOrNull(detail.costCents),
+    });
+    groups[group].set(detail.providerKey, existing);
+  }
+}
+
 export function collectUrlProviderSamples(runs: UrlCombinedRun[]): CollectedUrlProvider[] {
   const groups: Record<UrlCombinedGroup, Map<string, CollectedUrlProvider>> = {
     local: new Map(),
@@ -275,30 +307,7 @@ export function collectUrlProviderSamples(runs: UrlCombinedRun[]): CollectedUrlP
   for (const run of runs) {
     const report = readJson<SingleRunReport>(run.reportPath);
     for (const group of GROUPS) {
-      const qualityValues = qualityByProvider(report.rankingSurfaces?.[group]);
-      for (const detail of report.providerGroups?.[group]?.providers ?? []) {
-        if (!detail.providerKey) {
-          continue;
-        }
-        const existing = groups[group].get(detail.providerKey) ?? {
-          providerKey: detail.providerKey,
-          provider: detail.provider ?? detail.providerKey,
-          model: detail.model ?? detail.provider ?? detail.providerKey,
-          group,
-          samples: [],
-        };
-        existing.samples.push({
-          runName: run.runName,
-          group,
-          automatedQuality: qualityValues.get(detail.providerKey) ?? null,
-          wer: finiteOrNull(detail.metrics?.wer),
-          cer: finiteOrNull(detail.metrics?.cer),
-          contentCoverage: finiteOrNull(detail.metrics?.contentCoverage),
-          processingTimeMs: finiteOrNull(detail.processingTimeMs),
-          costCents: group === "local" ? 0 : finiteOrNull(detail.costCents),
-        });
-        groups[group].set(detail.providerKey, existing);
-      }
+      collectGroupSamples(groups, run, report, group);
     }
   }
 
@@ -590,20 +599,30 @@ function inventoryCell(display: string, href?: string): DashboardRunInventoryCel
   return href === undefined ? { display } : { display, href };
 }
 
-function buildMarkdown(
-  rootDir: string,
-  runs: UrlCombinedRun[],
-  aggregated: AggregatedUrlProvider[],
-  groupedProviders: Record<UrlCombinedGroup, AggregatedUrlProvider[]>,
-  metricRankings: Record<UrlCombinedGroup, Record<UrlCombinedMetric, UrlMetricRankingEntry[]>>,
+interface UrlCombinedMarkdownInput {
+  rootDir: string;
+  runs: UrlCombinedRun[];
+  aggregated: AggregatedUrlProvider[];
+  groupedProviders: Record<UrlCombinedGroup, AggregatedUrlProvider[]>;
+  metricRankings: Record<UrlCombinedGroup, Record<UrlCombinedMetric, UrlMetricRankingEntry[]>>;
   counts: {
     providerRowCount: number;
     automatedQualityRowCount: number;
     humanQualityRowCount: number;
     longDistanceRunCount: number;
-  },
-  notes: string[],
-): string {
+  };
+  notes: string[];
+}
+
+function buildMarkdown({
+  rootDir,
+  runs,
+  aggregated,
+  groupedProviders,
+  metricRankings,
+  counts,
+  notes,
+}: UrlCombinedMarkdownInput): string {
   const md: string[] = [
     "# Combined URL Provider Comparison Report",
     "",
@@ -743,15 +762,15 @@ export function buildUrlCombinedReport(rootDirRaw: string, generatedAt = new Dat
     notes,
   };
 
-  const markdown = buildMarkdown(
+  const markdown = buildMarkdown({
     rootDir,
     runs,
     aggregated,
     groupedProviders,
     metricRankings,
-    { providerRowCount, automatedQualityRowCount, humanQualityRowCount, longDistanceRunCount },
+    counts: { providerRowCount, automatedQualityRowCount, humanQualityRowCount, longDistanceRunCount },
     notes,
-  );
+  });
 
   const dashboardModel: CombinedDashboardModel = {
     title: "Combined URL Provider Comparison",

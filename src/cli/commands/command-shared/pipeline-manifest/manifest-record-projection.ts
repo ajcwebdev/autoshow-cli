@@ -128,6 +128,36 @@ const findProviderMetadata = (
   )
 }
 
+const optionalProviderTargetFields = (
+  value: Record<string, unknown>
+): Pick<PipelineProviderState, 'model' | 'local' | 'operation' | 'targetKey' | 'transport'> => ({
+  ...(typeof value['model'] === 'string' || value['model'] === null ? { model: value['model'] } : {}),
+  ...(typeof value['local'] === 'boolean' ? { local: value['local'] } : {}),
+  ...(typeof value['operation'] === 'string' ? { operation: value['operation'] } : {}),
+  ...(typeof value['targetKey'] === 'string' ? { targetKey: value['targetKey'] } : {}),
+  ...(typeof value['transport'] === 'string' ? { transport: value['transport'] } : {})
+})
+
+const providerStatusFrom = (state: Record<string, unknown>): PipelineProviderState['status'] =>
+  typeof state['status'] === 'string' && PROVIDER_STATUS_SET.has(state['status'])
+    ? state['status'] as PipelineProviderState['status']
+    : 'missing'
+
+const providerAttemptsFrom = (state: Record<string, unknown>): number =>
+  typeof state['attempts'] === 'number' && Number.isInteger(state['attempts']) && state['attempts'] >= 0
+    ? state['attempts']
+    : 0
+
+const providerStateOptionsFrom = (
+  state: Record<string, unknown>,
+  request: Record<string, unknown> | undefined
+): Record<string, unknown> =>
+  isRecord(state['options'])
+    ? state['options']
+    : request
+      ? providerOptions(request)
+      : {}
+
 const createProviderStatesFromRecord = (
   rootDir: string,
   record: Record<string, unknown>
@@ -160,27 +190,15 @@ const createProviderStatesFromRecord = (
     if (requested.length > 0 && !request) {
       throw UsageError('Canonical provider states must contain only explicitly requested targets.')
     }
-    const status = typeof state['status'] === 'string' && PROVIDER_STATUS_SET.has(state['status'])
-      ? state['status'] as PipelineProviderState['status']
-      : 'missing'
+    const status = providerStatusFrom(state)
     const artifactDir = typeof state['artifactDir'] === 'string' ? state['artifactDir'] : '.'
     return {
       service: state['service'],
-      ...(typeof state['model'] === 'string' || state['model'] === null ? { model: state['model'] } : {}),
-      ...(typeof state['local'] === 'boolean' ? { local: state['local'] } : {}),
-      ...(typeof state['operation'] === 'string' ? { operation: state['operation'] } : {}),
-      ...(typeof state['targetKey'] === 'string' ? { targetKey: state['targetKey'] } : {}),
-      ...(typeof state['transport'] === 'string' ? { transport: state['transport'] } : {}),
+      ...optionalProviderTargetFields(state),
       artifactDir: toManifestRelativePath(rootDir, artifactDir),
       status,
-      attempts: typeof state['attempts'] === 'number' && Number.isInteger(state['attempts']) && state['attempts'] >= 0
-        ? state['attempts']
-        : 0,
-      options: isRecord(state['options'])
-        ? state['options']
-        : request
-          ? providerOptions(request)
-          : {},
+      attempts: providerAttemptsFrom(state),
+      options: providerStateOptionsFrom(state, request),
       metadata: isRecord(state['metadata'])
         ? state['metadata']
         : findProviderMetadata(record, state['service'], typeof state['model'] === 'string' || state['model'] === null ? state['model'] : undefined) ?? {},
@@ -202,11 +220,7 @@ const createProviderStatesFromRecord = (
     }
     states.push({
       service: request['service'],
-      ...(typeof request['model'] === 'string' || request['model'] === null ? { model: request['model'] } : {}),
-      ...(typeof request['local'] === 'boolean' ? { local: request['local'] } : {}),
-      ...(typeof request['operation'] === 'string' ? { operation: request['operation'] } : {}),
-      ...(typeof request['targetKey'] === 'string' ? { targetKey: request['targetKey'] } : {}),
-      ...(typeof request['transport'] === 'string' ? { transport: request['transport'] } : {}),
+      ...optionalProviderTargetFields(request),
       artifactDir: '.',
       status: 'missing',
       attempts: 0,
@@ -217,6 +231,18 @@ const createProviderStatesFromRecord = (
   }
   return states
 }
+
+const storedStatusFromRecord = (record: PipelineItemRecord): PipelineManifestItem['status'] | undefined =>
+  record['completionStatus'] === 'full'
+    || record['completionStatus'] === 'incomplete'
+    || record['completionStatus'] === 'failed'
+    || record['completionStatus'] === 'skipped'
+    ? record['completionStatus']
+    : record['status'] === 'failed'
+      ? 'failed'
+      : record['status'] === 'completed'
+        ? 'full'
+        : undefined
 
 export const createPipelineItemFromRecord = (
   rootDir: string,
@@ -251,16 +277,7 @@ export const createPipelineItemFromRecord = (
     delete metadata['step2']
   }
 
-  const storedStatus = record['completionStatus'] === 'full'
-    || record['completionStatus'] === 'incomplete'
-    || record['completionStatus'] === 'failed'
-    || record['completionStatus'] === 'skipped'
-    ? record['completionStatus']
-    : record['status'] === 'failed'
-      ? 'failed'
-      : record['status'] === 'completed'
-        ? 'full'
-        : undefined
+  const storedStatus = storedStatusFromRecord(record)
   const child = options.child
   const rawInputFamily = options.inputFamily ?? record['inputFamily']
   const rawRoute = options.extractRoute ?? record['extractRoute']

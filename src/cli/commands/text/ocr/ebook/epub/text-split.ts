@@ -1,4 +1,5 @@
 import { basename, extname } from 'node:path'
+import { ValidationError } from '~/utils/error-handler'
 import { sanitizeTitleSlug } from '~/cli/commands/sources/download/download-audio/metadata-utils'
 import type { EpubTextSection } from '~/types'
 
@@ -26,7 +27,37 @@ export const buildSectionSlug = (section: Pick<EpubTextSection, 'index' | 'title
   return candidates[0] ?? `section-${section.index}`
 }
 
+const splitOversizedParagraph = (paragraph: string, maxChars: number, chunks: string[]): string => {
+  const words = paragraph.split(/\s+/)
+  let wordChunk = ''
+  for (const word of words) {
+    const next = wordChunk.length > 0 ? `${wordChunk} ${word}` : word
+    if (next.length <= maxChars) {
+      wordChunk = next
+      continue
+    }
+
+    if (wordChunk.length > 0) {
+      chunks.push(wordChunk)
+      wordChunk = ''
+    }
+
+    if (word.length <= maxChars) {
+      wordChunk = word
+      continue
+    }
+
+    for (let index = 0; index < word.length; index += maxChars) {
+      chunks.push(word.slice(index, index + maxChars))
+    }
+  }
+  return wordChunk
+}
+
 export const splitWithHardLimit = (text: string, maxChars: number): string[] => {
+  if (!Number.isSafeInteger(maxChars) || maxChars <= 0) {
+    throw ValidationError('Chapter chunk character limit must be a positive safe integer.')
+  }
   const chunks: string[] = []
   const paragraphs = text.split(/\n\n+/)
   let current = ''
@@ -53,30 +84,7 @@ export const splitWithHardLimit = (text: string, maxChars: number): string[] => 
       continue
     }
 
-    const words = trimmed.split(/\s+/)
-    let wordChunk = ''
-    for (const word of words) {
-      const next = wordChunk.length > 0 ? `${wordChunk} ${word}` : word
-      if (next.length <= maxChars) {
-        wordChunk = next
-        continue
-      }
-
-      if (wordChunk.length > 0) {
-        chunks.push(wordChunk)
-        wordChunk = ''
-      }
-
-      if (word.length <= maxChars) {
-        wordChunk = word
-        continue
-      }
-
-      for (let index = 0; index < word.length; index += maxChars) {
-        chunks.push(word.slice(index, index + maxChars))
-      }
-    }
-
+    const wordChunk = splitOversizedParagraph(trimmed, maxChars, chunks)
     if (wordChunk.length > 0) {
       current = wordChunk
     }

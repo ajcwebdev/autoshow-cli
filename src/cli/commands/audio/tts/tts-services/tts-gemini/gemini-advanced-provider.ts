@@ -34,6 +34,14 @@ const resourceId = (record: Record<string, unknown>): string => {
   if (!id || !/^voice_[A-Za-z0-9_-]+$/.test(id)) throw UsageError('Gemini did not return a persistent voice_ resource.')
   return id
 }
+type GeminiDesignCandidateInput = Parameters<NonNullable<TtsVoiceProvider['design']>['createCandidate']>[0]
+const assertGeminiDesignCandidateInput: (input: GeminiDesignCandidateInput) => asserts input is GeminiDesignCandidateInput & { desiredName: string } = (input) => {
+  validateGeminiTtsModel(input.creationModel)
+  if (input.previewText) serializeGeminiInteraction(input.creationModel, [{ text: input.previewText, speaker: 'Narrator', voice: 'voice_' + 'x'.repeat(190) }])
+  if (input.seed !== undefined || input.sourceVoice) throw UsageError('Gemini voice design does not support seed or remix controls.')
+  if (!input.desiredName?.trim() || !input.description.trim()) throw UsageError('Gemini design requires a description and --voice-name at creation.')
+  if (!Number.isSafeInteger(input.candidateCount) || input.candidateCount < 1 || input.candidateCount > 20) throw UsageError('Gemini design candidate count must be 1-20.')
+}
 export const createGeminiAdvancedProvider = (options: GeminiAdvancedProviderOptions): Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string } => {
   const request = options.request ?? createAdvancedProviderJsonRequest({ baseUrl: 'https://generativelanguage.googleapis.com', apiKey: options.apiKey, apiKeyHeader: 'x-goog-api-key', providerLabel: 'Gemini' })
   const now = options.now ?? (() => new Date().toISOString())
@@ -60,12 +68,8 @@ export const createGeminiAdvancedProvider = (options: GeminiAdvancedProviderOpti
     }
     throw UsageError('Gemini voice resource is not owned by this creation journal.')
   }
-  const createDesign = async (input: Parameters<NonNullable<TtsVoiceProvider['design']>['createCandidate']>[0]) => {
-    validateGeminiTtsModel(input.creationModel)
-    if (input.previewText) serializeGeminiInteraction(input.creationModel, [{ text: input.previewText, speaker: 'Narrator', voice: 'voice_' + 'x'.repeat(190) }])
-    if (input.seed !== undefined || input.sourceVoice) throw UsageError('Gemini voice design does not support seed or remix controls.')
-    if (!input.desiredName?.trim() || !input.description.trim()) throw UsageError('Gemini design requires a description and --voice-name at creation.')
-    if (!Number.isSafeInteger(input.candidateCount) || input.candidateCount < 1 || input.candidateCount > 20) throw UsageError('Gemini design candidate count must be 1-20.')
+  const createDesign = async (input: GeminiDesignCandidateInput) => {
+    assertGeminiDesignCandidateInput(input)
     if (!options.creationJournalRoot || !options.protectedStore?.storeBytes) throw UsageError('Gemini design requires a durable creation journal and protected preview store.')
     await mkdir(options.creationJournalRoot, { recursive: true, mode: 0o700 })
     const previews = []

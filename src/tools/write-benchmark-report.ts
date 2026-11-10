@@ -14,28 +14,38 @@ const total = (values: Array<number | null>): number | null => values.length && 
 const escapeCell = (value: string): string => value.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ')
 const evidenceName = '2026-10-18-write.evidence.zip'
 
-export async function archiveWriteBenchmarkEvidence(rootDir: string): Promise<void> {
-  const zip = Bun.which('zip')
-  if (!zip) throw InfraError('zip is required to package Write benchmark evidence.')
+const evidenceRunDirectories = (dir: string): string[] => {
+  const rerunsDir = join(dir, 'reruns')
+  return [dir, ...(existsSync(rerunsDir) ? readdirSync(rerunsDir, { withFileTypes: true })
+    .filter(entry => entry.name !== '.DS_Store' && entry.isDirectory()).map(entry => join(rerunsDir, entry.name)) : [])]
+}
+const isEvidenceName = (name: string): boolean => ['manifest.json', 'source.txt', 'prompt.md'].includes(name)
+  || /^(slot-|raw-response-|failure-).*\.json$/.test(name)
+const assertSettledSlot = (rootDir: string, runDir: string, name: string): void => {
+  if (!name.startsWith('slot-')) return
+  const slot = JSON.parse(readFileSync(join(runDir, name), 'utf8')) as { status: string }
+  if (slot.status === 'dispatch-started') throw ValidationError(`Cannot archive an in-flight slot: ${relative(rootDir, join(runDir, name))}`)
+}
+const collectEvidenceFiles = (rootDir: string): string[] => {
   const files = ['benchmark-plan.json', ...(existsSync(join(rootDir, 'rerun-plan.json')) ? ['rerun-plan.json'] : [])]
   for (const benchmark of WRITE_BENCHMARK_CASES) {
     const dir = join(rootDir, benchmark.directory)
     if (!existsSync(dir)) continue
-    const rerunsDir = join(dir, 'reruns')
-    const runDirs = [dir, ...(existsSync(rerunsDir) ? readdirSync(rerunsDir, { withFileTypes: true })
-      .filter(entry => entry.name !== '.DS_Store' && entry.isDirectory()).map(entry => join(rerunsDir, entry.name)) : [])]
-    for (const runDir of runDirs) {
-      for (const name of readdirSync(runDir).filter(name => ['manifest.json', 'source.txt', 'prompt.md'].includes(name)
-        || /^(slot-|raw-response-|failure-).*\.json$/.test(name))) {
-        if (name.startsWith('slot-')) {
-          const slot = JSON.parse(readFileSync(join(runDir, name), 'utf8')) as { status: string }
-          if (slot.status === 'dispatch-started') throw ValidationError(`Cannot archive an in-flight slot: ${relative(rootDir, join(runDir, name))}`)
-        }
+    for (const runDir of evidenceRunDirectories(dir)) {
+      for (const name of readdirSync(runDir).filter(isEvidenceName)) {
+        assertSettledSlot(rootDir, runDir, name)
         files.push(relative(rootDir, join(runDir, name)).split('\\').join('/'))
       }
     }
   }
   files.sort()
+  return files
+}
+
+export async function archiveWriteBenchmarkEvidence(rootDir: string): Promise<void> {
+  const zip = Bun.which('zip')
+  if (!zip) throw InfraError('zip is required to package Write benchmark evidence.')
+  const files = collectEvidenceFiles(rootDir)
   const stage = await mkdtemp(join(tmpdir(), 'autoshow-write-evidence-'))
   try {
     const checksums = []

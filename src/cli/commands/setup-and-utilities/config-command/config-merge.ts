@@ -407,6 +407,56 @@ const resolveConfigFlagValue = (flagName: string, rawValue: unknown): unknown =>
   return parseConfigValue(flagName, rawValue)
 }
 
+const resolveExplicitFlagConfigValue = (
+  flagName: string,
+  flags: Record<string, unknown>,
+  rawOccurrences: ReturnType<typeof collectRepeatableModelFlagOccurrences>
+): { value: unknown } | undefined => {
+  if (REPEATABLE_CONFIG_MODEL_FLAG_SET.has(flagName)) {
+    const value = normalizeModelFlagOccurrences(flagName as RepeatableModelFlag, flags, rawOccurrences)
+    return !Array.isArray(value) || value.length === 0 ? undefined : { value }
+  }
+  const rawValue = readConfigFlagValue(flags, flagName)
+  return rawValue === undefined ? undefined : { value: resolveConfigFlagValue(flagName, rawValue) }
+}
+
+const assertConfiguredModelsSupported = (flagName: string, configPath: readonly string[], value: unknown): void => {
+  const category = configPath[1] === 'llm' ? 'llm' : configPath[1] === 'extract' && configPath[2] === 'ocr' ? 'extract' : undefined
+  if (!category || !Array.isArray(value)) return
+  const provider = flagName.replace(/-ocr$/, '')
+  for (const model of value) {
+    if (typeof model !== 'string' || !getModelRegistry()[category][provider]?.models[model]) throw UsageError(`Unsupported configured model ${provider}/${String(model)}. Select an active model explicitly.`)
+  }
+}
+
+const warnDiscardedConfigFlags = (discardedFlags: string[]): void => {
+  if (discardedFlags.length > 0) {
+    l.warn(
+      `These flags have no config destination and were not saved: ${discardedFlags.sort().map(flag => `--${flag}`).join(', ')}. `
+      + 'Pass them on the command that uses them instead.',
+      { category: 'command', metadata: { discardedFlags: [...discardedFlags].sort() } }
+    )
+  }
+}
+
+const setSharedConcurrencyDefaults = (
+  patch: Record<string, unknown>,
+  value: unknown,
+  paths: readonly string[][]
+): void => {
+  for (const path of paths) {
+    setNestedValue(patch, path, value)
+  }
+}
+
+const setPromptDefaults = (patch: Record<string, unknown>, promptVal: unknown): void => {
+  if (Array.isArray(promptVal)) {
+    setNestedValue(patch, ['defaults', 'prompts'], promptVal)
+  } else if (typeof promptVal === 'string' && promptVal.length > 0) {
+    setNestedValue(patch, ['defaults', 'prompts'], [promptVal])
+  }
+}
+
 export const buildConfigPatchFromFlags = (
   flags: Record<string, unknown>,
   explicitFlags: Set<string>,
@@ -427,40 +477,17 @@ export const buildConfigPatchFromFlags = (
       if (!MULTI_DESTINATION_FLAGS.has(flagName)) discardedFlags.push(flagName)
       continue
     }
-    let value: unknown
-
-    if (REPEATABLE_CONFIG_MODEL_FLAG_SET.has(flagName)) {
-      value = normalizeModelFlagOccurrences(flagName as RepeatableModelFlag, flags, rawOccurrences)
-      if (!Array.isArray(value) || value.length === 0) {
-        continue
-      }
-    } else {
-      const rawValue = readConfigFlagValue(flags, flagName)
-      if (rawValue === undefined) continue
-      value = resolveConfigFlagValue(flagName, rawValue)
-    }
-
-    const category = configPath[1] === 'llm' ? 'llm' : configPath[1] === 'extract' && configPath[2] === 'ocr' ? 'extract' : undefined
-    if (category && Array.isArray(value)) {
-      const provider = flagName.replace(/-ocr$/, '')
-      for (const model of value) {
-        if (typeof model !== 'string' || !getModelRegistry()[category][provider]?.models[model]) throw UsageError(`Unsupported configured model ${provider}/${String(model)}. Select an active model explicitly.`)
-      }
-    }
-    setNestedValue(patch, configPath, value)
+    const resolved = resolveExplicitFlagConfigValue(flagName, flags, rawOccurrences)
+    if (!resolved) continue
+    assertConfiguredModelsSupported(flagName, configPath, resolved.value)
+    setNestedValue(patch, configPath, resolved.value)
   }
 
-  if (discardedFlags.length > 0) {
-    l.warn(
-      `These flags have no config destination and were not saved: ${discardedFlags.sort().map(flag => `--${flag}`).join(', ')}. `
-      + 'Pass them on the command that uses them instead.',
-      { category: 'command', metadata: { discardedFlags: [...discardedFlags].sort() } }
-    )
-  }
+  warnDiscardedConfigFlags(discardedFlags)
 
   if (explicitFlags.has('provider-concurrency')) {
     const value = resolveConfigFlagValue('provider-concurrency', flags['provider-concurrency'])
-    for (const path of [
+    setSharedConcurrencyDefaults(patch, value, [
       ['defaults', 'extract', 'stt', 'providerConcurrency'],
       ['defaults', 'extract', 'ocr', 'providerConcurrency'],
       ['defaults', 'llm', 'providerConcurrency'],
@@ -468,19 +495,15 @@ export const buildConfigPatchFromFlags = (
       ['defaults', 'image', 'providerConcurrency'],
       ['defaults', 'video', 'providerConcurrency'],
       ['defaults', 'music', 'providerConcurrency']
-    ]) {
-      setNestedValue(patch, path, value)
-    }
+    ])
   }
 
   if (explicitFlags.has('local-concurrency')) {
     const value = resolveConfigFlagValue('local-concurrency', flags['local-concurrency'])
-    for (const path of [
+    setSharedConcurrencyDefaults(patch, value, [
       ['defaults', 'extract', 'stt', 'localConcurrency'],
       ['defaults', 'extract', 'ocr', 'localConcurrency']
-    ]) {
-      setNestedValue(patch, path, value)
-    }
+    ])
   }
 
   if (explicitFlags.has(STEP_CONCURRENCY_FLAG)) {
@@ -490,12 +513,7 @@ export const buildConfigPatchFromFlags = (
   }
 
   if (explicitFlags.has('prompt') && !RUNTIME_ONLY_FLAGS.has('prompt')) {
-    const promptVal = flags['prompt']
-    if (Array.isArray(promptVal)) {
-      setNestedValue(patch, ['defaults', 'prompts'], promptVal)
-    } else if (typeof promptVal === 'string' && promptVal.length > 0) {
-      setNestedValue(patch, ['defaults', 'prompts'], [promptVal])
-    }
+    setPromptDefaults(patch, flags['prompt'])
   }
 
   return patch

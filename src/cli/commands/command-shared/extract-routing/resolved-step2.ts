@@ -153,27 +153,12 @@ export const resolveOcrStep2ExecutionFromFormat = (
         sourceKind: 'rtf'
       }
     case 'pdf':
-      return {
-        route: 'ocr',
-        sourceKind: 'pdf',
-        providers: providers.length > 0 || hasModelCostFilterPlan(options) ? providers : [DEFAULT_TESSERACT_PROVIDER]
-      }
     case 'image':
-      return {
-        route: 'ocr',
-        sourceKind: 'image',
-        providers: providers.length > 0 || hasModelCostFilterPlan(options) ? providers : [DEFAULT_TESSERACT_PROVIDER]
-      }
     case 'epub-pdf':
-      return {
-        route: 'ocr',
-        sourceKind: 'epub-pdf',
-        providers: providers.length > 0 || hasModelCostFilterPlan(options) ? providers : [DEFAULT_TESSERACT_PROVIDER]
-      }
     case 'cbz-images':
       return {
         route: 'ocr',
-        sourceKind: 'cbz-images',
+        sourceKind: ocrSourceKind,
         providers: providers.length > 0 || hasModelCostFilterPlan(options) ? providers : [DEFAULT_TESSERACT_PROVIDER]
       }
   }

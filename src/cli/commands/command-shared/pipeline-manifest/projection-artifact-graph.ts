@@ -1,8 +1,10 @@
 import { resolve } from 'node:path'
 import type {
+  GenericTtsDialoguePlan,
   PipelineManifest,
   PipelineManifestItem,
-  ProviderRenderPlan
+  ProviderRenderPlan,
+  TtsDialoguePlanArtifactRef
 } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { readFileBytes } from '~/utils/bun-file-io'
@@ -28,6 +30,30 @@ export {
   validateProjectionArtifactGraphLinks
 } from './projection-artifact-graph-links'
 
+const dialoguePlanMismatchesItem = (
+  dialoguePlan: GenericTtsDialoguePlan,
+  reference: TtsDialoguePlanArtifactRef,
+  item: PipelineManifestItem,
+  itemIndex: number | undefined
+): boolean =>
+  dialoguePlan.dialoguePlanId !== reference.dialoguePlanId
+  || (dialoguePlan.sourceIdentity.sourceLocator.kind === 'file' && item.input !== dialoguePlan.sourceIdentity.sourceLocator.canonicalPath)
+  // A single-item export retains its original directory-batch position.
+  || (itemIndex !== undefined && dialoguePlan.sourceIdentity.sourceLocator.kind === 'batch-item' && dialoguePlan.sourceIdentity.sourceLocator.itemIndex !== itemIndex)
+
+const renderPlanBytesMatchDialoguePlan = (
+  planBytes: Buffer,
+  render: Record<string, unknown>,
+  dialoguePlan: GenericTtsDialoguePlan
+): boolean => {
+  if (new Bun.CryptoHasher('sha256').update(planBytes).digest('hex') !== render['renderPlanSha256']) return false
+  const planValue = JSON.parse(planBytes.toString('utf8')) as unknown
+  if (!isRecord(planValue)) return false
+  const renderPlan = validateProviderRenderPlanIdentity(planValue as unknown as ProviderRenderPlan)
+  return renderPlan.dialoguePlanId === dialoguePlan.dialoguePlanId
+    && renderPlan.sourceIdentityHash === dialoguePlan.sourceIdentity.identityHash
+}
+
 const verifyTtsItemDialoguePlan = async (
   rootDir: string,
   item: PipelineManifestItem,
@@ -47,12 +73,7 @@ const verifyTtsItemDialoguePlan = async (
       || references.some((candidate) => canonicalManifestJson(candidate) !== canonicalManifestJson(reference))
     ) return false
     const dialoguePlan = validateGenericTtsDialoguePlan(await readTtsDialoguePlanArtifact(rootDir, reference))
-    if (
-      dialoguePlan.dialoguePlanId !== reference.dialoguePlanId
-      || (dialoguePlan.sourceIdentity.sourceLocator.kind === 'file' && item.input !== dialoguePlan.sourceIdentity.sourceLocator.canonicalPath)
-      // A single-item export retains its original directory-batch position.
-      || (itemIndex !== undefined && dialoguePlan.sourceIdentity.sourceLocator.kind === 'batch-item' && dialoguePlan.sourceIdentity.sourceLocator.itemIndex !== itemIndex)
-    ) return false
+    if (dialoguePlanMismatchesItem(dialoguePlan, reference, item, itemIndex)) return false
     const changedProviderJson = new Set(providersToVerify.map((provider) => canonicalManifestJson(provider)))
     for (const provider of synthesisProviders) {
       if (!changedProviderJson.has(canonicalManifestJson(provider))) continue
@@ -62,14 +83,7 @@ const verifyTtsItemDialoguePlan = async (
         if (!isRecord(render) || typeof render['renderPlanRef'] !== 'string' || !isSha256(render['renderPlanSha256'])) return false
         const planPath = resolve(rootDir, provider.artifactDir, render['renderPlanRef'])
         const planBytes = await readFileBytes(planPath)
-        if (new Bun.CryptoHasher('sha256').update(planBytes).digest('hex') !== render['renderPlanSha256']) return false
-        const planValue = JSON.parse(planBytes.toString('utf8')) as unknown
-        if (!isRecord(planValue)) return false
-        const renderPlan = validateProviderRenderPlanIdentity(planValue as unknown as ProviderRenderPlan)
-        if (
-          renderPlan.dialoguePlanId !== dialoguePlan.dialoguePlanId
-          || renderPlan.sourceIdentityHash !== dialoguePlan.sourceIdentity.identityHash
-        ) return false
+        if (!renderPlanBytesMatchDialoguePlan(planBytes, render, dialoguePlan)) return false
       }
     }
     return true

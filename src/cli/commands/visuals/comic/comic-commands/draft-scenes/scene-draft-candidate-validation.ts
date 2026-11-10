@@ -20,23 +20,18 @@ const parseSceneJsonResponse = (
   return JSON.parse(options.lenient ? extractLlmJsonPayload(content, STAGE) : content)
 }
 
-const stripSpeechToneNulls = (parsed: unknown): void => {
-  if (parsed && typeof parsed === 'object' && 'panels' in parsed && Array.isArray(parsed.panels)) {
-    for (const panel of parsed.panels) {
-      if (
-        panel
-        && typeof panel === 'object'
-        && 'speech' in panel
-        && Array.isArray(panel.speech)
-      ) {
-        for (const item of panel.speech) {
-          if (item && typeof item === 'object' && 'tone' in item && item.tone === null) {
-            delete item.tone
-          }
-        }
-      }
+const stripPanelSpeechToneNulls = (panel: unknown): void => {
+  if (!(panel && typeof panel === 'object' && 'speech' in panel && Array.isArray(panel.speech))) return
+  for (const item of panel.speech) {
+    if (item && typeof item === 'object' && 'tone' in item && item.tone === null) {
+      delete item.tone
     }
   }
+}
+
+const stripSpeechToneNulls = (parsed: unknown): void => {
+  if (!(parsed && typeof parsed === 'object' && 'panels' in parsed && Array.isArray(parsed.panels))) return
+  for (const panel of parsed.panels) stripPanelSpeechToneNulls(panel)
 }
 
 const RETRY_GUIDANCE: Record<SceneDraftRetryReason, string> = {

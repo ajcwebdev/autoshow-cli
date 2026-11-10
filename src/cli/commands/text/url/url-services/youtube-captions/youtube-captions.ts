@@ -90,6 +90,70 @@ const parseVttTimestampSeconds = (value: string): number | null => {
   return (hours * 3600) + (minutes * 60) + seconds
 }
 
+type VttCueBlockTiming = { timingIndex: number, startSeconds: number, endSeconds: number }
+
+const readVttCueBlockTiming = (lines: string[]): VttCueBlockTiming | undefined => {
+  if (lines.length === 0) {
+    return undefined
+  }
+
+  const header = lines[0] as string
+  if (
+    header === 'WEBVTT'
+    || header.startsWith('NOTE')
+    || header.startsWith('STYLE')
+    || header.startsWith('REGION')
+  ) {
+    return undefined
+  }
+
+  const timingIndex = lines.findIndex((line) => TIMING_LINE_PATTERN.test(line))
+  if (timingIndex < 0) {
+    return undefined
+  }
+
+  const match = lines[timingIndex]?.match(TIMING_LINE_PATTERN)
+  if (!match) {
+    return undefined
+  }
+
+  const startSeconds = parseVttTimestampSeconds(match[1] ?? '')
+  const endSeconds = parseVttTimestampSeconds(match[2] ?? '')
+  if (startSeconds === null || endSeconds === null) {
+    return undefined
+  }
+
+  return { timingIndex, startSeconds, endSeconds }
+}
+
+const appendVttCueSpans = (cues: ParsedYoutubeCue[], rawText: string, timing: VttCueBlockTiming): void => {
+  const { startSeconds, endSeconds } = timing
+  let spanStart = startSeconds
+  let spanText = ''
+  let speaker: string | undefined
+  const flush = (end: number): void => {
+    const text = stripCueText(spanText)
+    if (text && end > spanStart) cues.push({ startSeconds: spanStart, endSeconds: end, text, ...(speaker ? { speaker } : {}) })
+    spanText = ''
+  }
+  for (const part of rawText.split(/(<[^>]+>)/g)) {
+    const timestamp = part.match(/^<((?:\d+:)?\d{2}:\d{2}\.\d{3})>$/)
+    const voice = part.match(/^<v(?:\.[^ ]+)?\s+([^>]+)>$/)
+    if (timestamp) {
+      const boundary = parseVttTimestampSeconds(timestamp[1]!)
+      if (boundary !== null && boundary >= spanStart && boundary <= endSeconds) {
+        flush(boundary)
+        spanStart = boundary
+      }
+    } else if (voice) {
+      speaker = voice[1]!.trim()
+    } else {
+      spanText += part
+    }
+  }
+  flush(endSeconds)
+}
+
 const parseYoutubeVttCues = (input: string): ParsedYoutubeCue[] => {
   const blocks = input
     .replace(/^\uFEFF/, '')
@@ -103,61 +167,12 @@ const parseYoutubeVttCues = (input: string): ParsedYoutubeCue[] => {
       .map((line) => line.trim())
       .filter((line) => line.length > 0)
 
-    if (lines.length === 0) {
+    const timing = readVttCueBlockTiming(lines)
+    if (!timing) {
       continue
     }
 
-    const header = lines[0] as string
-    if (
-      header === 'WEBVTT'
-      || header.startsWith('NOTE')
-      || header.startsWith('STYLE')
-      || header.startsWith('REGION')
-    ) {
-      continue
-    }
-
-    const timingIndex = lines.findIndex((line) => TIMING_LINE_PATTERN.test(line))
-    if (timingIndex < 0) {
-      continue
-    }
-
-    const match = lines[timingIndex]?.match(TIMING_LINE_PATTERN)
-    if (!match) {
-      continue
-    }
-
-    const startSeconds = parseVttTimestampSeconds(match[1] ?? '')
-    const endSeconds = parseVttTimestampSeconds(match[2] ?? '')
-    if (startSeconds === null || endSeconds === null) {
-      continue
-    }
-
-    const rawText = lines.slice(timingIndex + 1).join(' ')
-    let spanStart = startSeconds
-    let spanText = ''
-    let speaker: string | undefined
-    const flush = (end: number): void => {
-      const text = stripCueText(spanText)
-      if (text && end > spanStart) cues.push({ startSeconds: spanStart, endSeconds: end, text, ...(speaker ? { speaker } : {}) })
-      spanText = ''
-    }
-    for (const part of rawText.split(/(<[^>]+>)/g)) {
-      const timestamp = part.match(/^<((?:\d+:)?\d{2}:\d{2}\.\d{3})>$/)
-      const voice = part.match(/^<v(?:\.[^ ]+)?\s+([^>]+)>$/)
-      if (timestamp) {
-        const boundary = parseVttTimestampSeconds(timestamp[1]!)
-        if (boundary !== null && boundary >= spanStart && boundary <= endSeconds) {
-          flush(boundary)
-          spanStart = boundary
-        }
-      } else if (voice) {
-        speaker = voice[1]!.trim()
-      } else {
-        spanText += part
-      }
-    }
-    flush(endSeconds)
+    appendVttCueSpans(cues, lines.slice(timing.timingIndex + 1).join(' '), timing)
   }
 
   return cues

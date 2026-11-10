@@ -98,6 +98,59 @@ const safeFailure = (receipts: readonly Receipt[], pending: boolean): Record<str
     ? 'No completed saved provider slot is available.' : 'The saved provider slot did not produce a successful OCR result; raw error evidence remains private.' }
 }
 
+type PreparedProvider = { state: ProviderState, saved: SavedProvider | null, receipts: Receipt[] }
+
+const assertReceiptsMatchBatch = (ledger: v.InferOutput<typeof ledgerSchema>, plan: v.InferOutput<typeof planSchema>, targets: ReadonlyArray<v.InferOutput<typeof targetSchema>>): void => {
+  for (const receipt of ledger.receipts) {
+    const source = plan.cases.find(entry => entry.id === receipt.caseId)
+    if (!source || source.inputSha256 !== receipt.inputSha256 || !targets.some(target => target.provider === receipt.provider && target.model === receipt.model)
+      || receipt.status === 'rejected' && receipt.chargedCents !== 0
+      || ['reserved', 'ambiguous'].includes(receipt.status) && receipt.chargedCents !== receipt.reservedCents
+      || !Number.isFinite(Date.parse(receipt.createdAt))) throw new AppValidationError('Spending receipt does not match the declared batch')
+  }
+}
+
+const caseTimingSteps = (providers: readonly PreparedProvider[]) =>
+  providers.flatMap(({ state }) => typeof state.metadata['processingTime'] === 'number' && state.status === 'succeeded'
+    ? [{ step: 'extract', provider: state.service, model: state.model, processingTimeMs: state.metadata['processingTime'] }] : [])
+
+const caseCostSteps = (providers: readonly PreparedProvider[]) =>
+  providers.flatMap(({ state, receipts }) => {
+    const spending = summarizeCleanTypographyReceipts(receipts)
+    return state.local ? [{ step: 'extract', provider: state.service, model: state.model, cost: 0, costSource: 'local_zero' }]
+      : receipts.some(receipt => receipt.status === 'settled') || spending.heldReservationCents > 0 ? [{ step: 'extract', provider: state.service, model: state.model,
+        cost: spending.accountedCents, costSource: spending.settledConservativeCents > 0 || spending.heldReservationCents > 0 ? 'conservative_upper_bound' : 'provider_usage_at_reviewed_rates',
+        costBreakdown: { reviewedUsageCents: spending.providerReportedCents, settledConservativeCents: spending.settledConservativeCents,
+          heldReservationCents: spending.heldReservationCents, accountedCents: spending.accountedCents } }] : []
+  })
+
+const providerCostAccounting = (providers: readonly PreparedProvider[]) =>
+  new Map(providers.map(provider => {
+    const spending = summarizeCleanTypographyReceipts(provider.receipts)
+    return [`${provider.state.service}/${provider.state.model}`, { ...spending, costSource: provider.state.local ? 'local_zero'
+      : spending.settledConservativeCents > 0 || spending.heldReservationCents > 0 ? 'conservative_upper_bound'
+          : provider.receipts.some(receipt => receipt.status === 'settled') ? 'provider_usage_at_reviewed_rates' : 'unavailable' }]
+  }))
+
+const attachReportCosts = (report: Record<string, unknown>, costs: ReturnType<typeof providerCostAccounting>): void => {
+  const addCost = (value: unknown): void => {
+    if (!record(value) || typeof value['providerKey'] !== 'string') return
+    const cost = costs.get(value['providerKey'])
+    if (cost) {
+      value['costSource'] = cost.costSource
+      value['costAccounting'] = cost
+      value['costBreakdown'] = { reviewedUsageCents: cost.providerReportedCents, settledConservativeCents: cost.settledConservativeCents,
+        heldReservationCents: cost.heldReservationCents, accountedCents: cost.accountedCents }
+    }
+  }
+  if (record(report['providerGroups'])) for (const group of Object.values(report['providerGroups'])) {
+    if (record(group) && Array.isArray(group['providers'])) group['providers'].forEach(addCost)
+  }
+  if (record(report['metricRankings'])) for (const group of Object.values(report['metricRankings'])) {
+    if (record(group) && Array.isArray(group['price'])) group['price'].forEach(addCost)
+  }
+}
+
 const prepareReports = async (options: CleanTypographyReportOptions) => {
   const root = await realpath(options.projectRoot ?? PROJECT_ROOT)
   const within = (path: string): string => { portable(path); return resolve(root, path) }
@@ -122,13 +175,7 @@ const prepareReports = async (options: CleanTypographyReportOptions) => {
   const ledgerPath = options.ledgerPath ?? defaultLedger
   const ledger = v.parse(ledgerSchema, await readJson(ledgerPath))
   if (new Set(ledger.receipts.map(row => row.id)).size !== ledger.receipts.length) throw new AppValidationError('Duplicate spending receipt ID')
-  for (const receipt of ledger.receipts) {
-    const source = plan.cases.find(entry => entry.id === receipt.caseId)
-    if (!source || source.inputSha256 !== receipt.inputSha256 || !targets.some(target => target.provider === receipt.provider && target.model === receipt.model)
-      || receipt.status === 'rejected' && receipt.chargedCents !== 0
-      || ['reserved', 'ambiguous'].includes(receipt.status) && receipt.chargedCents !== receipt.reservedCents
-      || !Number.isFinite(Date.parse(receipt.createdAt))) throw new AppValidationError('Spending receipt does not match the declared batch')
-  }
+  assertReceiptsMatchBatch(ledger, plan, targets)
   const loadSaved = async (directory: string, provider: string, model: string, entry: Entry, manifestSha256?: string): Promise<SavedProvider> => {
     const bytes = await read(`${directory}/manifest.json`)
     if (manifestSha256 && hash(bytes) !== manifestSha256) throw new AppValidationError(`Saved manifest hash changed: ${entry.id}/${provider}/${model}`)
@@ -166,7 +213,7 @@ const prepareReports = async (options: CleanTypographyReportOptions) => {
     if (typeof pilotPin !== 'string' || !/^[a-f0-9]{64}$/.test(pilotPin)) throw new AppValidationError('Original local pilot manifest pin is missing')
     const pilot = await loadSaved(entry.localPilot.directory, 'tesseract', 'tesseract', entry, pilotPin)
     if (pilot.state.status !== 'succeeded') throw new AppValidationError('Saved local pilot is not successful')
-    const providers: Array<{ state: ProviderState, saved: SavedProvider | null, receipts: Receipt[] }> = []
+    const providers: PreparedProvider[] = []
     for (const target of targets) {
       if (target.provider === 'tesseract') {
         providers.push({ state: { ...pilot.state, metadata: { ...pilot.state.metadata, reusedFrom: entry.localPilot.directory, originalManifestSha256: pilot.manifestSha256 } }, saved: pilot, receipts: [] })
@@ -214,16 +261,8 @@ const prepareReports = async (options: CleanTypographyReportOptions) => {
     const reference = { kind: 'publisher-canonical', path: entry.reference, sha256: entry.referenceSha256,
       sourceUrl: entry.annotationURL, sourceRevision: entry.sourceRevision,
       description: 'Immutable publisher gold from the prepared source bundle; provider output and provider agreement did not author this reference.' }
-    const timingSteps = providers.flatMap(({ state }) => typeof state.metadata['processingTime'] === 'number' && state.status === 'succeeded'
-      ? [{ step: 'extract', provider: state.service, model: state.model, processingTimeMs: state.metadata['processingTime'] }] : [])
-    const costSteps = providers.flatMap(({ state, receipts }) => {
-      const spending = summarizeCleanTypographyReceipts(receipts)
-      return state.local ? [{ step: 'extract', provider: state.service, model: state.model, cost: 0, costSource: 'local_zero' }]
-        : receipts.some(receipt => receipt.status === 'settled') || spending.heldReservationCents > 0 ? [{ step: 'extract', provider: state.service, model: state.model,
-          cost: spending.accountedCents, costSource: spending.settledConservativeCents > 0 || spending.heldReservationCents > 0 ? 'conservative_upper_bound' : 'provider_usage_at_reviewed_rates',
-          costBreakdown: { reviewedUsageCents: spending.providerReportedCents, settledConservativeCents: spending.settledConservativeCents,
-            heldReservationCents: spending.heldReservationCents, accountedCents: spending.accountedCents } }] : []
-    })
+    const timingSteps = caseTimingSteps(providers)
+    const costSteps = caseCostSteps(providers)
     const privateDirectory = `${localRoot}/benchmark-runs/${entry.id}`
     const manifest = { command: 'extract', scope: 'single', createdAt: String(pilot.manifest['createdAt']), updatedAt: new Date().toISOString(), reference,
       source: { kind: 'ocr-clean-typography-benchmark-assembly', sourceRunDir: privateDirectory, execution: `${localRoot}/execution.json`, spendingLedger: ledgerPath,
@@ -292,28 +331,8 @@ export const buildCleanTypographyReports = async (options: CleanTypographyReport
     const reportPath = `${row.entry.runDir}/provider-comparison-report.json`
     const report: unknown = await Bun.file(context.within(reportPath)).json()
     if (!record(report)) throw new AppValidationError('Generated metric report is invalid')
-    const costs = new Map(row.providers.map(provider => {
-      const spending = summarizeCleanTypographyReceipts(provider.receipts)
-      return [`${provider.state.service}/${provider.state.model}`, { ...spending, costSource: provider.state.local ? 'local_zero'
-        : spending.settledConservativeCents > 0 || spending.heldReservationCents > 0 ? 'conservative_upper_bound'
-            : provider.receipts.some(receipt => receipt.status === 'settled') ? 'provider_usage_at_reviewed_rates' : 'unavailable' }]
-    }))
-    const addCost = (value: unknown): void => {
-      if (!record(value) || typeof value['providerKey'] !== 'string') return
-      const cost = costs.get(value['providerKey'])
-      if (cost) {
-        value['costSource'] = cost.costSource
-        value['costAccounting'] = cost
-        value['costBreakdown'] = { reviewedUsageCents: cost.providerReportedCents, settledConservativeCents: cost.settledConservativeCents,
-          heldReservationCents: cost.heldReservationCents, accountedCents: cost.accountedCents }
-      }
-    }
-    if (record(report['providerGroups'])) for (const group of Object.values(report['providerGroups'])) {
-      if (record(group) && Array.isArray(group['providers'])) group['providers'].forEach(addCost)
-    }
-    if (record(report['metricRankings'])) for (const group of Object.values(report['metricRankings'])) {
-      if (record(group) && Array.isArray(group['price'])) group['price'].forEach(addCost)
-    }
+    const costs = providerCostAccounting(row.providers)
+    attachReportCosts(report, costs)
     report['costPolicy'] = summarizeCleanTypographyReceipts([]).costPolicy
     const conservative = [...costs].filter(([, cost]) => cost.settledConservativeCents > 0 || cost.heldReservationCents > 0)
     const notes = ['Reported usage is valued at reviewed rates; prices include settled retry costs and retained unresolved reservations once and are not invoice-reconciled charges.',

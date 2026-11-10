@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import type { CharacterSketchCommandOptions, ImageGenerationQuality, ImageGenerationSize, ReferenceSketchCommandOptions } from '~/types'
+import type { CharacterSketchCommandOptions, ImageGenerationQuality, ImageGenerationSize, LocationReferenceEntry, LocationSketchRegistration, LocationSketchViewRegistration, LocationView, ReferenceSketchCommandOptions } from '~/types'
 import { CHARACTER_SKETCH_VIEWS, requireCurrentCharacterSketch } from '../comic-commands/process-scenes/character-utils'
 import { collectLocationSourceScripts } from '../comic-commands/reference-sketch/location-reference-command'
 import { estimateImageOutputCost, formatCost } from '../comic-image-services/image-costs'
@@ -65,42 +65,35 @@ export const estimateCharacterSketchPrice = async (
   printImageEstimateTable(models, quality, size, CHARACTER_SKETCH_VIEWS.length, 'view')
 }
 
-export const estimateLocationReferencePrice = async (
-  options: ReferenceSketchCommandOptions
-): Promise<void> => {
-  const model = options.imageModels?.[0] ?? DEFAULT_IMAGE_MODEL
-  const size: ImageGenerationSize = options.size ?? '1536x1024'
-  const quality: ImageGenerationQuality = options.quality ?? 'high'
-  const qaEnabled = options.qa ?? true
-  const maxRepairs = options.maxRepairs ?? 2
-  const view = options.view ?? 'establishing'
-  validateImageSizeForModels(size, [model])
-  const catalog = await readLocationReferenceCatalog()
-  const manifest = await readLocationSketchManifest()
-  const entry = catalog.locations.find(item => item.key === options.location)
-  const registration = manifest.sketches.find(item => item.locationKey === options.location)
-  const target = registration?.views.find(item => item.view === view)
+type LocationPricePlan = {
+  model: string
+  size: ImageGenerationSize
+  quality: ImageGenerationQuality
+  qaEnabled: boolean
+  maxRepairs: number
+  view: LocationView
+}
+
+type LocationPriceModels = { aggregationCalls: number; aggregationModel: string; judgeModel: string }
+
+const resolveLocationPricePlan = (options: ReferenceSketchCommandOptions): LocationPricePlan => ({
+  model: options.imageModels?.[0] ?? DEFAULT_IMAGE_MODEL,
+  size: options.size ?? '1536x1024',
+  quality: options.quality ?? 'high',
+  qaEnabled: options.qa ?? true,
+  maxRepairs: options.maxRepairs ?? 2,
+  view: options.view ?? 'establishing',
+})
+
+const assertLocationPriceTarget = (options: ReferenceSketchCommandOptions, view: LocationView, registered: { entry: LocationReferenceEntry | undefined; registration: LocationSketchRegistration | undefined; target: LocationSketchViewRegistration | undefined }): void => {
   if (!LOCATION_VIEWS.includes(view)) throw UsageError(`--view must be one of: ${LOCATION_VIEWS.join(', ')}`)
-  if (view !== 'establishing' && !registration?.views.some(item => item.view === 'establishing')) throw UsageError(`Cannot generate ${view} view before the establishing view`)
-  if (options.revise && (!entry || !target)) throw UsageError(`Cannot revise unregistered ${view} view for location "${options.location}"`)
-  if (!options.revise && target) {
-    await requireCurrentLocationReference(options.location!)
-    priceLine('Comic - Price Estimate: reference-sketch --location: existing validated view, no provider calls.', {
-      command: 'reference-sketch',
-      location: options.location,
-      view,
-      imageCalls: 0,
-      judgeCalls: 0,
-      totalCost: 0,
-      dryRun: true
-    })
-    return
-  }
-  const aggregationCalls = entry ? 0 : 1
-  const aggregationModel = options.llmModel ?? DEFAULT_LLM_MODEL
-  const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
-  const lineageWarning = describeMixedLocationLineage(options.location!, view, registration?.views.find(item => item.view === 'establishing'))
-  if (lineageWarning) priceNotice(lineageWarning, { command: 'reference-sketch', location: options.location, view, lineage: 'mixed' })
+  if (view !== 'establishing' && !registered.registration?.views.some(item => item.view === 'establishing')) throw UsageError(`Cannot generate ${view} view before the establishing view`)
+  if (options.revise && (!registered.entry || !registered.target)) throw UsageError(`Cannot revise unregistered ${view} view for location "${options.location}"`)
+}
+
+const logLocationCallPlan = (options: ReferenceSketchCommandOptions, plan: LocationPricePlan, models: LocationPriceModels, lineageWarning: string | undefined): void => {
+  const { view, qaEnabled, maxRepairs } = plan
+  const { aggregationModel, aggregationCalls, judgeModel } = models
   priceDetails(
     'Comic - Price Estimate: reference-sketch --location',
     [
@@ -128,6 +121,59 @@ export const estimateLocationReferencePrice = async (
       ...(lineageWarning ? { lineage: 'mixed' } : {})
     }
   )
+}
+
+type LocationModeledTotals = {
+  model: string
+  imageCostPerCall: number | null
+  maximumImageCalls: number
+  maximumJudgeCalls: number
+  judgeCost: number
+  aggregationCost: number
+}
+
+const logLocationModeledTotal = (totals: LocationModeledTotals): void => {
+  const { model, imageCostPerCall, maximumImageCalls, maximumJudgeCalls, judgeCost, aggregationCost } = totals
+  if (imageCostPerCall === null) {
+    priceLine(`Maximum modeled total: ~${formatCost(judgeCost + aggregationCost)} + n/a (${model} has no per-image estimate)`, { maximumImageCalls, maximumJudgeCalls, judgeCost, aggregationCost, hasUnknownPricing: true })
+  } else {
+    const imageCost = imageCostPerCall * maximumImageCalls
+    const maximumModeledCost = imageCost + judgeCost + aggregationCost
+    priceLine(`Maximum modeled total: ~${formatCost(maximumModeledCost)} (${maximumImageCalls} image call${maximumImageCalls === 1 ? '' : 's'} plus ${maximumJudgeCalls} judge call${maximumJudgeCalls === 1 ? '' : 's'})`, { maximumImageCalls, maximumJudgeCalls, imageCost, judgeCost, aggregationCost, maximumModeledCost, hasUnknownPricing: false })
+  }
+}
+
+export const estimateLocationReferencePrice = async (
+  options: ReferenceSketchCommandOptions
+): Promise<void> => {
+  const plan = resolveLocationPricePlan(options)
+  const { model, size, quality, qaEnabled, maxRepairs, view } = plan
+  validateImageSizeForModels(size, [model])
+  const catalog = await readLocationReferenceCatalog()
+  const manifest = await readLocationSketchManifest()
+  const entry = catalog.locations.find(item => item.key === options.location)
+  const registration = manifest.sketches.find(item => item.locationKey === options.location)
+  const target = registration?.views.find(item => item.view === view)
+  assertLocationPriceTarget(options, view, { entry, registration, target })
+  if (!options.revise && target) {
+    await requireCurrentLocationReference(options.location!)
+    priceLine('Comic - Price Estimate: reference-sketch --location: existing validated view, no provider calls.', {
+      command: 'reference-sketch',
+      location: options.location,
+      view,
+      imageCalls: 0,
+      judgeCalls: 0,
+      totalCost: 0,
+      dryRun: true
+    })
+    return
+  }
+  const aggregationCalls = entry ? 0 : 1
+  const aggregationModel = options.llmModel ?? DEFAULT_LLM_MODEL
+  const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
+  const lineageWarning = describeMixedLocationLineage(options.location!, view, registration?.views.find(item => item.view === 'establishing'))
+  if (lineageWarning) priceNotice(lineageWarning, { command: 'reference-sketch', location: options.location, view, lineage: 'mixed' })
+  logLocationCallPlan(options, plan, { aggregationCalls, aggregationModel, judgeModel }, lineageWarning)
   printImageEstimateTable([model], quality, size, 1, 'initial location view')
   if (qaEnabled && maxRepairs > 0) printImageEstimateTable([model], quality, size, maxRepairs, 'maximum location retry')
   const maximumImageCalls = 1 + (qaEnabled ? maxRepairs : 0)
@@ -166,12 +212,6 @@ export const estimateLocationReferencePrice = async (
     }
   )
   priceLine(JUDGE_COST_BASIS_NOTE, { visionUsageModeled: false })
-  if (imageCostPerCall === null) {
-    priceLine(`Maximum modeled total: ~${formatCost(judgeCost + aggregationCost)} + n/a (${model} has no per-image estimate)`, { maximumImageCalls, maximumJudgeCalls, judgeCost, aggregationCost, hasUnknownPricing: true })
-  } else {
-    const imageCost = imageCostPerCall * maximumImageCalls
-    const maximumModeledCost = imageCost + judgeCost + aggregationCost
-    priceLine(`Maximum modeled total: ~${formatCost(maximumModeledCost)} (${maximumImageCalls} image call${maximumImageCalls === 1 ? '' : 's'} plus ${maximumJudgeCalls} judge call${maximumJudgeCalls === 1 ? '' : 's'})`, { maximumImageCalls, maximumJudgeCalls, imageCost, judgeCost, aggregationCost, maximumModeledCost, hasUnknownPricing: false })
-  }
+  logLocationModeledTotal({ model, imageCostPerCall, maximumImageCalls, maximumJudgeCalls, judgeCost, aggregationCost })
   priceLine('Dry run: no provider calls and no files written.', { dryRun: true })
 }

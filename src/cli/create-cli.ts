@@ -1,10 +1,10 @@
 import { childEnv } from '~/utils/child-env'
 import { installProcessFailureHandlers } from '~/cli/failure-handlers'
-import { extractErrorHints, extractErrorMetadata, formatErrorMessage, isUsageError, normalizeExitCode, usageMessage } from '~/utils/error-handler'
+import { extractErrorHints, extractErrorMetadata, formatErrorMessage, isUsageError, normalizeExitCode, UsageError, usageMessage } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { resetLoggerForInvocation } from '~/utils/app-logger/app-logger'
 import { createRunId } from '~/utils/app-logger/core'
-import { discardStagedResult, flushStagedResult, runWithResultInvocation, stageFailureResult } from '~/utils/app-logger/result-emitter'
+import { discardStagedResult, flushStagedResult, runWithResultInvocation, setResultFile, stageFailureResult } from '~/utils/app-logger/result-emitter'
 import { configureColor } from '~/utils/terminal-colors'
 import type { HelpCommandGroupKey } from '~/types'
 import {
@@ -87,6 +87,32 @@ export const stripJsonProtocolArgs = (argv: readonly string[]): string[] => {
   return out
 }
 
+export const preScanResultFile = (argv: readonly string[]): string | undefined => {
+  let path: string | undefined
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]!
+    if (arg === '--') break
+    if (arg.startsWith('--result-file=')) path = arg.slice('--result-file='.length)
+    else if (arg === '--result-file') {
+      const value = argv[++index]
+      if (!value || value.startsWith('--')) throw UsageError('--result-file requires a path.')
+      path = value
+    }
+  }
+  return path
+}
+
+const stripResultFileArgs = (argv: readonly string[]): string[] => {
+  const out: string[] = []
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]!
+    if (arg === '--') { out.push(...argv.slice(index)); break }
+    if (arg === '--result-file') { index += 1; continue }
+    if (!arg.startsWith('--result-file=')) out.push(arg)
+  }
+  return out
+}
+
 const setCommandHelpGroup = (command: unknown, group: HelpCommandGroupKey): void => {
   if (typeof command !== 'object' || command === null) {
     return
@@ -137,8 +163,10 @@ export const runCliInProcess = async (argv: string[]): Promise<number> => {
 
   return await runWithResultInvocation({ json, runId }, async () => {
     try {
+      const resultFile = preScanResultFile(argv)
+      if (resultFile !== undefined) setResultFile(resultFile)
       validateHttpPayloadEnvironment()
-      await dispatchNativeCli(stripJsonProtocolArgs(argv), createNativeRootDefinition(), COMMAND_DEFINITIONS)
+      await dispatchNativeCli(stripResultFileArgs(stripJsonProtocolArgs(argv)), createNativeRootDefinition(), COMMAND_DEFINITIONS)
       try {
         flushStagedResult()
         return 0
@@ -157,7 +185,7 @@ export const runCliInProcess = async (argv: string[]): Promise<number> => {
   })
 }
 
-export const buildSetupChildEnv = (): Record<string, string> => childEnv({ allow: ['TMPDIR', 'AUTOSHOW_PROJECT_ROOT', 'AUTOSHOW_DISABLE_HTTP_KEEPALIVE', HTTP_PAYLOAD_MAX_BYTES_ENV], set: { [SETUP_NO_ORPHANS_MARKER]: '1' } })
+export const buildSetupChildEnv = (): Record<string, string> => childEnv({ allow: ['TMPDIR', 'AUTOSHOW_PROJECT_ROOT', 'AUTOSHOW_DISABLE_HTTP_KEEPALIVE', HTTP_PAYLOAD_MAX_BYTES_ENV, 'AUTOSHOW_BUDGET_LEDGER', 'AUTOSHOW_BUDGET_CENTS', 'AUTOSHOW_BUDGET_RESERVE_CENTS'], set: { [SETUP_NO_ORPHANS_MARKER]: '1' } })
 
 const main = async (): Promise<void> => {
   const argv = Bun.argv.slice(2)

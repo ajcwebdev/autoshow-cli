@@ -4,7 +4,7 @@ import { buildRawParsed, parseCommandArgv } from './native-command-arguments'
 import {
   NativeNoSuchCommandError
 } from './native-errors'
-import { buildInitialFlags, buildShortFlagMap, findNativeFlagValueEnd } from './native-flag-parser'
+import { buildInitialFlags, buildShortFlagMap, findNativeFlagValueEnd, ownFlagDefinition } from './native-flag-parser'
 import { takeHelpTopic } from './help-topic-request'
 
 const createCommandMap = (
@@ -56,12 +56,12 @@ const findSubcommandIndex = (
     if (arg.startsWith('--') && arg.length > 2) {
       const rawName = arg.slice(2).split('=', 1)[0] as string
       const name = rawName.startsWith('no-') ? rawName.slice(3) : rawName
-      const definition = definitions[name]
+      const definition = ownFlagDefinition(definitions, name)
       if (!arg.includes('=')) index = findNativeFlagValueEnd(argv, index, definition)
       continue
     }
     if (arg.startsWith('-') && arg.length > 1) {
-      const definition = definitions[shortFlags.get(arg.slice(1)) ?? '']
+      const definition = ownFlagDefinition(definitions, shortFlags.get(arg.slice(1)) ?? '')
       index = findNativeFlagValueEnd(argv, index, definition)
       continue
     }
@@ -137,6 +137,76 @@ const parseCommandTreeArgv = (
   ], subcommand, globalFlags)
 }
 
+const parseVersionWordArgv = (argv: string[], globalFlags: CliFlagsDefinition): CliParseResult => {
+  if (argv.slice(1).some(isHelpFlag)) {
+    const versionCommand = getNativeBuiltinCommand('version')!
+    return {
+      mode: 'help',
+      argv,
+      calledAs: 'version',
+      command: versionCommand,
+      flags: buildInitialFlags(globalFlags),
+      parameters: {} as CliParameterValues,
+      rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
+    }
+  }
+  return {
+    mode: 'version',
+    argv,
+    calledAs: 'version',
+    flags: buildInitialFlags(globalFlags),
+    parameters: {} as CliParameterValues,
+    rawParsed: buildRawParsed(argv, [], new Set(), [], {})
+  }
+}
+
+const parseHelpWordArgv = (
+  argv: string[],
+  commandMap: ReturnType<typeof createCommandMap>,
+  globalFlags: CliFlagsDefinition
+): CliParseResult => {
+  const commandName = argv[1]
+  if (isVersionFlag(commandName)) {
+    return {
+      mode: 'version',
+      argv,
+      calledAs: 'help',
+      flags: buildInitialFlags(globalFlags),
+      parameters: {} as CliParameterValues,
+      rawParsed: buildRawParsed(argv, [], new Set(['version']), [], {})
+    }
+  }
+  const helpCommandName = isHelpFlag(commandName) ? 'help' : commandName
+  const resolvedHelpName = typeof helpCommandName === 'string' ? (COMMAND_ALIASES[helpCommandName] ?? helpCommandName) : undefined
+  const command = typeof resolvedHelpName === 'string' ? findCommand(commandMap, resolvedHelpName) : undefined
+  if (typeof helpCommandName === 'string' && command === undefined) {
+    throw new NativeNoSuchCommandError(helpCommandName)
+  }
+  if (command?.subcommands?.length && typeof argv[2] === 'string' && !argv[2]?.startsWith('-')) {
+    const subcommand = createSubcommandMap(command).get(argv[2] as string)
+    if (subcommand === undefined) {
+      throw new NativeNoSuchCommandError(`${command.name} ${argv[2]}`)
+    }
+    return {
+      mode: 'help',
+      argv,
+      calledAs: subcommand.name,
+      command: subcommand,
+      flags: buildInitialFlags(globalFlags),
+      parameters: {} as CliParameterValues,
+      rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
+    }
+  }
+  return {
+    mode: 'help',
+    argv,
+    ...(command ? { calledAs: command.name, command } : {}),
+    flags: buildInitialFlags(globalFlags),
+    parameters: {} as CliParameterValues,
+    rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
+  }
+}
+
 const parseNativeArgv = (
   argv: string[],
   commands: readonly CliCommandDefinition[],
@@ -173,70 +243,8 @@ const parseNativeArgv = (
       rawParsed: buildRawParsed(argv, [], new Set(['version']), [], {})
     }
   }
-  if (first === 'version') {
-    if (argv.slice(1).some(isHelpFlag)) {
-      const versionCommand = getNativeBuiltinCommand('version')!
-      return {
-        mode: 'help',
-        argv,
-        calledAs: 'version',
-        command: versionCommand,
-        flags: buildInitialFlags(globalFlags),
-        parameters: {} as CliParameterValues,
-        rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
-      }
-    }
-    return {
-      mode: 'version',
-      argv,
-      calledAs: 'version',
-      flags: buildInitialFlags(globalFlags),
-      parameters: {} as CliParameterValues,
-      rawParsed: buildRawParsed(argv, [], new Set(), [], {})
-    }
-  }
-  if (first === 'help') {
-    const commandName = argv[1]
-    if (isVersionFlag(commandName)) {
-      return {
-        mode: 'version',
-        argv,
-        calledAs: 'help',
-        flags: buildInitialFlags(globalFlags),
-        parameters: {} as CliParameterValues,
-        rawParsed: buildRawParsed(argv, [], new Set(['version']), [], {})
-      }
-    }
-    const helpCommandName = isHelpFlag(commandName) ? 'help' : commandName
-    const resolvedHelpName = typeof helpCommandName === 'string' ? (COMMAND_ALIASES[helpCommandName] ?? helpCommandName) : undefined
-    const command = typeof resolvedHelpName === 'string' ? findCommand(commandMap, resolvedHelpName) : undefined
-    if (typeof helpCommandName === 'string' && command === undefined) {
-      throw new NativeNoSuchCommandError(helpCommandName)
-    }
-    if (command?.subcommands?.length && typeof argv[2] === 'string' && !argv[2]?.startsWith('-')) {
-      const subcommand = createSubcommandMap(command).get(argv[2] as string)
-      if (subcommand === undefined) {
-        throw new NativeNoSuchCommandError(`${command.name} ${argv[2]}`)
-      }
-      return {
-        mode: 'help',
-        argv,
-        calledAs: subcommand.name,
-        command: subcommand,
-        flags: buildInitialFlags(globalFlags),
-        parameters: {} as CliParameterValues,
-        rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
-      }
-    }
-    return {
-      mode: 'help',
-      argv,
-      ...(command ? { calledAs: command.name, command } : {}),
-      flags: buildInitialFlags(globalFlags),
-      parameters: {} as CliParameterValues,
-      rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
-    }
-  }
+  if (first === 'version') return parseVersionWordArgv(argv, globalFlags)
+  if (first === 'help') return parseHelpWordArgv(argv, commandMap, globalFlags)
 
   const resolvedFirst = COMMAND_ALIASES[first] ?? first
   const command = commandMap.get(resolvedFirst)

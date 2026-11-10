@@ -1,6 +1,6 @@
 import { estimateGeminiTtsCost } from '../tts/tts-services/tts-gemini/gemini-tts-pricing'
 import { join } from 'node:path'
-import type { CliCommandContext } from '~/types'
+import type { CliCommandContext, DesignProviderName } from '~/types'
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { assertProtectedStoreOutputDisjoint } from './voice-assets/protected-output-boundary'
@@ -20,12 +20,33 @@ import {
 
 export const DESIGN_PREVIEW_FLAGS = ['description', 'preview-text', 'candidates', 'seed', 'source-voice-id', 'creation-model'] as const
 
+const assertSaveExcludesPreviewFlags = (ctx: CliCommandContext): void => {
+  const mixed = DESIGN_PREVIEW_FLAGS.filter(name => name === 'candidates' ? ctx.rawParsed.explicitFlags.has('candidates') : optionalFlag(ctx, name) !== undefined)
+  if (mixed.length > 0) throw UsageError(`--save cannot be combined with ${mixed.map(name => `--${name}`).join(', ')}.`)
+}
+
+type VoiceDesignEstimatePlan = {
+  provider: DesignProviderName
+  providerModel: string
+  creationModel: string
+  candidateCount: number
+  previewText: string
+  sourceVoiceId: string | undefined
+}
+
+const reportVoiceDesignEstimate = ({ provider, providerModel, creationModel, candidateCount, previewText, sourceVoiceId }: VoiceDesignEstimatePlan): void => {
+  if (provider === 'gemini') { reportVoicePrice('Gemini voice design pricing is unknown', { provider, providerModel, creationModel, candidateCount, estimatedCostCents: null, pricing: 'unknown-provider-operation-rate', separatePreview: previewText ? { perCandidate: estimateGeminiTtsCost(providerModel, previewText.length), candidateCount, totalCostCents: candidateCount * estimateGeminiTtsCost(providerModel, previewText.length).totalCost } : null, mutation: false, providerCalls: 0 }); return }
+  const rate = getTtsPricing(provider, providerModel).costPer1kCharsCents
+  if (rate === undefined) throw UsageError(`Voice design pricing is unavailable for ${provider}/${providerModel}; provider dispatch is blocked.`)
+  const estimatedCostCents = ([...previewText].length / 1000) * rate
+  reportVoicePrice('Voice design estimate', { operation: sourceVoiceId ? 'voice-remix-candidates' : 'voice-design-candidates', provider, providerModel, creationModel, candidateCount, characterCount: [...previewText].length, billedGenerations: 1, estimatedCostCents, pricing: 'registry-character-rate', mutation: false, providerCalls: 0 })
+}
+
 export const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   const saveId = optionalFlag(ctx, 'save')
   if (ctx.flags['reconcile'] === true && !saveId) throw UsageError('--reconcile is only valid with --save.')
   if (saveId) {
-    const mixed = DESIGN_PREVIEW_FLAGS.filter(name => name === 'candidates' ? ctx.rawParsed.explicitFlags.has('candidates') : optionalFlag(ctx, name) !== undefined)
-    if (mixed.length > 0) throw UsageError(`--save cannot be combined with ${mixed.map(name => `--${name}`).join(', ')}.`)
+    assertSaveExcludesPreviewFlags(ctx)
     await handleMaterialize({ ...ctx, flags: { ...ctx.flags, save: saveId } })
     return
   }
@@ -54,11 +75,7 @@ export const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   })
   await requireBrief(subjectKey, profileKey)
   if (ctx.flags['price'] === true) {
-    if (provider === 'gemini') { reportVoicePrice('Gemini voice design pricing is unknown', { provider, providerModel, creationModel, candidateCount, estimatedCostCents: null, pricing: 'unknown-provider-operation-rate', separatePreview: previewText ? { perCandidate: estimateGeminiTtsCost(providerModel, previewText.length), candidateCount, totalCostCents: candidateCount * estimateGeminiTtsCost(providerModel, previewText.length).totalCost } : null, mutation: false, providerCalls: 0 }); return }
-    const rate = getTtsPricing(provider, providerModel).costPer1kCharsCents
-    if (rate === undefined) throw UsageError(`Voice design pricing is unavailable for ${provider}/${providerModel}; provider dispatch is blocked.`)
-    const estimatedCostCents = ([...previewText].length / 1000) * rate
-    reportVoicePrice('Voice design estimate', { operation: sourceVoiceId ? 'voice-remix-candidates' : 'voice-design-candidates', provider, providerModel, creationModel, candidateCount, characterCount: [...previewText].length, billedGenerations: 1, estimatedCostCents, pricing: 'registry-character-rate', mutation: false, providerCalls: 0 })
+    reportVoiceDesignEstimate({ provider, providerModel, creationModel, candidateCount, previewText, sourceVoiceId })
     return
   }
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)

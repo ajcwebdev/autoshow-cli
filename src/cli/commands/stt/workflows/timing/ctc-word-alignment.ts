@@ -2,8 +2,7 @@ import { ValidationError } from '~/utils/error-handler'
 
 export type CtcWordInput = { text: string; tokens: number[] }
 
-export const alignCtcWords = (frames: number[][], words: CtcWordInput[], blank: number, frameSeconds: number, separator?: number) => {
-  if (!frames.length || !words.length || words.some(word => !word.tokens.length) || !Number.isFinite(frameSeconds) || frameSeconds <= 0) throw ValidationError('CTC alignment requires acoustic frames, nonempty tokenized words, and a positive frame duration.')
+const flattenCtcWordTokens = (words: CtcWordInput[], separator: number | undefined) => {
   const tokens: number[] = [], wordRanges: Array<[number, number]> = []
   for (const word of words) {
     if (tokens.length && separator !== undefined) tokens.push(separator)
@@ -11,11 +10,17 @@ export const alignCtcWords = (frames: number[][], words: CtcWordInput[], blank: 
     tokens.push(...word.tokens)
     wordRanges.push([first, tokens.length])
   }
-  const states = tokens.length * 2 + 1
+  return { tokens, wordRanges }
+}
+
+const assertCtcEmissions = (frames: number[][], tokens: number[], blank: number, states: number): void => {
   const vocabulary = frames[0]!.length
   if (!Number.isInteger(blank) || blank < 0 || blank >= vocabulary || tokens.some(token => !Number.isInteger(token) || token < 0 || token >= vocabulary || token === blank)) throw ValidationError('CTC transcript contains an invalid or blank label.')
   if (frames.length * states > 30_000_000) throw ValidationError('CTC alignment exceeds 30 million states. Split the transcript into shorter non-overlapping segments.')
   if (frames.some(frame => frame.length !== vocabulary || frame.some(score => !Number.isFinite(score) || score > 1e-5))) throw ValidationError('CTC emissions must be a rectangular matrix of finite log probabilities.')
+}
+
+const scoreCtcPaths = (frames: number[][], tokens: number[], blank: number, states: number) => {
   const history = new Uint8Array(frames.length * states)
   let previous = new Float64Array(states).fill(-Infinity)
   previous[0] = 0
@@ -31,8 +36,13 @@ export const alignCtcWords = (frames: number[][], words: CtcWordInput[], blank: 
     }
     previous = current
   }
-  let state = previous[states - 1]! > previous[states - 2]! ? states - 1 : states - 2
-  if (!Number.isFinite(previous[state])) throw ValidationError('Audio contains too few acoustic frames for the transcript, including repeated labels.')
+  return { history, final: previous }
+}
+
+const traceCtcSpans = (frames: number[][], tokens: number[], states: number, paths: ReturnType<typeof scoreCtcPaths>) => {
+  const { history, final } = paths
+  let state = final[states - 1]! > final[states - 2]! ? states - 1 : states - 2
+  if (!Number.isFinite(final[state])) throw ValidationError('Audio contains too few acoustic frames for the transcript, including repeated labels.')
   const spans = tokens.map(() => ({ first: Infinity, last: -1, score: 0, count: 0 }))
   for (let time = frames.length - 1; time >= 0; time--) {
     if (state % 2) {
@@ -42,6 +52,15 @@ export const alignCtcWords = (frames: number[][], words: CtcWordInput[], blank: 
     }
     state -= history[time * states + state]!
   }
+  return spans
+}
+
+export const alignCtcWords = (frames: number[][], words: CtcWordInput[], blank: number, frameSeconds: number, separator?: number) => {
+  if (!frames.length || !words.length || words.some(word => !word.tokens.length) || !Number.isFinite(frameSeconds) || frameSeconds <= 0) throw ValidationError('CTC alignment requires acoustic frames, nonempty tokenized words, and a positive frame duration.')
+  const { tokens, wordRanges } = flattenCtcWordTokens(words, separator)
+  const states = tokens.length * 2 + 1
+  assertCtcEmissions(frames, tokens, blank, states)
+  const spans = traceCtcSpans(frames, tokens, states, scoreCtcPaths(frames, tokens, blank, states))
   return words.map((word, index) => {
     const range = wordRanges[index]!
     const selected = spans.slice(range[0], range[1])

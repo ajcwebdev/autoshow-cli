@@ -127,6 +127,66 @@ const within = async (projectRoot: string, path: string): Promise<string> => {
 
 export const inspectNewspaperExpansionReports = (options: NewspaperReportOptions = {}) => inspectBcOcrReports({ ...options, reportProfile: 'newspapers' })
 
+type NewspaperPlanCase = v.InferOutput<typeof planSchema>['cases'][number]
+type NewspaperSecondaryConvention = { caseId: string, providerKey: string } & v.InferOutput<typeof secondarySchema>
+
+const selectedNewspaperProviderStates = (manifest: unknown, entry: NewspaperPlanCase, targetCount: number): unknown[] => {
+  if (!record(manifest) || !Array.isArray(manifest['items']) || manifest['items'].length !== 1 || !record(manifest['items'][0]) || !Array.isArray(manifest['items'][0]['providers'])) throw new AppValidationError('Public newspaper manifest has no selected-provider matrix')
+  const states = manifest['items'][0]['providers']
+  if (states.length !== targetCount || !record(manifest['reference']) || manifest['reference']['kind'] !== 'publisher-canonical' || manifest['reference']['path'] !== entry.normalizedReference
+    || manifest['reference']['sha256'] !== entry.normalizedReferenceSha256 || !record(manifest['source'])
+    || !record(manifest['source']['originalCanonicalReference']) || manifest['source']['originalCanonicalReference']['path'] !== entry.reference
+    || manifest['source']['originalCanonicalReference']['sha256'] !== entry.referenceSha256) throw new AppValidationError('Public newspaper reference or target inventory differs from the authorized source')
+  return states
+}
+
+const newspaperMetricRows = (report: unknown, entry: NewspaperPlanCase, targets: readonly NewspaperTarget[]): Record<string, unknown>[] => {
+  if (!record(report) || !record(report['providerGroups']) || !record(report['referenceProvenance'])
+    || report['referenceProvenance']['kind'] !== 'publisher-canonical' || report['referenceProvenance']['independentOfProviders'] !== true
+    || report['referenceProvenance']['path'] !== entry.normalizedReference || report['referenceProvenance']['sha256'] !== entry.normalizedReferenceSha256) throw new AppValidationError('Invalid newspaper metric report or scoring reference')
+  const details: Record<string, unknown>[] = []
+  for (const group of Object.values(report['providerGroups'])) {
+    if (!record(group) || !Array.isArray(group['providers'])) throw new AppValidationError('Invalid newspaper metric group')
+    for (const detail of group['providers']) { if (!record(detail)) throw new AppValidationError('Invalid newspaper metric row'); details.push(detail) }
+  }
+  if (details.some(detail => !targets.some(target => key(target) === detail['providerKey']))) throw new AppValidationError('Metric report contains an unselected newspaper target')
+  return details
+}
+
+/** One selected target's saved state joined to at most one quality row and one token diagnostic. */
+const newspaperTargetOutcome = (target: NewspaperTarget, states: unknown[], details: Record<string, unknown>[], diagnosticProviders: unknown[]) => {
+  const providerKey = key(target)
+  const matching = states.filter(state => record(state) && state['service'] === target.provider && state['model'] === target.model)
+  if (matching.length !== 1 || !record(matching[0])) throw new AppValidationError('Public newspaper selected-target identity changed')
+  const state = matching[0], status = state['status']
+  if (!['succeeded', 'failed', 'missing', 'running'].includes(String(status))) throw new AppValidationError('Invalid newspaper selected-target status')
+  const scored = details.filter(detail => detail['providerKey'] === providerKey)
+  if (scored.length > 1 || status !== 'succeeded' && scored.length) throw new AppValidationError('Failed newspaper output has a stale quality row')
+  const metrics = scored[0]?.['metrics'], score = record(metrics) ? metrics['score'] : null
+  if (status === 'succeeded' && (typeof score !== 'number' || !Number.isFinite(score))) throw new AppValidationError('Completed newspaper output lacks its quality score')
+  const metadata = state['metadata'], evidence = record(metadata) && Array.isArray(metadata['pageEvidence']) ? metadata['pageEvidence'] : []
+  const failure = evidence.find(value => record(value) && typeof value['failureKind'] === 'string')
+  const diagnostic = diagnosticProviders.filter(value => record(value) && value['providerKey'] === providerKey)
+  if (diagnostic.length > 1 || status !== 'succeeded' && diagnostic.length) throw new AppValidationError('Newspaper token diagnostic differs from completed coverage')
+  const multiset = status === 'succeeded' && record(diagnostic[0]) ? v.parse(multisetSchema, diagnostic[0]['tokenMultiset']) : undefined
+  const repetition = status === 'succeeded' && record(diagnostic[0]) ? v.parse(repetitionSchema, diagnostic[0]['repetition']) : undefined
+  if (status === 'succeeded' && !multiset) throw new AppValidationError('Completed newspaper output lacks its token multiset diagnostic')
+  return { providerKey, status: status as Status, score: status === 'succeeded' ? score as number : null,
+    ...(multiset ? { tokenMultiset: multiset } : {}),
+    ...(repetition ? { repetition } : {}),
+    ...(record(failure) && typeof failure['failureKind'] === 'string' ? { failureKind: failure['failureKind'] } : {}) }
+}
+
+const eraSourceSpacingConventions = (caseId: string, diagnosticProviders: unknown[], outcomes: readonly NewspaperOutcome[]): NewspaperSecondaryConvention[] => {
+  const conventions: NewspaperSecondaryConvention[] = []
+  for (const provider of diagnosticProviders) {
+    if (!record(provider) || typeof provider['providerKey'] !== 'string' || !outcomes.some(outcome => outcome.providerKey === provider['providerKey'] && outcome.status === 'succeeded')) throw new AppValidationError('ERA diagnostic differs from completed provider coverage')
+    const value = v.parse(secondarySchema, provider['sourceSpacingConvention'])
+    conventions.push({ caseId, providerKey: provider['providerKey'], ...value })
+  }
+  return conventions
+}
+
 const analyzeSavedNewspaperReports = async (root: string, plan: v.InferOutput<typeof planSchema>, cohort: NewspaperCohort,
   spending: v.InferOutput<typeof spendingSchema>, provenance: string) => {
   if (new Set(plan.cases.map(row => row.id)).size !== plan.cases.length || new Set(plan.targets.map(key)).size !== plan.targets.length) throw new AppValidationError('Duplicate newspaper cohort identities')
@@ -137,15 +197,10 @@ const analyzeSavedNewspaperReports = async (root: string, plan: v.InferOutput<ty
     assertPortableNewspaperPath(entry.normalizedReference)
   }
   const cases: NewspaperScoredCase[] = []
-  const secondarySourceConventions: Array<{ caseId: string, providerKey: string } & v.InferOutput<typeof secondarySchema>> = []
+  const secondarySourceConventions: NewspaperSecondaryConvention[] = []
   for (const entry of plan.cases) {
     const manifest: unknown = await Bun.file(await within(root, `${entry.runDir}/manifest.json`)).json()
-    if (!record(manifest) || !Array.isArray(manifest['items']) || manifest['items'].length !== 1 || !record(manifest['items'][0]) || !Array.isArray(manifest['items'][0]['providers'])) throw new AppValidationError('Public newspaper manifest has no selected-provider matrix')
-    const states = manifest['items'][0]['providers']
-    if (states.length !== plan.targets.length || !record(manifest['reference']) || manifest['reference']['kind'] !== 'publisher-canonical' || manifest['reference']['path'] !== entry.normalizedReference
-      || manifest['reference']['sha256'] !== entry.normalizedReferenceSha256 || !record(manifest['source'])
-      || !record(manifest['source']['originalCanonicalReference']) || manifest['source']['originalCanonicalReference']['path'] !== entry.reference
-      || manifest['source']['originalCanonicalReference']['sha256'] !== entry.referenceSha256) throw new AppValidationError('Public newspaper reference or target inventory differs from the authorized source')
+    const states = selectedNewspaperProviderStates(manifest, entry, plan.targets.length)
     const reportPath = `${entry.runDir}/provider-comparison-report.json`
     const diagnostics: unknown = await Bun.file(await within(root, `${entry.runDir}/evaluation-diagnostics.json`)).json()
     if (!record(diagnostics) || !Array.isArray(diagnostics['providers']) || diagnostics['caseId'] !== entry.id
@@ -156,45 +211,11 @@ const analyzeSavedNewspaperReports = async (root: string, plan: v.InferOutput<ty
     let details: Record<string, unknown>[] = []
     if (await Bun.file(resolve(root, reportPath)).exists()) {
       const report: unknown = await Bun.file(await within(root, reportPath)).json()
-      if (!record(report) || !record(report['providerGroups']) || !record(report['referenceProvenance'])
-        || report['referenceProvenance']['kind'] !== 'publisher-canonical' || report['referenceProvenance']['independentOfProviders'] !== true
-        || report['referenceProvenance']['path'] !== entry.normalizedReference || report['referenceProvenance']['sha256'] !== entry.normalizedReferenceSha256) throw new AppValidationError('Invalid newspaper metric report or scoring reference')
-      for (const group of Object.values(report['providerGroups'])) {
-        if (!record(group) || !Array.isArray(group['providers'])) throw new AppValidationError('Invalid newspaper metric group')
-        for (const detail of group['providers']) { if (!record(detail)) throw new AppValidationError('Invalid newspaper metric row'); details.push(detail) }
-      }
-      if (details.some(detail => !plan.targets.some(target => key(target) === detail['providerKey']))) throw new AppValidationError('Metric report contains an unselected newspaper target')
+      details = newspaperMetricRows(report, entry, plan.targets)
     }
-    const outcomes = plan.targets.map(target => {
-      const providerKey = key(target)
-      const matching = states.filter(state => record(state) && state['service'] === target.provider && state['model'] === target.model)
-      if (matching.length !== 1 || !record(matching[0])) throw new AppValidationError('Public newspaper selected-target identity changed')
-      const state = matching[0], status = state['status']
-      if (!['succeeded', 'failed', 'missing', 'running'].includes(String(status))) throw new AppValidationError('Invalid newspaper selected-target status')
-      const scored = details.filter(detail => detail['providerKey'] === providerKey)
-      if (scored.length > 1 || status !== 'succeeded' && scored.length) throw new AppValidationError('Failed newspaper output has a stale quality row')
-      const metrics = scored[0]?.['metrics'], score = record(metrics) ? metrics['score'] : null
-      if (status === 'succeeded' && (typeof score !== 'number' || !Number.isFinite(score))) throw new AppValidationError('Completed newspaper output lacks its quality score')
-      const metadata = state['metadata'], evidence = record(metadata) && Array.isArray(metadata['pageEvidence']) ? metadata['pageEvidence'] : []
-      const failure = evidence.find(value => record(value) && typeof value['failureKind'] === 'string')
-      const diagnostic = diagnosticProviders.filter(value => record(value) && value['providerKey'] === providerKey)
-      if (diagnostic.length > 1 || status !== 'succeeded' && diagnostic.length) throw new AppValidationError('Newspaper token diagnostic differs from completed coverage')
-      const multiset = status === 'succeeded' && record(diagnostic[0]) ? v.parse(multisetSchema, diagnostic[0]['tokenMultiset']) : undefined
-      const repetition = status === 'succeeded' && record(diagnostic[0]) ? v.parse(repetitionSchema, diagnostic[0]['repetition']) : undefined
-      if (status === 'succeeded' && !multiset) throw new AppValidationError('Completed newspaper output lacks its token multiset diagnostic')
-      return { providerKey, status: status as Status, score: status === 'succeeded' ? score as number : null,
-        ...(multiset ? { tokenMultiset: multiset } : {}),
-        ...(repetition ? { repetition } : {}),
-        ...(record(failure) && typeof failure['failureKind'] === 'string' ? { failureKind: failure['failureKind'] } : {}) }
-    })
+    const outcomes = plan.targets.map(target => newspaperTargetOutcome(target, states, details, diagnosticProviders))
     cases.push({ id: entry.id, panel: newspaperChallengePanel(entry.id, entry.scope), outcomes })
-    if (entry.id === 'newspapers-expansion-bln-era-burglars') {
-      for (const provider of diagnosticProviders) {
-        if (!record(provider) || typeof provider['providerKey'] !== 'string' || !outcomes.some(outcome => outcome.providerKey === provider['providerKey'] && outcome.status === 'succeeded')) throw new AppValidationError('ERA diagnostic differs from completed provider coverage')
-        const value = v.parse(secondarySchema, provider['sourceSpacingConvention'])
-        secondarySourceConventions.push({ caseId: entry.id, providerKey: provider['providerKey'], ...value })
-      }
-    }
+    if (entry.id === 'newspapers-expansion-bln-era-burglars') for (const convention of eraSourceSpacingConventions(entry.id, diagnosticProviders, outcomes)) secondarySourceConventions.push(convention)
   }
   const panels = summarizeNewspaperPanels(cases, plan.targets)
   const all = cases.flatMap(row => row.outcomes)

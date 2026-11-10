@@ -21,42 +21,60 @@ export const describeUnsupportedInputForCommand = (
   return 'unsupported input'
 }
 
+type InputRoutingOptions = SttSelectionOptions
+  & OcrSelectionOptions
+  & Pick<UrlRuntimeOptions, 'urlBackendExplicit' | 'urlBackend' | 'urlBackends'>
+
+const resolveStep2ForFamily = (
+  family: InputFamily,
+  documentFormatHint: Awaited<ReturnType<typeof resolveDocumentFormatHint>>,
+  target: string,
+  opts: InputRoutingOptions | undefined
+): ResolvedInputRouting['resolvedStep2'] => {
+  if (family === 'x_space') {
+    return { route: 'unsupported' as const, sourceKind: 'unsupported' as const }
+  }
+  if (family === 'media') {
+    return resolveSttStep2Execution(opts ?? {})
+  }
+  if (family === 'document' || family === 'html_article') {
+    return resolveOcrStep2ExecutionFromFormat(
+      documentFormatHint ?? (family === 'html_article' ? 'html' : 'pdf'),
+      {
+        ...(opts ?? {}),
+        localHtmlDocument: family === 'html_article' && !isLikelyUrl(target)
+      }
+    )
+  }
+  return {
+    route: 'unsupported',
+    sourceKind: 'unsupported'
+  }
+}
+
+const resolveExtractRoute = (
+  family: InputFamily,
+  supported: boolean,
+  step2Route: ResolvedInputRouting['step2Route']
+): ResolvedInputRouting['extractRoute'] => {
+  if (family === 'x_space' && supported) return 'x-space'
+  if (step2Route === 'stt') return 'media'
+  if (step2Route === 'article') return 'article'
+  if (step2Route === 'ocr' || step2Route === 'native-document') return 'document'
+  return undefined
+}
+
 export const resolveInputRoutingForCommand = async (
   command: ProcessCommand,
   target: string,
-  opts?: SttSelectionOptions
-    & OcrSelectionOptions
-    & Pick<UrlRuntimeOptions, 'urlBackendExplicit' | 'urlBackend' | 'urlBackends'>
+  opts?: InputRoutingOptions
 ): Promise<ResolvedInputRouting> => {
   const family = await classifyInputFamily(target, opts)
   const documentFormatHint = await resolveDocumentFormatHint(target, family)
-  const resolvedStep2: ResolvedInputRouting['resolvedStep2'] = family === 'x_space'
-    ? { route: 'unsupported' as const, sourceKind: 'unsupported' as const }
-    : family === 'media'
-    ? resolveSttStep2Execution(opts ?? {})
-    : family === 'document' || family === 'html_article'
-      ? resolveOcrStep2ExecutionFromFormat(
-          documentFormatHint ?? (family === 'html_article' ? 'html' : 'pdf'),
-          {
-            ...(opts ?? {}),
-            localHtmlDocument: family === 'html_article' && !isLikelyUrl(target)
-          }
-        )
-      : {
-          route: 'unsupported',
-          sourceKind: 'unsupported'
-        }
+  const resolvedStep2 = resolveStep2ForFamily(family, documentFormatHint, target, opts)
   const supported = family !== 'unsupported' && commandSupportsInputFamily(command, family)
   const step2Route = resolvedStep2.route
-  const extractRoute = family === 'x_space' && supported
-    ? 'x-space'
-    : step2Route === 'stt'
-    ? 'media'
-    : step2Route === 'article'
-    ? 'article'
-    : step2Route === 'ocr' || step2Route === 'native-document'
-      ? 'document'
-      : undefined
+  const extractRoute = resolveExtractRoute(family, supported, step2Route)
 
   return {
     family,

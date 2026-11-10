@@ -51,6 +51,70 @@ export interface PreparedOcrValidationOptions {
   existingImages?: readonly string[]
 }
 
+type PreparedCases = ReadonlyMap<string, Record<string, unknown>>
+
+const parseCategoryBundle = (descriptor: Record<string, unknown>, bundleBytes: Uint8Array, category: string) => {
+  if (descriptor['sha256'] !== undefined && sha256(bundleBytes) !== digest(descriptor['sha256'], 'bundle hash')) throw new AppValidationError(`Bundle hash mismatch: ${category}`)
+  const bundle = record(JSON.parse(text(bundleBytes)) as unknown, 'category bundle')
+  if (bundle['schemaVersion'] !== 1 || bundle['category'] !== category || bundle['language'] !== 'en' || bundle['status'] !== 'prepared-not-run') throw new AppValidationError(`Invalid category bundle metadata: ${category}`)
+  const cases = list(bundle['cases'], `${category} cases`)
+  if (bundle['caseCount'] !== undefined && bundle['caseCount'] !== cases.length) throw new AppValidationError(`Bundle caseCount mismatch: ${category}`)
+  return { bundle, cases }
+}
+
+/** A case is ready or explicitly blocked; either way it stays one English page of its bundle's category. */
+const isReadySinglePageCase = (entry: Record<string, unknown>, bundle: Record<string, unknown>, category: string, id: string): boolean => {
+  if (entry['category'] !== category || entry['language'] !== 'en') throw new AppValidationError(`Case category/language must match English bundle: ${id}`)
+  const status = entry['status'] ?? bundle['status']
+  const isReady = status === 'prepared-not-run'
+  if (!isReady && (typeof status !== 'string' || !status.startsWith('blocked-'))) throw new AppValidationError(`Invalid case preparation status: ${id}`)
+  if (entry['pageCount'] !== 1) throw new AppValidationError(`Prepared case must contain exactly one page: ${id}`)
+  return isReady
+}
+
+const rememberCanonicalReference = (entry: Record<string, unknown>, id: string, referenceBytes: Uint8Array, rememberText: (value: string, label: string) => void): void => {
+  if (sha256(referenceBytes) !== digest(entry['referenceSha256'], 'canonical reference hash')) throw new AppValidationError(`Canonical reference hash mismatch: ${id}`)
+  const referenceText = text(referenceBytes)
+  rememberText(referenceText, id)
+  if (entry['chars'] !== undefined && entry['chars'] !== referenceText.length) throw new AppValidationError(`Reference character count mismatch: ${id}`)
+}
+
+const assertStructuredReference = (entry: Record<string, unknown>, id: string, structured: Uint8Array): void => {
+  record(JSON.parse(text(structured)) as unknown, 'structured reference JSON')
+  if (entry['structuredReferenceSha256'] !== undefined && sha256(structured) !== digest(entry['structuredReferenceSha256'], 'structured reference hash')) throw new AppValidationError(`Structured reference hash mismatch: ${id}`)
+}
+
+const verifyFlatIndexCases = (index: Record<string, unknown>, ready: PreparedCases): void => {
+  const indexCases = list(index['cases'], 'flat index cases')
+  if (indexCases.length !== ready.size) throw new AppValidationError('Flat index must contain every ready case exactly once')
+  const flatIds = new Set<string>()
+  for (const value of indexCases) {
+    const item = record(value, 'flat index case')
+    const id = nonempty(item['id'], 'flat case ID')
+    const actual = ready.get(id)
+    if (!actual || flatIds.has(id)) throw new AppValidationError(`Flat index has duplicate, blocked or unknown case: ${id}`)
+    flatIds.add(id)
+    for (const field of ['category', 'input', 'reference', 'inputSha256', 'referenceSha256']) if (!isDeepStrictEqual(item[field], actual[field])) throw new AppValidationError(`Flat index metadata mismatch (${field}): ${id}`)
+    for (const field of Object.keys(item)) {
+      const expected = field === 'status' ? actual[field] ?? 'prepared-not-run' : actual[field]
+      if (!isDeepStrictEqual(item[field], expected)) throw new AppValidationError(`Flat index metadata mismatch (${field}): ${id}`)
+    }
+  }
+}
+
+const verifyBlockedCandidates = (index: Record<string, unknown>, ready: PreparedCases, blocked: PreparedCases): Set<string> => {
+  const blockedIds = new Set<string>()
+  for (const value of list(index['blockedCandidates'], 'blocked candidates')) {
+    const item = record(value, 'blocked candidate')
+    const id = nonempty(item['id'], 'blocked candidate ID')
+    if (blockedIds.has(id) || ready.has(id)) throw new AppValidationError(`Blocked candidate duplicated or counted as ready: ${id}`)
+    blockedIds.add(id)
+  }
+  for (const id of blocked.keys()) if (!blockedIds.has(id)) throw new AppValidationError(`Blocked bundle candidate missing from index: ${id}`)
+  for (const id of blockedIds) if (!blocked.has(id)) throw new AppValidationError(`Unknown blocked candidate in index: ${id}`)
+  return blockedIds
+}
+
 /** Read-only admission. Never imports providers, runs OCR, downloads, writes or authorizes execution. */
 export const validatePreparedOcrInputs = async (options: PreparedOcrValidationOptions = {}) => {
   const projectRoot = await realpath(options.projectRoot ?? PROJECT_ROOT)
@@ -124,22 +188,14 @@ export const validatePreparedOcrInputs = async (options: PreparedOcrValidationOp
     seenCategories.add(category)
     const bundlePath = nonempty(descriptor['path'], 'bundle path')
     const bundleBytes = await read(bundlePath)
-    if (descriptor['sha256'] !== undefined && sha256(bundleBytes) !== digest(descriptor['sha256'], 'bundle hash')) throw new AppValidationError(`Bundle hash mismatch: ${category}`)
-    const bundle = record(JSON.parse(text(bundleBytes)) as unknown, 'category bundle')
-    if (bundle['schemaVersion'] !== 1 || bundle['category'] !== category || bundle['language'] !== 'en' || bundle['status'] !== 'prepared-not-run') throw new AppValidationError(`Invalid category bundle metadata: ${category}`)
-    const cases = list(bundle['cases'], `${category} cases`)
-    if (bundle['caseCount'] !== undefined && bundle['caseCount'] !== cases.length) throw new AppValidationError(`Bundle caseCount mismatch: ${category}`)
+    const { bundle, cases } = parseCategoryBundle(descriptor, bundleBytes, category)
     categoryCounts[category] = 0
     for (const value of cases) {
       const entry = record(value, 'prepared case')
       const id = nonempty(entry['id'], 'case ID')
       if (allIds.has(id)) throw new AppValidationError(`Duplicate case ID: ${id}`)
       allIds.add(id)
-      if (entry['category'] !== category || entry['language'] !== 'en') throw new AppValidationError(`Case category/language must match English bundle: ${id}`)
-      const status = entry['status'] ?? bundle['status']
-      const isReady = status === 'prepared-not-run'
-      if (!isReady && (typeof status !== 'string' || !status.startsWith('blocked-'))) throw new AppValidationError(`Invalid case preparation status: ${id}`)
-      if (entry['pageCount'] !== 1) throw new AppValidationError(`Prepared case must contain exactly one page: ${id}`)
+      const isReady = isReadySinglePageCase(entry, bundle, category, id)
       const input = nonempty(entry['input'], 'case input')
       const bytes = await read(input)
       if (sha256(bytes) !== digest(entry['inputSha256'], `${id} input hash`)) throw new AppValidationError(`Input hash mismatch: ${id}`)
@@ -157,15 +213,11 @@ export const validatePreparedOcrInputs = async (options: PreparedOcrValidationOp
       if (!isReady) { blocked.set(id, entry); continue }
       const reference = nonempty(entry['reference'], 'canonical reference path')
       const referenceBytes = await read(reference)
-      if (sha256(referenceBytes) !== digest(entry['referenceSha256'], 'canonical reference hash')) throw new AppValidationError(`Canonical reference hash mismatch: ${id}`)
-      const referenceText = text(referenceBytes)
-      rememberText(referenceText, id)
-      if (entry['chars'] !== undefined && entry['chars'] !== referenceText.length) throw new AppValidationError(`Reference character count mismatch: ${id}`)
+      rememberCanonicalReference(entry, id, referenceBytes, rememberText)
       if (entry['structuredReference'] !== undefined) {
         const path = nonempty(entry['structuredReference'], 'structured reference path')
         const structured = await read(path)
-        record(JSON.parse(text(structured)) as unknown, 'structured reference JSON')
-        if (entry['structuredReferenceSha256'] !== undefined && sha256(structured) !== digest(entry['structuredReferenceSha256'], 'structured reference hash')) throw new AppValidationError(`Structured reference hash mismatch: ${id}`)
+        assertStructuredReference(entry, id, structured)
       }
       if (entry['normalizedReference'] !== undefined) nonempty(text(await read(nonempty(entry['normalizedReference'], 'normalized reference path'))), 'normalized reference text')
       ready.set(id, entry); categoryCounts[category] = (categoryCounts[category] ?? 0) + 1
@@ -174,30 +226,8 @@ export const validatePreparedOcrInputs = async (options: PreparedOcrValidationOp
     if (bundle['readyCaseCount'] !== undefined && bundle['readyCaseCount'] !== categoryCounts[category]) throw new AppValidationError(`Bundle readyCaseCount mismatch: ${category}`)
   }
   if (seenCategories.size !== Object.keys(expectedCounts).length || ready.size !== expectedTotal) throw new AppValidationError('Missing category or incorrect ready total')
-  const indexCases = list(index['cases'], 'flat index cases')
-  if (indexCases.length !== ready.size) throw new AppValidationError('Flat index must contain every ready case exactly once')
-  const flatIds = new Set<string>()
-  for (const value of indexCases) {
-    const item = record(value, 'flat index case')
-    const id = nonempty(item['id'], 'flat case ID')
-    const actual = ready.get(id)
-    if (!actual || flatIds.has(id)) throw new AppValidationError(`Flat index has duplicate, blocked or unknown case: ${id}`)
-    flatIds.add(id)
-    for (const field of ['category', 'input', 'reference', 'inputSha256', 'referenceSha256']) if (!isDeepStrictEqual(item[field], actual[field])) throw new AppValidationError(`Flat index metadata mismatch (${field}): ${id}`)
-    for (const field of Object.keys(item)) {
-      const expected = field === 'status' ? actual[field] ?? 'prepared-not-run' : actual[field]
-      if (!isDeepStrictEqual(item[field], expected)) throw new AppValidationError(`Flat index metadata mismatch (${field}): ${id}`)
-    }
-  }
-  const blockedIds = new Set<string>()
-  for (const value of list(index['blockedCandidates'], 'blocked candidates')) {
-    const item = record(value, 'blocked candidate')
-    const id = nonempty(item['id'], 'blocked candidate ID')
-    if (blockedIds.has(id) || ready.has(id)) throw new AppValidationError(`Blocked candidate duplicated or counted as ready: ${id}`)
-    blockedIds.add(id)
-  }
-  for (const id of blocked.keys()) if (!blockedIds.has(id)) throw new AppValidationError(`Blocked bundle candidate missing from index: ${id}`)
-  for (const id of blockedIds) if (!blocked.has(id)) throw new AppValidationError(`Unknown blocked candidate in index: ${id}`)
+  verifyFlatIndexCases(index, ready)
+  const blockedIds = verifyBlockedCandidates(index, ready, blocked)
   return { status: 'prepared-not-run', executionAuthorized: false, readyCount: ready.size, categoryCounts,
     caseIds: [...ready.keys()], blockedIds: [...blockedIds], baselineReferenceCount: baselineReferences.length,
     baselineImageCount: baselineImages.length, modelCalls: 0 }

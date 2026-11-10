@@ -60,64 +60,54 @@ export const validateAdmissionProofRef = (
   throw UsageError(`Admission ${expected.kind} proof has an invalid storage kind.`)
 }
 
-export const validateAdmissionTransitions = (
-  snapshot: RenderAdmissionJournalSnapshot,
-  request: RenderAdmissionJournalSnapshot['requests'][number]
-): void => {
-  assertContiguousSequences(request.transitions.map((transition) => transition.sequence), 'Admission transition sequence')
-  const states = request.transitions.map((transition) => transition.state)
-  if (states[0] !== 'prepared') {
-    throw UsageError('Admission transitions must begin with prepared.')
-  }
-  for (const transition of request.transitions) {
-    assertIsoDate(transition.at, `Admission ${transition.state} transition`)
-    if (transition.state === 'prepared') {
-      assertSha256(transition.requestBodyHash, 'Admission prepared request-body hash')
-    } else if (transition.state === 'dispatch-started') {
-      assertSha256(transition.transportEvidenceHash, 'Admission dispatch transport-evidence hash')
-    } else if (transition.state === 'provider-accepted') {
-      if (transition.providerRequestId !== undefined && transition.providerRequestId.trim().length === 0) {
-        throw UsageError('Admission provider acceptance has an empty provider request ID.')
-      }
-      validateAdmissionProofRef(transition.evidence, {
-        kind: 'acceptance', journalId: snapshot.journalId, invocationId: snapshot.invocationId,
-        requestOrdinal: request.requestOrdinal, requestFingerprint: request.requestFingerprint
-      })
-    } else if (transition.state === 'completed') {
-      validateAdmissionProofRef(transition.evidence, {
-        kind: 'completion', journalId: snapshot.journalId, invocationId: snapshot.invocationId,
-        requestOrdinal: request.requestOrdinal, requestFingerprint: request.requestFingerprint
-      })
-    } else if (transition.state === 'provider-rejected') {
-      validateAdmissionProofRef(transition.evidence, {
-        kind: 'rejection', journalId: snapshot.journalId, invocationId: snapshot.invocationId,
-        requestOrdinal: request.requestOrdinal, requestFingerprint: request.requestFingerprint
-      })
-    } else if (transition.state === 'ambiguous' && transition.evidence !== undefined) {
-      validateAdmissionProofRef(transition.evidence, {
-        kind: 'ambiguity', journalId: snapshot.journalId, invocationId: snapshot.invocationId,
-        requestOrdinal: request.requestOrdinal, requestFingerprint: request.requestFingerprint
-      })
-    } else if (transition.state === 'confirmed-not-admitted') {
-      validateAdmissionProofRef(transition.evidence, {
-        kind: 'not-admitted', journalId: snapshot.journalId, invocationId: snapshot.invocationId,
-        requestOrdinal: request.requestOrdinal, requestFingerprint: request.requestFingerprint
-      })
-    }
-  }
+type AdmissionJournalRequest = RenderAdmissionJournalSnapshot['requests'][number]
+type AdmissionTransition = AdmissionJournalRequest['transitions'][number]
 
-  if (states.length === 1) return
-  if (states[1] === 'confirmed-not-admitted') {
-    const transition = request.transitions[1]
-    if (states.length !== 2 || transition?.state !== 'confirmed-not-admitted' || transition.method !== 'local-before-dispatch') {
-      throw UsageError('Only local-before-dispatch confirmation may close a prepared request without dispatch.')
+const validateAdmissionTransitionEvidence = (
+  snapshot: RenderAdmissionJournalSnapshot,
+  request: AdmissionJournalRequest,
+  transition: AdmissionTransition
+): void => {
+  assertIsoDate(transition.at, `Admission ${transition.state} transition`)
+  if (transition.state === 'prepared') {
+    assertSha256(transition.requestBodyHash, 'Admission prepared request-body hash')
+  } else if (transition.state === 'dispatch-started') {
+    assertSha256(transition.transportEvidenceHash, 'Admission dispatch transport-evidence hash')
+  } else if (transition.state === 'provider-accepted') {
+    if (transition.providerRequestId !== undefined && transition.providerRequestId.trim().length === 0) {
+      throw UsageError('Admission provider acceptance has an empty provider request ID.')
     }
-    return
+    validateAdmissionProofRef(transition.evidence, {
+      kind: 'acceptance', journalId: snapshot.journalId, invocationId: snapshot.invocationId,
+      requestOrdinal: request.requestOrdinal, requestFingerprint: request.requestFingerprint
+    })
+  } else if (transition.state === 'completed') {
+    validateAdmissionProofRef(transition.evidence, {
+      kind: 'completion', journalId: snapshot.journalId, invocationId: snapshot.invocationId,
+      requestOrdinal: request.requestOrdinal, requestFingerprint: request.requestFingerprint
+    })
+  } else if (transition.state === 'provider-rejected') {
+    validateAdmissionProofRef(transition.evidence, {
+      kind: 'rejection', journalId: snapshot.journalId, invocationId: snapshot.invocationId,
+      requestOrdinal: request.requestOrdinal, requestFingerprint: request.requestFingerprint
+    })
+  } else if (transition.state === 'ambiguous' && transition.evidence !== undefined) {
+    validateAdmissionProofRef(transition.evidence, {
+      kind: 'ambiguity', journalId: snapshot.journalId, invocationId: snapshot.invocationId,
+      requestOrdinal: request.requestOrdinal, requestFingerprint: request.requestFingerprint
+    })
+  } else if (transition.state === 'confirmed-not-admitted') {
+    validateAdmissionProofRef(transition.evidence, {
+      kind: 'not-admitted', journalId: snapshot.journalId, invocationId: snapshot.invocationId,
+      requestOrdinal: request.requestOrdinal, requestFingerprint: request.requestFingerprint
+    })
   }
-  if (states[1] !== 'dispatch-started') {
-    throw UsageError('Admission may advance from prepared only to dispatch-started or local no-admission proof.')
-  }
-  const afterDispatch = states.slice(2)
+}
+
+const validatePostDispatchStateOrder = (
+  request: AdmissionJournalRequest,
+  afterDispatch: ReadonlyArray<AdmissionTransition['state']>
+): void => {
   if (afterDispatch.length === 0) return
   if (afterDispatch[0] === 'provider-accepted') {
     if (afterDispatch.length > 2 || (afterDispatch.length === 2 && afterDispatch[1] !== 'completed')) {
@@ -136,6 +126,40 @@ export const validateAdmissionTransitions = (
     && transition.method !== 'local-before-dispatch'
   ) return
   throw UsageError('Admission request contains an invalid post-dispatch transition.')
+}
+
+const validateAdmissionStateOrder = (
+  request: AdmissionJournalRequest,
+  states: ReadonlyArray<AdmissionTransition['state']>
+): void => {
+  if (states.length === 1) return
+  if (states[1] === 'confirmed-not-admitted') {
+    const transition = request.transitions[1]
+    if (states.length !== 2 || transition?.state !== 'confirmed-not-admitted' || transition.method !== 'local-before-dispatch') {
+      throw UsageError('Only local-before-dispatch confirmation may close a prepared request without dispatch.')
+    }
+    return
+  }
+  if (states[1] !== 'dispatch-started') {
+    throw UsageError('Admission may advance from prepared only to dispatch-started or local no-admission proof.')
+  }
+  const afterDispatch = states.slice(2)
+  validatePostDispatchStateOrder(request, afterDispatch)
+}
+
+export const validateAdmissionTransitions = (
+  snapshot: RenderAdmissionJournalSnapshot,
+  request: AdmissionJournalRequest
+): void => {
+  assertContiguousSequences(request.transitions.map((transition) => transition.sequence), 'Admission transition sequence')
+  const states = request.transitions.map((transition) => transition.state)
+  if (states[0] !== 'prepared') {
+    throw UsageError('Admission transitions must begin with prepared.')
+  }
+  for (const transition of request.transitions) {
+    validateAdmissionTransitionEvidence(snapshot, request, transition)
+  }
+  validateAdmissionStateOrder(request, states)
 }
 
 export const validateAdmissionJournalRequests = (

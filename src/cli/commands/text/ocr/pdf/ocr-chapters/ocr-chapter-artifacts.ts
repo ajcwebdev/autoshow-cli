@@ -105,7 +105,7 @@ export const buildPdfChapterFiles = (
   })
 }
 
-export const buildPdfChapterArtifacts = async (input: {
+type PdfChapterArtifactsInput = {
   filePath: string
   pages: PageResult[]
   title?: string
@@ -115,7 +115,51 @@ export const buildPdfChapterArtifacts = async (input: {
   chunkLimitChars?: number
   llmService?: string
   llmModel?: string
-}): Promise<PdfChapterBuildResult> => {
+}
+
+const recordLlmChapterFallbackFailure = (error: unknown, warnings: string[]): void => {
+  const message = error instanceof Error ? error.message : String(error)
+  warnings.push(`LLM chapter fallback failed: ${message}`)
+  l.warn(`PDF chapter LLM fallback failed: ${message}`, {
+    category: 'pipeline',
+    error: error
+  })
+}
+
+const buildPdfChapterExportResult = (
+  input: PdfChapterArtifactsInput,
+  chapters: ResolvedPdfChapter[],
+  warnings: string[],
+  detection: PdfChapterDetectionSummary
+): PdfChapterBuildResult => {
+  if (chapters.length === 0) {
+    return { detection }
+  }
+
+  const files = buildPdfChapterFiles(input.pages, chapters, input.chunkLimitChars)
+  if (files.length === 0) {
+    warnings.push('PDF chapter boundaries resolved, but no chapter files were written.')
+    return { detection }
+  }
+
+  return {
+    files,
+    summary: {
+      sourceFormat: 'pdf',
+      mode: 'chapters',
+      ...(typeof input.chunkLimitChars === 'number' ? { chunkLimitChars: input.chunkLimitChars } : {}),
+      sectionsKept: chapters.length,
+      sectionsDropped: 0,
+      dividerSectionsMerged: 0,
+      filesWritten: files.length,
+      chapterFilesWritten: files.length,
+      directories: ['chapters']
+    },
+    detection
+  }
+}
+
+export const buildPdfChapterArtifacts = async (input: PdfChapterArtifactsInput): Promise<PdfChapterBuildResult> => {
   const totalPages = input.pages.length > 0 ? Math.max(...input.pages.map((page) => page.pageNumber)) : 0
 
   let outlineEntries: PdfOutlineEntry[] = []
@@ -171,12 +215,7 @@ export const buildPdfChapterArtifacts = async (input: {
           llmUsed = true
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        warnings.push(`LLM chapter fallback failed: ${message}`)
-        l.warn(`PDF chapter LLM fallback failed: ${message}`, {
-      category: 'pipeline',
-      error: error
-    })
+        recordLlmChapterFallbackFailure(error, warnings)
       }
     } else {
       warnings.push('PDF chapter LLM assistance was requested, but no default LLM is configured.')
@@ -212,29 +251,5 @@ export const buildPdfChapterArtifacts = async (input: {
       : {})
   }
 
-  if (chapters.length === 0) {
-    return { detection }
-  }
-
-  const files = buildPdfChapterFiles(input.pages, chapters, input.chunkLimitChars)
-  if (files.length === 0) {
-    warnings.push('PDF chapter boundaries resolved, but no chapter files were written.')
-    return { detection }
-  }
-
-  return {
-    files,
-    summary: {
-      sourceFormat: 'pdf',
-      mode: 'chapters',
-      ...(typeof input.chunkLimitChars === 'number' ? { chunkLimitChars: input.chunkLimitChars } : {}),
-      sectionsKept: chapters.length,
-      sectionsDropped: 0,
-      dividerSectionsMerged: 0,
-      filesWritten: files.length,
-      chapterFilesWritten: files.length,
-      directories: ['chapters']
-    },
-    detection
-  }
+  return buildPdfChapterExportResult(input, chapters, warnings, detection)
 }

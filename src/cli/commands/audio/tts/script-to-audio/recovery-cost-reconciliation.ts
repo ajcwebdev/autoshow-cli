@@ -2,6 +2,11 @@ import type { CurrentTtsReconciliationBlocker, LoadedRecoveryBatch, PlannedCost,
 import { UsageError } from '~/utils/error-handler'
 import { buildPureCurrentTtsRenderPlan, sumCosts } from './attempt-planning'
 
+type RetainedJournalRequest = RetainedJournalEvidence['value']['requests'][number]
+
+const isInitialStartedDispatch = (request: RetainedJournalRequest): boolean =>
+  request.retryOfRequestOrdinal === undefined && request.transitions.some((transition) => transition.state === 'dispatch-started')
+
 const collectCostedDispatches = (
   pure: ReturnType<typeof buildPureCurrentTtsRenderPlan>,
   journalEvidenceById: Map<string, RetainedJournalEvidence>,
@@ -22,15 +27,14 @@ const collectCostedDispatches = (
       }
       const terminal = request.transitions.at(-1)?.state
       if (terminal === 'completed') completedSlotIds.add(request.generationSlotId)
-      if (request.retryOfRequestOrdinal === undefined && request.transitions.some((transition) => transition.state === 'dispatch-started')) {
-        const key = `${evidence.value.invocationId}\0${request.generationSlotId}`
-        if (costedDispatches.has(key)) continue
-        const slot = pure.planned.slots.find((entry) => entry.generationSlotId === request.generationSlotId)
-        if (!slot) throw UsageError('Stored TTS dispatch has no matching immutable planned slot cost.')
-        costedDispatches.add(key)
-        const retainedBatch = loadedBatches.find(batch => batch.value.generationSlotId === slot.generationSlotId && batch.value.invocationId === evidence.value.invocationId)
-        retainedAttemptCosts.push(retainedBatch?.value.cost.planned ?? slot.plannedCost)
-      }
+      if (!isInitialStartedDispatch(request)) continue
+      const key = `${evidence.value.invocationId}\0${request.generationSlotId}`
+      if (costedDispatches.has(key)) continue
+      const slot = pure.planned.slots.find((entry) => entry.generationSlotId === request.generationSlotId)
+      if (!slot) throw UsageError('Stored TTS dispatch has no matching immutable planned slot cost.')
+      costedDispatches.add(key)
+      const retainedBatch = loadedBatches.find(batch => batch.value.generationSlotId === slot.generationSlotId && batch.value.invocationId === evidence.value.invocationId)
+      retainedAttemptCosts.push(retainedBatch?.value.cost.planned ?? slot.plannedCost)
     }
   }
   return { completedSlotIds, retainedAttemptCosts, costedDispatches }

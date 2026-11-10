@@ -46,32 +46,34 @@ const parseFormatNames = (format: FfprobeFormat | undefined): string[] => {
 const getLowercaseExtension = (filePath: string): string =>
   extname(filePath).toLowerCase()
 
+type AudioPlanOutput = {
+  mode: AudioNormalizationMode
+  outputExtension: NormalizedAudioExtension
+  outputFormat: NormalizedAudioFormat
+  outputCodecName: string
+  reason: string
+  targetBitRate?: number | undefined
+  targetSampleRate?: number | undefined
+  targetChannels?: number | undefined
+}
+
 const buildPlan = (
   profile: AudioNormalizationProfile,
-  mode: AudioNormalizationMode,
-  outputExtension: NormalizedAudioExtension,
-  outputFormat: NormalizedAudioFormat,
   sourceCodecName: string,
-  outputCodecName: string,
-  reason: string,
-  options: {
-    targetBitRate?: number | undefined
-    targetSampleRate?: number | undefined
-    targetChannels?: number | undefined
-  } = {}
+  output: AudioPlanOutput
 ): NormalizedAudioPlan => ({
   profile,
-  mode,
-  outputExtension,
-  outputFormat,
-  outputCodecName,
+  mode: output.mode,
+  outputExtension: output.outputExtension,
+  outputFormat: output.outputFormat,
+  outputCodecName: output.outputCodecName,
   sourceCodecName,
-  reason,
+  reason: output.reason,
   stripMetadata: isHostedSttProfile(profile),
   stripChapters: isHostedSttProfile(profile),
-  ...(options.targetBitRate !== undefined ? { targetBitRate: options.targetBitRate } : {}),
-  ...(options.targetSampleRate !== undefined ? { targetSampleRate: options.targetSampleRate } : {}),
-  ...(options.targetChannels !== undefined ? { targetChannels: options.targetChannels } : {})
+  ...(output.targetBitRate !== undefined ? { targetBitRate: output.targetBitRate } : {}),
+  ...(output.targetSampleRate !== undefined ? { targetSampleRate: output.targetSampleRate } : {}),
+  ...(output.targetChannels !== undefined ? { targetChannels: output.targetChannels } : {})
 })
 
 const probeMediaFile = async (inputPath: string): Promise<MediaProbe> => {
@@ -174,6 +176,14 @@ const resolveHostedTargetBitRate = (probe: MediaProbe): number => {
   return HOSTED_STT_MAX_BIT_RATE
 }
 
+const resolveHostedTranscodeTargets = (
+  probe: MediaProbe
+): Pick<AudioPlanOutput, 'targetBitRate' | 'targetSampleRate' | 'targetChannels'> => ({
+  targetBitRate: resolveHostedTargetBitRate(probe),
+  ...(probe.audioStream.sampleRate !== undefined ? { targetSampleRate: probe.audioStream.sampleRate } : {}),
+  targetChannels: 1
+})
+
 const resolveNormalizedAudioPlan = (
   inputPath: string,
   probe: MediaProbe,
@@ -183,151 +193,153 @@ const resolveNormalizedAudioPlan = (
   const codecName = probe.audioStream.codecName
   const isAudioOnly = probe.hasVideo === false
 
-  if (profile === 'lossless') return buildPlan(profile, 'transcode-pcm', '.wav', 'wav', codecName, 'pcm_f32le', 'preserve decoded float32 samples at the original sample rate and channel count')
+  if (profile === 'lossless') return buildPlan(profile, codecName, {
+    mode: 'transcode-pcm',
+    outputExtension: '.wav',
+    outputFormat: 'wav',
+    outputCodecName: 'pcm_f32le',
+    reason: 'preserve decoded float32 samples at the original sample rate and channel count'
+  })
 
   if (profile === 'hosted-stt') {
     if (isHostedPreserveCandidate(inputPath, probe)) {
       if (codecName === 'mp3') {
-        return buildPlan(
-          profile,
-          'copy-stream',
-          '.mp3',
-          'mp3',
-          codecName,
-          'mp3',
-          'preserve low-bitrate mono hosted-STT mp3 while stripping non-audio baggage'
-        )
+        return buildPlan(profile, codecName, {
+          mode: 'copy-stream',
+          outputExtension: '.mp3',
+          outputFormat: 'mp3',
+          outputCodecName: 'mp3',
+          reason: 'preserve low-bitrate mono hosted-STT mp3 while stripping non-audio baggage'
+        })
       }
 
-      return buildPlan(
-        profile,
-        'copy-stream',
-        '.m4a',
-        'ipod',
-        codecName,
-        'aac',
-        'preserve low-bitrate mono hosted-STT AAC in .m4a while stripping non-audio baggage'
-      )
+      return buildPlan(profile, codecName, {
+        mode: 'copy-stream',
+        outputExtension: '.m4a',
+        outputFormat: 'ipod',
+        outputCodecName: 'aac',
+        reason: 'preserve low-bitrate mono hosted-STT AAC in .m4a while stripping non-audio baggage'
+      })
     }
 
-    return buildPlan(
-      profile,
-      'transcode-aac',
-      '.m4a',
-      'ipod',
-      codecName,
-      'aac',
-      'compress hosted-STT source media to mono AAC-LC in .m4a with a 96 kbps ceiling',
-      {
-        targetBitRate: resolveHostedTargetBitRate(probe),
-        ...(probe.audioStream.sampleRate !== undefined ? { targetSampleRate: probe.audioStream.sampleRate } : {}),
-        targetChannels: 1
-      }
-    )
+    return buildPlan(profile, codecName, {
+      mode: 'transcode-aac',
+      outputExtension: '.m4a',
+      outputFormat: 'ipod',
+      outputCodecName: 'aac',
+      reason: 'compress hosted-STT source media to mono AAC-LC in .m4a with a 96 kbps ceiling',
+      ...resolveHostedTranscodeTargets(probe)
+    })
   }
 
   if (profile === 'hosted-stt-mp3') {
     if (isHostedMp3PreserveCandidate(inputPath, probe)) {
-      return buildPlan(
-        profile,
-        'copy-stream',
-        '.mp3',
-        'mp3',
-        codecName,
-        'mp3',
-        'preserve low-bitrate mono hosted-STT mp3 while stripping non-audio baggage'
-      )
+      return buildPlan(profile, codecName, {
+        mode: 'copy-stream',
+        outputExtension: '.mp3',
+        outputFormat: 'mp3',
+        outputCodecName: 'mp3',
+        reason: 'preserve low-bitrate mono hosted-STT mp3 while stripping non-audio baggage'
+      })
     }
 
-    return buildPlan(
-      profile,
-      'transcode-mp3',
-      '.mp3',
-      'mp3',
-      codecName,
-      'mp3',
-      'compress hosted-STT source media to mono mp3 with a 96 kbps ceiling',
-      {
-        targetBitRate: resolveHostedTargetBitRate(probe),
-        ...(probe.audioStream.sampleRate !== undefined ? { targetSampleRate: probe.audioStream.sampleRate } : {}),
-        targetChannels: 1
-      }
-    )
+    return buildPlan(profile, codecName, {
+      mode: 'transcode-mp3',
+      outputExtension: '.mp3',
+      outputFormat: 'mp3',
+      outputCodecName: 'mp3',
+      reason: 'compress hosted-STT source media to mono mp3 with a 96 kbps ceiling',
+      ...resolveHostedTranscodeTargets(probe)
+    })
   }
 
   if (codecName === 'mp3') {
     if (profile === 'default' && isAudioOnly && sourceExtension === '.mp3') {
-      return buildPlan(profile, 'copy-file', '.mp3', 'mp3', codecName, 'mp3', 'audio-only mp3 fast path')
+      return buildPlan(profile, codecName, {
+        mode: 'copy-file',
+        outputExtension: '.mp3',
+        outputFormat: 'mp3',
+        outputCodecName: 'mp3',
+        reason: 'audio-only mp3 fast path'
+      })
     }
 
-    return buildPlan(
-      profile,
-      'copy-stream',
-      '.mp3',
-      'mp3',
-      codecName,
-      'mp3',
-      'extract or remux mp3 audio without re-encoding'
-    )
+    return buildPlan(profile, codecName, {
+      mode: 'copy-stream',
+      outputExtension: '.mp3',
+      outputFormat: 'mp3',
+      outputCodecName: 'mp3',
+      reason: 'extract or remux mp3 audio without re-encoding'
+    })
   }
 
   if (codecName === 'aac' || codecName === 'alac') {
     if (profile === 'default' && isAudioOnly && sourceExtension === '.m4a') {
-      return buildPlan(profile, 'copy-file', '.m4a', 'ipod', codecName, codecName, 'audio-only m4a fast path')
+      return buildPlan(profile, codecName, {
+        mode: 'copy-file',
+        outputExtension: '.m4a',
+        outputFormat: 'ipod',
+        outputCodecName: codecName,
+        reason: 'audio-only m4a fast path'
+      })
     }
 
-    return buildPlan(
-      profile,
-      'copy-stream',
-      '.m4a',
-      'ipod',
-      codecName,
-      codecName,
-      'extract or remux AAC/ALAC audio without re-encoding'
-    )
+    return buildPlan(profile, codecName, {
+      mode: 'copy-stream',
+      outputExtension: '.m4a',
+      outputFormat: 'ipod',
+      outputCodecName: codecName,
+      reason: 'extract or remux AAC/ALAC audio without re-encoding'
+    })
   }
 
   if (codecName === 'opus' || codecName === 'vorbis') {
     if (profile === 'default' && isAudioOnly && sourceExtension === '.ogg') {
-      return buildPlan(profile, 'copy-file', '.ogg', 'ogg', codecName, codecName, 'audio-only ogg fast path')
+      return buildPlan(profile, codecName, {
+        mode: 'copy-file',
+        outputExtension: '.ogg',
+        outputFormat: 'ogg',
+        outputCodecName: codecName,
+        reason: 'audio-only ogg fast path'
+      })
     }
 
-    return buildPlan(
-      profile,
-      'copy-stream',
-      '.ogg',
-      'ogg',
-      codecName,
-      codecName,
-      'extract or remux Opus/Vorbis audio without re-encoding'
-    )
+    return buildPlan(profile, codecName, {
+      mode: 'copy-stream',
+      outputExtension: '.ogg',
+      outputFormat: 'ogg',
+      outputCodecName: codecName,
+      reason: 'extract or remux Opus/Vorbis audio without re-encoding'
+    })
   }
 
   if (codecName === 'flac') {
     if (profile === 'default' && isAudioOnly && sourceExtension === '.flac') {
-      return buildPlan(profile, 'copy-file', '.flac', 'flac', codecName, 'flac', 'audio-only flac fast path')
+      return buildPlan(profile, codecName, {
+        mode: 'copy-file',
+        outputExtension: '.flac',
+        outputFormat: 'flac',
+        outputCodecName: 'flac',
+        reason: 'audio-only flac fast path'
+      })
     }
 
-    return buildPlan(
-      profile,
-      'copy-stream',
-      '.flac',
-      'flac',
-      codecName,
-      'flac',
-      'extract or remux FLAC audio without re-encoding'
-    )
+    return buildPlan(profile, codecName, {
+      mode: 'copy-stream',
+      outputExtension: '.flac',
+      outputFormat: 'flac',
+      outputCodecName: 'flac',
+      reason: 'extract or remux FLAC audio without re-encoding'
+    })
   }
 
-  return buildPlan(
-    profile,
-    'transcode-flac',
-    '.flac',
-    'flac',
-    codecName,
-    'flac',
-    'transcode unsupported or uncompressed audio once to FLAC'
-  )
+  return buildPlan(profile, codecName, {
+    mode: 'transcode-flac',
+    outputExtension: '.flac',
+    outputFormat: 'flac',
+    outputCodecName: 'flac',
+    reason: 'transcode unsupported or uncompressed audio once to FLAC'
+  })
 }
 
 export const planNormalizedAudioArtifact = async (

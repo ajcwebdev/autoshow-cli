@@ -1,4 +1,4 @@
-import type { HtmlArticleBackend, ProviderSpec, Step2Command, Step2ProviderOptionSurface, Step2ProviderSelectionFilter, Step2ProviderSelectionOrigin, Step2ResolvedProviderSelection, Step2ShortcutFlag, UrlArticleTarget } from '~/types'
+import type { HtmlArticleBackend, ProviderSpec, Step2Command, Step2ProviderOptionSurface, Step2ProviderRegistryEntry, Step2ProviderSelectionFilter, Step2ProviderSelectionOrigin, Step2ResolvedProviderSelection, Step2ShortcutFlag, UrlArticleTarget } from '~/types'
 import { getStep2ProviderEntries, getStep2ProviderEntry } from './entries'
 import { URL_ARTICLE_BACKENDS } from './url-providers'
 import { isModelCostTargetIncluded } from '~/cli/commands/pricing-orchestration/model-cost-filter'
@@ -111,6 +111,38 @@ export const collectStep2ProviderSpecs = (
   return specs
 }
 
+const isIncludedOrigin = (
+  origin: Step2ProviderSelectionOrigin | undefined,
+  filter?: Step2ProviderSelectionFilter
+): origin is Step2ProviderSelectionOrigin => !!origin && includeOrigin(origin, filter)
+
+const readFlagSelectionOrigin = (
+  selectionOrigins: Partial<Record<string, Step2ProviderSelectionOrigin>>,
+  flagName: string,
+  hasSelectionOrigins: boolean
+): Step2ProviderSelectionOrigin | undefined =>
+  selectionOrigins[flagName] ?? (!hasSelectionOrigins ? 'default' : undefined)
+
+const readOrderedModels = (
+  options: object,
+  runtimeModelsKey: keyof Step2ProviderOptionSurface
+): string[] => {
+  const models = readRuntimeValue(options, runtimeModelsKey)
+  return Array.isArray(models)
+    ? models.filter((value): value is string => typeof value === 'string' && value.length > 0)
+    : []
+}
+
+const selectionTarget = (entry: Step2ProviderRegistryEntry) => ({
+  flagName: entry.flagName,
+  step: entry.step,
+  modality: entry.modality,
+  targetService: entry.targetService,
+  providerSpecProvider: entry.providerSpecProvider,
+  bootstrapProviderId: entry.bootstrapProviderId,
+  configPath: entry.configPath
+})
+
 export const collectStep2ProviderSelections = (
   step: Step2Command,
   options: object,
@@ -125,18 +157,12 @@ export const collectStep2ProviderSelections = (
       const origin = step === 'url'
         ? readUrlBackendSelection(options, entry.targetService, selectionOrigins, entry.flagName)
         : undefined
-      if (!origin || !includeOrigin(origin, filter)) {
+      if (!isIncludedOrigin(origin, filter)) {
         continue
       }
 
       appendProviderSelection(selections, {
-        flagName: entry.flagName,
-        step: entry.step,
-        modality: entry.modality,
-        targetService: entry.targetService,
-        providerSpecProvider: entry.providerSpecProvider,
-        bootstrapProviderId: entry.bootstrapProviderId,
-        configPath: entry.configPath,
+        ...selectionTarget(entry),
         model: entry.selection.model,
         selectionKind: entry.selection.type,
         origin
@@ -149,19 +175,13 @@ export const collectStep2ProviderSelections = (
         continue
       }
 
-      const origin = selectionOrigins[entry.flagName] ?? (!hasSelectionOrigins ? 'default' : undefined)
-      if (!origin || !includeOrigin(origin, filter)) {
+      const origin = readFlagSelectionOrigin(selectionOrigins, entry.flagName, hasSelectionOrigins)
+      if (!isIncludedOrigin(origin, filter)) {
         continue
       }
 
       appendProviderSelection(selections, {
-        flagName: entry.flagName,
-        step: entry.step,
-        modality: entry.modality,
-        targetService: entry.targetService,
-        providerSpecProvider: entry.providerSpecProvider,
-        bootstrapProviderId: entry.bootstrapProviderId,
-        configPath: entry.configPath,
+        ...selectionTarget(entry),
         model: entry.selection.model,
         selectionKind: entry.selection.type,
         origin
@@ -169,25 +189,16 @@ export const collectStep2ProviderSelections = (
       continue
     }
 
-    const models = readRuntimeValue(options, entry.selection.runtimeModelsKey)
-    const orderedModels = Array.isArray(models)
-      ? models.filter((value): value is string => typeof value === 'string' && value.length > 0)
-      : []
-    const origin = selectionOrigins[entry.flagName] ?? (!hasSelectionOrigins ? 'default' : undefined)
+    const orderedModels = readOrderedModels(options, entry.selection.runtimeModelsKey)
+    const origin = readFlagSelectionOrigin(selectionOrigins, entry.flagName, hasSelectionOrigins)
 
-    if (!origin || !includeOrigin(origin, filter)) {
+    if (!isIncludedOrigin(origin, filter)) {
       continue
     }
 
     for (const model of orderedModels) {
       appendProviderSelection(selections, {
-        flagName: entry.flagName,
-        step: entry.step,
-        modality: entry.modality,
-        targetService: entry.targetService,
-        providerSpecProvider: entry.providerSpecProvider,
-        bootstrapProviderId: entry.bootstrapProviderId,
-        configPath: entry.configPath,
+        ...selectionTarget(entry),
         model,
         selectionKind: entry.selection.type,
         origin

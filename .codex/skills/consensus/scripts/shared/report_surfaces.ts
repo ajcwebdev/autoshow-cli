@@ -271,6 +271,30 @@ function normalizeGroup(record: Record<string, unknown>, overrideGroup: Provider
   return "service";
 }
 
+function providerSummaryMetrics(
+  record: Record<string, unknown>,
+  nestedMetrics: Record<string, unknown>,
+): Record<string, number | null> {
+  return {
+    inputTokenCount: asNumber(record.inputTokenCount) ?? asNumber(nestedMetrics.inputTokenCount),
+    outputTokenCount: asNumber(record.outputTokenCount) ?? asNumber(nestedMetrics.outputTokenCount),
+    totalTokenCount: asNumber(record.totalTokenCount) ?? asNumber(nestedMetrics.totalTokenCount),
+    msPerUnit: firstNumber(record, ["msPerUnit"]) ?? asNumber(nestedMetrics.msPerUnit),
+    wer: asNumber(record.wer) ?? asNumber(nestedMetrics.wer),
+    cer: asNumber(record.cer) ?? asNumber(nestedMetrics.cer),
+    speakerAwareWER: asNumber(record.speakerAwareWER) ?? asNumber(nestedMetrics.speakerAwareWER),
+    textOnlyWER: asNumber(record.textOnlyWER) ?? asNumber(nestedMetrics.textOnlyWER),
+    roundtripWER: asNumber(record.roundtripWER) ?? asNumber(nestedMetrics.roundtripWER),
+    contentCoverage: asNumber(record.contentCoverage) ?? asNumber(nestedMetrics.contentCoverage),
+    score: asNumber(record.score) ?? asNumber(nestedMetrics.score),
+    qualityScore: asNumber(record.qualityScore) ?? asNumber(record.voiceQualityScore) ?? asNumber(nestedMetrics.qualityScore),
+    automatedQualityScore: asNumber(record.automatedQualityScore) ?? asNumber(nestedMetrics.automatedQualityScore),
+    textQualityScore: asNumber(record.textQualityScore) ?? asNumber(nestedMetrics.textQualityScore),
+    humanQualityScore: asNumber(record.humanQualityScore) ?? asNumber(nestedMetrics.humanQualityScore),
+    humanSpeechScore: asNumber(record.humanSpeechScore) ?? asNumber(nestedMetrics.humanSpeechScore),
+  };
+}
+
 function addRecords(
   map: Map<string, ProviderSummary>,
   records: Record<string, unknown>[],
@@ -294,24 +318,7 @@ function addRecords(
       audioDurationSeconds: firstNumber(record, ["audioDurationSeconds"]),
       realtimeFactor: firstNumber(record, ["realtimeFactor"]),
       quality: null,
-      metrics: {
-        inputTokenCount: asNumber(record.inputTokenCount) ?? asNumber(nestedMetrics.inputTokenCount),
-        outputTokenCount: asNumber(record.outputTokenCount) ?? asNumber(nestedMetrics.outputTokenCount),
-        totalTokenCount: asNumber(record.totalTokenCount) ?? asNumber(nestedMetrics.totalTokenCount),
-        msPerUnit: firstNumber(record, ["msPerUnit"]) ?? asNumber(nestedMetrics.msPerUnit),
-        wer: asNumber(record.wer) ?? asNumber(nestedMetrics.wer),
-        cer: asNumber(record.cer) ?? asNumber(nestedMetrics.cer),
-        speakerAwareWER: asNumber(record.speakerAwareWER) ?? asNumber(nestedMetrics.speakerAwareWER),
-        textOnlyWER: asNumber(record.textOnlyWER) ?? asNumber(nestedMetrics.textOnlyWER),
-        roundtripWER: asNumber(record.roundtripWER) ?? asNumber(nestedMetrics.roundtripWER),
-        contentCoverage: asNumber(record.contentCoverage) ?? asNumber(nestedMetrics.contentCoverage),
-        score: asNumber(record.score) ?? asNumber(nestedMetrics.score),
-        qualityScore: asNumber(record.qualityScore) ?? asNumber(record.voiceQualityScore) ?? asNumber(nestedMetrics.qualityScore),
-        automatedQualityScore: asNumber(record.automatedQualityScore) ?? asNumber(nestedMetrics.automatedQualityScore),
-        textQualityScore: asNumber(record.textQualityScore) ?? asNumber(nestedMetrics.textQualityScore),
-        humanQualityScore: asNumber(record.humanQualityScore) ?? asNumber(nestedMetrics.humanQualityScore),
-        humanSpeechScore: asNumber(record.humanSpeechScore) ?? asNumber(nestedMetrics.humanSpeechScore),
-      },
+      metrics: providerSummaryMetrics(record, nestedMetrics),
       source: record,
     };
     map.set(key, summary);
@@ -915,8 +922,51 @@ function providerDetailMetrics(category: ConsensusCategory, metrics: Record<stri
   return rest;
 }
 
+function measuredTextProviderDetail(provider: ProviderSummary): Record<string, unknown> {
+  return {
+    tokenEstimate: provider.source.tokenEstimate ?? null,
+    tokenCount: provider.source.tokenCount ?? null,
+    werBreakdown: provider.source.werBreakdown ?? null,
+    cerBreakdown: provider.source.cerBreakdown ?? null,
+    textOnlyBreakdown: provider.source.textOnlyBreakdown ?? null,
+    speakerAwareBreakdown: provider.source.speakerAwareBreakdown ?? null,
+  };
+}
+
+function textProviderDetail(provider: ProviderSummary): Record<string, unknown> {
+  return {
+    inputTokenCount: provider.source.inputTokenCount ?? provider.metrics.inputTokenCount ?? null,
+    outputTokenCount: provider.source.outputTokenCount ?? provider.metrics.outputTokenCount ?? null,
+    totalTokenCount: provider.source.totalTokenCount ?? provider.metrics.totalTokenCount ?? null,
+    tokenCountSource: provider.source.tokenCountSource ?? null,
+    providerUsage: provider.source.providerUsage ?? null,
+    rawProviderUsage: provider.source.rawProviderUsage ?? null,
+    outputFileName: provider.source.outputFileName ?? null,
+    outputExists: provider.source.outputExists ?? null,
+    outputByteSize: provider.source.outputByteSize ?? null,
+    structuredMode: provider.source.structuredMode ?? null,
+    structuredPresetNames: provider.source.structuredPresetNames ?? [],
+  };
+}
+
+function categoryProviderDetail(category: ConsensusCategory, provider: ProviderSummary): Record<string, unknown> {
+  if (category === "ocr" || category === "stt") {
+    return measuredTextProviderDetail(provider);
+  }
+  if (category === "text") {
+    return textProviderDetail(provider);
+  }
+  if (category === "url") {
+    return {
+      distanceMethod: provider.source.distanceMethod ?? null,
+      distanceSource: provider.source.distanceSource ?? null,
+    };
+  }
+  return {};
+}
+
 function providerDetail(category: ConsensusCategory, provider: ProviderSummary): Record<string, unknown> {
-  const detail: Record<string, unknown> = {
+  return {
     providerKey: provider.providerKey,
     provider: provider.provider,
     model: provider.model,
@@ -935,33 +985,8 @@ function providerDetail(category: ConsensusCategory, provider: ProviderSummary):
     qualityWarnings: provider.source.qualityWarnings ?? [],
     segmentStats: provider.source.segmentStats ?? null,
     duplicateGroupId: provider.source.duplicateGroupId ?? null,
+    ...categoryProviderDetail(category, provider),
   };
-  if (category === "ocr" || category === "stt") {
-    detail.tokenEstimate = provider.source.tokenEstimate ?? null;
-    detail.tokenCount = provider.source.tokenCount ?? null;
-    detail.werBreakdown = provider.source.werBreakdown ?? null;
-    detail.cerBreakdown = provider.source.cerBreakdown ?? null;
-    detail.textOnlyBreakdown = provider.source.textOnlyBreakdown ?? null;
-    detail.speakerAwareBreakdown = provider.source.speakerAwareBreakdown ?? null;
-  }
-  if (category === "text") {
-    detail.inputTokenCount = provider.source.inputTokenCount ?? provider.metrics.inputTokenCount ?? null;
-    detail.outputTokenCount = provider.source.outputTokenCount ?? provider.metrics.outputTokenCount ?? null;
-    detail.totalTokenCount = provider.source.totalTokenCount ?? provider.metrics.totalTokenCount ?? null;
-    detail.tokenCountSource = provider.source.tokenCountSource ?? null;
-    detail.providerUsage = provider.source.providerUsage ?? null;
-    detail.rawProviderUsage = provider.source.rawProviderUsage ?? null;
-    detail.outputFileName = provider.source.outputFileName ?? null;
-    detail.outputExists = provider.source.outputExists ?? null;
-    detail.outputByteSize = provider.source.outputByteSize ?? null;
-    detail.structuredMode = provider.source.structuredMode ?? null;
-    detail.structuredPresetNames = provider.source.structuredPresetNames ?? [];
-  }
-  if (category === "url") {
-    detail.distanceMethod = provider.source.distanceMethod ?? null;
-    detail.distanceSource = provider.source.distanceSource ?? null;
-  }
-  return detail;
 }
 
 function buildProviderGroups(category: ConsensusCategory, providers: ProviderSummary[]): ProviderGroups {
@@ -991,45 +1016,55 @@ function buildProviderGroups(category: ConsensusCategory, providers: ProviderSum
   };
 }
 
+function buildMeasuredJsonReport(
+  category: "ocr" | "stt",
+  sourceReport: Record<string, unknown>,
+  providers: ProviderSummary[],
+): Record<string, unknown> {
+  const runDir = asString(sourceReport["runDir"]) ?? "";
+  const providerGroups = buildProviderGroups(category, providers);
+  const metricRankings = buildMetricRankings(category, providers);
+  return {
+    schemaVersion: asNumber(sourceReport.schemaVersion) ?? 2,
+    kind: `${category}-provider-comparison`,
+    category,
+    runDir,
+    runName: runDir ? basename(runDir) : null,
+    generatedAt: new Date().toISOString(),
+    metric: sourceReport.metric ?? null,
+    scoreFormula: sourceReport.scoreFormula ?? null,
+    ...(sourceReport.werFormula ? { werFormula: sourceReport.werFormula } : {}),
+    ...(sourceReport.consensusExtractionPath ? { consensusExtractionPath: sourceReport.consensusExtractionPath } : {}),
+    ...(category === "ocr" && sourceReport.referenceProvenance ? { referenceProvenance: sourceReport.referenceProvenance } : {}),
+    ...(sourceReport.consensusCharCount ? { consensusCharCount: sourceReport.consensusCharCount } : {}),
+    ...(sourceReport.consensusWordCount ? { consensusWordCount: sourceReport.consensusWordCount } : {}),
+    ...(sourceReport.referenceTranscriptPath ? { referenceTranscriptPath: sourceReport.referenceTranscriptPath } : {}),
+    normalization: sourceReport.normalization ?? null,
+    duplicateGroups: sourceReport.duplicateGroups ?? [],
+    providerCount: providers.length,
+    ...(sourceReport.audioDurationSeconds ? { audioDurationSeconds: sourceReport.audioDurationSeconds } : {}),
+    providerGroups,
+    metricRankings,
+    ...(category === "ocr" && sourceReport.consensusSkillArtifacts
+      ? { consensusSkillArtifacts: sourceReport.consensusSkillArtifacts }
+      : {}),
+    rankingPolicy: "grouped full metric rankings; local and third-party service providers are not ranked against each other",
+    notes: reportNotes(sourceReport),
+  };
+}
+
 function buildJsonReport(
   category: ConsensusCategory,
   sourceReport: Record<string, unknown>,
   providers: ProviderSummary[],
   rankingSurfaces: RankingSurfaces,
 ): Record<string, unknown> {
+  if (category === "ocr" || category === "stt") {
+    return buildMeasuredJsonReport(category, sourceReport, providers);
+  }
+
   const runDir = asString(sourceReport.runDir) ?? "";
   const providerGroups = buildProviderGroups(category, providers);
-
-  if (category === "ocr" || category === "stt") {
-    const metricRankings = buildMetricRankings(category, providers);
-    return {
-      schemaVersion: asNumber(sourceReport.schemaVersion) ?? 2,
-      kind: `${category}-provider-comparison`,
-      category,
-      runDir,
-      runName: runDir ? basename(runDir) : null,
-      generatedAt: new Date().toISOString(),
-      metric: sourceReport.metric ?? null,
-      scoreFormula: sourceReport.scoreFormula ?? null,
-      ...(sourceReport.werFormula ? { werFormula: sourceReport.werFormula } : {}),
-      ...(sourceReport.consensusExtractionPath ? { consensusExtractionPath: sourceReport.consensusExtractionPath } : {}),
-      ...(category === "ocr" && sourceReport.referenceProvenance ? { referenceProvenance: sourceReport.referenceProvenance } : {}),
-      ...(sourceReport.consensusCharCount ? { consensusCharCount: sourceReport.consensusCharCount } : {}),
-      ...(sourceReport.consensusWordCount ? { consensusWordCount: sourceReport.consensusWordCount } : {}),
-      ...(sourceReport.referenceTranscriptPath ? { referenceTranscriptPath: sourceReport.referenceTranscriptPath } : {}),
-      normalization: sourceReport.normalization ?? null,
-      duplicateGroups: sourceReport.duplicateGroups ?? [],
-      providerCount: providers.length,
-      ...(sourceReport.audioDurationSeconds ? { audioDurationSeconds: sourceReport.audioDurationSeconds } : {}),
-      providerGroups,
-      metricRankings,
-      ...(category === "ocr" && sourceReport.consensusSkillArtifacts
-        ? { consensusSkillArtifacts: sourceReport.consensusSkillArtifacts }
-        : {}),
-      rankingPolicy: "grouped full metric rankings; local and third-party service providers are not ranked against each other",
-      notes: reportNotes(sourceReport),
-    };
-  }
 
   return {
     schemaVersion: 2,

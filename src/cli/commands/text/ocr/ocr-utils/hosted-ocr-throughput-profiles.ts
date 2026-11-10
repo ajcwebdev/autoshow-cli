@@ -168,6 +168,30 @@ const mergeProfiles = (
   return [...byKey.values()]
 }
 
+type SchedulerLaneTelemetry = HostedOcrSchedulerTelemetry['lanes'][number]
+type SchedulerTargetTelemetry = SchedulerLaneTelemetry['targets'][number]
+
+const resolveSampleCompletionStatus = (
+  target: SchedulerTargetTelemetry,
+  options: PersistHostedOcrProfilesOptions
+): HostedOcrThroughputProfile['completionStatus'] => {
+  if (target.status === 'succeeded') return 'full'
+  if (target.status === 'failed' || target.status === 'incomplete') return 'incomplete'
+  return options.completionStatus
+}
+
+const resolveSampleDisqualificationReason = (
+  lane: SchedulerLaneTelemetry,
+  target: SchedulerTargetTelemetry,
+  targetCompletionStatus: HostedOcrThroughputProfile['completionStatus']
+): HostedOcrProfileDisqualificationReason | undefined => {
+  if (lane.retryPressureCount > 0) return 'retry-pressure'
+  if (lane.pauseTimeMs > 0) return 'paused'
+  if (target.failedPages > 0 || target.status === 'failed') return 'failed'
+  if (target.submittedPages > target.completedPages || target.status === 'incomplete') return 'partial'
+  return targetCompletionStatus !== 'full' ? 'incomplete' : undefined
+}
+
 const buildProfileSamples = (
   snapshot: HostedOcrSchedulerTelemetry,
   options: PersistHostedOcrProfilesOptions
@@ -178,23 +202,8 @@ const buildProfileSamples = (
       if (target.completedPages <= 0 || target.pagesPerMinute === null || target.pagesPerMinute <= 0) {
         return []
       }
-      const targetCompletionStatus = target.status === 'succeeded'
-        ? 'full'
-        : target.status === 'failed' || target.status === 'incomplete'
-          ? 'incomplete'
-          : options.completionStatus
-      const disqualificationReason: HostedOcrProfileDisqualificationReason | undefined =
-        lane.retryPressureCount > 0
-          ? 'retry-pressure'
-          : lane.pauseTimeMs > 0
-            ? 'paused'
-            : target.failedPages > 0 || target.status === 'failed'
-              ? 'failed'
-              : target.submittedPages > target.completedPages || target.status === 'incomplete'
-                ? 'partial'
-                : targetCompletionStatus !== 'full'
-                  ? 'incomplete'
-                  : undefined
+      const targetCompletionStatus = resolveSampleCompletionStatus(target, options)
+      const disqualificationReason = resolveSampleDisqualificationReason(lane, target, targetCompletionStatus)
       const cleanSample = disqualificationReason === undefined
         && targetCompletionStatus === 'full'
         && target.submittedPages > 0

@@ -1,12 +1,22 @@
 import { describe, expect, test } from 'bun:test'
 import { runMistralOcr } from '~/cli/commands/text/ocr/ocr-services/mistral-ocr/run-mistral-ocr'
 import { runMistralStt } from '~/cli/commands/stt/diarization/stt-mistral/run-mistral-stt'
-import type { DocumentMetadata } from '~/types'
+import type { DocumentMetadata, SttTarget } from '~/types'
 import { mistralJsonRequest, normalizeMistralBaseUrl } from '~/utils/mistral/mistral-client'
 import { expectProviderHttpError, installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 const envKeys = ['MISTRAL_API_KEY']
 const tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-mistral-rest-' })
+
+const stagedSttAudioFileSize = async (filePath: string, targets: SttTarget[], outputDir: string): Promise<number | undefined> => {
+  const { prepareSttMedia } = await import('~/cli/commands/stt/media')
+  const prepared = await prepareSttMedia({ source: { filePath }, targets, outputDir })
+  try {
+    return prepared.step1Metadata.audioFileSize
+  } finally {
+    await prepared.cleanup?.()
+  }
+}
 
 describe('Mistral REST contracts', () => {
   test('base URL normalization accepts hosts with or without /v1', () => {
@@ -192,8 +202,10 @@ test('Mistral STT/OCR selection, credentials, pricing and retained-target resume
     const dir = await tempDirs.make(), source = join(dir, route === 'media' ? 'source.wav' : 'source.png')
     await Bun.write(source, route === 'media' ? createSyntheticWavBytes({ durationSeconds: 1, amplitude: 0.2, frequencyHz: 440 }) : await Bun.file('input/examples/document/1-document.png').arrayBuffer())
     const provider = { service: 'mistral', model: route === 'media' ? 'voxtral-mini-2602' : 'mistral-ocr-4-1', ...(route === 'media' ? { local: false } : {}) }
+    // A retained media run records the size of the staged audio, and resume refuses a manifest whose recorded size differs.
+    const stagedAudioFileSize = route === 'media' ? await stagedSttAudioFileSize(source, collectSttTargets(opts), await tempDirs.make()) : undefined
     await writeSingleManifestFixture(dir, 'extract', {
-      ...(route === 'media' ? { step1: { url: pathToFileURL(source).href } } : { source: { filePath: source }, step1: { slug: 'source', pageCount: 1, format: 'png', fileSize: Bun.file(source).size } }),
+      ...(route === 'media' ? { step1: { url: pathToFileURL(source).href, audioFileSize: stagedAudioFileSize } } : { source: { filePath: source }, step1: { slug: 'source', pageCount: 1, format: 'png', fileSize: Bun.file(source).size } }),
       completionStatus: 'failed', requestedProviders: [provider], missingProviders: [provider],
       providerStates: [{ ...provider, artifactDir: '.', status: 'failed', attempts: 1 }]
     }, { extractRoute: route })

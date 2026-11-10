@@ -204,38 +204,43 @@ export const geminiCreateMusicInteraction = async (apiKey: string, input: string
   return await geminiCreateInteraction(apiKey, { model: 'lyria-3.5', input })
 }
 
-export const geminiGenerateContent = async (
-  apiKey: string,
-  params: {
-    model: string
-    contents: string | GeminiPart | GeminiContent | Array<string | GeminiPart | GeminiContent>
-    generationConfig?: Record<string, unknown> | undefined
-    tools?: unknown[] | undefined
-    systemInstruction?: string | GeminiContent | undefined
-    abortSignal?: AbortSignal | undefined
+type GeminiGenerateContentBodyParams = {
+  contents: string | GeminiPart | GeminiContent | Array<string | GeminiPart | GeminiContent>
+  generationConfig?: Record<string, unknown> | undefined
+  tools?: unknown[] | undefined
+  systemInstruction?: string | GeminiContent | undefined
+}
+
+const assertGeminiThinkingConfigSupported = (params: { model: string }, config: Record<string, unknown>): void => {
+  const thinking = config['thinkingConfig'] as Record<string, unknown> | undefined
+  if (thinking && (thinking['thinkingBudget'] !== undefined || (
+    thinking['thinkingLevel'] !== undefined && !['LOW', 'MEDIUM', 'HIGH'].includes(String(thinking['thinkingLevel']).toUpperCase())
+  ))) {
+    throw ValidationError(`${params.model} requires thinkingLevel LOW, MEDIUM or HIGH; omit thinkingBudget.`, { stage: 'gemini:rest' })
   }
-): Promise<GeminiGenerateContentResponse> => {
-  if ((params.model.replace(/^models\//, '') === 'gemini-3.8-flash' || isGeminiArgonModel(params.model)) && params.generationConfig) {
-    const config = params.generationConfig
-    const unsupportedOptions = ['temperature', 'topP', 'topK', 'top_p', 'top_k', ...(!isGeminiArgonModel(params.model) ? ['candidateCount', 'candidate_count'] : [])]
-    for (const key of unsupportedOptions) {
-      if (config[key] !== undefined) {
-        throw ValidationError(`${params.model} does not support ${key}; omit this generation option.`, { stage: 'gemini:rest' })
-      }
-    }
-    const thinking = config['thinkingConfig'] as Record<string, unknown> | undefined
-    if (thinking && (thinking['thinkingBudget'] !== undefined || (
-      thinking['thinkingLevel'] !== undefined && !['LOW', 'MEDIUM', 'HIGH'].includes(String(thinking['thinkingLevel']).toUpperCase())
-    ))) {
-      throw ValidationError(`${params.model} requires thinkingLevel LOW, MEDIUM or HIGH; omit thinkingBudget.`, { stage: 'gemini:rest' })
-    }
-    if (isGeminiArgonModel(params.model) && config['maxOutputTokens'] !== undefined) {
-      const limit = config['maxOutputTokens']
-      if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > GEMINI_ARGON_SYNC_OUTPUT_TOKENS) {
-        throw ValidationError(`${params.model} synchronous maxOutputTokens must be an integer from 1 to ${GEMINI_ARGON_SYNC_OUTPUT_TOKENS}; long decode requires a separate continuation workflow.`, { stage: 'gemini:rest' })
-      }
+}
+
+const assertGeminiArgonOutputLimit = (params: { model: string }, config: Record<string, unknown>): void => {
+  if (isGeminiArgonModel(params.model) && config['maxOutputTokens'] !== undefined) {
+    const limit = config['maxOutputTokens']
+    if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > GEMINI_ARGON_SYNC_OUTPUT_TOKENS) {
+      throw ValidationError(`${params.model} synchronous maxOutputTokens must be an integer from 1 to ${GEMINI_ARGON_SYNC_OUTPUT_TOKENS}; long decode requires a separate continuation workflow.`, { stage: 'gemini:rest' })
     }
   }
+}
+
+const assertGeminiGenerationConfigSupported = (params: { model: string }, config: Record<string, unknown>): void => {
+  const unsupportedOptions = ['temperature', 'topP', 'topK', 'top_p', 'top_k', ...(!isGeminiArgonModel(params.model) ? ['candidateCount', 'candidate_count'] : [])]
+  for (const key of unsupportedOptions) {
+    if (config[key] !== undefined) {
+      throw ValidationError(`${params.model} does not support ${key}; omit this generation option.`, { stage: 'gemini:rest' })
+    }
+  }
+  assertGeminiThinkingConfigSupported(params, config)
+  assertGeminiArgonOutputLimit(params, config)
+}
+
+const buildGeminiGenerateContentBody = (params: GeminiGenerateContentBodyParams): Record<string, unknown> => {
   const body: Record<string, unknown> = {
     contents: normalizeGeminiContents(params.contents)
   }
@@ -250,6 +255,34 @@ export const geminiGenerateContent = async (
       ? { parts: [{ text: params.systemInstruction }] }
       : params.systemInstruction
   }
+  return body
+}
+
+const assertGeminiArgonResponseUsable = (params: { model: string }, response: GeminiGenerateContentResponse): void => {
+  const finishReason = response.candidates?.[0]?.finishReason
+  if ((finishReason !== undefined && finishReason !== 'STOP') || !response.text?.trim()) {
+    throw ValidationError(`${params.model} returned an incomplete or unusable synchronous response${finishReason ? ` (${finishReason})` : ''}; no automatic continuation was dispatched.`, {
+      stage: 'gemini:rest',
+      metadata: { provider: 'gemini', model: params.model, finishReason, rawProviderUsage: response.usageMetadata, rawResponse: response }
+    })
+  }
+}
+
+export const geminiGenerateContent = async (
+  apiKey: string,
+  params: {
+    model: string
+    contents: string | GeminiPart | GeminiContent | Array<string | GeminiPart | GeminiContent>
+    generationConfig?: Record<string, unknown> | undefined
+    tools?: unknown[] | undefined
+    systemInstruction?: string | GeminiContent | undefined
+    abortSignal?: AbortSignal | undefined
+  }
+): Promise<GeminiGenerateContentResponse> => {
+  if ((params.model.replace(/^models\//, '') === 'gemini-3.8-flash' || isGeminiArgonModel(params.model)) && params.generationConfig) {
+    assertGeminiGenerationConfigSupported(params, params.generationConfig)
+  }
+  const body = buildGeminiGenerateContentBody(params)
   const modelPath = normalizeGeminiModelPath(params.model)
   const { json, headers, status } = await geminiJsonRequest(apiKey, `${encodePath(modelPath)}:generateContent`, {
     method: 'POST',
@@ -259,13 +292,7 @@ export const geminiGenerateContent = async (
   const response = isObjectLike(json) ? json as GeminiGenerateContentResponse : {}
   response.text = extractGeminiResponseText(response)
   if (isGeminiArgonModel(params.model)) {
-    const finishReason = response.candidates?.[0]?.finishReason
-    if ((finishReason !== undefined && finishReason !== 'STOP') || !response.text?.trim()) {
-      throw ValidationError(`${params.model} returned an incomplete or unusable synchronous response${finishReason ? ` (${finishReason})` : ''}; no automatic continuation was dispatched.`, {
-        stage: 'gemini:rest',
-        metadata: { provider: 'gemini', model: params.model, finishReason, rawProviderUsage: response.usageMetadata, rawResponse: response }
-      })
-    }
+    assertGeminiArgonResponseUsable(params, response)
   }
   response.sdkHttpResponse = { headers, status }
   return response

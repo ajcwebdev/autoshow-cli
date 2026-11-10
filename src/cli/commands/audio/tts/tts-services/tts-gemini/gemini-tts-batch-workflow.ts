@@ -1,4 +1,5 @@
 import { validateGeminiJobRun } from './gemini-job-validation'
+import { assertRuntimeBudgetEstimate } from '~/utils/runtime-spending-budget'
 import { withProcessLock } from '~/utils/process-lock'
 import { mkdir, copyFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
@@ -98,6 +99,7 @@ export const geminiBatchPriceData = (plan: GeminiRemoteBatchPlan) => ({ authoriz
 export const geminiBatchBoundDetail = (plan: GeminiRemoteBatchPlan): string => `Gemini Batch bound ${plan.authorizationBoundCents.toFixed(3)}¢`
 // Remote jobs cannot be recalled once accepted, so the conservative bound alone must fit the budget.
 export const assertGeminiBatchBound = (plan: GeminiRemoteBatchPlan, maxCents: number | undefined): void => {
+  assertRuntimeBudgetEstimate(plan.authorizationBoundCents)
   if (maxCents !== undefined && plan.authorizationBoundCents > maxCents) throw UsageError(`Gemini Batch conservative bound ${plan.authorizationBoundCents.toFixed(3)} cents exceeds --max-cents ${maxCents}.`)
 }
 export const prepareGeminiBatchDispatch = async (plan: GeminiRemoteBatchPlan): Promise<string> => {

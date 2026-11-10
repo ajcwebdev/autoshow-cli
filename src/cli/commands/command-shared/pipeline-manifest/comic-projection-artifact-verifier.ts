@@ -12,6 +12,34 @@ const appendReference = (references: ComicArtifactReference[], value: unknown): 
   }
 }
 
+const appendAudioRunReference = (references: ComicArtifactReference[], run: unknown): void => {
+  if (isRecord(run) && typeof run['audioRunRef'] === 'string' && typeof run['audioRunSha256'] === 'string') {
+    references.push({ path: run['audioRunRef'], sha256: run['audioRunSha256'] })
+  }
+}
+
+const appendFinalOutputReferences = (references: ComicArtifactReference[], owner: Record<string, unknown>): void => {
+  if (Array.isArray(owner['finalOutputRefs'])) {
+    for (const reference of owner['finalOutputRefs']) appendReference(references, reference)
+  }
+}
+
+const appendAudioReferences = (references: ComicArtifactReference[], audio: Record<string, unknown>): void => {
+  for (const key of ['structuredScript', 'dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef'] as const) {
+    appendReference(references, audio[key])
+  }
+  appendFinalOutputReferences(references, audio)
+  if (Array.isArray(audio['selectedAudioRuns'])) {
+    for (const run of audio['selectedAudioRuns']) appendAudioRunReference(references, run)
+  }
+  if (Array.isArray(audio['selectedSoundscapeRuns'])) {
+    for (const run of audio['selectedSoundscapeRuns']) {
+      appendAudioRunReference(references, run)
+      if (isRecord(run)) appendReference(references, run['masterRef'])
+    }
+  }
+}
+
 export const discoverComicProjectionArtifactReferences = (
   item: PipelineManifestItem
 ): ComicArtifactReference[] | undefined => {
@@ -22,34 +50,11 @@ export const discoverComicProjectionArtifactReferences = (
     if (!isRecord(stage) || !Array.isArray(stage['artifactRefs'])) return undefined
     for (const reference of stage['artifactRefs']) appendReference(references, reference)
   }
-  const audio = comic['audio']
-  for (const key of ['structuredScript', 'dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef'] as const) {
-    appendReference(references, audio[key])
-  }
-  if (Array.isArray(audio['finalOutputRefs'])) {
-    for (const reference of audio['finalOutputRefs']) appendReference(references, reference)
-  }
-  if (Array.isArray(audio['selectedAudioRuns'])) {
-    for (const run of audio['selectedAudioRuns']) {
-      if (isRecord(run) && typeof run['audioRunRef'] === 'string' && typeof run['audioRunSha256'] === 'string') {
-        references.push({ path: run['audioRunRef'], sha256: run['audioRunSha256'] })
-      }
-    }
-  }
-  if (Array.isArray(audio['selectedSoundscapeRuns'])) {
-    for (const run of audio['selectedSoundscapeRuns']) {
-      if (isRecord(run) && typeof run['audioRunRef'] === 'string' && typeof run['audioRunSha256'] === 'string') {
-        references.push({ path: run['audioRunRef'], sha256: run['audioRunSha256'] })
-      }
-      if (isRecord(run)) appendReference(references, run['masterRef'])
-    }
-  }
+  appendAudioReferences(references, comic['audio'])
   const presentation = comic['presentation']
   if (isRecord(presentation)) {
     for (const key of ['planRef', 'resolvedTimelineRef', 'runRef'] as const) appendReference(references, presentation[key])
-    if (Array.isArray(presentation['finalOutputRefs'])) {
-      for (const reference of presentation['finalOutputRefs']) appendReference(references, reference)
-    }
+    appendFinalOutputReferences(references, presentation)
   }
   return references
 }

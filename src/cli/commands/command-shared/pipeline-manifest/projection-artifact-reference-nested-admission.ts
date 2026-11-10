@@ -77,6 +77,57 @@ const collectProviderRenderResultNested: NestedCollector = (ctx) => {
   }, { renderDir }))
 }
 
+type AddNestedReference = Parameters<NestedCollector>[0]['add']
+type ArtifactContext = ProjectionArtifactReference['context']
+
+const collectDispatchProvenance = (
+  value: Record<string, unknown>,
+  add: AddNestedReference,
+  attemptDir: string | undefined,
+  context: ArtifactContext
+): boolean => {
+  const invocation = value['batchInvocationPlan']
+  const admission = value['admissionBasis']
+  if (
+    !attemptDir || !isRecord(invocation)
+    || !add(invocation, 'artifactRef', 'sha256', 'batch-invocation-plan', attemptDir, {
+      batchInvocationPlanId: invocation['batchInvocationPlanId'] as string,
+      renderPlanId: value['renderPlanId'] as string,
+      renderIdentity: value['renderIdentity'] as string,
+      invocationId: value['invocationId'] as string,
+      batchId: value['batchId'] as string,
+      generationSlotId: value['generationSlotId'] as string
+    }, context)
+    || !isRecord(admission)
+    || !add(admission, 'artifactRef', 'sha256', 'admission-journal', attemptDir, {
+      journalId: admission['journalId'] as string,
+      snapshotId: admission['snapshotId'] as string,
+      renderPlanId: value['renderPlanId'] as string,
+      renderIdentity: value['renderIdentity'] as string
+    }, context)
+  ) return false
+  return true
+}
+
+const collectGeneratedBatch = (
+  add: AddNestedReference,
+  generated: unknown,
+  batchResultDir: string,
+  context: ArtifactContext
+): boolean => {
+  if (!isRecord(generated) || !Array.isArray(generated['takes'])) return false
+  for (const rawTake of generated['takes']) {
+    if (!isRecord(rawTake) || !isRecord(rawTake['audio']) || !add(rawTake['audio'], 'artifactRef', 'sha256', 'audio', batchResultDir, undefined, context)) return false
+    const timing = rawTake['rawProviderTimingEvidenceRef']
+    if (timing !== undefined && (!isRecord(timing) || !add(timing, 'path', 'sha256', 'provider-timing-evidence', batchResultDir, {
+      timingEvidenceId: timing['timingEvidenceId'] as string
+    }, context))) return false
+    const continuation = rawTake['continuationCandidate']
+    if (isRecord(continuation) && continuation['kind'] === 'protected-token' && !isOpaqueProtectedAssetRef(continuation['asset'])) return false
+  }
+  return true
+}
+
 const collectProviderBatchResultNested: NestedCollector = (ctx) => {
   const { reference, value, renderDir, add } = ctx
   const markerIndex = reference.path.indexOf('/batch-results/')
@@ -84,28 +135,7 @@ const collectProviderBatchResultNested: NestedCollector = (ctx) => {
   const batchResultDir = posix.dirname(reference.path)
   if (!renderDir || batchResultDir === '.' || !Array.isArray(value['outputs'])) return false
   const context = { renderDir, ...(attemptDir ? { attemptDir } : {}), batchResultDir }
-  if (value['provenance'] === 'provider-dispatch') {
-    const invocation = value['batchInvocationPlan']
-    const admission = value['admissionBasis']
-    if (
-      !attemptDir || !isRecord(invocation)
-      || !add(invocation, 'artifactRef', 'sha256', 'batch-invocation-plan', attemptDir, {
-        batchInvocationPlanId: invocation['batchInvocationPlanId'] as string,
-        renderPlanId: value['renderPlanId'] as string,
-        renderIdentity: value['renderIdentity'] as string,
-        invocationId: value['invocationId'] as string,
-        batchId: value['batchId'] as string,
-        generationSlotId: value['generationSlotId'] as string
-      }, context)
-      || !isRecord(admission)
-      || !add(admission, 'artifactRef', 'sha256', 'admission-journal', attemptDir, {
-        journalId: admission['journalId'] as string,
-        snapshotId: admission['snapshotId'] as string,
-        renderPlanId: value['renderPlanId'] as string,
-        renderIdentity: value['renderIdentity'] as string
-      }, context)
-    ) return false
-  }
+  if (value['provenance'] === 'provider-dispatch' && !collectDispatchProvenance(value, add, attemptDir, context)) return false
   for (const rawOutput of value['outputs']) {
     if (!isRecord(rawOutput)) return false
     if (value['provenance'] === 'slot-reuse') {
@@ -115,18 +145,7 @@ const collectProviderBatchResultNested: NestedCollector = (ctx) => {
     } else if (!add(rawOutput, 'artifactRef', 'sha256', 'audio', batchResultDir, undefined, context)) return false
   }
   const generated = value['generatedBatch']
-  if (generated !== undefined) {
-    if (!isRecord(generated) || !Array.isArray(generated['takes'])) return false
-    for (const rawTake of generated['takes']) {
-      if (!isRecord(rawTake) || !isRecord(rawTake['audio']) || !add(rawTake['audio'], 'artifactRef', 'sha256', 'audio', batchResultDir, undefined, context)) return false
-      const timing = rawTake['rawProviderTimingEvidenceRef']
-      if (timing !== undefined && (!isRecord(timing) || !add(timing, 'path', 'sha256', 'provider-timing-evidence', batchResultDir, {
-        timingEvidenceId: timing['timingEvidenceId'] as string
-      }, context))) return false
-      const continuation = rawTake['continuationCandidate']
-      if (isRecord(continuation) && continuation['kind'] === 'protected-token' && !isOpaqueProtectedAssetRef(continuation['asset'])) return false
-    }
-  }
+  if (generated !== undefined && !collectGeneratedBatch(add, generated, batchResultDir, context)) return false
   if (value['cacheMaterialization'] !== undefined || value['provenance'] === 'cache-materialization') return false
   return value['provenance'] !== 'slot-reuse' || typeof value['slotHash'] === 'string'
 }

@@ -93,6 +93,21 @@ const auditDialogueArtifacts = async (
   return dialogueById
 }
 
+type SelectedDialogueRun = NonNullable<CanonicalComicItemMetadata['audio']['selectedAudioRuns']>[number]
+type SelectedSoundscapeRun = NonNullable<CanonicalComicItemMetadata['audio']['selectedSoundscapeRuns']>[number]
+
+const mixMisbindsDialogueRender = (mix: CompactMix, dialogue: SelectedDialogueRun): boolean =>
+  mix.dialogueRender.audioRunId !== dialogue.audioRunId || mix.dialogueRender.sha256 !== dialogue.audioRunSha256 || mix.dialogueRender.path !== dialogue.audioRunRef
+
+const mixMasterDiffersFromBinding = (mix: CompactMix, binding: SelectedSoundscapeRun): boolean =>
+  mix.master.path !== binding.masterRef.path || mix.master.sha256 !== binding.masterRef.sha256
+
+const soundscapePlanMisbindsScene = (plan: SoundscapePlan, mix: CompactMix, audio: CanonicalComicItemMetadata['audio']): boolean =>
+  !hashedIdentity(plan as unknown as Record<string, unknown>, 'soundscapePlanId') || plan.soundscapePlanId !== mix.soundscapePlan.soundscapePlanId || Boolean(audio.dialoguePlanId && plan.dialoguePlanId !== audio.dialoguePlanId)
+
+const mixTimelineSummaryMisbindsSources = (mix: CompactMix, plan: SoundscapePlan | undefined): boolean =>
+  mix.timelineSummary.dialogueAudioRunId !== mix.dialogueRender.audioRunId || Boolean(plan && mix.timelineSummary.timelineId && plan.soundscapePlanId !== mix.soundscapePlan.soundscapePlanId)
+
 const auditSoundscapeArtifacts = async (
   audio: CanonicalComicItemMetadata['audio'],
   selectedSoundscapeTargets: string[],
@@ -113,10 +128,10 @@ const auditSoundscapeArtifacts = async (
       verifier.fail({ code: 'invalid-identity', message: `Soundscape mix ${binding.soundscapeAudioRunId} has invalid content identity.`, path: binding.audioRunRef, targetKey: binding.targetKey })
       continue
     }
-    if (dialogue && (mix.dialogueRender.audioRunId !== dialogue.audioRunId || mix.dialogueRender.sha256 !== dialogue.audioRunSha256 || mix.dialogueRender.path !== dialogue.audioRunRef)) {
+    if (dialogue && mixMisbindsDialogueRender(mix, dialogue)) {
       verifier.fail({ code: 'missing-binding', message: `Soundscape mix ${binding.soundscapeAudioRunId} does not bind the selected dialogue render.`, path: binding.audioRunRef, targetKey: binding.targetKey })
     }
-    if (mix.master.path !== binding.masterRef.path || mix.master.sha256 !== binding.masterRef.sha256) {
+    if (mixMasterDiffersFromBinding(mix, binding)) {
       verifier.fail({ code: 'missing-binding', message: `Soundscape mix ${binding.soundscapeAudioRunId} master does not match its selected masterRef.`, path: binding.masterRef.path, targetKey: binding.targetKey })
     }
     const publishedPath = soundscapeReportedOutputPath(binding.targetKey)
@@ -126,7 +141,7 @@ const auditSoundscapeArtifacts = async (
     } else await verifier.verifyRef(published, `Published soundscape ${publishedPath}`, binding.targetKey)
 
     const plan = await verifier.verifyJson<SoundscapePlan>(mix.soundscapePlan, `SoundscapePlan ${mix.soundscapePlan.soundscapePlanId}`, binding.targetKey)
-    if (plan && (!hashedIdentity(plan as unknown as Record<string, unknown>, 'soundscapePlanId') || plan.soundscapePlanId !== mix.soundscapePlan.soundscapePlanId || (audio.dialoguePlanId && plan.dialoguePlanId !== audio.dialoguePlanId))) {
+    if (plan && soundscapePlanMisbindsScene(plan, mix, audio)) {
       verifier.fail({ code: 'invalid-identity', message: `SoundscapePlan ${mix.soundscapePlan.soundscapePlanId} does not bind the selected scene.`, path: mix.soundscapePlan.path, targetKey: binding.targetKey })
     }
     if (mix.sfx) {
@@ -138,7 +153,7 @@ const auditSoundscapeArtifacts = async (
         if (entry.status === 'succeeded' && entry.audio) await verifier.verifyRef(entry.audio, `Retained SFX source ${entry.cueId}`, binding.targetKey)
       }
     }
-    if (mix.timelineSummary.dialogueAudioRunId !== mix.dialogueRender.audioRunId || (plan && mix.timelineSummary.timelineId && plan.soundscapePlanId !== mix.soundscapePlan.soundscapePlanId)) {
+    if (mixTimelineSummaryMisbindsSources(mix, plan)) {
       verifier.fail({ code: 'invalid-identity', message: `Soundscape mix timeline summary does not bind its source runs.`, path: binding.audioRunRef, targetKey: binding.targetKey })
     }
     for (const stem of mix.stems) await verifier.verifyRef(stem, `Soundscape stem ${stem.bus}`, binding.targetKey)

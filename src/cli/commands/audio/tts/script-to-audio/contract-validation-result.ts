@@ -3,20 +3,7 @@ import { UsageError } from '~/utils/error-handler'
 import { assertContentIdentity } from './contract-identity'
 import { assertExactStringSet, assertUnique, validateObservedProviderRequest, validatePlannedAndObservedCost } from './contract-validation-primitives'
 
-export const validateProviderBatchResult = (
-  result: ProviderBatchResult
-): ProviderBatchResult => {
-  if (result.schemaVersion !== 1) throw UsageError('Provider batch result requires schemaVersion 1.')
-  assertContentIdentity(result as unknown as Record<string, unknown>, 'batchResultId', 'Provider batch result')
-  assertUnique(result.requestedTurnIds, 'Provider batch requested turn IDs')
-  validatePlannedAndObservedCost(result.cost, 'Provider batch result')
-  assertUnique(result.outputs.map((output) => output.outputId), 'Provider batch output IDs')
-  assertExactStringSet(
-    result.turnOutcomes.map((outcome) => outcome.turnId),
-    result.requestedTurnIds,
-    'Provider batch turn outcomes'
-  )
-  const outputIds = new Set(result.outputs.map((output) => output.outputId))
+const assertBatchTurnOutcomes = (result: ProviderBatchResult, outputIds: ReadonlySet<string>): void => {
   for (const outcome of result.turnOutcomes) {
     if (outcome.outputIds.some((outputId) => !outputIds.has(outputId))) {
       throw UsageError('Provider batch turn outcome references an unknown output.')
@@ -37,6 +24,9 @@ export const validateProviderBatchResult = (
       throw UsageError('Succeeded provider batch requires output and succeeded outcomes for every turn.')
     }
   }
+}
+
+const assertBatchProvenance = (result: ProviderBatchResult): void => {
   if (result.provenance === 'slot-reuse') {
     if (!result.slotHash.trim() || result.observedRequests.length !== 0 || result.retryAttempts.length !== 0 || result.createdResources.length !== 0) {
       throw UsageError('Slot-reuse batch result must list one slot hash and cannot claim provider dispatch, retry, or created resources.')
@@ -44,6 +34,9 @@ export const validateProviderBatchResult = (
   } else if (result.status === 'succeeded' && result.observedRequests.length === 0) {
     throw UsageError('Provider-dispatch success requires at least one serializer-observed request.')
   }
+}
+
+const assertBatchObservedRequests = (result: ProviderBatchResult): void => {
   const observedRequestKeys = result.observedRequests.map((request) => `${request.invocationId}\0${request.requestOrdinal}`)
   assertUnique(observedRequestKeys, 'Provider batch observed request identities')
   for (const request of result.observedRequests) {
@@ -61,6 +54,9 @@ export const validateProviderBatchResult = (
     }
     assertUnique(request.turns.map((turn) => turn.turnId), 'Observed provider request turns')
   }
+}
+
+const assertBatchObservedTurnCoverage = (result: ProviderBatchResult): void => {
   if (result.provenance === 'provider-dispatch' && result.status === 'succeeded') {
     const observedTurnIds = new Set(result.observedRequests.flatMap((request) => request.turns.map((turn) => turn.turnId)))
     if (
@@ -70,6 +66,9 @@ export const validateProviderBatchResult = (
       throw UsageError('Succeeded provider dispatch must serializer-observe every requested turn.')
     }
   }
+}
+
+const assertBatchRetryAttempts = (result: ProviderBatchResult): void => {
   for (const retry of result.retryAttempts) {
     if (
       retry.invocationId !== (result.provenance === 'provider-dispatch' ? result.invocationId : '')
@@ -80,6 +79,9 @@ export const validateProviderBatchResult = (
       throw UsageError('Provider retry record does not link two ordered observed requests from the same invocation.')
     }
   }
+}
+
+const assertGeneratedBatch = (result: ProviderBatchResult, outputIds: ReadonlySet<string>): void => {
   if (result.generatedBatch) {
     if (result.generatedBatch.batchId !== result.batchId || result.generatedBatch.generationSlotId !== result.generationSlotId) {
       throw UsageError('Generated batch identity does not match its provider batch result.')
@@ -92,6 +94,28 @@ export const validateProviderBatchResult = (
       }
     }
   }
+}
+
+export const validateProviderBatchResult = (
+  result: ProviderBatchResult
+): ProviderBatchResult => {
+  if (result.schemaVersion !== 1) throw UsageError('Provider batch result requires schemaVersion 1.')
+  assertContentIdentity(result as unknown as Record<string, unknown>, 'batchResultId', 'Provider batch result')
+  assertUnique(result.requestedTurnIds, 'Provider batch requested turn IDs')
+  validatePlannedAndObservedCost(result.cost, 'Provider batch result')
+  assertUnique(result.outputs.map((output) => output.outputId), 'Provider batch output IDs')
+  assertExactStringSet(
+    result.turnOutcomes.map((outcome) => outcome.turnId),
+    result.requestedTurnIds,
+    'Provider batch turn outcomes'
+  )
+  const outputIds = new Set(result.outputs.map((output) => output.outputId))
+  assertBatchTurnOutcomes(result, outputIds)
+  assertBatchProvenance(result)
+  assertBatchObservedRequests(result)
+  assertBatchObservedTurnCoverage(result)
+  assertBatchRetryAttempts(result)
+  assertGeneratedBatch(result, outputIds)
   return result
 }
 

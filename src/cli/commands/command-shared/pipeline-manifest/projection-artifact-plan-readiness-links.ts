@@ -1,4 +1,4 @@
-import type { GraphLinkContext } from '~/types'
+import type { GraphLinkContext, ProjectionArtifactReference } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { canonicalManifestJson } from './guards'
 import { resolveArtifactRelativePath } from './projection-artifact-references'
@@ -42,7 +42,7 @@ const canonicalTurnFromRenderPlan = (turn: Record<string, unknown>): Record<stri
   ...(turn['timingCues'] !== undefined ? { timingCues: turn['timingCues'] } : {})
 })
 
-export const validateRenderPlanLinks = (ctx: GraphLinkContext): boolean => {
+const indexRenderPlans = (ctx: GraphLinkContext): boolean => {
   for (const reference of ctx.referencesForKind('render-plan')) {
     const value = ctx.jsonAt(reference)
     const candidateId = value?.['branchCandidateId']
@@ -57,32 +57,47 @@ export const validateRenderPlanLinks = (ctx: GraphLinkContext): boolean => {
     if (priorPlan && canonicalManifestJson(priorPlan) !== canonicalManifestJson(value)) return false
     ctx.renderPlansById.set(renderPlanId, value)
   }
-  for (const reference of ctx.referencesForKind('render-plan')) {
-    const value = ctx.jsonAt(reference)
-    const renderDir = reference.context?.renderDir
-    const strategy = value?.['strategyArtifacts']
-    if (!value || !renderDir || !isRecord(strategy) || !isRecord(strategy['sourceIdentity']) || !isRecord(strategy['dialoguePlan']) || !Array.isArray(value['nodes'])) return false
-    const sourcePath = resolveArtifactRelativePath(renderDir, strategy['sourceIdentity']['path'])
-    const dialoguePath = resolveArtifactRelativePath(renderDir, strategy['dialoguePlan']['path'])
-    const source = sourcePath ? ctx.checkedProviderPath(sourcePath)?.json : undefined
-    const dialogue = dialoguePath ? ctx.checkedProviderPath(dialoguePath)?.json : undefined
-    const canonicalNodes: unknown[] = []
-    for (const node of value['nodes']) {
-      if (!isRecord(node)) continue
-      if (node['kind'] === 'turn' && isRecord(node['turn'])) {
-        canonicalNodes.push({ kind: 'turn', turn: canonicalTurnFromRenderPlan(node['turn']) })
-      } else if (node['kind'] === 'overlap' && typeof node['groupId'] === 'string' && Array.isArray(node['turns']) && node['turns'].every(isRecord)) {
-        canonicalNodes.push({ kind: 'overlap', groupId: node['groupId'], turns: node['turns'].map((turn) => canonicalTurnFromRenderPlan(turn as Record<string, unknown>)) })
-      }
+  return true
+}
+
+const canonicalNodesFromRenderPlan = (nodes: readonly unknown[]): unknown[] => {
+  const canonicalNodes: unknown[] = []
+  for (const node of nodes) {
+    if (!isRecord(node)) continue
+    if (node['kind'] === 'turn' && isRecord(node['turn'])) {
+      canonicalNodes.push({ kind: 'turn', turn: canonicalTurnFromRenderPlan(node['turn']) })
+    } else if (node['kind'] === 'overlap' && typeof node['groupId'] === 'string' && Array.isArray(node['turns']) && node['turns'].every(isRecord)) {
+      canonicalNodes.push({ kind: 'overlap', groupId: node['groupId'], turns: node['turns'].map((turn) => canonicalTurnFromRenderPlan(turn as Record<string, unknown>)) })
     }
-    if (
-      !source
-      || !dialogue
-      || source['identityHash'] !== value['sourceIdentityHash']
-      || dialogue['dialoguePlanId'] !== value['dialoguePlanId']
-      || canonicalManifestJson(dialogue['sourceIdentity']) !== canonicalManifestJson(source)
-      || canonicalManifestJson(dialogue['nodes']) !== canonicalManifestJson(canonicalNodes)
-    ) return false
+  }
+  return canonicalNodes
+}
+
+const validateRenderPlanStrategyLinks = (ctx: GraphLinkContext, reference: ProjectionArtifactReference): boolean => {
+  const value = ctx.jsonAt(reference)
+  const renderDir = reference.context?.renderDir
+  const strategy = value?.['strategyArtifacts']
+  if (!value || !renderDir || !isRecord(strategy) || !isRecord(strategy['sourceIdentity']) || !isRecord(strategy['dialoguePlan']) || !Array.isArray(value['nodes'])) return false
+  const sourcePath = resolveArtifactRelativePath(renderDir, strategy['sourceIdentity']['path'])
+  const dialoguePath = resolveArtifactRelativePath(renderDir, strategy['dialoguePlan']['path'])
+  const source = sourcePath ? ctx.checkedProviderPath(sourcePath)?.json : undefined
+  const dialogue = dialoguePath ? ctx.checkedProviderPath(dialoguePath)?.json : undefined
+  const canonicalNodes = canonicalNodesFromRenderPlan(value['nodes'])
+  if (
+    !source
+    || !dialogue
+    || source['identityHash'] !== value['sourceIdentityHash']
+    || dialogue['dialoguePlanId'] !== value['dialoguePlanId']
+    || canonicalManifestJson(dialogue['sourceIdentity']) !== canonicalManifestJson(source)
+    || canonicalManifestJson(dialogue['nodes']) !== canonicalManifestJson(canonicalNodes)
+  ) return false
+  return true
+}
+
+export const validateRenderPlanLinks = (ctx: GraphLinkContext): boolean => {
+  if (!indexRenderPlans(ctx)) return false
+  for (const reference of ctx.referencesForKind('render-plan')) {
+    if (!validateRenderPlanStrategyLinks(ctx, reference)) return false
   }
   return true
 }

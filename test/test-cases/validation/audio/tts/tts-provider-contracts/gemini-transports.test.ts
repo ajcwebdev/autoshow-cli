@@ -71,6 +71,22 @@ describe('Gemini REST transport and decoded artifact integrity', () => {
     expect(() => decodeGeminiAudio({ mime_type: 'audio/l16', data: Buffer.from('{"error":1}').toString('base64') }, 'audio/l16')).toThrow()
     expect(() => decodeGeminiAudio({ mime_type: 'audio/l16;rate=16000', data: 'AAAA' }, 'audio/l16')).toThrow()
   })
+  test('decoded WAV integrity rejects duplicate and unordered chunks while accepting ancillary chunks', () => {
+    const format = wav.subarray(12, 36)
+    const audio = wav.subarray(36)
+    const ancillary = Buffer.from('JUNK\x02\0\0\0ok', 'binary')
+    const container = (...chunks: Buffer[]): Buffer => {
+      const bytes = Buffer.concat([wav.subarray(0, 12), ...chunks])
+      bytes.writeUInt32LE(bytes.length - 8, 4)
+      return bytes
+    }
+    const decode = (bytes: Buffer): Buffer => decodeGeminiInteraction(unary(bytes.toString('base64')), 'audio/wav')
+    const valid = container(ancillary, format, audio)
+    expect(decode(valid)).toEqual(valid)
+    for (const bytes of [container(format, format, audio), container(format, audio, audio), container(audio, format)]) {
+      expect(() => decode(bytes)).toThrow('WAV')
+    }
+  })
   test('stream parser tolerates CRLF split across bytes and rejects incomplete streams', async () => {
     const bytes = new TextEncoder().encode(sse(true, true))
     const response = new Response(new ReadableStream({ start(controller) { for (const byte of bytes) controller.enqueue(Uint8Array.of(byte)); controller.close() } }), { headers: { 'content-type': 'text/event-stream' } })

@@ -120,6 +120,26 @@ export const normalizeOcrDuplicateText = (text: string): string => text
 const hash = (bytes: Uint8Array | string): string => new Bun.CryptoHasher('sha256').update(bytes).digest('hex')
 const decodeText = (bytes: Uint8Array): string => new TextDecoder('utf-8', { fatal: true }).decode(bytes)
 
+type CleanTypographyCase = v.InferOutput<typeof caseSchema>
+
+const assertCaseMatchesTrustedPin = (entry: CleanTypographyCase, pin: CleanTypographySourcePin): void => {
+  if (entry.sourceImageName !== pin.imageName || entry.sourceRevision !== pin.revision || entry.sourceURL !== pin.sourceURL || entry.annotationURL !== pin.annotationURL) {
+    throw new AppValidationError(`Source identity differs from trusted pin: ${entry.id}`)
+  }
+  if (entry.annotationSha256 !== pin.annotationSha256 || entry.inputSha256 !== pin.inputSha256) throw new AppValidationError(`Source hashes differ from trusted pin: ${entry.id}`)
+  if (entry.width !== pin.width || entry.height !== pin.height) throw new AppValidationError(`Dimensions differ from trusted pin: ${entry.id}`)
+}
+
+const admitUniqueReferenceText = (reference: Uint8Array, entry: CleanTypographyCase, normalizedTexts: Map<string, string>): string => {
+  const text = decodeText(reference)
+  if (!text.trim() || text.length !== entry.chars || text.trim().split(/\s+/).length !== entry.words) throw new AppValidationError(`Reference character/word counts mismatch: ${entry.id}`)
+  const normalized = normalizeOcrDuplicateText(text)
+  const duplicate = normalizedTexts.get(normalized)
+  if (!normalized || duplicate) throw new AppValidationError(`Duplicate or empty normalized reference: ${entry.id}${duplicate ? ` matches ${duplicate}` : ''}`)
+  normalizedTexts.set(normalized, entry.id)
+  return text
+}
+
 export interface CleanTypographyValidationOptions {
   projectRoot?: string
   /** Supply independent, explicit fixture pins when unit testing; CLI always uses the production pins. */
@@ -185,11 +205,7 @@ export const validateCleanTypographyBundle = async (bundle: unknown, options: Cl
   for (const entry of parsed.cases) {
     const pin = pins.get(entry.id)
     if (!pin) throw new AppValidationError(`Unrecognized case ID: ${entry.id}`)
-    if (entry.sourceImageName !== pin.imageName || entry.sourceRevision !== pin.revision || entry.sourceURL !== pin.sourceURL || entry.annotationURL !== pin.annotationURL) {
-      throw new AppValidationError(`Source identity differs from trusted pin: ${entry.id}`)
-    }
-    if (entry.annotationSha256 !== pin.annotationSha256 || entry.inputSha256 !== pin.inputSha256) throw new AppValidationError(`Source hashes differ from trusted pin: ${entry.id}`)
-    if (entry.width !== pin.width || entry.height !== pin.height) throw new AppValidationError(`Dimensions differ from trusted pin: ${entry.id}`)
+    assertCaseMatchesTrustedPin(entry, pin)
     await boundedPath(entry.rights.notice)
     const input = await read(entry.input)
     const reference = await read(entry.reference)
@@ -222,12 +238,7 @@ export const validateCleanTypographyBundle = async (bundle: unknown, options: Cl
       canonical = new TextEncoder().encode(serializeOmniDocBenchPage(pages, entry.sourceImageName))
     }
     if (!Buffer.from(canonical).equals(Buffer.from(reference))) throw new AppValidationError(`Canonical reference does not reproduce from its source: ${entry.id}`)
-    const text = decodeText(reference)
-    if (!text.trim() || text.length !== entry.chars || text.trim().split(/\s+/).length !== entry.words) throw new AppValidationError(`Reference character/word counts mismatch: ${entry.id}`)
-    const normalized = normalizeOcrDuplicateText(text)
-    const duplicate = normalizedTexts.get(normalized)
-    if (!normalized || duplicate) throw new AppValidationError(`Duplicate or empty normalized reference: ${entry.id}${duplicate ? ` matches ${duplicate}` : ''}`)
-    normalizedTexts.set(normalized, entry.id)
+    const text = admitUniqueReferenceText(reference, entry, normalizedTexts)
     cases.push({ id: entry.id, input: entry.input, reference: entry.reference, width: image.width, height: image.height, chars: text.length, words: entry.words })
   }
   return { schemaVersion: 1, status: 'admitted', mode: 'local-read-only-no-cost', caseCount: cases.length,

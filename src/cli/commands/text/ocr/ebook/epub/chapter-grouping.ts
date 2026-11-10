@@ -1,5 +1,5 @@
 import { sanitizeTitleSlug } from '~/cli/commands/sources/download/download-audio/metadata-utils'
-import type { EpubTextSection, HeadingDetectionContext, LogicalChapterSource } from '~/types'
+import type { EpubTextSection, HeadingCandidate, HeadingDetectionContext, LogicalChapterSource } from '~/types'
 import { finalizeEpubText } from './cleanup'
 import { CHAPTER_SLUG_MAX_LENGTH, hrefBasename, normalizeInlineWhitespace } from './text-split'
 import {
@@ -343,6 +343,57 @@ const repeatedHeadingKeysMatch = (candidateKey: string, currentHeadingKey: strin
     && candidateChapterBase === currentChapterBase
 }
 
+type HeadingGroupingState = {
+  grouped: EpubTextSection[]
+  current: EpubTextSection | undefined
+  currentHeadingKey: string | undefined
+  prefaceSectionsDropped: number
+}
+
+const absorbSectionWithoutHeadings = (state: HeadingGroupingState, section: EpubTextSection): void => {
+  if (!state.current) {
+    state.prefaceSectionsDropped += 1
+    return
+  }
+  state.current = appendSectionText(state.current, section)
+}
+
+const absorbHeadingPrelude = (state: HeadingGroupingState, section: EpubTextSection, candidates: HeadingCandidate[]): void => {
+  const preludeText = finalizeEpubText(section.text.slice(0, candidates[0]?.start ?? 0))
+  if (preludeText.length > 0) {
+    if (state.current) {
+      state.current = appendSectionTextFragment(state.current, section, preludeText)
+    } else {
+      state.prefaceSectionsDropped += 1
+    }
+  } else if (!state.current && candidates[0]?.start !== 0) {
+    state.prefaceSectionsDropped += 1
+  }
+}
+
+const absorbHeadingCandidate = (
+  state: HeadingGroupingState,
+  section: EpubTextSection,
+  candidate: HeadingCandidate,
+  nextCandidate: HeadingCandidate | undefined
+): void => {
+  const candidateText = finalizeEpubText(section.text.slice(candidate.start, nextCandidate?.start ?? section.text.length))
+  if (candidateText.length === 0) {
+    return
+  }
+
+  if (state.current && repeatedHeadingKeysMatch(candidate.key, state.currentHeadingKey)) {
+    state.current = appendSectionTextFragment(state.current, section, candidateText)
+    return
+  }
+
+  if (state.current) {
+    state.grouped.push({ ...state.current, index: state.grouped.length + 1 })
+  }
+  state.current = buildHeadingSection(section, candidate.title, candidateText)
+  state.currentHeadingKey = candidate.key
+}
+
 const groupSectionsByHeadingStarts = (
   sections: EpubTextSection[],
   context: HeadingDetectionContext
@@ -351,63 +402,36 @@ const groupSectionsByHeadingStarts = (
   logicalChapterSource: 'heading'
   prefaceSectionsDropped: number
 } => {
-  const grouped: EpubTextSection[] = []
-  let current: EpubTextSection | undefined
-  let currentHeadingKey: string | undefined
-  let prefaceSectionsDropped = 0
+  const state: HeadingGroupingState = {
+    grouped: [],
+    current: undefined,
+    currentHeadingKey: undefined,
+    prefaceSectionsDropped: 0
+  }
 
   for (const section of sections) {
     const candidates = filterNotesSubheadingCandidates(
       findHeadingCandidates(section.text, context),
-      currentHeadingKey === 'notes'
+      state.currentHeadingKey === 'notes'
     )
     if (candidates.length === 0) {
-      if (!current) {
-        prefaceSectionsDropped += 1
-        continue
-      }
-      current = appendSectionText(current, section)
+      absorbSectionWithoutHeadings(state, section)
       continue
     }
 
-    const preludeText = finalizeEpubText(section.text.slice(0, candidates[0]?.start ?? 0))
-    if (preludeText.length > 0) {
-      if (current) {
-        current = appendSectionTextFragment(current, section, preludeText)
-      } else {
-        prefaceSectionsDropped += 1
-      }
-    } else if (!current && candidates[0]?.start !== 0) {
-      prefaceSectionsDropped += 1
-    }
-
+    absorbHeadingPrelude(state, section, candidates)
     for (const [index, candidate] of candidates.entries()) {
-      const nextCandidate = candidates[index + 1]
-      const candidateText = finalizeEpubText(section.text.slice(candidate.start, nextCandidate?.start ?? section.text.length))
-      if (candidateText.length === 0) {
-        continue
-      }
-
-      if (current && repeatedHeadingKeysMatch(candidate.key, currentHeadingKey)) {
-        current = appendSectionTextFragment(current, section, candidateText)
-        continue
-      }
-
-      if (current) {
-        grouped.push({ ...current, index: grouped.length + 1 })
-      }
-      current = buildHeadingSection(section, candidate.title, candidateText)
-      currentHeadingKey = candidate.key
+      absorbHeadingCandidate(state, section, candidate, candidates[index + 1])
     }
   }
 
-  if (current) {
-    grouped.push({ ...current, index: grouped.length + 1 })
+  if (state.current) {
+    state.grouped.push({ ...state.current, index: state.grouped.length + 1 })
   }
 
   return {
-    sections: grouped,
+    sections: state.grouped,
     logicalChapterSource: 'heading',
-    prefaceSectionsDropped
+    prefaceSectionsDropped: state.prefaceSectionsDropped
   }
 }

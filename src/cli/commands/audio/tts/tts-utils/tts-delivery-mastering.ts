@@ -35,29 +35,35 @@ export const ttsSeamGapMs = (profile: TtsDeliveryProfile, boundary: TtsDeliveryS
   }
 }
 
-export const parseSilenceDetectEdges = (stderr: string, durationSeconds: number): { leadEndSeconds: number, tailStartSeconds: number } => {
-  const intact = { leadEndSeconds: 0, tailStartSeconds: durationSeconds }
-  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return intact
+const parseSilenceIntervals = (stderr: string, durationSeconds: number): Array<{ start: number, end: number }> | undefined => {
   const events = [...stderr.matchAll(/silence_(start|end):[ \t]*(\S*)/gu)]
   const intervals: Array<{ start: number, end: number }> = []
   let open: number | undefined
   let previous = 0
   for (const event of events) {
-    if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/iu.test(event[2] ?? '')) return intact
+    if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/iu.test(event[2] ?? '')) return undefined
     const at = Number(event[2])
     // Reject the whole detection if any interval is ambiguous, unordered or out of range.
-    if (!Number.isFinite(at) || at < 0 || at > durationSeconds + 0.0001 || at < previous) return intact
+    if (!Number.isFinite(at) || at < 0 || at > durationSeconds + 0.0001 || at < previous) return undefined
     previous = at
     if (event[1] === 'start') {
-      if (open !== undefined) return intact
+      if (open !== undefined) return undefined
       open = at
     } else {
-      if (open === undefined || at <= open) return intact
+      if (open === undefined || at <= open) return undefined
       intervals.push({ start: open, end: Math.min(at, durationSeconds) })
       open = undefined
     }
   }
   if (open !== undefined) intervals.push({ start: open, end: durationSeconds })
+  return intervals
+}
+
+export const parseSilenceDetectEdges = (stderr: string, durationSeconds: number): { leadEndSeconds: number, tailStartSeconds: number } => {
+  const intact = { leadEndSeconds: 0, tailStartSeconds: durationSeconds }
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return intact
+  const intervals = parseSilenceIntervals(stderr, durationSeconds)
+  if (!intervals) return intact
   const lead = intervals[0]?.start !== undefined && intervals[0].start <= EDGE_TOLERANCE_SECONDS ? intervals[0] : undefined
   const last = intervals.at(-1)
   const tail = last && last.end >= durationSeconds - EDGE_TOLERANCE_SECONDS ? last : undefined

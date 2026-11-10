@@ -45,12 +45,24 @@ const entities = (text: string): string => text.replace(/&(?:amp|quot|apos|lt|gt
     return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : ''
   })
 const plain = (text: string): string => entities(text.replace(/!?\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/<[^>]*>/g, '').replace(/[`*_~]/g, '')).trim()
+/** Backtick runs close a code span only when their lengths match exactly. */
+const codeSpanEnd = (source: string, index: number): number => {
+  const width = /^`+/.exec(source.slice(index))![0].length
+  const runs = /`+/g
+  runs.lastIndex = index + width
+  for (let run = runs.exec(source); run; run = runs.exec(source)) {
+    if (run[0].length === width) return run.index + width - 1
+  }
+  return index + width - 1
+}
 const maskCodeSpans = (text: string): string => {
   let value = '', index = 0
   while (index < text.length) {
     if (text[index] === '`') {
-      const ticks = /^`+/.exec(text.slice(index))![0], close = text.indexOf(ticks, index + ticks.length)
-      if (close >= 0) { value += ' '.repeat(close + ticks.length - index); index = close + ticks.length; continue }
+      const width = /^`+/.exec(text.slice(index))![0].length, end = codeSpanEnd(text, index)
+      if (end >= index + width) value += ' '.repeat(end - index + 1)
+      else value += text.slice(index, end + 1)
+      index = end + 1; continue
     }
     value += text[index++]!
   }
@@ -87,11 +99,7 @@ const bracketPairs = (source: string): Map<number, number> => {
   const stack: number[] = [], pairs = new Map<number, number>()
   for (let index = 0; index < source.length; index++) {
     if (source[index] === '\\') { index++; continue }
-    if (source[index] === '`') {
-      const ticks = /^`+/.exec(source.slice(index))![0], close = source.indexOf(ticks, index + ticks.length)
-      if (close >= 0) index = close + ticks.length - 1
-      continue
-    }
+    if (source[index] === '`') { index = codeSpanEnd(source, index); continue }
     if (source[index] === '[') stack.push(index)
     if (source[index] === ']' && stack.length) pairs.set(stack.pop()!, index)
   }
@@ -115,43 +123,62 @@ const titleThenClose = (source: string): number => {
   return source[index] === ')' ? index : -1
 }
 
-const parseMarkdown = (path: string, text: string, add: (line: number, code: string, message: string) => void): MarkdownDocument => {
-  const lines = text.split('\n'), visible: string[] = [], headings: MarkdownHeading[] = [], anchors = new Set<string>(), htmlLinks: MarkdownLink[] = []
-  let fence = '', comment = false
-  for (const [index, original] of lines.entries()) {
-    let line = original
-    const boundary = /^ {0,3}(`{3,}|~{3,})/.exec(line)
-    if (boundary && (!fence || boundary[1]![0] === fence[0] && boundary[1]!.length >= fence.length)) {
-      fence = fence ? '' : boundary[1]!
-      visible.push(''); continue
-    }
-    if (fence) { visible.push(''); continue }
-    let cleaned = ''
-    while (line.length) {
-      const at = line.indexOf(comment ? '-->' : '<!--')
-      if (at < 0) { if (!comment) cleaned += line; break }
-      if (!comment) cleaned += line.slice(0, at)
-      line = line.slice(at + (comment ? 3 : 4)); comment = !comment
-    }
-    visible.push(cleaned)
-    for (const tag of maskCodeSpans(cleaned).matchAll(/<[a-z][^>]*>/gi)) {
-      for (const match of tag[0].matchAll(/\b(id|name|href|src)\s*=\s*["']([^"']+)["']/gi)) {
-        const name = match[1]!.toLowerCase(), value = entities(match[2]!)
-        if (name === 'href' || name === 'src') htmlLinks.push({ target: value, line: index + 1 })
-        else {
-          if (anchors.has(value)) add(index + 1, 'DUPLICATE_ANCHOR', `HTML anchor ${value} is declared more than once.`)
-          anchors.add(value)
-        }
-      }
-    }
-    const heading = /^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(cleaned)
-    if (heading) headings.push({ level: heading[1]!.length, text: plain(heading[2]!), line: index + 1 })
-    else if (index > 0 && /^ {0,3}(?:=+|-+)\s*$/.test(cleaned) && visible[index - 1]?.trim()) {
-      headings.push({ level: cleaned.trim()[0] === '=' ? 1 : 2, text: plain(visible[index - 1]!), line: index })
+type AddDiagnostic = (line: number, code: string, message: string) => void
+interface LineScan { fence: string, comment: boolean }
+/** True when the line opens, closes or sits inside a fenced code block. */
+const fencedLine = (line: string, scan: LineScan): boolean => {
+  const boundary = /^ {0,3}(`{3,}|~{3,})/.exec(line)
+  if (boundary && (!scan.fence || boundary[1]![0] === scan.fence[0] && boundary[1]!.length >= scan.fence.length)) {
+    scan.fence = scan.fence ? '' : boundary[1]!
+    return true
+  }
+  return Boolean(scan.fence)
+}
+/** Drop HTML comment text from one line; an unclosed comment carries over to the following lines. */
+const stripComments = (original: string, scan: LineScan): string => {
+  let line = original, cleaned = ''
+  while (line.length) {
+    const at = line.indexOf(scan.comment ? '-->' : '<!--')
+    if (at < 0) { if (!scan.comment) cleaned += line; break }
+    if (!scan.comment) cleaned += line.slice(0, at)
+    line = line.slice(at + (scan.comment ? 3 : 4)); scan.comment = !scan.comment
+  }
+  return cleaned
+}
+const collectHtmlAttributes = (cleaned: string, line: number, found: { anchors: Set<string>, htmlLinks: MarkdownLink[] }, add: AddDiagnostic): void => {
+  for (const tag of maskCodeSpans(cleaned).matchAll(/<[a-z][^>]*>/gi)) {
+    for (const match of tag[0].matchAll(/\b(id|name|href|src)\s*=\s*["']([^"']+)["']/gi)) {
+      const name = match[1]!.toLowerCase(), value = entities(match[2]!)
+      if (name === 'href' || name === 'src') { found.htmlLinks.push({ target: value, line }); continue }
+      if (found.anchors.has(value)) add(line, 'DUPLICATE_ANCHOR', `HTML anchor ${value} is declared more than once.`)
+      found.anchors.add(value)
     }
   }
-  if (fence) add(lines.length, 'UNCLOSED_FENCE', 'Close the fenced code block.')
-  if (comment) add(lines.length, 'UNCLOSED_COMMENT', 'Close the HTML comment.')
+}
+const headingAt = (cleaned: string, index: number, visible: string[]): MarkdownHeading | undefined => {
+  const heading = /^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(cleaned)
+  if (heading) return { level: heading[1]!.length, text: plain(heading[2]!), line: index + 1 }
+  if (index > 0 && /^ {0,3}(?:=+|-+)\s*$/.test(cleaned) && visible[index - 1]?.trim()) {
+    return { level: cleaned.trim()[0] === '=' ? 1 : 2, text: plain(visible[index - 1]!), line: index }
+  }
+  return undefined
+}
+const scanLines = (lines: string[], add: AddDiagnostic) => {
+  const visible: string[] = [], headings: MarkdownHeading[] = [], anchors = new Set<string>(), htmlLinks: MarkdownLink[] = []
+  const scan: LineScan = { fence: '', comment: false }
+  for (const [index, original] of lines.entries()) {
+    if (fencedLine(original, scan)) { visible.push(''); continue }
+    const cleaned = stripComments(original, scan)
+    visible.push(cleaned)
+    collectHtmlAttributes(cleaned, index + 1, { anchors, htmlLinks }, add)
+    const heading = headingAt(cleaned, index, visible)
+    if (heading) headings.push(heading)
+  }
+  if (scan.fence) add(lines.length, 'UNCLOSED_FENCE', 'Close the fenced code block.')
+  if (scan.comment) add(lines.length, 'UNCLOSED_COMMENT', 'Close the HTML comment.')
+  return { visible, headings, anchors, htmlLinks }
+}
+const registerHeadingAnchors = (headings: MarkdownHeading[], anchors: Set<string>, add: AddDiagnostic): void => {
   const usedSlugs = new Map<string, number>(), headingAnchors = new Set<string>()
   for (const heading of headings) {
     const base = slug(heading.text), prior = usedSlugs.get(base) ?? 0
@@ -161,7 +188,10 @@ const parseMarkdown = (path: string, text: string, add: (line: number, code: str
     if (anchors.has(id)) add(heading.line, 'DUPLICATE_ANCHOR', `Heading anchor ${id} duplicates an explicit HTML anchor.`)
     usedSlugs.set(base, suffix + 1); headingAnchors.add(id); anchors.add(id)
   }
-  const definitions = new Map<string, { target: string, line: number }>(), footnotes = new Set<string>(), definitionLines = new Set<number>()
+}
+interface ReferenceDefinitions { definitions: Map<string, MarkdownLink>, footnotes: Set<string>, definitionLines: Set<number> }
+const collectDefinitions = (visible: string[], add: AddDiagnostic): ReferenceDefinitions => {
+  const definitions = new Map<string, MarkdownLink>(), footnotes = new Set<string>(), definitionLines = new Set<number>()
   for (const [index, line] of visible.entries()) {
     const definition = /^ {0,3}\[([^\]]+)\]:\s*(.*)$/.exec(line)
     if (!definition) continue
@@ -175,41 +205,75 @@ const parseMarkdown = (path: string, text: string, add: (line: number, code: str
     else if (definitions.has(id)) add(index + 1, 'DUPLICATE_REFERENCE', `Reference [${id}] is declared more than once.`)
     else definitions.set(id, { target: parsed.target, line: index + 1 })
   }
-  const links: MarkdownLink[] = [...definitions.values(), ...htmlLinks]
-  for (const [lineIndex, line] of visible.entries()) {
-    if (definitionLines.has(lineIndex)) continue
-    const pairs = bracketPairs(line)
-    for (let index = 0; index < line.length; index++) {
-      if (line[index] === '\\') { index++; continue }
-      if (line[index] === '`') {
-        const ticks = /^`+/.exec(line.slice(index))![0]
-        const close = line.indexOf(ticks, index + ticks.length)
-        if (close >= 0) index = close + ticks.length - 1
-        continue
-      }
-      if (line[index] !== '[') continue
-      const close = pairs.get(index) ?? -1
-      if (close < 0) continue
-      const content = line.slice(index + 1, close), next = line[close + 1]
-      if (next === '(') {
-        const source = line.slice(close + 2), parsed = destination(source)
-        if (!parsed || titleThenClose(source.slice(parsed.consumed)) < 0) add(lineIndex + 1, 'INVALID_LINK', 'Close the inline link and use angle brackets around destinations containing spaces.')
-        else links.push({ target: parsed.target, line: lineIndex + 1 })
-      } else if (next === '[') {
-        const referenceEnd = pairs.get(close + 1) ?? -1
-        if (referenceEnd < 0) add(lineIndex + 1, 'INVALID_REFERENCE', 'Close the reference-style link label.')
-        else {
-          const id = label(line.slice(close + 2, referenceEnd) || content), definition = definitions.get(id)
-          if (!definition) add(lineIndex + 1, 'MISSING_REFERENCE', `Define reference [${id}].`)
-          else links.push({ target: definition.target, line: lineIndex + 1 })
-          index = referenceEnd
-        }
-      } else if (content.startsWith('^')) {
-        if (!footnotes.has(label(content))) add(lineIndex + 1, 'MISSING_FOOTNOTE', `Define footnote [${content}].`)
-      } else if (definitions.has(label(content))) links.push({ target: definitions.get(label(content))!.target, line: lineIndex + 1 })
-      index = Math.max(index, close)
+  return { definitions, footnotes, definitionLines }
+}
+interface LinkScan extends ReferenceDefinitions { links: MarkdownLink[] }
+interface BracketLine { text: string, pairs: Map<number, number>, number: number }
+const scanInlineLink = (source: string, line: number, links: MarkdownLink[], add: AddDiagnostic): void => {
+  const parsed = destination(source)
+  if (!parsed || titleThenClose(source.slice(parsed.consumed)) < 0) add(line, 'INVALID_LINK', 'Close the inline link and use angle brackets around destinations containing spaces.')
+  else links.push({ target: parsed.target, line })
+}
+const scanReferenceLink = (id: string, line: number, scan: LinkScan, add: AddDiagnostic): void => {
+  const definition = scan.definitions.get(id)
+  if (!definition) add(line, 'MISSING_REFERENCE', `Define reference [${id}].`)
+  else scan.links.push({ target: definition.target, line })
+}
+/** Record what the bracket pair at index..close links to and return the index scanning resumes from. */
+const scanBracket = (source: BracketLine, index: number, close: number, scan: LinkScan, add: AddDiagnostic): number => {
+  const line = source.text, content = line.slice(index + 1, close), next = line[close + 1]
+  if (next === '(') scanInlineLink(line.slice(close + 2), source.number, scan.links, add)
+  else if (next === '[') {
+    const referenceEnd = source.pairs.get(close + 1) ?? -1
+    if (referenceEnd < 0) add(source.number, 'INVALID_REFERENCE', 'Close the reference-style link label.')
+    else {
+      scanReferenceLink(label(line.slice(close + 2, referenceEnd) || content), source.number, scan, add)
+      index = referenceEnd
     }
+  } else if (content.startsWith('^')) {
+    if (!scan.footnotes.has(label(content))) add(source.number, 'MISSING_FOOTNOTE', `Define footnote [${content}].`)
+  } else if (scan.definitions.has(label(content))) scan.links.push({ target: scan.definitions.get(label(content))!.target, line: source.number })
+  return Math.max(index, close)
+}
+const scanLineLinks = (source: BracketLine, scan: LinkScan, add: AddDiagnostic): void => {
+  const line = source.text
+  for (let index = 0; index < line.length; index++) {
+    if (line[index] === '\\') { index++; continue }
+    if (line[index] === '`') { index = codeSpanEnd(line, index); continue }
+    if (line[index] !== '[') continue
+    const close = source.pairs.get(index) ?? -1
+    if (close < 0) continue
+    index = scanBracket(source, index, close, scan, add)
   }
+}
+const collectLinks = (visible: string[], references: ReferenceDefinitions, htmlLinks: MarkdownLink[], add: AddDiagnostic): MarkdownLink[] => {
+  const links: MarkdownLink[] = [...references.definitions.values(), ...htmlLinks], scan: LinkScan = { ...references, links }
+  for (const [lineIndex, line] of visible.entries()) {
+    if (references.definitionLines.has(lineIndex)) continue
+    scanLineLinks({ text: line, pairs: bracketPairs(line), number: lineIndex + 1 }, scan, add)
+  }
+  return links
+}
+const checkTableShape = (headers: string[], separator: string[], rows: string[][], first: number, add: AddDiagnostic): void => {
+  const all = [headers, separator, ...rows]
+  if (all.some(row => row.length !== headers.length)) { add(first + 1, 'TABLE_COLUMNS', 'Give every table row the same number of cells; escape literal pipes.'); return }
+  const widths = headers.map((_, column) => Math.max(3, ...[headers, ...rows].map(row => row[column]!.trim().length)))
+  for (const [rowIndex, row] of all.entries()) if (row.some((cell, column) => cell.length !== widths[column]! + 2)) {
+    add(first + rowIndex + 1, 'TABLE_ALIGNMENT', 'Refit the table padding to the longest current value in each column.')
+  }
+}
+const tableScope = (headings: MarkdownHeading[], first: number): { section: string, scope: string } => {
+  const preceding = headings.filter(heading => heading.line <= first + 1)
+  const section = preceding.findLast(heading => heading.level === 2)?.text ?? ''
+  const start = preceding.findLastIndex(heading => heading.level === 2)
+  let workflow = '', service = ''
+  for (const heading of preceding.slice(start + 1)) {
+    if (heading.level === 3) { workflow = heading.text; service = '' }
+    if (heading.level === 4) service = heading.text
+  }
+  return { section, scope: [workflow, service].filter(Boolean).join('/') }
+}
+const collectTables = (lines: string[], visible: string[], headings: MarkdownHeading[], add: AddDiagnostic): MarkdownTable[] => {
   const tables: MarkdownTable[] = []
   for (let index = 0; index + 1 < visible.length; index++) {
     if (!visible[index]!.includes('|') || !/^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)+\|?\s*$/.test(visible[index + 1]!)) continue
@@ -217,25 +281,13 @@ const parseMarkdown = (path: string, text: string, add: (line: number, code: str
     index += 2
     while (index < visible.length && visible[index]!.trim() && visible[index]!.includes('|')) { rows.push(cells(lines[index]!)); index++ }
     index--
-    const all = [headers, separator, ...rows]
-    if (all.some(row => row.length !== headers.length)) add(first + 1, 'TABLE_COLUMNS', 'Give every table row the same number of cells; escape literal pipes.')
-    else {
-      const widths = headers.map((_, column) => Math.max(3, ...[headers, ...rows].map(row => row[column]!.trim().length)))
-      for (const [rowIndex, row] of all.entries()) if (row.some((cell, column) => cell.length !== widths[column]! + 2)) {
-        add(first + rowIndex + 1, 'TABLE_ALIGNMENT', 'Refit the table padding to the longest current value in each column.')
-      }
-    }
-    const preceding = headings.filter(heading => heading.line <= first + 1)
-    const section = preceding.findLast(heading => heading.level === 2)?.text ?? ''
-    const start = preceding.findLastIndex(heading => heading.level === 2)
-    let workflow = '', service = ''
-    for (const heading of preceding.slice(start + 1)) {
-      if (heading.level === 3) { workflow = heading.text; service = '' }
-      if (heading.level === 4) service = heading.text
-    }
-    const scope = [workflow, service].filter(Boolean).join('/')
+    checkTableShape(headers, separator, rows, first, add)
+    const { section, scope } = tableScope(headings, first)
     tables.push({ headers: headers.map(plain), rows: rows.map(row => row.map(cell => cell.trim())), line: first + 1, section, scope })
   }
+  return tables
+}
+const checkDeclaredIds = (headings: MarkdownHeading[], tables: MarkdownTable[], add: AddDiagnostic): void => {
   const declaredIds = new Map<string, number>()
   const declare = (id: string, line: number) => {
     if (declaredIds.has(id)) add(line, 'DUPLICATE_ID', `Identifier ${id} is already defined at line ${declaredIds.get(id)}.`)
@@ -245,20 +297,22 @@ const parseMarkdown = (path: string, text: string, add: (line: number, code: str
     const id = heading.text.match(findingId)?.[0]
     if (id && heading.text.startsWith(id)) declare(id, heading.line)
   }
-  for (const table of tables) if (label(table.headers[0] ?? '') === 'id') {
+  for (const table of tables) {
+    if (label(table.headers[0] ?? '') !== 'id') continue
     for (const [index, row] of table.rows.entries()) for (const id of plain(row[0] ?? '').match(findingId) ?? []) declare(id, table.line + index + 2)
   }
+}
+
+const parseMarkdown = (path: string, text: string, add: AddDiagnostic): MarkdownDocument => {
+  const lines = text.split('\n'), { visible, headings, anchors, htmlLinks } = scanLines(lines, add)
+  registerHeadingAnchors(headings, anchors, add)
+  const links = collectLinks(visible, collectDefinitions(visible, add), htmlLinks, add)
+  const tables = collectTables(lines, visible, headings, add)
+  checkDeclaredIds(headings, tables, add)
   return { path, text, lines, visible, headings, anchors, links, tables }
 }
 
-const validateProviderStructure = (document: MarkdownDocument, add: (line: number, code: string, message: string) => void): number => {
-  const headings = document.headings.filter(heading => heading.level === 2)
-  if (JSON.stringify(headings.map(heading => heading.text)) !== JSON.stringify(PROVIDER_REPORT_HEADINGS)) add(1, 'PROVIDER_HEADINGS', 'Use each of the twelve provider-research second-level headings exactly once, in the documented order.')
-  for (const name of ['Research cutoff', 'Repository status date', 'Workflow scope', 'Related reports']) {
-    if (!document.visible.some(line => new RegExp(`^- \\*\\*${name}:\\*\\*\\s+\\S`).test(line))) add(1, 'PROVIDER_METADATA', `Add a nonempty ${name} metadata field.`)
-  }
-  const inventory = document.tables.filter(table => table.section === 'Current-model inventory and findings' && table.headers.map(label).join('/') === 'current id/finding/ref')
-  if (!inventory.length) add(1, 'PROVIDER_INVENTORY', 'Add the Current ID / Finding / Ref inventory table, including when there are zero scoped tuples.')
+const countInventoryTuples = (inventory: MarkdownTable[], add: AddDiagnostic): number => {
   const tuples = new Set<string>()
   let count = 0
   for (const table of inventory) {
@@ -271,26 +325,85 @@ const validateProviderStructure = (document: MarkdownDocument, add: (line: numbe
       if (!/\b[A-Z][A-Z0-9]*(?:-[A-Z]+)*-\d{3}\b/.test(plain(row[2] ?? ''))) add(at, 'INVENTORY_REFERENCE', 'Use a stable three-digit finding ID for every current tuple.')
     }
   }
+  return count
+}
+const numericCell = (value: string | undefined): number | undefined => /^\d+$/.test(plain(value ?? '')) ? Number(plain(value!)) : undefined
+const coverageReconciles = (coverage: MarkdownTable, count: number): boolean => {
+  const totalRows = coverage.rows.filter(row => label(plain(row[0] ?? '')) === 'total scoped tuples')
+  const counts = coverage.rows.filter(row => label(plain(row[0] ?? '')) !== 'total scoped tuples').map(row => numericCell(row[1]))
+  const total = numericCell(totalRows[0]?.[1])
+  return !(totalRows.length !== 1 || total === undefined || counts.some(value => value === undefined) || total !== count || counts.reduce<number>((sum, value) => sum + (value ?? 0), 0) !== total)
+}
+const validateProviderStructure = (document: MarkdownDocument, add: AddDiagnostic): number => {
+  const headings = document.headings.filter(heading => heading.level === 2)
+  if (JSON.stringify(headings.map(heading => heading.text)) !== JSON.stringify(PROVIDER_REPORT_HEADINGS)) add(1, 'PROVIDER_HEADINGS', 'Use each of the twelve provider-research second-level headings exactly once, in the documented order.')
+  for (const name of ['Research cutoff', 'Repository status date', 'Workflow scope', 'Related reports']) {
+    if (!document.visible.some(line => new RegExp(`^- \\*\\*${name}:\\*\\*\\s+\\S`).test(line))) add(1, 'PROVIDER_METADATA', `Add a nonempty ${name} metadata field.`)
+  }
+  const inventory = document.tables.filter(table => table.section === 'Current-model inventory and findings' && table.headers.map(label).join('/') === 'current id/finding/ref')
+  if (!inventory.length) add(1, 'PROVIDER_INVENTORY', 'Add the Current ID / Finding / Ref inventory table, including when there are zero scoped tuples.')
+  const count = countInventoryTuples(inventory, add)
   for (const heading of document.headings) {
     const id = /^([A-Z][A-Z0-9-]*-\d+)\b/.exec(heading.text)?.[1]
     if (id && !/^[A-Z][A-Z0-9]*(?:-[A-Z]+)*-\d{3}$/.test(id)) add(heading.line, 'UNSTABLE_FINDING_ID', `Use a stable three-digit provider finding ID instead of ${id}.`)
   }
   const coverage = document.tables.find(table => table.section === 'Coverage reconciliation and actionable addition checklist' && table.headers.map(label).join('/') === 'category/count')
   const provider = document.tables.find(table => table.section === 'Provider coverage' && table.headers.map(label).join('/') === 'provider/workflows/entries')
-  const numeric = (value: string | undefined): number | undefined => /^\d+$/.test(plain(value ?? '')) ? Number(plain(value!)) : undefined
   if (!coverage) add(1, 'COVERAGE_COUNTS', 'Add the Category / Count reconciliation table.')
-  else {
-    const totalRows = coverage.rows.filter(row => label(plain(row[0] ?? '')) === 'total scoped tuples')
-    const counts = coverage.rows.filter(row => label(plain(row[0] ?? '')) !== 'total scoped tuples').map(row => numeric(row[1]))
-    const total = numeric(totalRows[0]?.[1])
-    if (totalRows.length !== 1 || total === undefined || counts.some(value => value === undefined) || total !== count || counts.reduce<number>((sum, value) => sum + (value ?? 0), 0) !== total) add(coverage.line, 'COVERAGE_COUNTS', 'Category counts, Total scoped tuples and current inventory rows must reconcile exactly.')
-  }
+  else if (!coverageReconciles(coverage, count)) add(coverage.line, 'COVERAGE_COUNTS', 'Category counts, Total scoped tuples and current inventory rows must reconcile exactly.')
   if (!provider) add(1, 'PROVIDER_COUNTS', 'Add the Provider / Workflows / Entries coverage table.')
   else {
-    const counts = provider.rows.map(row => numeric(row[2]))
+    const counts = provider.rows.map(row => numericCell(row[2]))
     if (counts.some(value => value === undefined) || counts.reduce<number>((sum, value) => sum + (value ?? 0), 0) !== count) add(provider.line, 'PROVIDER_COUNTS', 'Provider entry counts must be nonnegative integers and sum to the current inventory count.')
   }
   return count
+}
+
+const explicitInputs = (options: ReportValidationOptions): { paths: string[], checksums: string[] } => {
+  const paths = [...new Set((options.paths ?? []).filter(path => !ignored(path)))], checksums = [...new Set((options.checksums ?? []).filter(path => !ignored(path)))]
+  if (!paths.length && !checksums.length) throw new AppValidationError('Provide at least one explicit Markdown report or checksum path; no workspace scan is performed')
+  if (paths.length + checksums.length > MAX_INPUTS) throw new AppValidationError(`Provide at most ${MAX_INPUTS} explicit inputs per invocation`)
+  return { paths, checksums }
+}
+const reportProfile = (options: ReportValidationOptions, path: string, document: MarkdownDocument): Exclude<ReportProfile, 'auto'> =>
+  options.profile === 'provider-research' || options.profile !== 'generic' && (/\/0[0-5]-provider-model-additions-[^/]+\.md$/.test(`/${path}`)
+    || document.headings.some(heading => heading.level === 1 && /Provider and Model Additions$/i.test(heading.text))) ? 'provider-research' : 'generic'
+const checkReportLines = (document: MarkdownDocument, path: string, rootSpellings: string[], add: AddDiagnostic): void => {
+  for (const [index, line] of document.lines.entries()) {
+    if (/[ \t]+$/.test(line) || line.includes('\r')) add(index + 1, 'WHITESPACE', 'Remove trailing whitespace and use LF line endings.')
+    if (rootSpellings.some(spelling => line.includes(spelling)) || findMachineSpecificPaths(path, line).length) add(index + 1, 'CHECKOUT_PATH', 'Store checkout paths relative to the project root.')
+  }
+}
+/** Split a project-local link into its decoded file and fragment; external, nonportable and ignored links yield undefined. */
+const localLinkParts = (link: MarkdownLink, add: AddDiagnostic): { file: string, fragment: string } | undefined => {
+  if (!link.target || /^(?:https?:|mailto:|tel:|data:)/i.test(link.target)) return undefined
+  if (/^[a-z][a-z\d+.-]*:/i.test(link.target) || isAbsolute(link.target) || link.target.startsWith('//')) {
+    add(link.line, 'NONPORTABLE_LINK', 'Use a project-relative local link or an explicit HTTP(S) URL.'); return undefined
+  }
+  const hashAt = link.target.indexOf('#'), queryAt = link.target.indexOf('?')
+  const pathEnd = Math.min(hashAt < 0 ? Infinity : hashAt, queryAt < 0 ? Infinity : queryAt)
+  let file: string, fragment: string
+  try { file = decodeURIComponent(link.target.slice(0, Number.isFinite(pathEnd) ? pathEnd : undefined)); fragment = hashAt < 0 ? '' : decodeURIComponent(link.target.slice(hashAt + 1)) }
+  catch { add(link.line, 'INVALID_LINK_ENCODING', 'Use valid percent encoding in the link destination.'); return undefined }
+  if (ignored(file)) return undefined
+  return { file, fragment }
+}
+const checksumEntryPath = (name: string): string => {
+  const stripped = name.startsWith('./') ? name.slice(2) : name
+  if (!normalized(stripped) || /[*?\[\]]/.test(stripped)) throw new AppValidationError('Checksum paths must be normalized relative paths without traversal or ZIP wildcard characters')
+  return stripped
+}
+interface ChecksumScope { zip: boolean, files: Set<string>, declared: Set<string>, add: AddDiagnostic }
+/** Register one manifest row and return the target still to be hashed; rejected and ignored rows yield undefined. */
+const declaredChecksum = (scope: ChecksumScope, line: string, index: number): { name: string, expected: string } | undefined => {
+  const match = /^([a-f\d]{64})[ \t]+\*?(.+)$/i.exec(line)
+  if (!match) { scope.add(index + 1, 'CHECKSUM_ROW', 'Use SHA-256 followed by two spaces and a relative file path.'); return undefined }
+  if (ignored(match[2]!)) return undefined
+  const name = checksumEntryPath(match[2]!)
+  if (scope.declared.has(name)) { scope.add(index + 1, 'DUPLICATE_CHECKSUM', `Checksum path ${name} appears more than once.`); return undefined }
+  scope.declared.add(name)
+  if (scope.zip && (name === 'SHA256SUMS' || !scope.files.has(name))) { scope.add(index + 1, 'CHECKSUM_TARGET', `Checksum target ${name} is missing or refers to the manifest itself.`); return undefined }
+  return { name, expected: match[1]! }
 }
 
 /** Only explicit report/manifest paths are opened; ignored files are never discovered by a workspace scan. */
@@ -298,9 +411,7 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
   const selectedRoot = resolve(options.projectRoot ?? PROJECT_ROOT), root = await realpath(selectedRoot), limit = options.maxErrors ?? 50
   const rootSpellings = [root, selectedRoot, Bun.pathToFileURL(root).href, Bun.pathToFileURL(selectedRoot).href]
   if (!Number.isInteger(limit) || limit < 1 || limit > 1000) throw new AppValidationError('maxErrors must be an integer from 1 through 1000')
-  const paths = [...new Set((options.paths ?? []).filter(path => !ignored(path)))], checksums = [...new Set((options.checksums ?? []).filter(path => !ignored(path)))]
-  if (!paths.length && !checksums.length) throw new AppValidationError('Provide at least one explicit Markdown report or checksum path; no workspace scan is performed')
-  if (paths.length + checksums.length > MAX_INPUTS) throw new AppValidationError(`Provide at most ${MAX_INPUTS} explicit inputs per invocation`)
+  const { paths, checksums } = explicitInputs(options)
   const diagnostics: ReportDiagnostic[] = []
   let errorCount = 0
   const add = (path: string, line: number | undefined, code: string, message: string) => {
@@ -328,25 +439,14 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
       const text = await textFile(actual), document = parseMarkdown(path, text, (line, code, message) => add(display, line, code, message))
       cache.set(actual, document)
       if (!text.endsWith('\n') || text.endsWith('\n\n')) add(display, undefined, 'FINAL_NEWLINE', 'End the report with exactly one newline.')
-      for (const [index, line] of document.lines.entries()) {
-        if (/[ \t]+$/.test(line) || line.includes('\r')) add(display, index + 1, 'WHITESPACE', 'Remove trailing whitespace and use LF line endings.')
-        if (rootSpellings.some(spelling => line.includes(spelling)) || findMachineSpecificPaths(path, line).length) add(display, index + 1, 'CHECKOUT_PATH', 'Store checkout paths relative to the project root.')
-      }
-      const profile = options.profile === 'provider-research' || options.profile !== 'generic' && (/\/0[0-5]-provider-model-additions-[^/]+\.md$/.test(`/${path}`)
-        || document.headings.some(heading => heading.level === 1 && /Provider and Model Additions$/i.test(heading.text))) ? 'provider-research' : 'generic'
+      checkReportLines(document, path, rootSpellings, (line, code, message) => add(display, line, code, message))
+      const profile = reportProfile(options, path, document)
       const inventoryTuples = profile === 'provider-research' ? validateProviderStructure(document, (line, code, message) => add(display, line, code, message)) : undefined
       let linksChecked = 0
       for (const link of document.links) {
-        if (!link.target || /^(?:https?:|mailto:|tel:|data:)/i.test(link.target)) continue
-        if (/^[a-z][a-z\d+.-]*:/i.test(link.target) || isAbsolute(link.target) || link.target.startsWith('//')) {
-          add(display, link.line, 'NONPORTABLE_LINK', 'Use a project-relative local link or an explicit HTTP(S) URL.'); continue
-        }
-        const hashAt = link.target.indexOf('#'), queryAt = link.target.indexOf('?')
-        const pathEnd = Math.min(hashAt < 0 ? Infinity : hashAt, queryAt < 0 ? Infinity : queryAt)
-        let file: string, fragment: string
-        try { file = decodeURIComponent(link.target.slice(0, Number.isFinite(pathEnd) ? pathEnd : undefined)); fragment = hashAt < 0 ? '' : decodeURIComponent(link.target.slice(hashAt + 1)) }
-        catch { add(display, link.line, 'INVALID_LINK_ENCODING', 'Use valid percent encoding in the link destination.'); continue }
-        if (ignored(file)) continue
+        const parts = localLinkParts(link, (line, code, message) => add(display, line, code, message))
+        if (!parts) continue
+        const { file, fragment } = parts
         const target = file ? resolve(dirname(actual), file) : actual
         linksChecked++
         try {
@@ -361,7 +461,8 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
             if (!destinationDocument) { destinationDocument = parseMarkdown(relative(root, resolved), await textFile(resolved), () => {}); cache.set(resolved, destinationDocument) }
             if (!destinationDocument.anchors.has(fragment)) throw new AppValidationError(`Fragment #${fragment} is not a heading or explicit anchor in the linked document`)
           } else if (/^L\d+(?:-L\d+)?$/.test(fragment)) {
-            const numbers = fragment.match(/\d+/g)!.map(Number), lineCount = (await textFile(resolved)).split('\n').length
+            const numbers = fragment.match(/\d+/g)!.map(Number), source = await textFile(resolved)
+            const lineCount = source ? source.split('\n').length - Number(source.endsWith('\n')) : 0
             if (numbers[0]! < 1 || numbers.at(-1)! > lineCount || numbers[0]! > numbers.at(-1)!) throw new AppValidationError('The linked line range does not exist')
           } else if (/\.html?$/i.test(resolved)) {
             const html = await textFile(resolved), ids = [...html.matchAll(/\b(?:id|name)\s*=\s*["']([^"']+)["']/g)].map(match => match[1])
@@ -407,25 +508,17 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
         return decodeText(Buffer.concat(chunks))
       }
       const archiveNames = zip ? (await zipText()).trimEnd().split('\n').filter(name => name && !ignored(name)) : []
-      const entryPath = (name: string): string => {
-        const stripped = name.startsWith('./') ? name.slice(2) : name
-        if (!normalized(stripped) || /[*?\[\]]/.test(stripped)) throw new AppValidationError('Checksum paths must be normalized relative paths without traversal or ZIP wildcard characters')
-        return stripped
-      }
       if (zip && (archiveNames.length > MAX_ARCHIVE_ENTRIES || new Set(archiveNames).size !== archiveNames.length)) throw new AppValidationError('Archive contains too many entries or duplicate entry names')
-      const files = new Set(archiveNames.filter(name => !name.endsWith('/')).map(entryPath))
-      for (const name of archiveNames) entryPath(name.endsWith('/') ? name.slice(0, -1) : name)
+      const files = new Set(archiveNames.filter(name => !name.endsWith('/')).map(name => checksumEntryPath(name)))
+      for (const name of archiveNames) checksumEntryPath(name.endsWith('/') ? name.slice(0, -1) : name)
       const manifest = zip ? await zipText('SHA256SUMS') : await textFile(actual)
       const declared = new Set<string>(), manifestLines = manifest.trimEnd().split('\n')
       if (manifestLines.length > MAX_ARCHIVE_ENTRIES) throw new AppValidationError('Checksum manifest contains too many entries')
+      const scope: ChecksumScope = { zip, files, declared, add: (line, code, message) => add(display, line, code, message) }
       for (const [index, line] of manifestLines.entries()) {
-        const match = /^([a-f\d]{64})[ \t]+\*?(.+)$/i.exec(line)
-        if (!match) { add(display, index + 1, 'CHECKSUM_ROW', 'Use SHA-256 followed by two spaces and a relative file path.'); continue }
-        if (ignored(match[2]!)) continue
-        const name = entryPath(match[2]!)
-        if (declared.has(name)) { add(display, index + 1, 'DUPLICATE_CHECKSUM', `Checksum path ${name} appears more than once.`); continue }
-        declared.add(name)
-        if (zip && (name === 'SHA256SUMS' || !files.has(name))) { add(display, index + 1, 'CHECKSUM_TARGET', `Checksum target ${name} is missing or refers to the manifest itself.`); continue }
+        const row = declaredChecksum(scope, line, index)
+        if (!row) continue
+        const { name } = row
         let digest: string
         try {
           if (zip) {
@@ -447,7 +540,7 @@ export const validateReports = async (options: ReportValidationOptions = {}) => 
             digest = sha256(await readFile(target))
           }
           entriesChecked++
-          if (digest.toLowerCase() !== match[1]!.toLowerCase()) add(display, index + 1, 'CHECKSUM_MISMATCH', `SHA-256 does not match ${name}.`)
+          if (digest.toLowerCase() !== row.expected.toLowerCase()) add(display, index + 1, 'CHECKSUM_MISMATCH', `SHA-256 does not match ${name}.`)
         } catch (error) { add(display, index + 1, 'CHECKSUM_TARGET', diagnosticMessage(error, `Cannot read checksum target ${name}.`)) }
       }
       const completeCoverage = !zip || [...files].every(name => name === 'SHA256SUMS' || declared.has(name))
@@ -486,26 +579,29 @@ Examples:
   bun src/tools/report-validator.ts docs/reports/repository-improvement-actions.md --checksums docs/reports/repository-improvement-actions.evidence.zip
   printf '%s\\n' docs/reports/notes.md | bun src/tools/report-validator.ts --files-from -
 `
+interface ReportValidatorArguments { action: string, paths: string[], checksums: string[], profile: ReportProfile, maxErrors: number, stdin: boolean }
+const VALUE_OPTIONS = ['--profile', '--checksums', '--max-errors', '--files-from']
+const applyValueOption = (parsed: ReportValidatorArguments, arg: string, value: string | undefined): void => {
+  if (!value || value.startsWith('--')) throw UsageError(`Provide a value for ${arg}; use --help for examples.`)
+  if (arg === '--profile') { if (!['auto', 'generic', 'provider-research'].includes(value)) throw UsageError('Choose --profile auto, generic or provider-research.'); parsed.profile = value as ReportProfile }
+  if (arg === '--checksums') parsed.checksums.push(value)
+  if (arg === '--max-errors') { if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 1000) throw UsageError('Choose --max-errors from 1 through 1000.'); parsed.maxErrors = Number(value) }
+  if (arg === '--files-from') { if (value !== '-' || parsed.stdin) throw UsageError('--files-from accepts one explicit - stdin source.'); parsed.stdin = true }
+}
+const hasExplicitInput = (parsed: ReportValidatorArguments): boolean => parsed.paths.some(path => !ignored(path)) || parsed.checksums.some(path => !ignored(path)) || parsed.stdin
 export const parseReportValidatorArguments = (args: readonly string[]) => {
-  const paths: string[] = [], checksums: string[] = []
-  let profile: ReportProfile = 'auto', maxErrors = 50, stdin = false, action = 'validate'
+  const parsed: ReportValidatorArguments = { action: 'validate', paths: [], checksums: [], profile: 'auto', maxErrors: 50, stdin: false }
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!
-    if (arg === '--') { paths.push(...args.slice(index + 1)); break }
-    if (arg === '--help' || arg === '-h' || arg === '--version') { action = arg === '--version' ? 'version' : 'help'; continue }
+    if (arg === '--') { parsed.paths.push(...args.slice(index + 1)); break }
+    if (arg === '--help' || arg === '-h' || arg === '--version') { parsed.action = arg === '--version' ? 'version' : 'help'; continue }
     if (arg === '--json') continue
-    if (['--profile', '--checksums', '--max-errors', '--files-from'].includes(arg)) {
-      const value = args[++index]
-      if (!value || value.startsWith('--')) throw UsageError(`Provide a value for ${arg}; use --help for examples.`)
-      if (arg === '--profile') { if (!['auto', 'generic', 'provider-research'].includes(value)) throw UsageError('Choose --profile auto, generic or provider-research.'); profile = value as ReportProfile }
-      if (arg === '--checksums') checksums.push(value)
-      if (arg === '--max-errors') { if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 1000) throw UsageError('Choose --max-errors from 1 through 1000.'); maxErrors = Number(value) }
-      if (arg === '--files-from') { if (value !== '-' || stdin) throw UsageError('--files-from accepts one explicit - stdin source.'); stdin = true }
-    } else if (arg.startsWith('-')) throw UsageError(`Unknown option ${arg.slice(0, 120)}; use --help for valid options.`)
-    else paths.push(arg)
+    if (VALUE_OPTIONS.includes(arg)) { applyValueOption(parsed, arg, args[++index]); continue }
+    if (arg.startsWith('-')) throw UsageError(`Unknown option ${arg.slice(0, 120)}; use --help for valid options.`)
+    parsed.paths.push(arg)
   }
-  if (action === 'validate' && !paths.some(path => !ignored(path)) && !checksums.some(path => !ignored(path)) && !stdin) throw UsageError('Provide an explicit report/checksum path or --files-from -; use --help for examples.')
-  return { action, paths, checksums, profile, maxErrors, stdin }
+  if (parsed.action === 'validate' && !hasExplicitInput(parsed)) throw UsageError('Provide an explicit report/checksum path or --files-from -; use --help for examples.')
+  return parsed
 }
 
 if (import.meta.main) {

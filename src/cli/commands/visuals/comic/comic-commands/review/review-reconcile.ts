@@ -17,6 +17,14 @@ const STAGE = 'comic:reconcile-directives'
 
 const SPLIT_PATTERN = /\b(?:split|splits|splitting|merge|merges|merging|combine|combines|combining)\b/iu
 
+const assertNoSplitOrMergeDirectives = (staging: NonNullable<StructuredScriptData['staging']>): void => {
+  for (const directive of [...staging.camera, ...staging.axisBreaks, ...staging.costume, ...staging.extras]) {
+    if (SPLIT_PATTERN.test(directive.text)) {
+      throw ValidationError(`Directive "${directive.text}" asks for a panel split or merge, which --reconcile-from-directives cannot apply; re-run the scene stage to redraft the panels.`, { stage: STAGE })
+    }
+  }
+}
+
 export const reconcileFromDirectives = async (
   options: { sceneSlug: string },
   dependencies: { runId?: (() => string) | undefined; scene?: ScenePromptData | undefined; structuredScript?: StructuredScriptData | undefined; plan?: BlockingPlan | undefined } = {},
@@ -34,11 +42,7 @@ export const reconcileFromDirectives = async (
   const planPath = getBlockingPlanPath(options.sceneSlug)
   const plan: BlockingPlan | undefined = dependencies.plan ?? (existsSync(planPath) ? v.parse(BlockingPlanSchema, JSON.parse(await Bun.file(planPath).text())) : undefined)
 
-  for (const directive of [...staging.camera, ...staging.axisBreaks, ...staging.costume, ...staging.extras]) {
-    if (SPLIT_PATTERN.test(directive.text)) {
-      throw ValidationError(`Directive "${directive.text}" asks for a panel split or merge, which --reconcile-from-directives cannot apply; re-run the scene stage to redraft the panels.`, { stage: STAGE })
-    }
-  }
+  assertNoSplitOrMergeDirectives(staging)
 
   const camera = reconcileCameraDirectives(staging, scene, plan)
   const axisBreaks = reconcileAxisBreakDirectives(staging, scene)

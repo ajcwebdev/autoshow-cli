@@ -39,6 +39,34 @@ export const linksFlags = {
   },
 } as const satisfies CliFlagsDefinition
 
+const orderLinksTokens = (parsed: LinksParsedCommand) => [
+  ...parsed.rawParsed.positionals.map((position) => ({
+    kind: 'positional' as const,
+    index: position.index,
+    value: position.value
+  })),
+  ...parsed.rawParsed.flagOccurrences.map((occurrence, occurrenceIndex) => ({
+    kind: 'flag' as const,
+    index: parsed.rawParsed.flagOccurrenceIndices[occurrenceIndex] ?? -1,
+    occurrence
+  }))
+].sort((left, right) => left.index - right.index)
+
+const assertCompatibleLinksModes = (
+  directUrl: string | undefined,
+  inputFilePath: string | undefined,
+  serviceSelections: Map<string, string[]>,
+  globalSections: string[]
+): void => {
+  if (directUrl && (inputFilePath || serviceSelections.size > 0 || globalSections.length > 0)) {
+    throw UsageError('links direct URL mode cannot be combined with provider selectors, section selectors, input file mode, or another direct URL')
+  }
+
+  if (inputFilePath && (serviceSelections.size > 0 || globalSections.length > 0)) {
+    throw UsageError('links input file mode cannot be combined with provider or section selectors')
+  }
+}
+
 export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection => {
   const serviceSelections = new Map<string, string[]>()
   const globalSections: string[] = []
@@ -46,29 +74,16 @@ export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection 
   let inputFilePath: string | undefined
   let directUrl: string | undefined
 
-  const orderedTokens = [
-    ...parsed.rawParsed.positionals.map((position) => ({
-      kind: 'positional' as const,
-      index: position.index,
-      value: position.value
-    })),
-    ...parsed.rawParsed.flagOccurrences.map((occurrence, occurrenceIndex) => ({
-      kind: 'flag' as const,
-      index: parsed.rawParsed.flagOccurrenceIndices[occurrenceIndex] ?? -1,
-      occurrence
-    }))
-  ].sort((left, right) => left.index - right.index)
+  const orderedTokens = orderLinksTokens(parsed)
 
   for (const token of orderedTokens) {
     if (token.kind === 'flag') {
       const { name } = token.occurrence
-      if (name === 'provider') {
-        const provider = String(token.occurrence.value).trim().toLowerCase()
-        if (!serviceKeySet.has(provider)) throw UsageError(`Unknown links provider "${provider}". Known providers: ${knownProviders.join(', ')}.`)
-        currentService = provider
-        if (!serviceSelections.has(provider)) serviceSelections.set(provider, [])
-        continue
-      }
+      if (name !== 'provider') continue
+      const provider = String(token.occurrence.value).trim().toLowerCase()
+      if (!serviceKeySet.has(provider)) throw UsageError(`Unknown links provider "${provider}". Known providers: ${knownProviders.join(', ')}.`)
+      currentService = provider
+      if (!serviceSelections.has(provider)) serviceSelections.set(provider, [])
       continue
     }
 
@@ -94,13 +109,7 @@ export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection 
     throw UsageError(`Unknown links selector "--". Known providers: ${knownProviders.join(', ')}. Known sections: ${knownSections.join(', ')}.`)
   }
 
-  if (directUrl && (inputFilePath || serviceSelections.size > 0 || globalSections.length > 0)) {
-    throw UsageError('links direct URL mode cannot be combined with provider selectors, section selectors, input file mode, or another direct URL')
-  }
-
-  if (inputFilePath && (serviceSelections.size > 0 || globalSections.length > 0)) {
-    throw UsageError('links input file mode cannot be combined with provider or section selectors')
-  }
+  assertCompatibleLinksModes(directUrl, inputFilePath, serviceSelections, globalSections)
 
   const refresh = parsed.flags['refresh'] === true
 
@@ -131,6 +140,36 @@ export const assertKnownSections = (
   }
 }
 
+const appendServiceSelectionLinks = (links: string[], serviceSelections: Map<string, string[]>): void => {
+  for (const [serviceName, sections] of Object.entries(data)) {
+    const requested = serviceSelections.get(serviceName.toLowerCase())
+    if (!requested) continue
+    for (const [sectionName, urls] of Object.entries(sections)) {
+      if (requested.length === 0 || requested.includes(sectionName.toLowerCase())) {
+        links.push(...urls)
+      }
+    }
+  }
+}
+
+const appendGlobalSectionLinks = (links: string[], globalSections: string[]): void => {
+  for (const sections of Object.values(data)) {
+    for (const [sectionName, urls] of Object.entries(sections)) {
+      if (globalSections.includes(sectionName.toLowerCase())) {
+        links.push(...urls)
+      }
+    }
+  }
+}
+
+const appendAllLinks = (links: string[]): void => {
+  for (const sections of Object.values(data)) {
+    for (const urls of Object.values(sections)) {
+      links.push(...urls)
+    }
+  }
+}
+
 export const collectLinks = (
   serviceSelections: Map<string, string[]>,
   globalSections: string[]
@@ -139,35 +178,11 @@ export const collectLinks = (
   const hasServiceSelections = serviceSelections.size > 0
   const hasGlobalSections = globalSections.length > 0
 
-  if (hasServiceSelections) {
-    for (const [serviceName, sections] of Object.entries(data)) {
-      const requested = serviceSelections.get(serviceName.toLowerCase())
-      if (!requested) continue
-      for (const [sectionName, urls] of Object.entries(sections)) {
-        if (requested.length === 0 || requested.includes(sectionName.toLowerCase())) {
-          links.push(...urls)
-        }
-      }
-    }
-  }
+  if (hasServiceSelections) appendServiceSelectionLinks(links, serviceSelections)
 
-  if (hasGlobalSections) {
-    for (const sections of Object.values(data)) {
-      for (const [sectionName, urls] of Object.entries(sections)) {
-        if (globalSections.includes(sectionName.toLowerCase())) {
-          links.push(...urls)
-        }
-      }
-    }
-  }
+  if (hasGlobalSections) appendGlobalSectionLinks(links, globalSections)
 
-  if (!hasServiceSelections && !hasGlobalSections) {
-    for (const sections of Object.values(data)) {
-      for (const urls of Object.values(sections)) {
-        links.push(...urls)
-      }
-    }
-  }
+  if (!hasServiceSelections && !hasGlobalSections) appendAllLinks(links)
 
   return [...new Set(links)]
 }

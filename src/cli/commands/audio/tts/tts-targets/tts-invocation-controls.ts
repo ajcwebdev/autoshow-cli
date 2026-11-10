@@ -67,47 +67,52 @@ const invalidControl = (provider: TtsProvider, key: string, detail: string): Err
 // error reads as a flag error.
 export type ControlErrorFactory = (provider: TtsProvider, key: string, detail: string) => Error
 
-export const normalizeControlValue = (
+const normalizeStringControl = (
   provider: TtsProvider,
   key: string,
   value: TtsTargetInvocationControlValue,
-  spec: ControlSpec,
-  makeError: ControlErrorFactory = invalidControl
-): Exclude<TtsTargetInvocationControlValue, null> => {
-  const invalidControl = makeError
-  if (spec.kind === 'string') {
-    if (typeof value !== 'string') throw invalidControl(provider, key, 'expected a string or null')
-    const normalized = spec.normalize?.(value) ?? value
-    if ((spec.preserveWhitespace ? normalized.trim() : normalized).length === 0) {
-      throw invalidControl(provider, key, 'expected a non-empty string or null')
-    }
-    if (spec.allowedValues && !spec.allowedValues.includes(normalized)) {
-      throw invalidControl(provider, key, `allowed values are ${spec.allowedValues.join(', ')}`)
-    }
-    return normalized
+  spec: Extract<ControlSpec, { kind: 'string' }>,
+  invalidControl: ControlErrorFactory
+): string => {
+  if (typeof value !== 'string') throw invalidControl(provider, key, 'expected a string or null')
+  const normalized = spec.normalize?.(value) ?? value
+  if ((spec.preserveWhitespace ? normalized.trim() : normalized).length === 0) {
+    throw invalidControl(provider, key, 'expected a non-empty string or null')
   }
-
-  if (spec.kind === 'number') {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      throw invalidControl(provider, key, 'expected a finite number or null')
-    }
-    if (spec.integer && !Number.isInteger(value)) {
-      throw invalidControl(provider, key, 'expected an integer')
-    }
-    if (spec.min !== undefined && (spec.exclusiveMin ? value <= spec.min : value < spec.min)) {
-      throw invalidControl(provider, key, `must be ${spec.exclusiveMin ? 'greater than' : 'at least'} ${spec.min}`)
-    }
-    if (spec.max !== undefined && value > spec.max) {
-      throw invalidControl(provider, key, `must be at most ${spec.max}`)
-    }
-    return Object.is(value, -0) ? 0 : value
+  if (spec.allowedValues && !spec.allowedValues.includes(normalized)) {
+    throw invalidControl(provider, key, `allowed values are ${spec.allowedValues.join(', ')}`)
   }
+  return normalized
+}
 
-  if (spec.kind === 'boolean') {
-    if (typeof value !== 'boolean') throw invalidControl(provider, key, 'expected a boolean or null')
-    return value
+const normalizeNumberControl = (
+  provider: TtsProvider,
+  key: string,
+  value: TtsTargetInvocationControlValue,
+  spec: Extract<ControlSpec, { kind: 'number' }>,
+  invalidControl: ControlErrorFactory
+): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw invalidControl(provider, key, 'expected a finite number or null')
   }
+  if (spec.integer && !Number.isInteger(value)) {
+    throw invalidControl(provider, key, 'expected an integer')
+  }
+  if (spec.min !== undefined && (spec.exclusiveMin ? value <= spec.min : value < spec.min)) {
+    throw invalidControl(provider, key, `must be ${spec.exclusiveMin ? 'greater than' : 'at least'} ${spec.min}`)
+  }
+  if (spec.max !== undefined && value > spec.max) {
+    throw invalidControl(provider, key, `must be at most ${spec.max}`)
+  }
+  return Object.is(value, -0) ? 0 : value
+}
 
+const normalizeStringArrayControl = (
+  provider: TtsProvider,
+  key: string,
+  value: TtsTargetInvocationControlValue,
+  invalidControl: ControlErrorFactory
+): readonly string[] => {
   if (!Array.isArray(value) || value.some(entry => typeof entry !== 'string')) {
     throw invalidControl(provider, key, 'expected an array of strings or null')
   }
@@ -116,6 +121,22 @@ export const normalizeControlValue = (
     throw invalidControl(provider, key, 'array entries must be non-empty strings')
   }
   return Object.freeze(normalized)
+}
+
+export const normalizeControlValue = (
+  provider: TtsProvider,
+  key: string,
+  value: TtsTargetInvocationControlValue,
+  spec: ControlSpec,
+  makeError: ControlErrorFactory = invalidControl
+): Exclude<TtsTargetInvocationControlValue, null> => {
+  if (spec.kind === 'string') return normalizeStringControl(provider, key, value, spec, makeError)
+  if (spec.kind === 'number') return normalizeNumberControl(provider, key, value, spec, makeError)
+  if (spec.kind === 'boolean') {
+    if (typeof value !== 'boolean') throw makeError(provider, key, 'expected a boolean or null')
+    return value
+  }
+  return normalizeStringArrayControl(provider, key, value, makeError)
 }
 
 const normalizeProviderControls = (

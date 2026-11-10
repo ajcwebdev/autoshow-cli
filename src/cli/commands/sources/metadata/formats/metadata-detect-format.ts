@@ -59,8 +59,6 @@ const isFb2 = (bytes: Uint8Array): boolean => {
   return text.includes('<FictionBook')
 }
 
-const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.bmp', '.gif'])
-
 const probeZipForFormat = (bytes: Uint8Array): DetectResult => {
   const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes)
 
@@ -95,6 +93,60 @@ const isTextContent = (bytes: Uint8Array): boolean => {
   return nonText / limit < 0.05
 }
 
+const EXTENSION_FALLBACK_FORMATS = new Map<string, DetectResult>([
+  ['.pdf', 'pdf'],
+  ['.epub', 'epub'],
+  ['.docx', 'docx'],
+  ['.pptx', 'pptx'],
+  ['.xlsx', 'xlsx'],
+  ['.odt', 'odf'],
+  ['.ods', 'odf'],
+  ['.odp', 'odf'],
+  ['.cbz', 'cbz'],
+  ['.png', 'png'],
+  ['.jpg', 'jpg'],
+  ['.jpeg', 'jpg'],
+  ['.tif', 'tif'],
+  ['.tiff', 'tif'],
+  ['.webp', 'webp'],
+  ['.bmp', 'bmp'],
+  ['.gif', 'gif']
+])
+
+const detectImageFormatFromBytes = (bytes: Uint8Array): DetectResult => {
+  if (hasMagic(bytes, PNG_MAGIC)) return 'png'
+  if (hasMagic(bytes, JPG_MAGIC)) return 'jpg'
+  if (isTiff(bytes)) return 'tif'
+  if (isWebp(bytes)) return 'webp'
+  if (isBmp(bytes)) return 'bmp'
+  if (isGif(bytes)) return 'gif'
+  return null
+}
+
+const detectFormatFromBytes = (bytes: Uint8Array): DetectResult => {
+  if (hasMagic(bytes, PDF_MAGIC)) return 'pdf'
+
+  if (hasMagic(bytes, RTF_MAGIC)) return 'rtf'
+
+  if (isLit(bytes)) return 'lit'
+
+  const mobiKind = isMobiOrAzw3(bytes)
+  if (mobiKind) return mobiKind
+
+  const imageFormat = detectImageFormatFromBytes(bytes)
+  if (imageFormat) return imageFormat
+
+  const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b
+  if (isZip) {
+    const result = probeZipForFormat(bytes)
+    if (result) return result
+  }
+
+  if (isFb2(bytes)) return 'fb2'
+
+  return null
+}
+
 export const detectDocumentFormat = async (filePath: string): Promise<DetectResult> => {
   const ext = extname(filePath).toLowerCase()
 
@@ -110,45 +162,5 @@ export const detectDocumentFormat = async (filePath: string): Promise<DetectResu
 
   const bytes = new Uint8Array(await Bun.file(filePath).slice(0, 4096).arrayBuffer())
 
-  if (hasMagic(bytes, PDF_MAGIC)) return 'pdf'
-
-  if (hasMagic(bytes, RTF_MAGIC)) return 'rtf'
-
-  if (isLit(bytes)) return 'lit'
-
-  const mobiKind = isMobiOrAzw3(bytes)
-  if (mobiKind) return mobiKind
-
-  if (hasMagic(bytes, PNG_MAGIC)) return 'png'
-  if (hasMagic(bytes, JPG_MAGIC)) return 'jpg'
-  if (isTiff(bytes)) return 'tif'
-  if (isWebp(bytes)) return 'webp'
-  if (isBmp(bytes)) return 'bmp'
-  if (isGif(bytes)) return 'gif'
-
-  const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b
-  if (isZip) {
-    const result = probeZipForFormat(bytes)
-    if (result) return result
-  }
-
-  if (isFb2(bytes)) return 'fb2'
-
-  if (ext === '.pdf') return 'pdf'
-  if (ext === '.epub') return 'epub'
-  if (ext === '.docx') return 'docx'
-  if (ext === '.pptx') return 'pptx'
-  if (ext === '.xlsx') return 'xlsx'
-  if (['.odt', '.ods', '.odp'].includes(ext)) return 'odf'
-  if (ext === '.cbz') return 'cbz'
-  if (IMAGE_EXTENSIONS.has(ext)) {
-    if (ext === '.png') return 'png'
-    if (ext === '.jpg' || ext === '.jpeg') return 'jpg'
-    if (ext === '.tif' || ext === '.tiff') return 'tif'
-    if (ext === '.webp') return 'webp'
-    if (ext === '.bmp') return 'bmp'
-    if (ext === '.gif') return 'gif'
-  }
-
-  return null
+  return detectFormatFromBytes(bytes) ?? EXTENSION_FALLBACK_FORMATS.get(ext) ?? null
 }

@@ -38,13 +38,14 @@ Each Status field summarizes its ADR's `Decision Status` and `Verification Statu
 **ADR 4: [ADR-004](ADR-004-setup-toolchain-and-runtime-configuration.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Manage host tools with verified downloads and explicit resolver precedence, keep credentials in the environment, expose runtime controls through CLI/configuration, and use `setup --doctor --strict` as the readiness gate.
+- **Decision:** Manage host tools with verified downloads and explicit resolver precedence, keep credentials in the environment, expose runtime controls through CLI/configuration, use `setup --doctor --strict` as the readiness gate, and support explicit cross-process command-budget reservations with conservative uncertainty accounting.
+- **Verification:** [October 31 offline Docker acceptance](ADR-004-setup-toolchain-and-runtime-configuration.md#october-31-offline-docker-acceptance) matched all 17 changed/new CLI source files and verified compact results, fail-closed admission, retained holds, and explicit operator recovery without provider calls.
 - **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-005](ADR-005-cli-error-result-and-retry-contract.md), [ADR-008](ADR-008-ocr-execution-pooling-and-artifacts.md), [ADR-014](ADR-014-distribute-the-cli-as-a-docker-image.md), [ADR-019](ADR-019-read-successful-http-bodies-whole-under-a-payload-class-ceiling.md)
 
 **ADR 5: [ADR-005](ADR-005-cli-error-result-and-retry-contract.md)**
 
 - **Status:** Accepted · Passed
-- **Decision:** Provide consistent errors and exit codes, text diagnostics and versioned `--json` output with one terminal JSON result, and explicit retry ownership. Ambiguous TTS/comic-audio recovery requires reconciliation or `--allow-ambiguous-redispatch` before another paid attempt.
+- **Decision:** Provide consistent errors and exit codes, text diagnostics and versioned `--json` output with one terminal JSON result, opt-in private result artifacts with bounded agent summaries, and explicit retry ownership. Ambiguous TTS/comic-audio recovery requires reconciliation or `--allow-ambiguous-redispatch` before another paid attempt.
 - **Related ADRs:** [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), [ADR-004](ADR-004-setup-toolchain-and-runtime-configuration.md), [ADR-007](ADR-007-decompose-work-into-chunks-and-concurrency-lanes.md), [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md), [ADR-012](ADR-012-tts-synthesis-voice-management-and-delivery.md), [ADR-013](ADR-013-comic-scene-audio-and-presentation.md), [ADR-015](ADR-015-govern-documentation-examples-and-verification-evidence.md), [ADR-016](ADR-016-quiet-passing-test-console-output.md)
 
 **ADR 6: [ADR-006](ADR-006-top-level-command-boundaries-and-deprecations.md)**

@@ -19,6 +19,36 @@ const parseAmbientRangeBound = (value: string, label: 'from' | 'to'): AmbientRan
   return bound as AmbientRangeBound
 }
 
+type DirectiveControlPair = RegExpExecArray & { readonly 2: string }
+
+const applyDirectiveControl = (controls: DirectiveControls, key: string, pair: DirectiveControlPair): void => {
+  if (key === 'duration') {
+    const duration = /^(\d+(?:\.\d+)?)\s*s$/iu.exec(pair[2])
+    if (!duration?.[1]) throw UsageError('Sound directive duration must use seconds, for example duration: 2.5s.')
+    controls.durationSeconds = Number(duration[1])
+    if (controls.durationSeconds < 0.5 || controls.durationSeconds > 30) throw UsageError('Sound directive duration must be between 0.5 and 30 seconds.')
+    return
+  }
+  if (key === 'gain') {
+    const gain = /^([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*dB$/iu.exec(pair[2])
+    if (!gain?.[1]) throw UsageError('Sound directive gain must use decibels, for example gain: -3dB.')
+    controls.gainDb = Number(gain[1])
+    return
+  }
+  if (key === 'from') {
+    controls.rangeFrom = parseAmbientRangeBound(pair[2], 'from')
+    return
+  }
+  if (key === 'to') {
+    controls.rangeTo = parseAmbientRangeBound(pair[2], 'to')
+    return
+  }
+  const pan = /^([+-]?(?:\d+(?:\.\d+)?|\.\d+))$/u.exec(pair[2])
+  if (!pan?.[1]) throw UsageError('Sound directive pan must be a number between -1 and 1.')
+  controls.pan = Number(pan[1])
+  if (controls.pan < -1 || controls.pan > 1) throw UsageError('Sound directive pan must be between -1 and 1.')
+}
+
 const parseControls = (value: string): { remainder: string, controls: DirectiveControls } => {
   const match = /^\{([^{}]+)\}\s*/u.exec(value)
   if (!match?.[1]) return { remainder: value, controls: {} }
@@ -30,31 +60,7 @@ const parseControls = (value: string): { remainder: string, controls: DirectiveC
     const key = pair[1].toLowerCase()
     if (seen.has(key)) throw UsageError(`Sound directive control ${key} is duplicated.`)
     seen.add(key)
-    if (key === 'duration') {
-      const duration = /^(\d+(?:\.\d+)?)\s*s$/iu.exec(pair[2])
-      if (!duration?.[1]) throw UsageError('Sound directive duration must use seconds, for example duration: 2.5s.')
-      controls.durationSeconds = Number(duration[1])
-      if (controls.durationSeconds < 0.5 || controls.durationSeconds > 30) throw UsageError('Sound directive duration must be between 0.5 and 30 seconds.')
-      continue
-    }
-    if (key === 'gain') {
-      const gain = /^([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*dB$/iu.exec(pair[2])
-      if (!gain?.[1]) throw UsageError('Sound directive gain must use decibels, for example gain: -3dB.')
-      controls.gainDb = Number(gain[1])
-      continue
-    }
-    if (key === 'from') {
-      controls.rangeFrom = parseAmbientRangeBound(pair[2], 'from')
-      continue
-    }
-    if (key === 'to') {
-      controls.rangeTo = parseAmbientRangeBound(pair[2], 'to')
-      continue
-    }
-    const pan = /^([+-]?(?:\d+(?:\.\d+)?|\.\d+))$/u.exec(pair[2])
-    if (!pan?.[1]) throw UsageError('Sound directive pan must be a number between -1 and 1.')
-    controls.pan = Number(pan[1])
-    if (controls.pan < -1 || controls.pan > 1) throw UsageError('Sound directive pan must be between -1 and 1.')
+    applyDirectiveControl(controls, key, pair as DirectiveControlPair)
   }
   if ((controls.rangeFrom === undefined) !== (controls.rangeTo === undefined)) throw UsageError('Sound directive ambient range requires both from and to.')
   return { remainder: value.slice(match[0].length).trim(), controls }

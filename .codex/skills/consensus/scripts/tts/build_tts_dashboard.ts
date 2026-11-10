@@ -31,12 +31,11 @@ interface TtsAssessmentRow {
   humanSpeechScore: null; cer: number; comparison: { referenceWords: number; substitutions: number; deletions: number; insertions: number; wer: number };
 }
 
-export function readTtsAssessment(root: string, samples: TtsDashboardSample[]): TtsAssessmentRow[] {
-  const archive = join(root, TTS_ASSESSMENT_EVIDENCE);
-  if (!existsSync(archive)) return [];
-  // The producer assesses successful recordings only. Failed benchmark rows stay
-  // visible in the dashboard, but must not require or acquire an assessment.
-  const successfulSamples = samples.filter(sample => sample.status === 'succeeded');
+interface TtsAssessmentSource { path: string; scope: string; sha256: string }
+interface TtsAssessmentDocument { schemaVersion: number; sources: TtsAssessmentSource[]; rows: TtsAssessmentRow[] }
+interface TtsAssessmentContext { root: string; value: TtsAssessmentDocument; verified: (name: string) => Buffer }
+
+function openTtsAssessmentArchive(archive: string): { checksums: Map<string, string>; verified: (name: string) => Buffer } {
   const entry = (name: string): Buffer => {
     if (!name || isAbsolute(name) || name.split('/').includes('..')) throw Error('Unsafe TTS assessment evidence path');
     const result = Bun.spawnSync(['unzip', '-p', archive, name]);
@@ -55,40 +54,66 @@ export function readTtsAssessment(root: string, samples: TtsDashboardSample[]): 
     if (hash(bytes) !== checksums.get(name)) throw Error(`TTS assessment checksum mismatch: ${name}`);
     return bytes;
   };
-  const value = JSON.parse(verified('assessment.json').toString()) as { schemaVersion: number; sources: Array<{ path: string; scope: string; sha256: string }>; rows: TtsAssessmentRow[] };
+  return { checksums, verified };
+}
+
+function assertTtsAssessmentSourceCurrent(source: TtsAssessmentSource, context: TtsAssessmentContext, audioPaths: Set<string>): void {
+  const { root, value, verified } = context;
+  if (!['benchmark', 'project'].includes(source.scope) || typeof source.path !== 'string' || !/^[a-f0-9]{64}$/.test(source.sha256)) throw Error('Invalid TTS assessment source');
+  const base = source.scope === 'benchmark' ? root : resolve(import.meta.dir, '../../../../..');
+  const path = artifactPath(base, source.path);
+  // A transferred dashboard may have metadata and assessments without ignored
+  // purchased audio; retained manifest evidence still binds the audio hash.
+  if (!existsSync(path) && audioPaths.has(resolve(path))) return;
+  if (!existsSync(path) && source.scope === 'project') {
+    // Ignored input fixtures may be absent after transfer. Accept only the
+    // exact source bytes preserved by the assessment's bound input snapshot.
+    const retained = value.rows.find(row => row.input === source.path && row.inputSha256 === source.sha256 && typeof row.inputSnapshot === 'string');
+    if (retained?.inputSnapshot && hash(verified(retained.inputSnapshot)) === source.sha256) return;
+  }
+  if (!existsSync(path) || hash(readFileSync(path)) !== source.sha256) throw Error(`Stale TTS assessment source: ${source.path}`);
+}
+
+function ttsAssessmentTargetMismatch(row: TtsAssessmentRow, sample: TtsDashboardSample): boolean {
+  return row.suite !== sample.suite || row.humanSpeechScore !== null || !/^[a-f0-9]{64}$/.test(row.audioSha256);
+}
+
+function ttsAssessmentScoresInvalid(row: TtsAssessmentRow, comparison: TtsAssessmentRow['comparison']): boolean {
+  return !comparison || ![comparison.referenceWords, comparison.substitutions, comparison.deletions, comparison.insertions].every(n => Number.isInteger(n) && n >= 0) || comparison.referenceWords <= 0 ||
+    !Number.isFinite(row.cer) || row.cer < 0 || !Number.isFinite(comparison.wer) || Math.abs(comparison.wer - (comparison.substitutions + comparison.deletions + comparison.insertions) / comparison.referenceWords) > 1e-10;
+}
+
+function assertTtsAssessmentRowBound(row: TtsAssessmentRow, sample: TtsDashboardSample, context: TtsAssessmentContext): void {
+  const { root, value, verified } = context;
+  const delivery = sample.delivery;
+  if (delivery && row.audioSha256 !== delivery.sourceSha256 && row.audioSha256 !== delivery.sha256) throw Error('Unbound TTS assessment result');
+  const assessedHref = delivery?.sourceSha256 === row.audioSha256 ? delivery.sourceHref : sample.audioHref;
+  const audioPath = assessedHref ? resolve(dirname(root), assessedHref) : null;
+  const audioBinding = value.sources.find(source => source.scope === 'benchmark' && resolve(root, source.path) === audioPath);
+  const manifestPath = resolve(dirname(root), sample.manifestHref);
+  if (!audioBinding || audioBinding.sha256 !== row.audioSha256 || !value.sources.some(source => source.scope === 'benchmark' && resolve(root, source.path) === manifestPath)) throw Error('Unbound TTS assessment result');
+  if (hash(verified(row.transcript)) !== row.transcriptSha256) throw Error('TTS assessment transcript hash mismatch');
+}
+
+export function readTtsAssessment(root: string, samples: TtsDashboardSample[]): TtsAssessmentRow[] {
+  const archive = join(root, TTS_ASSESSMENT_EVIDENCE);
+  if (!existsSync(archive)) return [];
+  // The producer assesses successful recordings only. Failed benchmark rows stay
+  // visible in the dashboard, but must not require or acquire an assessment.
+  const successfulSamples = samples.filter(sample => sample.status === 'succeeded');
+  const { checksums, verified } = openTtsAssessmentArchive(archive);
+  const value = JSON.parse(verified('assessment.json').toString()) as TtsAssessmentDocument;
   if (value.schemaVersion !== 1 || !Array.isArray(value.sources) || !Array.isArray(value.rows) || value.rows.length !== successfulSamples.length) throw Error('Invalid or incomplete TTS assessment');
   for (const name of checksums.keys()) verified(name);
+  const context: TtsAssessmentContext = { root, value, verified };
   const audioPaths = new Set(successfulSamples.flatMap(s => [s.audioHref, s.delivery?.sourceHref].filter((path): path is string => typeof path === 'string').map(path => resolve(dirname(root), path))));
-  for (const source of value.sources) {
-    if (!['benchmark', 'project'].includes(source.scope) || typeof source.path !== 'string' || !/^[a-f0-9]{64}$/.test(source.sha256)) throw Error('Invalid TTS assessment source');
-    const base = source.scope === 'benchmark' ? root : resolve(import.meta.dir, '../../../../..');
-    const path = artifactPath(base, source.path);
-    // A transferred dashboard may have metadata and assessments without ignored
-    // purchased audio; retained manifest evidence still binds the audio hash.
-    if (!existsSync(path) && audioPaths.has(resolve(path))) continue;
-    if (!existsSync(path) && source.scope === 'project') {
-      // Ignored input fixtures may be absent after transfer. Accept only the
-      // exact source bytes preserved by the assessment's bound input snapshot.
-      const retained = value.rows.find(row => row.input === source.path && row.inputSha256 === source.sha256 && typeof row.inputSnapshot === 'string');
-      if (retained?.inputSnapshot && hash(verified(retained.inputSnapshot)) === source.sha256) continue;
-    }
-    if (!existsSync(path) || hash(readFileSync(path)) !== source.sha256) throw Error(`Stale TTS assessment source: ${source.path}`);
-  }
+  for (const source of value.sources) assertTtsAssessmentSourceCurrent(source, context, audioPaths);
   const seen = new Set<string>();
   for (const row of value.rows) {
     const key = `${row.run}\0${row.providerKey}`, sample = successfulSamples.find(s => `${s.run}\0${s.providerKey}` === key);
     const comparison = row.comparison;
-    if (!sample || seen.has(key) || row.suite !== sample.suite || row.humanSpeechScore !== null || !/^[a-f0-9]{64}$/.test(row.audioSha256) ||
-      !comparison || ![comparison.referenceWords, comparison.substitutions, comparison.deletions, comparison.insertions].every(n => Number.isInteger(n) && n >= 0) || comparison.referenceWords <= 0 ||
-      !Number.isFinite(row.cer) || row.cer < 0 || !Number.isFinite(comparison.wer) || Math.abs(comparison.wer - (comparison.substitutions + comparison.deletions + comparison.insertions) / comparison.referenceWords) > 1e-10) throw Error('Invalid TTS assessment result');
-    const delivery = sample.delivery;
-    if (delivery && row.audioSha256 !== delivery.sourceSha256 && row.audioSha256 !== delivery.sha256) throw Error('Unbound TTS assessment result');
-    const assessedHref = delivery?.sourceSha256 === row.audioSha256 ? delivery.sourceHref : sample.audioHref;
-    const audioPath = assessedHref ? resolve(dirname(root), assessedHref) : null;
-    const audioBinding = value.sources.find(source => source.scope === 'benchmark' && resolve(root, source.path) === audioPath);
-    const manifestPath = resolve(dirname(root), sample.manifestHref);
-    if (!audioBinding || audioBinding.sha256 !== row.audioSha256 || !value.sources.some(source => source.scope === 'benchmark' && resolve(root, source.path) === manifestPath)) throw Error('Unbound TTS assessment result');
-    if (hash(verified(row.transcript)) !== row.transcriptSha256) throw Error('TTS assessment transcript hash mismatch');
+    if (!sample || seen.has(key) || ttsAssessmentTargetMismatch(row, sample) || ttsAssessmentScoresInvalid(row, comparison)) throw Error('Invalid TTS assessment result');
+    assertTtsAssessmentRowBound(row, sample, context);
     seen.add(key);
   }
   return value.rows;

@@ -266,6 +266,41 @@ const isHtmlVoidTag = (tagName: string): boolean => {
   return HTML_VOID_TAGS.has(normalized) || HTML_VOID_TAGS.has(localName)
 }
 
+const findNonElementMarkupEnd = (html: string, tagStart: number): number | undefined => {
+  if (html.startsWith('<!--', tagStart)) {
+    const commentEnd = html.indexOf('-->', tagStart + 4)
+    return commentEnd === -1 ? html.length : commentEnd + 3
+  }
+  if (html.startsWith('<![CDATA[', tagStart)) {
+    const cdataEnd = html.indexOf(']]>', tagStart + 9)
+    return cdataEnd === -1 ? html.length : cdataEnd + 3
+  }
+  if (html.startsWith('<?', tagStart)) {
+    const processingEnd = html.indexOf('?>', tagStart + 2)
+    return processingEnd === -1 ? html.length : processingEnd + 2
+  }
+  if (html.startsWith('<!', tagStart)) {
+    const declarationEnd = findHtmlTagEnd(html, tagStart)
+    return declarationEnd === -1 ? html.length : declarationEnd + 1
+  }
+  return undefined
+}
+
+const expandSelfClosingXhtmlTag = (tag: string): string | undefined => {
+  const slashIndex = findSelfClosingSlash(tag)
+  if (slashIndex === undefined) {
+    return undefined
+  }
+
+  const tagName = tag.match(/^<\s*([A-Za-z][A-Za-z0-9:._-]*)\b/)?.[1]
+  if (!tagName || isHtmlVoidTag(tagName)) {
+    return undefined
+  }
+
+  const startTag = `${tag.slice(0, slashIndex).replace(/\s+$/, '')}>`
+  return `${startTag}</${tagName}>`
+}
+
 const normalizeSelfClosingXhtmlTags = (html: string): string => {
   let result = ''
   let lastCopied = 0
@@ -278,24 +313,9 @@ const normalizeSelfClosingXhtmlTags = (html: string): string => {
       break
     }
 
-    if (html.startsWith('<!--', tagStart)) {
-      const commentEnd = html.indexOf('-->', tagStart + 4)
-      searchFrom = commentEnd === -1 ? html.length : commentEnd + 3
-      continue
-    }
-    if (html.startsWith('<![CDATA[', tagStart)) {
-      const cdataEnd = html.indexOf(']]>', tagStart + 9)
-      searchFrom = cdataEnd === -1 ? html.length : cdataEnd + 3
-      continue
-    }
-    if (html.startsWith('<?', tagStart)) {
-      const processingEnd = html.indexOf('?>', tagStart + 2)
-      searchFrom = processingEnd === -1 ? html.length : processingEnd + 2
-      continue
-    }
-    if (html.startsWith('<!', tagStart)) {
-      const declarationEnd = findHtmlTagEnd(html, tagStart)
-      searchFrom = declarationEnd === -1 ? html.length : declarationEnd + 1
+    const markupEnd = findNonElementMarkupEnd(html, tagStart)
+    if (markupEnd !== undefined) {
+      searchFrom = markupEnd
       continue
     }
 
@@ -305,20 +325,13 @@ const normalizeSelfClosingXhtmlTags = (html: string): string => {
     }
 
     searchFrom = tagEnd + 1
-    const tag = html.slice(tagStart, tagEnd + 1)
-    const slashIndex = findSelfClosingSlash(tag)
-    if (slashIndex === undefined) {
+    const expanded = expandSelfClosingXhtmlTag(html.slice(tagStart, tagEnd + 1))
+    if (expanded === undefined) {
       continue
     }
 
-    const tagName = tag.match(/^<\s*([A-Za-z][A-Za-z0-9:._-]*)\b/)?.[1]
-    if (!tagName || isHtmlVoidTag(tagName)) {
-      continue
-    }
-
-    const startTag = `${tag.slice(0, slashIndex).replace(/\s+$/, '')}>`
     result += html.slice(lastCopied, tagStart)
-    result += `${startTag}</${tagName}>`
+    result += expanded
     lastCopied = tagEnd + 1
     changed = true
   }

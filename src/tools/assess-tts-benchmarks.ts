@@ -196,6 +196,108 @@ export function turnSilenceMetrics(turn: Turn, silences: Silence[], reference: s
     leadingSeconds: leading, trailingSeconds: trailing, internalSilences: internal, longestInternalSilenceSeconds: Math.max(0, ...internal.map(s => s.end - s.start)) }
 }
 
+type TurnMetrics = ReturnType<typeof turnSilenceMetrics>
+const speedOrderOf = (source: AssessmentSource, perTurn: TurnMetrics[]) => source.suite === 'speed-pauses' && perTurn.length === 5
+  ? { normalReferenceWpm: perTurn[0]!.referenceWordsPerMinute, slowReferenceWpm: perTurn[1]!.referenceWordsPerMinute, fastReferenceWpm: perTurn[2]!.referenceWordsPerMinute,
+    directionConsistent: perTurn[0]!.referenceWordsPerMinute !== null && perTurn[1]!.referenceWordsPerMinute !== null && perTurn[2]!.referenceWordsPerMinute !== null && perTurn[1]!.referenceWordsPerMinute! < perTurn[0]!.referenceWordsPerMinute! && perTurn[0]!.referenceWordsPerMinute! < perTurn[2]!.referenceWordsPerMinute! } : null
+const pauseMeasurementOf = (source: AssessmentSource, perTurn: TurnMetrics[]) => (source.suite === 'speed-pauses' ? perTurn.slice(3) : []).map((turn, i) => {
+  const native = source.controls!.lines[i + 3]!, match = /<break\s+time="([\d.]+)(ms|s)"/.exec(native)
+  const requestedSeconds = match ? Number(match[1]) / (match[2] === 'ms' ? 1000 : 1) : null
+  return { turnId: turn.turnId, mechanism: requestedSeconds === null ? 'qualitative cue' : 'exact SSML request', requestedSeconds, longestInternalSilenceSeconds: turn.longestInternalSilenceSeconds,
+    deltaSeconds: requestedSeconds === null ? null : turn.longestInternalSilenceSeconds - requestedSeconds,
+    status: 'Signal-only longest internal gap; semantic location and audibility require listening.' }
+})
+const signalMeasurements = (source: AssessmentSource, silences: Silence[]) => {
+  const perTurn = source.controls && source.turns.length === source.controls.spokenLines.length
+    ? source.turns.map((turn, i) => turnSilenceMetrics(turn, silences, source.controls!.spokenLines[i]!)) : []
+  const speedOrder = speedOrderOf(source, perTurn)
+  const exactPause = source.suite === 'speed-pauses' && (source.controls?.lines.some(line => /<break\s+time=/.test(line)) ?? false)
+  return { silences, perTurn, speedOrder, exactPause, pauseMeasurement: pauseMeasurementOf(source, perTurn) }
+}
+const cachedTranscript = (source: AssessmentSource, cacheRoot: string, engineSha256: string) => {
+  const cache = join(cacheRoot, source.cacheKey), transcriptBytes = readFileSync(join(cache, 'transcript.txt'))
+  const binding = readJson<CachedTranscript>(join(cache, 'binding.json'))
+  if (binding.cacheKey !== source.cacheKey || binding.engineSha256 !== engineSha256 || hash(transcriptBytes) !== binding.transcriptSha256) throw ValidationError('Stale assessment transcript')
+  const asr = readJson<Transcript>(join(cache, 'asr.json'))
+  if (asr.text.trim() !== transcriptBytes.toString().trim()) throw ValidationError('ASR timing text does not match retained transcript')
+  return { cache, transcriptBytes, binding, asr }
+}
+type TextScores = { comparison: WordComparison; countingNumberFoldComparison: WordComparison | null; cer: number }
+type EvidenceEntries = { transcript: string; rawTranscript: string; inputSnapshot: string }
+const assessmentRow = (source: AssessmentSource, scores: TextScores, entries: EvidenceEntries, cached: ReturnType<typeof cachedTranscript>, signal: ReturnType<typeof signalMeasurements>) => ({
+  ...source, ...scores, ...entries, transcriptSha256: hash(cached.transcriptBytes), engineElapsedMs: cached.binding.elapsedMs,
+  fullDecode: 'succeeded', asrDisposition: scores.comparison.wer === 0 ? 'No normalized ASR differences' : 'ASR differences require adjudication',
+  speechCorrectness: 'ASR screening only; no acoustic adjudication', humanSpeechScore: null,
+  unscoredDimensions: ['Pronunciation listening ratings', 'Speaker identity listening ratings', 'Seams and prosody ratings', ...(source.suite === 'narration' ? [] : ['Audible native-control ratings', 'Emotional/delivery ratings']), 'Perceptual quality ratings'],
+  subjectiveDisposition: 'Excluded and unscored at the user’s explicit instruction; not a blocker to the accepted offline assessment scope',
+  controlEffectiveness: source.suite === 'narration' ? 'Not a controls case' : 'Signal measurements only; subjective ratings excluded and unscored',
+  mechanism: source.controls?.mechanism ?? 'narration', silences: signal.silences, perTurn: signal.perTurn,
+  perLineMeasurementLimitation: source.controls && !signal.perTurn.length ? 'Five source lines share one assembled turn; per-line rate and exact pause attribution unavailable without acoustic alignment.' : null,
+  speedOrder: signal.speedOrder, exactPause: signal.exactPause, pauseMeasurement: signal.pauseMeasurement
+})
+type AssessmentRow = ReturnType<typeof assessmentRow>
+const assessmentReport = (root: string, sources: AssessmentSource[], rows: AssessmentRow[], engineSha256: string) => {
+  const sourcesBinding = [...new Map(sources.flatMap(s => [...s.bindings, { path: s.audio, sha256: s.audioSha256 }]).map(ref => [ref.path, ref])).values()].map(ref => {
+    const within = relative(resolve(root), resolve(ref.path)).split('\\').join('/')
+    return !within.startsWith('..') ? { ...ref, path: within, scope: 'benchmark' } : { ...ref, scope: 'project' }
+  })
+  const pilotPath = 'output/2026-09-18_tts-delivery-pilot'
+  return { schemaVersion: 1, generatedAt: new Date().toISOString(), version: VERSION, engine: { provider: 'whisperfile', model: 'small.en', path: MODEL, sha256: engineSha256, referencePrompt: false },
+    normalization: 'Unicode NFKC, lower-case, curly apostrophes folded, punctuation/hyphens/apostrophes become spaces, Unicode letters/digits/diacritics retained, whitespace collapsed. Strict WER keeps digits literal; no number expansion or pronunciation guessing. Controls use saved spokenLines excluding native tags and narrator labels; narration uses the exact input text. WER uses token Levenshtein S+D+I / reference words; CER uses normalized Unicode code-point Levenshtein including spaces. Speed/pause cases additionally show a separately labeled counting-number-fold WER: only normalized tokens exactly 1, 2, 3, 4, 5 become one, two, three, four, five in both strings; no other numbers or words change. Strict scores and exact transcripts are preserved, and omissions remain counted.',
+    limitations: ['One English-only local ASR engine; recognition errors and number expansion can create differences unrelated to TTS errors. No reference prompt supplied.', 'The user explicitly excluded subjective ratings. Human listening, pronunciation ratings, speaker-identity ratings, emotion, seam/prosody ratings and perceptual quality remain excluded and unscored for every recording; no human listening is claimed.', 'Reference-word throughput divides expected words by the amplitude-trimmed waveform window, not independently verified spoken words; omissions can inflate it. The self-describing lines differ, and there is no repeated identical-text baseline. Ordering is descriptive screening, not proof of numeric speed calibration.', 'Silence means below -40 dB for at least 80 ms; fricatives/breaths/noise and threshold sensitivity affect boundaries. Longest internal gaps are not automatically the requested semantic pause.', 'Historical provider cost/usage and request identities are preserved; historical OpenAI character estimates are not retrospectively corrected.'],
+    exclusions: ['OpenAI controls absent from the inherited plans; no synthesis purchased.', 'Eleven v3 pacing skipped because exact native tags were unverified; no fallback tags or synthesis added.', existsSync(pilotPath)
+      ? `Earlier Eleven v3 pilot ${pilotPath} exists but has no verified selected identity in this benchmark corpus; it is excluded until its source/control compatibility is established. Selected Eleven narration/emotion remain included.`
+      : `Earlier Eleven v3 pilot ${pilotPath} is absent in the bounded local check; maintained docs/benchmarks/tts has no separate compatible pilot. Selected Eleven narration/emotion remain included; missing pilot evidence is excluded rather than repurchased.`],
+    sources: sourcesBinding, rows }
+}
+const archiveAssessmentEvidence = (root: string, stage: string, evidenceFiles: string[]): void => {
+  const checksums = evidenceFiles.map(path => `${hash(readFileSync(join(stage, path)))}  ${path}`).join('\n') + '\n'
+  writePortableFileSync(join(stage, 'SHA256SUMS'), checksums)
+  const archiveTemp = resolve(stage, '..', basename(stage) + '.zip')
+  const zip = Bun.spawnSync(['zip', '-q', '-r', archiveTemp, ...evidenceFiles, 'SHA256SUMS'], { cwd: stage })
+  if (zip.exitCode !== 0) throw InfraError('Could not archive TTS assessment evidence')
+  const integrity = Bun.spawnSync(['unzip', '-tq', archiveTemp])
+  if (integrity.exitCode !== 0) throw ValidationError('Invalid TTS assessment evidence archive')
+  renameSync(archiveTemp, join(root, 'assessment.evidence.zip'))
+}
+const fmt = (n: number) => (100 * n).toFixed(2) + '%'
+const table = (headings: string[], values: string[][]) => {
+  const widths = headings.map((h, i) => Math.max(h.length, ...values.map(row => row[i]!.length)))
+  return [headings, widths.map(n => '-'.repeat(n)), ...values].map(row => '| ' + row.map((cell, i) => cell.padEnd(widths[i]!)).join(' | ') + ' |').join('\n')
+}
+const renderControlMeasurements = (row: AssessmentRow): string => {
+  let markdown = `Native mechanism: ${row.mechanism}. ${row.perLineMeasurementLimitation ?? 'The five lines have separate assembled-turn timing.'}\n\n`
+  if (row.countingNumberFoldComparison) markdown += `Supplemental counting-number-fold WER: ${fmt(row.countingNumberFoldComparison.wer)}; substitutions/deletions/insertions ${row.countingNumberFoldComparison.substitutions}/${row.countingNumberFoldComparison.deletions}/${row.countingNumberFoldComparison.insertions}. This limited spelling equivalence is separate from the strict score and preserves missing words.\n\n`
+  markdown += `Below-threshold intervals: ${row.silences.length}; total ${(row.silences.reduce((n, s) => n + s.end - s.start, 0)).toFixed(3)} seconds. Complete signal intervals are in assessment.json; these are not independently verified semantic pauses.\n\n`
+  if (row.perTurn.length) markdown += table(['Turn', 'Trimmed seconds', 'Reference WPM', 'Longest internal silence'], row.perTurn.map(t => [t.turnId, t.trimmedWindowSeconds.toFixed(3), t.referenceWordsPerMinute?.toFixed(2) ?? 'unavailable', t.longestInternalSilenceSeconds.toFixed(3) + 's'])) + '\n\n'
+  if (row.speedOrder) markdown += `Slow < normal < fast reference-word throughput: ${row.speedOrder.directionConsistent ? 'consistent in signal measurements' : 'not consistently ordered in signal measurements'}. This does not establish speech correctness or exact numeric calibration.\n\n`
+  if (row.pauseMeasurement.length) markdown += table(['Turn', 'Mechanism', 'Requested seconds', 'Longest internal gap', 'Delta seconds'], row.pauseMeasurement.map(p => [p.turnId, p.mechanism, p.requestedSeconds?.toFixed(3) ?? 'qualitative', p.longestInternalSilenceSeconds.toFixed(3), p.deltaSeconds?.toFixed(3) ?? 'not applicable'])) + '\n\n'
+  return markdown
+}
+const renderAssessmentCase = (row: AssessmentRow): string => {
+  const relativeAudio = row.audio.replace(/^docs\/benchmarks\/tts\//, ''), relativeManifest = row.manifest.replace(/^docs\/benchmarks\/tts\//, '')
+  let markdown = `<a id="${row.id.toLowerCase()}"></a>\n### ${row.run} — ${row.providerKey}\n\n[Selected audio](${relativeAudio}); [manifest](${relativeManifest}); source: ${row.input}. Audio SHA-256: \`${row.audioSha256}\`. Input SHA-256: \`${row.inputSha256}\`. Render: \`${row.renderIdentity}\`; result: \`${row.resultIdentity}\`. Transcript: \`${row.transcript}\` (SHA-256 \`${row.transcriptSha256}\`).\n\nFull waveform decoding succeeded. ASR WER ${fmt(row.comparison.wer)}, CER ${fmt(row.cer)}, substitutions/deletions/insertions ${row.comparison.substitutions}/${row.comparison.deletions}/${row.comparison.insertions} over ${row.comparison.referenceWords} reference words. ${row.asrDisposition}. These differences are ASR evidence, not confirmed synthesis errors.\n\n`
+  if (row.comparison.differences.length) markdown += `First differences: ${row.comparison.differences.slice(0, 12).map(d => `${d.kind} ${JSON.stringify(d.reference)} → ${JSON.stringify(d.hypothesis)}`).join('; ')}. Complete ordered differences are in assessment.json.\n\n`
+  if (row.suite !== 'narration') markdown += renderControlMeasurements(row)
+  return markdown + `Human speech score: excluded and unscored. User-excluded dimensions: ${row.unscoredDimensions.join('; ')}. ${row.controlEffectiveness}.\n\n`
+}
+const renderAssessmentMarkdown = (report: ReturnType<typeof assessmentReport>, rows: AssessmentRow[], sources: AssessmentSource[]): string => {
+  let markdown = `# Retained TTS recordings: offline assessment\n\nUpdated ${report.generatedAt}. Assessed ${rows.length} selected recordings (${(sources.reduce((n, s) => n + s.durationSeconds, 0) / 3600).toFixed(3)} audio hours) with installed Whisper small.en and local ffmpeg. No provider calls, model downloads, or new synthesis.\n\n[Checksummed original transcripts, source snapshots, complete differences, measurements, and provenance](assessment.evidence.zip) contains assessment.json, transcripts/*.txt, exact raw transcripts/*.whisper.json, inputs/*.txt and SHA256SUMS. Per-case transcript paths below refer to entries in this archive.\n\n## Method and limits\n\n${report.normalization}\n\n${report.limitations.map(line => '- ' + line).join('\n')}\n\n${report.exclusions.map(line => '- ' + line).join('\n')}\n\nAll accepted recordings receive an automated assessment below. Subjective listening ratings are excluded and unscored by the user's instruction for every recording; no controls or perceptual quality pass is asserted.\n\n## Selected recordings\n\n`
+  markdown += table(['Case', 'Provider/model', 'Suite', 'WER', 'CER', 'S/D/I', 'Disposition'], rows.map(row => [`[${row.run}](#${row.id.toLowerCase()})`, row.providerKey, row.suite, fmt(row.comparison.wer), fmt(row.cer), `${row.comparison.substitutions}/${row.comparison.deletions}/${row.comparison.insertions}`, row.asrDisposition])) + '\n\n'
+  for (const row of rows) markdown += renderAssessmentCase(row)
+  return markdown + '## Reproduce\n\nInspect without writes: `bun src/tools/assess-tts-benchmarks.ts`. Run/reuse installed local ASR and update this report/archive: `bun src/tools/assess-tts-benchmarks.ts --run --concurrency 2`. Each cache key binds the audio, original input, expected spoken text, ASR engine hash, version and selected render; complete cached transcripts are reused. Cache and interrupted diagnostics remain under runtime/tts-benchmark-assessment/. No provider fallback or model download is implemented.\n'
+}
+const updateConsensusNotes = (root: string, rows: AssessmentRow[], report: ReturnType<typeof assessmentReport>): void => {
+  for (const row of rows) {
+    const note = join(dirname(row.manifest), 'consensus-evaluation.txt')
+    if (!existsSync(note)) continue
+    const previous = readFileSync(note, 'utf8')
+    const text = `Offline ASR assessment (${report.generatedAt}): ${row.id}. See ${toProjectRelativePath(join(root, 'assessment.md'))}#${row.id.toLowerCase()} and assessment.evidence.zip.\n\nInstalled Whisper small.en screening: strict WER ${fmt(row.comparison.wer)}, CER ${fmt(row.cer)}, substitutions/deletions/insertions ${row.comparison.substitutions}/${row.comparison.deletions}/${row.comparison.insertions}.${row.countingNumberFoldComparison ? ` Supplemental counting-number-fold WER ${fmt(row.countingNumberFoldComparison.wer)} (normalized tokens 1–5 only; omissions preserved).` : ''} Differences require adjudication and do not establish TTS errors. Full waveform decoding succeeded. ${row.perTurn.length ? 'Separate assembled-turn signal measurements are recorded.' : 'Per-line timing attribution is unavailable; full-file signal intervals are recorded.'}\n\nSubjective pronunciation, speaker identity, emotional/control effect, seam/prosody, and perceptual ratings are excluded and unscored at the user’s instruction. No human listening or perceptual pass is claimed. No provider calls or synthesis reruns were made.\n`
+    if (previous.startsWith('Transport completed and local audio integrity was verified.') || previous.startsWith('Offline ASR assessment (')) writePortableFileSync(note, text)
+    else if (!previous.includes(text)) writePortableFileSync(note, previous.trimEnd() + '\n\n' + text)
+  }
+}
+
 export async function publishAssessment(root: string, sources: AssessmentSource[], cacheRoot: string, engineSha256: string): Promise<void> {
   const stage = join(cacheRoot, '..', 'evidence', new Date().toISOString().replace(/[:.]/g, '-'))
   mkdirSync(join(stage, 'transcripts'), { recursive: true }); mkdirSync(join(stage, 'inputs'), { recursive: true })
@@ -205,95 +307,25 @@ export async function publishAssessment(root: string, sources: AssessmentSource[
     else writeFileSync(join(stage, path), bytes)
     evidenceFiles.push(path)
   }
-  const rows = []
+  const rows: AssessmentRow[] = []
   for (const source of sources) {
-    const cache = join(cacheRoot, source.cacheKey), transcriptBytes = readFileSync(join(cache, 'transcript.txt'))
-    const binding = readJson<CachedTranscript>(join(cache, 'binding.json'))
-    if (binding.cacheKey !== source.cacheKey || binding.engineSha256 !== engineSha256 || hash(transcriptBytes) !== binding.transcriptSha256) throw ValidationError('Stale assessment transcript')
-    const asr = readJson<Transcript>(join(cache, 'asr.json'))
-    if (asr.text.trim() !== transcriptBytes.toString().trim()) throw ValidationError('ASR timing text does not match retained transcript')
+    const cached = cachedTranscript(source, cacheRoot, engineSha256), { cache, transcriptBytes, asr } = cached
     const comparison = compareWords(source.reference, asr.text), cer = characterErrorRate(source.reference, asr.text)
     const countingNumberFoldComparison = source.suite === 'speed-pauses' ? compareCountingWords(source.reference, asr.text) : null
     const transcript = `transcripts/${source.id}.txt`, rawTranscript = `transcripts/${source.id}.whisper.json`, inputSnapshot = `inputs/${source.id}.txt`
     addEvidence(transcript, transcriptBytes); addEvidence(rawTranscript, readFileSync(join(cache, 'transcription.json'))); addEvidence(inputSnapshot, readFileSync(source.input))
     let silences: Silence[] = []
     if (source.suite !== 'narration') silences = parseSilences(await command([getFfmpegBinary(), '-nostdin', '-hide_banner', '-i', source.audio, '-af', 'silencedetect=noise=-40dB:d=0.08', '-f', 'null', '-']), source.durationSeconds)
-    const perTurn = source.controls && source.turns.length === source.controls.spokenLines.length
-      ? source.turns.map((turn, i) => turnSilenceMetrics(turn, silences, source.controls!.spokenLines[i]!)) : []
-    const speedOrder = source.suite === 'speed-pauses' && perTurn.length === 5
-      ? { normalReferenceWpm: perTurn[0]!.referenceWordsPerMinute, slowReferenceWpm: perTurn[1]!.referenceWordsPerMinute, fastReferenceWpm: perTurn[2]!.referenceWordsPerMinute,
-        directionConsistent: perTurn[0]!.referenceWordsPerMinute !== null && perTurn[1]!.referenceWordsPerMinute !== null && perTurn[2]!.referenceWordsPerMinute !== null && perTurn[1]!.referenceWordsPerMinute! < perTurn[0]!.referenceWordsPerMinute! && perTurn[0]!.referenceWordsPerMinute! < perTurn[2]!.referenceWordsPerMinute! } : null
-    const exactPause = source.suite === 'speed-pauses' && (source.controls?.lines.some(line => /<break\s+time=/.test(line)) ?? false)
-    const pauseMeasurement = (source.suite === 'speed-pauses' ? perTurn.slice(3) : []).map((turn, i) => {
-      const native = source.controls!.lines[i + 3]!, match = /<break\s+time="([\d.]+)(ms|s)"/.exec(native)
-      const requestedSeconds = match ? Number(match[1]) / (match[2] === 'ms' ? 1000 : 1) : null
-      return { turnId: turn.turnId, mechanism: requestedSeconds === null ? 'qualitative cue' : 'exact SSML request', requestedSeconds, longestInternalSilenceSeconds: turn.longestInternalSilenceSeconds,
-        deltaSeconds: requestedSeconds === null ? null : turn.longestInternalSilenceSeconds - requestedSeconds,
-        status: 'Signal-only longest internal gap; semantic location and audibility require listening.' }
-    })
-    rows.push({ ...source, comparison, countingNumberFoldComparison, cer, transcript, rawTranscript, inputSnapshot, transcriptSha256: hash(transcriptBytes), engineElapsedMs: binding.elapsedMs,
-      fullDecode: 'succeeded', asrDisposition: comparison.wer === 0 ? 'No normalized ASR differences' : 'ASR differences require adjudication',
-      speechCorrectness: 'ASR screening only; no acoustic adjudication', humanSpeechScore: null,
-      unscoredDimensions: ['Pronunciation listening ratings', 'Speaker identity listening ratings', 'Seams and prosody ratings', ...(source.suite === 'narration' ? [] : ['Audible native-control ratings', 'Emotional/delivery ratings']), 'Perceptual quality ratings'],
-      subjectiveDisposition: 'Excluded and unscored at the user’s explicit instruction; not a blocker to the accepted offline assessment scope',
-      controlEffectiveness: source.suite === 'narration' ? 'Not a controls case' : 'Signal measurements only; subjective ratings excluded and unscored',
-      mechanism: source.controls?.mechanism ?? 'narration', silences, perTurn,
-      perLineMeasurementLimitation: source.controls && !perTurn.length ? 'Five source lines share one assembled turn; per-line rate and exact pause attribution unavailable without acoustic alignment.' : null,
-      speedOrder, exactPause, pauseMeasurement })
+    const signal = signalMeasurements(source, silences)
+    rows.push(assessmentRow(source, { comparison, countingNumberFoldComparison, cer }, { transcript, rawTranscript, inputSnapshot }, cached, signal))
     writeCommandPayload(JSON.stringify({ assessed: source.id, wer: comparison.wer, cer }) + '\n')
   }
-  const sourcesBinding = [...new Map(sources.flatMap(s => [...s.bindings, { path: s.audio, sha256: s.audioSha256 }]).map(ref => [ref.path, ref])).values()].map(ref => {
-    const within = relative(resolve(root), resolve(ref.path)).split('\\').join('/')
-    return !within.startsWith('..') ? { ...ref, path: within, scope: 'benchmark' } : { ...ref, scope: 'project' }
-  })
-  const pilotPath = 'output/2026-09-18_tts-delivery-pilot'
-  const report = { schemaVersion: 1, generatedAt: new Date().toISOString(), version: VERSION, engine: { provider: 'whisperfile', model: 'small.en', path: MODEL, sha256: engineSha256, referencePrompt: false },
-    normalization: 'Unicode NFKC, lower-case, curly apostrophes folded, punctuation/hyphens/apostrophes become spaces, Unicode letters/digits/diacritics retained, whitespace collapsed. Strict WER keeps digits literal; no number expansion or pronunciation guessing. Controls use saved spokenLines excluding native tags and narrator labels; narration uses the exact input text. WER uses token Levenshtein S+D+I / reference words; CER uses normalized Unicode code-point Levenshtein including spaces. Speed/pause cases additionally show a separately labeled counting-number-fold WER: only normalized tokens exactly 1, 2, 3, 4, 5 become one, two, three, four, five in both strings; no other numbers or words change. Strict scores and exact transcripts are preserved, and omissions remain counted.',
-    limitations: ['One English-only local ASR engine; recognition errors and number expansion can create differences unrelated to TTS errors. No reference prompt supplied.', 'The user explicitly excluded subjective ratings. Human listening, pronunciation ratings, speaker-identity ratings, emotion, seam/prosody ratings and perceptual quality remain excluded and unscored for every recording; no human listening is claimed.', 'Reference-word throughput divides expected words by the amplitude-trimmed waveform window, not independently verified spoken words; omissions can inflate it. The self-describing lines differ, and there is no repeated identical-text baseline. Ordering is descriptive screening, not proof of numeric speed calibration.', 'Silence means below -40 dB for at least 80 ms; fricatives/breaths/noise and threshold sensitivity affect boundaries. Longest internal gaps are not automatically the requested semantic pause.', 'Historical provider cost/usage and request identities are preserved; historical OpenAI character estimates are not retrospectively corrected.'],
-    exclusions: ['OpenAI controls absent from the inherited plans; no synthesis purchased.', 'Eleven v3 pacing skipped because exact native tags were unverified; no fallback tags or synthesis added.', existsSync(pilotPath)
-      ? `Earlier Eleven v3 pilot ${pilotPath} exists but has no verified selected identity in this benchmark corpus; it is excluded until its source/control compatibility is established. Selected Eleven narration/emotion remain included.`
-      : `Earlier Eleven v3 pilot ${pilotPath} is absent in the bounded local check; maintained docs/benchmarks/tts has no separate compatible pilot. Selected Eleven narration/emotion remain included; missing pilot evidence is excluded rather than repurchased.`],
-    sources: sourcesBinding, rows }
+  const report = assessmentReport(root, sources, rows, engineSha256)
   addEvidence('assessment.json', JSON.stringify(report, null, 2) + '\n')
-  const checksums = evidenceFiles.map(path => `${hash(readFileSync(join(stage, path)))}  ${path}`).join('\n') + '\n'
-  writePortableFileSync(join(stage, 'SHA256SUMS'), checksums)
-  const archiveTemp = resolve(stage, '..', basename(stage) + '.zip')
-  const zip = Bun.spawnSync(['zip', '-q', '-r', archiveTemp, ...evidenceFiles, 'SHA256SUMS'], { cwd: stage })
-  if (zip.exitCode !== 0) throw InfraError('Could not archive TTS assessment evidence')
-  const integrity = Bun.spawnSync(['unzip', '-tq', archiveTemp])
-  if (integrity.exitCode !== 0) throw ValidationError('Invalid TTS assessment evidence archive')
-  renameSync(archiveTemp, join(root, 'assessment.evidence.zip'))
-  const fmt = (n: number) => (100 * n).toFixed(2) + '%'
-  const table = (headings: string[], values: string[][]) => {
-    const widths = headings.map((h, i) => Math.max(h.length, ...values.map(row => row[i]!.length)))
-    return [headings, widths.map(n => '-'.repeat(n)), ...values].map(row => '| ' + row.map((cell, i) => cell.padEnd(widths[i]!)).join(' | ') + ' |').join('\n')
-  }
-  let markdown = `# Retained TTS recordings: offline assessment\n\nUpdated ${report.generatedAt}. Assessed ${rows.length} selected recordings (${(sources.reduce((n, s) => n + s.durationSeconds, 0) / 3600).toFixed(3)} audio hours) with installed Whisper small.en and local ffmpeg. No provider calls, model downloads, or new synthesis.\n\n[Checksummed original transcripts, source snapshots, complete differences, measurements, and provenance](assessment.evidence.zip) contains assessment.json, transcripts/*.txt, exact raw transcripts/*.whisper.json, inputs/*.txt and SHA256SUMS. Per-case transcript paths below refer to entries in this archive.\n\n## Method and limits\n\n${report.normalization}\n\n${report.limitations.map(line => '- ' + line).join('\n')}\n\n${report.exclusions.map(line => '- ' + line).join('\n')}\n\nAll accepted recordings receive an automated assessment below. Subjective listening ratings are excluded and unscored by the user's instruction for every recording; no controls or perceptual quality pass is asserted.\n\n## Selected recordings\n\n`
-  markdown += table(['Case', 'Provider/model', 'Suite', 'WER', 'CER', 'S/D/I', 'Disposition'], rows.map(row => [`[${row.run}](#${row.id.toLowerCase()})`, row.providerKey, row.suite, fmt(row.comparison.wer), fmt(row.cer), `${row.comparison.substitutions}/${row.comparison.deletions}/${row.comparison.insertions}`, row.asrDisposition])) + '\n\n'
-  for (const row of rows) {
-    const relativeAudio = row.audio.replace(/^docs\/benchmarks\/tts\//, ''), relativeManifest = row.manifest.replace(/^docs\/benchmarks\/tts\//, '')
-    markdown += `<a id="${row.id.toLowerCase()}"></a>\n### ${row.run} — ${row.providerKey}\n\n[Selected audio](${relativeAudio}); [manifest](${relativeManifest}); source: ${row.input}. Audio SHA-256: \`${row.audioSha256}\`. Input SHA-256: \`${row.inputSha256}\`. Render: \`${row.renderIdentity}\`; result: \`${row.resultIdentity}\`. Transcript: \`${row.transcript}\` (SHA-256 \`${row.transcriptSha256}\`).\n\nFull waveform decoding succeeded. ASR WER ${fmt(row.comparison.wer)}, CER ${fmt(row.cer)}, substitutions/deletions/insertions ${row.comparison.substitutions}/${row.comparison.deletions}/${row.comparison.insertions} over ${row.comparison.referenceWords} reference words. ${row.asrDisposition}. These differences are ASR evidence, not confirmed synthesis errors.\n\n`
-    if (row.comparison.differences.length) markdown += `First differences: ${row.comparison.differences.slice(0, 12).map(d => `${d.kind} ${JSON.stringify(d.reference)} → ${JSON.stringify(d.hypothesis)}`).join('; ')}. Complete ordered differences are in assessment.json.\n\n`
-    if (row.suite !== 'narration') {
-      markdown += `Native mechanism: ${row.mechanism}. ${row.perLineMeasurementLimitation ?? 'The five lines have separate assembled-turn timing.'}\n\n`
-      if (row.countingNumberFoldComparison) markdown += `Supplemental counting-number-fold WER: ${fmt(row.countingNumberFoldComparison.wer)}; substitutions/deletions/insertions ${row.countingNumberFoldComparison.substitutions}/${row.countingNumberFoldComparison.deletions}/${row.countingNumberFoldComparison.insertions}. This limited spelling equivalence is separate from the strict score and preserves missing words.\n\n`
-      markdown += `Below-threshold intervals: ${row.silences.length}; total ${(row.silences.reduce((n, s) => n + s.end - s.start, 0)).toFixed(3)} seconds. Complete signal intervals are in assessment.json; these are not independently verified semantic pauses.\n\n`
-      if (row.perTurn.length) markdown += table(['Turn', 'Trimmed seconds', 'Reference WPM', 'Longest internal silence'], row.perTurn.map(t => [t.turnId, t.trimmedWindowSeconds.toFixed(3), t.referenceWordsPerMinute?.toFixed(2) ?? 'unavailable', t.longestInternalSilenceSeconds.toFixed(3) + 's'])) + '\n\n'
-      if (row.speedOrder) markdown += `Slow < normal < fast reference-word throughput: ${row.speedOrder.directionConsistent ? 'consistent in signal measurements' : 'not consistently ordered in signal measurements'}. This does not establish speech correctness or exact numeric calibration.\n\n`
-      if (row.pauseMeasurement.length) markdown += table(['Turn', 'Mechanism', 'Requested seconds', 'Longest internal gap', 'Delta seconds'], row.pauseMeasurement.map(p => [p.turnId, p.mechanism, p.requestedSeconds?.toFixed(3) ?? 'qualitative', p.longestInternalSilenceSeconds.toFixed(3), p.deltaSeconds?.toFixed(3) ?? 'not applicable'])) + '\n\n'
-    }
-    markdown += `Human speech score: excluded and unscored. User-excluded dimensions: ${row.unscoredDimensions.join('; ')}. ${row.controlEffectiveness}.\n\n`
-  }
-  markdown += '## Reproduce\n\nInspect without writes: `bun src/tools/assess-tts-benchmarks.ts`. Run/reuse installed local ASR and update this report/archive: `bun src/tools/assess-tts-benchmarks.ts --run --concurrency 2`. Each cache key binds the audio, original input, expected spoken text, ASR engine hash, version and selected render; complete cached transcripts are reused. Cache and interrupted diagnostics remain under runtime/tts-benchmark-assessment/. No provider fallback or model download is implemented.\n'
+  archiveAssessmentEvidence(root, stage, evidenceFiles)
+  const markdown = renderAssessmentMarkdown(report, rows, sources)
   writePortableFileSync(join(root, 'assessment.md'), markdown)
-  for (const row of rows) {
-    const note = join(dirname(row.manifest), 'consensus-evaluation.txt')
-    if (!existsSync(note)) continue
-    const previous = readFileSync(note, 'utf8')
-    const text = `Offline ASR assessment (${report.generatedAt}): ${row.id}. See ${toProjectRelativePath(join(root, 'assessment.md'))}#${row.id.toLowerCase()} and assessment.evidence.zip.\n\nInstalled Whisper small.en screening: strict WER ${fmt(row.comparison.wer)}, CER ${fmt(row.cer)}, substitutions/deletions/insertions ${row.comparison.substitutions}/${row.comparison.deletions}/${row.comparison.insertions}.${row.countingNumberFoldComparison ? ` Supplemental counting-number-fold WER ${fmt(row.countingNumberFoldComparison.wer)} (normalized tokens 1–5 only; omissions preserved).` : ''} Differences require adjudication and do not establish TTS errors. Full waveform decoding succeeded. ${row.perTurn.length ? 'Separate assembled-turn signal measurements are recorded.' : 'Per-line timing attribution is unavailable; full-file signal intervals are recorded.'}\n\nSubjective pronunciation, speaker identity, emotional/control effect, seam/prosody, and perceptual ratings are excluded and unscored at the user’s instruction. No human listening or perceptual pass is claimed. No provider calls or synthesis reruns were made.\n`
-    if (previous.startsWith('Transport completed and local audio integrity was verified.') || previous.startsWith('Offline ASR assessment (')) writePortableFileSync(note, text)
-    else if (!previous.includes(text)) writePortableFileSync(note, previous.trimEnd() + '\n\n' + text)
-  }
+  updateConsensusNotes(root, rows, report)
 }
 
 if (import.meta.main) {

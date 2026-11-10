@@ -6,6 +6,44 @@ import { estimateTtsRequestCount, getTtsCost, getTtsPricing } from '~/cli/comman
 import type { TtsCostEstimate, TtsOptions, TtsRateEstimate, TtsTarget } from '~/types'
 import { collectTtsTargets } from '../tts-targets'
 
+const catalogRateEstimate = (target: TtsTarget, pricing: ReturnType<typeof getTtsPricing>): TtsRateEstimate => {
+  const hasDualRates = pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
+  return pricing.costPerRequestCents !== undefined
+    ? {
+        provider: target.service,
+        model: target.model,
+        costPerRequestCents: pricing.costPerRequestCents
+      }
+    : hasDualRates
+    ? {
+        provider: target.service,
+        model: target.model,
+        inputCostPer1MCharactersCents: pricing.inputCostPer1MCharsCents as number,
+        outputCostPer1MCharactersCents: pricing.outputCostPer1MCharsCents as number
+      }
+    : {
+        provider: target.service,
+        model: target.model,
+        costPer1kCharactersCents: pricing.costPer1kCharsCents ?? getTtsCost(target.service, target.model)
+      }
+}
+
+const catalogSynthesisCost = (rate: TtsRateEstimate, normalizedCharCount: number, requestCount: number | undefined): number => {
+  const dualRateTotal = (
+    rate.inputCostPer1MCharactersCents !== undefined
+    && rate.outputCostPer1MCharactersCents !== undefined
+  )
+    ? (normalizedCharCount / 1e6) * (rate.inputCostPer1MCharactersCents + rate.outputCostPer1MCharactersCents)
+    : undefined
+  const perRequestTotal = rate.costPerRequestCents !== undefined && requestCount !== undefined
+    ? requestCount * rate.costPerRequestCents
+    : undefined
+  const per1kTotal = rate.costPer1kCharactersCents !== undefined
+    ? (normalizedCharCount / 1000) * rate.costPer1kCharactersCents
+    : undefined
+  return perRequestTotal ?? dualRateTotal ?? per1kTotal ?? 0
+}
+
 export const estimateTtsTargetCosts = (
   targets: readonly TtsTarget[],
   characterCount: number,
@@ -21,38 +59,8 @@ export const estimateTtsTargetCosts = (
     }
     const pricing = getTtsPricing(target.service, target.model)
     const requestCount = pricing.costPerRequestCents === undefined ? undefined : plannedRequestCounts?.[index] ?? estimateTtsRequestCount(target.service, target.model, normalizedCharCount)
-    const hasDualRates = pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
-    const rate: TtsRateEstimate = pricing.costPerRequestCents !== undefined
-      ? {
-          provider: target.service,
-          model: target.model,
-          costPerRequestCents: pricing.costPerRequestCents
-        }
-      : hasDualRates
-      ? {
-          provider: target.service,
-          model: target.model,
-          inputCostPer1MCharactersCents: pricing.inputCostPer1MCharsCents as number,
-          outputCostPer1MCharactersCents: pricing.outputCostPer1MCharsCents as number
-        }
-      : {
-          provider: target.service,
-          model: target.model,
-          costPer1kCharactersCents: pricing.costPer1kCharsCents ?? getTtsCost(target.service, target.model)
-        }
-    const dualRateTotal = (
-      rate.inputCostPer1MCharactersCents !== undefined
-      && rate.outputCostPer1MCharactersCents !== undefined
-    )
-      ? (normalizedCharCount / 1e6) * (rate.inputCostPer1MCharactersCents + rate.outputCostPer1MCharactersCents)
-      : undefined
-    const perRequestTotal = rate.costPerRequestCents !== undefined && requestCount !== undefined
-      ? requestCount * rate.costPerRequestCents
-      : undefined
-    const per1kTotal = rate.costPer1kCharactersCents !== undefined
-      ? (normalizedCharCount / 1000) * rate.costPer1kCharactersCents
-      : undefined
-    const synthesisCost = perRequestTotal ?? dualRateTotal ?? per1kTotal ?? 0
+    const rate = catalogRateEstimate(target, pricing)
+    const synthesisCost = catalogSynthesisCost(rate, normalizedCharCount, requestCount)
     const setupCost = target.setupCostCents ?? 0
 
     return {

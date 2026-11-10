@@ -22,25 +22,49 @@ export const sttTimingFlags = {
   'speaker-map': { description: 'Apply a reviewed speaker-map.json to saved words, segments, and chunk evidence offline', type: String }
 } as const satisfies CliFlagsDefinition
 
+type LocalTimingResult = Awaited<ReturnType<typeof readLocalTimingResult>>
+
+const resolveRequestedTimingOperations = (flags: Record<string, unknown>): string[] => [
+  flags['calibrate-whisper'] === true ? 'calibrate-whisper' : flags['timing-reference'] !== undefined ? 'timing-reference' : undefined,
+  flags['align-transcript'] !== undefined ? 'align-transcript' : undefined,
+  flags['split-channels'] === true ? 'split-channels' : undefined,
+  flags['merge-channel-results'] === true ? 'merge-channel-results' : undefined,
+  flags['speaker-map-template'] === true ? 'speaker-map-template' : undefined,
+  flags['speaker-map'] !== undefined ? 'speaker-map' : undefined
+].filter((operation): operation is string => operation !== undefined)
+
+const assertTimingOperationFlagsAllowed = (operation: string, explicitFlags: ReadonlySet<string>): void => {
+  const allowed = new Set([operation, 'price', 'output-dir', 'output-root', 'json', 'quiet', 'verbose', 'log-level', 'color', 'config-path',
+    ...(operation === 'calibrate-whisper' ? ['timing-reference', 'whisper-calibration-model'] : []),
+    ...(operation === 'align-transcript' ? ['alignment-model', 'alignment-min-confidence'] : [])])
+  for (const flag of explicitFlags) if (!allowed.has(flag)) throw UsageError(`--${flag} cannot be combined with the local --${operation} operation.`)
+}
+
+const buildTimingComparison = (candidate: LocalTimingResult, reference: LocalTimingResult): Record<string, unknown> => {
+  const measured = evaluateWordTiming(reference.result.evidence?.words ?? [], candidate.result.evidence?.words ?? [])
+  return { ...measured, source: candidate.source, sourceSha256: candidate.sha256, reference: reference.source, referenceSha256: reference.sha256,
+    referenceProvenance: isRecord(reference.data) ? reference.data['referenceProvenance'] ?? { kind: 'unverified' } : { kind: 'unverified' },
+    note: 'Measures agreement with the supplied reference. Acoustic accuracy requires an independently verified acoustic reference. No inference is performed.' }
+}
+
+const buildSpeakerMapTemplate = (saved: LocalTimingResult): Record<string, unknown> => {
+  const labels = new Set([...saved.result.segments, ...(saved.result.evidence?.words ?? []), ...(saved.result.evidence?.segments ?? [])].flatMap(segment => segment.speaker ? [segment.speaker] : []))
+  return { schemaVersion: 1, sourceSha256: saved.sha256, reason: '', speakers: Object.fromEntries([...labels].map(label => [label, label])) }
+}
+
+const assertReviewedSpeakerMap: (packet: unknown, saved: LocalTimingResult) => asserts packet is Record<string, unknown> = (packet, saved) => {
+  if (!isRecord(packet) || packet['schemaVersion'] !== 1 || packet['sourceSha256'] !== saved.sha256 || typeof packet['reason'] !== 'string' || !packet['reason'].trim()) throw ValidationError('Speaker map must have schemaVersion 1, matching sourceSha256, a nonempty review reason, and a speakers object. Generate it with --speaker-map-template.')
+}
+
 export const runSttTimingWorkflow = async (input: string | undefined, flags: Record<string, unknown>, explicitFlags: ReadonlySet<string>): Promise<boolean> => {
-  const operations = [
-    flags['calibrate-whisper'] === true ? 'calibrate-whisper' : flags['timing-reference'] !== undefined ? 'timing-reference' : undefined,
-    flags['align-transcript'] !== undefined ? 'align-transcript' : undefined,
-    flags['split-channels'] === true ? 'split-channels' : undefined,
-    flags['merge-channel-results'] === true ? 'merge-channel-results' : undefined,
-    flags['speaker-map-template'] === true ? 'speaker-map-template' : undefined,
-    flags['speaker-map'] !== undefined ? 'speaker-map' : undefined
-  ].filter((operation): operation is string => operation !== undefined)
+  const operations = resolveRequestedTimingOperations(flags)
   if (!operations.length) {
     if (Object.keys(sttTimingFlags).some(key => explicitFlags.has(key))) throw UsageError('Timing options require a timing comparison, alignment, calibration, channel, or speaker-map operation.')
     return false
   }
   if (operations.length !== 1) throw UsageError('Run timing comparison, alignment, calibration, channel handling, and speaker reconciliation as separate operations.')
   const operation = operations[0]!
-  const allowed = new Set([operation, 'price', 'output-dir', 'output-root', 'json', 'quiet', 'verbose', 'log-level', 'color', 'config-path',
-    ...(operation === 'calibrate-whisper' ? ['timing-reference', 'whisper-calibration-model'] : []),
-    ...(operation === 'align-transcript' ? ['alignment-model', 'alignment-min-confidence'] : [])])
-  for (const flag of explicitFlags) if (!allowed.has(flag)) throw UsageError(`--${flag} cannot be combined with the local --${operation} operation.`)
+  assertTimingOperationFlagsAllowed(operation, explicitFlags)
   const source = await requireLocalTimingFile(input)
   if (operation === 'calibrate-whisper' && typeof flags['timing-reference'] !== 'string') throw UsageError('--calibrate-whisper requires --timing-reference result.json.')
   if (flags['price'] === true) {
@@ -51,10 +75,8 @@ export const runSttTimingWorkflow = async (input: string | undefined, flags: Rec
   let files: Record<string, string>
   if (operation === 'timing-reference') {
     const candidate = await readLocalTimingResult(source), reference = await readLocalTimingResult(String(flags['timing-reference']))
-    const measured = evaluateWordTiming(reference.result.evidence?.words ?? [], candidate.result.evidence?.words ?? [])
-    files = await writeLocalTimingFiles(output, { 'timing-comparison.json': { ...measured, source: candidate.source, sourceSha256: candidate.sha256, reference: reference.source, referenceSha256: reference.sha256,
-      referenceProvenance: isRecord(reference.data) ? reference.data['referenceProvenance'] ?? { kind: 'unverified' } : { kind: 'unverified' },
-      note: 'Measures agreement with the supplied reference. Acoustic accuracy requires an independently verified acoustic reference. No inference is performed.' } })
+    const comparison = buildTimingComparison(candidate, reference)
+    files = await writeLocalTimingFiles(output, { 'timing-comparison.json': comparison })
   } else if (operation === 'calibrate-whisper') files = await calibrateWhisperTiming(source, String(flags['timing-reference']), flags, output)
   else if (operation === 'align-transcript') files = await runLocalForcedAlignment(source, String(flags['align-transcript']), flags, output)
   else if (operation === 'split-channels') files = await splitSttChannels(source, output)
@@ -64,11 +86,10 @@ export const runSttTimingWorkflow = async (input: string | undefined, flags: Rec
   } else {
     const saved = await readLocalTimingResult(source)
     if (operation === 'speaker-map-template') {
-      const labels = new Set([...saved.result.segments, ...(saved.result.evidence?.words ?? []), ...(saved.result.evidence?.segments ?? [])].flatMap(segment => segment.speaker ? [segment.speaker] : []))
-      files = await writeLocalTimingFiles(output, { 'speaker-map.json': { schemaVersion: 1, sourceSha256: saved.sha256, reason: '', speakers: Object.fromEntries([...labels].map(label => [label, label])) } })
+      files = await writeLocalTimingFiles(output, { 'speaker-map.json': buildSpeakerMapTemplate(saved) })
     } else {
       const packet: unknown = await Bun.file(await requireLocalTimingFile(String(flags['speaker-map']))).json()
-      if (!isRecord(packet) || packet['schemaVersion'] !== 1 || packet['sourceSha256'] !== saved.sha256 || typeof packet['reason'] !== 'string' || !packet['reason'].trim()) throw ValidationError('Speaker map must have schemaVersion 1, matching sourceSha256, a nonempty review reason, and a speakers object. Generate it with --speaker-map-template.')
+      assertReviewedSpeakerMap(packet, saved)
       const result = reconcileSttSpeakers(saved.result, packet['speakers'])
       files = await writeLocalTimingFiles(output, { 'result.json': result, 'speaker-reconciliation.json': { ...packet, source: saved.source, method: 'reviewed-explicit-map', originalEvidenceUnmodified: true } })
     }

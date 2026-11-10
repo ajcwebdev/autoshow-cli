@@ -222,6 +222,17 @@ const extractOutputText = (interaction: unknown): string => {
   return parts.join(' ').trim()
 }
 
+const collectWordAnnotations = (content: unknown, words: unknown[]): void => {
+  if (!isObjectLike(content) || !Array.isArray(content['annotations'])) {
+    return
+  }
+  for (const annotation of content['annotations']) {
+    if (isObjectLike(annotation) && annotation['type'] === 'word_info') {
+      words.push(annotation)
+    }
+  }
+}
+
 const extractWordAnnotations = (interaction: unknown): unknown[] => {
   const words: unknown[] = []
   if (!isObjectLike(interaction) || !Array.isArray(interaction['steps'])) {
@@ -232,14 +243,7 @@ const extractWordAnnotations = (interaction: unknown): unknown[] => {
       continue
     }
     for (const content of step['content']) {
-      if (!isObjectLike(content) || !Array.isArray(content['annotations'])) {
-        continue
-      }
-      for (const annotation of content['annotations']) {
-        if (isObjectLike(annotation) && annotation['type'] === 'word_info') {
-          words.push(annotation)
-        }
-      }
+      collectWordAnnotations(content, words)
     }
   }
   return words

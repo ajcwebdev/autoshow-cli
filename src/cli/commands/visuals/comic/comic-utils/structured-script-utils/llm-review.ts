@@ -21,6 +21,55 @@ const deleteNullProperty = (value: Record<string, unknown>, key: string): void =
   }
 }
 
+const stripNullableLocation = (location: unknown): void => {
+  if (!isRecord(location)) return
+  deleteNullProperty(location, 'type')
+  deleteNullProperty(location, 'place')
+}
+
+const stripNullableDocument = (document: unknown): void => {
+  if (!isRecord(document)) return
+  deleteNullProperty(document, 'label')
+
+  if (!Array.isArray(document['metadata'])) return
+  for (const entry of document['metadata']) {
+    if (isRecord(entry)) {
+      deleteNullProperty(entry, 'value')
+    }
+  }
+}
+
+const stripNullableScene = (scene: unknown): void => {
+  if (!isRecord(scene)) return
+  deleteNullProperty(scene, 'section')
+  stripNullableLocation(scene['location'])
+}
+
+const stripNullableSpeakerAndLocation = (record: Record<string, unknown>): void => {
+  deleteNullProperty(record, 'speakerKey')
+  deleteNullProperty(record, 'speakerLabel')
+  deleteNullProperty(record, 'delivery')
+  deleteNullProperty(record, 'speakerKeys')
+  stripNullableLocation(record['location'])
+}
+
+const stripNullableBeats = (beats: unknown): void => {
+  if (!Array.isArray(beats)) return
+  for (const beat of beats) {
+    if (isRecord(beat)) stripNullableSpeakerAndLocation(beat)
+  }
+}
+
+const stripNullableSourceSegments = (sourceSegments: unknown): void => {
+  if (!Array.isArray(sourceSegments)) return
+  for (const sourceSegment of sourceSegments) {
+    if (!isRecord(sourceSegment)) continue
+    deleteNullProperty(sourceSegment, 'rawMarkdown')
+    deleteNullProperty(sourceSegment, 'beatIndex')
+    stripNullableSpeakerAndLocation(sourceSegment)
+  }
+}
+
 const stripStructuredScriptNullableOptionals = (data: unknown): unknown => {
   if (!isRecord(data)) {
     return data
@@ -28,65 +77,10 @@ const stripStructuredScriptNullableOptionals = (data: unknown): unknown => {
 
   delete data['staging']
 
-  const document = data['document']
-  if (isRecord(document)) {
-    deleteNullProperty(document, 'label')
-
-    if (Array.isArray(document['metadata'])) {
-      for (const entry of document['metadata']) {
-        if (isRecord(entry)) {
-          deleteNullProperty(entry, 'value')
-        }
-      }
-    }
-  }
-
-  const scene = data['scene']
-  if (isRecord(scene)) {
-    deleteNullProperty(scene, 'section')
-
-    const location = scene['location']
-    if (isRecord(location)) {
-      deleteNullProperty(location, 'type')
-      deleteNullProperty(location, 'place')
-    }
-  }
-
-  const beats = data['beats']
-  if (Array.isArray(beats)) {
-    for (const beat of beats) {
-      if (isRecord(beat)) {
-        deleteNullProperty(beat, 'speakerKey')
-        deleteNullProperty(beat, 'speakerLabel')
-        deleteNullProperty(beat, 'delivery')
-        deleteNullProperty(beat, 'speakerKeys')
-        const location = beat['location']
-        if (isRecord(location)) {
-          deleteNullProperty(location, 'type')
-          deleteNullProperty(location, 'place')
-        }
-      }
-    }
-  }
-
-  const sourceSegments = data['sourceSegments']
-  if (Array.isArray(sourceSegments)) {
-    for (const sourceSegment of sourceSegments) {
-      if (isRecord(sourceSegment)) {
-        deleteNullProperty(sourceSegment, 'rawMarkdown')
-        deleteNullProperty(sourceSegment, 'beatIndex')
-        deleteNullProperty(sourceSegment, 'speakerKey')
-        deleteNullProperty(sourceSegment, 'speakerLabel')
-        deleteNullProperty(sourceSegment, 'delivery')
-        deleteNullProperty(sourceSegment, 'speakerKeys')
-        const location = sourceSegment['location']
-        if (isRecord(location)) {
-          deleteNullProperty(location, 'type')
-          deleteNullProperty(location, 'place')
-        }
-      }
-    }
-  }
+  stripNullableDocument(data['document'])
+  stripNullableScene(data['scene'])
+  stripNullableBeats(data['beats'])
+  stripNullableSourceSegments(data['sourceSegments'])
 
   return data
 }
