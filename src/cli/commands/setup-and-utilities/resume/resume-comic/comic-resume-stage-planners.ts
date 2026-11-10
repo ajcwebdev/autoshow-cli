@@ -72,13 +72,11 @@ export const planComicRecoveryStage = async (stage: ComicRecoveryStage, target: 
       await validateComicRecoveryInputs(target.dir, intent)
       if (stage === 'image' && canonicalTtsJson(await captureComicImageRecoveryInputs(target.dir)) !== canonicalTtsJson(intent.inputs)) throw UsageError('Comic image inputs were added, removed, or changed since the recorded request. Review them through the explicit image command.')
     }
-    if (state.status === 'full' || state.status === 'skipped') {
-      if (!intent || intent.completed) {
-        if (stage === 'presentation' && state.status === 'full') {
-          await validateRetainedPresentation(target, scriptPath, compatible)
-        }
-        return
+    if ((state.status === 'full' || state.status === 'skipped') && (!intent || intent.completed)) {
+      if (stage === 'presentation' && state.status === 'full') {
+        await validateRetainedPresentation(target, scriptPath, compatible)
       }
+      return
     }
     if (!intent) throw UsageError(`This run lacks exact ${stage} recovery options. Use comic ${definitions[stage].name.slice(6)} with the original choices; outputs were preserved.`)
     const ctx = recoveryContext(stage, scriptPath, intent.flags, true, allowAmbiguousRedispatch)

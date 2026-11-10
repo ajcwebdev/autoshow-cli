@@ -130,17 +130,28 @@ export const assertVoiceConsentAllows = (
   }
 }
 
+const PROVISIONING_STATE_KEYS: readonly (readonly [string, readonly string[]])[] = [
+  ['ready', ['state', 'providerVoice']],
+  ['pending', ['state', 'operationId', 'providerVoice']],
+  ['verification-required', ['state', 'operationId', 'action', 'providerVoice']],
+  ['approval-required', ['state', 'operationId', 'action', 'providerVoice']],
+  ['external-action-required', ['state', 'action', 'providerVoice']],
+  ['reconciliation-required', ['state', 'attemptId', 'providerVoice', 'reason']],
+  ['missing', ['state', 'providerVoice', 'reason']],
+  ['expired', ['state', 'providerVoice']],
+  ['deleted', ['state', 'providerVoice', 'deletedAt']],
+  ['failed', ['state', 'code', 'message', 'providerVoice']]
+]
+
+const allowedProvisioningStateKeys = (state: VoiceProvisioningState): readonly string[] => {
+  for (const [name, keys] of PROVISIONING_STATE_KEYS) {
+    if (state.state === name) return keys
+  }
+  return []
+}
+
 const validateProvisioningState = (state: VoiceProvisioningState): void => {
-  const allowed = state.state === 'ready' ? ['state', 'providerVoice']
-    : state.state === 'pending' ? ['state', 'operationId', 'providerVoice']
-      : state.state === 'verification-required' || state.state === 'approval-required' ? ['state', 'operationId', 'action', 'providerVoice']
-        : state.state === 'external-action-required' ? ['state', 'action', 'providerVoice']
-          : state.state === 'reconciliation-required' ? ['state', 'attemptId', 'providerVoice', 'reason']
-            : state.state === 'missing' ? ['state', 'providerVoice', 'reason']
-              : state.state === 'expired' ? ['state', 'providerVoice']
-                : state.state === 'deleted' ? ['state', 'providerVoice', 'deletedAt']
-                  : state.state === 'failed' ? ['state', 'code', 'message', 'providerVoice']
-                    : []
+  const allowed = allowedProvisioningStateKeys(state)
   if (allowed.length === 0) throw UsageError('Voice provisioning state is unsupported.')
   assertAllowedKeys(state, allowed, `Voice provisioning ${state.state} state`)
   if ('providerVoice' in state && state.providerVoice) validateProviderVoiceRef(state.providerVoice)
@@ -152,9 +163,7 @@ const validateProvisioningState = (state: VoiceProvisioningState): void => {
   if (state.state === 'failed' && (!state.code.trim() || !state.message.trim())) throw UsageError('Failed provisioning requires a code and sanitized message.')
 }
 
-export const validateVoiceProvisioningAttempt = (
-  attempt: VoiceProvisioningAttempt
-): VoiceProvisioningAttempt => {
+const assertProvisioningAttemptIdentity = (attempt: VoiceProvisioningAttempt): void => {
   assertAllowedKeys(attempt, ['schemaVersion', 'attemptId', 'registrationDraftId', 'operation', 'accountScopeHash', 'lockLeaseId', 'requestFingerprint', 'protectedRequestEvidence', 'idempotencyKey', 'reconciliation', 'transitions', 'issuedResources', 'outcome', 'compareAndSwapVersion'], 'Voice provisioning attempt')
   if (attempt.schemaVersion !== 1) throw UsageError('Voice provisioning attempt requires schemaVersion 1.')
   if (!PROVISIONING_OPERATIONS.has(attempt.operation)) throw UsageError('Voice provisioning attempt has an unsupported operation.')
@@ -166,6 +175,9 @@ export const validateVoiceProvisioningAttempt = (
   assertSha256(attempt.accountScopeHash, 'Provisioning account scope hash')
   assertSha256(attempt.requestFingerprint, 'Provisioning request fingerprint')
   validateProtectedAsset(attempt.protectedRequestEvidence)
+}
+
+const assertProvisioningReconciliation = (attempt: VoiceProvisioningAttempt): void => {
   if (attempt.reconciliation) {
     assertAllowedKeys(attempt.reconciliation, ['strategy', 'providerHandle', 'protectedLookupEvidence'], 'Voice provisioning reconciliation')
     if (!['provider-operation', 'idempotency-lookup', 'provider-search', 'manual-inspection'].includes(attempt.reconciliation.strategy)) throw UsageError('Voice provisioning reconciliation strategy is unsupported.')
@@ -174,10 +186,17 @@ export const validateVoiceProvisioningAttempt = (
       throw UsageError('Provisioning reconciliation provider handle cannot be blank.')
     }
   }
-  if (!Number.isInteger(attempt.compareAndSwapVersion) || attempt.compareAndSwapVersion < 0) {
-    throw UsageError('Provisioning compare-and-swap version must be a non-negative integer.')
-  }
-  if (!Array.isArray(attempt.transitions) || !Array.isArray(attempt.issuedResources)) throw UsageError('Provisioning transitions and issued resources must be arrays.')
+}
+
+const assertProvisioningPhaseOrder = (attempt: VoiceProvisioningAttempt, phases: readonly string[]): void => {
+  if (phases.filter(phase => phase === 'request-sent').length > 1) throw UsageError('Provisioning attempt cannot send its create request more than once.')
+  if (phases.includes('response-received') && !phases.includes('request-sent')) throw UsageError('Provisioning response requires a prior request.')
+  if (phases.includes('ambiguous') && !phases.includes('request-sent')) throw UsageError('Ambiguous provisioning requires a prior request.')
+  if (phases.includes('reconciled') && !phases.includes('ambiguous')) throw UsageError('Provisioning reconciliation requires a prior ambiguous outcome.')
+  if (phases.includes('terminal') && attempt.outcome === undefined) throw UsageError('Terminal provisioning requires an outcome.')
+}
+
+const assertProvisioningTransitions = (attempt: VoiceProvisioningAttempt): void => {
   if (attempt.transitions.length === 0 || attempt.transitions[0]?.phase !== 'prepared') {
     throw UsageError('Provisioning transitions must begin with prepared.')
   }
@@ -189,12 +208,10 @@ export const validateVoiceProvisioningAttempt = (
     assertIsoDate(transition.at, `Provisioning ${transition.phase} transition`)
     if (transition.evidenceHash) assertSha256(transition.evidenceHash, `Provisioning ${transition.phase} evidence hash`)
   }
-  if (phases.filter(phase => phase === 'request-sent').length > 1) throw UsageError('Provisioning attempt cannot send its create request more than once.')
-  if (phases.includes('response-received') && !phases.includes('request-sent')) throw UsageError('Provisioning response requires a prior request.')
-  if (phases.includes('ambiguous') && !phases.includes('request-sent')) throw UsageError('Ambiguous provisioning requires a prior request.')
-  if (phases.includes('reconciled') && !phases.includes('ambiguous')) throw UsageError('Provisioning reconciliation requires a prior ambiguous outcome.')
-  if (phases.includes('terminal') && attempt.outcome === undefined) throw UsageError('Terminal provisioning requires an outcome.')
-  if (attempt.outcome !== undefined) validateProvisioningState(attempt.outcome)
+  assertProvisioningPhaseOrder(attempt, phases)
+}
+
+const assertProvisioningIssuedResources = (attempt: VoiceProvisioningAttempt): void => {
   assertUnique(attempt.issuedResources.map(resource => `${resource.providerVoice.provider}\0${resource.providerVoice.kind === 'remote-resource' ? resource.providerVoice.resourceId : JSON.stringify(resource.providerVoice)}`), 'Provisioning issued resources')
   for (const resource of attempt.issuedResources) {
     assertAllowedKeys(resource, ['providerVoice', 'observedAt', 'sanitizedResponseHash'], 'Voice issued resource')
@@ -210,6 +227,20 @@ export const validateVoiceProvisioningAttempt = (
   )) {
     throw UsageError('Provisioning outcome resource must first be retained in issuedResources.')
   }
+}
+
+export const validateVoiceProvisioningAttempt = (
+  attempt: VoiceProvisioningAttempt
+): VoiceProvisioningAttempt => {
+  assertProvisioningAttemptIdentity(attempt)
+  assertProvisioningReconciliation(attempt)
+  if (!Number.isInteger(attempt.compareAndSwapVersion) || attempt.compareAndSwapVersion < 0) {
+    throw UsageError('Provisioning compare-and-swap version must be a non-negative integer.')
+  }
+  if (!Array.isArray(attempt.transitions) || !Array.isArray(attempt.issuedResources)) throw UsageError('Provisioning transitions and issued resources must be arrays.')
+  assertProvisioningTransitions(attempt)
+  if (attempt.outcome !== undefined) validateProvisioningState(attempt.outcome)
+  assertProvisioningIssuedResources(attempt)
   return attempt
 }
 
@@ -219,19 +250,15 @@ export const computeVoiceAuditionId = (manifest: Omit<VoiceAuditionManifest, 'au
 export const computeVoiceCandidateId = (candidate: Omit<VoiceCandidate, 'candidateId'>): string =>
   hashCanonicalRecordWithout(candidate as unknown as Record<string, unknown>, [])
 
-export const validateVoiceCandidate = (candidate: VoiceCandidate): VoiceCandidate => {
-  assertAllowedKeys(candidate, ['schemaVersion', 'candidateId', 'registrationDraftId', 'provider', 'providerModel', 'providerCandidateId', 'creationModel', 'operation', 'sourceIdentityHash', 'sourceVoice', 'eligibilitySnapshotHash', 'description', 'generation', 'previewAssets', 'plannedCost', 'expiresAt', 'expiryState', 'createdAt', 'materialization'], 'Voice candidate')
+const assertVoiceCandidateGeneration = (candidate: VoiceCandidate): void => {
   if (candidate.generation !== undefined) {
     assertAllowedKeys(candidate.generation, ['previewText', 'candidateCount', 'seed'], 'Voice candidate generation')
     if (typeof candidate.generation.previewText !== 'string' || !Number.isInteger(candidate.generation.candidateCount) || candidate.generation.candidateCount < 1) throw UsageError('Voice candidate generation requires preview text and a positive candidate count.')
     if (candidate.generation.seed !== undefined && (!Number.isInteger(candidate.generation.seed) || candidate.generation.seed < 0)) throw UsageError('Voice candidate generation seed must be a non-negative integer.')
   }
-  if (candidate.schemaVersion !== 1) throw UsageError('Voice candidate requires schemaVersion 1.')
-  assertContentIdentity(candidate as unknown as Record<string, unknown>, 'candidateId', 'Voice candidate')
-  assertSafeKey(candidate.registrationDraftId, 'Candidate registration draft ID')
-  if (candidate.providerCandidateId !== undefined && !candidate.providerCandidateId.trim()) throw UsageError('Voice candidate provider ID cannot be empty.')
-  if (!TTS_PROVIDERS.has(candidate.provider)) throw UsageError('Voice candidate has an unsupported provider.')
-  assertSha256(candidate.sourceIdentityHash, 'Candidate source identity hash')
+}
+
+const assertVoiceCandidateSource = (candidate: VoiceCandidate): void => {
   if (candidate.sourceVoice) {
     validateProviderVoiceRef(candidate.sourceVoice)
     if (candidate.sourceVoice.provider !== candidate.provider) throw UsageError('Voice candidate source voice belongs to another provider.')
@@ -240,13 +267,9 @@ export const validateVoiceCandidate = (candidate: VoiceCandidate): VoiceCandidat
     if (!candidate.sourceVoice || !candidate.eligibilitySnapshotHash) throw UsageError('Remix candidate requires source voice and eligibility snapshot identity.')
     assertSha256(candidate.eligibilitySnapshotHash, 'Remix eligibility snapshot hash')
   } else if (candidate.sourceVoice || candidate.eligibilitySnapshotHash) throw UsageError('Only remix candidates may carry remix source eligibility.')
-  assertIsoDate(candidate.createdAt, 'Candidate createdAt')
-  if (!candidate.providerModel.trim()) throw UsageError('Voice candidate requires a provider model.')
-  if (!PROVISIONING_OPERATIONS.has(candidate.operation)) throw UsageError('Voice candidate has an unsupported operation.')
-  if (!Array.isArray(candidate.previewAssets)) throw UsageError('Voice candidate preview assets must be an array.')
-  validatePlannedCost(candidate.plannedCost, 'Voice candidate planned cost')
-  for (const preview of candidate.previewAssets) validateProtectedAsset(preview)
-  assertUnique(candidate.previewAssets.map(preview => `${preview.storeId}\0${preview.assetId}`), 'Voice candidate preview assets')
+}
+
+const assertVoiceCandidateExpiry = (candidate: VoiceCandidate): void => {
   if (candidate.expiryState === 'known') {
     if (!candidate.expiresAt) throw UsageError('A voice candidate with known expiry requires expiresAt.')
     assertIsoDate(candidate.expiresAt, 'Candidate expiresAt')
@@ -254,6 +277,9 @@ export const validateVoiceCandidate = (candidate: VoiceCandidate): VoiceCandidat
   } else if (candidate.expiresAt !== undefined) {
     throw UsageError('Voice candidate expiresAt is valid only when expiryState is known.')
   }
+}
+
+const assertVoiceCandidateMaterialization = (candidate: VoiceCandidate): void => {
   if (candidate.materialization.state === 'materialized') {
     assertAllowedKeys(candidate.materialization, ['state', 'attemptId', 'providerVoice'], 'Materialized voice candidate')
     assertSafeKey(candidate.materialization.attemptId, 'Candidate materialization attempt ID')
@@ -267,6 +293,27 @@ export const validateVoiceCandidate = (candidate: VoiceCandidate): VoiceCandidat
   } else {
     throw UsageError('Voice candidate has an unsupported materialization state.')
   }
+}
+
+export const validateVoiceCandidate = (candidate: VoiceCandidate): VoiceCandidate => {
+  assertAllowedKeys(candidate, ['schemaVersion', 'candidateId', 'registrationDraftId', 'provider', 'providerModel', 'providerCandidateId', 'creationModel', 'operation', 'sourceIdentityHash', 'sourceVoice', 'eligibilitySnapshotHash', 'description', 'generation', 'previewAssets', 'plannedCost', 'expiresAt', 'expiryState', 'createdAt', 'materialization'], 'Voice candidate')
+  assertVoiceCandidateGeneration(candidate)
+  if (candidate.schemaVersion !== 1) throw UsageError('Voice candidate requires schemaVersion 1.')
+  assertContentIdentity(candidate as unknown as Record<string, unknown>, 'candidateId', 'Voice candidate')
+  assertSafeKey(candidate.registrationDraftId, 'Candidate registration draft ID')
+  if (candidate.providerCandidateId !== undefined && !candidate.providerCandidateId.trim()) throw UsageError('Voice candidate provider ID cannot be empty.')
+  if (!TTS_PROVIDERS.has(candidate.provider)) throw UsageError('Voice candidate has an unsupported provider.')
+  assertSha256(candidate.sourceIdentityHash, 'Candidate source identity hash')
+  assertVoiceCandidateSource(candidate)
+  assertIsoDate(candidate.createdAt, 'Candidate createdAt')
+  if (!candidate.providerModel.trim()) throw UsageError('Voice candidate requires a provider model.')
+  if (!PROVISIONING_OPERATIONS.has(candidate.operation)) throw UsageError('Voice candidate has an unsupported operation.')
+  if (!Array.isArray(candidate.previewAssets)) throw UsageError('Voice candidate preview assets must be an array.')
+  validatePlannedCost(candidate.plannedCost, 'Voice candidate planned cost')
+  for (const preview of candidate.previewAssets) validateProtectedAsset(preview)
+  assertUnique(candidate.previewAssets.map(preview => `${preview.storeId}\0${preview.assetId}`), 'Voice candidate preview assets')
+  assertVoiceCandidateExpiry(candidate)
+  assertVoiceCandidateMaterialization(candidate)
   return candidate
 }
 

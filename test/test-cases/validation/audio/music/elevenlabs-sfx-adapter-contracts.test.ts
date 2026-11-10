@@ -3,7 +3,7 @@ import { readdir, rm } from 'node:fs/promises'
 import { createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { createElevenLabsSoundEffectAdapter, resolveSoundEffectTarget, serializeElevenLabsSoundEffectRequest } from '~/cli/commands/audio/tts/soundscape/elevenlabs-sfx-adapter'
 import { createSoundEffectRenderPlan, executeSoundEffectRenderPlan, planSoundEffectResumePrice } from '~/cli/commands/audio/tts/soundscape/sound-effect-execution'
-import { DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE } from '~/cli/commands/audio/tts/soundscape/soundscape-planner'
+import { DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE, validateSoundscapePlan } from '~/cli/commands/audio/tts/soundscape/soundscape-planner'
 import { hashCanonicalTtsValue } from '~/cli/commands/audio/tts/script-to-audio/contract-identity'
 import type { SoundscapePlan } from '~/types'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
@@ -21,6 +21,27 @@ const taskPlan = (prompt: string, required = true): SoundscapePlan => {
 }
 
 describe('ElevenLabs Phase 1 sound-effect adapter', () => {
+  test('retained soundscape validation binds task durations and exact authored cue coverage', () => {
+    const identify = (plan: SoundscapePlan): SoundscapePlan => {
+      const { soundscapePlanId: _id, ...base } = plan
+      return { ...base, soundscapePlanId: hashCanonicalTtsValue(base) }
+    }
+    const valid = identify(taskPlan('hatch slam|console chirp'))
+    expect(validateSoundscapePlan(valid)).toEqual(valid)
+    const altered = structuredClone(valid)
+    const task = altered.synthesisTasks[0]!
+    task.durationSeconds = 2
+    task.generationIdentity = hashCanonicalTtsValue({ schemaVersion: 1, operation: 'sound-effect-generation', kind: task.kind, prompt: task.prompt, durationSeconds: 2, loop: task.loop })
+    task.taskId = hashCanonicalTtsValue({ cueId: task.cueId, generationIdentity: task.generationIdentity })
+    expect(() => validateSoundscapePlan(identify(altered))).toThrow('does not bind its authored cue')
+    const missing = structuredClone(valid)
+    missing.synthesisTasks.pop()
+    expect(() => validateSoundscapePlan(identify(missing))).toThrow('cover every authored cue exactly once')
+    const duplicateCue = structuredClone(valid)
+    duplicateCue.synthesisTasks[1]!.cueId = duplicateCue.synthesisTasks[0]!.cueId
+    expect(() => validateSoundscapePlan(identify(duplicateCue))).toThrow('cover every authored cue exactly once')
+  })
+
   test('serializes every provider-affecting field and rejects unsupported targets locally', () => {
     const target = resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2')
     const plan = createSoundEffectRenderPlan({ plan: taskPlan('hatch slam'), target })

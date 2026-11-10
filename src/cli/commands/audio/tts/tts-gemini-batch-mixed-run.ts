@@ -13,6 +13,7 @@ import { prepareTtsDirectoryBatch } from './tts-batch-preparation'
 import { validateTtsTargetsForExecution } from './tts-targets'
 import { assertGeminiBatchBound, executeGeminiRemoteBatch, geminiBatchBoundDetail, geminiBatchPriceData, planGeminiRemoteBatch, prepareGeminiBatchDispatch } from './tts-services/tts-gemini/gemini-tts-batch-workflow'
 import type { GeminiRemoteBatchResult } from './tts-services/tts-gemini/gemini-tts-batch-workflow'
+import { assertRuntimeBudgetEstimate } from '~/utils/runtime-spending-budget'
 
 type OtherProvidersPlan = {
   targets: TtsTarget[]
@@ -43,6 +44,7 @@ const planOtherProviders = async (
 // The Gemini bound must fit on its own (assertGeminiBatchBound); only the combined overage can be allowed.
 const enforceCombinedBudget = (geminiBoundCents: number, otherCents: number, maxCents: number | undefined, allowOverBudget: boolean): void => {
   const totalCents = geminiBoundCents + otherCents
+  assertRuntimeBudgetEstimate(totalCents)
   if (maxCents === undefined || totalCents <= maxCents) return
   const message = `Gemini Batch bound ${formatCents(geminiBoundCents)} plus other providers' estimate ${formatCents(otherCents)} totals ${formatCents(totalCents)}, over --max-cents ${formatCents(maxCents)}`
   if (!allowOverBudget) throw UsageError(`${message}. Use --allow-over-budget to proceed.`)

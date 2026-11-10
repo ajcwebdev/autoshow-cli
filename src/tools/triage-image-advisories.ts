@@ -17,6 +17,21 @@ type AdvisoryGroup = {
 const media = new Set(['ffmpeg', 'imagemagick', 'pillow', 'mupdf', 'calibre', 'libraw', 'libpodofo', 'libxml2', 'lxml', 'lxml-html-clean', 'libarchive', 'py7zr', 'zlib', 'gzip', 'tiff', 'jpeg-xl', 'libsndfile', 'expat', 'python-msgpack', 'soupsieve'])
 const network = new Set(['curl', 'libssh2', 'mbedtls', 'libevent', 'gnupg2'])
 
+const advisoryReachability = (source: string): string => media.has(source)
+  ? 'Potentially reachable through user-supplied media, ebook, document, or archive decoding; a specific exploit path is not established.'
+  : network.has(source)
+    ? 'Shipped transport or trust dependency used by setup/download tools or a native dependency; protocol-specific reachability is unresolved.'
+    : 'Shipped runtime or transitive system dependency; package presence alone does not prove the affected feature is invoked.'
+
+const advisoryAction = (source: string): string => media.has(source)
+  ? 'Retain for supported formats; track the source advisory and rebuild against a patched signed Debian snapshot when available. Isolate untrusted conversion with restricted mounts and network access.'
+  : network.has(source)
+    ? 'Retain required transport/trust functions; identify affected protocol options before accepting risk and apply the next patched snapshot.'
+    : 'Resolve the native parent dependency and affected feature before removal; track the advisory for a patched snapshot. No reachability exemption is granted.'
+
+const compareAdvisoryGroups = (a: AdvisoryGroup, b: AdvisoryGroup): number =>
+  a.advisory < b.advisory ? -1 : a.advisory > b.advisory ? 1 : a.sourcePackage < b.sourcePackage ? -1 : a.sourcePackage > b.sourcePackage ? 1 : 0
+
 export const triageImageAdvisories = (scanBytes: Uint8Array, identity: ImageIdentity) => {
   const scan = JSON.parse(new TextDecoder().decode(scanBytes)) as { matches: GrypeMatch[] }
   const groups = new Map<string, AdvisoryGroup>()
@@ -26,16 +41,8 @@ export const triageImageAdvisories = (scanBytes: Uint8Array, identity: ImageIden
     const key = JSON.stringify([vulnerability.id, source])
     let group = groups.get(key)
     if (!group) {
-      const reachability = media.has(source)
-        ? 'Potentially reachable through user-supplied media, ebook, document, or archive decoding; a specific exploit path is not established.'
-        : network.has(source)
-          ? 'Shipped transport or trust dependency used by setup/download tools or a native dependency; protocol-specific reachability is unresolved.'
-          : 'Shipped runtime or transitive system dependency; package presence alone does not prove the affected feature is invoked.'
-      const action = media.has(source)
-        ? 'Retain for supported formats; track the source advisory and rebuild against a patched signed Debian snapshot when available. Isolate untrusted conversion with restricted mounts and network access.'
-        : network.has(source)
-          ? 'Retain required transport/trust functions; identify affected protocol options before accepting risk and apply the next patched snapshot.'
-          : 'Resolve the native parent dependency and affected feature before removal; track the advisory for a patched snapshot. No reachability exemption is granted.'
+      const reachability = advisoryReachability(source)
+      const action = advisoryAction(source)
       group = { advisory: vulnerability.id, sourcePackage: source, severity: vulnerability.severity, sourceUrl: vulnerability.dataSource, fix: vulnerability.fix ?? null, disposition: vulnerability.fix?.versions?.length ? 'remediate-before-release' : 'open-no-fix', owner: 'release/dependency maintainer', reachability, action, binaries: [], matches: 0 }
       groups.set(key, group)
     }
@@ -43,7 +50,7 @@ export const triageImageAdvisories = (scanBytes: Uint8Array, identity: ImageIden
     if (!group.binaries.some(binary => binary.name === entry.name && binary.version === entry.version && binary.purl === entry.purl)) group.binaries.push(entry)
     group.matches++
   }
-  const ordered = [...groups.values()].sort((a, b) => a.advisory < b.advisory ? -1 : a.advisory > b.advisory ? 1 : a.sourcePackage < b.sourcePackage ? -1 : a.sourcePackage > b.sourcePackage ? 1 : 0)
+  const ordered = [...groups.values()].sort(compareAdvisoryGroups)
   return { schemaVersion: 1, imageConfigDigest: identity.Id, repoDigests: identity.RepoDigests ?? [], architecture: identity.Architecture, scanSha256: new Bun.CryptoHasher('sha256').update(scanBytes).digest('hex'), assessment: 'Conservative source-package triage, not a clean scan, exploit proof, accepted-risk waiver, or refreshed advisory scan.', releaseDisposition: 'pending native candidate acceptance and maintainer review of open findings', matchCount: ordered.reduce((sum, group) => sum + group.matches, 0), advisorySourceGroupCount: ordered.length, groups: ordered }
 }
 

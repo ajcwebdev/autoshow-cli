@@ -256,6 +256,44 @@ const readSketchPanelSource = async (
   }
 }
 
+const collectPriorSketchCandidates = (chunkCharacterKeys: string[], establishedCharacterSketches: ReadonlyMap<string, string>, previousSketchPath: string | undefined): string[] => [
+  ...chunkCharacterKeys
+    .map(key => establishedCharacterSketches.get(key))
+    .filter((path): path is string => path !== undefined),
+  ...(previousSketchPath ? [previousSketchPath] : []),
+]
+
+const assertPrimaryCharacterReferencesStaged = (resolvedReferences: { missingPrimaryCharacterRefs: readonly string[] }, chunkLabel: string): void => {
+  if (resolvedReferences.missingPrimaryCharacterRefs.length > 0) {
+    throw InfraError(
+      `Missing character reference images in ${chunkLabel}: ` +
+      `${resolvedReferences.missingPrimaryCharacterRefs.join(', ')}. ` +
+      `Re-run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" ` +
+      `after generating any missing character sketches.`,
+      { stage: 'comic:generate-sketches' }
+    )
+  }
+}
+
+const assertReferenceImageFilesPresent = (missingReferences: readonly string[], chunkLabel: string): void => {
+  if (missingReferences.length > 0) {
+    throw InfraError(
+      `Missing reference image file(s) for ${chunkLabel}: ${missingReferences.join(', ')}. ` +
+      'Re-run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" to restage panel prompt bundles.',
+      { stage: 'comic:generate-sketches' }
+    )
+  }
+}
+
+type SketchImageResponse = { usage?: { imageInputUnits?: number | undefined; textInputUnits?: number | undefined; outputUnits?: number | undefined } | undefined }
+
+const recordSketchRequestUsage = (stats: ReturnType<typeof createImageRunStats>, requestDurationMs: number, imageResponse: SketchImageResponse): void => {
+  stats.totalDurationMs += requestDurationMs
+  stats.totalInputImageTokens += imageResponse.usage?.imageInputUnits ?? 0
+  stats.totalInputTextTokens += imageResponse.usage?.textInputUnits ?? 0
+  stats.totalOutputImageTokens += imageResponse.usage?.outputUnits ?? 0
+}
+
 export const generateSceneSketches = async (
   sceneSlug: string,
   options: GenerateSceneSketchesOptions,
@@ -347,12 +385,7 @@ export const generateSceneSketches = async (
             const normalizedPrompt = buildSketchPrompt(sketchPromptData, sketchPrompts)
             const chunkCharacterKeys = getChunkCharacterKeys(sketchChunk.panels)
 
-            const priorSketchCandidates = [
-              ...chunkCharacterKeys
-                .map(key => establishedCharacterSketches.get(key))
-                .filter((path): path is string => path !== undefined),
-              ...(previousSketchPath ? [previousSketchPath] : []),
-            ]
+            const priorSketchCandidates = collectPriorSketchCandidates(chunkCharacterKeys, establishedCharacterSketches, previousSketchPath)
             const priorSketchPaths: string[] = []
             for (const candidate of priorSketchCandidates) {
               if (priorSketchPaths.includes(candidate)) {
@@ -369,15 +402,7 @@ export const generateSceneSketches = async (
               priorSketchPaths,
             )
 
-            if (resolvedReferences.missingPrimaryCharacterRefs.length > 0) {
-              throw InfraError(
-                `Missing character reference images in ${chunkLabel}: ` +
-                `${resolvedReferences.missingPrimaryCharacterRefs.join(', ')}. ` +
-                `Re-run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" ` +
-                `after generating any missing character sketches.`,
-                { stage: 'comic:generate-sketches' }
-              )
-            }
+            assertPrimaryCharacterReferencesStaged(resolvedReferences, chunkLabel)
 
             const outputPath = getSketchComicImagePath(
               sceneSlug,
@@ -402,13 +427,7 @@ export const generateSceneSketches = async (
             }
 
             const missingReferences = await findMissingReferenceImageFiles(resolvedReferences.all)
-            if (missingReferences.length > 0) {
-              throw InfraError(
-                `Missing reference image file(s) for ${chunkLabel}: ${missingReferences.join(', ')}. ` +
-                'Re-run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" to restage panel prompt bundles.',
-                { stage: 'comic:generate-sketches' }
-              )
-            }
+            assertReferenceImageFilesPresent(missingReferences, chunkLabel)
 
             const requestStart = Date.now()
             const imageResponse = await runComicHostedRequest(options, resolveComicImageProvider(model), 'comic-image', `${sceneSlug}:sketch:${model}`, hostedRequestIndex++, async () => await requestImage({
@@ -419,10 +438,7 @@ export const generateSceneSketches = async (
               quality: options.quality,
             }))
             const requestDurationMs = Date.now() - requestStart
-            stats.totalDurationMs += requestDurationMs
-            stats.totalInputImageTokens += imageResponse.usage?.imageInputUnits ?? 0
-            stats.totalInputTextTokens += imageResponse.usage?.textInputUnits ?? 0
-            stats.totalOutputImageTokens += imageResponse.usage?.outputUnits ?? 0
+            recordSketchRequestUsage(stats, requestDurationMs, imageResponse)
 
             await writeImage(
               outputPath,

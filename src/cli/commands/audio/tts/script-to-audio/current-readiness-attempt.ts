@@ -83,10 +83,10 @@ const PEER_READINESS_ERROR: SanitizedProviderError = {
   blockedReason: 'dependency-readiness-failed'
 }
 
-export const createCurrentTtsBlockedReadinessState = async (
-  options: CreateCurrentTtsBlockedReadinessStateOptions
-): Promise<PipelineProviderState> => {
-  const plan = planCurrentTtsReadiness(options)
+const assertBranchOnlyReadinessObservation = (
+  options: CreateCurrentTtsBlockedReadinessStateOptions,
+  plan: ReturnType<typeof planCurrentTtsReadiness>
+): void => {
   if (options.readiness.targetKey !== plan.targetKey) {
     throw UsageError('TTS execution-readiness observation does not match its operation-scoped target.')
   }
@@ -99,6 +99,13 @@ export const createCurrentTtsBlockedReadinessState = async (
   if (options.readiness.status === 'ready' && !options.peerBlocked) {
     throw UsageError('A ready TTS target may use the branch-only writer only when a selected peer blocks all-target admission.')
   }
+}
+
+export const createCurrentTtsBlockedReadinessState = async (
+  options: CreateCurrentTtsBlockedReadinessStateOptions
+): Promise<PipelineProviderState> => {
+  const plan = planCurrentTtsReadiness(options)
+  assertBranchOnlyReadinessObservation(options, plan)
 
   const artifactRoot = normalizeArtifactRoot(options.artifactRoot)
   const targetRelativeDir = `${artifactRoot}/${plan.targetKey}`

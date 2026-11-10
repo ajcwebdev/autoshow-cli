@@ -63,10 +63,11 @@ describe('--max-model-cents', () => {
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
     expect(result.exitCode).toBe(0)
-    expect(output).toContain('Excluded 2 provider/model targets')
+    expect(output).toContain('Excluded 3 provider/model targets')
     expect(output).toContain('generated-image-openai-gpt-image-2.5-flare.png')
     expect(output).toContain('generated-image-openai-gpt-image-2.5-sunburst.png')
     expect(output).not.toContain('generated-image-gemini-gemini-3.1-flash-lite-image')
+    expect(output).not.toContain('generated-image-gemini-gemini-nano-banana-2.1')
     expect(output).not.toContain('generated-image-grok-grok-imagine-image-2.0')
   })
 
@@ -84,7 +85,8 @@ describe('--max-model-cents', () => {
 
     expect(result.exitCode).toBe(0)
     expect(output).toContain('Excluded 1 provider/model target over 80.000¢: gemini/gemini-omni-1.1-flash')
-    expect(output).toContain('generated-video.mp4')
+    expect(output).toContain('generated-video-grok-grok-imagine-video-1.5.mp4')
+    expect(output).toContain('generated-video-grok-grok-imagine-video-1.5-lite.mp4')
     expect(output).not.toContain('generated-video-gemini-gemini-omni-1.1-flash.mp4')
   })
 

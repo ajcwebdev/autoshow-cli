@@ -133,38 +133,48 @@ function discoverRuns(rootDir: string): RunRef[] {
   return discoverCombinedRuns(rootDir, "reference-comparison-report.json");
 }
 
-function collectSamples(runs: RunRef[]): Map<string, { provider: string; model: string; samples: ProviderSample[] }> {
-  const byProvider = new Map<string, { provider: string; model: string; samples: ProviderSample[] }>();
-  for (const run of runs) {
-    const report = JSON.parse(readFileSync(run.reportPath, "utf8")) as SingleRunReport;
-    const groups = report.providerGroups ?? {};
-    for (const groupValue of Object.values(groups)) {
-      for (const detail of groupValue.providers ?? []) {
-        const providerKey = detail.providerKey;
-        if (!providerKey) {
-          continue;
-        }
-        const existing = byProvider.get(providerKey) ?? {
-          provider: detail.provider ?? providerKey,
-          model: detail.model ?? "",
-          samples: [],
-        };
-        existing.samples.push({
-          runName: run.runName,
-          group: normalizeGroup(detail.group),
-          score: detail.metrics?.score ?? null,
-          speakerAwareWER: detail.metrics?.speakerAwareWER ?? null,
-          textOnlyWER: detail.metrics?.textOnlyWER ?? null,
-          processingTimeMs: detail.actualProcessingTimeMs ?? detail.processingTimeMs ?? null,
-          costCents: detail.actualCostCents ?? detail.costCents ?? null,
-          audioDurationSeconds: detail.audioDurationSeconds ?? null,
-          realtimeFactor: detail.realtimeFactor ?? null,
-          supportsDiarization: detail.supportsDiarization ?? null,
-          diarizationSupport: detail.diarizationSupport ?? null,
-        });
-        byProvider.set(providerKey, existing);
+type ProviderSamples = { provider: string; model: string; samples: ProviderSample[] };
+
+function providerSample(run: RunRef, detail: ReportProviderDetail): ProviderSample {
+  return {
+    runName: run.runName,
+    group: normalizeGroup(detail.group),
+    score: detail.metrics?.score ?? null,
+    speakerAwareWER: detail.metrics?.speakerAwareWER ?? null,
+    textOnlyWER: detail.metrics?.textOnlyWER ?? null,
+    processingTimeMs: detail.actualProcessingTimeMs ?? detail.processingTimeMs ?? null,
+    costCents: detail.actualCostCents ?? detail.costCents ?? null,
+    audioDurationSeconds: detail.audioDurationSeconds ?? null,
+    realtimeFactor: detail.realtimeFactor ?? null,
+    supportsDiarization: detail.supportsDiarization ?? null,
+    diarizationSupport: detail.diarizationSupport ?? null,
+  };
+}
+
+function collectRunSamples(byProvider: Map<string, ProviderSamples>, run: RunRef): void {
+  const report = JSON.parse(readFileSync(run.reportPath, "utf8")) as SingleRunReport;
+  const groups = report.providerGroups ?? {};
+  for (const groupValue of Object.values(groups)) {
+    for (const detail of groupValue.providers ?? []) {
+      const providerKey = detail.providerKey;
+      if (!providerKey) {
+        continue;
       }
+      const existing = byProvider.get(providerKey) ?? {
+        provider: detail.provider ?? providerKey,
+        model: detail.model ?? "",
+        samples: [],
+      };
+      existing.samples.push(providerSample(run, detail));
+      byProvider.set(providerKey, existing);
     }
+  }
+}
+
+function collectSamples(runs: RunRef[]): Map<string, ProviderSamples> {
+  const byProvider = new Map<string, ProviderSamples>();
+  for (const run of runs) {
+    collectRunSamples(byProvider, run);
   }
   return byProvider;
 }

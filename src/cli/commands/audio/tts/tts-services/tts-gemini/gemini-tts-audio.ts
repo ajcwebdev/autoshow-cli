@@ -22,18 +22,25 @@ export const geminiPcmWav = (pcm: Uint8Array, sampleRate = 24000): Buffer => {
   wav.writeUInt32LE(pcm.byteLength, 40); wav.set(pcm, 44)
   return wav
 }
+const isInvalidWavContainer = (wav: Buffer): boolean => wav.length < 44 || wav.toString('ascii', 0, 4) !== 'RIFF' || wav.toString('ascii', 8, 12) !== 'WAVE' || wav.readUInt32LE(4) + 8 !== wav.length
+const isUnexpectedWavFormat = (wav: Buffer, start: number, size: number): boolean => size < 16 || wav.readUInt16LE(start) !== 1 || wav.readUInt16LE(start + 2) !== 1 || wav.readUInt32LE(start + 4) !== 24000 || wav.readUInt16LE(start + 14) !== 16 || wav.readUInt16LE(start + 12) !== 2 || wav.readUInt32LE(start + 8) !== 48000
 export const validateGeminiWav = (wav: Buffer): Buffer => {
-  if (wav.length < 44 || wav.toString('ascii', 0, 4) !== 'RIFF' || wav.toString('ascii', 8, 12) !== 'WAVE' || wav.readUInt32LE(4) + 8 !== wav.length) return invalid('truncated or invalid WAV container')
+  if (isInvalidWavContainer(wav)) return invalid('truncated or invalid WAV container')
   let offset = 12, format = false, audio = false
   while (offset + 8 <= wav.length) {
     const kind = wav.toString('ascii', offset, offset + 4), size = wav.readUInt32LE(offset + 4)
     const start = offset + 8
     if (start + size > wav.length) return invalid('truncated WAV chunk')
     if (kind === 'fmt ') {
-      if (size < 16 || wav.readUInt16LE(start) !== 1 || wav.readUInt16LE(start + 2) !== 1 || wav.readUInt32LE(start + 4) !== 24000 || wav.readUInt16LE(start + 14) !== 16 || wav.readUInt16LE(start + 12) !== 2 || wav.readUInt32LE(start + 8) !== 48000) return invalid('expected mono 24 kHz PCM16 WAV')
+      if (format) return invalid('duplicate WAV format')
+      if (isUnexpectedWavFormat(wav, start, size)) return invalid('expected mono 24 kHz PCM16 WAV')
       format = true
     }
-    if (kind === 'data') { if (!size || size % 2) return invalid('empty or truncated WAV samples'); audio = true }
+    if (kind === 'data') {
+      if (!format || audio) return invalid('unordered or duplicate WAV audio')
+      if (!size || size % 2) return invalid('empty or truncated WAV samples')
+      audio = true
+    }
     offset = start + size + (size % 2)
   }
   if (!format || !audio || offset !== wav.length) return invalid('missing format/audio or trailing WAV bytes')

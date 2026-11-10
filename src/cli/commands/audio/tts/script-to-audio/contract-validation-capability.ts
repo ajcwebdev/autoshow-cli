@@ -1,23 +1,30 @@
-import type { AccountCapabilityObservation, AnyCapabilityRecord, GenericTtsDialoguePlan, GenericTtsSourceIdentity, PreparedProviderText, PreparedProviderTextSpan, ProviderVoiceRef } from '~/types'
+import type { AccountCapabilityObservation, AnyCapabilityRecord, GenericTtsDialoguePlan, GenericTtsSourceIdentity, PreparedProviderText, PreparedProviderTextSpan, ProviderVoiceRef, RemoteVoiceResourceRef } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { assertContentIdentity } from './contract-identity'
 import { assertIsoDate, assertSha256, assertUnique } from './contract-validation-primitives'
 
+const validateRemoteVoiceLineage = (voice: RemoteVoiceResourceRef): void => {
+  if (!voice.derivedFrom) return
+  if (!voice.derivedFrom.sourceRef.trim() || !voice.derivedFrom.localAttemptId.trim()) throw UsageError('Remote voice lineage requires source and local-attempt identity.')
+  assertSha256(voice.derivedFrom.sourceIdentityHash, 'Remote voice lineage source identity hash')
+  if (voice.derivedFrom.eligibilitySnapshotHash !== undefined) assertSha256(voice.derivedFrom.eligibilitySnapshotHash, 'Remote voice lineage eligibility snapshot hash')
+  if (voice.derivedFrom.operation === 'remixed-from' && !voice.derivedFrom.eligibilitySnapshotHash) throw UsageError('Remixed voice lineage requires its eligibility snapshot hash.')
+}
+
+const validateRemoteVoiceResource = (voice: RemoteVoiceResourceRef): void => {
+  if (!voice.resourceId.trim()) throw UsageError('Remote voice resource ID must not be empty.')
+  if (voice.namespace === 'account' && !voice.accountScopeHash) {
+    throw UsageError('Account-namespaced voice requires accountScopeHash.')
+  }
+  if (voice.namespace === 'provider' && voice.accountScopeHash !== undefined) {
+    throw UsageError('Provider-namespaced voice forbids accountScopeHash.')
+  }
+  validateRemoteVoiceLineage(voice)
+}
+
 export const validateProviderVoiceRef = (voice: ProviderVoiceRef): ProviderVoiceRef => {
   if (voice.kind === 'remote-resource') {
-    if (!voice.resourceId.trim()) throw UsageError('Remote voice resource ID must not be empty.')
-    if (voice.namespace === 'account' && !voice.accountScopeHash) {
-      throw UsageError('Account-namespaced voice requires accountScopeHash.')
-    }
-    if (voice.namespace === 'provider' && voice.accountScopeHash !== undefined) {
-      throw UsageError('Provider-namespaced voice forbids accountScopeHash.')
-    }
-    if (voice.derivedFrom) {
-      if (!voice.derivedFrom.sourceRef.trim() || !voice.derivedFrom.localAttemptId.trim()) throw UsageError('Remote voice lineage requires source and local-attempt identity.')
-      assertSha256(voice.derivedFrom.sourceIdentityHash, 'Remote voice lineage source identity hash')
-      if (voice.derivedFrom.eligibilitySnapshotHash !== undefined) assertSha256(voice.derivedFrom.eligibilitySnapshotHash, 'Remote voice lineage eligibility snapshot hash')
-      if (voice.derivedFrom.operation === 'remixed-from' && !voice.derivedFrom.eligibilitySnapshotHash) throw UsageError('Remixed voice lineage requires its eligibility snapshot hash.')
-    }
+    validateRemoteVoiceResource(voice)
   } else if (voice.kind === 'reference-asset') {
     assertSha256(voice.protectedAsset.sha256, 'Protected voice asset checksum')
     if (!voice.authorizationRef.trim()) throw UsageError('Reference voice requires an authorization reference.')

@@ -175,6 +175,31 @@ const runExtractXSpaceChildBatch = async (
     }
   )
 
+const buildExtractBatchManifestSource = (batchPlan: BatchExecutionPlan) =>
+  batchPlan.source
+    ? {
+        sourceKind: batchPlan.source.sourceKind,
+        sourceUrl: batchPlan.source.sourceUrl,
+        ...(batchPlan.source.title ? { title: batchPlan.source.title } : {}),
+        ...(batchPlan.source.author ? { author: batchPlan.source.author } : {}),
+        selectedCount: batchPlan.plannedInputs.length
+      }
+    : undefined
+
+const throwIfExtractChildBatchFailed = (
+  result: BatchProcessResult | undefined,
+  label: string,
+  stage: string
+): void => {
+  if (result && result.ok === 0 && result.fail > 0) {
+    const error = InfraError(`${label} failed for ${result.fail} item(s)`, { stage })
+    if (result.failureExitCode !== undefined) {
+      ;(error as Error & { exitCode?: number }).exitCode = result.failureExitCode
+    }
+    throw error
+  }
+}
+
 const executeExtractBatchPlan = async (
   opts: ExtractCommandOptions,
   batchPlan: BatchExecutionPlan
@@ -184,15 +209,7 @@ const executeExtractBatchPlan = async (
   l.write('info', `Batch output directory: ${batchDir}`, { category: 'artifact', metadata: { artifact: 'outputDir', path: batchDir } })
 
   const { childPlans, manifestItems } = partitionExtractBatchPlan(batchDir, batchPlan)
-  const source = batchPlan.source
-    ? {
-        sourceKind: batchPlan.source.sourceKind,
-        sourceUrl: batchPlan.source.sourceUrl,
-        ...(batchPlan.source.title ? { title: batchPlan.source.title } : {}),
-        ...(batchPlan.source.author ? { author: batchPlan.source.author } : {}),
-        selectedCount: batchPlan.plannedInputs.length
-      }
-    : undefined
+  const source = buildExtractBatchManifestSource(batchPlan)
   const initialManifest = createManifest('extract', 'batch', manifestItems, source)
 
   await writeManifest(batchDir, initialManifest)
@@ -268,33 +285,9 @@ const executeExtractBatchPlan = async (
     throwIfSttBatchIncomplete(sttResult)
   }
 
-  if (sttResult) {
-    throwIfSttBatchIncomplete(sttResult)
-  }
-
-  if (ocrResult && ocrResult.ok === 0 && ocrResult.fail > 0) {
-    const error = InfraError(`Batch processing failed for ${ocrResult.fail} item(s)`, { stage: 'extract:ocr' })
-    if (ocrResult.failureExitCode !== undefined) {
-      ;(error as Error & { exitCode?: number }).exitCode = ocrResult.failureExitCode
-    }
-    throw error
-  }
-
-  if (articleResult && articleResult.ok === 0 && articleResult.fail > 0) {
-    const error = InfraError(`Article batch processing failed for ${articleResult.fail} item(s)`, { stage: 'extract:url' })
-    if (articleResult.failureExitCode !== undefined) {
-      ;(error as Error & { exitCode?: number }).exitCode = articleResult.failureExitCode
-    }
-    throw error
-  }
-
-  if (xSpaceResult && xSpaceResult.ok === 0 && xSpaceResult.fail > 0) {
-    const error = InfraError(`X Space batch processing failed for ${xSpaceResult.fail} item(s)`, { stage: 'extract:url' })
-    if (xSpaceResult.failureExitCode !== undefined) {
-      ;(error as Error & { exitCode?: number }).exitCode = xSpaceResult.failureExitCode
-    }
-    throw error
-  }
+  throwIfExtractChildBatchFailed(ocrResult, 'Batch processing', 'extract:ocr')
+  throwIfExtractChildBatchFailed(articleResult, 'Article batch processing', 'extract:url')
+  throwIfExtractChildBatchFailed(xSpaceResult, 'X Space batch processing', 'extract:url')
 
   l.report.complete(batchDir, { manifest: PIPELINE_MANIFEST_FILE })
 }

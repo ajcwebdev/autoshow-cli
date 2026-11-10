@@ -1,4 +1,4 @@
-import type { ResolvedTtsChunk, AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, PlannedInputs, ProviderRenderStrategy, TtsTargetInvocation, TtsTargetSelection } from '~/types'
+import type { ResolvedTtsChunk, AttemptSlot, AttemptTurn, CreateCurrentTtsRenderAttemptOptions, GenericTtsDialoguePlan, GenericTtsSourceIdentity, PlannedInputs, ProviderRenderStrategy, TtsTargetInvocation, TtsTargetSelection } from '~/types'
 import { geminiNativeEligible, planGeminiNativeGroups } from '../tts-services/tts-gemini/gemini-dialogue-plan'
 import { UsageError } from '~/utils/error-handler'
 import { planProviderTtsChunks } from '../tts-utils/tts-provider-chunk-policy'
@@ -61,7 +61,9 @@ export const resolveGenericNativeGroups = (
   return []
 }
 
-export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFixtureHash: string): PlannedInputs => {
+const resolveGenericDialogueInputs = (
+  options: CreateCurrentTtsRenderAttemptOptions
+): { sourceIdentity: GenericTtsSourceIdentity, dialoguePlan: GenericTtsDialoguePlan } => {
   const fallbackSource = createInlineTtsSourceIdentity(options.sourceText)
   const sourceIdentity = options.sourceIdentity ?? fallbackSource
   if (sourceIdentity.sourceKind === 'inline' && sourceIdentity.contentSha256 !== sha256Bytes(options.sourceText)) {
@@ -75,6 +77,24 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
   validateGenericTtsDialoguePlan(dialoguePlan)
   if (canonicalTtsJson(dialoguePlan.sourceIdentity) !== canonicalTtsJson(sourceIdentity)) throw UsageError('Generic TTS dialogue plan does not bind the exact supplied source identity.')
   if (canonicalTtsJson(dialoguePlan.nodes) !== canonicalTtsJson(expectedPlan.nodes)) throw UsageError('Generic TTS dialogue plan does not exactly match normalized turn IDs, source indexes, speakers, text, delivery, and effects.')
+  return { sourceIdentity, dialoguePlan }
+}
+
+const genericSegmentedSlotGroup = (
+  options: CreateCurrentTtsRenderAttemptOptions,
+  turn: AttemptTurn,
+  limit: number
+): { turnIds: string[], providerTexts: string[], chunks: ResolvedTtsChunk[] } => {
+  const chunks = planProviderTtsChunks({ provider: options.target.service, model: options.target.model,
+    text: prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description).providerText,
+    voice: turn.voice.value, speaker: turn.canonical.originalSpeakerLabel,
+    style: turn.effectiveControls['instructions'] as string | undefined,
+    characterLimit: limit, chunking: options.ttsOptions.ttsChunking, legacyOpenAIAccounting: options.ttsOptions.ttsOpenAIAccountingReplay })
+  return { turnIds: [turn.canonical.turnId], providerTexts: chunks.map(chunk => chunk.text), chunks }
+}
+
+export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFixtureHash: string): PlannedInputs => {
+  const { sourceIdentity, dialoguePlan } = resolveGenericDialogueInputs(options)
 
   const registry = isMultiSpeakerRequested(options.ttsOptions) ? parseSpeakerVoiceMappings(options.ttsOptions.ttsSpeakers) : undefined
   const canonicalTurns = flattenPlanTurns(dialoguePlan)
@@ -102,14 +122,7 @@ export const planGenericInputs = (options: CreateCurrentTtsRenderAttemptOptions,
     : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[], chunks?: ResolvedTtsChunk[] }> = native
     ? nativeGroups
-    : turns.map((turn) => {
-      const chunks = planProviderTtsChunks({ provider: options.target.service, model: options.target.model,
-        text: prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description).providerText,
-        voice: turn.voice.value, speaker: turn.canonical.originalSpeakerLabel,
-        style: turn.effectiveControls['instructions'] as string | undefined,
-        characterLimit: limit, chunking: options.ttsOptions.ttsChunking, legacyOpenAIAccounting: options.ttsOptions.ttsOpenAIAccountingReplay })
-      return { turnIds: [turn.canonical.turnId], providerTexts: chunks.map(chunk => chunk.text), chunks }
-    })
+    : turns.map((turn) => genericSegmentedSlotGroup(options, turn, limit))
 
   let includesSetup = true
   const slots: AttemptSlot[] = []

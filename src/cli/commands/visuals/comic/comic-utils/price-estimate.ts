@@ -14,6 +14,16 @@ export { estimateDraftScenesPrice } from './comic-price-llm-estimates'
 export { estimateDraftTreatmentPrice } from '../comic-commands/draft-treatment/treatment-price-estimate'
 export { estimateCharacterSketchPrice, estimateLocationReferencePrice } from './comic-price-reference-estimates'
 
+const buildSketchPriceOptions = (options: GenerateImagesCommandOptions, sketchPanels: ReturnType<typeof panelSelectionToSketchRange>): Parameters<typeof estimateGenerateSketchesPrice>[0] => ({
+  sceneSlug: options.sceneSlug,
+  ...(options.imageModels ? { imageModels: options.imageModels } : {}),
+  ...(options.size ? { size: options.size } : {}),
+  ...(options.quality ? { quality: options.quality } : {}),
+  ...(options.force !== undefined ? { force: options.force } : {}),
+  ...(sketchPanels !== undefined ? { sketchPanels } : {}),
+  ...(options.panelsPerImage !== undefined ? { panelsPerImage: options.panelsPerImage } : {}),
+})
+
 export const estimateGenerateImagesPrice = async (
   options: GenerateImagesCommandOptions
 ): Promise<void> => {
@@ -29,15 +39,7 @@ export const estimateGenerateImagesPrice = async (
 
   if (target === 'sketches') {
     const sketchPanels = panelSelectionToSketchRange(options.panels)
-    await estimateGenerateSketchesPrice({
-      sceneSlug: options.sceneSlug,
-      ...(options.imageModels ? { imageModels: options.imageModels } : {}),
-      ...(options.size ? { size: options.size } : {}),
-      ...(options.quality ? { quality: options.quality } : {}),
-      ...(options.force !== undefined ? { force: options.force } : {}),
-      ...(sketchPanels !== undefined ? { sketchPanels } : {}),
-      ...(options.panelsPerImage !== undefined ? { panelsPerImage: options.panelsPerImage } : {}),
-    })
+    await estimateGenerateSketchesPrice(buildSketchPriceOptions(options, sketchPanels))
     return
   }
 
@@ -72,15 +74,7 @@ export const estimateGenerateImagesPrice = async (
 
   if (target === 'both') {
     const sketchPanels = panelSelectionToSketchRange(options.panels)
-    await estimateGenerateSketchesPrice({
-      sceneSlug: options.sceneSlug,
-      ...(options.imageModels ? { imageModels: options.imageModels } : {}),
-      ...(options.size ? { size: options.size } : {}),
-      ...(options.quality ? { quality: options.quality } : {}),
-      ...(options.force !== undefined ? { force: options.force } : {}),
-      ...(sketchPanels !== undefined ? { sketchPanels } : {}),
-      ...(options.panelsPerImage !== undefined ? { panelsPerImage: options.panelsPerImage } : {}),
-    })
+    await estimateGenerateSketchesPrice(buildSketchPriceOptions(options, sketchPanels))
   }
 
   if (target === 'images' || target === 'both') {

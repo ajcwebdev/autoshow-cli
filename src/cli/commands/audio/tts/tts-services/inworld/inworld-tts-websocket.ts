@@ -110,6 +110,23 @@ const errorMessage = (value: unknown): string => {
   return typeof error?.['message'] === 'string' && error['message'].trim() ? error['message'].trim() : 'Unknown provider error'
 }
 
+const assertInworldStatusOk = (result: Readonly<JsonObject>): void => {
+  const status = result['status'] === undefined ? undefined : record(result['status'])
+  if (result['status'] !== undefined && !status) throw ValidationError('Inworld WebSocket returned malformed status.', { stage: 'tts:inworld-websocket', retryable: false })
+  const statusCode = status?.['code'] ?? 0
+  if (typeof statusCode !== 'number' || !Number.isInteger(statusCode)) throw ValidationError('Inworld WebSocket returned malformed status code.', { stage: 'tts:inworld-websocket', retryable: false })
+  if (statusCode !== 0) throw ProviderError(`Inworld WebSocket provider error (${statusCode}): ${errorMessage(status?.['message'])}`, { stage: 'tts:inworld-websocket', status: statusCode })
+}
+
+const readInworldAudioChunk = (result: Readonly<JsonObject>): { audioChunk: Readonly<JsonObject> | undefined, audio: Uint8Array | undefined } => {
+  const audioChunkValue = result['audioChunk']
+  const audioChunk = audioChunkValue === undefined ? undefined : record(audioChunkValue)
+  if (audioChunkValue !== undefined && !audioChunk) throw ValidationError('Inworld WebSocket returned malformed audioChunk.', { stage: 'tts:inworld-websocket', retryable: false })
+  const audio = audioChunk?.['audioContent'] === undefined ? undefined : decodeAudio(audioChunk['audioContent'])
+  if (audioChunk && audio === undefined && audioChunk['timestampInfo'] === undefined) throw ValidationError('Inworld WebSocket audioChunk contains neither audioContent nor timestampInfo.', { stage: 'tts:inworld-websocket', retryable: false })
+  return { audioChunk, audio }
+}
+
 export const reduceInworldWebSocketResponse = (
   state: InworldWebSocketResponseState,
   message: unknown,
@@ -121,17 +138,9 @@ export const reduceInworldWebSocketResponse = (
   const result = record(payload['result'])
   if (!result) throw ValidationError('Inworld WebSocket response is missing result.', { stage: 'tts:inworld-websocket', retryable: false })
   if (result['contextId'] !== state.contextId) throw ValidationError('Inworld WebSocket response contextId does not match the request.', { stage: 'tts:inworld-websocket', retryable: false })
-  const status = result['status'] === undefined ? undefined : record(result['status'])
-  if (result['status'] !== undefined && !status) throw ValidationError('Inworld WebSocket returned malformed status.', { stage: 'tts:inworld-websocket', retryable: false })
-  const statusCode = status?.['code'] ?? 0
-  if (typeof statusCode !== 'number' || !Number.isInteger(statusCode)) throw ValidationError('Inworld WebSocket returned malformed status code.', { stage: 'tts:inworld-websocket', retryable: false })
-  if (statusCode !== 0) throw ProviderError(`Inworld WebSocket provider error (${statusCode}): ${errorMessage(status?.['message'])}`, { stage: 'tts:inworld-websocket', status: statusCode })
+  assertInworldStatusOk(result)
 
-  const audioChunkValue = result['audioChunk']
-  const audioChunk = audioChunkValue === undefined ? undefined : record(audioChunkValue)
-  if (audioChunkValue !== undefined && !audioChunk) throw ValidationError('Inworld WebSocket returned malformed audioChunk.', { stage: 'tts:inworld-websocket', retryable: false })
-  const audio = audioChunk?.['audioContent'] === undefined ? undefined : decodeAudio(audioChunk['audioContent'])
-  if (audioChunk && audio === undefined && audioChunk['timestampInfo'] === undefined) throw ValidationError('Inworld WebSocket audioChunk contains neither audioContent nor timestampInfo.', { stage: 'tts:inworld-websocket', retryable: false })
+  const { audioChunk, audio } = readInworldAudioChunk(result)
   const audioBytes = state.audioBytes + (audio?.byteLength ?? 0)
   if (audioBytes > MAX_AUDIO_BYTES) throw InfraError(`Inworld WebSocket audio exceeded ${MAX_AUDIO_BYTES} bytes.`, { stage: 'tts:inworld-websocket', retryable: false })
   const terminalKind = Object.hasOwn(result, 'contextClosed')

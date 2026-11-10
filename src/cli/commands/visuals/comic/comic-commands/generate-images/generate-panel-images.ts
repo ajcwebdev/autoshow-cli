@@ -68,6 +68,14 @@ const renderSinglePanel = async (
   return { stats: resultStats, qaEntries }
 }
 
+const assertPanelDirectoryNames = (panelDirectories: DirectoryEntry[]): void => {
+  for (const panelEntry of panelDirectories) {
+    if (!getPanelNumberFromName(panelEntry.name)) {
+      throw ValidationError(`Invalid panel directory name "${panelEntry.name}"`, { stage: 'comic:generate-images' })
+    }
+  }
+}
+
 export const generatePanelImages = async (
   sceneSlug: string,
   options: GeneratePanelImagesOptions,
@@ -106,11 +114,7 @@ export const generatePanelImages = async (
     panelDirectories = selected.map(s => s.entry)
   }
 
-  for (const panelEntry of panelDirectories) {
-    if (!getPanelNumberFromName(panelEntry.name)) {
-      throw ValidationError(`Invalid panel directory name "${panelEntry.name}"`, { stage: 'comic:generate-images' })
-    }
-  }
+  assertPanelDirectoryNames(panelDirectories)
 
   const preflightFailures: string[] = []
   const blockingPlanPath = getBlockingPlanPathForWorkspace(getSceneOutputDirectory(sceneSlug))

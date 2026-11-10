@@ -116,26 +116,28 @@ export const createPageQaRepairStagnationState = (): PageQaRepairStagnationState
   attemptsWithoutStrictImprovement: 0,
 })
 
+const appendPanelHardFailureKeys = (failures: string[], entry: PageQaEntry, panel: PageQaResult['panels'][number], blockingHardKeys: BlockingHardKeyPolicy): void => {
+  const prefix = `panel-${panel.panelNumber}:`
+  if (!panel.requiredCastPresent) failures.push(`${prefix}requiredCastPresent`)
+  if (!panel.unexpectedCastAbsent) failures.push(`${prefix}unexpectedCastAbsent`)
+  if (panel.identityIssueKind === 'unmistakable-mismatch') failures.push(`${prefix}identityMatch`)
+  if (!panel.locationMatch) failures.push(`${prefix}locationMatch`)
+  if (!panel.setContinuityMatch) failures.push(`${prefix}setContinuityMatch`)
+  if (hasHardSetContinuityAuditFailure(panel)) failures.push(`${prefix}setContinuityAudit`)
+  if (!panel.sourcePrecedence) failures.push(`${prefix}sourcePrecedence`)
+  const shotPlanWaived = entry.waivedChecks?.some(check => check.panelNumber === panel.panelNumber && check.check === 'shotPlanMatch') ?? false
+  if (!panel.shotPlanMatch && !shotPlanWaived) failures.push(`${prefix}shotPlanMatch`)
+  if (hasPolicyBlockingAuditFailure(panel, blockingHardKeys)) failures.push(`${prefix}blockingAudit`)
+  if (hasPolicyAxisSideFailure(panel, blockingHardKeys)) failures.push(`${prefix}axisSideMatch`)
+  if (panel.dialogueIssueKind === 'content') failures.push(`${prefix}dialogueAccuracy`)
+  if (!panel.speakerAttribution) failures.push(`${prefix}speakerAttribution`)
+}
+
 export const getPageQaHardFailureKeys = (entry: PageQaEntry, blockingHardKeys: BlockingHardKeyPolicy = []): string[] => {
   if (!entry.hardFailure) return []
   const failures: string[] = []
   if (!entry.result.panelStructure.pass) failures.push('page:panelStructure')
-  for (const panel of entry.result.panels) {
-    const prefix = `panel-${panel.panelNumber}:`
-    if (!panel.requiredCastPresent) failures.push(`${prefix}requiredCastPresent`)
-    if (!panel.unexpectedCastAbsent) failures.push(`${prefix}unexpectedCastAbsent`)
-    if (panel.identityIssueKind === 'unmistakable-mismatch') failures.push(`${prefix}identityMatch`)
-    if (!panel.locationMatch) failures.push(`${prefix}locationMatch`)
-    if (!panel.setContinuityMatch) failures.push(`${prefix}setContinuityMatch`)
-    if (hasHardSetContinuityAuditFailure(panel)) failures.push(`${prefix}setContinuityAudit`)
-    if (!panel.sourcePrecedence) failures.push(`${prefix}sourcePrecedence`)
-    const shotPlanWaived = entry.waivedChecks?.some(check => check.panelNumber === panel.panelNumber && check.check === 'shotPlanMatch') ?? false
-    if (!panel.shotPlanMatch && !shotPlanWaived) failures.push(`${prefix}shotPlanMatch`)
-    if (hasPolicyBlockingAuditFailure(panel, blockingHardKeys)) failures.push(`${prefix}blockingAudit`)
-    if (hasPolicyAxisSideFailure(panel, blockingHardKeys)) failures.push(`${prefix}axisSideMatch`)
-    if (panel.dialogueIssueKind === 'content') failures.push(`${prefix}dialogueAccuracy`)
-    if (!panel.speakerAttribution) failures.push(`${prefix}speakerAttribution`)
-  }
+  for (const panel of entry.result.panels) appendPanelHardFailureKeys(failures, entry, panel, blockingHardKeys)
   return failures
 }
 

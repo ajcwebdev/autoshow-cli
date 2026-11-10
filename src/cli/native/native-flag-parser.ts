@@ -126,47 +126,20 @@ const getAdjacentFlagValues = (
   ? collectAdjacentFlagValues(argv, index + 1)
   : []
 
-export const parseLongFlag = (
-  argv: string[],
-  index: number,
-  flags: CliFlagValues,
-  explicitFlags: Set<string>,
-  flagOccurrences: CliFlagOccurrence[],
-  unknown: Record<string, unknown>,
-  definitions: CliFlagsDefinition
+interface FollowingFlagValueInputs {
+  argv: string[]
+  index: number
+  flags: CliFlagValues
+  flagOccurrences: CliFlagOccurrence[]
+}
+
+const parseFollowingFlagValues = (
+  inputs: FollowingFlagValueInputs,
+  name: string,
+  definition: CliFlagDefinition
 ): number => {
+  const { argv, index, flags, flagOccurrences } = inputs
   const arg = argv[index] as string
-  const raw = arg.slice(2)
-  const eqIndex = raw.indexOf('=')
-  const name = eqIndex === -1 ? raw : raw.slice(0, eqIndex)
-  const inlineValue = eqIndex === -1 ? undefined : raw.slice(eqIndex + 1)
-  const definition = definitions[name]
-
-  if (definition === undefined) {
-    if (name.startsWith('no-')) {
-      const positiveName = name.slice(3)
-      const positiveDefinition = definitions[positiveName]
-      if (isNegatableBooleanFlag(positiveDefinition)) {
-        explicitFlags.add(positiveName)
-        flags[positiveName] = false
-        recordFlagOccurrence(flagOccurrences, positiveName, arg, false, positiveDefinition)
-        return index
-      }
-    }
-
-    unknown[camelize(name)] = inlineValue ?? true
-    recordFlagOccurrence(flagOccurrences, camelize(name), arg, inlineValue ?? true)
-    return index
-  }
-
-  explicitFlags.add(name)
-  if (inlineValue !== undefined) {
-    const value = inlineValue.length > 0 ? inlineValue : true
-    setFlagValue(flags, name, definition, value)
-    recordFlagOccurrence(flagOccurrences, name, arg, value, definition)
-    return index
-  }
-
   const adjacentValues = getAdjacentFlagValues(argv, index, definition)
   if (adjacentValues.length > 0) {
     for (const value of adjacentValues) {
@@ -182,6 +155,61 @@ export const parseLongFlag = (
   return consumedNext ? index + 1 : index
 }
 
+/** Flag names come from argv, so a name such as `constructor` must not resolve to an inherited Object.prototype member. */
+export const ownFlagDefinition = (definitions: CliFlagsDefinition, name: string): CliFlagDefinition | undefined =>
+  Object.hasOwn(definitions, name) ? definitions[name] : undefined
+
+const findNegatedBooleanFlag = (
+  name: string,
+  definitions: CliFlagsDefinition
+): { positiveName: string, positiveDefinition: CliFlagDefinition } | undefined => {
+  if (!name.startsWith('no-')) return undefined
+  const positiveName = name.slice(3)
+  const positiveDefinition = ownFlagDefinition(definitions, positiveName)
+  return isNegatableBooleanFlag(positiveDefinition) ? { positiveName, positiveDefinition } : undefined
+}
+
+export const parseLongFlag = (
+  argv: string[],
+  index: number,
+  flags: CliFlagValues,
+  explicitFlags: Set<string>,
+  flagOccurrences: CliFlagOccurrence[],
+  unknown: Record<string, unknown>,
+  definitions: CliFlagsDefinition
+): number => {
+  const arg = argv[index] as string
+  const raw = arg.slice(2)
+  const eqIndex = raw.indexOf('=')
+  const name = eqIndex === -1 ? raw : raw.slice(0, eqIndex)
+  const inlineValue = eqIndex === -1 ? undefined : raw.slice(eqIndex + 1)
+  const definition = ownFlagDefinition(definitions, name)
+
+  if (definition === undefined) {
+    const negated = findNegatedBooleanFlag(name, definitions)
+    if (negated !== undefined) {
+      explicitFlags.add(negated.positiveName)
+      flags[negated.positiveName] = false
+      recordFlagOccurrence(flagOccurrences, negated.positiveName, arg, false, negated.positiveDefinition)
+      return index
+    }
+
+    unknown[camelize(name)] = inlineValue ?? true
+    recordFlagOccurrence(flagOccurrences, camelize(name), arg, inlineValue ?? true)
+    return index
+  }
+
+  explicitFlags.add(name)
+  if (inlineValue !== undefined) {
+    const value = inlineValue.length > 0 ? inlineValue : true
+    setFlagValue(flags, name, definition, value)
+    recordFlagOccurrence(flagOccurrences, name, arg, value, definition)
+    return index
+  }
+
+  return parseFollowingFlagValues({ argv, index, flags, flagOccurrences }, name, definition)
+}
+
 export const parseShortFlag = (
   argv: string[],
   index: number,
@@ -195,32 +223,15 @@ export const parseShortFlag = (
   const arg = argv[index] as string
   const short = arg.slice(1)
   const name = shortFlags.get(short)
-  if (name === undefined) {
-    unknown[short] = true
-    recordFlagOccurrence(flagOccurrences, short, arg, true)
-    return index
-  }
-
-  const definition = definitions[name]
-  if (definition === undefined) {
+  const definition = name === undefined ? undefined : ownFlagDefinition(definitions, name)
+  if (name === undefined || definition === undefined) {
     unknown[short] = true
     recordFlagOccurrence(flagOccurrences, short, arg, true)
     return index
   }
 
   explicitFlags.add(name)
-  const adjacentValues = getAdjacentFlagValues(argv, index, definition)
-  if (adjacentValues.length > 0) {
-    for (const value of adjacentValues) {
-      setFlagValue(flags, name, definition, value)
-    }
-    recordFlagOccurrence(flagOccurrences, name, arg, adjacentValues[0] as string, definition)
-    return index + adjacentValues.length
-  }
-  const { value, consumedNext } = getNextFlagValue(argv, index, name, definition)
-  setFlagValue(flags, name, definition, value)
-  recordFlagOccurrence(flagOccurrences, name, arg, value, definition)
-  return consumedNext ? index + 1 : index
+  return parseFollowingFlagValues({ argv, index, flags, flagOccurrences }, name, definition)
 }
 
 export const buildInitialFlags = (definitions: CliFlagsDefinition): CliFlagValues => {

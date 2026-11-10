@@ -6,6 +6,13 @@ import { createOpenAIResponse } from '~/utils/openai/openai-client'
 import * as l from '~/utils/app-logger/app-logger'
 import { HTTP_PAYLOAD_MAX_BYTES_ENV, readHttpPayloadJson } from '~/utils/http-payload'
 
+function readNetworkProbeUrl(flags: Record<string, unknown>): URL {
+  let url: URL
+  try { url = new URL(String(flags['probe-url'])) } catch { throw UsageError('--probe-url requires a local fixture URL') }
+  if (url.protocol !== 'http:' || !['localhost', '127.0.0.1', '[::1]', 'host.docker.internal'].includes(url.hostname) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw UsageError('--probe-url must be an HTTP origin on localhost or host.docker.internal')
+  return url
+}
+
 export function networkCheckOptions(flags: Record<string, unknown>, explicitFlags: ReadonlySet<string> = new Set()) {
   const mode = flags['network-check']
   if (mode !== 'serve' && mode !== 'probe') throw UsageError('--network-check must be serve or probe')
@@ -17,8 +24,7 @@ export function networkCheckOptions(flags: Record<string, unknown>, explicitFlag
   if (!NETWORK_PROBE_CLIENTS.includes(String(client) as NetworkProbeClient)) throw UsageError('--probe-client must be rest, fetch, or fetch-no-keepalive')
   let url: URL | undefined
   if (mode === 'probe') {
-    try { url = new URL(String(flags['probe-url'])) } catch { throw UsageError('--probe-url requires a local fixture URL') }
-    if (url.protocol !== 'http:' || !['localhost', '127.0.0.1', '[::1]', 'host.docker.internal'].includes(url.hostname) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw UsageError('--probe-url must be an HTTP origin on localhost or host.docker.internal')
+    url = readNetworkProbeUrl(flags)
   // --probe-client carries a declared default, so only an explicit occurrence is a serve-mode conflict.
   } else if (flags['probe-url'] !== undefined || explicitFlags.has('probe-client')) throw UsageError('Probe options require --network-check probe')
   return { mode, delaySeconds, port, client, url }

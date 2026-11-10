@@ -111,83 +111,104 @@ const looksLikeNumberedListParagraph = (title: string): boolean => {
   return /^(?:chapter|chatper|section|part|figure|table)\b/.test(key)
 }
 
+type SemanticHeading = { title: string, kind: HeadingKind }
+
+const matchChapterHeading = (normalized: string): SemanticHeading | undefined => {
+  const chapterMatch = normalized.match(chapterHeadingRegex)
+  if (!chapterMatch) {
+    return undefined
+  }
+  const prefix = `Chapter ${formatChapterNumber(chapterMatch[2] ?? '')}`.trim()
+  const subtitle = normalizeInlineWhitespace(chapterMatch[3] ?? '')
+  return {
+    title: subtitle.length > 0 ? `${prefix}: ${subtitle}` : stripTrailingHeadingPunctuation(prefix),
+    kind: 'chapter'
+  }
+}
+
+const matchAppendixHeading = (normalized: string): SemanticHeading | undefined => {
+  const appendixMatch = normalized.match(appendixHeadingRegex)
+  if (!appendixMatch) {
+    return undefined
+  }
+  const prefix = `Appendix ${formatAppendixLabel(appendixMatch[1] ?? '')}`.trim()
+  const subtitle = normalizeInlineWhitespace(appendixMatch[2] ?? '')
+  return {
+    title: subtitle.length > 0 ? `${prefix}: ${subtitle}` : stripTrailingHeadingPunctuation(prefix),
+    kind: 'appendix'
+  }
+}
+
+const matchAboutAuthorHeading = (normalized: string): SemanticHeading | undefined => {
+  const aboutAuthorMatch = normalized.match(aboutAuthorHeadingRegex)
+  if (!aboutAuthorMatch) {
+    return undefined
+  }
+  const subtitle = normalizeInlineWhitespace(aboutAuthorMatch[2] ?? '')
+  return {
+    title: subtitle.length > 0 ? `About the Author: ${subtitle}` : 'About the Author',
+    kind: 'about-author'
+  }
+}
+
+const matchTitledHeading = (
+  normalized: string,
+  headingRegex: RegExp,
+  kind: HeadingKind
+): SemanticHeading | undefined => {
+  const titledMatch = normalized.match(headingRegex)
+  if (!titledMatch) {
+    return undefined
+  }
+  const title = stripTrailingHeadingPunctuation(titledMatch[1] ?? normalized)
+  const subtitle = normalizeInlineWhitespace(titledMatch[2] ?? '')
+  return {
+    title: subtitle.length > 0 ? `${title}: ${subtitle}` : title,
+    kind
+  }
+}
+
+const matchNumberedBookHeading = (
+  normalized: string,
+  context: HeadingDetectionContext
+): SemanticHeading | undefined => {
+  const numberedMatch = normalized.match(numberedBookHeadingRegex)
+  if (!numberedMatch) {
+    return undefined
+  }
+  const number = Number.parseInt(numberedMatch[1] ?? '', 10)
+  const unquotedTitle = stripOuterHeadingQuotes(stripTrailingHeadingPunctuation(normalizeInlineWhitespace(numberedMatch[2] ?? '')))
+  const title = stripTrailingHeadingPunctuation(unquotedTitle)
+  if (
+    Number.isFinite(number)
+    && title.length > 0
+    && !looksLikeNumberedDate(number, title)
+    && !looksLikeNumberedPageHeader(number, title, context)
+    && !looksLikeNumberedListParagraph(title)
+  ) {
+    return {
+      title: `${number} ${title}`,
+      kind: 'numbered'
+    }
+  }
+  return undefined
+}
+
 const extractSemanticHeading = (
   line: string,
   context = emptyHeadingDetectionContext
-): { title: string, kind: HeadingKind } | undefined => {
+): SemanticHeading | undefined => {
   const normalized = normalizeInlineWhitespace(line)
   if (normalized.length === 0 || normalized.length > 140 || isPageLikeTocTitle(normalized)) {
     return undefined
   }
 
-  const chapterMatch = normalized.match(chapterHeadingRegex)
-  if (chapterMatch) {
-    const prefix = `Chapter ${formatChapterNumber(chapterMatch[2] ?? '')}`.trim()
-    const subtitle = normalizeInlineWhitespace(chapterMatch[3] ?? '')
-    return {
-      title: subtitle.length > 0 ? `${prefix}: ${subtitle}` : stripTrailingHeadingPunctuation(prefix),
-      kind: 'chapter'
-    }
-  }
-
-  const appendixMatch = normalized.match(appendixHeadingRegex)
-  if (appendixMatch) {
-    const prefix = `Appendix ${formatAppendixLabel(appendixMatch[1] ?? '')}`.trim()
-    const subtitle = normalizeInlineWhitespace(appendixMatch[2] ?? '')
-    return {
-      title: subtitle.length > 0 ? `${prefix}: ${subtitle}` : stripTrailingHeadingPunctuation(prefix),
-      kind: 'appendix'
-    }
-  }
-
-  const aboutAuthorMatch = normalized.match(aboutAuthorHeadingRegex)
-  if (aboutAuthorMatch) {
-    const subtitle = normalizeInlineWhitespace(aboutAuthorMatch[2] ?? '')
-    return {
-      title: subtitle.length > 0 ? `About the Author: ${subtitle}` : 'About the Author',
-      kind: 'about-author'
-    }
-  }
-
-  const namedMatch = normalized.match(namedHeadingRegex)
-  if (namedMatch) {
-    const title = stripTrailingHeadingPunctuation(namedMatch[1] ?? normalized)
-    const subtitle = normalizeInlineWhitespace(namedMatch[2] ?? '')
-    return {
-      title: subtitle.length > 0 ? `${title}: ${subtitle}` : title,
-      kind: 'named'
-    }
-  }
-
-  const backmatterMatch = normalized.match(backmatterHeadingRegex)
-  if (backmatterMatch) {
-    const title = stripTrailingHeadingPunctuation(backmatterMatch[1] ?? normalized)
-    const subtitle = normalizeInlineWhitespace(backmatterMatch[2] ?? '')
-    return {
-      title: subtitle.length > 0 ? `${title}: ${subtitle}` : title,
-      kind: 'backmatter'
-    }
-  }
-
-  const numberedMatch = normalized.match(numberedBookHeadingRegex)
-  if (numberedMatch) {
-    const number = Number.parseInt(numberedMatch[1] ?? '', 10)
-    const title = stripTrailingHeadingPunctuation(stripOuterHeadingQuotes(normalizeInlineWhitespace(numberedMatch[2] ?? '')))
-    if (
-      Number.isFinite(number)
-      && title.length > 0
-      && !looksLikeNumberedDate(number, title)
-      && !looksLikeNumberedPageHeader(number, title, context)
-      && !looksLikeNumberedListParagraph(title)
-    ) {
-      return {
-        title: `${number} ${title}`,
-        kind: 'numbered'
-      }
-    }
-  }
-
-  return undefined
+  return matchChapterHeading(normalized)
+    ?? matchAppendixHeading(normalized)
+    ?? matchAboutAuthorHeading(normalized)
+    ?? matchTitledHeading(normalized, namedHeadingRegex, 'named')
+    ?? matchTitledHeading(normalized, backmatterHeadingRegex, 'backmatter')
+    ?? matchNumberedBookHeading(normalized, context)
 }
 
 export const extractSemanticHeadingTitle = (line: string, context = emptyHeadingDetectionContext): string | undefined =>

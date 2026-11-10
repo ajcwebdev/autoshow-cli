@@ -27,7 +27,7 @@ test('standalone target selection emits CI outputs without installed packages or
     const root = resolve(import.meta.dir, '../../../..')
     for (const path of [
       'tsconfig.json', 'src/tools/docker-audit-coverage.ts', 'src/utils/error-handler.ts',
-      'src/utils/app-logger/result-emitter.ts', 'src/utils/app-logger/redaction.ts',
+      'src/utils/app-logger/result-emitter.ts', 'src/utils/app-logger/result-artifact.ts', 'src/utils/app-logger/redaction.ts',
       'src/utils/project-root.ts', 'src/utils/value-helpers.ts',
       'src/utils/http-payload.ts', 'src/utils/timeouts.ts'
     ]) await Bun.write(join(directory, path), await Bun.file(join(root, path)).bytes())

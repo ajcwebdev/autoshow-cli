@@ -87,29 +87,29 @@ export const applyComicContinuityPolicy = (state: ComicImageOptionState) => {
 export const applyComicRevisionPolicy = (state: ComicImageOptionState) => {
   const { output, revisionPlan, qaOnly, blockingLayoutGuide, comparisonPasses, promote } = state
   const target = output.target ?? 'images'
-  if (revisionPlan !== undefined) {
-    if (qaOnly) throw UsageError('--revision-plan cannot be combined with --qa-only')
-    if (target !== 'images') throw UsageError('--revision-plan requires --target images')
-    if (output.panelsPerImage !== undefined && output.panelsPerImage !== 1) throw UsageError('--revision-plan requires --panels-per-image 1')
-    if (output.grid) throw UsageError('--revision-plan cannot be combined with --grid')
-    if (output.variations !== undefined) throw UsageError('--revision-plan cannot be combined with --variation')
-    if (output.force) throw UsageError('--revision-plan cannot be combined with --force')
-    if (blockingLayoutGuide) throw UsageError('--revision-plan cannot be combined with --blocking-layout-guide')
-    if (output.qa === false) throw UsageError('--revision-plan cannot be combined with --no-qa')
-    if (output.maxRepairs !== undefined && output.maxRepairs !== 0) throw UsageError('--revision-plan requires --max-repairs 0')
-    if (output.imageModels !== undefined && (output.imageModels.length !== 1 || output.imageModels[0] !== REVISION_IMAGE_MODEL)) throw UsageError(`--revision-plan supports only --provider openai=${REVISION_IMAGE_MODEL}`)
-    if (output.qaModel !== undefined && output.qaModel !== 'gpt-6.1-sol') throw UsageError('--revision-plan supports only --qa-provider openai=gpt-6.1-sol')
-    output.comparisonPasses ??= 2
-    if (output.comparisonPasses !== 2) throw UsageError('--revision-plan requires --comparison-passes 2')
-    if (output.promote !== 'clear-winners') throw UsageError('--revision-plan requires --promote clear-winners')
-    output.imageModels = [REVISION_IMAGE_MODEL]
-    output.qaModel = 'gpt-6.1-sol'
-    output.qa = true
-    output.maxRepairs = 0
-    output.panelsPerImage = 1
-  } else if (comparisonPasses !== undefined || promote !== undefined) {
-    throw UsageError('--comparison-passes and --promote require --revision-plan')
+  if (revisionPlan === undefined) {
+    if (comparisonPasses !== undefined || promote !== undefined) throw UsageError('--comparison-passes and --promote require --revision-plan')
+    return
   }
+  if (qaOnly) throw UsageError('--revision-plan cannot be combined with --qa-only')
+  if (target !== 'images') throw UsageError('--revision-plan requires --target images')
+  if (output.panelsPerImage !== undefined && output.panelsPerImage !== 1) throw UsageError('--revision-plan requires --panels-per-image 1')
+  if (output.grid) throw UsageError('--revision-plan cannot be combined with --grid')
+  if (output.variations !== undefined) throw UsageError('--revision-plan cannot be combined with --variation')
+  if (output.force) throw UsageError('--revision-plan cannot be combined with --force')
+  if (blockingLayoutGuide) throw UsageError('--revision-plan cannot be combined with --blocking-layout-guide')
+  if (output.qa === false) throw UsageError('--revision-plan cannot be combined with --no-qa')
+  if (output.maxRepairs !== undefined && output.maxRepairs !== 0) throw UsageError('--revision-plan requires --max-repairs 0')
+  if (output.imageModels !== undefined && (output.imageModels.length !== 1 || output.imageModels[0] !== REVISION_IMAGE_MODEL)) throw UsageError(`--revision-plan supports only --provider openai=${REVISION_IMAGE_MODEL}`)
+  if (output.qaModel !== undefined && output.qaModel !== 'gpt-6.1-sol') throw UsageError('--revision-plan supports only --qa-provider openai=gpt-6.1-sol')
+  output.comparisonPasses ??= 2
+  if (output.comparisonPasses !== 2) throw UsageError('--revision-plan requires --comparison-passes 2')
+  if (output.promote !== 'clear-winners') throw UsageError('--revision-plan requires --promote clear-winners')
+  output.imageModels = [REVISION_IMAGE_MODEL]
+  output.qaModel = 'gpt-6.1-sol'
+  output.qa = true
+  output.maxRepairs = 0
+  output.panelsPerImage = 1
 }
 
 export const finalizeComicImageOptions = (state: ComicImageOptionState) => {

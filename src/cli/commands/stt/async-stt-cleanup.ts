@@ -1,4 +1,4 @@
-import type { AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleContext, Step2RuntimeMetadata } from '~/types'
+import type { AsyncSttLifecycleCleanupSnapshot, AsyncSttLifecycleContext, Step2Metadata, Step2RuntimeMetadata } from '~/types'
 import { logSttCleanupFailure } from './stt-logging'
 
 export const deleteSttRemoteResource = async (options: {
@@ -63,6 +63,41 @@ export const buildAsyncSttCleanupRuntime = <TStatus, TUpload>(
   }
 }
 
+const buildCleanupTimings = (
+  metadata: Step2Metadata,
+  cleanupMs: number
+): NonNullable<Step2Metadata['timings']> => {
+  const processingTime = metadata.processingTime
+  return {
+    ...(metadata.timings ?? {}),
+    ...(cleanupMs > 0 ? { cleanupMs } : {}),
+    remoteProcessingMs: Math.max(0, processingTime
+      - ((metadata.timings?.createMs ?? 0)
+      + (metadata.timings?.uploadMs ?? 0)
+      + (metadata.timings?.pollMs ?? 0)
+      + (metadata.timings?.transcriptMs ?? 0)
+      + cleanupMs))
+  }
+}
+
+const resolveCleanupRemoteAssetFields = (
+  metadata: Step2Metadata,
+  runtime: Step2RuntimeMetadata | undefined,
+  uploadedAsset: { remoteAssetUrl?: string | undefined } | undefined,
+  assetId: string | undefined
+): Pick<Step2RuntimeMetadata, 'remoteAssetId' | 'remoteAssetUrl'> => ({
+  ...((metadata.runtime?.remoteAssetId ?? assetId) ? { remoteAssetId: metadata.runtime?.remoteAssetId ?? assetId } : {}),
+  ...((metadata.runtime?.remoteAssetUrl ?? runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl) ? { remoteAssetUrl: metadata.runtime?.remoteAssetUrl ?? runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl } : {})
+})
+
+const resolveCleanupStageTimestamps = (
+  metadata: Step2Metadata
+): Pick<Step2RuntimeMetadata, 'createCompletedAt' | 'lastPollAt' | 'completedAt'> => ({
+  ...(metadata.runtime?.createCompletedAt ? { createCompletedAt: metadata.runtime.createCompletedAt } : {}),
+  ...(metadata.runtime?.lastPollAt ? { lastPollAt: metadata.runtime.lastPollAt } : {}),
+  ...(metadata.runtime?.completedAt ? { completedAt: metadata.runtime.completedAt } : {})
+})
+
 export const applyAsyncSttCleanupMetadata = <TStatus, TUpload>(
   snapshot: Readonly<AsyncSttLifecycleCleanupSnapshot<TStatus, TUpload>>,
   cleanupMs: number,
@@ -74,17 +109,7 @@ export const applyAsyncSttCleanupMetadata = <TStatus, TUpload>(
     return
   }
   const assetId = runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId
-  const processingTime = metadata.processingTime
-  metadata.timings = {
-    ...(metadata.timings ?? {}),
-    ...(cleanupMs > 0 ? { cleanupMs } : {}),
-    remoteProcessingMs: Math.max(0, processingTime
-      - ((metadata.timings?.createMs ?? 0)
-      + (metadata.timings?.uploadMs ?? 0)
-      + (metadata.timings?.pollMs ?? 0)
-      + (metadata.timings?.transcriptMs ?? 0)
-      + cleanupMs))
-  }
+  metadata.timings = buildCleanupTimings(metadata, cleanupMs)
   metadata.runtime = {
     ...(metadata.runtime ?? {
       mode: runtime?.mode ?? 'fresh',
@@ -94,11 +119,8 @@ export const applyAsyncSttCleanupMetadata = <TStatus, TUpload>(
     mode: metadata.runtime?.mode ?? runtime?.mode ?? 'fresh',
     stage: 'cleanup-complete',
     remoteJobId: metadata.runtime?.remoteJobId ?? jobId ?? '',
-    ...((metadata.runtime?.remoteAssetId ?? assetId) ? { remoteAssetId: metadata.runtime?.remoteAssetId ?? assetId } : {}),
-    ...((metadata.runtime?.remoteAssetUrl ?? runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl) ? { remoteAssetUrl: metadata.runtime?.remoteAssetUrl ?? runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl } : {}),
-    ...(metadata.runtime?.createCompletedAt ? { createCompletedAt: metadata.runtime.createCompletedAt } : {}),
-    ...(metadata.runtime?.lastPollAt ? { lastPollAt: metadata.runtime.lastPollAt } : {}),
-    ...(metadata.runtime?.completedAt ? { completedAt: metadata.runtime.completedAt } : {}),
+    ...resolveCleanupRemoteAssetFields(metadata, runtime, uploadedAsset, assetId),
+    ...resolveCleanupStageTimestamps(metadata),
     cleanupCompletedAt: new Date().toISOString(),
     cleanup: {
       ...(metadata.runtime?.cleanup ?? {}),

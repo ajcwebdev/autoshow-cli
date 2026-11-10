@@ -206,13 +206,33 @@ const validateLedger = (value: unknown, budgetCents: number): CleanTypographySpe
   return ledger
 }
 
+type AuthorizedReconciliations = Map<string, { sha256: string, record: CleanTypographyManualReconciliation }>
+
+const validateRecoveryReceipts = (ledger: CleanTypographySpendingLedger, authorized: AuthorizedReconciliations): void => {
+  const recoveries = new Map<string, Set<string>>()
+  for (const [index, receipt] of ledger.receipts.entries()) {
+    if (receipt.recoveryOfReceiptId === undefined) continue
+    const authorization = authorized.get(receipt.recoveryOfReceiptId)
+    const parentIndex = ledger.receipts.findIndex(entry => entry.id === receipt.recoveryOfReceiptId)
+    const parent = ledger.receipts[parentIndex]
+    if (!authorization || !parent || parentIndex >= index || receipt.invocationId === parent.invocationId
+      || receipt.recoveryReconciliationSha256 !== authorization.sha256
+      || receipt.caseId !== parent.caseId || receipt.provider !== parent.provider || receipt.model !== parent.model
+      || receipt.inputSha256 !== parent.inputSha256 || Date.parse(receipt.createdAt) < Date.parse(authorization.record.createdAt)) fail('recovery request does not match its immutable manual authorization')
+    const invocations = recoveries.get(parent.id) ?? new Set<string>()
+    invocations.add(receipt.invocationId)
+    if (invocations.size > 1) fail('a manual reconciliation cannot authorize a second recovery invocation')
+    recoveries.set(parent.id, invocations)
+  }
+}
+
 /** The historical 503 receipt remains unchanged and charged in full. Only a pinned, explicit record can authorize recovery. */
 const validateReconciliations = async (
   ledger: CleanTypographySpendingLedger,
   root: string,
   pins: readonly CleanTypographySourcePin[]
-): Promise<Map<string, { sha256: string, record: CleanTypographyManualReconciliation }>> => {
-  const authorized = new Map<string, { sha256: string, record: CleanTypographyManualReconciliation }>()
+): Promise<AuthorizedReconciliations> => {
+  const authorized: AuthorizedReconciliations = new Map()
   const paths = new Set<string>()
   for (const link of ledger.reconciliations ?? []) {
     if (!link.path.startsWith(reconciliationRoot) || link.path.includes('\\') || link.path.split('/').includes('..') || paths.has(link.path)) fail('manual reconciliation must have a unique private project-relative path')
@@ -241,21 +261,7 @@ const validateReconciliations = async (
       || authorized.has(receipt.id)) fail('manual reconciliation differs from the retained HTTP 503 receipt')
     authorized.set(receipt.id, { sha256: link.sha256, record: value as unknown as CleanTypographyManualReconciliation })
   }
-  const recoveries = new Map<string, Set<string>>()
-  for (const [index, receipt] of ledger.receipts.entries()) {
-    if (receipt.recoveryOfReceiptId === undefined) continue
-    const authorization = authorized.get(receipt.recoveryOfReceiptId)
-    const parentIndex = ledger.receipts.findIndex(entry => entry.id === receipt.recoveryOfReceiptId)
-    const parent = ledger.receipts[parentIndex]
-    if (!authorization || !parent || parentIndex >= index || receipt.invocationId === parent.invocationId
-      || receipt.recoveryReconciliationSha256 !== authorization.sha256
-      || receipt.caseId !== parent.caseId || receipt.provider !== parent.provider || receipt.model !== parent.model
-      || receipt.inputSha256 !== parent.inputSha256 || Date.parse(receipt.createdAt) < Date.parse(authorization.record.createdAt)) fail('recovery request does not match its immutable manual authorization')
-    const invocations = recoveries.get(parent.id) ?? new Set<string>()
-    invocations.add(receipt.invocationId)
-    if (invocations.size > 1) fail('a manual reconciliation cannot authorize a second recovery invocation')
-    recoveries.set(parent.id, invocations)
-  }
+  validateRecoveryReceipts(ledger, authorized)
   return authorized
 }
 
@@ -350,6 +356,87 @@ const readUsage = (provider: string, payload: unknown, pricing: Rate): ReviewedU
   return { inputTokens, outputTokens, cents: roundedCents((inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000) }
 }
 
+const parseAuthorizedRequestBody = (
+  input: Parameters<typeof fetch>[0],
+  init: Parameters<typeof fetch>[1],
+  expectedEndpoint: string,
+  options: CleanTypographySpendingGuardOptions
+): Record<string, unknown> => {
+  if (input instanceof Request || typeof init?.body !== 'string' || (init.method ?? 'GET') !== 'POST') fail('only explicit JSON generation POST requests are authorized')
+  const url = new URL(String(input))
+  if (url.href !== expectedEndpoint || url.username || url.password) fail('unapproved provider host, path, query, or model')
+  let parsed: unknown
+  try { parsed = JSON.parse(init.body) } catch { return fail('request body is not JSON') }
+  if (!isRecord(parsed)) fail('request body is not an object')
+  const body = parsed
+  if (options.provider !== 'gemini' && body['model'] !== options.model) fail('request model differs from the approved target')
+  if (body['stream'] === true || body['tools'] !== undefined || (options.provider !== 'openai' && body['service_tier'] !== undefined) || body['n'] !== undefined) fail('streaming, tools, alternate tiers, or multiple outputs are not authorized')
+  return body
+}
+
+const reportsInferenceUsage = (payload: unknown): boolean =>
+  isRecord(payload) && (payload['usage'] !== undefined || payload['usageMetadata'] !== undefined || payload['usage_info'] !== undefined)
+
+const enforceReviewedOutputCap = (options: CleanTypographySpendingGuardOptions, body: Record<string, unknown>, pricing: Rate): void => {
+  if (options.provider === 'openai') {
+    applyOpenAIStandardBillingControls(body)
+    if (body['max_output_tokens'] !== undefined && body['max_output_tokens'] !== CLEAN_TYPOGRAPHY_OPENAI_OUTPUT_CAP) fail('unexpected OpenAI output cap')
+    body['max_output_tokens'] = CLEAN_TYPOGRAPHY_OPENAI_OUTPUT_CAP
+  } else if (options.provider === 'gemini') {
+    const config = body['generationConfig']
+    if (!isRecord(config) || config['maxOutputTokens'] !== pricing.outputCap || config['candidateCount'] !== undefined) fail('unexpected Gemini output cap or candidate count')
+  } else if (pricing.pageCents === undefined) {
+    const field = options.provider === 'grok' ? 'max_completion_tokens' : 'max_tokens'
+    if (body[field] !== pricing.outputCap) fail('unexpected native output cap')
+  }
+}
+
+interface ReceiptAdmission {
+  receipt: CleanTypographySpendingReceipt
+  invocationId: string
+  reserve: number
+  budgetCents: number
+}
+
+/**
+ * Stop on unresolved receipts, a consumed slot or recovery, the attempt cap or the cumulative budget;
+ * otherwise link an authorized recovery parent and append the new receipt to the ledger.
+ */
+const admitReceiptOrBlockDispatch = (
+  ledger: CleanTypographySpendingLedger,
+  authorized: AuthorizedReconciliations,
+  options: CleanTypographySpendingGuardOptions,
+  { receipt, invocationId, reserve, budgetCents }: ReceiptAdmission
+): void => {
+  if (ledger.receipts.some(entry => entry.status === 'reserved' || entry.status === 'breach'
+    || (entry.status === 'ambiguous' && !authorized.has(entry.id)))) fail('unresolved admitted request or allowance breach requires reconciliation')
+  const slot = ledger.receipts.filter(entry => entry.caseId === options.caseId && entry.provider === options.provider && entry.model === options.model)
+  if (slot.some(entry => entry.invocationId !== invocationId && !authorized.has(entry.id)
+    && (entry.status !== 'rejected' || entry.recoveryOfReceiptId !== undefined))) fail('this slot already has admitted evidence or consumed its recovery invocation; automatic redispatch is blocked')
+  const priorAmbiguous = slot.filter(entry => authorized.has(entry.id)).reverse()
+  if (priorAmbiguous.length > 0) {
+    const parent = priorAmbiguous.find(entry => {
+      const attempts = slot.filter(attempt => attempt.recoveryOfReceiptId === entry.id)
+      return entry.invocationId !== invocationId && (attempts.length === 0 || attempts.every(attempt => attempt.invocationId === invocationId))
+    })
+    if (!parent) fail('the one manually authorized recovery invocation was already consumed')
+    receipt.recoveryOfReceiptId = parent.id
+    receipt.recoveryReconciliationSha256 = authorized.get(parent.id)!.sha256
+  }
+  if (slot.filter(entry => entry.status === 'settled').length >= 3 || slot.length >= 12) fail('maximum request attempts reached')
+  if (totalHeld(ledger) + reserve > budgetCents + 1e-9) fail(`request reservation ${reserve.toFixed(6)} cents exceeds the remaining cumulative approval`)
+  ledger.receipts.push(receipt)
+}
+
+const usageSettlement = (usage: ReviewedUsage, breach: boolean, reserve: number, response: Response): Partial<CleanTypographySpendingReceipt> => ({
+  status: breach ? 'breach' : 'settled', chargedCents: Math.max(breach ? reserve : 0, usage.cents),
+  httpStatus: response.status, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
+  ...(breach ? { costBasis: 'conservative-upper-bound' as const,
+    costNote: 'Allowance breach: retain the greater of the reservation and locally valued usage; not invoice-reconciled charges.' }
+    : usage.costBasis ? { costBasis: usage.costBasis, costNote: usage.costNote } : {}),
+  ...(breach ? { reason: 'reported usage exceeded the reserved allowance; further dispatch blocked' } : {})
+})
+
 export const createCleanTypographySpendingGuard = (options: CleanTypographySpendingGuardOptions): typeof fetch => {
   const root = resolve(options.projectRoot ?? PROJECT_ROOT)
   if (isAbsolute(options.ledgerPath) || options.ledgerPath.split(/[\\/]/).includes('..')) fail('ledger must use a project-relative path')
@@ -385,26 +472,8 @@ export const createCleanTypographySpendingGuard = (options: CleanTypographySpend
     const approval = isRecord(plan) ? plan['approval'] : undefined
     if (!isRecord(approval) || approval['status'] !== 'approved' || approval['budgetCents'] !== CLEAN_TYPOGRAPHY_BUDGET_CENTS
       || approval['evidence'] !== 'User approved up to $5') fail('the persisted plan does not contain the explicit user approval')
-    if (input instanceof Request || typeof init?.body !== 'string' || (init.method ?? 'GET') !== 'POST') fail('only explicit JSON generation POST requests are authorized')
-    const url = new URL(String(input))
-    if (url.href !== expectedEndpoint || url.username || url.password) fail('unapproved provider host, path, query, or model')
-    let parsed: unknown
-    try { parsed = JSON.parse(init.body) } catch { return fail('request body is not JSON') }
-    if (!isRecord(parsed)) fail('request body is not an object')
-    const body = parsed
-    if (options.provider !== 'gemini' && body['model'] !== options.model) fail('request model differs from the approved target')
-    if (body['stream'] === true || body['tools'] !== undefined || (options.provider !== 'openai' && body['service_tier'] !== undefined) || body['n'] !== undefined) fail('streaming, tools, alternate tiers, or multiple outputs are not authorized')
-    if (options.provider === 'openai') {
-      applyOpenAIStandardBillingControls(body)
-      if (body['max_output_tokens'] !== undefined && body['max_output_tokens'] !== CLEAN_TYPOGRAPHY_OPENAI_OUTPUT_CAP) fail('unexpected OpenAI output cap')
-      body['max_output_tokens'] = CLEAN_TYPOGRAPHY_OPENAI_OUTPUT_CAP
-    } else if (options.provider === 'gemini') {
-      const config = body['generationConfig']
-      if (!isRecord(config) || config['maxOutputTokens'] !== pricing.outputCap || config['candidateCount'] !== undefined) fail('unexpected Gemini output cap or candidate count')
-    } else if (pricing.pageCents === undefined) {
-      const field = options.provider === 'grok' ? 'max_completion_tokens' : 'max_tokens'
-      if (body[field] !== pricing.outputCap) fail('unexpected native output cap')
-    }
+    const body = parseAuthorizedRequestBody(input, init, expectedEndpoint, options)
+    enforceReviewedOutputCap(options, body, pricing)
     validateImage(body, pin)
     const bodyText = JSON.stringify(body)
     const inputRate = pricing.input * (options.provider === 'openai' ? OPENAI_DEFAULT_CACHE_WRITE_MULTIPLIER : 1)
@@ -418,24 +487,7 @@ export const createCleanTypographySpendingGuard = (options: CleanTypographySpend
     }
     await update(async ledger => {
       const authorized = await validateReconciliations(ledger, root, options.trustedSources ?? CLEAN_TYPOGRAPHY_SOURCE_PINS)
-      if (ledger.receipts.some(entry => entry.status === 'reserved' || entry.status === 'breach'
-        || (entry.status === 'ambiguous' && !authorized.has(entry.id)))) fail('unresolved admitted request or allowance breach requires reconciliation')
-      const slot = ledger.receipts.filter(entry => entry.caseId === options.caseId && entry.provider === options.provider && entry.model === options.model)
-      if (slot.some(entry => entry.invocationId !== invocationId && !authorized.has(entry.id)
-        && (entry.status !== 'rejected' || entry.recoveryOfReceiptId !== undefined))) fail('this slot already has admitted evidence or consumed its recovery invocation; automatic redispatch is blocked')
-      const priorAmbiguous = slot.filter(entry => authorized.has(entry.id)).reverse()
-      if (priorAmbiguous.length > 0) {
-        const parent = priorAmbiguous.find(entry => {
-          const attempts = slot.filter(attempt => attempt.recoveryOfReceiptId === entry.id)
-          return entry.invocationId !== invocationId && (attempts.length === 0 || attempts.every(attempt => attempt.invocationId === invocationId))
-        })
-        if (!parent) fail('the one manually authorized recovery invocation was already consumed')
-        receipt.recoveryOfReceiptId = parent.id
-        receipt.recoveryReconciliationSha256 = authorized.get(parent.id)!.sha256
-      }
-      if (slot.filter(entry => entry.status === 'settled').length >= 3 || slot.length >= 12) fail('maximum request attempts reached')
-      if (totalHeld(ledger) + reserve > budgetCents + 1e-9) fail(`request reservation ${reserve.toFixed(6)} cents exceeds the remaining cumulative approval`)
-      ledger.receipts.push(receipt)
+      admitReceiptOrBlockDispatch(ledger, authorized, options, { receipt, invocationId, reserve, budgetCents })
     })
     const finish = async (change: Partial<CleanTypographySpendingReceipt>): Promise<void> => {
       await update(ledger => {
@@ -453,7 +505,7 @@ export const createCleanTypographySpendingGuard = (options: CleanTypographySpend
     if ([400, 401, 403, 404, 405, 413, 415, 422, 429].includes(response.status)) {
       let rejectedPayload: unknown
       try { rejectedPayload = await readJsonResponse(response.clone() as Response, 'OCR rejected admission', { maxBytes: 8 * 1024 * 1024 }) } catch { rejectedPayload = undefined }
-      if (isRecord(rejectedPayload) && (rejectedPayload['usage'] !== undefined || rejectedPayload['usageMetadata'] !== undefined || rejectedPayload['usage_info'] !== undefined)) {
+      if (reportsInferenceUsage(rejectedPayload)) {
         await finish({ status: 'ambiguous', httpStatus: response.status, reason: 'rejected HTTP status included inference usage; full reservation retained' })
         return fail('rejected status included inference usage; further dispatch blocked')
       }
@@ -475,12 +527,7 @@ export const createCleanTypographySpendingGuard = (options: CleanTypographySpend
       return fail('provider response did not establish complete usage; further dispatch blocked')
     }
     const breach = usage.inputTokens > CLEAN_TYPOGRAPHY_INPUT_ALLOWANCE || usage.outputTokens > pricing.outputCap || usage.cents > reserve + 1e-9
-    await finish({ status: breach ? 'breach' : 'settled', chargedCents: Math.max(breach ? reserve : 0, usage.cents),
-      httpStatus: response.status, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
-      ...(breach ? { costBasis: 'conservative-upper-bound' as const,
-        costNote: 'Allowance breach: retain the greater of the reservation and locally valued usage; not invoice-reconciled charges.' }
-        : usage.costBasis ? { costBasis: usage.costBasis, costNote: usage.costNote } : {}),
-      ...(breach ? { reason: 'reported usage exceeded the reserved allowance; further dispatch blocked' } : {}) })
+    await finish(usageSettlement(usage, breach, reserve, response))
     if (breach) return fail('reported usage exceeded the reserved allowance; further dispatch blocked')
     return response
   }) as typeof fetch

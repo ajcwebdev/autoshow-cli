@@ -4,6 +4,7 @@ import { isExtractCommand } from '~/cli/commands/command-shared/process-command-
 import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import type { CommandPricingOptions, PricingRuntimeOptions, ProcessCommand, WriteRuntimeOptions } from '~/types'
+import { assertRuntimeBudgetEstimate } from '~/utils/runtime-spending-budget'
 
 export const reportSuitePriceEstimate = async (
   command: ProcessCommand,
@@ -48,6 +49,7 @@ export const reportSuitePriceEstimate = async (
     })
   }
 
+  if (!opts.price) assertRuntimeBudgetEstimate(suiteTotalEstimatedCost, skipped)
   return suiteTotalEstimatedCost
 }
 

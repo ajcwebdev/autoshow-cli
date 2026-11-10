@@ -67,28 +67,34 @@ export const createCharacterReferenceSnapshot = async (
   catalog: CharacterCatalogService,
 ): Promise<CharacterReferenceManifest> => currentCharacterReferences(runDirectory, visibleKeys, loadCharacterCatalog(catalog.root, { fresh: true }))
 
+const appendScenePanelCharacterKeys = (keys: string[], scenePath: string): void => {
+  if (!existsSync(scenePath)) return
+  const scene = JSON.parse(readFileSync(scenePath, 'utf8')) as { panels?: Array<{ characterKeys?: unknown }> }
+  for (const panel of scene.panels ?? []) {
+    if (!Array.isArray(panel.characterKeys) || panel.characterKeys.some(key => typeof key !== 'string')) {
+      throw ValidationError(`Scene panel has invalid character keys at ${scenePath}`, { stage: 'comic:reference-snapshot' })
+    }
+    keys.push(...panel.characterKeys)
+  }
+}
+
+const appendBlockingPlanRosterKeys = (keys: string[], planPath: string, catalog: CharacterCatalogService): void => {
+  if (!existsSync(planPath)) return
+  const plan = JSON.parse(readFileSync(planPath, 'utf8')) as { stageStates?: Array<{ characters?: Array<{ characterKey?: string }>; extras?: Array<{ ensembleKey?: string }> }> }
+  const catalogKeys = new Set<string>(catalog.characterKeys)
+  for (const state of plan.stageStates ?? []) {
+    for (const key of [...(state.characters ?? []).map(mark => mark.characterKey), ...(state.extras ?? []).map(extras => extras.ensembleKey)]) {
+      if (key && catalogKeys.has(key)) keys.push(key)
+    }
+  }
+}
+
 const sceneRosterKeys = (runDirectory: string, catalog: CharacterCatalogService): string[] => {
   const keys: string[] = []
   const scenePath = join(runDirectory, 'metadata', 'scene.json')
-  if (existsSync(scenePath)) {
-    const scene = JSON.parse(readFileSync(scenePath, 'utf8')) as { panels?: Array<{ characterKeys?: unknown }> }
-    for (const panel of scene.panels ?? []) {
-      if (!Array.isArray(panel.characterKeys) || panel.characterKeys.some(key => typeof key !== 'string')) {
-        throw ValidationError(`Scene panel has invalid character keys at ${scenePath}`, { stage: 'comic:reference-snapshot' })
-      }
-      keys.push(...panel.characterKeys)
-    }
-  }
+  appendScenePanelCharacterKeys(keys, scenePath)
   const planPath = join(runDirectory, 'metadata', 'blocking-plan.json')
-  if (existsSync(planPath)) {
-    const plan = JSON.parse(readFileSync(planPath, 'utf8')) as { stageStates?: Array<{ characters?: Array<{ characterKey?: string }>; extras?: Array<{ ensembleKey?: string }> }> }
-    const catalogKeys = new Set<string>(catalog.characterKeys)
-    for (const state of plan.stageStates ?? []) {
-      for (const key of [...(state.characters ?? []).map(mark => mark.characterKey), ...(state.extras ?? []).map(extras => extras.ensembleKey)]) {
-        if (key && catalogKeys.has(key)) keys.push(key)
-      }
-    }
-  }
+  appendBlockingPlanRosterKeys(keys, planPath, catalog)
   return [...new Set(keys)]
 }
 

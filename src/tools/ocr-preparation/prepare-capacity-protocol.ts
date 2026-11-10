@@ -89,27 +89,39 @@ export const assertCapacityReferenceCoverage = (source: string, regions: Capacit
   if (cursor !== source.length) throw new AppValidationError('Capacity spans omit the end of the source')
 }
 
-/** Cover all source pixels; only explicitly bounded horizontal gutter overlap is allowed. */
-export const assertCapacityGeometry = (width: number, height: number, regions: CapacityMapping['regions'], overlap: number): void => {
-  if (!regions.length || new Set(regions.map(region => region.id)).size !== regions.length) throw new AppValidationError('Duplicate or empty capacity regions')
+const assertCapacityRegionsInBounds = (width: number, height: number, regions: CapacityMapping['regions']): void => {
   for (const region of regions) {
     if (!Number.isInteger(region.x) || !Number.isInteger(region.y) || !Number.isInteger(region.width) || !Number.isInteger(region.height)
       || region.x < 0 || region.y < 0 || region.width < 1 || region.height < 1 || region.x + region.width > width || region.y + region.height > height) throw new AppValidationError('Capacity region escapes source image bounds')
   }
+}
+
+const assertCapacityGutterOverlap = (regions: CapacityMapping['regions'], overlap: number): void => {
   for (let i = 0; i < regions.length; i++) for (let j = i + 1; j < regions.length; j++) {
     const a = regions[i]!, b = regions[j]!, x = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x), y = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y)
     if (x > 0 && y > 0 && (x > overlap || a.x === b.x)) throw new AppValidationError('Capacity geometry overlaps outside the reviewed horizontal gutters')
   }
+}
+
+/** One horizontal band between consecutive region boundaries: full width covered, at most two regions per gutter. */
+const assertCapacityBandCoverage = (width: number, regions: CapacityMapping['regions'], y: number, end: number): void => {
+  const ranges = regions.filter(region => region.y <= y && region.y + region.height >= end).map(region => [region.x, region.x + region.width] as const).sort((a, b) => a[0] - b[0])
+  let covered = 0
+  for (const [start, stop] of ranges) { if (start > covered) throw new AppValidationError('Capacity geometry omits source pixels'); covered = Math.max(covered, stop) }
+  if (covered !== width) throw new AppValidationError('Capacity geometry omits source pixels')
+  const events = ranges.flatMap(([start, stop]) => [[start, 1], [stop, -1]]).sort((a, b) => a[0]! - b[0]! || a[1]! - b[1]!)
+  let count = 0
+  for (const event of events) { count += event[1]!; if (count > 2) throw new AppValidationError('Capacity geometry duplicates a gutter more than twice') }
+}
+
+/** Cover all source pixels; only explicitly bounded horizontal gutter overlap is allowed. */
+export const assertCapacityGeometry = (width: number, height: number, regions: CapacityMapping['regions'], overlap: number): void => {
+  if (!regions.length || new Set(regions.map(region => region.id)).size !== regions.length) throw new AppValidationError('Duplicate or empty capacity regions')
+  assertCapacityRegionsInBounds(width, height, regions)
+  assertCapacityGutterOverlap(regions, overlap)
   const boundaries = [...new Set([0, height, ...regions.flatMap(region => [region.y, region.y + region.height])])].sort((a, b) => a - b)
   for (let i = 0; i + 1 < boundaries.length; i++) {
-    const y = boundaries[i]!, end = boundaries[i + 1]!
-    const ranges = regions.filter(region => region.y <= y && region.y + region.height >= end).map(region => [region.x, region.x + region.width] as const).sort((a, b) => a[0] - b[0])
-    let covered = 0
-    for (const [start, stop] of ranges) { if (start > covered) throw new AppValidationError('Capacity geometry omits source pixels'); covered = Math.max(covered, stop) }
-    if (covered !== width) throw new AppValidationError('Capacity geometry omits source pixels')
-    const events = ranges.flatMap(([start, stop]) => [[start, 1], [stop, -1]]).sort((a, b) => a[0]! - b[0]! || a[1]! - b[1]!)
-    let count = 0
-    for (const event of events) { count += event[1]!; if (count > 2) throw new AppValidationError('Capacity geometry duplicates a gutter more than twice') }
+    assertCapacityBandCoverage(width, regions, boundaries[i]!, boundaries[i + 1]!)
   }
 }
 

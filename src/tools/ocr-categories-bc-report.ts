@@ -303,6 +303,234 @@ interface PreparedProvider {
   state: Record<string, unknown>
 }
 
+type Plan = v.InferOutput<typeof planSchema>
+type Ledger = v.InferOutput<typeof ledgerSchema>
+type Case = v.InferOutput<typeof caseSchema>
+type Journal = v.InferOutput<typeof journalSchema>
+type ReportProfile = typeof reportProfiles[keyof typeof reportProfiles]
+type EfgStructure = ReturnType<typeof validateEfgOcrStructure>
+interface CaseFlags { newspapers: boolean, efg: boolean, efgCategory: 'numeric-tables' | 'handwriting' | 'newspapers' | undefined }
+
+const assertBatchIdentities = (plan: Plan, ledger: Ledger): void => {
+  if (new Set(plan.cases.map(row => row.id)).size !== plan.cases.length || new Set(plan.pages.map(row => row.id)).size !== plan.pages.length
+    || new Set(plan.targets.map(row => `${row.provider}/${row.model}`)).size !== plan.targets.length
+    || plan.targets.filter(row => row.provider === 'tesseract' && row.model === 'tesseract').length !== 1
+    || new Set(ledger.receipts.map(row => row.id)).size !== ledger.receipts.length) throw new AppValidationError('Duplicate or invalid batch identities')
+}
+const assertRebuildFilter = (options: BcOcrReportOptions, plan: Plan): void => {
+  if (options.buildCaseIds && (options.reportProfile !== 'newspapers' || !options.buildCaseIds.length || new Set(options.buildCaseIds).size !== options.buildCaseIds.length
+    || options.buildCaseIds.some(id => !plan.cases.some(entry => entry.id === id)))) throw new AppValidationError('Report rebuild filter must name distinct authorized cases')
+}
+const assertReceiptsMatchPlan = (plan: Plan, ledger: Ledger): void => {
+  for (const receipt of ledger.receipts) {
+    const page = plan.pages.find(row => row.id === receipt.caseId)
+    if (!page || receipt.inputSha256 !== page.inputSha256 || receipt.documentCaseId !== undefined && receipt.documentCaseId !== page.caseId
+      || !plan.targets.some(row => row.provider === receipt.provider && row.model === receipt.model)
+      || receipt.status === 'rejected' && receipt.chargedCents !== 0
+      || ['reserved', 'ambiguous'].includes(receipt.status) && receipt.chargedCents !== receipt.reservedCents
+      || !Number.isFinite(Date.parse(receipt.createdAt))) throw new AppValidationError('Receipt differs from approved page or target')
+  }
+}
+const assertCaseProvenance = (entry: Case, flags: CaseFlags, options: BcOcrReportOptions, profile: ReportProfile): void => {
+  const { newspapers, efg, efgCategory } = flags
+  if (entry.runDir !== `docs/benchmarks/text/ocr/${entry.id}` || entry.referenceKind === 'existing-consensus' && !entry.id.startsWith(profile.rerunPrefix)
+    || (efg ? !efgCategory : options.reportProfile === 'advertisements' ? entry.category !== 'advertisements' : entry.category !== 'technical-code' && entry.category !== 'historical-print')
+    || newspapers && (entry.category !== 'newspapers' || entry.referenceKind !== 'publisher-canonical' || !entry.id.startsWith('newspapers-expansion-') || entry.id.includes('north-star') || !entry.normalizedReference)) throw new AppValidationError('Case report destination or reference provenance is invalid')
+}
+const advertisementRegionCount = (structuredBytes: Uint8Array, entry: Case, referenceText: string): number => {
+  if (hash(structuredBytes) !== entry.structuredReferenceSha256) throw new AppValidationError('Advertisement structured-reference hash changed')
+  const structure = v.parse(advertisementReferenceSchema, JSON.parse(new TextDecoder().decode(structuredBytes)))
+  const regions = new Map(structure.regions.filter(region => !region.ignore).map(region => [region.id, region.text]))
+  const ids = structure.reviewedReadingOrder.lines.flat()
+  if (new Set(structure.regions.map(region => region.id)).size !== structure.regions.length || new Set(ids).size !== regions.size
+    || ids.length !== regions.size || ids.some(id => !regions.has(id))
+    || structure.reviewedReadingOrder.lines.map(line => line.map(id => regions.get(id)).join(' ')).join('\n') + '\n' !== referenceText) throw new AppValidationError('Advertisement region text/order differs from the publisher reference')
+  return regions.size
+}
+
+type EraItem = Record<string, unknown> & { evidenceImage: string, evidenceImageSha256: string, sourceCrop: Record<string, unknown> }
+const eraItemDiffersFromPins = (item: Record<string, unknown>, entry: Case): boolean => item['input'] !== entry.input || item['inputSha256'] !== entry.inputSha256
+  || item['canonicalReference'] !== entry.reference || item['canonicalReferenceSha256'] !== entry.referenceSha256
+  || item['printedReading'] !== 'some one' || item['frozenReferenceReading'] !== 'someone' || item['wordingInferredFromModelAgreement'] !== false
+const eraAdjudicationItem = (proof: unknown, entry: Case, localRoot: string): EraItem => {
+  if (!record(proof) || proof['kind'] !== 'ocr-newspaper-reference-adjudication-evidence' || proof['goldChangesApplied'] !== false || proof['primaryScoresChanged'] !== false || !Array.isArray(proof['entries'])) throw new AppValidationError('ERA source-spacing adjudication provenance is invalid')
+  const matches = proof['entries'].filter(value => record(value) && value['caseId'] === entry.id)
+  const item: unknown = matches[0]
+  if (matches.length !== 1 || !record(item) || eraItemDiffersFromPins(item, entry)
+    || typeof item['evidenceImage'] !== 'string' || !item['evidenceImage'].startsWith(`${localRoot}/originals/`)
+    || typeof item['evidenceImageSha256'] !== 'string' || !record(item['sourceCrop']) || !record(item['imageTransform']) || item['imageTransform']['resampling'] !== false) throw new AppValidationError('ERA source-spacing adjudication differs from the pinned input/reference')
+  return item as EraItem
+}
+const assertEraCropPixels = (source: ReturnType<typeof decodePngRgba8>, crop: ReturnType<typeof decodePngRgba8>, item: EraItem): void => {
+  const box = item['sourceCrop'], x = box['x'], y = box['y'], width = box['width'], height = box['height']
+  if (typeof x !== 'number' || typeof y !== 'number' || typeof width !== 'number' || typeof height !== 'number'
+    || ![x, y, width, height].every(Number.isSafeInteger) || x < 0 || y < 0 || width < 1 || height < 1
+    || x + width > source.width || y + height > source.height || crop.width !== width || crop.height !== height) throw new AppValidationError('ERA source-spacing evidence crop bounds changed')
+  for (let row = 0; row < height; row++) for (let column = 0; column < width * 4; column++) {
+    if (source.pixels[((y + row) * source.width + x) * 4 + column] !== crop.pixels[row * width * 4 + column]) throw new AppValidationError('ERA source-spacing evidence pixels differ from the pinned input')
+  }
+}
+
+const approvedCasePages = (plan: Plan, entry: Case, usedPages: Set<string>): Page[] => {
+  const pages = entry.pages.map(value => {
+    const found = plan.pages.find(page => page.id === (typeof value === 'string' ? value : value.id))
+    if (!found || found.caseId !== entry.id || typeof value !== 'string' && !isDeepStrictEqual(value, found) || usedPages.has(found.id)) throw new AppValidationError('Case/page membership differs from approved plan')
+    usedPages.add(found.id)
+    return found
+  }).sort((a, b) => a.pageNumber - b.pageNumber)
+  if (!pages.every((page, index) => page.pageNumber === index + 1)) throw new AppValidationError('Case page numbering must be complete and contiguous')
+  return pages
+}
+
+const journalIdentityChanged = (journal: Journal, page: Page, entry: Case, target: Target, directory: string): boolean => journal.caseId !== page.id || journal.documentCaseId !== entry.id || journal.provider !== target.provider || journal.model !== target.model
+  || journal.inputSha256 !== page.inputSha256 || journal.referenceSha256 !== entry.referenceSha256 || journal.directory !== directory
+  || !Number.isFinite(Date.parse(journal.startedAt))
+
+const savedProviderState = (manifestBytes: Uint8Array, journal: Journal, page: Page, target: Target): Record<string, unknown> & { artifactDir: string } => {
+  if (hash(manifestBytes) !== journal.manifestSha256) throw new AppValidationError('Saved page manifest checksum changed')
+  const manifest: unknown = JSON.parse(new TextDecoder().decode(manifestBytes))
+  if (!record(manifest) || manifest['command'] !== 'extract' || manifest['scope'] !== 'single' || !Array.isArray(manifest['items']) || manifest['items'].length !== 1) throw new AppValidationError('Invalid saved page manifest')
+  const item: unknown = manifest['items'][0]
+  if (!record(item) || item['extractRoute'] !== 'document' || !record(item['metadata']) || !record(item['metadata']['source'])
+    || item['metadata']['source']['filePath'] !== page.input || !Array.isArray(item['providers']) || item['providers'].length !== 1) throw new AppValidationError('Saved page source differs from approved image')
+  const state: unknown = item['providers'][0]
+  if (!record(state) || state['service'] !== target.provider || state['model'] !== target.model || state['status'] !== journal.status || typeof state['artifactDir'] !== 'string') throw new AppValidationError('Saved page provider differs from journal')
+  return state as Record<string, unknown> & { artifactDir: string }
+}
+
+const singlePageText = (result: unknown, state: Record<string, unknown>, target: Target, entry: Case, flags: CaseFlags): string => {
+  if (!record(result) || !Array.isArray(result['pages']) || result['pages'].length !== 1 || !record(result['pages'][0])
+    || !(result['pages'][0]['pageNumber'] === 1 || target.provider === 'mistral' && result['pages'][0]['pageNumber'] === 0)
+    || typeof result['pages'][0]['text'] !== 'string' || !flags.efg && entry.category !== 'advertisements' && !result['pages'][0]['text'].trim()) throw new AppValidationError('Successful saved result lacks exactly one nonempty page')
+  if (flags.newspapers) assertNewspaperOcrResultComplete(result, state['metadata'])
+  // Mistral OCR returns zero-based page indices. This single-page adapter only
+  // reads the text; assembled page numbers always come from the approved plan.
+  return result['pages'][0]['text']
+}
+
+const caseInputFamily = (entry: Case, efg: boolean, pages: readonly Page[]): 'original-image' | 'pinned-rendered-pages' =>
+  entry.category === 'advertisements' || efg && pages.every(page => page.input === entry.input) ? 'original-image' : 'pinned-rendered-pages'
+
+const providerCoverageStatus = (savedPages: readonly SavedPage[]): SavedPage['status'] => savedPages.every(page => page.status === 'succeeded') ? 'succeeded' : savedPages.some(page => page.status === 'running') ? 'running'
+  : savedPages.some(page => page.status === 'missing') ? 'missing' : 'failed'
+
+const assembleProvider = (entry: Case, efg: boolean, target: Target, savedPages: SavedPage[], pages: readonly Page[]): PreparedProvider => {
+  const receipts = savedPages.flatMap(page => page.receipts)
+  const spending = summarizeBcOcrReceipts(receipts)
+  const status = providerCoverageStatus(savedPages)
+  const resultPages = savedPages.filter(page => page.status === 'succeeded').map(page => ({ pageNumber: page.page.pageNumber, method: 'ocr', text: page.text! }))
+  const result = status === 'succeeded' ? { text: resultPages.some(page => page.text.trim()) ? resultPages.map(page => `--- Page ${page.pageNumber} ---\n${page.text}`).join('\n\n') : '', pages: resultPages, totalPages: pages.length, ocrPages: pages.length, textPages: 0 } : undefined
+  const timeComplete = savedPages.every(page => page.processingTimeMs !== undefined)
+  const state = { service: target.provider, model: target.model, local: target.provider === 'tesseract', artifactDir: bcOcrReportArtifactDir(target.provider, target.model), status,
+    attempts: savedPages.length, options: {}, metadata: { totalPages: pages.length, ocrPages: resultPages.length, textPages: 0, inputFamily: caseInputFamily(entry, efg, pages),
+      ...(timeComplete ? { processingTime: savedPages.reduce((sum, page) => sum + page.processingTimeMs!, 0) } : {}),
+      completedPages: resultPages.length, failedPages: savedPages.filter(page => page.status === 'failed').length, spending,
+      ...(savedPages.some(page => page.offlineResponseRecovery) ? { offlineResponseRecovery: savedPages.flatMap(page => page.offlineResponseRecovery ? [page.offlineResponseRecovery] : []) } : {}),
+      pageEvidence: savedPages.map(page => ({ pageId: page.page.id, pageNumber: page.page.pageNumber, status: page.status, dispatchJournal: page.journalPath,
+        ...(page.manifestSha256 ? { manifestSha256: page.manifestSha256 } : {}), ...(page.failureKind ? { failureKind: page.failureKind } : {}), httpStatus: page.receipts.at(-1)?.httpStatus ?? null })) },
+    ...(status === 'succeeded' ? {} : { error: { code: status === 'missing' || status === 'running' ? 'INCOMPLETE_PAGE_COVERAGE' : 'FAILED_PAGE_COVERAGE', message: 'No full-document quality score is assigned unless every declared page succeeds. Raw provider evidence remains private.' } }) }
+  return { target, pages: savedPages, status, receipts, state, ...(result ? { result } : {}) }
+}
+
+const caseEvaluation = (entry: Case, flags: CaseFlags, partialReference: boolean, regionCount: number | undefined, efgStructure: EfgStructure | undefined) => {
+  const { newspapers, efg, efgCategory } = flags
+  if (partialReference) return { scope: 'dataset-annotated-word-regions', officialAnnotatedWordRegions: regionCount,
+    referenceOrdering: 'Reviewed derived convention; not official TextOCR gold reading order', outputGeometryAvailable: false,
+    primaryRegionAccuracyAvailable: false, primaryQualityUnavailableReason: advertisementScopeReason,
+    fullImageReferenceExhaustive: false, secondaryDiagnostics: 'Order-independent annotated-token coverage and derived-order partial-reference WER/CER; neither is localized recognition accuracy.' }
+  if (!(efgCategory && efg)) return undefined
+  return { ...efgOcrEvaluationPolicy(efgCategory, entry.scope ?? 'archived-baseline-page', entry.referenceKind === 'publisher-canonical', efgStructure),
+    ...(entry.sourceFamily ? { sourceFamily: entry.sourceFamily } : {}), ...(entry.synthetic === undefined ? {} : { synthetic: entry.synthetic }),
+    ...(newspapers ? { lexicalNormalization: 'NFKC, declared quote/dash folding and whitespace folding applied to BOTH reference and candidate before existing OCR WER/CER normalization; raw texts preserved privately.',
+      analysisVariant: 'newspaper-reading-normalized-v1',
+      challengePanel: entry.id.includes('new-york-times') ? 'very-long-page-capacity' : entry.scope === 'full-page' ? 'whole-page-layout' : 'region-recognition' } : {}) }
+}
+
+const caseCoverage = (providers: readonly PreparedProvider[], pages: readonly Page[], spending: ReturnType<typeof summarizeBcOcrReceipts>, pending: number, partialReference: boolean) => ({
+  status: pending ? 'in-progress' : providers.some(provider => provider.status === 'failed') ? 'partial-provider-failures' : 'complete',
+  configuredModels: providers.length, attemptedModels: providers.filter(provider => provider.pages.some(page => page.status !== 'missing')).length,
+  successfulModels: providers.filter(provider => provider.status === 'succeeded').length, successfulHostedModels: providers.filter(provider => provider.target.provider !== 'tesseract' && provider.status === 'succeeded').length,
+  successfulLocalModels: providers.filter(provider => provider.target.provider === 'tesseract' && provider.status === 'succeeded').length,
+  failedModels: providers.filter(provider => provider.status === 'failed').length, pendingModels: pending, expectedPageSlots: pages.length * providers.length,
+  successfulPageSlots: providers.reduce((sum, provider) => sum + provider.pages.filter(page => page.status === 'succeeded').length, 0), spending,
+  qualityCoverage: partialReference ? advertisementScopeReason : 'Full-document headline scores require all pages. Failed and incomplete models have no invented quality score; successful page evidence remains private.' })
+
+const publisherReference = (entry: Case, newspapers: boolean, partialReference: boolean) => entry.referenceKind === 'publisher-canonical' ? { kind: 'publisher-canonical', path: newspapers ? entry.normalizedReference! : entry.reference, sha256: newspapers ? entry.normalizedReferenceSha256! : entry.referenceSha256,
+  sourceUrl: entry.annotationURL ?? entry.sourceURL, sourceRevision: entry.annotationRevision ?? entry.sourceRevision,
+  description: partialReference ? 'Independent publisher word-region text in a reviewed derived order. This is a partial image reference, not exhaustive full-image gold; text-only outputs do not establish region accuracy.' : newspapers ? 'Declared reading-normalized derivative of independently supplied publisher gold. Both candidate and reference receive the same conversion; raw diplomatic text remains separately preserved.' : 'Immutable publisher reference supplied independently of OCR outputs; its reviewed conversion policy is preserved in the prepared input bundle.' } : undefined
+
+const providerCostSteps = (providers: readonly PreparedProvider[]) => providers.flatMap(provider => {
+  const money = summarizeBcOcrReceipts(provider.receipts)
+  return provider.target.provider === 'tesseract' || provider.receipts.some(row => row.status === 'settled') || money.heldReservationCents > 0
+    ? [{ step: 'extract', provider: provider.target.provider, model: provider.target.model, cost: money.accountedCents,
+      costSource: provider.target.provider === 'tesseract' ? 'local_zero' : money.heldReservationCents > 0 || money.settledConservativeCents > 0 ? 'conservative_upper_bound' : 'provider_usage_at_reviewed_rates', costAccounting: money }] : []
+})
+
+const caseImageFormat = (entry: Case, efg: boolean, pages: readonly Page[]): string => efg ? /\.pdf$/i.test(entry.input) ? 'pdf-rendered-png' : /\.jpe?g$/i.test(pages[0]!.input) ? 'jpeg' : 'png'
+  : entry.category === 'advertisements' ? 'jpeg' : pages.length === 1 ? 'png' : 'pdf-rendered-png'
+
+interface FidelityInputs { entry: Case, flags: CaseFlags, partialReference: boolean, supplementalReference: string, readingReferenceText: string | undefined }
+const providerPrimaryFidelity = (inputs: FidelityInputs, provider: PreparedProvider) => {
+  const { entry, flags: { efg, efgCategory }, partialReference, supplementalReference, readingReferenceText } = inputs
+  if (entry.category === 'advertisements') return partialReference
+    ? scoreAnnotatedTokenCoverage(supplementalReference, provider.result!.pages.map(page => page.text).join('\n\n'))
+    : { strictTextExact: canonicalLines(supplementalReference) === canonicalLines(provider.result!.pages.map(page => page.text.trim()).join('\n\n')),
+        strictCharacterErrorRate: strictRatio(canonicalLines(supplementalReference), canonicalLines(provider.result!.pages.map(page => page.text.trim()).join('\n\n'))) }
+  return efgCategory && efg ? scoreEfgOcrFidelity(supplementalReference, provider.result!.pages.map(page => entry.referenceKind === 'existing-consensus' ? page.text.trim() : page.text).join('\n\n'), efgCategory, bcExactCharacterDistance, readingReferenceText)
+    : scoreBcOcrFidelity(supplementalReference, provider.result!.pages.map(page => entry.referenceKind === 'existing-consensus' ? page.text.trim() : page.text).join('\n\n'), entry.category === 'historical-print' ? 'historical-print' : 'technical-code')
+}
+const providerFidelity = (inputs: FidelityInputs, provider: PreparedProvider) => {
+  const { entry, flags: { newspapers }, supplementalReference } = inputs
+  return { providerKey: `${provider.target.provider}/${provider.target.model}`, provider: provider.target.provider, model: provider.target.model,
+    ...providerPrimaryFidelity(inputs, provider),
+    ...(newspapers ? { tokenMultiset: scoreNewspaperTokenMultiset(supplementalReference, provider.result!.pages.map(page => page.text).join('\n\n')) } : {}),
+    ...(newspapers ? { repetition: scoreNewspaperRepetition(supplementalReference, provider.result!.pages.map(page => page.text).join('\n\n')) } : {}),
+    ...(newspapers && entry.id === 'newspapers-expansion-bln-era-burglars' ? { sourceSpacingConvention: scoreNewspaperSpacingConvention(entry.id, supplementalReference, provider.result!.pages.map(page => page.text).join('\n\n')) } : {}) }
+}
+
+const fidelityKind = (entry: Case, efg: boolean): string => entry.category === 'advertisements' ? 'ocr-advertisement-evaluation-diagnostics' : efg ? 'ocr-categories-efg-evaluation-diagnostics' : 'ocr-category-fidelity-metrics'
+const caseFidelityDetails = (entry: Case, newspapers: boolean, partialReference: boolean, referenceAdjudication: Record<string, unknown> | undefined, evaluation: ReturnType<typeof caseEvaluation>) => ({
+  ...(newspapers ? { literalReference: { path: entry.reference, sha256: entry.referenceSha256 }, literalCandidateSource: 'Original saved per-page outputs, before reading normalization; no source or provider wording is rewritten.' } : {}),
+  ...(referenceAdjudication ? { sourceReferenceAdjudication: referenceAdjudication } : {}),
+  headlineMetric: partialReference ? advertisementScopeReason : 'The standard report uses lexical-normalized WER/CER. These separate fidelity diagnostics preserve punctuation, case, glyphs and formatting.',
+  ...(evaluation ? { evaluation } : {}),
+  pageBoundaryPolicy: entry.referenceKind === 'existing-consensus' ? 'The archived consensus parser removes page wrappers and trims page edges; candidate page edges receive the same treatment before strict diagnostics.' : 'The exact single-page reference and saved page text retain their whitespace apart from line-ending/final-newline convention.' })
+
+interface ManifestParts {
+  entry: Case, newspapers: boolean, profile: ReportProfile, plan: Plan, pages: readonly Page[], providers: readonly PreparedProvider[], privateDirectory: string, ledgerPath: string, localRoot: string
+  publisher: ReturnType<typeof publisherReference>, reference: object, coverage: ReturnType<typeof caseCoverage>, evaluation: ReturnType<typeof caseEvaluation>
+  spending: ReturnType<typeof summarizeBcOcrReceipts>, costSteps: ReturnType<typeof providerCostSteps>, timingSteps: ReturnType<typeof providerTimingSteps>, inputFamily: string, format: string
+}
+const caseManifest = (parts: ManifestParts) => {
+  const { entry, newspapers, profile, plan, pages, providers, privateDirectory, ledgerPath, localRoot, publisher, reference, coverage, evaluation, spending, costSteps, timingSteps, inputFamily, format } = parts
+  return { command: 'extract', scope: 'single', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), ...(publisher ? { reference: publisher } : {}),
+    source: { kind: profile.sourceKind, sourceRunDir: privateDirectory, execution: `${localRoot}/execution.json`, spendingLedger: ledgerPath, reference, coverage,
+      ...(newspapers ? { originalCanonicalReference: { path: entry.reference, sha256: entry.referenceSha256 }, analysisVariant: 'newspaper-reading-normalized-v1' } : {}),
+      protocol: profile.protocol, ...(evaluation ? { evaluation } : {}), providerResultsPublished: false },
+    items: [{ input: entry.input, inputFamily, extractRoute: 'document', outputDir: '.', status: coverage.status === 'complete' ? 'full' : 'incomplete',
+      metadata: { step1: { title: entry.id, slug: entry.id, pageCount: pages.length, format }, source: { filePath: entry.input }, coverage,
+        ...(evaluation ? { evaluation } : {}),
+        resolvedStep2: { route: 'ocr', sourceKind: inputFamily, providers: plan.targets.map(target => ({ service: target.provider, model: target.model })) },
+        cost: { actual: { totalCost: spending.accountedCents, steps: costSteps }, accounting: spending, totalCostPolicy: 'Cumulative accounted cents include settled retry costs and retained reservations; these are not invoice-reconciled charges.' },
+        timing: { actual: { totalProcessingTimeMs: timingSteps.reduce((sum, step) => sum + step.processingTimeMs, 0), steps: timingSteps } },
+        step2: providers.filter(provider => provider.status === 'succeeded').map(provider => provider.state['metadata']) }, providers: providers.map(provider => provider.state) }] }
+}
+
+const finiteProcessingTime = (metadata: unknown): number | undefined => record(metadata) && typeof metadata['processingTime'] === 'number' && Number.isFinite(metadata['processingTime']) && metadata['processingTime'] >= 0 ? metadata['processingTime'] : undefined
+const efgProvenanceMissing = (entry: Case, efgCategory: CaseFlags['efgCategory']): boolean => !efgCategory || !entry.scope || !['full-page', 'region-crop'].includes(entry.scope) || !entry.serializationPolicy || !entry.structuredReference || !entry.structuredReferenceSha256
+const journalPinsIncomplete = (journal: Journal): boolean => !journal.artifactHashes?.length || new Set(journal.artifactHashes.map(pin => pin.path)).size !== journal.artifactHashes.length
+const providerTimingSteps = (providers: readonly PreparedProvider[]) => providers.filter(provider => provider.status === 'succeeded' && typeof (provider.state['metadata'] as Record<string, unknown>)['processingTime'] === 'number').map(provider => ({ step: 'extract', provider: provider.target.provider, model: provider.target.model, processingTimeMs: (provider.state['metadata'] as Record<string, number>)['processingTime']! }))
+
+const caseMetadataDetails = (entry: Case, newspapers: boolean, pages: readonly Page[], evaluation: ReturnType<typeof caseEvaluation>) => ({
+  ...(newspapers ? { originalCanonicalReference: { path: entry.reference, sha256: entry.referenceSha256 }, analysisVariant: 'newspaper-reading-normalized-v1' } : {}),
+  ...(entry.rights ? { rights: entry.rights } : {}), ...(entry.attribution ? { attribution: entry.attribution } : {}),
+  ...(evaluation ? { evaluation } : {}), ...(entry.structuredReference ? { structuredReference: { path: entry.structuredReference, sha256: entry.structuredReferenceSha256 } } : {}),
+  ...(entry.normalizedReference ? { normalizedReference: { path: entry.normalizedReference, sha256: entry.normalizedReferenceSha256 } } : {}),
+  ...(entry.readingReference ? { readingReference: { path: entry.readingReference, sha256: entry.readingReferenceSha256 } } : {}),
+  ...(entry.serializationPolicy ? { serializationPolicy: entry.serializationPolicy } : {}),
+  ...(entry.scope ? { scope: entry.scope } : {}), ...(entry.sourceFamily ? { sourceFamily: entry.sourceFamily } : {}), ...(entry.synthetic === undefined ? {} : { synthetic: entry.synthetic }),
+  pageInputs: pages.map(page => ({ id: page.id, path: page.input, sha256: page.inputSha256, width: page.width, height: page.height })) })
+
 const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => {
   const profile = reportProfiles[options.reportProfile ?? 'bc']
   const localRoot = profile.localRoot
@@ -323,29 +551,17 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
   if (plan.kind !== profile.planKind || plan.approval.budgetCents !== profile.budgetCents || plan.approval.evidence !== profile.approvalEvidence
     || ledger.kind !== profile.ledgerKind || ledger.budgetCents !== profile.budgetCents) throw new AppValidationError('Plan or ledger differs from the selected report profile')
   if (hash(await bytes(planPath)) !== ledger.planSha256) throw new AppValidationError('Execution plan differs from spending-ledger authorization')
-  if (new Set(plan.cases.map(row => row.id)).size !== plan.cases.length || new Set(plan.pages.map(row => row.id)).size !== plan.pages.length
-    || new Set(plan.targets.map(row => `${row.provider}/${row.model}`)).size !== plan.targets.length
-    || plan.targets.filter(row => row.provider === 'tesseract' && row.model === 'tesseract').length !== 1
-    || new Set(ledger.receipts.map(row => row.id)).size !== ledger.receipts.length) throw new AppValidationError('Duplicate or invalid batch identities')
-  if (options.buildCaseIds && (options.reportProfile !== 'newspapers' || !options.buildCaseIds.length || new Set(options.buildCaseIds).size !== options.buildCaseIds.length
-    || options.buildCaseIds.some(id => !plan.cases.some(entry => entry.id === id)))) throw new AppValidationError('Report rebuild filter must name distinct authorized cases')
-  for (const receipt of ledger.receipts) {
-    const page = plan.pages.find(row => row.id === receipt.caseId)
-    if (!page || receipt.inputSha256 !== page.inputSha256 || receipt.documentCaseId !== undefined && receipt.documentCaseId !== page.caseId
-      || !plan.targets.some(row => row.provider === receipt.provider && row.model === receipt.model)
-      || receipt.status === 'rejected' && receipt.chargedCents !== 0
-      || ['reserved', 'ambiguous'].includes(receipt.status) && receipt.chargedCents !== receipt.reservedCents
-      || !Number.isFinite(Date.parse(receipt.createdAt))) throw new AppValidationError('Receipt differs from approved page or target')
-  }
+  assertBatchIdentities(plan, ledger)
+  assertRebuildFilter(options, plan)
+  assertReceiptsMatchPlan(plan, ledger)
   const prepared = []
   const usedPages = new Set<string>()
   for (const entry of plan.cases) {
     const newspapers = options.reportProfile === 'newspapers'
     const efg = options.reportProfile === 'efg' || newspapers
     const efgCategory = entry.category === 'numeric-tables' || entry.category === 'handwriting' || entry.category === 'newspapers' ? entry.category : undefined
-    if (entry.runDir !== `docs/benchmarks/text/ocr/${entry.id}` || entry.referenceKind === 'existing-consensus' && !entry.id.startsWith(profile.rerunPrefix)
-      || (efg ? !efgCategory : options.reportProfile === 'advertisements' ? entry.category !== 'advertisements' : entry.category !== 'technical-code' && entry.category !== 'historical-print')
-      || newspapers && (entry.category !== 'newspapers' || entry.referenceKind !== 'publisher-canonical' || !entry.id.startsWith('newspapers-expansion-') || entry.id.includes('north-star') || !entry.normalizedReference)) throw new AppValidationError('Case report destination or reference provenance is invalid')
+    const flags: CaseFlags = { newspapers, efg, efgCategory }
+    assertCaseProvenance(entry, flags, options, profile)
     if (hash(await bytes(entry.input)) !== entry.inputSha256 || hash(await bytes(entry.reference)) !== entry.referenceSha256) throw new AppValidationError(`Source/reference hash changed: ${entry.id}`)
     const referenceText = new TextDecoder('utf-8', { fatal: true }).decode(await bytes(entry.reference))
     if (!referenceText.trim()) throw new AppValidationError('Reference text is empty')
@@ -354,14 +570,7 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
     if (partialReference) {
       if (entry.evaluationScope !== 'dataset-annotated-word-regions' || !entry.structuredReference || !entry.structuredReferenceSha256) throw new AppValidationError('Advertisement annotation scope/provenance is missing')
       const structuredBytes = await bytes(entry.structuredReference)
-      if (hash(structuredBytes) !== entry.structuredReferenceSha256) throw new AppValidationError('Advertisement structured-reference hash changed')
-      const structure = v.parse(advertisementReferenceSchema, JSON.parse(new TextDecoder().decode(structuredBytes)))
-      const regions = new Map(structure.regions.filter(region => !region.ignore).map(region => [region.id, region.text]))
-      const ids = structure.reviewedReadingOrder.lines.flat()
-      if (new Set(structure.regions.map(region => region.id)).size !== structure.regions.length || new Set(ids).size !== regions.size
-        || ids.length !== regions.size || ids.some(id => !regions.has(id))
-        || structure.reviewedReadingOrder.lines.map(line => line.map(id => regions.get(id)).join(' ')).join('\n') + '\n' !== referenceText) throw new AppValidationError('Advertisement region text/order differs from the publisher reference')
-      regionCount = regions.size
+      regionCount = advertisementRegionCount(structuredBytes, entry, referenceText)
     }
     if (entry.normalizedReference) {
       const normalized = await bytes(entry.normalizedReference)
@@ -371,10 +580,10 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
     let readingReferenceText: string | undefined
     let efgStructure: ReturnType<typeof validateEfgOcrStructure> | undefined
     if (efg && entry.referenceKind === 'publisher-canonical') {
-      if (!efgCategory || !entry.scope || !['full-page', 'region-crop'].includes(entry.scope) || !entry.serializationPolicy || !entry.structuredReference || !entry.structuredReferenceSha256) throw new AppValidationError('EFG reference scope/serialization provenance is missing')
-      const structureBytes = await bytes(entry.structuredReference)
+      if (efgProvenanceMissing(entry, efgCategory)) throw new AppValidationError('EFG reference scope/serialization provenance is missing')
+      const structureBytes = await bytes(entry.structuredReference!)
       if (hash(structureBytes) !== entry.structuredReferenceSha256) throw new AppValidationError('EFG structured-reference hash changed')
-      efgStructure = validateEfgOcrStructure(efgCategory, JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(structureBytes)), referenceText)
+      efgStructure = validateEfgOcrStructure(efgCategory!, JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(structureBytes)), referenceText)
       if (efgCategory === 'newspapers' && !entry.normalizedReference || efgStructure.referenceStructureKind === 'reviewed-manuscript' && !entry.readingReference) throw new AppValidationError('Declared historical/manuscript companion reference is missing')
     }
     if (entry.readingReference) {
@@ -387,34 +596,15 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
     let referenceAdjudication: Record<string, unknown> | undefined
     if (newspapers && includeFidelity && entry.id === 'newspapers-expansion-bln-era-burglars') {
       const path = `${localRoot}/reference-adjudication-evidence.json`, proofBytes = await bytes(path), proof: unknown = JSON.parse(new TextDecoder().decode(proofBytes))
-      if (!record(proof) || proof['kind'] !== 'ocr-newspaper-reference-adjudication-evidence' || proof['goldChangesApplied'] !== false || proof['primaryScoresChanged'] !== false || !Array.isArray(proof['entries'])) throw new AppValidationError('ERA source-spacing adjudication provenance is invalid')
-      const matches = proof['entries'].filter(value => record(value) && value['caseId'] === entry.id)
-      const item: unknown = matches[0]
-      if (matches.length !== 1 || !record(item) || item['input'] !== entry.input || item['inputSha256'] !== entry.inputSha256
-        || item['canonicalReference'] !== entry.reference || item['canonicalReferenceSha256'] !== entry.referenceSha256
-        || item['printedReading'] !== 'some one' || item['frozenReferenceReading'] !== 'someone' || item['wordingInferredFromModelAgreement'] !== false
-        || typeof item['evidenceImage'] !== 'string' || !item['evidenceImage'].startsWith(`${localRoot}/originals/`)
-        || typeof item['evidenceImageSha256'] !== 'string' || !record(item['sourceCrop']) || !record(item['imageTransform']) || item['imageTransform']['resampling'] !== false) throw new AppValidationError('ERA source-spacing adjudication differs from the pinned input/reference')
+      const item = eraAdjudicationItem(proof, entry, localRoot)
       const evidenceBytes = await bytes(item['evidenceImage'])
       if (hash(evidenceBytes) !== item['evidenceImageSha256']) throw new AppValidationError('ERA source-spacing evidence image checksum changed')
       const source = decodePngRgba8(await bytes(entry.input)), crop = decodePngRgba8(evidenceBytes)
-      const box = item['sourceCrop'], x = box['x'], y = box['y'], width = box['width'], height = box['height']
-      if (typeof x !== 'number' || typeof y !== 'number' || typeof width !== 'number' || typeof height !== 'number'
-        || ![x, y, width, height].every(Number.isSafeInteger) || x < 0 || y < 0 || width < 1 || height < 1
-        || x + width > source.width || y + height > source.height || crop.width !== width || crop.height !== height) throw new AppValidationError('ERA source-spacing evidence crop bounds changed')
-      for (let row = 0; row < height; row++) for (let column = 0; column < width * 4; column++) {
-        if (source.pixels[((y + row) * source.width + x) * 4 + column] !== crop.pixels[row * width * 4 + column]) throw new AppValidationError('ERA source-spacing evidence pixels differ from the pinned input')
-      }
+      assertEraCropPixels(source, crop, item)
       referenceAdjudication = { path, sha256: hash(proofBytes), evidenceImage: item['evidenceImage'], evidenceImageSha256: item['evidenceImageSha256'],
         policy: 'Independent visual review of a pixel-identical crop of the pinned input; frozen primary gold and scores remain unchanged.' }
     }
-    const pages = entry.pages.map(value => {
-      const found = plan.pages.find(page => page.id === (typeof value === 'string' ? value : value.id))
-      if (!found || found.caseId !== entry.id || typeof value !== 'string' && !isDeepStrictEqual(value, found) || usedPages.has(found.id)) throw new AppValidationError('Case/page membership differs from approved plan')
-      usedPages.add(found.id)
-      return found
-    }).sort((a, b) => a.pageNumber - b.pageNumber)
-    if (!pages.every((page, index) => page.pageNumber === index + 1)) throw new AppValidationError('Case page numbering must be complete and contiguous')
+    const pages = approvedCasePages(plan, entry, usedPages)
     for (const page of pages) if (hash(await bytes(page.input)) !== page.inputSha256) throw new AppValidationError('Approved rendered page bytes changed')
     const providers: PreparedProvider[] = []
     for (const target of plan.targets) {
@@ -425,18 +615,16 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
         const receipts = ledger.receipts.filter(row => row.caseId === page.id && row.provider === target.provider && row.model === target.model)
         if (!await Bun.file(within(journalPath)).exists()) { savedPages.push({ page, status: 'missing', journalPath, receipts }); continue }
         const journal = v.parse(journalSchema, await readJson(journalPath))
-        if (journal.caseId !== page.id || journal.documentCaseId !== entry.id || journal.provider !== target.provider || journal.model !== target.model
-          || journal.inputSha256 !== page.inputSha256 || journal.referenceSha256 !== entry.referenceSha256 || journal.directory !== directory
-          || !Number.isFinite(Date.parse(journal.startedAt))) throw new AppValidationError('Page dispatch journal identity changed')
+        if (journalIdentityChanged(journal, page, entry, target, directory)) throw new AppValidationError('Page dispatch journal identity changed')
         if (newspapers && journal.status !== 'dispatch-started') {
-          if (!journal.artifactHashes?.length || new Set(journal.artifactHashes.map(pin => pin.path)).size !== journal.artifactHashes.length) throw new AppValidationError('Newspaper journal lacks unique completed artifact pins')
-          for (const pin of journal.artifactHashes) {
+          if (journalPinsIncomplete(journal)) throw new AppValidationError('Newspaper journal lacks unique completed artifact pins')
+          for (const pin of journal.artifactHashes!) {
             portable(pin.path)
             if (!pin.path.startsWith(`${directory}/`) || hash(await bytes(pin.path)) !== pin.sha256) throw new AppValidationError('Saved newspaper artifact checksum changed')
           }
           for (const name of ['manifest.json', 'result.json', 'failure.txt']) {
             const path = `${directory}/${name}`
-            if (await Bun.file(within(path)).exists() && !journal.artifactHashes.some(pin => pin.path === path)) throw new AppValidationError('Saved newspaper result or failure evidence is not journal-pinned')
+            if (await Bun.file(within(path)).exists() && !journal.artifactHashes!.some(pin => pin.path === path)) throw new AppValidationError('Saved newspaper result or failure evidence is not journal-pinned')
           }
         }
         const status = journal.status === 'dispatch-started' ? 'running' : journal.status
@@ -448,14 +636,7 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
           savedPages.push({ page, status, journalPath, receipts, ...(failureKind ? { failureKind } : {}) }); continue
         }
         const manifestBytes = await bytes(`${directory}/manifest.json`)
-        if (hash(manifestBytes) !== journal.manifestSha256) throw new AppValidationError('Saved page manifest checksum changed')
-        const manifest: unknown = JSON.parse(new TextDecoder().decode(manifestBytes))
-        if (!record(manifest) || manifest['command'] !== 'extract' || manifest['scope'] !== 'single' || !Array.isArray(manifest['items']) || manifest['items'].length !== 1) throw new AppValidationError('Invalid saved page manifest')
-        const item: unknown = manifest['items'][0]
-        if (!record(item) || item['extractRoute'] !== 'document' || !record(item['metadata']) || !record(item['metadata']['source'])
-          || item['metadata']['source']['filePath'] !== page.input || !Array.isArray(item['providers']) || item['providers'].length !== 1) throw new AppValidationError('Saved page source differs from approved image')
-        const state: unknown = item['providers'][0]
-        if (!record(state) || state['service'] !== target.provider || state['model'] !== target.model || state['status'] !== journal.status || typeof state['artifactDir'] !== 'string') throw new AppValidationError('Saved page provider differs from journal')
+        const state = savedProviderState(manifestBytes, journal, page, target)
         const artifact = state['artifactDir'] === '.' ? directory : `${directory}/${state['artifactDir']}`
         await existing(artifact)
         let result: unknown = state['result']
@@ -467,13 +648,7 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
         let pageText: string | undefined
         let offlineResponseRecovery: Awaited<ReturnType<typeof admitEfgOfflineReplayArtifact>> | undefined
         if (status === 'succeeded') {
-          if (!record(result) || !Array.isArray(result['pages']) || result['pages'].length !== 1 || !record(result['pages'][0])
-            || !(result['pages'][0]['pageNumber'] === 1 || target.provider === 'mistral' && result['pages'][0]['pageNumber'] === 0)
-            || typeof result['pages'][0]['text'] !== 'string' || !efg && entry.category !== 'advertisements' && !result['pages'][0]['text'].trim()) throw new AppValidationError('Successful saved result lacks exactly one nonempty page')
-          if (newspapers) assertNewspaperOcrResultComplete(result, state['metadata'])
-          // Mistral OCR returns zero-based page indices. This single-page adapter only
-          // reads the text; assembled page numbers always come from the approved plan.
-          pageText = result['pages'][0]['text']
+          pageText = singlePageText(result, state, target, entry, flags)
           if (journal.offlineResponseReview) {
             if (!efg || target.provider !== 'grok' || target.model !== 'grok-4.7' || !record(state['metadata'])) throw new AppValidationError('Offline response review is outside its approved EFG Grok scope')
             offlineResponseRecovery = await admitEfgOfflineReplayArtifact(journal, pageText, state['metadata']['processingTime'], root)
@@ -481,103 +656,36 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
           } else if (target.provider !== 'tesseract' && !receipts.some(row => row.status === 'settled' && Date.parse(row.createdAt) >= Date.parse(journal.startedAt))) throw new AppValidationError(`Successful page has no settled current-attempt receipt: ${page.id}/${target.provider}/${target.model}; live inspection may require a fresh stable snapshot`)
         }
         const metadata = state['metadata']
-        const processingTimeMs = record(metadata) && typeof metadata['processingTime'] === 'number' && Number.isFinite(metadata['processingTime']) && metadata['processingTime'] >= 0 ? metadata['processingTime'] : undefined
+        const processingTimeMs = finiteProcessingTime(metadata)
         savedPages.push({ page, status, journalPath, manifestSha256: journal.manifestSha256, ...(pageText === undefined ? {} : { text: pageText }), ...(processingTimeMs === undefined ? {} : { processingTimeMs }), receipts,
           ...(newspapers && status === 'failed' ? { failureKind: classifyNewspaperOcrFailure(state['error']) } : {}),
           ...(offlineResponseRecovery ? { offlineResponseRecovery } : {}) })
       }
-      const receipts = savedPages.flatMap(page => page.receipts)
-      const spending = summarizeBcOcrReceipts(receipts)
-      const status = savedPages.every(page => page.status === 'succeeded') ? 'succeeded' : savedPages.some(page => page.status === 'running') ? 'running'
-        : savedPages.some(page => page.status === 'missing') ? 'missing' : 'failed'
-      const resultPages = savedPages.filter(page => page.status === 'succeeded').map(page => ({ pageNumber: page.page.pageNumber, method: 'ocr', text: page.text! }))
-      const result = status === 'succeeded' ? { text: resultPages.some(page => page.text.trim()) ? resultPages.map(page => `--- Page ${page.pageNumber} ---\n${page.text}`).join('\n\n') : '', pages: resultPages, totalPages: pages.length, ocrPages: pages.length, textPages: 0 } : undefined
-      const timeComplete = savedPages.every(page => page.processingTimeMs !== undefined)
-      const state = { service: target.provider, model: target.model, local: target.provider === 'tesseract', artifactDir: bcOcrReportArtifactDir(target.provider, target.model), status,
-        attempts: savedPages.length, options: {}, metadata: { totalPages: pages.length, ocrPages: resultPages.length, textPages: 0, inputFamily: entry.category === 'advertisements' || efg && pages.every(page => page.input === entry.input) ? 'original-image' : 'pinned-rendered-pages',
-          ...(timeComplete ? { processingTime: savedPages.reduce((sum, page) => sum + page.processingTimeMs!, 0) } : {}),
-          completedPages: resultPages.length, failedPages: savedPages.filter(page => page.status === 'failed').length, spending,
-          ...(savedPages.some(page => page.offlineResponseRecovery) ? { offlineResponseRecovery: savedPages.flatMap(page => page.offlineResponseRecovery ? [page.offlineResponseRecovery] : []) } : {}),
-          pageEvidence: savedPages.map(page => ({ pageId: page.page.id, pageNumber: page.page.pageNumber, status: page.status, dispatchJournal: page.journalPath,
-            ...(page.manifestSha256 ? { manifestSha256: page.manifestSha256 } : {}), ...(page.failureKind ? { failureKind: page.failureKind } : {}), httpStatus: page.receipts.at(-1)?.httpStatus ?? null })) },
-        ...(status === 'succeeded' ? {} : { error: { code: status === 'missing' || status === 'running' ? 'INCOMPLETE_PAGE_COVERAGE' : 'FAILED_PAGE_COVERAGE', message: 'No full-document quality score is assigned unless every declared page succeeds. Raw provider evidence remains private.' } }) }
-      providers.push({ target, pages: savedPages, status, receipts, state, ...(result ? { result } : {}) })
+      providers.push(assembleProvider(entry, efg, target, savedPages, pages))
     }
     const receipts = providers.flatMap(provider => provider.receipts)
     const spending = summarizeBcOcrReceipts(receipts)
     const pending = providers.filter(provider => ['missing', 'running'].includes(provider.status)).length
-    const evaluation = partialReference ? { scope: 'dataset-annotated-word-regions', officialAnnotatedWordRegions: regionCount,
-      referenceOrdering: 'Reviewed derived convention; not official TextOCR gold reading order', outputGeometryAvailable: false,
-      primaryRegionAccuracyAvailable: false, primaryQualityUnavailableReason: advertisementScopeReason,
-      fullImageReferenceExhaustive: false, secondaryDiagnostics: 'Order-independent annotated-token coverage and derived-order partial-reference WER/CER; neither is localized recognition accuracy.' }
-      : efgCategory && efg ? { ...efgOcrEvaluationPolicy(efgCategory, entry.scope ?? 'archived-baseline-page', entry.referenceKind === 'publisher-canonical', efgStructure),
-        ...(entry.sourceFamily ? { sourceFamily: entry.sourceFamily } : {}), ...(entry.synthetic === undefined ? {} : { synthetic: entry.synthetic }),
-        ...(newspapers ? { lexicalNormalization: 'NFKC, declared quote/dash folding and whitespace folding applied to BOTH reference and candidate before existing OCR WER/CER normalization; raw texts preserved privately.',
-          analysisVariant: 'newspaper-reading-normalized-v1',
-          challengePanel: entry.id.includes('new-york-times') ? 'very-long-page-capacity' : entry.scope === 'full-page' ? 'whole-page-layout' : 'region-recognition' } : {}) } : undefined
-    const coverage = { status: pending ? 'in-progress' : providers.some(provider => provider.status === 'failed') ? 'partial-provider-failures' : 'complete',
-      configuredModels: providers.length, attemptedModels: providers.filter(provider => provider.pages.some(page => page.status !== 'missing')).length,
-      successfulModels: providers.filter(provider => provider.status === 'succeeded').length, successfulHostedModels: providers.filter(provider => provider.target.provider !== 'tesseract' && provider.status === 'succeeded').length,
-      successfulLocalModels: providers.filter(provider => provider.target.provider === 'tesseract' && provider.status === 'succeeded').length,
-      failedModels: providers.filter(provider => provider.status === 'failed').length, pendingModels: pending, expectedPageSlots: pages.length * providers.length,
-      successfulPageSlots: providers.reduce((sum, provider) => sum + provider.pages.filter(page => page.status === 'succeeded').length, 0), spending,
-      qualityCoverage: partialReference ? advertisementScopeReason : 'Full-document headline scores require all pages. Failed and incomplete models have no invented quality score; successful page evidence remains private.' }
+    const evaluation = caseEvaluation(entry, flags, partialReference, regionCount, efgStructure)
+    const coverage = caseCoverage(providers, pages, spending, pending, partialReference)
     const privateDirectory = `${localRoot}/benchmark-runs/${entry.id}`
-    const publisher = entry.referenceKind === 'publisher-canonical' ? { kind: 'publisher-canonical', path: newspapers ? entry.normalizedReference! : entry.reference, sha256: newspapers ? entry.normalizedReferenceSha256! : entry.referenceSha256,
-      sourceUrl: entry.annotationURL ?? entry.sourceURL, sourceRevision: entry.annotationRevision ?? entry.sourceRevision,
-      description: partialReference ? 'Independent publisher word-region text in a reviewed derived order. This is a partial image reference, not exhaustive full-image gold; text-only outputs do not establish region accuracy.' : newspapers ? 'Declared reading-normalized derivative of independently supplied publisher gold. Both candidate and reference receive the same conversion; raw diplomatic text remains separately preserved.' : 'Immutable publisher reference supplied independently of OCR outputs; its reviewed conversion policy is preserved in the prepared input bundle.' } : undefined
+    const publisher = publisherReference(entry, newspapers, partialReference)
     const reference = publisher ?? { kind: 'existing-consensus', path: entry.reference, sha256: entry.referenceSha256,
       sourceUrl: entry.sourceURL, sourceRevision: entry.sourceRevision, independentOfProviders: false, description: 'Existing archived multi-provider consensus, copied byte for byte; this baseline is not independent publisher gold.' }
-    const costSteps = providers.flatMap(provider => {
-      const money = summarizeBcOcrReceipts(provider.receipts)
-      return provider.target.provider === 'tesseract' || provider.receipts.some(row => row.status === 'settled') || money.heldReservationCents > 0
-        ? [{ step: 'extract', provider: provider.target.provider, model: provider.target.model, cost: money.accountedCents,
-          costSource: provider.target.provider === 'tesseract' ? 'local_zero' : money.heldReservationCents > 0 || money.settledConservativeCents > 0 ? 'conservative_upper_bound' : 'provider_usage_at_reviewed_rates', costAccounting: money }] : []
-    })
-    const timingSteps = providers.filter(provider => provider.status === 'succeeded' && typeof (provider.state['metadata'] as Record<string, unknown>)['processingTime'] === 'number').map(provider => ({ step: 'extract', provider: provider.target.provider, model: provider.target.model, processingTimeMs: (provider.state['metadata'] as Record<string, number>)['processingTime']! }))
-    const inputFamily = entry.category === 'advertisements' || efg && pages.every(page => page.input === entry.input) ? 'original-image' : 'pinned-rendered-pages'
-    const format = efg ? /\.pdf$/i.test(entry.input) ? 'pdf-rendered-png' : /\.jpe?g$/i.test(pages[0]!.input) ? 'jpeg' : 'png'
-      : entry.category === 'advertisements' ? 'jpeg' : pages.length === 1 ? 'png' : 'pdf-rendered-png'
-    const manifest = { command: 'extract', scope: 'single', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), ...(publisher ? { reference: publisher } : {}),
-      source: { kind: profile.sourceKind, sourceRunDir: privateDirectory, execution: `${localRoot}/execution.json`, spendingLedger: ledgerPath, reference, coverage,
-        ...(newspapers ? { originalCanonicalReference: { path: entry.reference, sha256: entry.referenceSha256 }, analysisVariant: 'newspaper-reading-normalized-v1' } : {}),
-        protocol: profile.protocol, ...(evaluation ? { evaluation } : {}), providerResultsPublished: false },
-      items: [{ input: entry.input, inputFamily, extractRoute: 'document', outputDir: '.', status: coverage.status === 'complete' ? 'full' : 'incomplete',
-        metadata: { step1: { title: entry.id, slug: entry.id, pageCount: pages.length, format }, source: { filePath: entry.input }, coverage,
-          ...(evaluation ? { evaluation } : {}),
-          resolvedStep2: { route: 'ocr', sourceKind: inputFamily, providers: plan.targets.map(target => ({ service: target.provider, model: target.model })) },
-          cost: { actual: { totalCost: spending.accountedCents, steps: costSteps }, accounting: spending, totalCostPolicy: 'Cumulative accounted cents include settled retry costs and retained reservations; these are not invoice-reconciled charges.' },
-          timing: { actual: { totalProcessingTimeMs: timingSteps.reduce((sum, step) => sum + step.processingTimeMs, 0), steps: timingSteps } },
-          step2: providers.filter(provider => provider.status === 'succeeded').map(provider => provider.state['metadata']) }, providers: providers.map(provider => provider.state) }] }
+    const costSteps = providerCostSteps(providers)
+    const timingSteps = providerTimingSteps(providers)
+    const inputFamily = caseInputFamily(entry, efg, pages)
+    const format = caseImageFormat(entry, efg, pages)
+    const manifest = caseManifest({ entry, newspapers, profile, plan, pages, providers, privateDirectory, ledgerPath, localRoot, publisher, reference, coverage, evaluation, spending, costSteps, timingSteps, inputFamily, format })
     const prepareFidelity = includeFidelity && (!options.buildCaseIds || options.buildCaseIds.includes(entry.id))
     const supplementalReference = prepareFidelity && entry.referenceKind === 'existing-consensus' ? parseConsensusExtraction(await existing(entry.reference)).pages.map(page => page.text).join('\n\n') : referenceText
     const diagnosticFileName = entry.category === 'advertisements' || efg ? 'evaluation-diagnostics.json' : 'fidelity-metrics.json'
-    const fidelity = prepareFidelity ? { schemaVersion: 1, kind: entry.category === 'advertisements' ? 'ocr-advertisement-evaluation-diagnostics' : efg ? 'ocr-categories-efg-evaluation-diagnostics' : 'ocr-category-fidelity-metrics', caseId: entry.id, category: entry.category, reference,
-      ...(newspapers ? { literalReference: { path: entry.reference, sha256: entry.referenceSha256 }, literalCandidateSource: 'Original saved per-page outputs, before reading normalization; no source or provider wording is rewritten.' } : {}),
-      ...(referenceAdjudication ? { sourceReferenceAdjudication: referenceAdjudication } : {}),
-      headlineMetric: partialReference ? advertisementScopeReason : 'The standard report uses lexical-normalized WER/CER. These separate fidelity diagnostics preserve punctuation, case, glyphs and formatting.',
-      ...(evaluation ? { evaluation } : {}),
-      pageBoundaryPolicy: entry.referenceKind === 'existing-consensus' ? 'The archived consensus parser removes page wrappers and trims page edges; candidate page edges receive the same treatment before strict diagnostics.' : 'The exact single-page reference and saved page text retain their whitespace apart from line-ending/final-newline convention.',
-      providers: providers.filter(provider => provider.status === 'succeeded').map(provider => ({ providerKey: `${provider.target.provider}/${provider.target.model}`, provider: provider.target.provider, model: provider.target.model,
-        ...(entry.category === 'advertisements' ? partialReference
-          ? scoreAnnotatedTokenCoverage(supplementalReference, provider.result!.pages.map(page => page.text).join('\n\n'))
-          : { strictTextExact: canonicalLines(supplementalReference) === canonicalLines(provider.result!.pages.map(page => page.text.trim()).join('\n\n')),
-              strictCharacterErrorRate: strictRatio(canonicalLines(supplementalReference), canonicalLines(provider.result!.pages.map(page => page.text.trim()).join('\n\n'))) }
-          : efgCategory && efg ? scoreEfgOcrFidelity(supplementalReference, provider.result!.pages.map(page => entry.referenceKind === 'existing-consensus' ? page.text.trim() : page.text).join('\n\n'), efgCategory, bcExactCharacterDistance, readingReferenceText)
-            : scoreBcOcrFidelity(supplementalReference, provider.result!.pages.map(page => entry.referenceKind === 'existing-consensus' ? page.text.trim() : page.text).join('\n\n'), entry.category === 'historical-print' ? 'historical-print' : 'technical-code')),
-        ...(newspapers ? { tokenMultiset: scoreNewspaperTokenMultiset(supplementalReference, provider.result!.pages.map(page => page.text).join('\n\n')) } : {}),
-        ...(newspapers ? { repetition: scoreNewspaperRepetition(supplementalReference, provider.result!.pages.map(page => page.text).join('\n\n')) } : {}),
-        ...(newspapers && entry.id === 'newspapers-expansion-bln-era-burglars' ? { sourceSpacingConvention: scoreNewspaperSpacingConvention(entry.id, supplementalReference, provider.result!.pages.map(page => page.text).join('\n\n')) } : {}) })) } : undefined
+    const fidelity = prepareFidelity ? { schemaVersion: 1, kind: fidelityKind(entry, efg), caseId: entry.id, category: entry.category, reference,
+      ...caseFidelityDetails(entry, newspapers, partialReference, referenceAdjudication, evaluation),
+      providers: providers.filter(provider => provider.status === 'succeeded').map(provider => providerFidelity({ entry, flags, partialReference, supplementalReference, readingReferenceText }, provider)) } : undefined
     const metadata = { schemaVersion: 1, kind: 'ocr-benchmark-case', caseId: entry.id, category: entry.category, language: 'en', pageCount: pages.length,
       input: { path: entry.input, sha256: entry.inputSha256, sourceUrl: entry.sourceURL }, reference, coverage, privateRunDir: privateDirectory, providerResultsPublished: false,
-      ...(newspapers ? { originalCanonicalReference: { path: entry.reference, sha256: entry.referenceSha256 }, analysisVariant: 'newspaper-reading-normalized-v1' } : {}),
-      ...(entry.rights ? { rights: entry.rights } : {}), ...(entry.attribution ? { attribution: entry.attribution } : {}),
-      ...(evaluation ? { evaluation } : {}), ...(entry.structuredReference ? { structuredReference: { path: entry.structuredReference, sha256: entry.structuredReferenceSha256 } } : {}),
-      ...(entry.normalizedReference ? { normalizedReference: { path: entry.normalizedReference, sha256: entry.normalizedReferenceSha256 } } : {}),
-      ...(entry.readingReference ? { readingReference: { path: entry.readingReference, sha256: entry.readingReferenceSha256 } } : {}),
-      ...(entry.serializationPolicy ? { serializationPolicy: entry.serializationPolicy } : {}),
-      ...(entry.scope ? { scope: entry.scope } : {}), ...(entry.sourceFamily ? { sourceFamily: entry.sourceFamily } : {}), ...(entry.synthetic === undefined ? {} : { synthetic: entry.synthetic }),
-      pageInputs: pages.map(page => ({ id: page.id, path: page.input, sha256: page.inputSha256, width: page.width, height: page.height })) }
+      ...caseMetadataDetails(entry, newspapers, pages, evaluation) }
     prepared.push({ entry, referenceText, privateDirectory, manifest, metadata, providers, coverage, fidelity, partialReference, evaluation, diagnosticFileName, efg, newspapers })
   }
   if (usedPages.size !== plan.pages.length) throw new AppValidationError('Unassigned plan pages cannot be silently excluded')
@@ -585,6 +693,84 @@ const prepare = async (options: BcOcrReportOptions, includeFidelity = false) => 
 }
 
 export const inspectBcOcrReports = async (options: BcOcrReportOptions = {}) => (await prepare(options)).overview
+
+type PreparedContext = Awaited<ReturnType<typeof prepare>>
+type PreparedCase = PreparedContext['prepared'][number]
+type TerminalExecution = Record<string, unknown> & { slots: unknown[] }
+const assertTerminalExecutionSnapshot = (execution: unknown, context: PreparedContext, pages: readonly unknown[], missing: readonly unknown[]): TerminalExecution => {
+  if (!record(execution) || !['completed', 'completed-with-provider-failure', 'blocked-retained-evidence'].includes(String(execution['status']))
+    || execution['planSha256'] !== context.ledger.planSha256 || typeof execution['completedAt'] !== 'string' || !Number.isFinite(Date.parse(execution['completedAt']))
+    || !record(execution['lanes']) || execution['lanes']['active'] !== 0
+    || execution['intendedSlots'] !== pages.length || execution['pendingSlots'] !== missing.length || execution['completedSlots'] !== pages.length - missing.length
+    || !Array.isArray(execution['slots'])) throw new AppValidationError('Missing newspaper slots lack a matching terminal execution snapshot')
+  for (const key of ['activeByProvider', 'activeByModel']) {
+    const active = execution['lanes'][key]
+    if (!record(active) || Object.values(active).some(value => value !== 0)) throw new AppValidationError('Newspaper execution still has active provider work')
+  }
+  return execution as TerminalExecution
+}
+
+const readingNormalizedResult = (result: NonNullable<PreparedProvider['result']>): NonNullable<PreparedProvider['result']> => {
+  const pages = result.pages.map(page => ({ ...page, text: page.text.trim() ? normalizeHistoricalReference(page.text) : '' }))
+  return { ...result, pages, text: pages.some(page => page.text.trim()) ? pages.map(page => `--- Page ${page.pageNumber} ---\n${page.text}`).join('\n\n') : '' }
+}
+const caseReportNotes = (context: PreparedContext, options: BcOcrReportOptions, row: PreparedCase): string[] => ['Each declared page must succeed before a provider receives a full-document score. Partial outputs remain private and unscored in full-document rankings.',
+  row.entry.referenceKind === 'existing-consensus' ? 'Reference provenance: the existing archived multi-provider consensus is reused byte for byte; it is not independent publisher gold.' : 'Reference provenance: immutable publisher canonical text supplied independently of provider outputs.',
+  options.reportProfile === 'advertisements' || row.efg ? context.profile.protocol : 'The protocol uses pinned page PNGs for every provider, including rendered baseline PDFs. Archived original runs remain separate.',
+  'Accounted prices include settled retry usage and retained uncertain reservations; they are not invoice-reconciled charges. Any held or conservative component makes the price a conservative upper bound.',
+  row.partialReference ? advertisementScopeReason : `Supplemental ${row.diagnosticFileName} retains punctuation/case/formatting diagnostics separately from lexical-normalized headline WER.`]
+
+/** Moves ordered-reference WER/CER out of the headline metrics of a partial-reference report. */
+const withholdPartialReferenceMetrics = (report: Record<string, unknown>): Array<Record<string, unknown>> => {
+  const orderedDiagnostics: Array<Record<string, unknown>> = []
+  if (!record(report['providerGroups'])) return orderedDiagnostics
+  for (const group of Object.values(report['providerGroups'])) {
+    if (!record(group) || !Array.isArray(group['providers'])) continue
+    for (const provider of group['providers']) {
+      if (!record(provider) || !record(provider['metrics'])) throw new AppValidationError('Generated provider metrics are invalid')
+      orderedDiagnostics.push({ providerKey: provider['providerKey'], normalizedWER: provider['metrics']['wer'] ?? null,
+        normalizedCER: provider['metrics']['cer'] ?? null, werEditBreakdown: provider['werBreakdown'] ?? null, cerEditBreakdown: provider['cerBreakdown'] ?? null })
+      provider['metrics'] = { ...provider['metrics'], wer: null, cer: null, score: null }
+      provider['werBreakdown'] = null; provider['cerBreakdown'] = null
+      provider['qualityMetric'] = null; provider['qualityValue'] = null; provider['qualityLabel'] = 'Unavailable: partial reference without output geometry'
+      provider['qualityUnavailableReason'] = advertisementScopeReason
+    }
+  }
+  return orderedDiagnostics
+}
+
+const attachCostAccounting = (row: PreparedCase, report: Record<string, unknown>): void => {
+  const costLookup = new Map(row.providers.map(provider => [`${provider.target.provider}/${provider.target.model}`, summarizeBcOcrReceipts(provider.receipts)]))
+  const attach = (value: unknown): void => {
+    if (!record(value) || typeof value['providerKey'] !== 'string') return
+    const money = costLookup.get(value['providerKey'])
+    if (money) { value['costAccounting'] = money; value['costSource'] = money.heldReservationCents > 0 || money.settledConservativeCents > 0 ? 'conservative_upper_bound' : value['providerKey'] === 'tesseract/tesseract' ? 'local_zero' : 'provider_usage_at_reviewed_rates' }
+  }
+  if (record(report['providerGroups'])) for (const group of Object.values(report['providerGroups'])) if (record(group) && Array.isArray(group['providers'])) group['providers'].forEach(attach)
+  if (record(report['metricRankings'])) for (const group of Object.values(report['metricRankings'])) if (record(group) && Array.isArray(group['price'])) group['price'].forEach(attach)
+}
+
+const partialReferenceMarkdown = (markdown: string): string => markdown
+  .replace('- Ranking metric: word error rate (WER) against the independent publisher canonical reference.', `- Primary region accuracy: unavailable. ${advertisementScopeReason}`)
+  .replace('- Quality score uses WER-derived extraction accuracy, with CER retained as supporting evidence and tie-breaker context.', '- Annotated-token coverage and ordered-reference WER/CER are secondary diagnostics; they are not primary accuracy scores.')
+  .replace('- The independently supplied publisher text is the immutable gold reference; provider agreement did not determine this text.', '- Publisher word-region text is independently supplied. Its reviewed order is a derived convention, and it is not exhaustive full-image gold.')
+  .replace('- Quality Score rankings sort by the existing WER-derived provider score from highest to lowest.', '- Primary Quality Score values are unavailable for this partial-reference/text-only protocol; price and speed remain measurable.')
+  .replace(/## Error Breakdown \(WER\)[\s\S]*?(?=\n## Notes)/, `## Primary region accuracy unavailable\n\n${advertisementScopeReason}\n\n`)
+
+const annotatedCoverageSection = (row: PreparedCase): string => {
+  const headers = ['Provider', 'Annotated-token coverage', 'Matched / reference', 'Missing tokens', 'Unmatched output tokens']
+  const cells = row.fidelity!.providers.flatMap(provider => {
+    const value: Record<string, unknown> = { ...provider }
+    if (typeof value['annotatedNormalizedTokenCoverage'] !== 'number') return []
+    return [[`\`${String(value['providerKey'])}\``, `${(value['annotatedNormalizedTokenCoverage'] * 100).toFixed(2)}%`,
+      `${String(value['matchedReferenceTokens'])} / ${String(value['referenceNormalizedTokenCount'])}`,
+      String(value['missingReferenceTokens']), String(value['unmatchedCandidateTokens'])]]
+  })
+  const widths = headers.map((header, index) => Math.max(header.length, ...cells.map(cell => cell[index]!.length)))
+  const tableRow = (values: string[]) => '| ' + values.map((value, index) => value.padEnd(widths[index]!)).join(' | ') + ' |'
+  const table = [tableRow(headers), tableRow(widths.map(width => '-'.repeat(width))), ...cells.map(tableRow)].join('\n')
+  return `\n## Annotated-token coverage diagnostic\n\n${advertisementScopeReason}\n\nUnmatched output can be valid unannotated image text; the counts below are not false-positive counts. Duplicate targets count separately under the declared lexical normalization. These unranked text-presence diagnostics do not establish where a word was read.\n\n${table}\n\n[Evaluation policy and secondary ordered-text diagnostics](${row.diagnosticFileName}).\n`
+}
 
 /** Build derived results and metric-only public reports from saved artifacts; this never dispatches OCR. */
 export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
@@ -604,16 +790,8 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
     const executionPath = await realpath(context.within(`${localRoot}/execution.json`))
     const rel = relative(context.root, executionPath)
     if (isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) throw new AppValidationError('Terminal execution evidence escapes project root')
-    const execution: unknown = await Bun.file(executionPath).json()
-    if (!record(execution) || !['completed', 'completed-with-provider-failure', 'blocked-retained-evidence'].includes(String(execution['status']))
-      || execution['planSha256'] !== context.ledger.planSha256 || typeof execution['completedAt'] !== 'string' || !Number.isFinite(Date.parse(execution['completedAt']))
-      || !record(execution['lanes']) || execution['lanes']['active'] !== 0
-      || execution['intendedSlots'] !== pages.length || execution['pendingSlots'] !== missing.length || execution['completedSlots'] !== pages.length - missing.length
-      || !Array.isArray(execution['slots'])) throw new AppValidationError('Missing newspaper slots lack a matching terminal execution snapshot')
-    for (const key of ['activeByProvider', 'activeByModel']) {
-      const active = execution['lanes'][key]
-      if (!record(active) || Object.values(active).some(value => value !== 0)) throw new AppValidationError('Newspaper execution still has active provider work')
-    }
+    const snapshot: unknown = await Bun.file(executionPath).json()
+    const execution = assertTerminalExecutionSnapshot(snapshot, context, pages, missing)
     const expected = pages.filter(page => page.status !== 'missing').map(page => `${page.page.id}/${page.provider}/${page.model}/${page.status}`).sort()
     const actual = execution['slots'].map(value => record(value) ? `${String(value['caseId'])}/${String(value['provider'])}/${String(value['model'])}/${String(value['status'])}` : '').sort()
     if (!isDeepStrictEqual(actual, expected)) throw new AppValidationError('Terminal newspaper slot inventory differs from saved dispatch journals')
@@ -643,8 +821,7 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
       if (row.newspapers) {
         writeJson(`${destination}/raw-result.json`, provider.result)
         writePortableFileSync(context.within(`${destination}/raw-extraction.txt`), provider.result.text + '\n')
-        const pages = provider.result.pages.map(page => ({ ...page, text: page.text.trim() ? normalizeHistoricalReference(page.text) : '' }))
-        analysisResult = { ...provider.result, pages, text: pages.some(page => page.text.trim()) ? pages.map(page => `--- Page ${page.pageNumber} ---\n${page.text}`).join('\n\n') : '' }
+        analysisResult = readingNormalizedResult(provider.result)
       }
       writeJson(`${destination}/result.json`, analysisResult)
       writePortableFileSync(context.within(`${destination}/extraction.txt`), analysisResult.text + '\n')
@@ -671,19 +848,7 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
     if (!record(generatedReport)) throw new AppValidationError('Generated metric report is invalid')
     let report: Record<string, unknown> = generatedReport
     if (row.partialReference) {
-      const orderedDiagnostics: Array<Record<string, unknown>> = []
-      if (record(report['providerGroups'])) for (const group of Object.values(report['providerGroups'])) {
-        if (!record(group) || !Array.isArray(group['providers'])) continue
-        for (const provider of group['providers']) {
-          if (!record(provider) || !record(provider['metrics'])) throw new AppValidationError('Generated provider metrics are invalid')
-          orderedDiagnostics.push({ providerKey: provider['providerKey'], normalizedWER: provider['metrics']['wer'] ?? null,
-            normalizedCER: provider['metrics']['cer'] ?? null, werEditBreakdown: provider['werBreakdown'] ?? null, cerEditBreakdown: provider['cerBreakdown'] ?? null })
-          provider['metrics'] = { ...provider['metrics'], wer: null, cer: null, score: null }
-          provider['werBreakdown'] = null; provider['cerBreakdown'] = null
-          provider['qualityMetric'] = null; provider['qualityValue'] = null; provider['qualityLabel'] = 'Unavailable: partial reference without output geometry'
-          provider['qualityUnavailableReason'] = advertisementScopeReason
-        }
-      }
+      const orderedDiagnostics = withholdPartialReferenceMetrics(report)
       report['metric'] = 'word-region-accuracy-unavailable'
       report['scoreFormula'] = null
       report['werFormula'] = 'Secondary derived-order / partial-reference edit comparison only; candidate additions are not automatically recognition errors.'
@@ -735,19 +900,8 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
       const summaryPath = `${row.entry.runDir}/ocr-benchmark-summary.md`, summary = await Bun.file(context.within(summaryPath)).text()
       writePortableFileSync(context.within(summaryPath), `> Evaluation scope: lexical recognition against the declared page/crop reference and its reading-order convention. Table structure, branch association and page geometry are unavailable from text-only outputs. Fidelity diagnostics are separate representation comparisons.\n\n${summary.trimEnd()}\n`)
     }
-    const costLookup = new Map(row.providers.map(provider => [`${provider.target.provider}/${provider.target.model}`, summarizeBcOcrReceipts(provider.receipts)]))
-    const attach = (value: unknown): void => {
-      if (!record(value) || typeof value['providerKey'] !== 'string') return
-      const money = costLookup.get(value['providerKey'])
-      if (money) { value['costAccounting'] = money; value['costSource'] = money.heldReservationCents > 0 || money.settledConservativeCents > 0 ? 'conservative_upper_bound' : value['providerKey'] === 'tesseract/tesseract' ? 'local_zero' : 'provider_usage_at_reviewed_rates' }
-    }
-    if (record(report['providerGroups'])) for (const group of Object.values(report['providerGroups'])) if (record(group) && Array.isArray(group['providers'])) group['providers'].forEach(attach)
-    if (record(report['metricRankings'])) for (const group of Object.values(report['metricRankings'])) if (record(group) && Array.isArray(group['price'])) group['price'].forEach(attach)
-    const notes = ['Each declared page must succeed before a provider receives a full-document score. Partial outputs remain private and unscored in full-document rankings.',
-      row.entry.referenceKind === 'existing-consensus' ? 'Reference provenance: the existing archived multi-provider consensus is reused byte for byte; it is not independent publisher gold.' : 'Reference provenance: immutable publisher canonical text supplied independently of provider outputs.',
-      options.reportProfile === 'advertisements' || row.efg ? context.profile.protocol : 'The protocol uses pinned page PNGs for every provider, including rendered baseline PDFs. Archived original runs remain separate.',
-      'Accounted prices include settled retry usage and retained uncertain reservations; they are not invoice-reconciled charges. Any held or conservative component makes the price a conservative upper bound.',
-      row.partialReference ? advertisementScopeReason : `Supplemental ${row.diagnosticFileName} retains punctuation/case/formatting diagnostics separately from lexical-normalized headline WER.`]
+    attachCostAccounting(row, report)
+    const notes = caseReportNotes(context, options, row)
     report['notes'] = [...(Array.isArray(report['notes']) ? report['notes'] : []), ...notes]
     if (row.entry.category === 'advertisements' || row.efg) report['evaluationDiagnosticsPath'] = `${row.entry.runDir}/${row.diagnosticFileName}`
     else report['fidelityMetricsPath'] = `${row.entry.runDir}/${row.diagnosticFileName}`
@@ -755,26 +909,8 @@ export const buildBcOcrReports = async (options: BcOcrReportOptions = {}) => {
     writeJson(path, report)
     const markdownPath = `${row.entry.runDir}/provider-comparison-report.md`
     let markdown = await Bun.file(context.within(markdownPath)).text()
-    if (row.partialReference) markdown = markdown
-      .replace('- Ranking metric: word error rate (WER) against the independent publisher canonical reference.', `- Primary region accuracy: unavailable. ${advertisementScopeReason}`)
-      .replace('- Quality score uses WER-derived extraction accuracy, with CER retained as supporting evidence and tie-breaker context.', '- Annotated-token coverage and ordered-reference WER/CER are secondary diagnostics; they are not primary accuracy scores.')
-      .replace('- The independently supplied publisher text is the immutable gold reference; provider agreement did not determine this text.', '- Publisher word-region text is independently supplied. Its reviewed order is a derived convention, and it is not exhaustive full-image gold.')
-      .replace('- Quality Score rankings sort by the existing WER-derived provider score from highest to lowest.', '- Primary Quality Score values are unavailable for this partial-reference/text-only protocol; price and speed remain measurable.')
-      .replace(/## Error Breakdown \(WER\)[\s\S]*?(?=\n## Notes)/, `## Primary region accuracy unavailable\n\n${advertisementScopeReason}\n\n`)
-    if (row.partialReference) {
-      const headers = ['Provider', 'Annotated-token coverage', 'Matched / reference', 'Missing tokens', 'Unmatched output tokens']
-      const cells = row.fidelity.providers.flatMap(provider => {
-        const value: Record<string, unknown> = { ...provider }
-        if (typeof value['annotatedNormalizedTokenCoverage'] !== 'number') return []
-        return [[`\`${String(value['providerKey'])}\``, `${(value['annotatedNormalizedTokenCoverage'] * 100).toFixed(2)}%`,
-          `${String(value['matchedReferenceTokens'])} / ${String(value['referenceNormalizedTokenCount'])}`,
-          String(value['missingReferenceTokens']), String(value['unmatchedCandidateTokens'])]]
-      })
-      const widths = headers.map((header, index) => Math.max(header.length, ...cells.map(cell => cell[index]!.length)))
-      const tableRow = (values: string[]) => '| ' + values.map((value, index) => value.padEnd(widths[index]!)).join(' | ') + ' |'
-      const table = [tableRow(headers), tableRow(widths.map(width => '-'.repeat(width))), ...cells.map(tableRow)].join('\n')
-      markdown += `\n## Annotated-token coverage diagnostic\n\n${advertisementScopeReason}\n\nUnmatched output can be valid unannotated image text; the counts below are not false-positive counts. Duplicate targets count separately under the declared lexical normalization. These unranked text-presence diagnostics do not establish where a word was read.\n\n${table}\n\n[Evaluation policy and secondary ordered-text diagnostics](${row.diagnosticFileName}).\n`
-    }
+    if (row.partialReference) markdown = partialReferenceMarkdown(markdown)
+    if (row.partialReference) markdown += annotatedCoverageSection(row)
     if (row.efg && row.evaluation) {
       const evaluation = row.evaluation as Record<string, unknown>
       markdown += `\n## Lexical evaluation scope\n\nReference scope: ${row.entry.scope ?? 'archived baseline page'}. ${String(evaluation['referenceTextScope'])}\n\n${String(evaluation['lexicalMetricLimitation'])}\n\n${String(evaluation['structureAccuracyUnavailableReason'])}\n\n${String(evaluation['fidelityMetricLimitation'])}\n\n[Literal numeric, punctuation and alternate-reading diagnostics](${row.diagnosticFileName}) retain all source and provider text privately.\n`

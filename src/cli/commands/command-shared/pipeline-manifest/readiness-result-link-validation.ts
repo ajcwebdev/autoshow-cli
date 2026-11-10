@@ -45,6 +45,46 @@ const resolveReadinessFixture = (
   return { branchPlan, capabilityScopeHash, observationsByHash }
 }
 
+const validateCandidateReadinessPair = (
+  branchCandidate: unknown,
+  readinessCandidate: unknown,
+  seenCandidateIds: Set<string>,
+  observationsByHash: ReadonlyMap<string, Record<string, unknown>>
+): boolean | undefined => {
+  if (!isRecord(branchCandidate) || !isRecord(readinessCandidate)) return undefined
+  const branchCandidateId = branchCandidate['candidateId']
+  if (
+    typeof branchCandidateId !== 'string'
+    || seenCandidateIds.has(branchCandidateId)
+    || readinessCandidate['candidateId'] !== branchCandidateId
+    || readinessCandidate['strategy'] !== branchCandidate['strategy']
+    || canonicalManifestJson(readinessCandidate['requiredCapabilityScopeHashes']) !== canonicalManifestJson(branchCandidate['requiredCapabilityScopeHashes'])
+    || !Array.isArray(readinessCandidate['accountObservationHashes'])
+    || !Array.isArray(readinessCandidate['errors'])
+  ) return undefined
+  seenCandidateIds.add(branchCandidateId)
+  const requiredScopes = Array.isArray(branchCandidate['requiredCapabilityScopeHashes'])
+    ? branchCandidate['requiredCapabilityScopeHashes']
+    : []
+  const expectedObservationHashes = [...observationsByHash.values()]
+    .filter((observation) => requiredScopes.includes(observation['capabilityScopeHash']))
+    .map((observation) => observation['observationHash'] as string)
+    .sort((left, right) => left.localeCompare(right))
+  const actualObservationHashes = [...readinessCandidate['accountObservationHashes']]
+  if (
+    canonicalManifestJson(actualObservationHashes) !== canonicalManifestJson(expectedObservationHashes)
+    || new Set(actualObservationHashes).size !== actualObservationHashes.length
+  ) return undefined
+  const observationsAvailable = expectedObservationHashes.length === requiredScopes.length
+    && expectedObservationHashes.every((hash) => observationsByHash.get(hash)?.['state'] === 'available')
+  const candidateReady = readinessCandidate['status'] === 'ready'
+  if (
+    (readinessCandidate['status'] !== 'ready' && readinessCandidate['status'] !== 'blocked')
+    || candidateReady !== (observationsAvailable && readinessCandidate['errors'].length === 0)
+  ) return undefined
+  return candidateReady
+}
+
 const validateCandidateReadiness = (
   value: Record<string, unknown>,
   branchPlan: Record<string, unknown>,
@@ -57,39 +97,8 @@ const validateCandidateReadiness = (
   let readyCandidateCount = 0
   const seenCandidateIds = new Set<string>()
   for (let index = 0; index < branchCandidates.length; index += 1) {
-    const branchCandidate = branchCandidates[index]
-    const readinessCandidate = readinessCandidates[index]
-    if (!isRecord(branchCandidate) || !isRecord(readinessCandidate)) return undefined
-    const branchCandidateId = branchCandidate['candidateId']
-    if (
-      typeof branchCandidateId !== 'string'
-      || seenCandidateIds.has(branchCandidateId)
-      || readinessCandidate['candidateId'] !== branchCandidateId
-      || readinessCandidate['strategy'] !== branchCandidate['strategy']
-      || canonicalManifestJson(readinessCandidate['requiredCapabilityScopeHashes']) !== canonicalManifestJson(branchCandidate['requiredCapabilityScopeHashes'])
-      || !Array.isArray(readinessCandidate['accountObservationHashes'])
-      || !Array.isArray(readinessCandidate['errors'])
-    ) return undefined
-    seenCandidateIds.add(branchCandidateId)
-    const requiredScopes = Array.isArray(branchCandidate['requiredCapabilityScopeHashes'])
-      ? branchCandidate['requiredCapabilityScopeHashes']
-      : []
-    const expectedObservationHashes = [...observationsByHash.values()]
-      .filter((observation) => requiredScopes.includes(observation['capabilityScopeHash']))
-      .map((observation) => observation['observationHash'] as string)
-      .sort((left, right) => left.localeCompare(right))
-    const actualObservationHashes = [...readinessCandidate['accountObservationHashes']]
-    if (
-      canonicalManifestJson(actualObservationHashes) !== canonicalManifestJson(expectedObservationHashes)
-      || new Set(actualObservationHashes).size !== actualObservationHashes.length
-    ) return undefined
-    const observationsAvailable = expectedObservationHashes.length === requiredScopes.length
-      && expectedObservationHashes.every((hash) => observationsByHash.get(hash)?.['state'] === 'available')
-    const candidateReady = readinessCandidate['status'] === 'ready'
-    if (
-      (readinessCandidate['status'] !== 'ready' && readinessCandidate['status'] !== 'blocked')
-      || candidateReady !== (observationsAvailable && readinessCandidate['errors'].length === 0)
-    ) return undefined
+    const candidateReady = validateCandidateReadinessPair(branchCandidates[index], readinessCandidates[index], seenCandidateIds, observationsByHash)
+    if (candidateReady === undefined) return undefined
     if (candidateReady) readyCandidateCount += 1
   }
   return readyCandidateCount

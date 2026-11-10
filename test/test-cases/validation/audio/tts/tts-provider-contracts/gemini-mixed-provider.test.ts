@@ -13,6 +13,8 @@ import { jsonResponse } from '../../../../../test-utils/rest-contract-helpers'
 import type { MockFetchCall } from '~/types'
 import { setupTtsContractLifecycle, installMockFetch } from './shared'
 import { LITE, batchAudio, wav } from './gemini-fixtures'
+import { withRuntimeSpendingBudget } from '~/utils/runtime-spending-budget'
+import { readSpendingLedger, spendingHeldCents } from '~/utils/spending-ledger'
 
 const { makeTempDir } = setupTtsContractLifecycle()
 const originalOutputRoot = getOutputRoot()
@@ -196,6 +198,25 @@ test('mixed Batch enforces --max-cents on the combined bound before dispatch, an
   expect(allowed.stderr).toContain('continuing because --allow-over-budget is set')
   expect(calls.filter(call => call.method === 'POST')).toHaveLength(2)
 }, 20000)
+
+test('a shared allocation rejects combined Gemini Batch and direct-provider overage despite --allow-over-budget', async () => {
+  const { root, input, outputRoot } = await prepareInput(false)
+  await Bun.write(input, 'A longer narration for shared accounting. '.repeat(1000))
+  setCredentials()
+  const calls = installMockFetch(() => { throw Error('No provider call is authorized for an over-allocation fixture') })
+  const priced = await runJson(['tts', input, ...providers, '--output-root', outputRoot, '--price'])
+  const reserve = Math.ceil(priced.geminiBatch.authorizationBoundCents as number)
+  const other = (priced.estimate.steps as Array<{ provider: string, totalCostCents: number }>).find(step => step.provider === 'soniox')!.totalCostCents
+  expect((priced.geminiBatch.authorizationBoundCents as number) + other).toBeGreaterThan(reserve)
+  const ledgerPath = join(root, 'shared-budget.json')
+  const result = await withRuntimeSpendingBudget('tts', {}, async () => await runCli(['tts', input, ...providers, '--output-root', outputRoot, '--allow-over-budget']), {
+    AUTOSHOW_BUDGET_LEDGER: ledgerPath, AUTOSHOW_BUDGET_CENTS: String(reserve + 100), AUTOSHOW_BUDGET_RESERVE_CENTS: String(reserve)
+  })
+  expect(result.exitCode).toBe(2)
+  expect(result.envelope.message).toContain('must fit its shared budget reservation')
+  expect(calls).toHaveLength(0)
+  expect(spendingHeldCents(await readSpendingLedger(ledgerPath))).toBe(reserve)
+})
 
 for (const directory of [false, true]) for (const wait of [0, 60]) test(`transport success and decoded artifact integrity: mixed ${directory ? 'directory' : 'file'} synthesis with Batch wait=${wait} publishes both workflows once`, async () => {
   const { input, outputRoot } = await prepareInput(directory)

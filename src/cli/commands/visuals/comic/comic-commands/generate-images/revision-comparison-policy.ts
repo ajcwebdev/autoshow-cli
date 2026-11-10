@@ -24,6 +24,19 @@ export const REVISION_COMPARISON_SCHEMA = {
   required: ['targetedDefectStatusImageA', 'targetedDefectStatusImageB', 'targetedDefectLowerIn', 'differenceMeaningful', 'majorRegressionImageA', 'majorRegressionImageB', 'nonTargetDifferenceLevel', 'preservationRequirementsSatisfiedImageA', 'preservationRequirementsSatisfiedImageB', 'nonTargetDifferences', 'fullContractPreference', 'confidence', 'regressionsImageA', 'regressionsImageB', 'rationale'],
 } as const
 
+const targetedDefectSeverity = (status: unknown): number | undefined => status === 'not-visible' ? 0 : status === 'partly-visible' ? 1 : status === 'visible' ? 2 : undefined
+
+const assertTargetedDefectConsistency = (record: Record<string, unknown>): void => {
+  const severityA = targetedDefectSeverity(record['targetedDefectStatusImageA'])
+  const severityB = targetedDefectSeverity(record['targetedDefectStatusImageB'])
+  if (severityA === undefined || severityB === undefined) {
+    if (record['targetedDefectLowerIn'] !== 'neither') throw ValidationError('Revision comparison targeted-defect fields are internally inconsistent.', { stage: 'comic:revision-comparison' })
+  } else if (severityA !== severityB) {
+    const expectedLower = severityA < severityB ? 'image-a' : 'image-b'
+    if (record['targetedDefectLowerIn'] !== expectedLower) throw ValidationError('Revision comparison targeted-defect fields are internally inconsistent.', { stage: 'comic:revision-comparison' })
+  }
+}
+
 const assertComparisonShape = (value: unknown): RevisionComparisonRaw => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw ValidationError('Revision comparison must be a JSON object.', { stage: 'comic:revision-comparison' })
   const record = value as Record<string, unknown>
@@ -39,15 +52,7 @@ const assertComparisonShape = (value: unknown): RevisionComparisonRaw => {
   for (const key of ['nonTargetDifferences', 'regressionsImageA', 'regressionsImageB']) if (!Array.isArray(record[key]) || !(record[key] as unknown[]).every(item => typeof item === 'string')) throw ValidationError(`Revision comparison ${key} must be an array of strings.`, { stage: 'comic:revision-comparison' })
   if ((record['nonTargetDifferenceLevel'] === 'none') !== ((record['nonTargetDifferences'] as unknown[]).length === 0)) throw ValidationError('Revision comparison non-target difference level and evidence are internally inconsistent.', { stage: 'comic:revision-comparison' })
   if (typeof record['rationale'] !== 'string' || !record['rationale'].trim()) throw ValidationError('Revision comparison rationale must be non-empty.', { stage: 'comic:revision-comparison' })
-  const severity = (status: unknown): number | undefined => status === 'not-visible' ? 0 : status === 'partly-visible' ? 1 : status === 'visible' ? 2 : undefined
-  const severityA = severity(record['targetedDefectStatusImageA'])
-  const severityB = severity(record['targetedDefectStatusImageB'])
-  if (severityA === undefined || severityB === undefined) {
-    if (record['targetedDefectLowerIn'] !== 'neither') throw ValidationError('Revision comparison targeted-defect fields are internally inconsistent.', { stage: 'comic:revision-comparison' })
-  } else if (severityA !== severityB) {
-    const expectedLower = severityA < severityB ? 'image-a' : 'image-b'
-    if (record['targetedDefectLowerIn'] !== expectedLower) throw ValidationError('Revision comparison targeted-defect fields are internally inconsistent.', { stage: 'comic:revision-comparison' })
-  }
+  assertTargetedDefectConsistency(record)
   return record as RevisionComparisonRaw
 }
 

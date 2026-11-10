@@ -141,6 +141,32 @@ export const getBundleLineRanges = (fetchResults: readonly FetchUrlResult[]): { 
   })
 }
 
+const measureRefreshedContent = (result: FetchUrlResult) => {
+  const normalizedContent = normalizeMarkdownForRefresh(result.markdownContent)
+  const hasCurrentContent = result.status !== 'failed'
+  return {
+    hasCurrentContent,
+    contentHash: hasCurrentContent ? hashRefreshContent(normalizedContent) : null,
+    changeHash: hasCurrentContent ? hashRefreshContentForChange(normalizedContent) : null,
+    tokenCount: hasCurrentContent ? countReferenceTokens(normalizedContent) : 0,
+    byteCount: hasCurrentContent ? Buffer.byteLength(normalizedContent, 'utf8') : 0,
+    characterCount: hasCurrentContent ? countCharacters(normalizedContent) : 0
+  }
+}
+
+const describeLinkConversion = (
+  conversion: NonNullable<FetchUrlResult['conversion']>,
+  lostIdentifiers: string[]
+): NonNullable<LinksRefreshLinkMetadata['conversion']> => ({
+  backend: conversion.backend,
+  identifierCount: conversion.identifierCount,
+  identifierRecall: conversion.identifierCount === 0
+    ? 1
+    : Number((1 - conversion.missingIdentifiers.length / conversion.identifierCount).toFixed(4)),
+  missingIdentifiers: conversion.missingIdentifiers,
+  ...(lostIdentifiers.length > 0 ? { lostIdentifiers } : {})
+})
+
 export const buildLinksRefreshMetadata = (input: BuildLinksRefreshMetadataInput): LinksRefreshMetadata => {
   const { selection, links, fetchResults, outputPath, sidecarPath, previousMetadata, refreshedAt } = input
   const registry = input.registry ?? modelLinks
@@ -153,13 +179,7 @@ export const buildLinksRefreshMetadata = (input: BuildLinksRefreshMetadataInput)
   const lineRanges = getBundleLineRanges(fetchResults)
 
   const linkEntries = fetchResults.map((result, index): LinksRefreshLinkMetadata => {
-    const normalizedContent = normalizeMarkdownForRefresh(result.markdownContent)
-    const hasCurrentContent = result.status !== 'failed'
-    const contentHash = hasCurrentContent ? hashRefreshContent(normalizedContent) : null
-    const changeHash = hasCurrentContent ? hashRefreshContentForChange(normalizedContent) : null
-    const tokenCount = hasCurrentContent ? countReferenceTokens(normalizedContent) : 0
-    const byteCount = hasCurrentContent ? Buffer.byteLength(normalizedContent, 'utf8') : 0
-    const characterCount = hasCurrentContent ? countCharacters(normalizedContent) : 0
+    const { hasCurrentContent, contentHash, changeHash, tokenCount, byteCount, characterCount } = measureRefreshedContent(result)
     const previousEntry = previousEntries.get(result.sourceUrl)
     const previousHash = getPreviousSuccessfulHash(previousEntry)
     const previousChangeHash = getPreviousSuccessfulChangeHash(previousEntry)
@@ -196,17 +216,7 @@ export const buildLinksRefreshMetadata = (input: BuildLinksRefreshMetadataInput)
       ...(previousChangeHash !== undefined ? { previousChangeHash } : {}),
       ...(previousTokenCount !== undefined ? { previousTokenCount } : {}),
       ...(change ? { linesAdded: change.linesAdded, linesRemoved: change.linesRemoved } : {}),
-      ...(conversion ? {
-        conversion: {
-          backend: conversion.backend,
-          identifierCount: conversion.identifierCount,
-          identifierRecall: conversion.identifierCount === 0
-            ? 1
-            : Number((1 - conversion.missingIdentifiers.length / conversion.identifierCount).toFixed(4)),
-          missingIdentifiers: conversion.missingIdentifiers,
-          ...(lostIdentifiers.length > 0 ? { lostIdentifiers } : {})
-        }
-      } : {}),
+      ...(conversion ? { conversion: describeLinkConversion(conversion, lostIdentifiers) } : {}),
       ...(modelSource ? { modelSource } : {}),
       ...(result.failureReason ? { failureReason: result.failureReason } : {})
     }

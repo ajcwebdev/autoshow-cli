@@ -52,6 +52,22 @@ type InteractionVideo = {
 const withRoleGuidance = (prompt: string, guidance: string): string =>
   OMNI_ROLE_TAG.test(prompt) ? prompt : `${prompt}\n${guidance}`
 
+type InteractionVideoPayload = Pick<InteractionVideo, 'mimeType' | 'data' | 'uri'>
+
+const applyVideoPayloadFields = (payload: InteractionVideoPayload, source: Record<string, unknown>): void => {
+  if (typeof source['data'] === 'string') payload.data = source['data']
+  if (typeof source['uri'] === 'string') payload.uri = source['uri']
+  if (typeof source['mime_type'] === 'string') payload.mimeType = source['mime_type']
+}
+
+const applyStepVideoParts = (payload: InteractionVideoPayload, step: unknown): void => {
+  if (!isObjectLike(step) || step['type'] !== 'model_output' || !Array.isArray(step['content'])) return
+  for (const part of step['content']) {
+    if (!isObjectLike(part) || part['type'] !== 'video') continue
+    applyVideoPayloadFields(payload, part)
+  }
+}
+
 const parseInteractionVideo = (value: unknown): InteractionVideo => {
   if (!isObjectLike(value)) {
     throw InfraError('Gemini Omni returned an invalid interaction', { stage: 'video:gemini' })
@@ -61,28 +77,14 @@ const parseInteractionVideo = (value: unknown): InteractionVideo => {
   if (value['error'] !== undefined) {
     throw InfraError(`Gemini Omni interaction failed: ${JSON.stringify(value['error'])}`, { stage: 'video:gemini' })
   }
-  let mimeType: string | undefined
-  let data: string | undefined
-  let uri: string | undefined
+  const payload: InteractionVideoPayload = { mimeType: undefined, data: undefined, uri: undefined }
   const outputVideo = isObjectLike(value['output_video']) ? value['output_video'] : undefined
-  if (outputVideo) {
-    if (typeof outputVideo['data'] === 'string') data = outputVideo['data']
-    if (typeof outputVideo['uri'] === 'string') uri = outputVideo['uri']
-    if (typeof outputVideo['mime_type'] === 'string') mimeType = outputVideo['mime_type']
-  }
+  if (outputVideo) applyVideoPayloadFields(payload, outputVideo)
   const steps = value['steps']
   if (Array.isArray(steps)) {
-    for (const step of steps) {
-      if (!isObjectLike(step) || step['type'] !== 'model_output' || !Array.isArray(step['content'])) continue
-      for (const part of step['content']) {
-        if (!isObjectLike(part) || part['type'] !== 'video') continue
-        if (typeof part['data'] === 'string') data = part['data']
-        if (typeof part['uri'] === 'string') uri = part['uri']
-        if (typeof part['mime_type'] === 'string') mimeType = part['mime_type']
-      }
-    }
+    for (const step of steps) applyStepVideoParts(payload, step)
   }
-  return { id, status, mimeType, data, uri }
+  return { id, status, mimeType: payload.mimeType, data: payload.data, uri: payload.uri }
 }
 
 const requirePrompt = (prompt: string | undefined, mode: VideoMode): string => {

@@ -218,70 +218,93 @@ const finalReviewKeys = new Set([
   'reviewedUsageCents', 'continueOnly', 'reason', 'createdAt'
 ])
 
-/** A single reviewed terminal response can close global accounting only; it never permits another call to that slot. */
-export const validateNewspaperFinalBreachAccountingReview = (options: {
-  review: unknown, ledger: unknown, plan: unknown, planSha256: string, responseEvidenceBytes: Uint8Array
-}): NewspaperFinalBreachAccountingProof => {
-  const { review, ledger, plan, planSha256, responseEvidenceBytes } = options
-  if (!isRecord(review) || Object.keys(review).some(key => !finalReviewKeys.has(key))
-    || review['schemaVersion'] !== 1 || review['kind'] !== 'ocr-newspaper-expansion-final-breach-accounting-review'
-    || review['action'] !== 'retain-original-full-hold-and-continue-other-slots' || review['finalNoRedispatch'] !== true
-    || review['approvalBudgetCents'] !== 3000 || review['approvalEvidence'] !== 'User approved up to $30 for the 12-input newspaper expansion'
-    || !sha256Value(planSha256) || review['planSha256'] !== planSha256
-    || typeof review['receiptId'] !== 'string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(review['receiptId'])
-    || !sha256Value(review['receiptSha256']) || !sha256Value(review['requestSha256']) || !sha256Value(review['inputSha256'])
-    || !sha256Value(review['responseEvidenceSha256']) || typeof review['reason'] !== 'string' || !review['reason'].trim()
-    || typeof review['createdAt'] !== 'string' || !Number.isFinite(Date.parse(review['createdAt']))) finalReviewFailure('does not establish its explicit continuation-only authority')
+type JsonRecord = Record<string, unknown>
+const finalReviewEnvelopeInvalid = (review: JsonRecord): boolean => Object.keys(review).some(key => !finalReviewKeys.has(key))
+  || review['schemaVersion'] !== 1 || review['kind'] !== 'ocr-newspaper-expansion-final-breach-accounting-review'
+  || review['action'] !== 'retain-original-full-hold-and-continue-other-slots' || review['finalNoRedispatch'] !== true
+  || review['approvalBudgetCents'] !== 3000 || review['approvalEvidence'] !== 'User approved up to $30 for the 12-input newspaper expansion'
+const finalReviewPinsInvalid = (review: JsonRecord): boolean => typeof review['receiptId'] !== 'string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(review['receiptId'])
+  || !sha256Value(review['receiptSha256']) || !sha256Value(review['requestSha256']) || !sha256Value(review['inputSha256'])
+  || !sha256Value(review['responseEvidenceSha256']) || typeof review['reason'] !== 'string' || !review['reason'].trim()
+  || typeof review['createdAt'] !== 'string' || !Number.isFinite(Date.parse(review['createdAt']))
+
+type ApprovedNewspaperPlan = JsonRecord & { pages: unknown[], targets: unknown[] }
+type ScopedNewspaperLedger = JsonRecord & { receipts: unknown[] }
+const approvedNewspaperPlan = (plan: unknown, review: JsonRecord): ApprovedNewspaperPlan => {
   if (!isRecord(plan) || plan['schemaVersion'] !== 1 || plan['kind'] !== 'ocr-newspaper-expansion-execution-plan'
     || !isRecord(plan['approval']) || plan['approval']['status'] !== 'approved' || plan['approval']['budgetCents'] !== 3000
     || plan['approval']['evidence'] !== review['approvalEvidence'] || !Array.isArray(plan['pages']) || plan['pages'].length !== 12
     || !Array.isArray(plan['targets']) || plan['targets'].length !== 21) finalReviewFailure('does not match the approved newspaper plan')
+  return plan as ApprovedNewspaperPlan
+}
+const newspaperPinDimensionInvalid = (pin: JsonRecord, side: 'width' | 'height'): boolean => typeof pin[side] !== 'number' || !Number.isSafeInteger(pin[side]) || pin[side] < 1 || pin[side] > 3072
+const assertApprovedNewspaperPages = (plan: ApprovedNewspaperPlan): void => {
   const pageIds = new Set<string>()
   for (const pin of plan['pages']) {
     if (!isRecord(pin) || typeof pin['caseId'] !== 'string' || !Object.hasOwn(NEWSPAPER_EXPANSION_CASE_PAGES, pin['caseId'])
       || pin['id'] !== `${pin['caseId']}-page-01` || pin['pageNumber'] !== 1 || pin['format'] !== 'png'
       || pin['input'] !== `${newspaperRoot}cases/${pin['caseId']}/input.png` || !sha256Value(pin['inputSha256'])
-      || typeof pin['width'] !== 'number' || !Number.isSafeInteger(pin['width']) || pin['width'] < 1 || pin['width'] > 3072
-      || typeof pin['height'] !== 'number' || !Number.isSafeInteger(pin['height']) || pin['height'] < 1 || pin['height'] > 3072
+      || newspaperPinDimensionInvalid(pin, 'width') || newspaperPinDimensionInvalid(pin, 'height')
       || pageIds.has(String(pin['id']))) finalReviewFailure('contains an altered approved page population')
     pageIds.add(String(pin['id']))
   }
+}
+const approvedNewspaperTargetKeys = (plan: ApprovedNewspaperPlan): string[] => {
   const targetKeys = plan['targets'].map(target => isRecord(target) ? `${target['provider']}/${target['model']}` : '').sort()
   const expectedTargets = [...Object.keys(CATEGORIES_BC_SPENDING_RATES).filter(key => key !== 'mistral/mistral-ocr-4-0'), 'tesseract/tesseract'].sort()
   if (JSON.stringify(targetKeys) !== JSON.stringify(expectedTargets)) finalReviewFailure('contains an altered approved model population')
+  return targetKeys
+}
+const scopedNewspaperLedger = (ledger: unknown, planSha256: string): ScopedNewspaperLedger => {
   if (!isRecord(ledger) || ledger['schemaVersion'] !== 1 || ledger['kind'] !== 'ocr-newspaper-expansion-spending-ledger'
     || ledger['budgetCents'] !== 3000 || ledger['planSha256'] !== planSha256 || !Array.isArray(ledger['receipts'])) finalReviewFailure('does not match the current scoped ledger')
+  return ledger as ScopedNewspaperLedger
+}
+
+type AccountedReceipt = JsonRecord & { id: string, reservedCents: number, chargedCents: number }
+const receiptAccountingValid = (entry: unknown, ids: Set<string>, plan: ApprovedNewspaperPlan, targetKeys: string[]): entry is AccountedReceipt => !(!isRecord(entry) || typeof entry['id'] !== 'string' || ids.has(entry['id'])
+  || !validCents(entry['reservedCents']) || !validCents(entry['chargedCents'])
+  || !['reserved', 'settled', 'rejected', 'ambiguous', 'breach'].includes(String(entry['status']))
+  || !sha256Value(entry['requestSha256']) || !sha256Value(entry['inputSha256'])
+  || !targetKeys.includes(`${entry['provider']}/${entry['model']}`)
+  || !CATEGORIES_BC_SPENDING_RATES[`${entry['provider']}/${entry['model']}`]
+  || !plan['pages'].some(pin => isRecord(pin) && pin['id'] === entry['caseId'] && pin['caseId'] === entry['documentCaseId'] && pin['inputSha256'] === entry['inputSha256']))
+const holdOrChargeAltered = (entry: AccountedReceipt, review: JsonRecord): boolean => (entry['status'] === 'reserved' || entry['status'] === 'ambiguous') && entry['chargedCents'] !== entry['reservedCents']
+  || entry['status'] === 'rejected' && entry['chargedCents'] !== 0
+  || entry['status'] === 'settled' && entry['chargedCents'] > entry['reservedCents']
+  || entry['id'] !== review['receiptId'] && (entry['status'] === 'ambiguous' || entry['status'] === 'breach')
+const accountedNewspaperLedgerTotal = (ledger: ScopedNewspaperLedger, plan: ApprovedNewspaperPlan, targetKeys: string[], review: JsonRecord): number => {
   const ids = new Set<string>(); let total = 0
   for (const entry of ledger['receipts']) {
-    if (!isRecord(entry) || typeof entry['id'] !== 'string' || ids.has(entry['id'])
-      || !validCents(entry['reservedCents']) || !validCents(entry['chargedCents'])
-      || !['reserved', 'settled', 'rejected', 'ambiguous', 'breach'].includes(String(entry['status']))
-      || !sha256Value(entry['requestSha256']) || !sha256Value(entry['inputSha256'])
-      || !targetKeys.includes(`${entry['provider']}/${entry['model']}`)
-      || !CATEGORIES_BC_SPENDING_RATES[`${entry['provider']}/${entry['model']}`]
-      || !plan['pages'].some(pin => isRecord(pin) && pin['id'] === entry['caseId'] && pin['caseId'] === entry['documentCaseId'] && pin['inputSha256'] === entry['inputSha256'])) finalReviewFailure('contains invalid or altered receipt accounting')
+    if (!receiptAccountingValid(entry, ids, plan, targetKeys)) finalReviewFailure('contains invalid or altered receipt accounting')
     ids.add(entry['id']); total += entry['chargedCents']
-    if ((entry['status'] === 'reserved' || entry['status'] === 'ambiguous') && entry['chargedCents'] !== entry['reservedCents']
-      || entry['status'] === 'rejected' && entry['chargedCents'] !== 0
-      || entry['status'] === 'settled' && entry['chargedCents'] > entry['reservedCents']
-      || entry['id'] !== review['receiptId'] && (entry['status'] === 'ambiguous' || entry['status'] === 'breach')) finalReviewFailure('has another unresolved hold or altered charge')
+    if (holdOrChargeAltered(entry, review)) finalReviewFailure('has another unresolved hold or altered charge')
   }
-  if (!Number.isFinite(total) || total > 3000 + 1e-9) finalReviewFailure('exceeds the cumulative approval')
+  return total
+}
+
+const terminalReceiptIdentityDiffers = (receipt: JsonRecord, documentCaseId: string): boolean => receipt['status'] !== 'breach' || receipt['httpStatus'] !== 200
+  || receipt['provider'] !== 'grok' || receipt['model'] !== 'grok-4.7' || receipt['documentCaseId'] !== documentCaseId
+  || receipt['caseId'] !== `${documentCaseId}-page-01`
+const terminalReceiptEvidenceDiffers = (receipt: JsonRecord, review: JsonRecord): boolean => review['responseEvidencePath'] !== `${newspaperRoot}provider-response-evidence/${receipt['id']}.json`
+  || receipt['responseEvidencePath'] !== review['responseEvidencePath'] || receipt['responseEvidenceSha256'] !== review['responseEvidenceSha256']
+  || hash(JSON.stringify(receipt)) !== review['receiptSha256'] || receipt['reservedCents'] !== 34.9184 || receipt['chargedCents'] !== 34.9184
+const completedAfterReview = (receipt: JsonRecord, review: JsonRecord): boolean => typeof receipt['completedAt'] !== 'string' || !Number.isFinite(Date.parse(receipt['completedAt']))
+  || Date.parse(String(review['createdAt'])) < Date.parse(receipt['completedAt'])
+const terminalReceiptFieldsDiffer = (receipt: JsonRecord, review: JsonRecord): boolean => ['caseId', 'documentCaseId', 'provider', 'model', 'inputSha256', 'requestSha256', 'httpStatus', 'reservedCents', 'chargedCents'].some(key => review[key] !== receipt[key])
+  || Object.entries(knownNewspaperFinalUsage).some(([key, value]) => receipt[key] !== value || review[key] !== value)
+const terminalSlotHasOtherAttempt = (ledger: ScopedNewspaperLedger, receipt: JsonRecord): boolean => ledger['receipts'].some(entry => isRecord(entry) && (entry['recoveryOfReceiptId'] === receipt['id']
+  || entry['id'] !== receipt['id'] && entry['caseId'] === receipt['caseId'] && entry['provider'] === receipt['provider']
+  && entry['model'] === receipt['model'] && entry['status'] !== 'rejected'))
+const terminalGrokReceipt = (ledger: ScopedNewspaperLedger, review: JsonRecord, documentCaseId: string): JsonRecord => {
   const receipt = ledger['receipts'].find(entry => isRecord(entry) && entry['id'] === review['receiptId'])
-  const documentCaseId = 'newspapers-expansion-new-york-times-1929-10-24-p31'
-  if (!isRecord(receipt) || receipt['status'] !== 'breach' || receipt['httpStatus'] !== 200
-    || receipt['provider'] !== 'grok' || receipt['model'] !== 'grok-4.7' || receipt['documentCaseId'] !== documentCaseId
-    || receipt['caseId'] !== `${documentCaseId}-page-01` || review['nativeFinishReason'] !== 'length'
-    || review['responseEvidencePath'] !== `${newspaperRoot}provider-response-evidence/${receipt['id']}.json`
-    || receipt['responseEvidencePath'] !== review['responseEvidencePath'] || receipt['responseEvidenceSha256'] !== review['responseEvidenceSha256']
-    || hash(JSON.stringify(receipt)) !== review['receiptSha256'] || receipt['reservedCents'] !== 34.9184 || receipt['chargedCents'] !== 34.9184
-    || typeof receipt['completedAt'] !== 'string' || !Number.isFinite(Date.parse(receipt['completedAt']))
-    || Date.parse(String(review['createdAt'])) < Date.parse(receipt['completedAt'])
-    || ['caseId', 'documentCaseId', 'provider', 'model', 'inputSha256', 'requestSha256', 'httpStatus', 'reservedCents', 'chargedCents'].some(key => review[key] !== receipt[key])
-    || Object.entries(knownNewspaperFinalUsage).some(([key, value]) => receipt[key] !== value || review[key] !== value)
-    || ledger['receipts'].some(entry => isRecord(entry) && (entry['recoveryOfReceiptId'] === receipt['id']
-      || entry['id'] !== receipt['id'] && entry['caseId'] === receipt['caseId'] && entry['provider'] === receipt['provider']
-      && entry['model'] === receipt['model'] && entry['status'] !== 'rejected'))) finalReviewFailure('differs from the immutable terminal Grok receipt')
+  if (!isRecord(receipt) || terminalReceiptIdentityDiffers(receipt, documentCaseId) || review['nativeFinishReason'] !== 'length'
+    || terminalReceiptEvidenceDiffers(receipt, review) || completedAfterReview(receipt, review)
+    || terminalReceiptFieldsDiffer(receipt, review) || terminalSlotHasOtherAttempt(ledger, receipt)) finalReviewFailure('differs from the immutable terminal Grok receipt')
+  return receipt
+}
+
+const reviewedNativeResponse = (responseEvidenceBytes: Uint8Array, review: JsonRecord, receipt: JsonRecord): JsonRecord => {
   if (responseEvidenceBytes.length > 8 * 1024 * 1024 || hash(responseEvidenceBytes) !== review['responseEvidenceSha256']) finalReviewFailure('response evidence checksum changed')
   let evidence: unknown
   try { evidence = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(responseEvidenceBytes)) } catch { return finalReviewFailure('response evidence is not valid UTF-8 JSON') }
@@ -290,19 +313,26 @@ export const validateNewspaperFinalBreachAccountingReview = (options: {
     || evidence['provider'] !== 'grok' || evidence['model'] !== 'grok-4.7'
     || evidence['serialization'] !== 'Parsed provider JSON serialized locally; not original response bytes.'
     || !isRecord(evidence['response'])) finalReviewFailure('response envelope differs from the retained request')
-  const payload = evidence['response'], usage = payload['usage'], choices = payload['choices']
-  if (payload['model'] !== 'grok-4.7' || !Array.isArray(choices) || choices.length !== 1 || !isRecord(choices[0])
-    || choices[0]['finish_reason'] !== 'length' || !isRecord(choices[0]['message'])
-    || typeof choices[0]['message']['content'] !== 'string' || !choices[0]['message']['content'].trim()
-    || !isRecord(usage) || usage['prompt_tokens'] !== 3758 || usage['completion_tokens'] !== 4096 || usage['total_tokens'] !== 54603
-    || !isRecord(usage['completion_tokens_details']) || usage['completion_tokens_details']['reasoning_tokens'] !== 46749
-    || usage['num_sources_used'] !== 0) finalReviewFailure('native response does not establish the exact reviewed terminal usage')
+  return evidence['response']
+}
+const nativeLengthChoiceMissing = (payload: JsonRecord, choices: unknown): boolean => payload['model'] !== 'grok-4.7' || !Array.isArray(choices) || choices.length !== 1 || !isRecord(choices[0])
+  || choices[0]['finish_reason'] !== 'length' || !isRecord(choices[0]['message'])
+  || typeof choices[0]['message']['content'] !== 'string' || !choices[0]['message']['content'].trim()
+const nativeTerminalUsageDiffers = (usage: unknown): boolean => !isRecord(usage) || usage['prompt_tokens'] !== 3758 || usage['completion_tokens'] !== 4096 || usage['total_tokens'] !== 54603
+  || !isRecord(usage['completion_tokens_details']) || usage['completion_tokens_details']['reasoning_tokens'] !== 46749
+  || usage['num_sources_used'] !== 0
+
+const reviewedTerminalUsageCents = (review: JsonRecord, receipt: JsonRecord): number => {
   const pricing = CATEGORIES_BC_SPENDING_RATES['grok/grok-4.7']!
   const cents = Math.ceil((3758 * pricing.input + 50845 * pricing.output) / 1_000_000 * 1_000_000) / 1_000_000
   const reserve = Math.ceil((CATEGORIES_BC_INPUT_ALLOWANCE * pricing.input
     + (CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP + CATEGORIES_BC_GROK_REASONING_ALLOWANCE) * pricing.output) / 1_000_000 * 1_000_000) / 1_000_000
   if (cents !== 31.2586 || review['reviewedUsageCents'] !== cents || reserve !== receipt['reservedCents']
     || cents > Number(receipt['chargedCents']) + 1e-9) finalReviewFailure('native priced usage is not covered by the unchanged full hold')
+  return cents
+}
+
+const isolatedFableContinuation = (review: JsonRecord, receipt: JsonRecord, documentCaseId: string): JsonRecord => {
   const continuation = review['continueOnly']
   const continuationKeys = new Set(['caseId', 'documentCaseId', 'provider', 'model', 'inputSha256', 'rejectedReceiptId', 'rejectedReceiptSha256'])
   if (!isRecord(continuation) || Object.keys(continuation).some(key => !continuationKeys.has(key))
@@ -310,6 +340,9 @@ export const validateNewspaperFinalBreachAccountingReview = (options: {
     || continuation['provider'] !== 'anthropic' || continuation['model'] !== 'claude-fable-5'
     || continuation['inputSha256'] !== receipt['inputSha256'] || typeof continuation['rejectedReceiptId'] !== 'string'
     || !sha256Value(continuation['rejectedReceiptSha256'])) finalReviewFailure('does not isolate the already approved Fable NYT slot')
+  return continuation
+}
+const assertOriginalFableRejection = (ledger: ScopedNewspaperLedger, review: JsonRecord, receipt: JsonRecord, continuation: JsonRecord, documentCaseId: string): void => {
   const rejected = ledger['receipts'].find(entry => isRecord(entry) && entry['id'] === continuation['rejectedReceiptId'])
   if (!isRecord(rejected) || rejected['status'] !== 'rejected' || rejected['httpStatus'] !== 400 || rejected['chargedCents'] !== 0
     || rejected['caseId'] !== continuation['caseId'] || rejected['documentCaseId'] !== documentCaseId
@@ -317,6 +350,29 @@ export const validateNewspaperFinalBreachAccountingReview = (options: {
     || hash(JSON.stringify(rejected)) !== continuation['rejectedReceiptSha256']
     || typeof rejected['completedAt'] !== 'string' || !Number.isFinite(Date.parse(rejected['completedAt']))
     || Date.parse(String(review['createdAt'])) < Date.parse(rejected['completedAt'])) finalReviewFailure('does not preserve the original zero-charge Fable rejection')
+}
+
+/** A single reviewed terminal response can close global accounting only; it never permits another call to that slot. */
+export const validateNewspaperFinalBreachAccountingReview = (options: {
+  review: unknown, ledger: unknown, plan: unknown, planSha256: string, responseEvidenceBytes: Uint8Array
+}): NewspaperFinalBreachAccountingProof => {
+  const { review, ledger, plan, planSha256, responseEvidenceBytes } = options
+  if (!isRecord(review) || finalReviewEnvelopeInvalid(review)
+    || !sha256Value(planSha256) || review['planSha256'] !== planSha256
+    || finalReviewPinsInvalid(review)) finalReviewFailure('does not establish its explicit continuation-only authority')
+  const approvedPlan = approvedNewspaperPlan(plan, review)
+  assertApprovedNewspaperPages(approvedPlan)
+  const targetKeys = approvedNewspaperTargetKeys(approvedPlan)
+  const scopedLedger = scopedNewspaperLedger(ledger, planSha256)
+  const total = accountedNewspaperLedgerTotal(scopedLedger, approvedPlan, targetKeys, review)
+  if (!Number.isFinite(total) || total > 3000 + 1e-9) finalReviewFailure('exceeds the cumulative approval')
+  const documentCaseId = 'newspapers-expansion-new-york-times-1929-10-24-p31'
+  const receipt = terminalGrokReceipt(scopedLedger, review, documentCaseId)
+  const payload = reviewedNativeResponse(responseEvidenceBytes, review, receipt), usage = payload['usage'], choices = payload['choices']
+  if (nativeLengthChoiceMissing(payload, choices) || nativeTerminalUsageDiffers(usage)) finalReviewFailure('native response does not establish the exact reviewed terminal usage')
+  const cents = reviewedTerminalUsageCents(review, receipt)
+  const continuation = isolatedFableContinuation(review, receipt, documentCaseId)
+  assertOriginalFableRejection(scopedLedger, review, receipt, continuation, documentCaseId)
   return { receiptId: String(receipt['id']), finalNoRedispatch: true, reviewedUsageCents: cents,
     retainedChargedCents: Number(receipt['chargedCents']), totalAccountedCents: total,
     continueOnly: continuation as unknown as NewspaperFinalBreachAccountingReview['continueOnly'] }
@@ -385,6 +441,23 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
   const privatePath = (path: string): void => {
     if (!path.startsWith(batchRoot) || path.includes('\\') || path.split('/').some(part => !part || part === '.' || part === '..')) fail('batch artifacts must use a private project-relative path')
   }
+  const approvedBatchMissing = (value: unknown): boolean => {
+    const approval = isRecord(value) ? value['approval'] : undefined
+    return !isRecord(value) || value['schemaVersion'] !== 1 || value['kind'] !== scope.planKind
+      || !isRecord(approval) || approval['status'] !== 'approved' || approval['budgetCents'] !== CATEGORIES_BC_BUDGET_CENTS
+      || approval['evidence'] !== scope.approvalEvidence || !Array.isArray(value['pages']) || value['pages'].length !== scope.pageCount
+      || !Array.isArray(value['targets']) || value['targets'].length !== scope.targetCount
+  }
+  const pagePositionInvalid = (page: CategoriesBcPagePin, ids: Set<string>, positions: Set<string>): boolean => !isRecord(page) || typeof page.id !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(page.id) || ids.has(page.id)
+    || typeof page.caseId !== 'string' || !scopeCasePages[page.caseId] || !Number.isSafeInteger(page.pageNumber)
+    || page.pageNumber < 1 || page.pageNumber > scopeCasePages[page.caseId]!
+    || positions.has(page.caseId + '/' + page.pageNumber) || typeof page.input !== 'string'
+  const pagePinInvalid = (page: CategoriesBcPagePin, declarationException: boolean): boolean => !/^[a-f0-9]{64}$/.test(page.inputSha256) || !Number.isSafeInteger(page.width) || !Number.isSafeInteger(page.height)
+    || isCategoriesEfg && page.format !== 'png' && page.format !== 'jpg'
+    || isNewspaper && (!Object.hasOwn(scopeCasePages, page.caseId) || page.format !== 'png' || page.id !== `${page.caseId}-page-01`
+      || page.input !== `${batchRoot}cases/${page.caseId}/input.png`)
+    || page.width < 1 || page.height < 1
+    || (page.width > (isNewspaper ? 3072 : 4096) || page.height > (isNewspaper ? 3072 : 4096)) && !declarationException
   const readApprovedPlan = async (options: CategoriesBcSpendingGuardOptions, root: string): Promise<CategoriesBcExecutionPlan> => {
     const planPath = options.planPath ?? batchRoot + 'execution-plan.json'
     privatePath(planPath)
@@ -394,26 +467,13 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
     const bytes = await readFile(actual)
     if (bytes.length > 4 * 1024 * 1024 || hash(bytes) !== options.planSha256) fail('execution plan checksum changed')
     const value: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
-    const approval = isRecord(value) ? value['approval'] : undefined
-    if (!isRecord(value) || value['schemaVersion'] !== 1 || value['kind'] !== scope.planKind
-      || !isRecord(approval) || approval['status'] !== 'approved' || approval['budgetCents'] !== CATEGORIES_BC_BUDGET_CENTS
-      || approval['evidence'] !== scope.approvalEvidence || !Array.isArray(value['pages']) || value['pages'].length !== scope.pageCount
-      || !Array.isArray(value['targets']) || value['targets'].length !== scope.targetCount) fail(`the plan does not contain the explicit approved ${scope.description} batch`)
+    if (approvedBatchMissing(value)) fail(`the plan does not contain the explicit approved ${scope.description} batch`)
     const plan = value as unknown as CategoriesBcExecutionPlan
     const ids = new Set<string>(), positions = new Set<string>()
     for (const page of plan.pages) {
       const declarationException = isCategoriesEfg && page.caseId === 'efg-rerun-1-page-declaration'
         && page.format === 'jpg' && page.width === 3923 && page.height === 4656
-      if (!isRecord(page) || typeof page.id !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(page.id) || ids.has(page.id)
-        || typeof page.caseId !== 'string' || !scopeCasePages[page.caseId] || !Number.isSafeInteger(page.pageNumber)
-        || page.pageNumber < 1 || page.pageNumber > scopeCasePages[page.caseId]!
-        || positions.has(page.caseId + '/' + page.pageNumber) || typeof page.input !== 'string'
-        || !/^[a-f0-9]{64}$/.test(page.inputSha256) || !Number.isSafeInteger(page.width) || !Number.isSafeInteger(page.height)
-        || isCategoriesEfg && page.format !== 'png' && page.format !== 'jpg'
-        || isNewspaper && (!Object.hasOwn(scopeCasePages, page.caseId) || page.format !== 'png' || page.id !== `${page.caseId}-page-01`
-          || page.input !== `${batchRoot}cases/${page.caseId}/input.png`)
-        || page.width < 1 || page.height < 1
-        || (page.width > (isNewspaper ? 3072 : 4096) || page.height > (isNewspaper ? 3072 : 4096)) && !declarationException) fail('invalid or duplicate approved page identity')
+      if (pagePositionInvalid(page, ids, positions) || pagePinInvalid(page, declarationException)) fail('invalid or duplicate approved page identity')
       if (!scope.inputRoots.some(prefix => page.input.startsWith(prefix))
         || page.input.includes('\\') || page.input.split('/').some(part => !part || part === '.' || part === '..')) fail('page input must remain in the approved private input roots')
       ids.add(page.id); positions.add(page.caseId + '/' + page.pageNumber)
@@ -470,6 +530,11 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
     costNote?: string
   }
 
+  const cacheWriteLifetimesInvalid = (lifetimes: unknown, writes: unknown): boolean => lifetimes !== undefined && (!isRecord(lifetimes)
+    || Object.keys(lifetimes).some(key => key !== 'ttl_30m_tokens' && key !== 'ttl_12h_tokens')
+    || !tokenCount(lifetimes['ttl_30m_tokens']) || !tokenCount(lifetimes['ttl_12h_tokens'])
+    || lifetimes['ttl_12h_tokens'] !== 0 || !tokenCount(writes)
+    || lifetimes['ttl_30m_tokens'] !== writes)
   const readOpenAIStandardUsage = (usage: Record<string, unknown>, pricing: Rate): ReviewedUsage | undefined => {
     const inputTokens = usage['input_tokens'], outputTokens = usage['output_tokens']
     if (!tokenCount(inputTokens) || !tokenCount(outputTokens)) return undefined
@@ -480,11 +545,7 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
     if ((reads !== undefined && !tokenCount(reads)) || (writes !== undefined && !tokenCount(writes))) return undefined
     if ((tokenCount(reads) && reads > inputTokens) || (tokenCount(writes) && writes > inputTokens)) return undefined
     const lifetimes = isRecord(details) ? details['cache_write_tokens_details'] : undefined
-    if (lifetimes !== undefined && (!isRecord(lifetimes)
-      || Object.keys(lifetimes).some(key => key !== 'ttl_30m_tokens' && key !== 'ttl_12h_tokens')
-      || !tokenCount(lifetimes['ttl_30m_tokens']) || !tokenCount(lifetimes['ttl_12h_tokens'])
-      || lifetimes['ttl_12h_tokens'] !== 0 || !tokenCount(writes)
-      || lifetimes['ttl_30m_tokens'] !== writes)) return undefined
+    if (cacheWriteLifetimesInvalid(lifetimes, writes)) return undefined
     if (tokenCount(reads) && tokenCount(writes)) {
       if (reads + writes > inputTokens || pricing.cachedInput === undefined) return undefined
       const ordinary = inputTokens - reads - writes
@@ -506,34 +567,47 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
     }
   }
 
+  const ledgerReceiptInvalid = (receipt: CategoriesBcSpendingReceipt, ids: Set<string>, plan: CategoriesBcExecutionPlan): boolean => !isRecord(receipt) || typeof receipt.id !== 'string' || ids.has(receipt.id)
+    || !finiteNonnegative(receipt.reservedCents) || !finiteNonnegative(receipt.chargedCents)
+    || !['reserved', 'settled', 'rejected', 'ambiguous', 'breach'].includes(receipt.status)
+    || typeof receipt.caseId !== 'string' || typeof receipt.provider !== 'string' || typeof receipt.model !== 'string'
+    || typeof receipt.invocationId !== 'string' || !/^[a-f0-9]{64}$/.test(receipt.requestSha256)
+    || typeof receipt.createdAt !== 'string' || !Number.isFinite(Date.parse(receipt.createdAt))
+    || receipt.completedAt !== undefined && (!Number.isFinite(Date.parse(receipt.completedAt)) || Date.parse(receipt.completedAt) < Date.parse(receipt.createdAt))
+    || !/^[a-f0-9]{64}$/.test(receipt.inputSha256)
+    || !plan.pages.some(pin => pin.id === receipt.caseId && pin.caseId === receipt.documentCaseId && pin.inputSha256 === receipt.inputSha256)
+    || !scopeRates[receipt.provider + '/' + receipt.model]
+  const recoveryIdentityInvalid = (receipt: CategoriesBcSpendingReceipt): boolean => receipt.recoveryOfReceiptId !== undefined && (typeof receipt.recoveryOfReceiptId !== 'string' || !receipt.recoveryOfReceiptId
+    || typeof receipt.recoveryReconciliationSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(receipt.recoveryReconciliationSha256))
+  const reconciliationOverlayInvalid = (ledger: CategoriesBcSpendingLedger): boolean => ledger.reconciliations !== undefined && (!Array.isArray(ledger.reconciliations)
+    || ledger.reconciliations.some(entry => !isRecord(entry) || typeof entry.path !== 'string'
+      || typeof entry.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(entry.sha256)))
   const validateLedger = (value: unknown, plan: CategoriesBcExecutionPlan, planSha256: string): CategoriesBcSpendingLedger => {
     if (!isRecord(value) || value['schemaVersion'] !== 1 || value['kind'] !== scope.ledgerKind
       || value['budgetCents'] !== CATEGORIES_BC_BUDGET_CENTS || value['planSha256'] !== planSha256 || value['inputTokenAssumption'] !== inputAssumption || !Array.isArray(value['receipts'])) fail('invalid or changed cumulative ledger')
     const ledger = value as unknown as CategoriesBcSpendingLedger
     const ids = new Set<string>()
     for (const receipt of ledger.receipts) {
-      if (!isRecord(receipt) || typeof receipt.id !== 'string' || ids.has(receipt.id)
-        || !finiteNonnegative(receipt.reservedCents) || !finiteNonnegative(receipt.chargedCents)
-        || !['reserved', 'settled', 'rejected', 'ambiguous', 'breach'].includes(receipt.status)
-        || typeof receipt.caseId !== 'string' || typeof receipt.provider !== 'string' || typeof receipt.model !== 'string'
-        || typeof receipt.invocationId !== 'string' || !/^[a-f0-9]{64}$/.test(receipt.requestSha256)
-        || typeof receipt.createdAt !== 'string' || !Number.isFinite(Date.parse(receipt.createdAt))
-        || receipt.completedAt !== undefined && (!Number.isFinite(Date.parse(receipt.completedAt)) || Date.parse(receipt.completedAt) < Date.parse(receipt.createdAt))
-        || !/^[a-f0-9]{64}$/.test(receipt.inputSha256)
-        || !plan.pages.some(pin => pin.id === receipt.caseId && pin.caseId === receipt.documentCaseId && pin.inputSha256 === receipt.inputSha256)
-        || !scopeRates[receipt.provider + '/' + receipt.model]) fail('invalid receipt in cumulative ledger')
+      if (ledgerReceiptInvalid(receipt, ids, plan)) fail('invalid receipt in cumulative ledger')
       ids.add(receipt.id)
       if (receipt.status === 'rejected' && receipt.chargedCents !== 0) fail('rejected receipt carries unexpected spending')
       if (['reserved', 'ambiguous'].includes(receipt.status) && receipt.chargedCents !== receipt.reservedCents) fail('unresolved request reservation changed')
-      if (receipt.recoveryOfReceiptId !== undefined && (typeof receipt.recoveryOfReceiptId !== 'string' || !receipt.recoveryOfReceiptId
-        || typeof receipt.recoveryReconciliationSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(receipt.recoveryReconciliationSha256))) fail('invalid recovery receipt identity')
+      if (recoveryIdentityInvalid(receipt)) fail('invalid recovery receipt identity')
     }
-    if (ledger.reconciliations !== undefined && (!Array.isArray(ledger.reconciliations)
-      || ledger.reconciliations.some(entry => !isRecord(entry) || typeof entry.path !== 'string'
-        || typeof entry.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(entry.sha256)))) fail('invalid manual reconciliation overlay')
+    if (reconciliationOverlayInvalid(ledger)) fail('invalid manual reconciliation overlay')
     return ledger
   }
 
+  const socketJournalDiffers = (journal: unknown, value: Record<string, unknown>, receipt: CategoriesBcSpendingReceipt, expectedDirectory: string, expectedHash: string): boolean => !isRecord(journal) || journal['caseId'] !== receipt.caseId || journal['documentCaseId'] !== receipt.documentCaseId
+    || journal['provider'] !== receipt.provider || journal['model'] !== receipt.model || journal['inputSha256'] !== receipt.inputSha256
+    || journal['directory'] !== expectedDirectory || journal['status'] !== 'failed'
+    || typeof journal['startedAt'] !== 'string' || !Number.isFinite(Date.parse(journal['startedAt']))
+    || typeof journal['completedAt'] !== 'string' || !Number.isFinite(Date.parse(journal['completedAt']))
+    || Date.parse(journal['startedAt']) > Date.parse(receipt.createdAt)
+    || Date.parse(journal['completedAt']) < Date.parse(receipt.completedAt ?? receipt.createdAt)
+    || Date.parse(String(value['createdAt'])) < Date.parse(journal['completedAt'])
+    || !Array.isArray(journal['artifactHashes']) || !journal['artifactHashes'].some(entry => isRecord(entry)
+      && entry['path'] === `${expectedDirectory}/failure.txt` && entry['sha256'] === expectedHash)
   const validateSocketFailureEvidence = async (
     value: Record<string, unknown>, receipt: CategoriesBcSpendingReceipt, root: string
   ): Promise<boolean> => {
@@ -549,16 +623,7 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
     if (bytes.length > 256 * 1024 || hash(bytes) !== expectedHash) fail('socket failure evidence checksum changed')
     const journal: unknown = JSON.parse(await readFile(resolve(dirname(actual), 'dispatch.json'), 'utf8'))
     const expectedDirectory = `${batchRoot}slots/${receipt.caseId}/${providerStem}`
-    if (!isRecord(journal) || journal['caseId'] !== receipt.caseId || journal['documentCaseId'] !== receipt.documentCaseId
-      || journal['provider'] !== receipt.provider || journal['model'] !== receipt.model || journal['inputSha256'] !== receipt.inputSha256
-      || journal['directory'] !== expectedDirectory || journal['status'] !== 'failed'
-      || typeof journal['startedAt'] !== 'string' || !Number.isFinite(Date.parse(journal['startedAt']))
-      || typeof journal['completedAt'] !== 'string' || !Number.isFinite(Date.parse(journal['completedAt']))
-      || Date.parse(journal['startedAt']) > Date.parse(receipt.createdAt)
-      || Date.parse(journal['completedAt']) < Date.parse(receipt.completedAt ?? receipt.createdAt)
-      || Date.parse(String(value['createdAt'])) < Date.parse(journal['completedAt'])
-      || !Array.isArray(journal['artifactHashes']) || !journal['artifactHashes'].some(entry => isRecord(entry)
-        && entry['path'] === `${expectedDirectory}/failure.txt` && entry['sha256'] === expectedHash)) fail('archived socket failure journal differs from the retained request')
+    if (socketJournalDiffers(journal, value, receipt, expectedDirectory, expectedHash)) fail('archived socket failure journal differs from the retained request')
     const rows = new TextDecoder('utf-8', { fatal: true }).decode(bytes).split('\n').filter(Boolean).flatMap(line => {
       try { return [JSON.parse(line) as unknown] } catch { return [] }
     })
@@ -570,70 +635,42 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
           && row['error']['name'] === 'AbortError' && row['error']['message'] === 'The operation timed out.'))
   }
 
-  /** Reviewed historical holds remain unchanged and charged in full; a pinned record authorizes one recovery invocation. */
-  const validateReconciliations = async (
-    ledger: CategoriesBcSpendingLedger,
-    root: string,
-    plan: CategoriesBcExecutionPlan
-  ): Promise<{ authorized: Map<string, { sha256: string, record: CategoriesBcManualReconciliation }>, finalReviews: Map<string, NewspaperFinalBreachAccountingProof> }> => {
-    const pins = plan.pages
-    const authorized = new Map<string, { sha256: string, record: CategoriesBcManualReconciliation }>()
-    const finalReviews = new Map<string, NewspaperFinalBreachAccountingProof>()
-    const paths = new Set<string>()
-    for (const link of ledger.reconciliations ?? []) {
-      if (!link.path.startsWith(reconciliationRoot) || link.path.includes('\\') || link.path.split('/').includes('..') || paths.has(link.path)) fail('manual reconciliation must have a unique private project-relative path')
-      paths.add(link.path)
-      const actual = await realpath(resolve(root, link.path))
-      const local = relative(await realpath(root), actual).replaceAll('\\', '/')
-      if (!local.startsWith(reconciliationRoot)) fail('manual reconciliation escaped its private directory')
-      const bytes = await readFile(actual)
-      if (bytes.length > 16_384 || hash(bytes) !== link.sha256) fail('manual reconciliation checksum changed')
-      const value: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
-      if (isNewspaper && isRecord(value) && value['kind'] === 'ocr-newspaper-expansion-final-breach-accounting-review') {
-        const proof = await readNewspaperFinalBreachAccountingReview({ projectRoot: root, reviewPath: link.path,
-          reviewSha256: link.sha256, ledger, plan, planSha256: ledger.planSha256 })
-        if (authorized.has(proof.receiptId) || finalReviews.has(proof.receiptId)) fail('duplicate final accounting authority for the retained receipt')
-        finalReviews.set(proof.receiptId, proof)
-        continue
-      }
-      if (!isRecord(value) || value['schemaVersion'] !== 1 || value['kind'] !== scope.manualKind
-        || value['action'] !== 'retain-full-reservation-and-authorize-one-recovery-invocation'
-        || value['approvalBudgetCents'] !== CATEGORIES_BC_BUDGET_CENTS || ledger.budgetCents !== CATEGORIES_BC_BUDGET_CENTS
-        || value['planSha256'] !== ledger.planSha256
-        || value['approvalEvidence'] !== scope.approvalEvidence || typeof value['receiptId'] !== 'string'
-        || typeof value['reason'] !== 'string' || !value['reason'].trim() || typeof value['createdAt'] !== 'string'
-        || !Number.isFinite(Date.parse(value['createdAt']))) fail('manual reconciliation does not establish the approved recovery action')
-      const receipt = ledger.receipts.find(entry => entry.id === value['receiptId'])
-      const pricing = receipt ? scopeRates[`${receipt.provider}/${receipt.model}`] : undefined
-      const isHttp503 = receipt?.status === 'ambiguous' && receipt.httpStatus === 503 && value['httpStatus'] === 503
-      const reviewedGrokBreach = receipt?.status === 'breach' && receipt.provider === 'grok'
-        && receipt.httpStatus === 200 && value['httpStatus'] === 200 && pricing !== undefined
-        && receipt.visibleOutputTokens === undefined && receipt.reasoningOutputTokens === undefined
-        && receipt.reservedCents === roundedCents((CATEGORIES_BC_INPUT_ALLOWANCE * pricing.input + CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP * pricing.output) / 1_000_000)
-        && tokenCount(receipt.inputTokens) && receipt.inputTokens <= CATEGORIES_BC_INPUT_ALLOWANCE
-        && tokenCount(receipt.outputTokens) && receipt.outputTokens > CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP
-        && receipt.outputTokens <= CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP + CATEGORIES_BC_GROK_REASONING_ALLOWANCE
-        && (receipt.inputTokens * pricing.input + receipt.outputTokens * pricing.output) / 1_000_000 <= receipt.reservedCents + 1e-9
-        && value['reviewedPolicy'] === CATEGORIES_BC_GROK_REVIEWED_POLICY && value['documentationUrl'] === CATEGORIES_BC_GROK_DOCUMENTATION_URL
-        && value['nativeVisibleOutputCap'] === CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP && value['reasoningAllowance'] === CATEGORIES_BC_GROK_REASONING_ALLOWANCE
-      const socketCandidate = receipt?.status === 'ambiguous' && receipt.httpStatus === undefined && value['httpStatus'] === undefined
-        && receipt.inputTokens === undefined && receipt.outputTokens === undefined
-        && receipt.visibleOutputTokens === undefined && receipt.reasoningOutputTokens === undefined
-        && receipt.reason === 'transport outcome unknown; full reservation retained'
-      && (value['transportReview'] === 'socket-closed-no-reported-usage'
-        || (isCategoriesEfg || isNewspaper) && value['transportReview'] === 'timeout-no-reported-usage')
-      const reviewedSocketFailure = socketCandidate && await validateSocketFailureEvidence(value, receipt, root)
-      if (!receipt || (!isHttp503 && !reviewedGrokBreach && !reviewedSocketFailure)
-        || receipt.chargedCents !== receipt.reservedCents || receipt.reservedCents <= 0
-        || value['reservedCents'] !== receipt.reservedCents || value['chargedCents'] !== receipt.chargedCents
-        || value['caseId'] !== receipt.caseId || value['documentCaseId'] !== receipt.documentCaseId || value['provider'] !== receipt.provider || value['model'] !== receipt.model
-        || value['inputSha256'] !== receipt.inputSha256
-        || !pins.some(pin => pin.id === receipt.caseId && pin.inputSha256 === receipt.inputSha256)
-        || !scopeRates[`${receipt.provider}/${receipt.model}`]
-        || Date.parse(value['createdAt']) < Date.parse(receipt.completedAt ?? receipt.createdAt)
-        || authorized.has(receipt.id) || finalReviews.has(receipt.id)) fail('manual reconciliation differs from the retained provider receipt or reviewed policy')
-      authorized.set(receipt.id, { sha256: link.sha256, record: value as unknown as CategoriesBcManualReconciliation })
-    }
+  type ManualAuthorizations = Map<string, { sha256: string, record: CategoriesBcManualReconciliation }>
+  type RecoveryRecord = Record<string, unknown> & { receiptId: string, reason: string, createdAt: string }
+  const establishesRecoveryAction = (value: unknown, ledger: CategoriesBcSpendingLedger): value is RecoveryRecord => !(!isRecord(value) || value['schemaVersion'] !== 1 || value['kind'] !== scope.manualKind
+    || value['action'] !== 'retain-full-reservation-and-authorize-one-recovery-invocation'
+    || value['approvalBudgetCents'] !== CATEGORIES_BC_BUDGET_CENTS || ledger.budgetCents !== CATEGORIES_BC_BUDGET_CENTS
+    || value['planSha256'] !== ledger.planSha256
+    || value['approvalEvidence'] !== scope.approvalEvidence || typeof value['receiptId'] !== 'string'
+    || typeof value['reason'] !== 'string' || !value['reason'].trim() || typeof value['createdAt'] !== 'string'
+    || !Number.isFinite(Date.parse(value['createdAt'])))
+  const reconciliationPathInvalid = (link: { path: string }, paths: Set<string>): boolean => !link.path.startsWith(reconciliationRoot) || link.path.includes('\\') || link.path.split('/').includes('..') || paths.has(link.path)
+  const isFinalAccountingReview = (value: unknown): boolean => isNewspaper && isRecord(value) && value['kind'] === 'ocr-newspaper-expansion-final-breach-accounting-review'
+  const http503Hold = (receipt: CategoriesBcSpendingReceipt | undefined, value: RecoveryRecord): boolean => receipt?.status === 'ambiguous' && receipt.httpStatus === 503 && value['httpStatus'] === 503
+  const reviewedGrokBreachHold = (receipt: CategoriesBcSpendingReceipt | undefined, value: RecoveryRecord, pricing: Rate | undefined): boolean => receipt?.status === 'breach' && receipt.provider === 'grok'
+    && receipt.httpStatus === 200 && value['httpStatus'] === 200 && pricing !== undefined
+    && receipt.visibleOutputTokens === undefined && receipt.reasoningOutputTokens === undefined
+    && receipt.reservedCents === roundedCents((CATEGORIES_BC_INPUT_ALLOWANCE * pricing.input + CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP * pricing.output) / 1_000_000)
+    && tokenCount(receipt.inputTokens) && receipt.inputTokens <= CATEGORIES_BC_INPUT_ALLOWANCE
+    && tokenCount(receipt.outputTokens) && receipt.outputTokens > CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP
+    && receipt.outputTokens <= CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP + CATEGORIES_BC_GROK_REASONING_ALLOWANCE
+    && (receipt.inputTokens * pricing.input + receipt.outputTokens * pricing.output) / 1_000_000 <= receipt.reservedCents + 1e-9
+    && value['reviewedPolicy'] === CATEGORIES_BC_GROK_REVIEWED_POLICY && value['documentationUrl'] === CATEGORIES_BC_GROK_DOCUMENTATION_URL
+    && value['nativeVisibleOutputCap'] === CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP && value['reasoningAllowance'] === CATEGORIES_BC_GROK_REASONING_ALLOWANCE
+  const unreportedTransportHold = (receipt: CategoriesBcSpendingReceipt | undefined, value: RecoveryRecord): receipt is CategoriesBcSpendingReceipt => receipt?.status === 'ambiguous' && receipt.httpStatus === undefined && value['httpStatus'] === undefined
+    && receipt.inputTokens === undefined && receipt.outputTokens === undefined
+    && receipt.visibleOutputTokens === undefined && receipt.reasoningOutputTokens === undefined
+    && receipt.reason === 'transport outcome unknown; full reservation retained'
+    && (value['transportReview'] === 'socket-closed-no-reported-usage'
+      || (isCategoriesEfg || isNewspaper) && value['transportReview'] === 'timeout-no-reported-usage')
+  const recordDiffersFromReceipt = (value: RecoveryRecord, receipt: CategoriesBcSpendingReceipt, pins: CategoriesBcPagePin[]): boolean => receipt.chargedCents !== receipt.reservedCents || receipt.reservedCents <= 0
+    || value['reservedCents'] !== receipt.reservedCents || value['chargedCents'] !== receipt.chargedCents
+    || value['caseId'] !== receipt.caseId || value['documentCaseId'] !== receipt.documentCaseId || value['provider'] !== receipt.provider || value['model'] !== receipt.model
+    || value['inputSha256'] !== receipt.inputSha256
+    || !pins.some(pin => pin.id === receipt.caseId && pin.inputSha256 === receipt.inputSha256)
+    || !scopeRates[`${receipt.provider}/${receipt.model}`]
+    || Date.parse(value['createdAt']) < Date.parse(receipt.completedAt ?? receipt.createdAt)
+  const assertRecoveryInvocations = (ledger: CategoriesBcSpendingLedger, authorized: ManualAuthorizations): void => {
     const recoveries = new Map<string, Set<string>>()
     for (const [index, receipt] of ledger.receipts.entries()) {
       if (receipt.recoveryOfReceiptId === undefined) continue
@@ -649,6 +686,45 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
       if (invocations.size > 1) fail('a manual reconciliation cannot authorize a second recovery invocation')
       recoveries.set(parent.id, invocations)
     }
+  }
+
+  /** Reviewed historical holds remain unchanged and charged in full; a pinned record authorizes one recovery invocation. */
+  const validateReconciliations = async (
+    ledger: CategoriesBcSpendingLedger,
+    root: string,
+    plan: CategoriesBcExecutionPlan
+  ): Promise<{ authorized: ManualAuthorizations, finalReviews: Map<string, NewspaperFinalBreachAccountingProof> }> => {
+    const pins = plan.pages
+    const authorized: ManualAuthorizations = new Map()
+    const finalReviews = new Map<string, NewspaperFinalBreachAccountingProof>()
+    const paths = new Set<string>()
+    for (const link of ledger.reconciliations ?? []) {
+      if (reconciliationPathInvalid(link, paths)) fail('manual reconciliation must have a unique private project-relative path')
+      paths.add(link.path)
+      const actual = await realpath(resolve(root, link.path))
+      const local = relative(await realpath(root), actual).replaceAll('\\', '/')
+      if (!local.startsWith(reconciliationRoot)) fail('manual reconciliation escaped its private directory')
+      const bytes = await readFile(actual)
+      if (bytes.length > 16_384 || hash(bytes) !== link.sha256) fail('manual reconciliation checksum changed')
+      const value: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
+      if (isFinalAccountingReview(value)) {
+        const proof = await readNewspaperFinalBreachAccountingReview({ projectRoot: root, reviewPath: link.path,
+          reviewSha256: link.sha256, ledger, plan, planSha256: ledger.planSha256 })
+        if (authorized.has(proof.receiptId) || finalReviews.has(proof.receiptId)) fail('duplicate final accounting authority for the retained receipt')
+        finalReviews.set(proof.receiptId, proof)
+        continue
+      }
+      if (!establishesRecoveryAction(value, ledger)) fail('manual reconciliation does not establish the approved recovery action')
+      const receipt = ledger.receipts.find(entry => entry.id === value['receiptId'])
+      const pricing = receipt ? scopeRates[`${receipt.provider}/${receipt.model}`] : undefined
+      const isHttp503 = http503Hold(receipt, value)
+      const reviewedGrokBreach = reviewedGrokBreachHold(receipt, value, pricing)
+      const reviewedSocketFailure = unreportedTransportHold(receipt, value) && await validateSocketFailureEvidence(value, receipt, root)
+      if (!receipt || (!isHttp503 && !reviewedGrokBreach && !reviewedSocketFailure)
+        || recordDiffersFromReceipt(value, receipt, pins) || authorized.has(receipt.id) || finalReviews.has(receipt.id)) fail('manual reconciliation differs from the retained provider receipt or reviewed policy')
+      authorized.set(receipt.id, { sha256: link.sha256, record: value as unknown as CategoriesBcManualReconciliation })
+    }
+    assertRecoveryInvocations(ledger, authorized)
     return { authorized, finalReviews }
   }
 
@@ -673,6 +749,13 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
     }
   }
 
+  const allowedEfgNewspaperTransport = (pin: CategoriesBcPagePin, provider: string, actualHash: string): boolean => isCategoriesEfg && provider === 'anthropic' && pin.caseId === 'efg-rerun-1-page-newspaper'
+    && pin.format === 'png' && pin.width === EFG_ANTHROPIC_NEWSPAPER_TRANSPORT.width && pin.height === EFG_ANTHROPIC_NEWSPAPER_TRANSPORT.height
+    && pin.inputSha256 === EFG_ANTHROPIC_NEWSPAPER_TRANSPORT.originalSha256 && actualHash === EFG_ANTHROPIC_NEWSPAPER_TRANSPORT.transportSha256
+  const pngHeaderExceedsReview = (bytes: Buffer, pin: CategoriesBcPagePin): boolean => bytes.length < 24 || bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a'
+    || bytes.readUInt32BE(16) !== pin.width || bytes.readUInt32BE(20) !== pin.height
+    || pin.width > (isNewspaper ? 3072 : 4096) || pin.height > (isNewspaper ? 3072 : 4096)
+    || isNewspaper && bytes.length > 5 * 1024 * 1024
   const validateImage = async (
     body: Record<string, unknown>, pin: CategoriesBcPagePin, provider: string, root: string
   ): Promise<{ transportInputSha256?: string, transportPolicy?: string }> => {
@@ -687,17 +770,11 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
       if (bytes.toString('base64') !== base64) fail('image does not match the authorized source hash')
       const actualHash = hash(bytes)
       if (actualHash !== pin.inputSha256) {
-        const allowedTransport = isCategoriesEfg && provider === 'anthropic' && pin.caseId === 'efg-rerun-1-page-newspaper'
-          && pin.format === 'png' && pin.width === EFG_ANTHROPIC_NEWSPAPER_TRANSPORT.width && pin.height === EFG_ANTHROPIC_NEWSPAPER_TRANSPORT.height
-          && pin.inputSha256 === EFG_ANTHROPIC_NEWSPAPER_TRANSPORT.originalSha256 && actualHash === EFG_ANTHROPIC_NEWSPAPER_TRANSPORT.transportSha256
-        if (!allowedTransport) fail('image does not match the authorized source hash')
+        if (!allowedEfgNewspaperTransport(pin, provider, actualHash)) fail('image does not match the authorized source hash')
         equivalentTransports.push(bytes)
       }
       if (imageMime === 'image/png') {
-        if (bytes.length < 24 || bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a'
-          || bytes.readUInt32BE(16) !== pin.width || bytes.readUInt32BE(20) !== pin.height
-          || pin.width > (isNewspaper ? 3072 : 4096) || pin.height > (isNewspaper ? 3072 : 4096)
-          || isNewspaper && bytes.length > 5 * 1024 * 1024) fail('image exceeds the reviewed PNG dimensions or byte allowance')
+        if (pngHeaderExceedsReview(bytes, pin)) fail('image exceeds the reviewed PNG dimensions or byte allowance')
         if (isCategoriesEfg || isNewspaper) pngInputs.push(bytes)
       } else {
         if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) fail('expected original JPEG bytes')
@@ -750,6 +827,33 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
     return transport
   }
 
+  const usageAtReviewedRates = (inputTokens: unknown, outputTokens: unknown, pricing: Rate): ReviewedUsage | undefined => {
+    if (!tokenCount(inputTokens) || !tokenCount(outputTokens)) return undefined
+    return { inputTokens, outputTokens, cents: roundedCents((inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000) }
+  }
+  const readGeminiUsage = (usage: Record<string, unknown>, pricing: Rate): ReviewedUsage | undefined => {
+    const inputTokens = usage['promptTokenCount']
+    const candidates = usage['candidatesTokenCount'], thoughts = usage['thoughtsTokenCount'] ?? 0
+    if (!tokenCount(candidates) || !tokenCount(thoughts)) return undefined
+    return usageAtReviewedRates(inputTokens, candidates + thoughts, pricing)
+  }
+  const readAnthropicUsage = (usage: Record<string, unknown>, pricing: Rate): ReviewedUsage | undefined => {
+    const input = usage['input_tokens'], cached = usage['cache_read_input_tokens'] ?? 0, created = usage['cache_creation_input_tokens'] ?? 0
+    if (!tokenCount(input) || !tokenCount(cached) || !tokenCount(created) || cached !== 0 || created !== 0) return undefined
+    return usageAtReviewedRates(input, usage['output_tokens'], pricing)
+  }
+  const readGrokUsage = (usage: Record<string, unknown>, pricing: Rate): ReviewedUsage | undefined => {
+    const inputTokens = usage['prompt_tokens']
+    const visible = usage['completion_tokens'], details = usage['completion_tokens_details']
+    const reasoning = isRecord(details) ? details['reasoning_tokens'] ?? 0 : 0
+    if (!tokenCount(visible) || !tokenCount(reasoning)) return undefined
+    const billableOutputTokens = visible + reasoning
+    if (!tokenCount(inputTokens)) return undefined
+    return { inputTokens, outputTokens: billableOutputTokens, visibleOutputTokens: visible, reasoningOutputTokens: reasoning,
+      cents: roundedCents((inputTokens * pricing.input + billableOutputTokens * pricing.output) / 1_000_000),
+      costBasis: 'provider-usage-at-reviewed-rates',
+      costNote: 'xAI visible completion and separate reasoning tokens valued once at reviewed rates; the native 4096-token limit applies only to visible output. The additional 32768-token reasoning allowance is unmeasured, not provider-enforced or invoice-reconciled.' }
+  }
   const readUsage = (provider: string, payload: unknown, pricing: Rate): ReviewedUsage | undefined => {
     if (!isRecord(payload)) return undefined
     if (pricing.pageCents !== undefined) {
@@ -760,34 +864,97 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
     const usage = provider === 'gemini' ? payload['usageMetadata'] : payload['usage']
     if (!isRecord(usage)) return undefined
     if (provider === 'openai') return readOpenAIStandardUsage(usage, pricing)
-    let inputTokens: unknown, outputTokens: unknown
-    if (provider === 'gemini') {
-      inputTokens = usage['promptTokenCount']
-      const candidates = usage['candidatesTokenCount'], thoughts = usage['thoughtsTokenCount'] ?? 0
-      if (!tokenCount(candidates) || !tokenCount(thoughts)) return undefined
-      outputTokens = candidates + thoughts
-    } else if (provider === 'anthropic') {
-      const input = usage['input_tokens'], cached = usage['cache_read_input_tokens'] ?? 0, created = usage['cache_creation_input_tokens'] ?? 0
-      if (!tokenCount(input) || !tokenCount(cached) || !tokenCount(created) || cached !== 0 || created !== 0) return undefined
-      inputTokens = input; outputTokens = usage['output_tokens']
-    } else if (provider === 'grok') {
-      inputTokens = usage['prompt_tokens']
-      const visible = usage['completion_tokens'], details = usage['completion_tokens_details']
-      const reasoning = isRecord(details) ? details['reasoning_tokens'] ?? 0 : 0
-      if (!tokenCount(visible) || !tokenCount(reasoning)) return undefined
-      const billableOutputTokens = visible + reasoning
-      if (!tokenCount(inputTokens)) return undefined
-      return { inputTokens, outputTokens: billableOutputTokens, visibleOutputTokens: visible, reasoningOutputTokens: reasoning,
-        cents: roundedCents((inputTokens * pricing.input + billableOutputTokens * pricing.output) / 1_000_000),
-        costBasis: 'provider-usage-at-reviewed-rates',
-        costNote: 'xAI visible completion and separate reasoning tokens valued once at reviewed rates; the native 4096-token limit applies only to visible output. The additional 32768-token reasoning allowance is unmeasured, not provider-enforced or invoice-reconciled.' }
-    } else {
-      inputTokens = usage['prompt_tokens']; outputTokens = usage['completion_tokens']
-      // OpenAI-compatible completion_tokens already includes reasoning; never add it again.
-    }
-    if (!tokenCount(inputTokens) || !tokenCount(outputTokens)) return undefined
-    return { inputTokens, outputTokens, cents: roundedCents((inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000) }
+    if (provider === 'gemini') return readGeminiUsage(usage, pricing)
+    if (provider === 'anthropic') return readAnthropicUsage(usage, pricing)
+    if (provider === 'grok') return readGrokUsage(usage, pricing)
+    // OpenAI-compatible completion_tokens already includes reasoning; never add it again.
+    return usageAtReviewedRates(usage['prompt_tokens'], usage['completion_tokens'], pricing)
   }
+
+  const parseGenerationRequest = (input: Parameters<typeof fetch>[0], init: Parameters<typeof fetch>[1], expectedEndpoint: string): Record<string, unknown> => {
+    if (input instanceof Request || typeof init?.body !== 'string' || (init.method ?? 'GET') !== 'POST') fail('only explicit JSON generation POST requests are authorized')
+    const url = new URL(String(input))
+    if (url.href !== expectedEndpoint || url.username || url.password) fail('unapproved provider host, path, query, or model')
+    let parsed: unknown
+    try { parsed = JSON.parse(init.body) } catch { return fail('request body is not JSON') }
+    if (!isRecord(parsed)) fail('request body is not an object')
+    return parsed
+  }
+  type GuardTarget = Pick<CategoriesBcSpendingGuardOptions, 'provider' | 'model'>
+  const assertReviewedOutputCap = (body: Record<string, unknown>, options: GuardTarget, pricing: Rate): void => {
+    if (options.provider === 'openai') {
+      applyOpenAIStandardBillingControls(body)
+      if (body['max_output_tokens'] !== undefined && body['max_output_tokens'] !== CATEGORIES_BC_OPENAI_OUTPUT_CAP) fail('unexpected OpenAI output cap')
+      body['max_output_tokens'] = CATEGORIES_BC_OPENAI_OUTPUT_CAP
+    } else if (options.provider === 'gemini') {
+      const config = body['generationConfig']
+      if (!isRecord(config) || config['maxOutputTokens'] !== pricing.outputCap || config['candidateCount'] !== undefined) fail('unexpected Gemini output cap or candidate count')
+    } else if (pricing.pageCents === undefined) {
+      const field = options.provider === 'grok' ? 'max_completion_tokens' : 'max_tokens'
+      if (body[field] !== pricing.outputCap) fail('unexpected native output cap')
+    }
+  }
+  const assertReviewedRequestControls = (body: Record<string, unknown>, options: GuardTarget, pricing: Rate): void => {
+    if (options.provider !== 'gemini' && body['model'] !== options.model) fail('request model differs from the approved target')
+    if (body['stream'] === true || body['tools'] !== undefined || (options.provider !== 'openai' && body['service_tier'] !== undefined) || body['n'] !== undefined) fail('streaming, tools, alternate tiers, or multiple outputs are not authorized')
+    if (['search_parameters', 'web_search_options', 'audio', 'modalities', 'response_modalities', 'file_search', 'cachedContent', 'previous_response_id', 'conversation'].some(key => key in body)) fail('unreviewed auxiliary tools, prior context or output modalities are not authorized')
+    assertReviewedOutputCap(body, options, pricing)
+  }
+  const reservationCostBasis = (options: GuardTarget) => options.provider === 'openai' ? { costBasis: 'conservative-upper-bound' as const,
+    costNote: 'Reservation uses the unmeasured 64k input allowance at the 1.25x default 30m-write rate and the output cap at Standard rates; not actual invoice cost.' }
+    : options.provider === 'grok' ? { costBasis: 'conservative-upper-bound' as const,
+      costNote: 'Reservation counts the native 4096 visible-output cap plus an UNMEASURED 32768 reasoning-token allowance, along with the unmeasured 64k input allowance. xAI does not enforce this reasoning allowance; an observed breach blocks further dispatch. Not invoice-confirmed cost.' } : {}
+
+  interface ReservationAdmission { options: CategoriesBcSpendingGuardOptions, pin: CategoriesBcPagePin, invocationId: string, receipt: CategoriesBcSpendingReceipt, reserve: number }
+  type ManualReviews = Awaited<ReturnType<typeof validateReconciliations>>
+  /** Runs under the ledger lock: either appends the reservation or blocks dispatch. */
+  const admitReservation = (ledger: CategoriesBcSpendingLedger, reviews: ManualReviews, admission: ReservationAdmission): void => {
+    const { authorized, finalReviews } = reviews, { options, pin, invocationId, receipt, reserve } = admission
+    if (ledger.receipts.some(entry => entry.status === 'breach' && !authorized.has(entry.id) && !finalReviews.has(entry.id)
+      || (entry.status === 'ambiguous' && !authorized.has(entry.id)))) fail('unresolved admitted request or allowance breach requires reconciliation')
+    const slot = ledger.receipts.filter(entry => entry.caseId === options.pageId && entry.provider === options.provider && entry.model === options.model)
+    if (slot.some(entry => finalReviews.has(entry.id))) fail('final accounting review permanently forbids redispatch of this slot')
+    for (const proof of finalReviews.values()) {
+      const only = proof.continueOnly
+      if (options.pageId !== only.caseId || pin.caseId !== only.documentCaseId || options.provider !== only.provider
+        || options.model !== only.model || pin.inputSha256 !== only.inputSha256) fail('final accounting review permits only the approved Fable NYT slot')
+    }
+    if (slot.some(entry => entry.status === 'reserved')) fail('this slot already has an in-flight request reservation')
+    if (slot.some(entry => entry.invocationId !== invocationId && !authorized.has(entry.id)
+      && (entry.status !== 'rejected' || entry.recoveryOfReceiptId !== undefined))) fail('this slot already has admitted evidence or consumed its recovery invocation; automatic redispatch is blocked')
+    const priorAmbiguous = slot.filter(entry => authorized.has(entry.id)).reverse()
+    if (priorAmbiguous.length > 0) {
+      const parent = priorAmbiguous.find(entry => {
+        const attempts = slot.filter(attempt => attempt.recoveryOfReceiptId === entry.id)
+        return entry.invocationId !== invocationId && (attempts.length === 0 || attempts.every(attempt => attempt.invocationId === invocationId))
+      })
+      if (!parent) fail('the one manually authorized recovery invocation was already consumed')
+      receipt.recoveryOfReceiptId = parent.id
+      receipt.recoveryReconciliationSha256 = authorized.get(parent.id)!.sha256
+    }
+    if (slot.filter(entry => entry.status === 'settled').length >= 3 || slot.length >= 12) fail('maximum request attempts reached')
+    if (totalHeld(ledger) + reserve > CATEGORIES_BC_BUDGET_CENTS + 1e-9) fail(`request reservation ${reserve.toFixed(6)} cents exceeds the remaining cumulative approval`)
+    ledger.receipts.push(receipt)
+  }
+
+  const rejectionReportsUsage = (payload: unknown): boolean => isRecord(payload) && (payload['usage'] !== undefined || payload['usageMetadata'] !== undefined || payload['usage_info'] !== undefined)
+  const openAITierUnconfirmed = (response: Response, options: GuardTarget, payload: unknown): boolean => response.ok && options.provider === 'openai' && (!isRecord(payload) || payload['service_tier'] !== 'default')
+  const usageExceedsReservation = (options: GuardTarget, usage: ReviewedUsage, outputAllowance: number, reserve: number): boolean => {
+    const outputBreach = options.provider === 'grok'
+      ? !tokenCount(usage.visibleOutputTokens) || !tokenCount(usage.reasoningOutputTokens)
+        || usage.visibleOutputTokens > CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP || usage.reasoningOutputTokens > CATEGORIES_BC_GROK_REASONING_ALLOWANCE
+      : usage.outputTokens > outputAllowance
+    return usage.inputTokens > CATEGORIES_BC_INPUT_ALLOWANCE || outputBreach || usage.outputTokens > outputAllowance || usage.cents > reserve + 1e-9
+  }
+  const reportedUsageChange = (usage: ReviewedUsage, breach: boolean, reserve: number, response: Response): Partial<CategoriesBcSpendingReceipt> => ({
+    status: breach ? 'breach' : 'settled', chargedCents: Math.max(breach ? reserve : 0, usage.cents),
+    httpStatus: response.status, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
+    ...(usage.visibleOutputTokens === undefined ? {} : { visibleOutputTokens: usage.visibleOutputTokens, reasoningOutputTokens: usage.reasoningOutputTokens }),
+    ...(breach ? { costBasis: 'conservative-upper-bound' as const,
+      costNote: 'Allowance breach: retain the greater of the reservation and locally valued usage; not invoice-reconciled charges.' }
+      : usage.costBasis ? { costBasis: usage.costBasis, costNote: usage.costNote } : {}),
+    ...(breach ? { reason: 'reported usage exceeded the reserved allowance; further dispatch blocked' } : {})
+  })
 
   const createGuard = (inputOptions: CategoriesBcSpendingGuardOptions): typeof fetch => {
     const options = { ...inputOptions }
@@ -795,7 +962,6 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
     privatePath(options.ledgerPath)
     const path = resolve(root, options.ledgerPath)
     if (relative(root, path).startsWith('..')) fail('ledger escaped the project')
-    const budgetCents = CATEGORIES_BC_BUDGET_CENTS
     const pricing = scopeRates[`${options.provider}/${options.model}`]
     if (!pricing) fail('case/provider/model is outside the approved benchmark')
     const expectedEndpoint = endpoint(options.provider, options.model)
@@ -821,7 +987,7 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
         let value: unknown
         try { value = JSON.parse(await readFile(path, 'utf8')) } catch (error) {
           if (!isRecord(error) || error['code'] !== 'ENOENT') throw error
-          value = { schemaVersion: 1, kind: scope.ledgerKind, budgetCents, inputTokenAssumption: inputAssumption, planSha256: options.planSha256, receipts: [] }
+          value = { schemaVersion: 1, kind: scope.ledgerKind, budgetCents: CATEGORIES_BC_BUDGET_CENTS, inputTokenAssumption: inputAssumption, planSha256: options.planSha256, receipts: [] }
         }
         const ledger = validateLedger(value, plan, options.planSha256)
         const result = await operation(ledger)
@@ -833,27 +999,8 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
       const plan = await readApprovedPlan(options, root)
       const pin = plan.pages.find(page => page.id === options.pageId)
       if (!pin) fail('page is outside the approved benchmark')
-      if (input instanceof Request || typeof init?.body !== 'string' || (init.method ?? 'GET') !== 'POST') fail('only explicit JSON generation POST requests are authorized')
-      const url = new URL(String(input))
-      if (url.href !== expectedEndpoint || url.username || url.password) fail('unapproved provider host, path, query, or model')
-      let parsed: unknown
-      try { parsed = JSON.parse(init.body) } catch { return fail('request body is not JSON') }
-      if (!isRecord(parsed)) fail('request body is not an object')
-      const body = parsed
-      if (options.provider !== 'gemini' && body['model'] !== options.model) fail('request model differs from the approved target')
-      if (body['stream'] === true || body['tools'] !== undefined || (options.provider !== 'openai' && body['service_tier'] !== undefined) || body['n'] !== undefined) fail('streaming, tools, alternate tiers, or multiple outputs are not authorized')
-      if (['search_parameters', 'web_search_options', 'audio', 'modalities', 'response_modalities', 'file_search', 'cachedContent', 'previous_response_id', 'conversation'].some(key => key in body)) fail('unreviewed auxiliary tools, prior context or output modalities are not authorized')
-      if (options.provider === 'openai') {
-        applyOpenAIStandardBillingControls(body)
-        if (body['max_output_tokens'] !== undefined && body['max_output_tokens'] !== CATEGORIES_BC_OPENAI_OUTPUT_CAP) fail('unexpected OpenAI output cap')
-        body['max_output_tokens'] = CATEGORIES_BC_OPENAI_OUTPUT_CAP
-      } else if (options.provider === 'gemini') {
-        const config = body['generationConfig']
-        if (!isRecord(config) || config['maxOutputTokens'] !== pricing.outputCap || config['candidateCount'] !== undefined) fail('unexpected Gemini output cap or candidate count')
-      } else if (pricing.pageCents === undefined) {
-        const field = options.provider === 'grok' ? 'max_completion_tokens' : 'max_tokens'
-        if (body[field] !== pricing.outputCap) fail('unexpected native output cap')
-      }
+      const body = parseGenerationRequest(input, init, expectedEndpoint)
+      assertReviewedRequestControls(body, options, pricing)
       const transport = await validateImage(body, pin, options.provider, root)
       const bodyText = JSON.stringify(body)
       const inputRate = pricing.input * (options.provider === 'openai' ? OPENAI_DEFAULT_CACHE_WRITE_MULTIPLIER : 1)
@@ -864,38 +1011,11 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
         requestSha256: hash(bodyText), inputSha256: pin.inputSha256, reservedCents: reserve, chargedCents: reserve,
         status: 'reserved', createdAt: new Date().toISOString(),
         ...transport,
-        ...(options.provider === 'openai' ? { costBasis: 'conservative-upper-bound' as const,
-          costNote: 'Reservation uses the unmeasured 64k input allowance at the 1.25x default 30m-write rate and the output cap at Standard rates; not actual invoice cost.' }
-          : options.provider === 'grok' ? { costBasis: 'conservative-upper-bound' as const,
-            costNote: 'Reservation counts the native 4096 visible-output cap plus an UNMEASURED 32768 reasoning-token allowance, along with the unmeasured 64k input allowance. xAI does not enforce this reasoning allowance; an observed breach blocks further dispatch. Not invoice-confirmed cost.' } : {})
+        ...reservationCostBasis(options)
       }
       await update(async ledger => {
-        const { authorized, finalReviews } = await validateReconciliations(ledger, root, plan)
-        if (ledger.receipts.some(entry => entry.status === 'breach' && !authorized.has(entry.id) && !finalReviews.has(entry.id)
-          || (entry.status === 'ambiguous' && !authorized.has(entry.id)))) fail('unresolved admitted request or allowance breach requires reconciliation')
-        const slot = ledger.receipts.filter(entry => entry.caseId === options.pageId && entry.provider === options.provider && entry.model === options.model)
-        if (slot.some(entry => finalReviews.has(entry.id))) fail('final accounting review permanently forbids redispatch of this slot')
-        for (const proof of finalReviews.values()) {
-          const only = proof.continueOnly
-          if (options.pageId !== only.caseId || pin.caseId !== only.documentCaseId || options.provider !== only.provider
-            || options.model !== only.model || pin.inputSha256 !== only.inputSha256) fail('final accounting review permits only the approved Fable NYT slot')
-        }
-        if (slot.some(entry => entry.status === 'reserved')) fail('this slot already has an in-flight request reservation')
-        if (slot.some(entry => entry.invocationId !== invocationId && !authorized.has(entry.id)
-          && (entry.status !== 'rejected' || entry.recoveryOfReceiptId !== undefined))) fail('this slot already has admitted evidence or consumed its recovery invocation; automatic redispatch is blocked')
-        const priorAmbiguous = slot.filter(entry => authorized.has(entry.id)).reverse()
-        if (priorAmbiguous.length > 0) {
-          const parent = priorAmbiguous.find(entry => {
-            const attempts = slot.filter(attempt => attempt.recoveryOfReceiptId === entry.id)
-            return entry.invocationId !== invocationId && (attempts.length === 0 || attempts.every(attempt => attempt.invocationId === invocationId))
-          })
-          if (!parent) fail('the one manually authorized recovery invocation was already consumed')
-          receipt.recoveryOfReceiptId = parent.id
-          receipt.recoveryReconciliationSha256 = authorized.get(parent.id)!.sha256
-        }
-        if (slot.filter(entry => entry.status === 'settled').length >= 3 || slot.length >= 12) fail('maximum request attempts reached')
-        if (totalHeld(ledger) + reserve > budgetCents + 1e-9) fail(`request reservation ${reserve.toFixed(6)} cents exceeds the remaining cumulative approval`)
-        ledger.receipts.push(receipt)
+        const reconciliations = await validateReconciliations(ledger, root, plan)
+        admitReservation(ledger, reconciliations, { options, pin, invocationId, receipt, reserve })
       })
       const finish = async (change: Partial<CategoriesBcSpendingReceipt>): Promise<void> => {
         await update(ledger => {
@@ -929,7 +1049,7 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
       if ([400, 401, 403, 404, 405, 413, 415, 422, 429].includes(response.status)) {
         let rejectedPayload: unknown
         try { rejectedPayload = await readJsonResponse(response.clone() as Response, 'OCR rejected admission', { maxBytes: 8 * 1024 * 1024 }) } catch { rejectedPayload = undefined }
-        if (isRecord(rejectedPayload) && (rejectedPayload['usage'] !== undefined || rejectedPayload['usageMetadata'] !== undefined || rejectedPayload['usage_info'] !== undefined)) {
+        if (rejectionReportsUsage(rejectedPayload)) {
           await finish({ ...await failureEvidence(rejectedPayload), status: 'ambiguous', httpStatus: response.status, reason: 'rejected HTTP status included inference usage; full reservation retained' })
           return fail('rejected status included inference usage; further dispatch blocked')
         }
@@ -941,7 +1061,7 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
         await finish({ status: 'ambiguous', httpStatus: response.status, reason: 'unreadable provider usage; full reservation retained' })
         return fail('provider usage was unreadable; further dispatch blocked')
       }
-      if (response.ok && options.provider === 'openai' && (!isRecord(payload) || payload['service_tier'] !== 'default')) {
+      if (openAITierUnconfirmed(response, options, payload)) {
         await finish({ ...await failureEvidence(payload), status: 'ambiguous', httpStatus: response.status, reason: 'OpenAI response did not confirm the Standard default service tier; full reservation retained' })
         return fail('OpenAI response did not confirm the Standard default service tier; further dispatch blocked')
       }
@@ -950,18 +1070,8 @@ const createProfileGuard = (profile: ApprovedOcrBenchmarkGuardProfile) => {
         await finish({ ...await failureEvidence(payload), status: 'ambiguous', httpStatus: response.status, reason: 'missing complete usage or ambiguous HTTP status; full reservation retained' })
         return fail('provider response did not establish complete usage; further dispatch blocked')
       }
-      const outputBreach = options.provider === 'grok'
-        ? !tokenCount(usage.visibleOutputTokens) || !tokenCount(usage.reasoningOutputTokens)
-          || usage.visibleOutputTokens > CATEGORIES_BC_GROK_VISIBLE_OUTPUT_CAP || usage.reasoningOutputTokens > CATEGORIES_BC_GROK_REASONING_ALLOWANCE
-        : usage.outputTokens > outputAllowance
-      const breach = usage.inputTokens > CATEGORIES_BC_INPUT_ALLOWANCE || outputBreach || usage.outputTokens > outputAllowance || usage.cents > reserve + 1e-9
-      await finish({ ...(breach ? await failureEvidence(payload) : {}), status: breach ? 'breach' : 'settled', chargedCents: Math.max(breach ? reserve : 0, usage.cents),
-        httpStatus: response.status, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
-        ...(usage.visibleOutputTokens === undefined ? {} : { visibleOutputTokens: usage.visibleOutputTokens, reasoningOutputTokens: usage.reasoningOutputTokens }),
-        ...(breach ? { costBasis: 'conservative-upper-bound' as const,
-          costNote: 'Allowance breach: retain the greater of the reservation and locally valued usage; not invoice-reconciled charges.' }
-          : usage.costBasis ? { costBasis: usage.costBasis, costNote: usage.costNote } : {}),
-        ...(breach ? { reason: 'reported usage exceeded the reserved allowance; further dispatch blocked' } : {}) })
+      const breach = usageExceedsReservation(options, usage, outputAllowance, reserve)
+      await finish({ ...(breach ? await failureEvidence(payload) : {}), ...reportedUsageChange(usage, breach, reserve, response) })
       if (breach) return fail('reported usage exceeded the reserved allowance; further dispatch blocked')
       return response
     }) as typeof fetch

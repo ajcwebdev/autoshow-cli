@@ -19,6 +19,18 @@ const TIMED_EXTRACT_PROVIDERS = new Set<TimedExtractProvider>([
 const isTimedExtractProvider = (provider: ExtractStepEstimate['provider']): provider is TimedExtractProvider =>
   TIMED_EXTRACT_PROVIDERS.has(provider as TimedExtractProvider)
 
+const ocrConcurrencyTimingOptions = (options: AggregateTimingOptions) => ({
+  ...(typeof options.ocrConcurrency === 'number' ? { ocrConcurrency: options.ocrConcurrency } : {}),
+  ...(options.ocrConcurrencyMode ? { ocrConcurrencyMode: options.ocrConcurrencyMode } : {}),
+  ...(typeof options.ocrProviderConcurrency === 'number' ? { ocrProviderConcurrency: options.ocrProviderConcurrency } : {}),
+  ...(typeof options.ocrLocalConcurrency === 'number' ? { ocrLocalConcurrency: options.ocrLocalConcurrency } : {})
+})
+
+const ttsTimingOptions = (options: AggregateTimingOptions) => ({
+  ...(typeof options.ttsInputText === 'string' ? { ttsInputText: options.ttsInputText } : {}),
+  ...(typeof options.ttsChunkConcurrency === 'number' ? { ttsChunkConcurrency: options.ttsChunkConcurrency } : {})
+})
+
 export const buildAggregateTiming = (
   steps: StepEstimate[],
   ttsTimingCharacterCount: number | undefined,
@@ -116,17 +128,13 @@ export const buildAggregateTiming = (
             }
           : {}),
         ...(extractTimingTargets.length > 0 ? { extractTargets: extractTimingTargets } : {}),
-        ...(typeof options.ocrConcurrency === 'number' ? { ocrConcurrency: options.ocrConcurrency } : {}),
-        ...(options.ocrConcurrencyMode ? { ocrConcurrencyMode: options.ocrConcurrencyMode } : {}),
-        ...(typeof options.ocrProviderConcurrency === 'number' ? { ocrProviderConcurrency: options.ocrProviderConcurrency } : {}),
-        ...(typeof options.ocrLocalConcurrency === 'number' ? { ocrLocalConcurrency: options.ocrLocalConcurrency } : {}),
+        ...ocrConcurrencyTimingOptions(options),
         ...(llmTimingTargets.length > 0 ? { llmTargets: llmTimingTargets } : {}),
         ...(ttsTimingTargets.length > 0 && typeof ttsTimingCharacterCount === 'number'
           ? {
               ttsTargets: ttsTimingTargets,
               ttsCharacterCount: ttsTimingCharacterCount,
-              ...(typeof options.ttsInputText === 'string' ? { ttsInputText: options.ttsInputText } : {}),
-              ...(typeof options.ttsChunkConcurrency === 'number' ? { ttsChunkConcurrency: options.ttsChunkConcurrency } : {})
+              ...ttsTimingOptions(options)
             }
           : {}),
         ...(imageTimingTargets.length > 0 ? { imageTargets: imageTimingTargets } : {}),

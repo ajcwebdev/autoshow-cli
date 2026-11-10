@@ -290,32 +290,43 @@ export const getErrorStatus = (error: unknown): number | undefined => {
   return undefined
 }
 
+const collectGetLikeErrorHeaders = (getLike: { get: (key: string) => unknown }): Headers => {
+  const normalized = new Headers()
+  for (const name of ['retry-after', 'Retry-After', 'x-ratelimit-reset', 'x-request-id']) {
+    const value = getLike.get(name)
+    if (typeof value === 'string' || typeof value === 'number') {
+      normalized.set(name.toLowerCase() === 'retry-after' ? 'retry-after' : name, String(value))
+    }
+  }
+  return normalized
+}
+
+const appendErrorHeaderValue = (normalized: Headers, key: string, value: unknown): void => {
+  if (typeof value === 'string' || typeof value === 'number') normalized.append(key, String(value))
+}
+
+const collectErrorHeaderEntries = (headers: Record<string, unknown>): Headers => {
+  const normalized = new Headers()
+  for (const [key, value] of Object.entries(headers)) {
+    if (Array.isArray(value)) {
+      for (const item of value) appendErrorHeaderValue(normalized, key, item)
+    } else {
+      appendErrorHeaderValue(normalized, key, value)
+    }
+  }
+  return normalized
+}
+
 /** Coerce Headers | get-like | plain header map into a Headers instance. */
 export const normalizeErrorHeaders = (headers: unknown): Headers | undefined => {
   if (headers instanceof Headers) return headers
   if (headers && typeof headers === 'object' && 'get' in headers && typeof (headers as { get: unknown }).get === 'function') {
-    const getLike = headers as { get: (key: string) => unknown }
-    const normalized = new Headers()
-    for (const name of ['retry-after', 'Retry-After', 'x-ratelimit-reset', 'x-request-id']) {
-      const value = getLike.get(name)
-      if (typeof value === 'string' || typeof value === 'number') {
-        normalized.set(name.toLowerCase() === 'retry-after' ? 'retry-after' : name, String(value))
-      }
-    }
+    const normalized = collectGetLikeErrorHeaders(headers as { get: (key: string) => unknown })
     // Prefer enumerating known keys when get-like lacks iteration.
     if ([...normalized.keys()].length > 0) return normalized
   }
   if (!headers || typeof headers !== 'object') return undefined
-  const normalized = new Headers()
-  for (const [key, value] of Object.entries(headers as Record<string, unknown>)) {
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        if (typeof item === 'string' || typeof item === 'number') normalized.append(key, String(item))
-      }
-    } else if (typeof value === 'string' || typeof value === 'number') {
-      normalized.append(key, String(value))
-    }
-  }
+  const normalized = collectErrorHeaderEntries(headers as Record<string, unknown>)
   return [...normalized.keys()].length > 0 ? normalized : undefined
 }
 

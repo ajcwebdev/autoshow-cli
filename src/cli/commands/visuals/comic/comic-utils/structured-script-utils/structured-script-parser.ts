@@ -54,55 +54,93 @@ const spokenSourceSpans = (
   return ranges.map(range => sourceSpan(source, 'spoken-text', range.start, range.end))
 }
 
+type BeatSourceBlock = {
+  speakerAnchor: string | undefined
+  anchorIndex: number
+  textSearchStart: number
+  textIndex: number
+  blockStart: number
+  spanSearchEnd: number
+}
+
+const speakerAnchorFor = (beat: StructuredScriptBeat, priorBeat: StructuredScriptBeat | undefined): string | undefined =>
+  beat.speakerLabel
+    && beat.speakerLabel !== priorBeat?.speakerLabel
+    && (beat.type === 'dialogue' || beat.type === 'narration')
+    ? `**${beat.speakerLabel}**`
+    : undefined
+
+const locateBeatSourceBlock = (source: string, beat: StructuredScriptBeat, priorBeat: StructuredScriptBeat | undefined, cursor: number): BeatSourceBlock => {
+  const speakerAnchor = speakerAnchorFor(beat, priorBeat)
+  const anchorIndex = speakerAnchor ? source.indexOf(speakerAnchor, cursor) : -1
+  const textSearchStart = anchorIndex >= 0 && speakerAnchor ? anchorIndex + speakerAnchor.length : Math.max(cursor, anchorIndex)
+  const textIndex = source.indexOf(beat.text, textSearchStart)
+  const blockStart = anchorIndex >= 0 ? anchorIndex : textIndex >= 0 ? textIndex : cursor
+  const boundarySearchStart = Math.max(blockStart + 1, textIndex >= 0 ? textIndex + beat.text.length : textSearchStart)
+  const boundaryMatch = /\r?\n\r?\n/u.exec(source.slice(boundarySearchStart))
+  const nextBoundary = boundaryMatch?.index === undefined ? -1 : boundarySearchStart + boundaryMatch.index
+  const blockEnd = nextBoundary >= 0 ? nextBoundary : source.length
+  const nextSpeakerBoundaryMatch = /\r?\n\r?\n\*\*[^*\r\n]+\*\*/u.exec(source.slice(textSearchStart))
+  const nextSpeakerBoundary = nextSpeakerBoundaryMatch?.index === undefined ? source.length : textSearchStart + nextSpeakerBoundaryMatch.index
+  const spanSearchEnd = textIndex < 0 && (beat.type === 'dialogue' || beat.type === 'narration') ? nextSpeakerBoundary : blockEnd
+  return { speakerAnchor, anchorIndex, textSearchStart, textIndex, blockStart, spanSearchEnd }
+}
+
+const timingSourceSpans = (source: string, block: string, blockStart: number): StructuredSourceSpan[] => {
+  const spans: StructuredSourceSpan[] = []
+  for (const match of block.matchAll(/\(\s*(?:(?:(?:a|an|another|one|two|long|short|brief|slight|small|awkward|uncomfortable|heavy|dead|stunned|very)\s+)*(?:beat|beats|pause|pauses|silence|moment|moments))(?:\s*,\s*[^)]*)?\s*\)/giu)) {
+    if (match.index === undefined) continue
+    spans.push(sourceSpan(source, 'timing', blockStart + match.index, blockStart + match.index + match[0].length))
+  }
+  return spans
+}
+
+const voiceEffectSourceSpans = (source: string, beat: StructuredScriptBeat, located: BeatSourceBlock): StructuredSourceSpan[] => {
+  const spans: StructuredSourceSpan[] = []
+  if (!beat.speakerLabel) return spans
+  const { speakerAnchor, anchorIndex } = located
+  for (const match of beat.speakerLabel.matchAll(/(?:\bV\.O\.|\bO\.S\.|\bOFFSCREEN\b|\bRADIO\b|\bINTERCOM\b|\bTELEPHONE\b|\bCOMPUTER\b)/giu)) {
+    if (match.index === undefined || anchorIndex < 0) continue
+    const labelOffset = speakerAnchor?.indexOf(beat.speakerLabel) ?? 0
+    const start = anchorIndex + labelOffset + match.index
+    spans.push(sourceSpan(source, 'voice-effect', start, start + match[0].length))
+  }
+  return spans
+}
+
+const beatSourceSpans = (source: string, beat: StructuredScriptBeat, located: BeatSourceBlock): StructuredSourceSpan[] => {
+  const { speakerAnchor, anchorIndex, textSearchStart, textIndex, blockStart, spanSearchEnd } = located
+  const block = source.slice(blockStart, spanSearchEnd)
+  const spans: StructuredSourceSpan[] = []
+
+  if (textIndex >= 0 && beat.text.length > 0) spans.push(sourceSpan(source, beat.type === 'transition' ? 'scene-boundary' : 'spoken-text', textIndex, textIndex + beat.text.length))
+  else if (beat.type === 'dialogue' || beat.type === 'narration') spans.push(...spokenSourceSpans(source, beat.text, textSearchStart, spanSearchEnd))
+  if (beat.delivery) {
+    const deliveryIndex = block.indexOf(beat.delivery)
+    if (deliveryIndex >= 0) spans.push(sourceSpan(source, 'delivery', blockStart + deliveryIndex, blockStart + deliveryIndex + beat.delivery.length))
+  }
+  for (const span of timingSourceSpans(source, block, blockStart)) spans.push(span)
+  for (const span of voiceEffectSourceSpans(source, beat, located)) spans.push(span)
+  if ((beat.speakerKeys?.length ?? 0) > 1 && anchorIndex >= 0 && speakerAnchor) {
+    spans.push(sourceSpan(source, 'simultaneous-speech', anchorIndex, anchorIndex + speakerAnchor.length))
+  }
+  if (spans.length === 0 && blockStart < spanSearchEnd) spans.push(sourceSpan(source, 'stage-direction', blockStart, spanSearchEnd))
+  return spans
+}
+
+const skipMarkupAndWhitespace = (source: string, offset: number): number => {
+  let cursor = offset
+  while (cursor < source.length && /[*_`~]/u.test(source[cursor] ?? '')) cursor += 1
+  while (cursor < source.length && /\s/u.test(source[cursor] ?? '')) cursor += 1
+  return cursor
+}
+
 const attachSourceSpans = (source: string, beats: StructuredScriptBeat[]): StructuredScriptBeat[] => {
   let cursor = 0
   return beats.map((beat, beatIndex) => {
-    const priorBeat = beats[beatIndex - 1]
-    const speakerAnchor = beat.speakerLabel
-      && beat.speakerLabel !== priorBeat?.speakerLabel
-      && (beat.type === 'dialogue' || beat.type === 'narration')
-      ? `**${beat.speakerLabel}**`
-      : undefined
-    const anchorIndex = speakerAnchor ? source.indexOf(speakerAnchor, cursor) : -1
-    const textSearchStart = anchorIndex >= 0 && speakerAnchor ? anchorIndex + speakerAnchor.length : Math.max(cursor, anchorIndex)
-    const textIndex = source.indexOf(beat.text, textSearchStart)
-    const blockStart = anchorIndex >= 0 ? anchorIndex : textIndex >= 0 ? textIndex : cursor
-    const boundarySearchStart = Math.max(blockStart + 1, textIndex >= 0 ? textIndex + beat.text.length : textSearchStart)
-    const boundaryMatch = /\r?\n\r?\n/u.exec(source.slice(boundarySearchStart))
-    const nextBoundary = boundaryMatch?.index === undefined ? -1 : boundarySearchStart + boundaryMatch.index
-    const blockEnd = nextBoundary >= 0 ? nextBoundary : source.length
-    const nextSpeakerBoundaryMatch = /\r?\n\r?\n\*\*[^*\r\n]+\*\*/u.exec(source.slice(textSearchStart))
-    const nextSpeakerBoundary = nextSpeakerBoundaryMatch?.index === undefined ? source.length : textSearchStart + nextSpeakerBoundaryMatch.index
-    const spanSearchEnd = textIndex < 0 && (beat.type === 'dialogue' || beat.type === 'narration') ? nextSpeakerBoundary : blockEnd
-    const block = source.slice(blockStart, spanSearchEnd)
-    const spans: StructuredSourceSpan[] = []
-
-    if (textIndex >= 0 && beat.text.length > 0) spans.push(sourceSpan(source, beat.type === 'transition' ? 'scene-boundary' : 'spoken-text', textIndex, textIndex + beat.text.length))
-    else if (beat.type === 'dialogue' || beat.type === 'narration') spans.push(...spokenSourceSpans(source, beat.text, textSearchStart, spanSearchEnd))
-    if (beat.delivery) {
-      const deliveryIndex = block.indexOf(beat.delivery)
-      if (deliveryIndex >= 0) spans.push(sourceSpan(source, 'delivery', blockStart + deliveryIndex, blockStart + deliveryIndex + beat.delivery.length))
-    }
-    for (const match of block.matchAll(/\(\s*(?:(?:(?:a|an|another|one|two|long|short|brief|slight|small|awkward|uncomfortable|heavy|dead|stunned|very)\s+)*(?:beat|beats|pause|pauses|silence|moment|moments))(?:\s*,\s*[^)]*)?\s*\)/giu)) {
-      if (match.index === undefined) continue
-      spans.push(sourceSpan(source, 'timing', blockStart + match.index, blockStart + match.index + match[0].length))
-    }
-    if (beat.speakerLabel) {
-      for (const match of beat.speakerLabel.matchAll(/(?:\bV\.O\.|\bO\.S\.|\bOFFSCREEN\b|\bRADIO\b|\bINTERCOM\b|\bTELEPHONE\b|\bCOMPUTER\b)/giu)) {
-        if (match.index === undefined || anchorIndex < 0) continue
-        const labelOffset = speakerAnchor?.indexOf(beat.speakerLabel) ?? 0
-        const start = anchorIndex + labelOffset + match.index
-        spans.push(sourceSpan(source, 'voice-effect', start, start + match[0].length))
-      }
-    }
-    if ((beat.speakerKeys?.length ?? 0) > 1 && anchorIndex >= 0 && speakerAnchor) {
-      spans.push(sourceSpan(source, 'simultaneous-speech', anchorIndex, anchorIndex + speakerAnchor.length))
-    }
-    if (spans.length === 0 && blockStart < spanSearchEnd) spans.push(sourceSpan(source, 'stage-direction', blockStart, spanSearchEnd))
+    const spans = beatSourceSpans(source, beat, locateBeatSourceBlock(source, beat, beats[beatIndex - 1], cursor))
     const lastExactSourceOffset = spans.reduce((maximum, span) => Math.max(maximum, utf16Offset(source, span.end)), cursor)
-    cursor = lastExactSourceOffset
-    while (cursor < source.length && /[*_`~]/u.test(source[cursor] ?? '')) cursor += 1
-    while (cursor < source.length && /\s/u.test(source[cursor] ?? '')) cursor += 1
+    cursor = skipMarkupAndWhitespace(source, lastExactSourceOffset)
     return { ...beat, sourceSpans: spans.sort((left, right) => left.start - right.start || left.end - right.end || left.kind.localeCompare(right.kind)) }
   })
 }

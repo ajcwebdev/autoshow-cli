@@ -244,6 +244,27 @@ export class SttBatchCoordinator {
   }
 }
 
+type RunnableSttCandidate = {
+  index: number
+  activeCount: number
+  slotLimit: number
+  priority: number
+}
+
+const compareRunnableSttCandidates = (left: RunnableSttCandidate, right: RunnableSttCandidate): number => {
+  const leftUtilization = left.activeCount / left.slotLimit
+  const rightUtilization = right.activeCount / right.slotLimit
+  if (leftUtilization !== rightUtilization) {
+    return leftUtilization - rightUtilization
+  }
+
+  if (left.activeCount !== right.activeCount) {
+    return left.activeCount - right.activeCount
+  }
+
+  return left.priority - right.priority
+}
+
 const selectCoordinatedTarget = async (
   indices: number[],
   pendingIndices: Set<number>,
@@ -255,12 +276,7 @@ const selectCoordinatedTarget = async (
 
   while (pendingIndices.size > 0) {
     const deferredTargets: SttTarget[] = []
-    const runnableCandidates: Array<{
-      index: number
-      activeCount: number
-      slotLimit: number
-      priority: number
-    }> = []
+    const runnableCandidates: RunnableSttCandidate[] = []
     let skippedAny = false
 
     for (const [priority, index] of indices.entries()) {
@@ -292,19 +308,7 @@ const selectCoordinatedTarget = async (
     }
 
     if (runnableCandidates.length > 0) {
-      runnableCandidates.sort((left, right) => {
-        const leftUtilization = left.activeCount / left.slotLimit
-        const rightUtilization = right.activeCount / right.slotLimit
-        if (leftUtilization !== rightUtilization) {
-          return leftUtilization - rightUtilization
-        }
-
-        if (left.activeCount !== right.activeCount) {
-          return left.activeCount - right.activeCount
-        }
-
-        return left.priority - right.priority
-      })
+      runnableCandidates.sort(compareRunnableSttCandidates)
 
       for (const candidate of runnableCandidates) {
         const target = requestedTargets[candidate.index] as SttTarget

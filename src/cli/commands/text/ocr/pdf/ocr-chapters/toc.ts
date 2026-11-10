@@ -53,9 +53,78 @@ const buildTocEntry = (
   }
 }
 
+const appendTocEntry = (entries: PdfTocEntry[], entry: PdfTocEntry | undefined): void => {
+  if (entry) {
+    entries.push(entry)
+  }
+}
+
+const isSkippedTocLine = (line: string): boolean =>
+  /^(chapter|chapters|page|pages)$/i.test(line) || isTocHeaderLine(line)
+
+type TocScanState = { entries: PdfTocEntry[], pendingTitle: string }
+
+const consumePageReferenceLine = (
+  state: TocScanState,
+  line: string,
+  tocPdfPage: number,
+  options: TocScanOptions | undefined
+): boolean => {
+  const inlineMatch = line.match(/^(.*?)(?:(?:[.·]\s*){2,}|\s{2,}|\s)\s*([0-9]+|[ivxlcdm]+)\s*$/i)
+  if (inlineMatch) {
+    const parsed = parsePrintedLabel(inlineMatch[2] ?? '')
+    const titlePart = normalizeInlineWhitespace(`${state.pendingTitle} ${inlineMatch[1] ?? ''}`)
+    state.pendingTitle = ''
+    appendTocEntry(state.entries, parsed ? buildTocEntry(titlePart, tocPdfPage, parsed, options) : undefined)
+    return true
+  }
+
+  const isolatedLine = normalizeDecoratedLabel(line)
+  const isolatedPageRef = parsePrintedLabel(isolatedLine)
+  if (!isolatedPageRef || !isPlausibleTocPageRef(isolatedPageRef)) {
+    return false
+  }
+  if (state.pendingTitle.length > 0) {
+    appendTocEntry(state.entries, buildTocEntry(state.pendingTitle, tocPdfPage, isolatedPageRef, options))
+  }
+  state.pendingTitle = ''
+  return true
+}
+
+const consumeTitleLine = (
+  state: TocScanState,
+  line: string,
+  tocPdfPage: number,
+  options: TocScanOptions | undefined
+): void => {
+  if (!isPlausibleTocTitle(line)) {
+    state.pendingTitle = ''
+    return
+  }
+
+  if (state.pendingTitle.length === 0) {
+    state.pendingTitle = line
+    return
+  }
+
+  const combinedTitle = normalizeInlineWhitespace(`${state.pendingTitle} ${line}`)
+  if (isStandaloneTocTitle(state.pendingTitle) && isStandaloneTocTitle(line)) {
+    appendTocEntry(state.entries, buildTocEntry(state.pendingTitle, tocPdfPage, undefined, options))
+    state.pendingTitle = line
+    return
+  }
+
+  if (combinedTitle.length <= MAX_TOC_TITLE_LENGTH) {
+    state.pendingTitle = combinedTitle
+    return
+  }
+
+  appendTocEntry(state.entries, buildTocEntry(state.pendingTitle, tocPdfPage, undefined, options))
+  state.pendingTitle = line
+}
+
 const scanTocEntries = (lines: string[], tocPdfPage: number, options?: TocScanOptions): PdfTocEntry[] => {
-  const entries: PdfTocEntry[] = []
-  let pendingTitle = ''
+  const state: TocScanState = { entries: [], pendingTitle: '' }
 
   for (const rawLine of lines) {
     const line = normalizeInlineWhitespace(rawLine)
@@ -63,78 +132,23 @@ const scanTocEntries = (lines: string[], tocPdfPage: number, options?: TocScanOp
       continue
     }
     if (TOC_PAGE_TITLE_RE.test(line)) {
-      pendingTitle = ''
+      state.pendingTitle = ''
       continue
     }
-    if (/^(chapter|chapters|page|pages)$/i.test(line) || isTocHeaderLine(line)) {
+    if (isSkippedTocLine(line)) {
       continue
     }
-
-    const inlineMatch = line.match(/^(.*?)(?:(?:[.·]\s*){2,}|\s{2,}|\s)\s*([0-9]+|[ivxlcdm]+)\s*$/i)
-    if (inlineMatch) {
-      const parsed = parsePrintedLabel(inlineMatch[2] ?? '')
-      const titlePart = normalizeInlineWhitespace(`${pendingTitle} ${inlineMatch[1] ?? ''}`)
-      pendingTitle = ''
-      const entry = parsed ? buildTocEntry(titlePart, tocPdfPage, parsed, options) : undefined
-      if (entry) {
-        entries.push(entry)
-      }
+    if (consumePageReferenceLine(state, line, tocPdfPage, options)) {
       continue
     }
-
-    const isolatedLine = normalizeDecoratedLabel(line)
-    const isolatedPageRef = parsePrintedLabel(isolatedLine)
-    if (isolatedPageRef && isPlausibleTocPageRef(isolatedPageRef)) {
-      if (pendingTitle.length > 0) {
-        const entry = buildTocEntry(pendingTitle, tocPdfPage, isolatedPageRef, options)
-        if (entry) {
-          entries.push(entry)
-        }
-      }
-      pendingTitle = ''
-      continue
-    }
-
-    if (!isPlausibleTocTitle(line)) {
-      pendingTitle = ''
-      continue
-    }
-
-    if (pendingTitle.length === 0) {
-      pendingTitle = line
-      continue
-    }
-
-    const combinedTitle = normalizeInlineWhitespace(`${pendingTitle} ${line}`)
-    if (isStandaloneTocTitle(pendingTitle) && isStandaloneTocTitle(line)) {
-      const entry = buildTocEntry(pendingTitle, tocPdfPage, undefined, options)
-      if (entry) {
-        entries.push(entry)
-      }
-      pendingTitle = line
-      continue
-    }
-
-    if (combinedTitle.length <= MAX_TOC_TITLE_LENGTH) {
-      pendingTitle = combinedTitle
-      continue
-    }
-
-    const entry = buildTocEntry(pendingTitle, tocPdfPage, undefined, options)
-    if (entry) {
-      entries.push(entry)
-    }
-    pendingTitle = line
+    consumeTitleLine(state, line, tocPdfPage, options)
   }
 
-  if (pendingTitle.length > 0) {
-    const entry = buildTocEntry(pendingTitle, tocPdfPage, undefined, options)
-    if (entry) {
-      entries.push(entry)
-    }
+  if (state.pendingTitle.length > 0) {
+    appendTocEntry(state.entries, buildTocEntry(state.pendingTitle, tocPdfPage, undefined, options))
   }
 
-  return entries
+  return state.entries
 }
 
 const isTocLikeLine = (line: string): boolean =>

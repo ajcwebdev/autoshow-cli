@@ -29,8 +29,8 @@ RUN set -eu; \
 FROM ${BUN_BASE_IMAGE} AS runtime
 
 ARG DEBIAN_FRONTEND=noninteractive
-# Includes the PCRE2, OpenSSL, libheif, librsvg, Expat, and vendor CA trust-store security fixes.
-ARG DEBIAN_SNAPSHOT=20261025T000000Z
+# Includes the APT, ImageMagick, and zlib/minizip fixes required by the image vulnerability gate.
+ARG DEBIAN_SNAPSHOT=20261110T000000Z
 
 LABEL org.opencontainers.image.title="autoshow-cli" \
       org.opencontainers.image.description="Bun-native AutoShow CLI with Debian slim local-lite tools" \

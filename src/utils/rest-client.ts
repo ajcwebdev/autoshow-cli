@@ -4,6 +4,7 @@ import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { readHttpPayloadText } from '~/utils/http-payload'
 import type { BoundedCaptureResult, HttpPayloadClass, ProviderRestClientProfile, RetryClass } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
+import { assertRuntimeBudgetDispatch } from '~/utils/runtime-spending-budget'
 
 // Contract: native Error/DOMException abort and timeout causes may be constructed here
 // and wrapped into AppError at the HTTP boundary. Do not ban useful native causes;
@@ -102,6 +103,7 @@ export const createProviderRestClient = <TOptions, TError extends Error>(
 ): ((options: TOptions) => Promise<Response>) =>
   async (options: TOptions): Promise<Response> => {
     const request = profile.buildRequest(options)
+    if (!['GET', 'HEAD'].includes((request.init?.method ?? 'GET').toUpperCase())) assertRuntimeBudgetDispatch()
 
     try {
       const init: RequestInit & { timeout: false } = {

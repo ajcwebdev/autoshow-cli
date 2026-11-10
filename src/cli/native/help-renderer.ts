@@ -1,7 +1,7 @@
 import { UsageError } from '~/utils/error-handler'
 import { resolveHelpWidth, wrapHelpDescription } from './help-line-wrap'
 import { getHelpTopics } from './help-topics'
-import type { CliHelpRenderOptions } from '~/types'
+import type { CliHelpRenderOptions, CliHelpTopic } from '~/types'
 import {
   colorText,
   HELP_DEFAULT_VALUE_COLOR_NAME,
@@ -256,6 +256,31 @@ export const renderRootHelp = (
   return `${lines.join('\n')}\n`
 }
 
+const commandUsageParts = (root: CliRootDefinition, command: CliCommandHelpDefinition): string[] => {
+  const parameters = command.parameters ?? []
+  const parameterUsage = parameters.map((parameter) => parameter.key).join(' ')
+  const subcommandUsage = (command.subcommands ?? []).length > 0 && parameters.length === 0
+    ? '<subcommand>'
+    : ''
+  return [root.scriptName, command.name, parameterUsage, subcommandUsage, '[flags]'].filter(Boolean)
+}
+
+const selectTopicFlags = (command: CliCommandHelpDefinition, topic: CliHelpTopic | undefined): CliFlagsDefinition =>
+  Object.fromEntries(Object.entries(command.flags ?? {}).filter(([name, flag]) => !topic || topic.flags?.includes(name) || topic.groups?.includes(String(flag.help?.['group']))))
+
+const retainHelpGlobals = (globals: CliFlagsDefinition): void => {
+  for (const name of Object.keys(globals)) if (!['help', 'help-topic'].includes(name)) delete globals[name]
+}
+
+const withTopicExamples = (command: CliCommandHelpDefinition, options: CliHelpRenderOptions): CliCommandHelpDefinition =>
+  ({ ...command, help: { ...command.help, examples: options.topic === 'overview' ? command.help?.examples?.slice(0, 3) ?? [] : [] } })
+
+const dropTrailingBlankLines = (lines: string[]): void => {
+  while (lines.at(-1)?.trim() === '') {
+    lines.pop()
+  }
+}
+
 export const renderCommandHelp = (
   root: CliRootDefinition,
   command: CliCommandHelpDefinition,
@@ -265,12 +290,7 @@ export const renderCommandHelp = (
   const topics = getHelpTopics(root, command)
   const topic = options.topic ? topics[options.topic] : undefined
   if (options.topic && !topic) throw UsageError(`Unknown help topic \"${options.topic}\" for ${command.name}. Available topics: ${Object.keys(topics).join(', ')}.`)
-  const parameters = command.parameters ?? []
-  const parameterUsage = parameters.map((parameter) => parameter.key).join(' ')
-  const subcommandUsage = (command.subcommands ?? []).length > 0 && parameters.length === 0
-    ? '<subcommand>'
-    : ''
-  const usageParts = [root.scriptName, command.name, parameterUsage, subcommandUsage, '[flags]'].filter(Boolean)
+  const usageParts = commandUsageParts(root, command)
   const lines = [
     `${root.scriptName} ${command.name} ${formatVersion(root.version)} - ${command.description}`,
     '',
@@ -283,23 +303,19 @@ export const renderCommandHelp = (
   lines.push(...renderParameters(command))
   lines.push(...renderSubcommands(command))
 
-  const flags = Object.fromEntries(Object.entries(command.flags ?? {}).filter(([name, flag]) => !topic || topic.flags?.includes(name) || topic.groups?.includes(String(flag.help?.['group']))))
+  const flags = selectTopicFlags(command, topic)
   if (Object.keys(flags).length > 0) {
     lines.push('Flags')
     lines.push(...renderGroupedFlags(flags, root.flagGroups, width))
-    while (lines.at(-1)?.trim() === '') {
-      lines.pop()
-    }
+    dropTrailingBlankLines(lines)
     lines.push('')
   }
 
   const globals = globalFlagsForCommand(root.globalFlags, command.name)
-  if (topic && options.topic !== 'globals') {
-    for (const name of Object.keys(globals)) if (!['help', 'help-topic'].includes(name)) delete globals[name]
-  }
+  if (topic && options.topic !== 'globals') retainHelpGlobals(globals)
   lines.push('Global Flags', ...renderFlagRows(orderGlobalFlags(globals), '  ', width), '')
 
-  const examples = renderExamples(topic ? { ...command, help: { ...command.help, examples: options.topic === 'overview' ? command.help?.examples?.slice(0, 3) ?? [] : [] } } : command)
+  const examples = renderExamples(topic ? withTopicExamples(command, options) : command)
   if (examples.length > 0) {
     lines.push(...examples)
   }
@@ -309,9 +325,7 @@ export const renderCommandHelp = (
   }
 
   if (!topic) lines.push('Help Topics', ...Object.entries(topics).map(([name, item]) => `  ${name}  ${item.description}`), '', `Run ${root.scriptName} ${command.name} --help-topic <topic> for focused help.`, '')
-  while (lines.at(-1)?.trim() === '') {
-    lines.pop()
-  }
+  dropTrailingBlankLines(lines)
 
   return `${lines.join('\n')}\n`
 }

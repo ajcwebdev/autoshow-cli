@@ -46,6 +46,29 @@ function identity(row: JsonObject): string | null {
   return provider && model ? `${provider}/${model}` : null;
 }
 
+const slotReceiptPath = (runDir: string, providerKey: string): string => join(runDir, `slot-${providerKey.replace(/[/\\:*?"<>|]/g, "-")}.json`);
+
+function structuredOutputError(text: string): string | null {
+  let parsed: unknown;
+  try { parsed = JSON.parse(text); } catch { return "invalid JSON output"; }
+  if (!isRecord(parsed) || Object.keys(parsed).length === 0) return "invalid structured output";
+  if ("_validationError" in parsed || "_raw" in parsed) return "validation failure envelope";
+  return null;
+}
+
+function slotEvidenceError(runDir: string, providerKey: string, name: string, bytes: Uint8Array): string | null {
+  const slotPath = slotReceiptPath(runDir, providerKey);
+  if (!existsSync(slotPath)) return null;
+  let slot: JsonObject;
+  try { slot = object(JSON.parse(readFileSync(slotPath, "utf8"))); } catch { return "invalid slot evidence"; }
+  if (identity(slot) !== providerKey) return "invalid slot identity";
+  if (slot["status"] !== "completed") return "slot not completed";
+  const expected = string(object(slot["artifactHashes"])[name]);
+  if (!expected) return "unverified output artifact";
+  if (createHash("sha256").update(bytes).digest("hex") !== expected) return "artifact hash mismatch";
+  return null;
+}
+
 function outputArtifact(runDir: string, providerKey: string, fileName: unknown, format: unknown): { valid: boolean; file: string | null; error: string | null } {
   const name = string(fileName);
   if (!name || isAbsolute(name)) return { valid: false, file: null, error: "missing output" };
@@ -55,21 +78,11 @@ function outputArtifact(runDir: string, providerKey: string, fileName: unknown, 
   const bytes = readFileSync(file), text = bytes.toString("utf8");
   if (!text.trim()) return { valid: false, file, error: "empty output" };
   if (format === "json" || name.endsWith(".json")) {
-    let parsed: unknown;
-    try { parsed = JSON.parse(text); } catch { return { valid: false, file, error: "invalid JSON output" }; }
-    if (!isRecord(parsed) || Object.keys(parsed).length === 0) return { valid: false, file, error: "invalid structured output" };
-    if ("_validationError" in parsed || "_raw" in parsed) return { valid: false, file, error: "validation failure envelope" };
+    const outputError = structuredOutputError(text);
+    if (outputError) return { valid: false, file, error: outputError };
   }
-  const slotPath = join(runDir, `slot-${providerKey.replace(/[/\\:*?"<>|]/g, "-")}.json`);
-  if (existsSync(slotPath)) {
-    let slot: JsonObject;
-    try { slot = object(JSON.parse(readFileSync(slotPath, "utf8"))); } catch { return { valid: false, file, error: "invalid slot evidence" }; }
-    if (identity(slot) !== providerKey) return { valid: false, file, error: "invalid slot identity" };
-    if (slot["status"] !== "completed") return { valid: false, file, error: "slot not completed" };
-    const expected = string(object(slot["artifactHashes"])[name]);
-    if (!expected) return { valid: false, file, error: "unverified output artifact" };
-    if (createHash("sha256").update(bytes).digest("hex") !== expected) return { valid: false, file, error: "artifact hash mismatch" };
-  }
+  const slotError = slotEvidenceError(runDir, providerKey, name, bytes);
+  if (slotError) return { valid: false, file, error: slotError };
   return { valid: true, file, error: null };
 }
 
@@ -79,82 +92,112 @@ export function writeDashboardLinkRoot(rootDir: string): string {
   return basename(parent) === "text" ? dirname(parent) : parent;
 }
 
-export function collectWriteDashboardAttempts(rootDir: string): WriteDashboardSample[] {
-  const root = resolve(rootDir), samples: WriteDashboardSample[] = [];
-  const href = (path: string) => relative(writeDashboardLinkRoot(root), path).split("\\").join("/");
-  const planPath = join(root, "benchmark-plan.json");
-  const plan = existsSync(planPath) ? object(JSON.parse(readFileSync(planPath, "utf8"))) : {};
-  const plannedProviders = records(plan["providers"]);
-  for (const benchmark of WRITE_BENCHMARK_CASES) {
-    const firstRunDir = join(root, benchmark.directory), rerunsDir = join(firstRunDir, "reruns");
-    const reruns = existsSync(rerunsDir) ? readdirSync(rerunsDir, { withFileTypes: true })
-      .filter(entry => entry.name !== ".DS_Store" && entry.isDirectory() && existsSync(join(rerunsDir, entry.name, "manifest.json")))
-      .map(entry => entry.name).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })) : [];
-    for (const attempt of ["01", ...reruns]) {
-      const run = attempt === "01" ? benchmark.directory : `${benchmark.directory}/reruns/${attempt}`;
-      const runDir = join(root, run);
-      if (!existsSync(join(runDir, "manifest.json"))) {
-        for (const planned of plannedProviders) {
-          const providerKey = identity(planned);
-          if (!providerKey) continue;
-          const outputRate = number(planned["outputCostPer1MCents"]);
-          samples.push({ run, attempt, selected: false, caseKey: benchmark.key, providerKey, status: "missing",
-            processingMs: null, costDollars: null, costBasis: "unavailable", inputTokens: null, outputTokens: null,
-            outputPricePerMillion: outputRate === null ? null : outputRate / 100, schema: "not recorded", outputHref: null,
-            manifestHref: null });
-        }
-        continue;
-      }
-      const manifest = readCanonicalManifest(runDir);
-      if (manifest.command !== "write" || manifest.scope !== "single" || manifest.items.length !== 1) {
-        throw Error(`Expected one canonical Write benchmark item: ${run}`);
-      }
-      const item = manifest.items[0]!, metadata = item.metadata;
-      const steps = records(metadata["step3"]);
-      const cost = object(metadata["cost"]);
-      const actualCosts = records(object(cost["actual"])["steps"]).filter(row => row["step"] === undefined || row["step"] === "llm");
-      const estimates = records(object(cost["estimated"])["steps"]).filter(row => row["step"] === undefined || row["step"] === "llm");
-      const states = [...records(metadata["providerStates"]), ...item.providers as unknown as JsonObject[]];
-      // Global planned routes fill first-pass omissions; a rerun contains only its explicit targets.
-      const requested = [...(attempt === "01" ? plannedProviders : []), ...records(metadata["requestedProviders"]), ...states, ...estimates, ...steps];
-      const keys = [...new Set(requested.map(identity).filter((key): key is string => key !== null))].sort();
-      for (const providerKey of keys) {
-        const entry = steps.find(row => identity(row) === providerKey);
-        const state = states.find(row => identity(row) === providerKey);
-        const recordedCosts = actualCosts.filter(row => identity(row) === providerKey);
-        const estimated = estimates.find(row => identity(row) === providerKey);
-        const planned = plannedProviders.find(row => identity(row) === providerKey);
-        const outputRate = number(planned?.["outputCostPer1MCents"]) ?? number(estimated?.["outputCostPer1MCents"]);
-        const artifact = outputArtifact(runDir, providerKey, entry?.["outputFileName"], entry?.["outputFormat"]);
-        const schema = entry?.["validationFailed"] === true ? "failed" : entry?.["validationFailed"] === false ? "passed" : "not recorded";
-        const stateStatus = string(state?.["status"]);
-        let failedElapsedMs: number | null = null;
-        if (stateStatus === "failed") {
-          const receiptPath = join(runDir, `slot-${providerKey.replace(/[/\\:*?"<>|]/g, "-")}.json`);
-          if (existsSync(receiptPath)) {
-            try {
-              const receipt = object(JSON.parse(readFileSync(receiptPath, "utf8")));
-              if (identity(receipt) === providerKey && receipt["status"] === "failed") failedElapsedMs = number(receipt["wallTimeMs"]);
-            } catch { /* Invalid failure evidence does not establish an elapsed time. */ }
-          }
-        }
-        const status = stateStatus && stateStatus !== "succeeded" ? stateStatus
-          : !entry ? "missing" : schema === "failed" ? "schema failed" : schema !== "passed" ? "validation unrecorded" : artifact.error ?? "succeeded";
-        const costs = recordedCosts.map(row => number(row["cost"]));
-        const costCents = costs.length && costs.every(value => value !== null) ? costs.reduce<number>((sum, value) => sum + value!, 0) : null;
-        const costSources = [...new Set(recordedCosts.map(row => string(row["costSource"]) ?? "recorded usage"))];
-        samples.push({
-          run, attempt, selected: false, caseKey: benchmark.key, providerKey, status,
-          processingMs: number(entry?.["processingTime"]) ?? failedElapsedMs, costDollars: costCents === null ? null : costCents / 100,
-          costBasis: costSources.length ? costSources.join(", ") : "unavailable",
-          inputTokens: number(entry?.["inputTokenCount"]), outputTokens: number(entry?.["outputTokenCount"]),
-          outputPricePerMillion: outputRate === null ? null : outputRate / 100,
-          schema, outputHref: artifact.file ? href(artifact.file) : null,
-          manifestHref: href(join(runDir, "manifest.json")),
-        });
-      }
-    }
+interface WriteAttemptContext {
+  run: string;
+  attempt: string;
+  runDir: string;
+  benchmark: (typeof WRITE_BENCHMARK_CASES)[number];
+  plannedProviders: JsonObject[];
+  href: (path: string) => string;
+}
+
+interface WriteAttemptEvidence {
+  steps: JsonObject[];
+  states: JsonObject[];
+  actualCosts: JsonObject[];
+  estimates: JsonObject[];
+}
+
+const isLlmCostStep = (row: JsonObject): boolean => row["step"] === undefined || row["step"] === "llm";
+
+function rerunAttemptNames(rerunsDir: string): string[] {
+  if (!existsSync(rerunsDir)) return [];
+  return readdirSync(rerunsDir, { withFileTypes: true })
+    .filter(entry => entry.name !== ".DS_Store" && entry.isDirectory() && existsSync(join(rerunsDir, entry.name, "manifest.json")))
+    .map(entry => entry.name).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+function unrunAttemptSamples(context: WriteAttemptContext): WriteDashboardSample[] {
+  const samples: WriteDashboardSample[] = [];
+  for (const planned of context.plannedProviders) {
+    const providerKey = identity(planned);
+    if (!providerKey) continue;
+    const outputRate = number(planned["outputCostPer1MCents"]);
+    samples.push({ run: context.run, attempt: context.attempt, selected: false, caseKey: context.benchmark.key, providerKey, status: "missing",
+      processingMs: null, costDollars: null, costBasis: "unavailable", inputTokens: null, outputTokens: null,
+      outputPricePerMillion: outputRate === null ? null : outputRate / 100, schema: "not recorded", outputHref: null,
+      manifestHref: null });
   }
+  return samples;
+}
+
+function failedSlotElapsedMs(runDir: string, providerKey: string): number | null {
+  const receiptPath = slotReceiptPath(runDir, providerKey);
+  if (!existsSync(receiptPath)) return null;
+  try {
+    const receipt = object(JSON.parse(readFileSync(receiptPath, "utf8")));
+    if (identity(receipt) === providerKey && receipt["status"] === "failed") return number(receipt["wallTimeMs"]);
+  } catch { /* Invalid failure evidence does not establish an elapsed time. */ }
+  return null;
+}
+
+function attemptStatus(stateStatus: string | null, entry: JsonObject | undefined, schema: string, artifact: { error: string | null }): string {
+  if (stateStatus && stateStatus !== "succeeded") return stateStatus;
+  if (!entry) return "missing";
+  if (schema === "failed") return "schema failed";
+  if (schema !== "passed") return "validation unrecorded";
+  return artifact.error ?? "succeeded";
+}
+
+function recordedCostSummary(recordedCosts: JsonObject[]): { costDollars: number | null; costBasis: string } {
+  const costs = recordedCosts.map(row => number(row["cost"]));
+  const costCents = costs.length && costs.every(value => value !== null) ? costs.reduce<number>((sum, value) => sum + value!, 0) : null;
+  const costSources = [...new Set(recordedCosts.map(row => string(row["costSource"]) ?? "recorded usage"))];
+  return { costDollars: costCents === null ? null : costCents / 100, costBasis: costSources.length ? costSources.join(", ") : "unavailable" };
+}
+
+function providerAttemptSample(context: WriteAttemptContext, evidence: WriteAttemptEvidence, providerKey: string): WriteDashboardSample {
+  const entry = evidence.steps.find(row => identity(row) === providerKey);
+  const state = evidence.states.find(row => identity(row) === providerKey);
+  const recordedCosts = evidence.actualCosts.filter(row => identity(row) === providerKey);
+  const estimated = evidence.estimates.find(row => identity(row) === providerKey);
+  const planned = context.plannedProviders.find(row => identity(row) === providerKey);
+  const outputRate = number(planned?.["outputCostPer1MCents"]) ?? number(estimated?.["outputCostPer1MCents"]);
+  const artifact = outputArtifact(context.runDir, providerKey, entry?.["outputFileName"], entry?.["outputFormat"]);
+  const schema = entry?.["validationFailed"] === true ? "failed" : entry?.["validationFailed"] === false ? "passed" : "not recorded";
+  const stateStatus = string(state?.["status"]);
+  const failedElapsedMs = stateStatus === "failed" ? failedSlotElapsedMs(context.runDir, providerKey) : null;
+  const status = attemptStatus(stateStatus, entry, schema, artifact);
+  const { costDollars, costBasis } = recordedCostSummary(recordedCosts);
+  return {
+    run: context.run, attempt: context.attempt, selected: false, caseKey: context.benchmark.key, providerKey, status,
+    processingMs: number(entry?.["processingTime"]) ?? failedElapsedMs, costDollars, costBasis,
+    inputTokens: number(entry?.["inputTokenCount"]), outputTokens: number(entry?.["outputTokenCount"]),
+    outputPricePerMillion: outputRate === null ? null : outputRate / 100,
+    schema, outputHref: artifact.file ? context.href(artifact.file) : null,
+    manifestHref: context.href(join(context.runDir, "manifest.json")),
+  };
+}
+
+function recordedAttemptSamples(context: WriteAttemptContext): WriteDashboardSample[] {
+  const manifest = readCanonicalManifest(context.runDir);
+  if (manifest.command !== "write" || manifest.scope !== "single" || manifest.items.length !== 1) {
+    throw Error(`Expected one canonical Write benchmark item: ${context.run}`);
+  }
+  const item = manifest.items[0]!, metadata = item.metadata;
+  const steps = records(metadata["step3"]);
+  const cost = object(metadata["cost"]);
+  const actualCosts = records(object(cost["actual"])["steps"]).filter(isLlmCostStep);
+  const estimates = records(object(cost["estimated"])["steps"]).filter(isLlmCostStep);
+  const states = [...records(metadata["providerStates"]), ...item.providers as unknown as JsonObject[]];
+  // Global planned routes fill first-pass omissions; a rerun contains only its explicit targets.
+  const requested = [...(context.attempt === "01" ? context.plannedProviders : []), ...records(metadata["requestedProviders"]), ...states, ...estimates, ...steps];
+  const keys = [...new Set(requested.map(identity).filter((key): key is string => key !== null))].sort();
+  const evidence: WriteAttemptEvidence = { steps, states, actualCosts, estimates };
+  return keys.map(providerKey => providerAttemptSample(context, evidence, providerKey));
+}
+
+function markSelectedSamples(samples: WriteDashboardSample[]): void {
   const selected = new Map<string, WriteDashboardSample>();
   for (const sample of samples) {
     const key = `${sample.caseKey}/${sample.providerKey}`;
@@ -162,6 +205,25 @@ export function collectWriteDashboardAttempts(rootDir: string): WriteDashboardSa
     if (sample.attempt === "01" || !["missing", "pending", "not-started", "running", "dispatch-started"].includes(sample.status)) selected.set(key, sample);
   }
   for (const sample of selected.values()) sample.selected = true;
+}
+
+export function collectWriteDashboardAttempts(rootDir: string): WriteDashboardSample[] {
+  const root = resolve(rootDir), samples: WriteDashboardSample[] = [];
+  const href = (path: string) => relative(writeDashboardLinkRoot(root), path).split("\\").join("/");
+  const planPath = join(root, "benchmark-plan.json");
+  const plan = existsSync(planPath) ? object(JSON.parse(readFileSync(planPath, "utf8"))) : {};
+  const plannedProviders = records(plan["providers"]);
+  for (const benchmark of WRITE_BENCHMARK_CASES) {
+    const firstRunDir = join(root, benchmark.directory);
+    for (const attempt of ["01", ...rerunAttemptNames(join(firstRunDir, "reruns"))]) {
+      const run = attempt === "01" ? benchmark.directory : `${benchmark.directory}/reruns/${attempt}`;
+      const runDir = join(root, run);
+      const context: WriteAttemptContext = { run, attempt, runDir, benchmark, plannedProviders, href };
+      const attemptSamples = existsSync(join(runDir, "manifest.json")) ? recordedAttemptSamples(context) : unrunAttemptSamples(context);
+      for (const sample of attemptSamples) samples.push(sample);
+    }
+  }
+  markSelectedSamples(samples);
   return samples;
 }
 

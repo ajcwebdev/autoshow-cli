@@ -51,6 +51,35 @@ const remainingModelEstimates = async (estimate: Extract<FinalImageEstimateResul
   }))
 }
 
+const pushSketchRecoverySteps = (steps: StepEstimate[], sketch: NonNullable<Awaited<ReturnType<typeof estimateGenerateSketchesPrice>>>): void => {
+  for (const { model, outputs, referenceInputs } of sketch.outputsByModel) {
+    const price = estimateImageOutputCost(model, sketch.quality, sketch.size)
+    const provider = findRegistryServiceForModel('image', model) as ImageProvider
+    const inputPrice = provider === 'openai' && referenceInputs > 0 ? estimateOpenAIImageInputUnits(model, referenceInputs) : undefined
+    if ((outputs > 0 && price === null) || inputPrice?.priced === false) throw UsageError(`Comic sketch recovery price is unknown for ${model}.`)
+    steps.push({ step: 'image', provider, model, imageCount: outputs, totalCost: (price ?? 0) * outputs * 100 + (inputPrice?.costCents ?? 0) })
+  }
+}
+
+type RemainingModelEstimate = Awaited<ReturnType<typeof remainingModelEstimates>>[number]
+
+const pushQaRecoveryStep = (steps: StepEstimate[], pricing: RemainingModelEstimate['pricing'], qaWork: NonNullable<RemainingModelEstimate['qaWork']>): void => {
+  const provider = findRegistryServiceForModel('llm', qaWork.judgeModel)
+  const config = provider ? getModelRegistry().llm[provider]?.models[qaWork.judgeModel] : undefined
+  if (!provider || !config) throw UsageError(`The recorded QA model ${qaWork.judgeModel} is unavailable.`)
+  steps.push({ step: 'llm', provider, model: qaWork.judgeModel, totalCost: (pricing.judgeCost ?? 0) * 100, inputCostPer1MCents: config.inputCostPer1MCents, outputCostPer1MCents: config.outputCostPer1MCents, estimatedInputTokens: qaWork.estimatedInputTokens, estimatedOutputTokens: qaWork.estimatedOutputTokens })
+}
+
+const pushFinalImageRecoverySteps = (steps: StepEstimate[], { pricing, qaWork }: RemainingModelEstimate): void => {
+  if (pricing.primary.hasUnknown || pricing.repair?.hasUnknown || pricing.imageInput?.priced === false) throw UsageError('Comic image recovery has unpriced provider work; inspect the explicit image command estimate.')
+  for (const row of pricing.primary.rows) {
+    const repair = pricing.repair?.rows.find(item => item.model === row.model)
+    const inputCents = pricing.imageInput?.models[0] === row.model ? pricing.imageInput.costCents ?? 0 : 0
+    steps.push({ step: 'image', provider: findRegistryServiceForModel('image', row.model) as ImageProvider, model: row.model, imageCount: row.outputs + (repair?.outputs ?? 0), totalCost: ((row.subtotal ?? 0) + (repair?.subtotal ?? 0)) * 100 + inputCents })
+  }
+  if (qaWork) pushQaRecoveryStep(steps, pricing, qaWork)
+}
+
 export const priceComicImageRecovery = async (options: GenerateImagesCommandOptions): Promise<StepEstimate[]> => {
   await assertPanelPromptSourceCoverage(options.sceneSlug, { writeReport: false })
   for (const model of options.imageModels ?? []) assertRequiredImageModel(model)
@@ -58,30 +87,11 @@ export const priceComicImageRecovery = async (options: GenerateImagesCommandOpti
   if (options.target !== 'images') {
     const sketch = await estimateGenerateSketchesPrice({ ...options, sketchPanels: panelSelectionToSketchRange(options.panels) }, options.recoveryRunId)
     if (!sketch) throw UsageError('Comic recovery requires existing reviewed panel prompt bundles.')
-    for (const { model, outputs, referenceInputs } of sketch.outputsByModel) {
-      const price = estimateImageOutputCost(model, sketch.quality, sketch.size)
-      const provider = findRegistryServiceForModel('image', model) as ImageProvider
-      const inputPrice = provider === 'openai' && referenceInputs > 0 ? estimateOpenAIImageInputUnits(model, referenceInputs) : undefined
-      if ((outputs > 0 && price === null) || inputPrice?.priced === false) throw UsageError(`Comic sketch recovery price is unknown for ${model}.`)
-      steps.push({ step: 'image', provider, model, imageCount: outputs, totalCost: (price ?? 0) * outputs * 100 + (inputPrice?.costCents ?? 0) })
-    }
+    pushSketchRecoverySteps(steps, sketch)
   }
   if (options.target === 'sketches') return steps
   const estimate = await buildFinalPanelImageEstimate(options)
   if (estimate.status !== 'ready') throw UsageError(`Comic image recovery is blocked: ${estimate.status}. Run the explicit drafting stage to prepare reviewed inputs.`)
-  for (const { pricing, qaWork } of await remainingModelEstimates(estimate)) {
-    if (pricing.primary.hasUnknown || pricing.repair?.hasUnknown || pricing.imageInput?.priced === false) throw UsageError('Comic image recovery has unpriced provider work; inspect the explicit image command estimate.')
-    for (const row of pricing.primary.rows) {
-      const repair = pricing.repair?.rows.find(item => item.model === row.model)
-      const inputCents = pricing.imageInput?.models[0] === row.model ? pricing.imageInput.costCents ?? 0 : 0
-      steps.push({ step: 'image', provider: findRegistryServiceForModel('image', row.model) as ImageProvider, model: row.model, imageCount: row.outputs + (repair?.outputs ?? 0), totalCost: ((row.subtotal ?? 0) + (repair?.subtotal ?? 0)) * 100 + inputCents })
-    }
-    if (qaWork) {
-      const provider = findRegistryServiceForModel('llm', qaWork.judgeModel)
-      const config = provider ? getModelRegistry().llm[provider]?.models[qaWork.judgeModel] : undefined
-      if (!provider || !config) throw UsageError(`The recorded QA model ${qaWork.judgeModel} is unavailable.`)
-      steps.push({ step: 'llm', provider, model: qaWork.judgeModel, totalCost: (pricing.judgeCost ?? 0) * 100, inputCostPer1MCents: config.inputCostPer1MCents, outputCostPer1MCents: config.outputCostPer1MCents, estimatedInputTokens: qaWork.estimatedInputTokens, estimatedOutputTokens: qaWork.estimatedOutputTokens })
-    }
-  }
+  for (const modelEstimate of await remainingModelEstimates(estimate)) pushFinalImageRecoverySteps(steps, modelEstimate)
   return steps
 }

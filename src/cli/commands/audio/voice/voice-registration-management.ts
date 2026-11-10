@@ -108,16 +108,17 @@ export const buildReadyVoiceRegistrationDraft = (input: {
   return validateVoiceRegistration(registration)
 }
 
-const buildStockVoiceAuditionManifest = (
-  registrationId: string,
-  provider: TtsProvider,
-  providerModel: string,
-  providerVoice: ProviderVoiceRef,
-  capabilityFixtureHash: string,
-  settingsSchema: string,
-  synthesisSettings: TypedProviderSynthesisSettings,
+const buildStockVoiceAuditionManifest = (input: {
+  registrationId: string
+  provider: TtsProvider
+  providerModel: string
+  providerVoice: ProviderVoiceRef
+  capabilityFixtureHash: string
+  settingsSchema: string
+  synthesisSettings: TypedProviderSynthesisSettings
   createdAt: string
-): VoiceAuditionManifest => {
+}): VoiceAuditionManifest => {
+  const { registrationId, provider, providerModel, providerVoice, capabilityFixtureHash, settingsSchema, synthesisSettings, createdAt } = input
   const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
   const protectedAudio: ProtectedAssetRef = {
     storeId: 'store_system',
@@ -206,16 +207,16 @@ export const importExistingVoiceRegistration = async (input: {
       providerModel: input.providerModel,
       sourceIdentityHash: hashCanonicalTtsValue(providerVoice)
     })
-    const audition = buildStockVoiceAuditionManifest(
+    const audition = buildStockVoiceAuditionManifest({
       registrationId,
-      input.provider,
-      input.providerModel,
+      provider: input.provider,
+      providerModel: input.providerModel,
       providerVoice,
-      input.capabilityFixtureHash,
+      capabilityFixtureHash: input.capabilityFixtureHash,
       settingsSchema,
       synthesisSettings,
-      now
-    )
+      createdAt: now
+    })
     const registration = buildReadyVoiceRegistrationDraft({
       ...input,
       registrationId,

@@ -3,6 +3,7 @@ import { basename, extname, resolve } from 'node:path'
 import type {
   ApprovedVoiceSnapshotEntry,
   ComicDialoguePlan,
+  ComicDialogueTurn,
   ComicSourceIdentity,
   StructuredScriptData,
   StructuredScriptArtifactRef,
@@ -94,6 +95,18 @@ export const computeSceneRunIdentity = (
   return hashCanonicalTtsValue({ sourceIdentity, structuredScript })
 }
 
+const assertComicDialogueTurn = (turn: ComicDialogueTurn): void => {
+  if (!turn.turnId || !turn.sourceSegmentId || !turn.subjectKey || !turn.originalSpeakerLabel || !turn.canonicalText.trim()) {
+    throw UsageError('Comic dialogue turns require stable source, subject, speaker, and non-empty text identity.')
+  }
+  if (!turn.sourceSpans?.length || turn.sourceSpans.some(span => !Number.isSafeInteger(span.start) || !Number.isSafeInteger(span.end) || span.start < 0 || span.end <= span.start || span.indexUnit !== 'unicode-scalar-value' || !span.text)) {
+    throw UsageError(`Comic dialogue turn ${turn.turnId} requires exact zero-based half-open Unicode source spans.`)
+  }
+  if (turn.timingCues?.some(cue => !['beat', 'pause', 'long-pause'].includes(cue.kind) || !Number.isSafeInteger(cue.afterTextOffset) || cue.afterTextOffset < 0 || cue.afterTextOffset > [...turn.canonicalText].length || !Number.isSafeInteger(cue.durationMs) || cue.durationMs <= 0 || cue.sourceSpan.kind !== 'timing')) {
+    throw UsageError(`Comic dialogue turn ${turn.turnId} contains an invalid timing cue.`)
+  }
+}
+
 export const validateComicDialoguePlan = (plan: ComicDialoguePlan): ComicDialoguePlan => {
   if (plan.schemaVersion !== 2 || !SHA256.test(plan.sceneRunIdentity)) throw UsageError('Comic dialogue plan requires schemaVersion 2 and a scene-run identity.')
   validateComicSourceIdentity(plan.sourceIdentity)
@@ -111,17 +124,7 @@ export const validateComicDialoguePlan = (plan: ComicDialoguePlan): ComicDialogu
     return sourceIds[0] as string
   })
   if (new Set(sourceIdsByNode).size !== sourceIdsByNode.length) throw UsageError('Comic dialogue plan speaks one source segment in more than one node.')
-  for (const turn of turns) {
-    if (!turn.turnId || !turn.sourceSegmentId || !turn.subjectKey || !turn.originalSpeakerLabel || !turn.canonicalText.trim()) {
-      throw UsageError('Comic dialogue turns require stable source, subject, speaker, and non-empty text identity.')
-    }
-    if (!turn.sourceSpans?.length || turn.sourceSpans.some(span => !Number.isSafeInteger(span.start) || !Number.isSafeInteger(span.end) || span.start < 0 || span.end <= span.start || span.indexUnit !== 'unicode-scalar-value' || !span.text)) {
-      throw UsageError(`Comic dialogue turn ${turn.turnId} requires exact zero-based half-open Unicode source spans.`)
-    }
-    if (turn.timingCues?.some(cue => !['beat', 'pause', 'long-pause'].includes(cue.kind) || !Number.isSafeInteger(cue.afterTextOffset) || cue.afterTextOffset < 0 || cue.afterTextOffset > [...turn.canonicalText].length || !Number.isSafeInteger(cue.durationMs) || cue.durationMs <= 0 || cue.sourceSpan.kind !== 'timing')) {
-      throw UsageError(`Comic dialogue turn ${turn.turnId} contains an invalid timing cue.`)
-    }
-  }
+  for (const turn of turns) assertComicDialogueTurn(turn)
   for (const node of plan.nodes) {
     if (node.kind === 'overlap' && (node.turns.length < 2 || !node.groupId.trim())) {
       throw UsageError('Comic overlap nodes require a stable group ID and at least two child turns.')

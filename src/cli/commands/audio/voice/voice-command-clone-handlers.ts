@@ -1,6 +1,6 @@
 import { validateGeminiReferenceRecording } from './voice-assets/gemini-reference-audio-preflight'
 import { join } from 'node:path'
-import type { CliCommandContext } from '~/types'
+import type { CliCommandContext, CloneProviderName, VoiceProviderName } from '~/types'
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { getAudioDuration } from '~/cli/commands/stt/stt-utils/audio-splitter'
 import { assertProtectedStoreOutputDisjoint } from './voice-assets/protected-output-boundary'
@@ -18,13 +18,21 @@ import {
   requiredFlag, requireVoiceModel
 } from './voice-command-support'
 
+const assertCloneProvider: (provider: VoiceProviderName) => asserts provider is CloneProviderName = (provider) => {
+  if (isCloneProvider(provider)) return
+  if (provider === 'openai') throw UsageError('OpenAI voice cloning is deferred because creation requires a separate consent resource and the API does not expose matching catalog, inspection, and deletion operations.')
+  throw UsageError(`Voice clone supports ${CLONE_PROVIDERS.join(', ')}; ${provider} has no API cloning capability in this release.`)
+}
+
+const assertCloneSampleCount = (provider: CloneProviderName, samplePaths: readonly string[]): void => {
+  if (samplePaths.length === 0) throw UsageError(`${provider} instant voice clone requires at least one --sample.`)
+  if ((provider === 'gemini' || provider === 'grok') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
+}
+
 export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   const subjectKey = parameter(ctx, 'subjectKey')
   const provider = providerFlag(ctx)
-  if (!isCloneProvider(provider)) {
-    if (provider === 'openai') throw UsageError('OpenAI voice cloning is deferred because creation requires a separate consent resource and the API does not expose matching catalog, inspection, and deletion operations.')
-    throw UsageError(`Voice clone supports ${CLONE_PROVIDERS.join(', ')}; ${provider} has no API cloning capability in this release.`)
-  }
+  assertCloneProvider(provider)
   const providerModel = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
   if (ctx.flags['price'] !== true) {
@@ -38,8 +46,7 @@ export const handleClone = async (ctx: CliCommandContext): Promise<void> => {
     }
   }
   const samplePaths = repeatableFlag(ctx, 'sample')
-  if (samplePaths.length === 0) throw UsageError(`${provider} instant voice clone requires at least one --sample.`)
-  if ((provider === 'gemini' || provider === 'grok') && samplePaths.length !== 1) throw UsageError(`${provider} instant voice clone requires exactly one --sample.`)
+  assertCloneSampleCount(provider, samplePaths)
   const consentAudioPath = provider === 'gemini' ? requiredFlag(ctx, 'consent-audio') : undefined
   if (provider !== 'gemini' && optionalFlag(ctx, 'consent-audio')) throw UsageError('--consent-audio is currently supported only for Gemini replication.')
   const consentRecordRef = requiredFlag(ctx, 'consent-ref')

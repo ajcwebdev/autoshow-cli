@@ -190,6 +190,55 @@ export const extractCsvFormat = async (
   }
 }
 
+type CbzHostedOcrTotals = {
+  imagePages: PageResult[]
+  totalPromptTokens: number
+  totalCompletionTokens: number
+  providerCostCents: number | undefined
+  providerCostSource: HostedOcrRun['providerCostSource'] | undefined
+  ocrProviderUsage: HostedOcrRun['providerUsage'] | undefined
+  ocrService: string | undefined
+  requestedReasoningEffort: NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort: NormalizedReasoningEffort | undefined
+  pdfChunkPreparation: HostedOcrRun['pdfChunkPreparation'] | undefined
+}
+
+const createCbzHostedOcrTotals = (): CbzHostedOcrTotals => ({
+  imagePages: [],
+  totalPromptTokens: 0,
+  totalCompletionTokens: 0,
+  providerCostCents: undefined,
+  providerCostSource: undefined,
+  ocrProviderUsage: undefined,
+  ocrService: undefined,
+  requestedReasoningEffort: undefined,
+  effectiveReasoningEffort: undefined,
+  pdfChunkPreparation: undefined
+})
+
+const addCbzHostedOcrRunCost = (totals: CbzHostedOcrTotals, run: HostedOcrRun): void => {
+  if (typeof run.providerCostCents === 'number') {
+    totals.providerCostCents = (totals.providerCostCents ?? 0) + run.providerCostCents
+    totals.providerCostSource = totals.providerCostSource === 'partial_provider_usage' || run.providerCostSource === 'partial_provider_usage'
+      ? 'partial_provider_usage'
+      : run.providerCostSource ?? totals.providerCostSource
+  }
+  if (run.providerUsage && run.providerUsage.length > 0) {
+    totals.ocrProviderUsage = [...(totals.ocrProviderUsage ?? []), ...run.providerUsage]
+  }
+}
+
+const addCbzHostedOcrRun = (totals: CbzHostedOcrTotals, run: HostedOcrRun, pageNumber: number): void => {
+  totals.imagePages.push(...run.pages.map(page => ({ ...page, pageNumber })))
+  totals.ocrService = run.ocrService
+  totals.totalPromptTokens += run.promptTokens ?? 0
+  totals.totalCompletionTokens += run.completionTokens ?? 0
+  if (run.requestedReasoningEffort !== undefined) totals.requestedReasoningEffort = run.requestedReasoningEffort
+  if (run.effectiveReasoningEffort !== undefined) totals.effectiveReasoningEffort = run.effectiveReasoningEffort
+  if (run.pdfChunkPreparation !== undefined) totals.pdfChunkPreparation = run.pdfChunkPreparation
+  addCbzHostedOcrRunCost(totals, run)
+}
+
 export const extractCbzFormat = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
@@ -206,16 +255,7 @@ export const extractCbzFormat = async (
       if (!hostedEngine) {
         throw UsageError('Hosted OCR requested without a configured hosted OCR model.')
       }
-      const imagePages: PageResult[] = []
-      let totalPromptTokens = 0
-      let totalCompletionTokens = 0
-      let providerCostCents: number | undefined
-      let providerCostSource: HostedOcrRun['providerCostSource'] | undefined
-      let ocrProviderUsage: HostedOcrRun['providerUsage'] | undefined
-      let ocrService: string | undefined
-      let requestedReasoningEffort: NormalizedReasoningEffort | undefined
-      let effectiveReasoningEffort: NormalizedReasoningEffort | undefined
-      let pdfChunkPreparation: HostedOcrRun['pdfChunkPreparation'] | undefined
+      const totals = createCbzHostedOcrTotals()
 
       const hostedNormDir = await mkdtemp(join(tmpdir(), 'autoshow-cbz-hosted-'))
       try {
@@ -229,39 +269,24 @@ export const extractCbzFormat = async (
           )
           const tempMeta = await buildHostedUploadMetadata(normalized.filePath, step1Metadata, normalized.format)
           const run = await runHostedOcr(normalized.filePath, tempMeta, opts)
-          imagePages.push(...run.pages.map(page => ({ ...page, pageNumber: i + 1 })))
-          ocrService = run.ocrService
-          totalPromptTokens += run.promptTokens ?? 0
-          totalCompletionTokens += run.completionTokens ?? 0
-          if (run.requestedReasoningEffort !== undefined) requestedReasoningEffort = run.requestedReasoningEffort
-          if (run.effectiveReasoningEffort !== undefined) effectiveReasoningEffort = run.effectiveReasoningEffort
-          if (run.pdfChunkPreparation !== undefined) pdfChunkPreparation = run.pdfChunkPreparation
-          if (typeof run.providerCostCents === 'number') {
-            providerCostCents = (providerCostCents ?? 0) + run.providerCostCents
-            providerCostSource = providerCostSource === 'partial_provider_usage' || run.providerCostSource === 'partial_provider_usage'
-              ? 'partial_provider_usage'
-              : run.providerCostSource ?? providerCostSource
-          }
-          if (run.providerUsage && run.providerUsage.length > 0) {
-            ocrProviderUsage = [...(ocrProviderUsage ?? []), ...run.providerUsage]
-          }
+          addCbzHostedOcrRun(totals, run, i + 1)
         }
       } finally {
         await rm(hostedNormDir, { recursive: true, force: true })
       }
       return {
-        pages: imagePages,
+        pages: totals.imagePages,
         extractionMethod: `cbz+${hostedEngine}`,
         inputFamily: 'cbz',
-        ocrService,
-        promptTokens: totalPromptTokens > 0 ? totalPromptTokens : undefined,
-        completionTokens: totalCompletionTokens > 0 ? totalCompletionTokens : undefined,
-        providerCostCents,
-        providerCostSource,
-        ocrProviderUsage,
-        pdfChunkPreparation,
-        requestedReasoningEffort,
-        effectiveReasoningEffort,
+        ocrService: totals.ocrService,
+        promptTokens: totals.totalPromptTokens > 0 ? totals.totalPromptTokens : undefined,
+        completionTokens: totals.totalCompletionTokens > 0 ? totals.totalCompletionTokens : undefined,
+        providerCostCents: totals.providerCostCents,
+        providerCostSource: totals.providerCostSource,
+        ocrProviderUsage: totals.ocrProviderUsage,
+        pdfChunkPreparation: totals.pdfChunkPreparation,
+        requestedReasoningEffort: totals.requestedReasoningEffort,
+        effectiveReasoningEffort: totals.effectiveReasoningEffort,
       }
     } else {
       const ocrNormDir = await mkdtemp(join(tmpdir(), 'autoshow-cbz-ocr-'))

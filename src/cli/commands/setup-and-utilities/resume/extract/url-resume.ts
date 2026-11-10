@@ -268,6 +268,35 @@ export const hasResumableUrlArticleWork = async (
   return false
 }
 
+const reportUrlItemWithoutResumableBackends = (
+  item: string,
+  outputDir: string,
+  metadata: Record<string, unknown>,
+  plan: UrlArticleResumePlan,
+  selectedTargets: readonly UrlArticleTarget[] | undefined
+): ProviderCompletionStatus => {
+  const storedCompletionStatus = getStoredUrlCompletionStatus(metadata)
+  const noBackendsStatus = selectedTargets !== undefined ? 'full' : storedCompletionStatus
+  const runStillIncomplete = storedCompletionStatus !== 'full'
+  const selectedCompleteWithIncompleteRun = selectedTargets !== undefined && runStillIncomplete
+  logResumeItem({
+    item,
+    status: noBackendsStatus,
+    outputDir,
+    providers: plan.skippedSuccessfulBackends.length > 0
+      ? plan.skippedSuccessfulBackends.join(', ')
+      : 'none',
+    detail: selectedCompleteWithIncompleteRun
+      ? 'selected providers complete; canonical item still incomplete'
+      : plan.skippedSuccessfulBackends.length > 0
+      ? 'selected URL providers already succeeded'
+      : noBackendsStatus === 'failed'
+      ? 'canonical item failed with no resumable URL providers'
+      : 'no failed or missing URL providers'
+  }, noBackendsStatus === 'full' ? 'success' : noBackendsStatus === 'failed' ? 'error' : 'warn')
+  return noBackendsStatus
+}
+
 export const resumeUrlArticleTarget = async (
   target: ResumeTarget,
   opts: UrlExtractionOptions,
@@ -298,25 +327,7 @@ export const resumeUrlArticleTarget = async (
 
     const plan = resolveUrlArticleResumePlan(metadata, selectedTargets)
     if (plan.backendsToRun.length === 0) {
-      const storedCompletionStatus = getStoredUrlCompletionStatus(metadata)
-      const noBackendsStatus = selectedTargets !== undefined ? 'full' : storedCompletionStatus
-      const runStillIncomplete = storedCompletionStatus !== 'full'
-      const selectedCompleteWithIncompleteRun = selectedTargets !== undefined && runStillIncomplete
-      logResumeItem({
-        item,
-        status: noBackendsStatus,
-        outputDir,
-        providers: plan.skippedSuccessfulBackends.length > 0
-          ? plan.skippedSuccessfulBackends.join(', ')
-          : 'none',
-        detail: selectedCompleteWithIncompleteRun
-          ? 'selected providers complete; canonical item still incomplete'
-          : plan.skippedSuccessfulBackends.length > 0
-          ? 'selected URL providers already succeeded'
-          : noBackendsStatus === 'failed'
-          ? 'canonical item failed with no resumable URL providers'
-          : 'no failed or missing URL providers'
-      }, noBackendsStatus === 'full' ? 'success' : noBackendsStatus === 'failed' ? 'error' : 'warn')
+      const noBackendsStatus = reportUrlItemWithoutResumableBackends(item, outputDir, metadata, plan, selectedTargets)
       if (noBackendsStatus === 'full') {
         full += 1
       } else if (noBackendsStatus === 'failed') {

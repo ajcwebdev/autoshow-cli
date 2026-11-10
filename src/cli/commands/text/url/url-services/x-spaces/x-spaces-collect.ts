@@ -1,4 +1,4 @@
-import type { CollectSpacesOptions, EnrichedSpace, ParsedPostInputReference, SpacePostReference, SpacesArtifact, SpacesArtifactError, SpacesArtifactSource, XApiProblem, XPost, XPostLookupResponse, XSpace, XSpacesResponse, XUser } from '~/types';
+import type { CollectSpacesOptions, EnrichedSpace, ParsedPostInputReference, RecentSpaceLinkSearchResult, SpacePostReference, SpacesArtifact, SpacesArtifactError, SpacesArtifactSource, XApiProblem, XPost, XPostLookupResponse, XSpace, XSpacesResponse, XUser } from '~/types';
 import { extractSpaceIdsFromText } from "./input";
 
 const SPACE_URL_BASE = "https://x.com/i/spaces/";
@@ -179,15 +179,25 @@ function createPostReferenceFromPost(
   };
 }
 
+interface SpaceCollectionState {
+  errors: SpacesArtifactError[];
+  idsToLookup: Set<string>;
+  postIdsBySpaceId: Map<string, Set<string>>;
+  postIdsToLookup: Set<string>;
+  postsById: Map<string, SpacePostReference>;
+  sources: SpacesArtifactSource[];
+  sourcesById: Map<string, Set<string>>;
+  spacesById: Map<string, XSpace>;
+  usersById: Map<string, XUser>;
+}
+
 function addSpacesFromResponse(
-  spacesById: Map<string, XSpace>,
-  usersById: Map<string, XUser>,
-  sourcesById: Map<string, Set<string>>,
+  state: SpaceCollectionState,
   response: XSpacesResponse,
   source: string,
   filter?: (space: XSpace) => boolean
 ): number {
-  addUsers(usersById, response.includes?.users);
+  addUsers(state.usersById, response.includes?.users);
   let count = 0;
 
   for (const space of response.data ?? []) {
@@ -195,12 +205,125 @@ function addSpacesFromResponse(
       continue;
     }
 
-    spacesById.set(space.id, mergeSpace(spacesById.get(space.id), space));
-    addSourceForId(sourcesById, space.id, source);
+    state.spacesById.set(space.id, mergeSpace(state.spacesById.get(space.id), space));
+    addSourceForId(state.sourcesById, space.id, source);
     count += 1;
   }
 
   return count;
+}
+
+function registerSpaceInput(
+  state: SpaceCollectionState,
+  options: CollectSpacesOptions
+): { inputIdCount: number; inputPostCount: number } {
+  if (!options.input) {
+    return { inputIdCount: 0, inputPostCount: 0 };
+  }
+
+  const inputIdCount = options.input.ids.length;
+  const inputPostCount = options.input.postIds.length;
+
+  for (const spaceId of options.input.ids) {
+    state.idsToLookup.add(spaceId);
+    addSourceForId(state.sourcesById, spaceId, "input");
+  }
+
+  for (const post of options.input.posts) {
+    state.postIdsToLookup.add(post.id);
+    addPostReference(state.postsById, state.postIdsBySpaceId, createInputPostReference(post));
+
+    for (const spaceId of post.spaceIds) {
+      state.idsToLookup.add(spaceId);
+      addSourceForId(state.sourcesById, spaceId, "input-post");
+    }
+  }
+
+  for (const invalid of options.input.invalidEntries) {
+    state.errors.push({
+      detail: invalid.error ?? "Invalid input line",
+      source: options.input.path ? `input:${options.input.path}:${invalid.line}` : `input:${invalid.line}`,
+    });
+  }
+
+  state.sources.push({
+    discovered_ids: options.input.ids.length,
+    invalid_lines: options.input.invalidEntries.length,
+    label: options.input.path ?? "input",
+    path: options.input.path,
+    type: "input",
+  });
+
+  if (options.input.postIds.length > 0) {
+    state.sources.push({
+      label: "Post links from input",
+      path: options.input.path,
+      posts: options.input.postIds.length,
+      type: "input-post",
+    });
+  }
+
+  return { inputIdCount, inputPostCount };
+}
+
+function applyPostLookupResponse(state: SpaceCollectionState, postLookupResponse: XPostLookupResponse): void {
+  addUsers(state.usersById, postLookupResponse.includes?.users);
+
+  for (const post of postLookupResponse.data ?? []) {
+    const existing = state.postsById.get(post.id);
+    const reference = createPostReferenceFromPost(post, state.usersById, "post-lookup", existing);
+    addPostReference(state.postsById, state.postIdsBySpaceId, reference);
+
+    for (const spaceId of reference.space_ids) {
+      state.idsToLookup.add(spaceId);
+      addSourceForId(state.sourcesById, spaceId, "input-post");
+    }
+  }
+
+  state.sources.push({
+    discovered_ids: [...state.postIdsBySpaceId.keys()].length,
+    label: "Post lookup by ID",
+    posts: postLookupResponse.data?.length ?? 0,
+    type: "post-lookup",
+  });
+}
+
+function recentPostSearchSource(username: string, discoveredIds: number, posts: number): SpacesArtifactSource {
+  return {
+    discovered_ids: discoveredIds,
+    label: `Recent posts by @${username}`,
+    posts,
+    query: `from:${username} space links`,
+    type: "recent-post-search",
+    username,
+  };
+}
+
+function applyRecentPostSearch(
+  state: SpaceCollectionState,
+  username: string,
+  recentResult: RecentSpaceLinkSearchResult
+): void {
+  const recentSpaceIds = new Set(recentResult.spaceIds);
+
+  addUsers(state.usersById, recentResult.users);
+  recentResult.errors.forEach((problem) => state.errors.push(toArtifactError("recent-post-search", problem)));
+
+  for (const tweet of recentResult.tweets) {
+    const reference = createPostReferenceFromPost(tweet, state.usersById, "recent-post-search");
+    addPostReference(state.postsById, state.postIdsBySpaceId, reference);
+
+    for (const spaceId of reference.space_ids) {
+      recentSpaceIds.add(spaceId);
+    }
+  }
+
+  for (const spaceId of recentSpaceIds) {
+    state.idsToLookup.add(spaceId);
+    addSourceForId(state.sourcesById, spaceId, "recent-post-search");
+  }
+
+  state.sources.push(recentPostSearchSource(username, recentResult.spaceIds.length, recentResult.tweets.length));
 }
 
 function getSortTimestamp(space: XSpace): string {
@@ -267,84 +390,23 @@ async function tryPostResponse(
 
 export async function collectSpaces(options: CollectSpacesOptions): Promise<SpacesArtifact> {
   const generatedAt = (options.now ?? (() => new Date()))().toISOString();
-  const spacesById = new Map<string, XSpace>();
-  const postsById = new Map<string, SpacePostReference>();
-  const postIdsBySpaceId = new Map<string, Set<string>>();
-  const usersById = new Map<string, XUser>();
-  const sourcesById = new Map<string, Set<string>>();
-  const idsToLookup = new Set<string>();
-  const postIdsToLookup = new Set<string>();
-  const errors: SpacesArtifactError[] = [];
-  const sources: SpacesArtifactSource[] = [];
-  let inputIdCount = 0;
-  let inputPostCount = 0;
+  const state: SpaceCollectionState = {
+    spacesById: new Map<string, XSpace>(),
+    postsById: new Map<string, SpacePostReference>(),
+    postIdsBySpaceId: new Map<string, Set<string>>(),
+    usersById: new Map<string, XUser>(),
+    sourcesById: new Map<string, Set<string>>(),
+    idsToLookup: new Set<string>(),
+    postIdsToLookup: new Set<string>(),
+    errors: [],
+    sources: [],
+  };
   let user: XUser | undefined;
+  const { inputIdCount, inputPostCount } = registerSpaceInput(state, options);
 
-  if (options.input) {
-    inputIdCount = options.input.ids.length;
-    inputPostCount = options.input.postIds.length;
-
-    for (const spaceId of options.input.ids) {
-      idsToLookup.add(spaceId);
-      addSourceForId(sourcesById, spaceId, "input");
-    }
-
-    for (const post of options.input.posts) {
-      postIdsToLookup.add(post.id);
-      addPostReference(postsById, postIdsBySpaceId, createInputPostReference(post));
-
-      for (const spaceId of post.spaceIds) {
-        idsToLookup.add(spaceId);
-        addSourceForId(sourcesById, spaceId, "input-post");
-      }
-    }
-
-    for (const invalid of options.input.invalidEntries) {
-      errors.push({
-        detail: invalid.error ?? "Invalid input line",
-        source: options.input.path ? `input:${options.input.path}:${invalid.line}` : `input:${invalid.line}`,
-      });
-    }
-
-    sources.push({
-      discovered_ids: options.input.ids.length,
-      invalid_lines: options.input.invalidEntries.length,
-      label: options.input.path ?? "input",
-      path: options.input.path,
-      type: "input",
-    });
-
-    if (options.input.postIds.length > 0) {
-      sources.push({
-        label: "Post links from input",
-        path: options.input.path,
-        posts: options.input.postIds.length,
-        type: "input-post",
-      });
-    }
-  }
-
-  if (postIdsToLookup.size > 0) {
-    const postLookupResponse = await tryPostResponse(errors, "post-lookup", () => options.client.lookupPostsByIds([...postIdsToLookup]));
-    addUsers(usersById, postLookupResponse.includes?.users);
-
-    for (const post of postLookupResponse.data ?? []) {
-      const existing = postsById.get(post.id);
-      const reference = createPostReferenceFromPost(post, usersById, "post-lookup", existing);
-      addPostReference(postsById, postIdsBySpaceId, reference);
-
-      for (const spaceId of reference.space_ids) {
-        idsToLookup.add(spaceId);
-        addSourceForId(sourcesById, spaceId, "input-post");
-      }
-    }
-
-    sources.push({
-      discovered_ids: [...postIdsBySpaceId.keys()].length,
-      label: "Post lookup by ID",
-      posts: postLookupResponse.data?.length ?? 0,
-      type: "post-lookup",
-    });
+  if (state.postIdsToLookup.size > 0) {
+    const postLookupResponse = await tryPostResponse(state.errors, "post-lookup", () => options.client.lookupPostsByIds([...state.postIdsToLookup]));
+    applyPostLookupResponse(state, postLookupResponse);
   }
 
   if (options.username) {
@@ -353,13 +415,13 @@ export async function collectSpaces(options: CollectSpacesOptions): Promise<Spac
     try {
       const userResult = await options.client.getUserByUsername(username);
       user = userResult.user;
-      usersById.set(user.id, user);
-      userResult.errors.forEach((problem) => errors.push(toArtifactError("user", problem)));
+      state.usersById.set(user.id, user);
+      userResult.errors.forEach((problem) => state.errors.push(toArtifactError("user", problem)));
 
-      const creatorResponse = await tryResponse(errors, "user-creator", () => options.client.getSpacesByCreatorIds([user!.id]));
-      const creatorCount = addSpacesFromResponse(spacesById, usersById, sourcesById, creatorResponse, "user-creator");
+      const creatorResponse = await tryResponse(state.errors, "user-creator", () => options.client.getSpacesByCreatorIds([user!.id]));
+      const creatorCount = addSpacesFromResponse(state, creatorResponse, "user-creator");
 
-      sources.push({
+      state.sources.push({
         discovered_spaces: creatorCount,
         label: `Spaces created by @${username}`,
         type: "user-creator",
@@ -367,11 +429,11 @@ export async function collectSpaces(options: CollectSpacesOptions): Promise<Spac
         username,
       });
 
-      const searchResponse = await tryResponse(errors, "space-search", () => options.client.searchSpaces(username));
+      const searchResponse = await tryResponse(state.errors, "space-search", () => options.client.searchSpaces(username));
       const belongsToUser = (space: XSpace): boolean => space.creator_id === user!.id || (space.host_ids ?? []).includes(user!.id);
-      const searchCount = addSpacesFromResponse(spacesById, usersById, sourcesById, searchResponse, "space-search", belongsToUser);
+      const searchCount = addSpacesFromResponse(state, searchResponse, "space-search", belongsToUser);
 
-      sources.push({
+      state.sources.push({
         discovered_spaces: searchCount,
         label: `Space search for @${username}`,
         query: username,
@@ -381,56 +443,23 @@ export async function collectSpaces(options: CollectSpacesOptions): Promise<Spac
 
       try {
         const recentResult = await options.client.searchRecentPostsForSpaceLinks(username);
-        const recentSpaceIds = new Set(recentResult.spaceIds);
-
-        addUsers(usersById, recentResult.users);
-        recentResult.errors.forEach((problem) => errors.push(toArtifactError("recent-post-search", problem)));
-
-        for (const tweet of recentResult.tweets) {
-          const reference = createPostReferenceFromPost(tweet, usersById, "recent-post-search");
-          addPostReference(postsById, postIdsBySpaceId, reference);
-
-          for (const spaceId of reference.space_ids) {
-            recentSpaceIds.add(spaceId);
-          }
-        }
-
-        for (const spaceId of recentSpaceIds) {
-          idsToLookup.add(spaceId);
-          addSourceForId(sourcesById, spaceId, "recent-post-search");
-        }
-
-        sources.push({
-          discovered_ids: recentResult.spaceIds.length,
-          label: `Recent posts by @${username}`,
-          posts: recentResult.tweets.length,
-          query: `from:${username} space links`,
-          type: "recent-post-search",
-          username,
-        });
+        applyRecentPostSearch(state, username, recentResult);
       } catch (error) {
-        errors.push(toThrownError("recent-post-search", error));
-        sources.push({
-          discovered_ids: 0,
-          label: `Recent posts by @${username}`,
-          posts: 0,
-          query: `from:${username} space links`,
-          type: "recent-post-search",
-          username,
-        });
+        state.errors.push(toThrownError("recent-post-search", error));
+        state.sources.push(recentPostSearchSource(username, 0, 0));
       }
     } catch (error) {
-      errors.push(toThrownError("user", error));
+      state.errors.push(toThrownError("user", error));
     }
   }
 
-  const missingIds = [...idsToLookup].filter((spaceId) => !spacesById.has(spaceId));
+  const missingIds = [...state.idsToLookup].filter((spaceId) => !state.spacesById.has(spaceId));
 
   if (missingIds.length > 0) {
-    const lookupResponse = await tryResponse(errors, "lookup", () => options.client.lookupSpacesByIds(missingIds));
-    const lookupCount = addSpacesFromResponse(spacesById, usersById, sourcesById, lookupResponse, "lookup");
+    const lookupResponse = await tryResponse(state.errors, "lookup", () => options.client.lookupSpacesByIds(missingIds));
+    const lookupCount = addSpacesFromResponse(state, lookupResponse, "lookup");
 
-    sources.push({
+    state.sources.push({
       discovered_ids: missingIds.length,
       discovered_spaces: lookupCount,
       label: "Space lookup by ID",
@@ -438,8 +467,8 @@ export async function collectSpaces(options: CollectSpacesOptions): Promise<Spac
     });
   }
 
-  const spaces = hydrateSpaces(spacesById, usersById, sourcesById, postsById, postIdsBySpaceId);
-  const posts = [...postsById.values()].sort(
+  const spaces = hydrateSpaces(state.spacesById, state.usersById, state.sourcesById, state.postsById, state.postIdsBySpaceId);
+  const posts = [...state.postsById.values()].sort(
     (left, right) =>
       (right.created_at ?? "").localeCompare(left.created_at ?? "")
       || (left.line ?? Number.MAX_SAFE_INTEGER) - (right.line ?? Number.MAX_SAFE_INTEGER)
@@ -447,19 +476,19 @@ export async function collectSpaces(options: CollectSpacesOptions): Promise<Spac
   );
 
   return {
-    errors,
+    errors: state.errors,
     generated_at: generatedAt,
     posts,
-    sources,
+    sources: state.sources,
     spaces,
     totals: {
-      errors: errors.length,
+      errors: state.errors.length,
       input_ids: inputIdCount,
       input_posts: inputPostCount,
       posts: posts.length,
       spaces: spaces.length,
-      unique_ids: sourcesById.size,
-      users: usersById.size,
+      unique_ids: state.sourcesById.size,
+      users: state.usersById.size,
     },
     user,
   };

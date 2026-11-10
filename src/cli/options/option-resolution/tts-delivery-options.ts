@@ -33,6 +33,37 @@ const readSwitch = (flags: Record<string, unknown>, flagName: string): boolean |
 const readMs = (flags: Record<string, unknown>, flagName: string): number | undefined =>
   parseOptionalNumberFlag(readOptionalStringFlag(flags, flagName), flagName, { min: 0, max: 10000, integer: true })
 
+const applySampleRateOverride = (flags: Record<string, unknown>, profile: TtsDeliveryProfile): void => {
+  const sampleRate = readOptionalStringFlag(flags, 'tts-sample-rate')
+  if (sampleRate === undefined) return
+  if (!TTS_DELIVERY_SAMPLE_RATES.map(String).includes(sampleRate)) throw UsageError(`Invalid --tts-sample-rate value "${sampleRate}". Expected ${formatQuotedChoiceList(TTS_DELIVERY_SAMPLE_RATES.map(String))}.`)
+  profile.sampleRate = Number(sampleRate)
+}
+
+const applyChannelsOverride = (flags: Record<string, unknown>, profile: TtsDeliveryProfile): void => {
+  const channels = readOptionalStringFlag(flags, 'tts-channels')
+  if (channels === undefined) return
+  if (channels !== '1' && channels !== '2') throw UsageError(`Invalid --tts-channels value "${channels}". Expected ${formatQuotedChoiceList(['1', '2'])}.`)
+  profile.channels = channels === '1' ? 1 : 2
+}
+
+const applyLoudnessOverrides = (flags: Record<string, unknown>, profile: TtsDeliveryProfile): void => {
+  const loudness = readOptionalStringFlag(flags, 'tts-loudness')
+  const truePeakDb = parseOptionalNumberFlag(readOptionalStringFlag(flags, 'tts-true-peak'), 'tts-true-peak', { min: -9, max: 0 })
+  if (loudness === 'off') {
+    if (truePeakDb !== undefined) throw UsageError('--tts-true-peak requires loudness normalization; it cannot be combined with --tts-loudness off.')
+    profile.loudness = { mode: 'none' }
+    return
+  }
+  const integratedLufs = parseOptionalNumberFlag(loudness, 'tts-loudness', { min: -40, max: -5 })
+  if (integratedLufs !== undefined) {
+    profile.loudness = { mode: 'ebu-r128', integratedLufs, truePeakDb: truePeakDb ?? (profile.loudness.mode === 'ebu-r128' ? profile.loudness.truePeakDb : -1.5) }
+  } else if (truePeakDb !== undefined) {
+    if (profile.loudness.mode !== 'ebu-r128') throw UsageError('--tts-true-peak requires --tts-loudness <LUFS> or a profile with loudness normalization.')
+    profile.loudness = { ...profile.loudness, truePeakDb }
+  }
+}
+
 const resolveDelivery = (flags: Record<string, unknown>): TtsDeliveryProfile | undefined => {
   const profileName = readChoice<TtsAudioProfileName>(flags, 'tts-audio-profile', TTS_AUDIO_PROFILES, DEFAULT_TTS_AUDIO_PROFILE)
   if (profileName === 'legacy-16k') {
@@ -41,30 +72,9 @@ const resolveDelivery = (flags: Record<string, unknown>): TtsDeliveryProfile | u
     return undefined
   }
   const profile = ttsDeliveryPreset(profileName)
-  const sampleRate = readOptionalStringFlag(flags, 'tts-sample-rate')
-  if (sampleRate !== undefined) {
-    if (!TTS_DELIVERY_SAMPLE_RATES.map(String).includes(sampleRate)) throw UsageError(`Invalid --tts-sample-rate value "${sampleRate}". Expected ${formatQuotedChoiceList(TTS_DELIVERY_SAMPLE_RATES.map(String))}.`)
-    profile.sampleRate = Number(sampleRate)
-  }
-  const channels = readOptionalStringFlag(flags, 'tts-channels')
-  if (channels !== undefined) {
-    if (channels !== '1' && channels !== '2') throw UsageError(`Invalid --tts-channels value "${channels}". Expected ${formatQuotedChoiceList(['1', '2'])}.`)
-    profile.channels = channels === '1' ? 1 : 2
-  }
-  const loudness = readOptionalStringFlag(flags, 'tts-loudness')
-  const truePeakDb = parseOptionalNumberFlag(readOptionalStringFlag(flags, 'tts-true-peak'), 'tts-true-peak', { min: -9, max: 0 })
-  if (loudness === 'off') {
-    if (truePeakDb !== undefined) throw UsageError('--tts-true-peak requires loudness normalization; it cannot be combined with --tts-loudness off.')
-    profile.loudness = { mode: 'none' }
-  } else {
-    const integratedLufs = parseOptionalNumberFlag(loudness, 'tts-loudness', { min: -40, max: -5 })
-    if (integratedLufs !== undefined) {
-      profile.loudness = { mode: 'ebu-r128', integratedLufs, truePeakDb: truePeakDb ?? (profile.loudness.mode === 'ebu-r128' ? profile.loudness.truePeakDb : -1.5) }
-    } else if (truePeakDb !== undefined) {
-      if (profile.loudness.mode !== 'ebu-r128') throw UsageError('--tts-true-peak requires --tts-loudness <LUFS> or a profile with loudness normalization.')
-      profile.loudness = { ...profile.loudness, truePeakDb }
-    }
-  }
+  applySampleRateOverride(flags, profile)
+  applyChannelsOverride(flags, profile)
+  applyLoudnessOverrides(flags, profile)
   profile.trimSilence = readSwitch(flags, 'tts-trim-silence') ?? profile.trimSilence
   const paragraphMs = readMs(flags, 'tts-paragraph-pause')
   if (paragraphMs !== undefined) profile.gapsMs = { ...profile.gapsMs, paragraph: paragraphMs, turn: paragraphMs }

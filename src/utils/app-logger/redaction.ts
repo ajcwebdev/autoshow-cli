@@ -263,3 +263,18 @@ export const sanitizeLogMetadata = (metadata: LogMetadata): LogMetadata => {
 
 export const sanitizeArtifactMetadata = (metadata: LogMetadata): LogMetadata =>
   sanitizeUnknown(metadata, 0, new WeakSet<object>(), sanitizeArtifactText) as LogMetadata
+
+/** Retain complete result structure while redacting credentials in private result artifacts. */
+const RESULT_USAGE_DETAIL_KEYS = new Set([
+  'input_tokens_details', 'output_tokens_details', 'prompt_tokens_details', 'completion_tokens_details',
+  'cache_write_tokens_details', 'promptTokensDetails', 'candidatesTokensDetails'
+])
+const RESULT_TOKEN_COUNTER_KEY = /^(?:(?:input|output|prompt|completion|candidates|total|cached|content|cache_read|cache_write|cache_creation|ephemeral_5m|ephemeral_1h|reasoning|thinking|thoughts?|tool[_-]?use|audio|text|image|video|accepted_prediction|rejected_prediction)[_-]?)*(?:tokens|token[_-]?(?:count|cost|price|rate|limit))(?:[_-]?(?:count|cost|price|rate|limit))?$/i
+
+export const serializeResultArtifact = (value: unknown): string => JSON.stringify(value, (key, entry: unknown) => {
+  // Numeric usage counters such as inputTokens are not credentials.
+  const tokenCounter = typeof entry === 'number' && RESULT_TOKEN_COUNTER_KEY.test(key)
+  const usageDetails = typeof entry === 'object' && entry !== null && RESULT_USAGE_DETAIL_KEYS.has(key)
+  if (isSensitiveObjectKey(key) && !tokenCounter && !usageDetails && entry !== null) return REDACTED
+  return typeof entry === 'string' ? sanitizeArtifactText(entry) : entry
+})

@@ -44,6 +44,29 @@ const discoverJournalBatchCandidates = (
   }
 }
 
+type ProjectionBatchProgress = NonNullable<CanonicalAudioProviderProjection['renderHistory'][number]['events'][number]['batchProgress']>[number]
+
+const addProjectionSlotBatchCandidate = (
+  candidates: Map<string, RetainedBatchCandidate>,
+  renderRoot: string,
+  batch: ProjectionBatchProgress,
+  slot: ProjectionBatchProgress['generationSlots'][number]
+): void => {
+  if (slot.source !== 'provider-dispatch' || !slot.batchResult) return
+  const path = resolveRetainedPath(renderRoot, slot.batchResult.path, 'Stored provider batch result')
+  const relativeResult = relative(renderRoot, path).split(sep)
+  const batchResultsIndex = relativeResult.lastIndexOf('batch-results')
+  if (batchResultsIndex < 1) throw UsageError('Stored provider batch result is outside an immutable provider attempt.')
+  addBatchCandidate(candidates, {
+    batchId: batch.batchId,
+    generationSlotId: slot.generationSlotId,
+    batchResultId: slot.batchResult.batchResultId,
+    path,
+    sha256: slot.batchResult.sha256,
+    attemptRoot: resolve(renderRoot, ...relativeResult.slice(0, batchResultsIndex))
+  })
+}
+
 const discoverProjectionBatchCandidates = (
   candidates: Map<string, RetainedBatchCandidate>,
   renderRoot: string,
@@ -51,21 +74,7 @@ const discoverProjectionBatchCandidates = (
 ): void => {
   for (const event of retainedRender.events) {
     for (const batch of event.batchProgress ?? []) {
-      for (const slot of batch.generationSlots) {
-        if (slot.source !== 'provider-dispatch' || !slot.batchResult) continue
-        const path = resolveRetainedPath(renderRoot, slot.batchResult.path, 'Stored provider batch result')
-        const relativeResult = relative(renderRoot, path).split(sep)
-        const batchResultsIndex = relativeResult.lastIndexOf('batch-results')
-        if (batchResultsIndex < 1) throw UsageError('Stored provider batch result is outside an immutable provider attempt.')
-        addBatchCandidate(candidates, {
-          batchId: batch.batchId,
-          generationSlotId: slot.generationSlotId,
-          batchResultId: slot.batchResult.batchResultId,
-          path,
-          sha256: slot.batchResult.sha256,
-          attemptRoot: resolve(renderRoot, ...relativeResult.slice(0, batchResultsIndex))
-        })
-      }
+      for (const slot of batch.generationSlots) addProjectionSlotBatchCandidate(candidates, renderRoot, batch, slot)
     }
   }
 }

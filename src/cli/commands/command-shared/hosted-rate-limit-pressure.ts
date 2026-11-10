@@ -31,6 +31,25 @@ const isExplicitlyNonRetryable = (error: unknown): boolean => {
   return false
 }
 
+const collectErrorChainMessages = (error: unknown): string[] => {
+  const messages: string[] = []
+  const seen = new Set<unknown>()
+  let current = error
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current)
+    if (current instanceof Error) messages.push(current.message)
+    current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
+  }
+  return messages
+}
+
+const isExplicitlyRateLimited = (status: unknown, category: unknown, code: unknown, message: string): boolean =>
+  status === 429
+  || status === 425
+  || (typeof category === 'string' && /rate.?limit|too.?many.?requests|concurrenc/i.test(category))
+  || (typeof code === 'string' && /rate.?limit|too.?many.?requests|concurrenc/i.test(code))
+  || /rate[-\s]?limit|too many requests|provider concurrency|concurrency limit/.test(message)
+
 export const classifyHostedRateLimitPressure = (
   error: unknown
 ): ProviderLanePressureFeedback | undefined => {
@@ -42,25 +61,12 @@ export const classifyHostedRateLimitPressure = (
   const status = readNestedErrorValue(error, 'status')
   const category = readNestedErrorValue(error, 'category')
   const code = readNestedErrorValue(error, 'code')
-  const messages: string[] = []
-  const seen = new Set<unknown>()
-  let current = error
-  while (current && typeof current === 'object' && !seen.has(current)) {
-    seen.add(current)
-    if (current instanceof Error) messages.push(current.message)
-    current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
-  }
-  const message = messages.join(' ').toLowerCase()
+  const message = collectErrorChainMessages(error).join(' ').toLowerCase()
   const classificationText = `${typeof category === 'string' ? category : ''} ${typeof code === 'string' ? code : ''} ${message}`.toLowerCase()
   if (/billing|payment required|insufficient (?:balance|credit)|quota[_\s-]*(?:exhaust|exceed|deplet)|exceed(?:ed|s|ing)? (?:your )?(?:current )?quota|quota[_\s-]*limit[_\s-]*(?:reached|exhaust)|check your plan|authentication|unauthorized|validation/.test(classificationText)) {
     return undefined
   }
-  const explicitlyRateLimited = status === 429
-    || status === 425
-    || (typeof category === 'string' && /rate.?limit|too.?many.?requests|concurrenc/i.test(category))
-    || (typeof code === 'string' && /rate.?limit|too.?many.?requests|concurrenc/i.test(code))
-    || /rate[-\s]?limit|too many requests|provider concurrency|concurrency limit/.test(message)
-  if (!explicitlyRateLimited) return undefined
+  if (!isExplicitlyRateLimited(status, category, code, message)) return undefined
   // Ambiguous HTTP statuses (e.g. 503 with rate-limit prose) must not redispatch paid work.
   // Only definite admission rejections (425/429) or status-less structured concurrency signals qualify.
   if (typeof status === 'number' && status !== 425 && status !== 429) {

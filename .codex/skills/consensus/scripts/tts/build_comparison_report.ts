@@ -17,6 +17,8 @@ import {
   probeAudio,
   roundtripWer,
   tokenize,
+  type TtsEntryMetadata,
+  type TtsManifestRecord,
 } from "./tts_eval_lib.ts";
 
 interface ParsedArgs {
@@ -530,143 +532,143 @@ function formatTierGroupName(group: TierGroupName): string {
   return group === "local" ? "Local" : "Third-Party";
 }
 
-export async function buildReport(
-  runDir: string,
-  inputTextPath: string,
-  roundtripDir: string | null,
-) {
-  const manifestRecord = loadTtsManifestRecord(runDir);
-  const inputText = readFileSync(inputTextPath, "utf8").trim();
-  const charCount = inputText.length;
-  const wordCount = tokenize(inputText).length;
-  const warnings: string[] = [];
+type ScoringMethod = "voice-quality" | "roundtrip-wer" | "composite";
 
-  const { found, missing } = discoverAudioFiles(runDir, manifestRecord.metadata.tts);
-  if (missing.length > 0) {
-    warnings.push(`Missing audio files: ${missing.join(", ")}`);
+interface ProviderEvidenceContext {
+  manifestRecord: TtsManifestRecord;
+  inputText: string;
+  roundtripDir: string | null;
+  costLookup: Map<string, number>;
+  timingLookup: Map<string, number>;
+  voiceQualityScores: ReturnType<typeof loadVoiceQualityScores>;
+  warnings: string[];
+}
+
+interface RankedReportProviders {
+  local: RankedProvider[];
+  cloud: RankedProvider[];
+  all: RankedProvider[];
+}
+
+interface RankingTableColumns {
+  quality: boolean;
+  wer: boolean;
+  cost: boolean;
+}
+
+interface ReportMarkdownInput {
+  inputTextPath: string;
+  charCount: number;
+  wordCount: number;
+  ranked: RankedReportProviders;
+  rankedOverall: RankedProvider[];
+  tiering: Tiering;
+  scoringMethod: ScoringMethod;
+  notes: string[];
+}
+
+function scoreFormulaFor(scoringMethod: ScoringMethod): string {
+  return scoringMethod === "voice-quality"
+    ? "humanSpeechScore from voice-quality-report.json (55% naturalness + 45% speech quality)"
+    : scoringMethod === "roundtrip-wer"
+      ? "max(0, 100 * (1 - roundtripWER))"
+      : "composite: 60% speaking-rate-naturalness + 20% cost + 20% speed";
+}
+
+function scoringMethodSummary(scoringMethod: ScoringMethod): string {
+  return scoringMethod === "voice-quality" ? "voice quality (human speech quality from voice-quality-report.json)" : scoringMethod === "roundtrip-wer" ? "roundtrip WER (TTS audio -> STT -> compare against original text)" : "composite (speaking rate naturalness + cost + speed)";
+}
+
+function entryRoundtripWer(entry: TtsEntryMetadata, context: ProviderEvidenceContext): number | null {
+  if (context.roundtripDir === null) {
+    return null;
+  }
+  const roundtripPath = join(context.roundtripDir, `${entry.audioFileName}.txt`);
+  if (existsSync(roundtripPath)) {
+    const transcribed = readFileSync(roundtripPath, "utf8").trim();
+    return roundtripWer(context.inputText, transcribed);
+  }
+  context.warnings.push(`No roundtrip transcription found for ${entry.audioFileName}`);
+  return null;
+}
+
+function compositeScore(speakingRate: number | null, costCents: number | null, processingTimeMs: number | null): number {
+  const rateComponent = speakingRateScore(speakingRate) * 60;
+  const costComponent = costCents !== null && costCents === 0 ? 20 : costCents !== null ? Math.max(0, 20 * (1 - costCents / 20)) : 10;
+  const speedComponent = processingTimeMs !== null && processingTimeMs > 0 ? Math.max(0, 20 * (1 - processingTimeMs / 60000)) : 10;
+  return rateComponent + costComponent + speedComponent;
+}
+
+function providerEvidence(entry: TtsEntryMetadata, providerKey: string, durationSeconds: number | null, context: ProviderEvidenceContext) {
+  const speakingRate = durationSeconds !== null ? computeSpeakingRate(context.inputText.length, durationSeconds) : null;
+  const costCents = context.costLookup.get(providerKey) ?? null;
+  const processingTimeMs = context.manifestRecord.recoveredProviderKeys?.includes(providerKey)
+    ? null
+    : context.timingLookup.get(providerKey) ?? (isFiniteNumber(entry.processingTime) ? entry.processingTime : null);
+
+  let wer = entryRoundtripWer(entry, context);
+
+  const vqScores = context.voiceQualityScores.get(providerKey);
+  const qualityScore = vqScores?.qualityScore ?? null;
+  if (wer === null && vqScores?.medianWer !== null && vqScores?.medianWer !== undefined) {
+    wer = vqScores.medianWer;
   }
 
-  const costLookup = buildCostLookup(manifestRecord);
-  const timingLookup = buildTimingLookup(manifestRecord);
-  const voiceQualityScores = loadVoiceQualityScores(runDir);
-  const hasRoundtrip = roundtripDir !== null;
-
-  const providerData: ProviderData[] = [];
-
-  for (const entry of manifestRecord.metadata.tts) {
-    const providerKey = makeProviderKey(entry.ttsService, entry.ttsModel);
-    const audioPath = found.get(providerKey);
-
-    let durationSeconds: number | null = null;
-    if (audioPath) {
-      try {
-        const props = await probeAudio(audioPath);
-        durationSeconds = props.durationSeconds;
-      } catch {
-        warnings.push(`ffprobe failed for ${entry.audioFileName}`);
-      }
-    }
-
-    const speakingRate = durationSeconds !== null ? computeSpeakingRate(charCount, durationSeconds) : null;
-    const costCents = costLookup.get(providerKey) ?? null;
-    const processingTimeMs = manifestRecord.recoveredProviderKeys?.includes(providerKey)
-      ? null
-      : timingLookup.get(providerKey) ?? (isFiniteNumber(entry.processingTime) ? entry.processingTime : null);
-
-    let wer: number | null = null;
-    if (hasRoundtrip) {
-      const roundtripPath = join(roundtripDir!, `${entry.audioFileName}.txt`);
-      if (existsSync(roundtripPath)) {
-        const transcribed = readFileSync(roundtripPath, "utf8").trim();
-        wer = roundtripWer(inputText, transcribed);
-      } else {
-        warnings.push(`No roundtrip transcription found for ${entry.audioFileName}`);
-      }
-    }
-
-    const vqScores = voiceQualityScores.get(providerKey);
-    const qualityScore = vqScores?.qualityScore ?? null;
-    if (wer === null && vqScores?.medianWer !== null && vqScores?.medianWer !== undefined) {
-      wer = vqScores.medianWer;
-    }
-
-    let score: number;
-    if (qualityScore !== null) {
-      score = qualityScore;
-    } else if (wer !== null) {
-      score = Math.max(0, 100 * (1 - wer));
-    } else {
-      const rateComponent = speakingRateScore(speakingRate) * 60;
-      const costComponent = costCents !== null && costCents === 0 ? 20 : costCents !== null ? Math.max(0, 20 * (1 - costCents / 20)) : 10;
-      const speedComponent = processingTimeMs !== null && processingTimeMs > 0 ? Math.max(0, 20 * (1 - processingTimeMs / 60000)) : 10;
-      score = rateComponent + costComponent + speedComponent;
-    }
-
-    providerData.push({
-      providerKey,
-      ttsService: entry.ttsService,
-      ttsModel: entry.ttsModel,
-      speaker: entry.speaker ?? null,
-      score,
-      qualityScore,
-      humanSpeechScore: qualityScore,
-      roundtripWER: wer,
-      speakingRateCharsPerSec: speakingRate,
-      durationSeconds,
-      processingTimeMs,
-      costCents,
-      audioFileSize: entry.audioFileSize,
-      audioFileName: entry.audioFileName,
-    });
+  let score: number;
+  if (qualityScore !== null) {
+    score = qualityScore;
+  } else if (wer !== null) {
+    score = Math.max(0, 100 * (1 - wer));
+  } else {
+    score = compositeScore(speakingRate, costCents, processingTimeMs);
   }
 
-  const providerDataWithOverall = addOverallScores(providerData);
-  const localData = providerDataWithOverall.filter((p) => isLocalService(p.ttsService));
-  const cloudData = providerDataWithOverall.filter((p) => !isLocalService(p.ttsService));
+  return {
+    providerKey,
+    ttsService: entry.ttsService,
+    ttsModel: entry.ttsModel,
+    speaker: entry.speaker ?? null,
+    score,
+    qualityScore,
+    humanSpeechScore: qualityScore,
+    roundtripWER: wer,
+    speakingRateCharsPerSec: speakingRate,
+    durationSeconds,
+    processingTimeMs,
+    costCents,
+    audioFileSize: entry.audioFileSize,
+    audioFileName: entry.audioFileName,
+  };
+}
 
-  function rankGroup(group: OverallScoredProvider[], groupLabel: ProviderGroup): RankedProviderWithoutTier[] {
-    return [...group]
-      .sort((left, right) => {
-        if (left.roundtripWER !== null && right.roundtripWER !== null) {
-          if (left.roundtripWER !== right.roundtripWER) {
-            return left.roundtripWER - right.roundtripWER;
-          }
+function rankProviderGroup(group: OverallScoredProvider[], groupLabel: ProviderGroup): RankedProviderWithoutTier[] {
+  return [...group]
+    .sort((left, right) => {
+      if (left.roundtripWER !== null && right.roundtripWER !== null) {
+        if (left.roundtripWER !== right.roundtripWER) {
+          return left.roundtripWER - right.roundtripWER;
         }
-        if (left.score !== right.score) {
-          return right.score - left.score;
-        }
-        return left.providerKey.localeCompare(right.providerKey);
-      })
-      .map((provider, index) => ({ ...provider, group: groupLabel, rank: index + 1 }));
-  }
+      }
+      if (left.score !== right.score) {
+        return right.score - left.score;
+      }
+      return left.providerKey.localeCompare(right.providerKey);
+    })
+    .map((provider, index) => ({ ...provider, group: groupLabel, rank: index + 1 }));
+}
 
-  const rankedLocal = rankGroup(localData, "local");
-  const rankedCloud = rankGroup(cloudData, "cloud");
-  const allRankedWithoutTiers = [...rankedLocal, ...rankedCloud];
-  const rankedOverallWithoutTiers = [...allRankedWithoutTiers].sort((left, right) => {
-    if (left.overallRank !== right.overallRank) {
-      return left.overallRank - right.overallRank;
-    }
-    return left.providerKey.localeCompare(right.providerKey);
-  });
-  const { tiering, providerAnnotations } = buildTiering(rankedOverallWithoutTiers);
-  const rankedLocalWithTiers = addTierAnnotations(rankedLocal, providerAnnotations);
-  const rankedCloudWithTiers = addTierAnnotations(rankedCloud, providerAnnotations);
-  const allRanked = [...rankedLocalWithTiers, ...rankedCloudWithTiers];
-  const rankedOverall = addTierAnnotations(rankedOverallWithoutTiers, providerAnnotations);
+function fastestProvider(providers: RankedProvider[]): RankedProvider | null {
+  return providers.length > 0
+    ? [...providers].sort((a, b) => (a.processingTimeMs ?? Infinity) - (b.processingTimeMs ?? Infinity))[0]!
+    : null;
+}
 
-  const hasVoiceQuality = allRanked.some((p) => p.qualityScore !== null);
-  const scoringMethod = hasVoiceQuality
-    ? "voice-quality"
-    : hasRoundtrip && allRanked.some((p) => p.roundtripWER !== null)
-      ? "roundtrip-wer"
-      : "composite";
-
-  const notes: string[] = (manifestRecord.recoveredProviderKeys ?? []).map(key =>
+function reportNotes(recoveredProviderKeys: string[] | undefined, ranked: RankedReportProviders, scoringMethod: ScoringMethod): string[] {
+  const notes: string[] = (recoveredProviderKeys ?? []).map(key =>
     `Local recovery timing for \`${key}\` is excluded from generation speed rankings; purchased audio was reused.`,
   );
 
-  const cloudWithCost = rankedCloudWithTiers.filter((p) => p.costCents !== null);
+  const cloudWithCost = ranked.cloud.filter((p) => p.costCents !== null);
   if (cloudWithCost.length > 0) {
     const cheapestCost = Math.min(...cloudWithCost.map((p) => p.costCents as number));
     const cheapestProviders = cloudWithCost.filter((p) => p.costCents === cheapestCost);
@@ -676,14 +678,10 @@ export async function buildReport(
     );
   }
 
-  const allWithTime = allRanked.filter((p) => p.processingTimeMs !== null && p.processingTimeMs > 0);
+  const allWithTime = ranked.all.filter((p) => p.processingTimeMs !== null && p.processingTimeMs > 0);
   if (allWithTime.length > 0) {
-    const fastestLocal = rankedLocalWithTiers.length > 0
-      ? [...rankedLocalWithTiers].sort((a, b) => (a.processingTimeMs ?? Infinity) - (b.processingTimeMs ?? Infinity))[0]
-      : null;
-    const fastestCloud = rankedCloudWithTiers.length > 0
-      ? [...rankedCloudWithTiers].sort((a, b) => (a.processingTimeMs ?? Infinity) - (b.processingTimeMs ?? Infinity))[0]
-      : null;
+    const fastestLocal = fastestProvider(ranked.local);
+    const fastestCloud = fastestProvider(ranked.cloud);
     if (fastestLocal) {
       notes.push(
         `Fastest local model: \`${fastestLocal.providerKey}\` at ${formatProcessingSeconds(fastestLocal.processingTimeMs)}.`,
@@ -705,12 +703,253 @@ export async function buildReport(
       "No assessment evidence was available. Spoken-text accuracy and perceptual quality remain unassessed; duration, cost, and speed do not establish quality.",
     );
   }
+  return notes;
+}
 
-  const scoreFormula = scoringMethod === "voice-quality"
-    ? "humanSpeechScore from voice-quality-report.json (55% naturalness + 45% speech quality)"
-    : scoringMethod === "roundtrip-wer"
-      ? "max(0, 100 * (1 - roundtripWER))"
-      : "composite: 60% speaking-rate-naturalness + 20% cost + 20% speed";
+function overallRankingTable(providers: RankedProvider[]): string {
+  const headerCols = ["Rank", "Provider", "Group", "Group Rank", "Group Tier", "Overall / 100", "Accuracy", "Speed", "Cost"];
+  const headerRow = `| ${headerCols.join(" | ")} |`;
+  const separatorRow = `| ${headerCols.map(() => "---:").join(" | ")} |`;
+  const rows = providers
+    .map((p) => {
+      const cols = [
+        String(p.overallRank),
+        `\`${p.providerKey}\``,
+        p.group,
+        String(p.groupOverallRank),
+        String(p.groupTier),
+        p.overallScore.toFixed(2),
+        p.overallComponents.accuracy.score.toFixed(2),
+        p.overallComponents.processingSpeed.score.toFixed(2),
+        p.overallComponents.costEfficiency.score.toFixed(2),
+      ];
+      return `| ${cols.join(" | ")} |`;
+    })
+    .join("\n");
+  return `${headerRow}\n${separatorRow}\n${rows}`;
+}
+
+function rankingTableHeader(columns: RankingTableColumns): string[] {
+  const headerCols = ["Rank", "Provider", "Score / 100"];
+  if (columns.quality) {
+    headerCols.push("Quality / 100");
+  }
+  if (columns.wer) {
+    headerCols.push("Roundtrip WER");
+  }
+  headerCols.push("Speaking Rate", "Duration", "Processing Time");
+  if (columns.cost) {
+    headerCols.push("Cost");
+  }
+  return headerCols;
+}
+
+function rankingTableRow(p: RankedProvider, columns: RankingTableColumns): string {
+  const cols = [
+    String(p.rank),
+    `\`${p.providerKey}\``,
+    p.score.toFixed(2),
+  ];
+  if (columns.quality) {
+    cols.push(p.qualityScore !== null ? p.qualityScore.toFixed(2) : "n/a");
+  }
+  if (columns.wer) {
+    cols.push(p.roundtripWER !== null ? percentage(p.roundtripWER) : "n/a");
+  }
+  cols.push(
+    p.speakingRateCharsPerSec !== null ? `${p.speakingRateCharsPerSec.toFixed(1)} c/s` : "n/a",
+    p.durationSeconds !== null ? `${p.durationSeconds.toFixed(2)}s` : "n/a",
+    formatProcessingSeconds(p.processingTimeMs),
+  );
+  if (columns.cost) {
+    cols.push(formatCents(p.costCents));
+  }
+  return `| ${cols.join(" | ")} |`;
+}
+
+function rankingTable(providers: RankedProvider[], columns: RankingTableColumns): string {
+  const headerCols = rankingTableHeader(columns);
+  const headerRow = `| ${headerCols.join(" | ")} |`;
+  const separatorRow = `| ${headerCols.map(() => "---:").join(" | ")} |`;
+  const rows = providers
+    .map((p) => rankingTableRow(p, columns))
+    .join("\n");
+  return `${headerRow}\n${separatorRow}\n${rows}`;
+}
+
+function tierBreakdownBlock(groups: Tiering["groups"]): string {
+  return [
+    "Tiers split local and third-party balanced overall rankings separately. When a group count is not divisible by three, the remainder is assigned to Tier 3 for that group.",
+    "",
+    ...(["local", "thirdParty"] as const).flatMap((groupName) => {
+      const group = groups[groupName];
+      return [
+        `### ${formatTierGroupName(groupName)} Group (${group.count})`,
+        "",
+        ...group.tiers.flatMap((tier) => {
+          const providerRows = tier.providers
+            .map(
+              (provider) =>
+                `| ${provider.groupOverallRank} | ${provider.overallRank} | \`${provider.providerKey}\` | ${provider.overallScore.toFixed(2)} | ${provider.overallComponents.accuracy.score.toFixed(2)} | ${provider.overallComponents.processingSpeed.score.toFixed(2)} | ${provider.overallComponents.costEfficiency.score.toFixed(2)} |`,
+            )
+            .join("\n");
+          return [
+            `#### ${tier.label} (${formatRankRange(tier.rankRange)})`,
+            "",
+            tier.description,
+            "",
+            "| Group Rank | Overall Rank | Provider | Overall / 100 | Accuracy | Speed | Cost |",
+            "| ---: | ---: | --- | ---: | ---: | ---: | ---: |",
+            providerRows || "| n/a | n/a | n/a | n/a | n/a | n/a | n/a |",
+            "",
+          ];
+        }),
+        "",
+      ];
+    }),
+  ].join("\n");
+}
+
+function rankingSection(heading: string, providers: RankedProvider[], providerList: string, columns: RankingTableColumns): string {
+  if (providers.length === 0) {
+    return "";
+  }
+  return `### ${heading} (${providers.length})
+
+${providerList}
+
+${rankingTable(providers, columns)}
+`;
+}
+
+function methodDescriptionFor(hasQualityColumn: boolean, hasWerColumn: boolean): string {
+  if (hasQualityColumn) {
+    return "- Voice quality scores from voice-quality-report.json were used as the primary quality metric.\n- Human speech quality score combines naturalness (55%) and speech quality (45%) from signal analysis, prosody heuristics, and available external metrics.";
+  }
+  return hasWerColumn
+    ? "- Roundtrip WER was computed by transcribing each provider's audio via STT and comparing against the original input text.\n- Ranking primarily uses roundtrip WER (lower is better)."
+    : "- No roundtrip STT transcriptions were available.\n- Existing local/cloud ranking uses a composite score: 60% speaking rate naturalness (120-180 c/s optimal for English), 20% cost efficiency, 20% processing speed.\n- Overall ranking uses neutral 50/100 accuracy components when roundtrip WER is missing.";
+}
+
+function reportMarkdown(input: ReportMarkdownInput): string {
+  const { ranked, scoringMethod } = input;
+  const hasWerColumn = ranked.all.some((p) => p.roundtripWER !== null);
+  const localList = ranked.local.map((p) => `  - \`${p.providerKey}\``).join("\n");
+  const cloudList = ranked.cloud.map((p) => `  - \`${p.providerKey}\``).join("\n");
+  const notesBlock = input.notes.map((note) => `- ${note}`).join("\n");
+  const inputFileName = basename(input.inputTextPath);
+  const hasQualityColumn = ranked.all.some((p) => p.qualityScore !== null);
+  const methodDescription = methodDescriptionFor(hasQualityColumn, hasWerColumn);
+  const localSection = rankingSection("Local Models", ranked.local, localList, { quality: hasQualityColumn, wer: hasWerColumn, cost: false });
+  const cloudSection = rankingSection("Cloud Services", ranked.cloud, cloudList, { quality: hasQualityColumn, wer: hasWerColumn, cost: true });
+
+  return `# TTS Provider Comparison Report
+
+## Summary
+
+- Input text: \`${inputFileName}\` (${input.charCount} characters, ${input.wordCount} words)
+- Total providers: ${ranked.all.length} (${ranked.local.length} local, ${ranked.cloud.length} cloud)
+- Scoring method: ${scoringMethodSummary(scoringMethod)}
+- Score formula: \`${scoreFormulaFor(scoringMethod)}\`
+- Overall metric: balanced-overall (50% accuracy, 25% processing speed, 25% cost efficiency)
+
+## Method
+
+- Each provider in \`metadata.tts[]\` was evaluated based on its audio output.
+- Audio duration was measured via ffprobe to compute speaking rate (characters per second).
+- Cost and processing time were extracted from \`manifest.json\` metadata.
+- Providers are separated into local models and cloud services for independent comparison.
+- Overall ranking combines all providers using roundtrip WER accuracy when present, neutral 50/100 accuracy when missing, normalized processing speed, and normalized cost efficiency.
+- Tier breakdown assigns local and third-party providers independently using balanced overall group rank.
+${methodDescription}
+
+## Overall Ranking
+
+${overallRankingTable(input.rankedOverall)}
+
+## Tier Breakdown
+
+${tierBreakdownBlock(input.tiering.groups)}
+
+## Ranking
+
+${localSection}${cloudSection}
+## Notes
+
+${notesBlock}
+`;
+}
+
+export async function buildReport(
+  runDir: string,
+  inputTextPath: string,
+  roundtripDir: string | null,
+) {
+  const manifestRecord = loadTtsManifestRecord(runDir);
+  const inputText = readFileSync(inputTextPath, "utf8").trim();
+  const charCount = inputText.length;
+  const wordCount = tokenize(inputText).length;
+  const warnings: string[] = [];
+
+  const { found, missing } = discoverAudioFiles(runDir, manifestRecord.metadata.tts);
+  if (missing.length > 0) {
+    warnings.push(`Missing audio files: ${missing.join(", ")}`);
+  }
+
+  const costLookup = buildCostLookup(manifestRecord);
+  const timingLookup = buildTimingLookup(manifestRecord);
+  const voiceQualityScores = loadVoiceQualityScores(runDir);
+  const evidenceContext: ProviderEvidenceContext = {
+    manifestRecord, inputText, roundtripDir, costLookup, timingLookup, voiceQualityScores, warnings,
+  };
+
+  const providerData: ProviderData[] = [];
+
+  for (const entry of manifestRecord.metadata.tts) {
+    const providerKey = makeProviderKey(entry.ttsService, entry.ttsModel);
+    const audioPath = found.get(providerKey);
+
+    let durationSeconds: number | null = null;
+    if (audioPath) {
+      try {
+        const props = await probeAudio(audioPath);
+        durationSeconds = props.durationSeconds;
+      } catch {
+        warnings.push(`ffprobe failed for ${entry.audioFileName}`);
+      }
+    }
+
+    providerData.push(providerEvidence(entry, providerKey, durationSeconds, evidenceContext));
+  }
+
+  const providerDataWithOverall = addOverallScores(providerData);
+  const localData = providerDataWithOverall.filter((p) => isLocalService(p.ttsService));
+  const cloudData = providerDataWithOverall.filter((p) => !isLocalService(p.ttsService));
+
+  const rankedLocal = rankProviderGroup(localData, "local");
+  const rankedCloud = rankProviderGroup(cloudData, "cloud");
+  const allRankedWithoutTiers = [...rankedLocal, ...rankedCloud];
+  const rankedOverallWithoutTiers = [...allRankedWithoutTiers].sort((left, right) => {
+    if (left.overallRank !== right.overallRank) {
+      return left.overallRank - right.overallRank;
+    }
+    return left.providerKey.localeCompare(right.providerKey);
+  });
+  const { tiering, providerAnnotations } = buildTiering(rankedOverallWithoutTiers);
+  const rankedLocalWithTiers = addTierAnnotations(rankedLocal, providerAnnotations);
+  const rankedCloudWithTiers = addTierAnnotations(rankedCloud, providerAnnotations);
+  const allRanked = [...rankedLocalWithTiers, ...rankedCloudWithTiers];
+  const rankedOverall = addTierAnnotations(rankedOverallWithoutTiers, providerAnnotations);
+
+  const hasVoiceQuality = allRanked.some((p) => p.qualityScore !== null);
+  const scoringMethod: ScoringMethod = hasVoiceQuality
+    ? "voice-quality"
+    : roundtripDir !== null && allRanked.some((p) => p.roundtripWER !== null)
+      ? "roundtrip-wer"
+      : "composite";
+
+  const ranked: RankedReportProviders = { local: rankedLocalWithTiers, cloud: rankedCloudWithTiers, all: allRanked };
+  const notes = reportNotes(manifestRecord.recoveredProviderKeys, ranked, scoringMethod);
 
   const reportJson = {
     runDir,
@@ -728,170 +967,7 @@ export async function buildReport(
     notes,
   };
 
-  const hasWerColumn = allRanked.some((p) => p.roundtripWER !== null);
-
-  function buildOverallRankingTable(providers: RankedProvider[]): string {
-    const headerCols = ["Rank", "Provider", "Group", "Group Rank", "Group Tier", "Overall / 100", "Accuracy", "Speed", "Cost"];
-    const headerRow = `| ${headerCols.join(" | ")} |`;
-    const separatorRow = `| ${headerCols.map(() => "---:").join(" | ")} |`;
-    const rows = providers
-      .map((p) => {
-        const cols = [
-          String(p.overallRank),
-          `\`${p.providerKey}\``,
-          p.group,
-          String(p.groupOverallRank),
-          String(p.groupTier),
-          p.overallScore.toFixed(2),
-          p.overallComponents.accuracy.score.toFixed(2),
-          p.overallComponents.processingSpeed.score.toFixed(2),
-          p.overallComponents.costEfficiency.score.toFixed(2),
-        ];
-        return `| ${cols.join(" | ")} |`;
-      })
-      .join("\n");
-    return `${headerRow}\n${separatorRow}\n${rows}`;
-  }
-
-  function buildRankingTable(providers: RankedProvider[], includeCost: boolean): string {
-    const headerCols = ["Rank", "Provider", "Score / 100"];
-    if (hasQualityColumn) {
-      headerCols.push("Quality / 100");
-    }
-    if (hasWerColumn) {
-      headerCols.push("Roundtrip WER");
-    }
-    headerCols.push("Speaking Rate", "Duration", "Processing Time");
-    if (includeCost) {
-      headerCols.push("Cost");
-    }
-    const headerRow = `| ${headerCols.join(" | ")} |`;
-    const separatorRow = `| ${headerCols.map(() => "---:").join(" | ")} |`;
-    const rows = providers
-      .map((p) => {
-        const cols = [
-          String(p.rank),
-          `\`${p.providerKey}\``,
-          p.score.toFixed(2),
-        ];
-        if (hasQualityColumn) {
-          cols.push(p.qualityScore !== null ? p.qualityScore.toFixed(2) : "n/a");
-        }
-        if (hasWerColumn) {
-          cols.push(p.roundtripWER !== null ? percentage(p.roundtripWER) : "n/a");
-        }
-        cols.push(
-          p.speakingRateCharsPerSec !== null ? `${p.speakingRateCharsPerSec.toFixed(1)} c/s` : "n/a",
-          p.durationSeconds !== null ? `${p.durationSeconds.toFixed(2)}s` : "n/a",
-          formatProcessingSeconds(p.processingTimeMs),
-        );
-        if (includeCost) {
-          cols.push(formatCents(p.costCents));
-        }
-        return `| ${cols.join(" | ")} |`;
-      })
-      .join("\n");
-    return `${headerRow}\n${separatorRow}\n${rows}`;
-  }
-
-  function buildTierBreakdownBlock(groups: Tiering["groups"]): string {
-    return [
-      "Tiers split local and third-party balanced overall rankings separately. When a group count is not divisible by three, the remainder is assigned to Tier 3 for that group.",
-      "",
-      ...(["local", "thirdParty"] as const).flatMap((groupName) => {
-        const group = groups[groupName];
-        return [
-          `### ${formatTierGroupName(groupName)} Group (${group.count})`,
-          "",
-          ...group.tiers.flatMap((tier) => {
-            const providerRows = tier.providers
-              .map(
-                (provider) =>
-                  `| ${provider.groupOverallRank} | ${provider.overallRank} | \`${provider.providerKey}\` | ${provider.overallScore.toFixed(2)} | ${provider.overallComponents.accuracy.score.toFixed(2)} | ${provider.overallComponents.processingSpeed.score.toFixed(2)} | ${provider.overallComponents.costEfficiency.score.toFixed(2)} |`,
-              )
-              .join("\n");
-            return [
-              `#### ${tier.label} (${formatRankRange(tier.rankRange)})`,
-              "",
-              tier.description,
-              "",
-              "| Group Rank | Overall Rank | Provider | Overall / 100 | Accuracy | Speed | Cost |",
-              "| ---: | ---: | --- | ---: | ---: | ---: | ---: |",
-              providerRows || "| n/a | n/a | n/a | n/a | n/a | n/a | n/a |",
-              "",
-            ];
-          }),
-          "",
-        ];
-      }),
-    ].join("\n");
-  }
-
-  const localList = rankedLocalWithTiers.map((p) => `  - \`${p.providerKey}\``).join("\n");
-  const cloudList = rankedCloudWithTiers.map((p) => `  - \`${p.providerKey}\``).join("\n");
-  const notesBlock = notes.map((note) => `- ${note}`).join("\n");
-  const inputFileName = basename(inputTextPath);
-
-  const hasQualityColumn = allRanked.some((p) => p.qualityScore !== null);
-  const methodDescription = hasQualityColumn
-    ? "- Voice quality scores from voice-quality-report.json were used as the primary quality metric.\n- Human speech quality score combines naturalness (55%) and speech quality (45%) from signal analysis, prosody heuristics, and available external metrics."
-    : hasWerColumn
-      ? "- Roundtrip WER was computed by transcribing each provider's audio via STT and comparing against the original input text.\n- Ranking primarily uses roundtrip WER (lower is better)."
-      : "- No roundtrip STT transcriptions were available.\n- Existing local/cloud ranking uses a composite score: 60% speaking rate naturalness (120-180 c/s optimal for English), 20% cost efficiency, 20% processing speed.\n- Overall ranking uses neutral 50/100 accuracy components when roundtrip WER is missing.";
-
-  const localSection = rankedLocalWithTiers.length > 0
-    ? `### Local Models (${rankedLocalWithTiers.length})
-
-${localList}
-
-${buildRankingTable(rankedLocalWithTiers, false)}
-`
-    : "";
-
-  const cloudSection = rankedCloudWithTiers.length > 0
-    ? `### Cloud Services (${rankedCloudWithTiers.length})
-
-${cloudList}
-
-${buildRankingTable(rankedCloudWithTiers, true)}
-`
-    : "";
-
-  const markdown = `# TTS Provider Comparison Report
-
-## Summary
-
-- Input text: \`${inputFileName}\` (${charCount} characters, ${wordCount} words)
-- Total providers: ${allRanked.length} (${rankedLocalWithTiers.length} local, ${rankedCloudWithTiers.length} cloud)
-- Scoring method: ${scoringMethod === "voice-quality" ? "voice quality (human speech quality from voice-quality-report.json)" : scoringMethod === "roundtrip-wer" ? "roundtrip WER (TTS audio -> STT -> compare against original text)" : "composite (speaking rate naturalness + cost + speed)"}
-- Score formula: \`${scoreFormula}\`
-- Overall metric: balanced-overall (50% accuracy, 25% processing speed, 25% cost efficiency)
-
-## Method
-
-- Each provider in \`metadata.tts[]\` was evaluated based on its audio output.
-- Audio duration was measured via ffprobe to compute speaking rate (characters per second).
-- Cost and processing time were extracted from \`manifest.json\` metadata.
-- Providers are separated into local models and cloud services for independent comparison.
-- Overall ranking combines all providers using roundtrip WER accuracy when present, neutral 50/100 accuracy when missing, normalized processing speed, and normalized cost efficiency.
-- Tier breakdown assigns local and third-party providers independently using balanced overall group rank.
-${methodDescription}
-
-## Overall Ranking
-
-${buildOverallRankingTable(rankedOverall)}
-
-## Tier Breakdown
-
-${buildTierBreakdownBlock(tiering.groups)}
-
-## Ranking
-
-${localSection}${cloudSection}
-## Notes
-
-${notesBlock}
-`;
+  const markdown = reportMarkdown({ inputTextPath, charCount, wordCount, ranked, rankedOverall, tiering, scoringMethod, notes });
 
   return { reportJson, markdown, warnings };
 }

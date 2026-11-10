@@ -4,41 +4,49 @@ import { captionTextKey } from '../captions/caption-word-coverage'
 type ConsensusTimingProvider = { provider: string; words: TranscriptionEvidenceWord[]; offsetSeconds: number }
 type ConsensusTimingDecision = { wordIndex: number; supporting: { provider: string; wordIndex: number; startSeconds: number; endSeconds: number }[]; method: 'median' | 'provider' | 'interpolated'; review: boolean }
 
+const scoreProviderAlignment = (anchors: TranscriptionEvidenceWord[], provider: ConsensusTimingProvider, anchorOffsetSeconds: number, width: number): Uint8Array => {
+  const directions = new Uint8Array((anchors.length + 1) * width)
+  let previous = new Float64Array(width)
+  for (let i = 1; i <= anchors.length; i++) {
+    const current = new Float64Array(width)
+    const anchor = anchors[i - 1]!
+    for (let j = 1; j < width; j++) {
+      const word = provider.words[j - 1]!
+      const distance = Math.abs(anchor.startSeconds + anchorOffsetSeconds - word.startSeconds - provider.offsetSeconds)
+      const matches = captionTextKey(anchor.text) !== '' && captionTextKey(anchor.text) === captionTextKey(word.text) && distance <= 2
+        && Number.isFinite(word.startSeconds) && Number.isFinite(word.endSeconds) && word.endSeconds > word.startSeconds
+        && (!anchor.speaker || !word.speaker || anchor.speaker === word.speaker)
+      const diagonal = matches ? previous[j - 1]! + 3 - distance : -Infinity
+      if (diagonal > previous[j]! && diagonal > current[j - 1]!) { current[j] = diagonal; directions[i * width + j] = 1 }
+      else if (previous[j]! >= current[j - 1]!) { current[j] = previous[j]!; directions[i * width + j] = 2 }
+      else { current[j] = current[j - 1]!; directions[i * width + j] = 3 }
+    }
+    previous = current
+  }
+  return directions
+}
+
+const collectProviderSupport = (anchors: TranscriptionEvidenceWord[], provider: ConsensusTimingProvider, anchorOffsetSeconds: number, support: ConsensusTimingDecision['supporting'][]): void => {
+  const width = provider.words.length + 1
+  const directions = scoreProviderAlignment(anchors, provider, anchorOffsetSeconds, width)
+  let i = anchors.length, j = provider.words.length
+  while (i > 0 && j > 0) {
+    const direction = directions[i * width + j]
+    if (direction === 1) {
+      const word = provider.words[j - 1]!
+      support[i - 1]!.push({ provider: provider.provider, wordIndex: j - 1, startSeconds: word.startSeconds + provider.offsetSeconds, endSeconds: word.endSeconds + provider.offsetSeconds })
+      i--; j--
+    } else if (direction === 2) i--
+    else j--
+  }
+}
+
+const median = (values: number[]): number => { const sorted = values.toSorted((a, b) => a - b); return (sorted[Math.floor((sorted.length - 1) / 2)]! + sorted[Math.floor(sorted.length / 2)]!) / 2 }
+
 export const alignConsensusWords = (anchors: TranscriptionEvidenceWord[], providers: ConsensusTimingProvider[], anchorOffsetSeconds = 0): { words: TranscriptionEvidenceWord[]; decisions: ConsensusTimingDecision[] } => {
   const support = anchors.map(() => [] as ConsensusTimingDecision['supporting'])
-  for (const provider of providers) {
-    const width = provider.words.length + 1
-    const directions = new Uint8Array((anchors.length + 1) * width)
-    let previous = new Float64Array(width)
-    for (let i = 1; i <= anchors.length; i++) {
-      const current = new Float64Array(width)
-      const anchor = anchors[i - 1]!
-      for (let j = 1; j < width; j++) {
-        const word = provider.words[j - 1]!
-        const distance = Math.abs(anchor.startSeconds + anchorOffsetSeconds - word.startSeconds - provider.offsetSeconds)
-        const matches = captionTextKey(anchor.text) !== '' && captionTextKey(anchor.text) === captionTextKey(word.text) && distance <= 2
-          && Number.isFinite(word.startSeconds) && Number.isFinite(word.endSeconds) && word.endSeconds > word.startSeconds
-          && (!anchor.speaker || !word.speaker || anchor.speaker === word.speaker)
-        const diagonal = matches ? previous[j - 1]! + 3 - distance : -Infinity
-        if (diagonal > previous[j]! && diagonal > current[j - 1]!) { current[j] = diagonal; directions[i * width + j] = 1 }
-        else if (previous[j]! >= current[j - 1]!) { current[j] = previous[j]!; directions[i * width + j] = 2 }
-        else { current[j] = current[j - 1]!; directions[i * width + j] = 3 }
-      }
-      previous = current
-    }
-    let i = anchors.length, j = provider.words.length
-    while (i > 0 && j > 0) {
-      const direction = directions[i * width + j]
-      if (direction === 1) {
-        const word = provider.words[j - 1]!
-        support[i - 1]!.push({ provider: provider.provider, wordIndex: j - 1, startSeconds: word.startSeconds + provider.offsetSeconds, endSeconds: word.endSeconds + provider.offsetSeconds })
-        i--; j--
-      } else if (direction === 2) i--
-      else j--
-    }
-  }
+  for (const provider of providers) collectProviderSupport(anchors, provider, anchorOffsetSeconds, support)
   const decisions: ConsensusTimingDecision[] = []
-  const median = (values: number[]): number => { const sorted = values.toSorted((a, b) => a - b); return (sorted[Math.floor((sorted.length - 1) / 2)]! + sorted[Math.floor(sorted.length / 2)]!) / 2 }
   const words = anchors.map((anchor, wordIndex) => {
     const supporting = support[wordIndex]!
     const starts = supporting.map(word => word.startSeconds), ends = supporting.map(word => word.endSeconds)

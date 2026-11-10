@@ -30,6 +30,17 @@ test('maintenance excludes writers and other maintenance, then cleans solely cre
   expect(await readdir(root)).toEqual(['AGENTS.md'])
 })
 
+test('release returns when lease-created output holds only an ignored .DS_Store entry', async () => {
+  const root = await fixture(), lease = await acquireProjectMaintenanceLease(root)
+  await writeFile(join(root, 'output/.DS_Store'), '')
+  const released = await Promise.race([
+    lease.release().then(() => 'released'),
+    new Promise<string>(resolve => setTimeout(() => resolve('still releasing'), 3_000))
+  ])
+  expect(released).toBe('released')
+  expect(await readdir(join(root, 'output'))).toEqual(['.DS_Store'])
+})
+
 test('concurrent writer leases coexist and exclude maintenance until every writer releases', async () => {
   const root = await fixture()
   const [a, b] = await Promise.all([acquireProjectWriterLease(root), acquireProjectWriterLease(root)])

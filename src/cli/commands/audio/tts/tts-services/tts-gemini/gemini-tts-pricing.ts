@@ -74,12 +74,15 @@ export const reconcileGeminiTtsUsage = (model: string, mode: string, usage: unkn
   return { ...rates, observedTextTokens: textTokens, observedAudioTokens: audioTokens, totalCost: (textTokens * rates.inputCostPer1MTokensCents + audioTokens * rates.outputCostPer1MAudioTokensCents) / 1e6 }
 }
 
+const isRecordedTokenCount = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && !(value < 0)
+const isRecordedCost = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && !(value < 0)
+
 export const readGeminiTtsValuation = (model: string, value: unknown) => {
   if (!isRecord(value) || typeof value['rateIdentity'] !== 'string' || typeof value['executionMode'] !== 'string') return undefined
   const schedule = /^gemini-tts-(2026-09-22|2027-01-01)-(standard|batch)$/.exec(value['rateIdentity'])
   if (!schedule || !['unary', 'stream', 'batch'].includes(value['executionMode']) || (value['executionMode'] === 'batch') !== (schedule[2] === 'batch')) return undefined
   const text = value['observedTextTokens'], audio = value['observedAudioTokens'], cost = value['totalCost']
-  if (typeof text !== 'number' || !Number.isSafeInteger(text) || text < 0 || typeof audio !== 'number' || !Number.isSafeInteger(audio) || audio < 0 || !Number.isSafeInteger(text + audio) || typeof cost !== 'number' || !Number.isFinite(cost) || cost < 0) return undefined
+  if (!isRecordedTokenCount(text) || !isRecordedTokenCount(audio) || !Number.isSafeInteger(text + audio) || !isRecordedCost(cost)) return undefined
   const rates = geminiTtsRates(model, value['executionMode'], new Date(`${schedule[1]}T00:00:00Z`))
   for (const key of ['inputCostPer1MTokensCents', 'outputCostPer1MAudioTokensCents'] as const) if (value[key] !== undefined && value[key] !== rates[key]) return undefined
   const expected = (text * rates.inputCostPer1MTokensCents + audio * rates.outputCostPer1MAudioTokensCents) / 1e6

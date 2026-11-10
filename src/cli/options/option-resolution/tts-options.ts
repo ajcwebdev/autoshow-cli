@@ -61,15 +61,14 @@ const readValidatedWhenSelected = (
   validator: (value: string) => string
 ): string => models === undefined ? value : validateCliValue(validator, value)
 
-const applyGenericTtsRuntimeOptions = (
+type GenericTtsAssignmentReader = (flagName: string) => ReturnType<typeof resolveGenericTtsOptionAssignments>
+
+const applyTtsVoiceAssignments = (
   options: TtsRuntimeOptions,
-  flags: Record<string, unknown>,
-  flagOccurrences: readonly CliFlagOccurrence[],
+  assignmentsFor: GenericTtsAssignmentReader,
   modelOptions: ResolvedModelOptions
 ): void => {
-  const selectedProviders = readSelectedTtsProviders(flags)
-
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-voice', selectedProviders)) {
+  for (const { provider, value } of assignmentsFor('tts-voice')) {
     const voice = requireGenericTtsOptionString('tts-voice', value)
     switch (provider) {
       case 'gemini': options.geminiTtsVoice = voice; break
@@ -90,8 +89,10 @@ const applyGenericTtsRuntimeOptions = (
         break
     }
   }
+}
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-speed', selectedProviders)) {
+const applyTtsSpeedAssignments = (options: TtsRuntimeOptions, assignmentsFor: GenericTtsAssignmentReader): void => {
+  for (const { provider, value } of assignmentsFor('tts-speed')) {
     const parsed = coerceNumberControl('tts-speed', provider, value)
     switch (provider) {
       case 'soniox': options.sonioxTtsSpeed = parsed; break
@@ -105,8 +106,10 @@ const applyGenericTtsRuntimeOptions = (
         break
     }
   }
+}
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-language', selectedProviders)) {
+const applyTtsLanguageAssignments = (options: TtsRuntimeOptions, assignmentsFor: GenericTtsAssignmentReader): void => {
+  for (const { provider, value } of assignmentsFor('tts-language')) {
     const language = requireGenericTtsOptionString('tts-language', value)
     switch (provider) {
       case 'soniox':
@@ -120,8 +123,10 @@ const applyGenericTtsRuntimeOptions = (
         break
     }
   }
+}
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-text-normalization', selectedProviders)) {
+const applyTtsTextNormalizationAssignments = (options: TtsRuntimeOptions, assignmentsFor: GenericTtsAssignmentReader): void => {
+  for (const { provider, value } of assignmentsFor('tts-text-normalization')) {
     switch (provider) {
       case 'grok':
         options.grokTtsTextNormalization = parseGenericTtsBooleanOption(value)
@@ -134,8 +139,10 @@ const applyGenericTtsRuntimeOptions = (
         break
     }
   }
+}
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-instructions', selectedProviders)) {
+const applyTtsInstructionsAssignments = (options: TtsRuntimeOptions, assignmentsFor: GenericTtsAssignmentReader): void => {
+  for (const { provider, value } of assignmentsFor('tts-instructions')) {
     const instructions = coerceControlValue('tts-instructions', provider, value) as string
     switch (provider) {
       case 'gemini': options.geminiTtsInstructions = instructions; break
@@ -147,39 +154,65 @@ const applyGenericTtsRuntimeOptions = (
         break
     }
   }
+}
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-stability', selectedProviders)) {
+const applyElevenLabsTtsTuningAssignments = (options: TtsRuntimeOptions, assignmentsFor: GenericTtsAssignmentReader): void => {
+  for (const { provider, value } of assignmentsFor('tts-stability')) {
     if (provider === 'elevenlabs') options.elevenlabsTtsStability = coerceNumberControl('tts-stability', provider, value)
   }
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-similarity', selectedProviders)) {
+  for (const { provider, value } of assignmentsFor('tts-similarity')) {
     if (provider === 'elevenlabs') options.elevenlabsTtsSimilarityBoost = coerceNumberControl('tts-similarity', provider, value)
   }
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-style', selectedProviders)) {
+  for (const { provider, value } of assignmentsFor('tts-style')) {
     if (provider === 'elevenlabs') options.elevenlabsTtsStyle = coerceNumberControl('tts-style', provider, value)
   }
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-speaker-boost', selectedProviders)) {
+  for (const { provider, value } of assignmentsFor('tts-speaker-boost')) {
     if (provider === 'elevenlabs') options.elevenlabsTtsUseSpeakerBoost = coerceControlValue('tts-speaker-boost', provider, value) as boolean
   }
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-seed', selectedProviders)) {
+  for (const { provider, value } of assignmentsFor('tts-seed')) {
     if (provider === 'elevenlabs') options.elevenlabsTtsSeed = coerceNumberControl('tts-seed', provider, value)
   }
+}
 
+const applyElevenLabsTtsPronunciationAssignments = (options: TtsRuntimeOptions, assignmentsFor: GenericTtsAssignmentReader): void => {
   const pronunciationLocators: string[] = []
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-pronunciation-dictionary', selectedProviders)) {
+  for (const { provider, value } of assignmentsFor('tts-pronunciation-dictionary')) {
     if (provider === 'elevenlabs') {
       pronunciationLocators.push(...coerceControlValue('tts-pronunciation-dictionary', provider, value) as readonly string[])
     }
   }
   if (pronunciationLocators.length > 0) options.elevenlabsTtsPronunciationDictionaryLocators = pronunciationLocators
+}
 
-  for (const { provider, value } of resolveGenericTtsOptionAssignments(flags, flagOccurrences, 'tts-response-format', selectedProviders)) {
+const applyTtsResponseFormatAssignments = (options: TtsRuntimeOptions, assignmentsFor: GenericTtsAssignmentReader): void => {
+  for (const { provider, value } of assignmentsFor('tts-response-format')) {
     if (provider === 'gemini') options.geminiTtsResponseFormat = coerceControlValue('tts-response-format', provider, value) as string
     if (provider === 'elevenlabs') options.elevenlabsTtsResponseFormat = coerceControlValue('tts-response-format', provider, value) as string
   }
+}
+
+const applyGenericTtsRuntimeOptions = (
+  options: TtsRuntimeOptions,
+  flags: Record<string, unknown>,
+  flagOccurrences: readonly CliFlagOccurrence[],
+  modelOptions: ResolvedModelOptions
+): void => {
+  const selectedProviders = readSelectedTtsProviders(flags)
+  const assignmentsFor: GenericTtsAssignmentReader = (flagName) =>
+    resolveGenericTtsOptionAssignments(flags, flagOccurrences, flagName, selectedProviders)
+
+  applyTtsVoiceAssignments(options, assignmentsFor, modelOptions)
+  applyTtsSpeedAssignments(options, assignmentsFor)
+  applyTtsLanguageAssignments(options, assignmentsFor)
+  applyTtsTextNormalizationAssignments(options, assignmentsFor)
+  applyTtsInstructionsAssignments(options, assignmentsFor)
+  applyElevenLabsTtsTuningAssignments(options, assignmentsFor)
+  applyElevenLabsTtsPronunciationAssignments(options, assignmentsFor)
+  applyTtsResponseFormatAssignments(options, assignmentsFor)
 }
 
 export const buildTtsOptions = (

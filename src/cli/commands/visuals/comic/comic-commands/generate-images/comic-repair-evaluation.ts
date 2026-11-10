@@ -52,6 +52,25 @@ export const judgeQaImage = async (
   async () => await judgePageWithBoundInputs(buildQaImageRequest(input, pagePath), input.judge)
 )
 
+const candidateStrictlyDominatesBaseline = (baselineHardFailures: readonly string[], candidateHardFailures: readonly string[]): boolean => {
+  const baselineHardFailureSet = new Set(baselineHardFailures)
+  return baselineHardFailures.length > candidateHardFailures.length
+    && candidateHardFailures.every(failure => baselineHardFailureSet.has(failure))
+}
+
+const applyStagnationDecision = (qaEntry: PageQaEntry, decision: PageQaRepairDecision, blockingClassRestart: boolean, blockingHardKeys: NonNullable<GenerateWithQaRepairInput['blockingHardKeys']>): PageQaEntry => {
+  if (decision.action === 'stop') {
+    return { ...qaEntry, repairPolicy: { action: 'stop', reason: decision.reason ?? 'repeated-hard-failure', repeatedHardFailures: decision.repeatedHardFailures } }
+  }
+  if (blockingClassRestart) {
+    return { ...qaEntry, repairPolicy: { action: 'restart', reason: 'blocking-class', repeatedHardFailures: getPageQaHardFailureKeys(qaEntry, blockingHardKeys) } }
+  }
+  if (!qaEntry.repairPolicy && decision.action === 'restart') {
+    return { ...qaEntry, repairPolicy: { action: 'restart', reason: decision.reason ?? 'repeated-hard-failure', repeatedHardFailures: decision.repeatedHardFailures } }
+  }
+  return qaEntry
+}
+
 export const evaluateGenerationAttempt = async (input: {
   request: GenerateWithQaRepairInput
   attempt: number
@@ -75,9 +94,7 @@ export const evaluateGenerationAttempt = async (input: {
   qaEntry = applyPageQaRepairPolicy({ ...qaEntry, outputFile: input.request.outputPath.split('/').at(-1)! }, input.attempt, blockingHardKeys)
   const baselineHardFailures = input.baselineQaEntry ? getPageQaHardFailureKeys(input.baselineQaEntry, blockingHardKeys) : []
   const candidateHardFailures = getPageQaHardFailureKeys(qaEntry, blockingHardKeys)
-  const baselineHardFailureSet = new Set(baselineHardFailures)
-  const candidateStrictlyDominates = baselineHardFailures.length > candidateHardFailures.length
-    && candidateHardFailures.every(failure => baselineHardFailureSet.has(failure))
+  const candidateStrictlyDominates = candidateStrictlyDominatesBaseline(baselineHardFailures, candidateHardFailures)
   if (!candidateStrictlyDominates && !input.skipComparison && input.attempt > 0 && input.request.kind === 'panel' && input.baselinePath && input.baselineQaEntry?.result.panels[0]?.repairAssessment) {
     const baselinePanel = input.baselineQaEntry.result.panels[0]
     const judgments: RepairCandidateComparisonJudgment[] = []
@@ -131,13 +148,7 @@ export const evaluateGenerationAttempt = async (input: {
     && decision.action !== 'stop'
     && input.attempt < input.request.maxRepairs
     && isBlockingMaterialFailure(qaEntry, blockingHardKeys)
-  if (decision.action === 'stop') {
-    qaEntry = { ...qaEntry, repairPolicy: { action: 'stop', reason: decision.reason ?? 'repeated-hard-failure', repeatedHardFailures: decision.repeatedHardFailures } }
-  } else if (blockingClassRestart) {
-    qaEntry = { ...qaEntry, repairPolicy: { action: 'restart', reason: 'blocking-class', repeatedHardFailures: getPageQaHardFailureKeys(qaEntry, blockingHardKeys) } }
-  } else if (!qaEntry.repairPolicy && decision.action === 'restart') {
-    qaEntry = { ...qaEntry, repairPolicy: { action: 'restart', reason: decision.reason ?? 'repeated-hard-failure', repeatedHardFailures: decision.repeatedHardFailures } }
-  }
+  qaEntry = applyStagnationDecision(qaEntry, decision, blockingClassRestart, blockingHardKeys)
   await writeAttemptQaEvidence(input.attemptsDirectory, input.attempt, qaEntry)
   return { qaEntry, decision, blockingClassRestart }
 }

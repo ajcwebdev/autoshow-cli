@@ -44,14 +44,15 @@ const dedupeByLookup = (values: readonly string[], exclude: ReadonlySet<string>)
   return output
 }
 
-export const mergeTreatmentCharacterCatalog = (input: {
+type CharacterMergeInput = {
   existing: CharacterReferenceConfig
   candidates: readonly TreatmentDraftCharacter[]
   styleSeed: string
   styleInstructions: string
   policy: TreatmentCatalogPolicy
-}): { next: CharacterReferenceConfig; charactersAdded: string[]; charactersSkipped: string[]; droppedAliases: TreatmentDroppedAlias[] } => {
-  const existingKeys = new Set(input.existing.characters.map(character => character.key))
+}
+
+const existingLabelOwners = (input: CharacterMergeInput): Map<string, string> => {
   const owners = new Map<string, string>()
   const claim = (label: string, key: string): void => {
     const normalized = normalizeCharacterLookup(label)
@@ -63,9 +64,11 @@ export const mergeTreatmentCharacterCatalog = (input: {
     for (const alias of character.aliases) claim(alias, character.key)
   }
   for (const group of input.existing.groupAliases) claim(group.alias, `group:${group.alias}`)
+  return owners
+}
 
+const partitionNewCharacters = (input: CharacterMergeInput, existingKeys: ReadonlySet<string>): { pending: TreatmentDraftCharacter[]; charactersSkipped: string[] } => {
   const charactersSkipped: string[] = []
-  const droppedAliases: TreatmentDroppedAlias[] = []
   const pending: TreatmentDraftCharacter[] = []
   for (const candidate of input.candidates) {
     if (existingKeys.has(candidate.key)) {
@@ -75,59 +78,87 @@ export const mergeTreatmentCharacterCatalog = (input: {
     }
     pending.push(candidate)
   }
+  return { pending, charactersSkipped }
+}
 
-  for (const candidate of pending) {
-    for (const label of [candidate.key, candidate.name]) {
-      const normalized = normalizeCharacterLookup(label)
-      if (!normalized) continue
-      const owner = owners.get(normalized)
-      if (owner !== undefined && owner !== candidate.key) {
-        throw ValidationError(`Character "${candidate.key}" label "${label}" collides with "${owner}"`, { stage: TREATMENT_STAGE })
-      }
-      owners.set(normalized, candidate.key)
+const claimCharacterLabels = (candidate: TreatmentDraftCharacter, owners: Map<string, string>): void => {
+  for (const label of [candidate.key, candidate.name]) {
+    const normalized = normalizeCharacterLookup(label)
+    if (!normalized) continue
+    const owner = owners.get(normalized)
+    if (owner !== undefined && owner !== candidate.key) {
+      throw ValidationError(`Character "${candidate.key}" label "${label}" collides with "${owner}"`, { stage: TREATMENT_STAGE })
     }
+    owners.set(normalized, candidate.key)
   }
+}
 
-  const aliasClaims = new Map<string, Set<string>>()
-  for (const candidate of pending) {
-    for (const alias of nonBlank(candidate.aliases)) {
-      const normalized = normalizeCharacterLookup(alias)
-      if (!normalized) continue
-      const owner = owners.get(normalized)
-      if (owner !== undefined && owner !== candidate.key) {
-        if (input.policy === 'fail') throw ValidationError(`Character "${candidate.key}" alias "${alias}" collides with "${owner}"`, { stage: TREATMENT_STAGE })
-        droppedAliases.push({ key: candidate.key, alias, reason: `collides with "${owner}"` })
-        continue
-      }
-      if (owner === candidate.key) continue
-      const claims = aliasClaims.get(normalized) ?? new Set<string>()
-      claims.add(candidate.key)
-      aliasClaims.set(normalized, claims)
+type AliasClaimState = {
+  owners: Map<string, string>
+  droppedAliases: TreatmentDroppedAlias[]
+  aliasClaims: Map<string, Set<string>>
+}
+
+const collectAliasClaims = (candidate: TreatmentDraftCharacter, input: CharacterMergeInput, state: AliasClaimState): void => {
+  for (const alias of nonBlank(candidate.aliases)) {
+    const normalized = normalizeCharacterLookup(alias)
+    if (!normalized) continue
+    const owner = state.owners.get(normalized)
+    if (owner !== undefined && owner !== candidate.key) {
+      if (input.policy === 'fail') throw ValidationError(`Character "${candidate.key}" alias "${alias}" collides with "${owner}"`, { stage: TREATMENT_STAGE })
+      state.droppedAliases.push({ key: candidate.key, alias, reason: `collides with "${owner}"` })
+      continue
     }
+    if (owner === candidate.key) continue
+    const claims = state.aliasClaims.get(normalized) ?? new Set<string>()
+    claims.add(candidate.key)
+    state.aliasClaims.set(normalized, claims)
   }
+}
+
+const settleAliasClaims = (input: CharacterMergeInput, state: AliasClaimState): Set<string> => {
   const ambiguous = new Set<string>()
-  for (const [normalized, keys] of aliasClaims) {
+  for (const [normalized, keys] of state.aliasClaims) {
     if (keys.size > 1) {
       ambiguous.add(normalized)
       if (input.policy === 'fail') throw ValidationError(`Alias "${normalized}" is claimed by ${[...keys].join(', ')}`, { stage: TREATMENT_STAGE })
       continue
     }
-    owners.set(normalized, [...keys][0]!)
+    state.owners.set(normalized, [...keys][0]!)
   }
+  return ambiguous
+}
+
+const ownedCharacterAliases = (candidate: TreatmentDraftCharacter, owners: ReadonlyMap<string, string>, ambiguous: ReadonlySet<string>, droppedAliases: TreatmentDroppedAlias[]): string[] => {
+  const exclude = new Set([normalizeCharacterLookup(candidate.key), normalizeCharacterLookup(candidate.name)].filter(Boolean))
+  const aliases: string[] = []
+  for (const alias of dedupeByLookup(nonBlank(candidate.aliases), exclude)) {
+    const normalized = normalizeCharacterLookup(alias)
+    if (ambiguous.has(normalized)) {
+      droppedAliases.push({ key: candidate.key, alias, reason: 'shared by more than one new character' })
+      continue
+    }
+    if (owners.get(normalized) !== candidate.key) continue
+    aliases.push(alias)
+  }
+  return aliases
+}
+
+export const mergeTreatmentCharacterCatalog = (input: CharacterMergeInput): { next: CharacterReferenceConfig; charactersAdded: string[]; charactersSkipped: string[]; droppedAliases: TreatmentDroppedAlias[] } => {
+  const existingKeys = new Set(input.existing.characters.map(character => character.key))
+  const owners = existingLabelOwners(input)
+  const { pending, charactersSkipped } = partitionNewCharacters(input, existingKeys)
+  const droppedAliases: TreatmentDroppedAlias[] = []
+
+  for (const candidate of pending) claimCharacterLabels(candidate, owners)
+
+  const state: AliasClaimState = { owners, droppedAliases, aliasClaims: new Map<string, Set<string>>() }
+  for (const candidate of pending) collectAliasClaims(candidate, input, state)
+  const ambiguous = settleAliasClaims(input, state)
 
   const added: CharacterEntry[] = []
   for (const candidate of pending) {
-    const exclude = new Set([normalizeCharacterLookup(candidate.key), normalizeCharacterLookup(candidate.name)].filter(Boolean))
-    const aliases: string[] = []
-    for (const alias of dedupeByLookup(nonBlank(candidate.aliases), exclude)) {
-      const normalized = normalizeCharacterLookup(alias)
-      if (ambiguous.has(normalized)) {
-        droppedAliases.push({ key: candidate.key, alias, reason: 'shared by more than one new character' })
-        continue
-      }
-      if (owners.get(normalized) !== candidate.key) continue
-      aliases.push(alias)
-    }
+    const aliases = ownedCharacterAliases(candidate, owners, ambiguous, droppedAliases)
     const never = nonBlank(candidate.wardrobe.never)
     added.push({
       key: candidate.key,

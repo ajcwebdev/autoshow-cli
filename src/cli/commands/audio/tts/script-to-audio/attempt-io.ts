@@ -83,6 +83,40 @@ export const writeTextCreateOnly = async (rootDir: string, path: string, value: 
   return { path, sha256: written.sha256 }
 }
 
+type FfprobeAudioReport = {
+  format?: { format_name?: string | undefined, duration?: string | undefined, bit_rate?: string | undefined } | undefined
+  streams?: Array<{ codec_name?: string | undefined, sample_rate?: string | undefined, channels?: number | undefined, bit_rate?: string | undefined }> | undefined
+  frames?: Array<{ nb_samples?: number }> | undefined
+}
+
+const probedAudioDurationMs = (parsed: FfprobeAudioReport, durationSeconds: number, sampleRate: number): number =>
+  Number.isFinite(durationSeconds) && durationSeconds > 0 ? Math.round(durationSeconds * 1000)
+    : Math.round((parsed.frames ?? []).reduce((sum, frame) => sum + Number(frame.nb_samples ?? 0), 0) / sampleRate * 1000)
+
+const observedAudioFromProbeReport = (bytes: Buffer, stdout: string, path: string): { bytes: Buffer, format: ObservedAudioFormat, durationMs: number } => {
+  let parsed: FfprobeAudioReport
+  try {
+    parsed = JSON.parse(stdout) as FfprobeAudioReport
+  } catch {
+    throw UsageError(`Could not parse retained TTS audio metadata for ${path}.`)
+  }
+  const stream = parsed.streams?.find((entry) => Number(entry.sample_rate) > 0 && Number(entry.channels) > 0)
+  const codec = stream?.codec_name?.trim()
+  const container = parsed.format?.format_name?.split(',').map((entry) => entry.trim()).find(Boolean)
+  const sampleRate = Number(stream?.sample_rate)
+  const channels = Number(stream?.channels)
+  if (!codec || !container || !Number.isFinite(sampleRate) || sampleRate <= 0 || !Number.isInteger(channels) || channels <= 0) {
+    throw UsageError(`Retained TTS audio output has incomplete observed format metadata: ${path}`)
+  }
+  const bitRate = Number(stream?.bit_rate ?? parsed.format?.bit_rate)
+  const durationSeconds = Number(parsed.format?.duration)
+  return {
+    bytes,
+    format: { codec, container, sampleRate, channels, ...(Number.isFinite(bitRate) && bitRate > 0 ? { bitRate } : {}) },
+    durationMs: probedAudioDurationMs(parsed, durationSeconds, sampleRate)
+  }
+}
+
 export const readObservedAudio = async (rootDir: string, path: string): Promise<{ bytes: Buffer, format: ObservedAudioFormat, durationMs: number }> => {
   const bytes = (await readContainedArtifactFile(rootDir, contained(rootDir, path))).bytes
   const wave = parseWaveMetadata(bytes)
@@ -108,32 +142,7 @@ export const readObservedAudio = async (rootDir: string, path: string): Promise<
     probe.exited
   ])
   if (exitCode !== 0) throw UsageError(`Could not probe retained TTS audio output ${path}: ${stderr.trim() || `ffprobe exited ${exitCode}`}`)
-  let parsed: {
-    format?: { format_name?: string | undefined, duration?: string | undefined, bit_rate?: string | undefined } | undefined
-    streams?: Array<{ codec_name?: string | undefined, sample_rate?: string | undefined, channels?: number | undefined, bit_rate?: string | undefined }> | undefined
-    frames?: Array<{ nb_samples?: number }> | undefined
-  }
-  try {
-    parsed = JSON.parse(stdout) as typeof parsed
-  } catch {
-    throw UsageError(`Could not parse retained TTS audio metadata for ${path}.`)
-  }
-  const stream = parsed.streams?.find((entry) => Number(entry.sample_rate) > 0 && Number(entry.channels) > 0)
-  const codec = stream?.codec_name?.trim()
-  const container = parsed.format?.format_name?.split(',').map((entry) => entry.trim()).find(Boolean)
-  const sampleRate = Number(stream?.sample_rate)
-  const channels = Number(stream?.channels)
-  if (!codec || !container || !Number.isFinite(sampleRate) || sampleRate <= 0 || !Number.isInteger(channels) || channels <= 0) {
-    throw UsageError(`Retained TTS audio output has incomplete observed format metadata: ${path}`)
-  }
-  const bitRate = Number(stream?.bit_rate ?? parsed.format?.bit_rate)
-  const durationSeconds = Number(parsed.format?.duration)
-  return {
-    bytes,
-    format: { codec, container, sampleRate, channels, ...(Number.isFinite(bitRate) && bitRate > 0 ? { bitRate } : {}) },
-    durationMs: Number.isFinite(durationSeconds) && durationSeconds > 0 ? Math.round(durationSeconds * 1000)
-      : Math.round((parsed.frames ?? []).reduce((sum, frame) => sum + Number(frame.nb_samples ?? 0), 0) / sampleRate * 1000)
-  }
+  return observedAudioFromProbeReport(bytes, stdout, path)
 }
 
 export const copyCreateOnly = async (rootDir: string, source: string, destination: string): Promise<void> => {

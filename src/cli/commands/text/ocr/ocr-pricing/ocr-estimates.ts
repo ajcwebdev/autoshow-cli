@@ -168,16 +168,21 @@ export const estimateMistralOcrCost = async (
   }
 }
 
+type TokenPricedOcrEstimateProfile<TProvider extends TokenPricedOcrProvider> = {
+  provider: TProvider
+  validateModel: (modelRaw: string) => string
+  fallbackInputCostPer1MCents: number
+  fallbackOutputCostPer1MCents: number
+  note?: string
+}
+
 const estimateTokenPricedOcrCost = async <TProvider extends TokenPricedOcrProvider>(
-  provider: TProvider,
-  validateModel: (modelRaw: string) => string,
-  fallbackInputCostPer1MCents: number,
-  fallbackOutputCostPer1MCents: number,
+  profile: TokenPricedOcrEstimateProfile<TProvider>,
   modelRaw: string,
   input: string,
-  options: HostedOcrEstimateOptions,
-  note?: string
+  options: HostedOcrEstimateOptions
 ): Promise<TokenOcrCostEstimate<TProvider> & { note?: string }> => {
+  const { provider, validateModel, fallbackInputCostPer1MCents, fallbackOutputCostPer1MCents, note } = profile
   const model = validateModel(modelRaw)
   const pricing = getExtractPricing(provider, model)
   const pageCount = await resolveExtractInputPageCountForPricing(input)
@@ -213,27 +218,50 @@ export const estimateOpenAIOcrCost = (
   input: string,
   options: HostedOcrEstimateOptions = {}
 ): Promise<TokenOcrCostEstimate<'openai'> & { note: string }> =>
-  estimateTokenPricedOcrCost('openai', validateOpenAIOcrModel, 20, 125, modelRaw, input, options, OPENAI_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'openai'> & { note: string }>
+  estimateTokenPricedOcrCost({
+    provider: 'openai',
+    validateModel: validateOpenAIOcrModel,
+    fallbackInputCostPer1MCents: 20,
+    fallbackOutputCostPer1MCents: 125,
+    note: OPENAI_OCR_PRICE_NOTE
+  }, modelRaw, input, options) as Promise<TokenOcrCostEstimate<'openai'> & { note: string }>
 
 export const estimateGrokOcrCost = (
   modelRaw: string,
   input: string,
   options: HostedOcrEstimateOptions = {}
 ): Promise<TokenOcrCostEstimate<'grok'> & { note: string }> =>
-  estimateTokenPricedOcrCost('grok', validateGrokOcrModel, 125, 250, modelRaw, input, options, GROK_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'grok'> & { note: string }>
+  estimateTokenPricedOcrCost({
+    provider: 'grok',
+    validateModel: validateGrokOcrModel,
+    fallbackInputCostPer1MCents: 125,
+    fallbackOutputCostPer1MCents: 250,
+    note: GROK_OCR_PRICE_NOTE
+  }, modelRaw, input, options) as Promise<TokenOcrCostEstimate<'grok'> & { note: string }>
 
 export const estimateAnthropicOcrCost = (
   modelRaw: string,
   input: string,
   options: HostedOcrEstimateOptions = {}
 ): Promise<TokenOcrCostEstimate<'anthropic'> & { note: string }> =>
-  estimateTokenPricedOcrCost('anthropic', validateAnthropicOcrModel, 100, 500, modelRaw, input, options, ANTHROPIC_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'anthropic'> & { note: string }>
+  estimateTokenPricedOcrCost({
+    provider: 'anthropic',
+    validateModel: validateAnthropicOcrModel,
+    fallbackInputCostPer1MCents: 100,
+    fallbackOutputCostPer1MCents: 500,
+    note: ANTHROPIC_OCR_PRICE_NOTE
+  }, modelRaw, input, options) as Promise<TokenOcrCostEstimate<'anthropic'> & { note: string }>
 
 export const estimateGeminiOcrCost = (
   modelRaw: string,
   input: string,
   options: HostedOcrEstimateOptions = {}
 ): Promise<TokenOcrCostEstimate<'gemini'>> =>
-  estimateTokenPricedOcrCost('gemini', validateGeminiOcrModel, 25, 150, modelRaw, input, options)
+  estimateTokenPricedOcrCost({
+    provider: 'gemini',
+    validateModel: validateGeminiOcrModel,
+    fallbackInputCostPer1MCents: 25,
+    fallbackOutputCostPer1MCents: 150
+  }, modelRaw, input, options)
 
 export { OPENAI_OCR_PRICE_NOTE }

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { chmod, mkdir, mkdtemp, rename, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
+import { deflateSync } from 'node:zlib'
 import { NEWSPAPER_EXECUTION_REPORT, NEWSPAPER_PUBLIC_PLAN, analyzeNewspaperExpansionReports, analyzeRetainedNewspaperExpansionReports, buildNewspaperExpansionReports, inspectNewspaperExpansionReports, newspaperCurrentCohortMarkdown, newspaperExecutionMarkdown, parseNewspaperReportArguments, summarizeNewspaperPanels, updateNewspaperExecutionSection } from '~/tools/ocr-newspaper-expansion-report'
 import { assertNewspaperOcrResultComplete, classifyNewspaperFailureLog, classifyNewspaperOcrFailure, inspectBcOcrReports, scoreNewspaperRepetition, scoreNewspaperSpacingConvention, scoreNewspaperTokenMultiset } from '~/tools/ocr-categories-bc-report'
 import { levenshteinDistance, tokenize } from '../../../../../.codex/skills/consensus/scripts/ocr/ocr_consensus_lib'
@@ -387,11 +388,12 @@ describe('Newspaper saved-artifact report integration, without provider calls', 
       if (mode === 'wrong-reference') proof.entries[0].canonicalReferenceSha256 = 'a'.repeat(64)
       else if (mode === 'changed-evidence') await f.write(proof.entries[0].evidenceImage, 'corrupt evidence')
       else {
-        const process = Bun.spawn(['magick', 'png:-', '-negate', 'PNG32:-'], { stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' })
-        process.stdin.write(redDotPng); process.stdin.end()
-        const [bytes, stderr, code] = await Promise.all([new Response(process.stdout).arrayBuffer(), new Response(process.stderr).text(), process.exited])
-        if (code) throw new Error(stderr)
-        const altered = new Uint8Array(bytes); await f.write(proof.entries[0].evidenceImage, altered); proof.entries[0].evidenceImageSha256 = hash(altered)
+        // Keep a valid 1×1 RGBA PNG, but replace the red pixel with cyan without a native image tool.
+        const pixels = deflateSync(Uint8Array.of(0, 0, 255, 255, 255))
+        const data = Buffer.concat([Buffer.from('IDAT'), pixels]), chunk = Buffer.alloc(data.length + 8)
+        chunk.writeUInt32BE(pixels.length); data.copy(chunk, 4); chunk.writeUInt32BE(Bun.hash.crc32(data), data.length + 4)
+        const altered = Buffer.concat([redDotPng.subarray(0, 33), chunk, redDotPng.subarray(redDotPng.length - 12)])
+        await f.write(proof.entries[0].evidenceImage, altered); proof.entries[0].evidenceImageSha256 = hash(altered)
       }
       await f.write(path, proof)
       await expect(buildNewspaperExpansionReports(f.options)).rejects.toThrow(mode === 'wrong-reference' ? 'pinned input/reference' : mode === 'changed-evidence' ? 'checksum changed' : 'pixels differ')

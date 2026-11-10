@@ -401,6 +401,94 @@ const buildSchemaRetryUsageSummary = (
   }
 }
 
+const buildPredictedCostInputs = (
+  entry: ExtractionMetadata | PartialExtractionMetadata,
+  predicted: EstimatedStepEntry | undefined,
+  predictedCostCents: number
+): Record<string, unknown> => ({
+  costCents: predictedCostCents,
+  ...(typeof predicted?.pageCount === 'number' ? { pageCount: predicted.pageCount } : { pageCount: entry.totalPages }),
+  ...(getEstimatedInputMetric(predicted) ? { inputMetric: getEstimatedInputMetric(predicted) } : {}),
+  ...(typeof getEstimatedInputValue(predicted) === 'number' ? { inputValue: getEstimatedInputValue(predicted) } : {}),
+  ...(typeof predicted?.promptTokens === 'number' ? { promptTokens: predicted.promptTokens } : {}),
+  ...(typeof predicted?.completionTokens === 'number' ? { completionTokens: predicted.completionTokens } : {}),
+  ...(typeof predicted?.estimatedOutputChars === 'number' ? { estimatedOutputChars: predicted.estimatedOutputChars } : {}),
+  ...(typeof predicted?.costMultiplier === 'number' ? { costMultiplier: predicted.costMultiplier } : {}),
+  ...(typeof predicted?.estimateType === 'string' ? { estimateType: predicted.estimateType } : {})
+})
+
+const buildActualUsageInputs = (
+  entry: ExtractionMetadata | PartialExtractionMetadata,
+  actualRow: StepCostEntry | undefined,
+  actualPromptTokens: number | undefined,
+  actualCompletionTokens: number | undefined
+): Record<string, unknown> => ({
+  ...(typeof actualRow?.inputMetric === 'string' ? { inputMetric: actualRow.inputMetric } : {}),
+  ...(typeof actualRow?.inputValue === 'number' ? { inputValue: actualRow.inputValue } : {}),
+  ...(typeof actualPromptTokens === 'number' ? { promptTokens: actualPromptTokens } : {}),
+  ...(typeof actualCompletionTokens === 'number' ? { completionTokens: actualCompletionTokens } : {}),
+  ...(typeof actualRow?.costSource === 'string' ? { costSource: actualRow.costSource } : {}),
+  ...(typeof entry.providerCostCents === 'number' ? { providerCostCents: entry.providerCostCents } : {}),
+  ...(typeof entry.providerCostSource === 'string' ? { providerCostSource: entry.providerCostSource } : {})
+})
+
+const resolveOcrDiagnosticSource = (provider: string, retryUsageIncluded: boolean): string => {
+  if (!isTokenPricedOcrProvider(provider)) {
+    return 'page_pricing'
+  }
+  return retryUsageIncluded ? 'token_usage_with_schema_retries' : 'token_usage'
+}
+
+const buildOcrCostDiagnostic = (
+  entry: ExtractionMetadata | PartialExtractionMetadata,
+  provider: string,
+  model: string,
+  predicted: EstimatedStepEntry | undefined,
+  actualRow: StepCostEntry | undefined
+): Record<string, unknown> => {
+  const actualPromptTokens = actualRow?.promptTokens ?? entry.promptTokens
+  const actualCompletionTokens = actualRow?.completionTokens ?? entry.completionTokens
+  const predictedCostCents = predicted?.cost ?? 0
+  const actualCostCents = actualRow?.cost ?? 0
+  const ratesUsed = buildRatesUsed(provider, model, predicted)
+  const usageDetails = getOcrProviderUsage(entry)
+  const schemaRetryUsage = buildSchemaRetryUsageSummary(usageDetails)
+  const retryUsageIncluded = schemaRetryUsage !== undefined
+  const partial = isPartialExtractionMetadata(entry)
+  const completedPages = getCompletedPageCount(entry)
+
+  return {
+    provider,
+    model,
+    pages: entry.totalPages,
+    ...(partial
+      ? {
+          status: entry.status,
+          completedPages,
+          failedPages: entry.failedPages,
+          artifactDir: entry.artifactDir,
+          failure: entry.failure
+        }
+      : {}),
+    predictedCostInputs: buildPredictedCostInputs(entry, predicted, predictedCostCents),
+    actualCostInputs: {
+      costCents: actualCostCents,
+      pageCount: partial ? completedPages : entry.totalPages,
+      ...(partial ? { status: entry.status, totalPages: entry.totalPages, failedPages: entry.failedPages } : {}),
+      ...buildActualUsageInputs(entry, actualRow, actualPromptTokens, actualCompletionTokens),
+      ...(retryUsageIncluded ? { retryUsageIncluded: true } : {}),
+      ...(schemaRetryUsage ? { schemaRetryUsage } : {}),
+      ...(usageDetails ? { usageDetails } : {})
+    },
+    ...(ratesUsed ? { ratesUsed } : {}),
+    delta: {
+      costCents: actualCostCents - predictedCostCents,
+      ...(predictedCostCents > 0 ? { percent: ((actualCostCents - predictedCostCents) / predictedCostCents) * 100 } : {})
+    },
+    source: resolveOcrDiagnosticSource(provider, retryUsageIncluded)
+  }
+}
+
 export const buildOcrCostDiagnostics = (
   step2: ExtractionMetadata | PartialExtractionMetadata | Array<ExtractionMetadata | PartialExtractionMetadata>,
   estimated: EstimatedCostBreakdown,
@@ -422,65 +510,7 @@ export const buildOcrCostDiagnostics = (
     occurrenceByKey.set(key, occurrence + 1)
     const predicted = estimatedRows.get(key)?.[occurrence]
     const actualRow = actualRows.get(key)?.[occurrence]
-    const actualPromptTokens = actualRow?.promptTokens ?? entry.promptTokens
-    const actualCompletionTokens = actualRow?.completionTokens ?? entry.completionTokens
-    const predictedCostCents = predicted?.cost ?? 0
-    const actualCostCents = actualRow?.cost ?? 0
-    const ratesUsed = buildRatesUsed(provider, model, predicted)
-    const usageDetails = getOcrProviderUsage(entry)
-    const schemaRetryUsage = buildSchemaRetryUsageSummary(usageDetails)
-    const retryUsageIncluded = schemaRetryUsage !== undefined
-    const partial = isPartialExtractionMetadata(entry)
-    const completedPages = getCompletedPageCount(entry)
-
-    diagnostics.push({
-      provider,
-      model,
-      pages: entry.totalPages,
-      ...(partial
-        ? {
-            status: entry.status,
-            completedPages,
-            failedPages: entry.failedPages,
-            artifactDir: entry.artifactDir,
-            failure: entry.failure
-          }
-        : {}),
-      predictedCostInputs: {
-        costCents: predictedCostCents,
-        ...(typeof predicted?.pageCount === 'number' ? { pageCount: predicted.pageCount } : { pageCount: entry.totalPages }),
-        ...(getEstimatedInputMetric(predicted) ? { inputMetric: getEstimatedInputMetric(predicted) } : {}),
-        ...(typeof getEstimatedInputValue(predicted) === 'number' ? { inputValue: getEstimatedInputValue(predicted) } : {}),
-        ...(typeof predicted?.promptTokens === 'number' ? { promptTokens: predicted.promptTokens } : {}),
-        ...(typeof predicted?.completionTokens === 'number' ? { completionTokens: predicted.completionTokens } : {}),
-        ...(typeof predicted?.estimatedOutputChars === 'number' ? { estimatedOutputChars: predicted.estimatedOutputChars } : {}),
-        ...(typeof predicted?.costMultiplier === 'number' ? { costMultiplier: predicted.costMultiplier } : {}),
-        ...(typeof predicted?.estimateType === 'string' ? { estimateType: predicted.estimateType } : {})
-      },
-      actualCostInputs: {
-        costCents: actualCostCents,
-        pageCount: partial ? completedPages : entry.totalPages,
-        ...(partial ? { status: entry.status, totalPages: entry.totalPages, failedPages: entry.failedPages } : {}),
-        ...(typeof actualRow?.inputMetric === 'string' ? { inputMetric: actualRow.inputMetric } : {}),
-        ...(typeof actualRow?.inputValue === 'number' ? { inputValue: actualRow.inputValue } : {}),
-        ...(typeof actualPromptTokens === 'number' ? { promptTokens: actualPromptTokens } : {}),
-        ...(typeof actualCompletionTokens === 'number' ? { completionTokens: actualCompletionTokens } : {}),
-        ...(typeof actualRow?.costSource === 'string' ? { costSource: actualRow.costSource } : {}),
-        ...(typeof entry.providerCostCents === 'number' ? { providerCostCents: entry.providerCostCents } : {}),
-        ...(typeof entry.providerCostSource === 'string' ? { providerCostSource: entry.providerCostSource } : {}),
-        ...(retryUsageIncluded ? { retryUsageIncluded: true } : {}),
-        ...(schemaRetryUsage ? { schemaRetryUsage } : {}),
-        ...(usageDetails ? { usageDetails } : {})
-      },
-      ...(ratesUsed ? { ratesUsed } : {}),
-      delta: {
-        costCents: actualCostCents - predictedCostCents,
-        ...(predictedCostCents > 0 ? { percent: ((actualCostCents - predictedCostCents) / predictedCostCents) * 100 } : {})
-      },
-      source: isTokenPricedOcrProvider(provider)
-        ? retryUsageIncluded ? 'token_usage_with_schema_retries' : 'token_usage'
-        : 'page_pricing'
-    })
+    diagnostics.push(buildOcrCostDiagnostic(entry, provider, model, predicted, actualRow))
   }
 
   return diagnostics

@@ -257,6 +257,26 @@ const parseStoredProviderState = (value: unknown): OcrProviderState | undefined 
   }
 }
 
+const parseStoredFailureCategory = (value: Record<string, unknown>): OcrProviderFailureCategory | undefined =>
+  typeof value['category'] === 'string' && OCR_PROVIDER_FAILURE_CATEGORIES.has(value['category'] as OcrProviderFailureCategory)
+    ? value['category'] as OcrProviderFailureCategory
+    : undefined
+
+const parseStoredFailureKind = (value: Record<string, unknown>): OcrProviderFailureKind | undefined =>
+  typeof value['failureKind'] === 'string' && OCR_PROVIDER_FAILURE_KINDS.has(value['failureKind'] as OcrProviderFailureKind)
+    ? value['failureKind'] as OcrProviderFailureKind
+    : undefined
+
+const parseStoredErrorDetails = (
+  value: Record<string, unknown>
+): Pick<OcrRecordedProviderError, 'stage' | 'status' | 'retryAfterMs' | 'errorFile' | 'rawResponseFile'> => ({
+  ...(typeof value['stage'] === 'string' ? { stage: value['stage'] } : {}),
+  ...(typeof value['status'] === 'number' ? { status: value['status'] } : {}),
+  ...(typeof value['retryAfterMs'] === 'number' ? { retryAfterMs: value['retryAfterMs'] } : {}),
+  ...(typeof value['errorFile'] === 'string' ? { errorFile: value['errorFile'] } : {}),
+  ...(typeof value['rawResponseFile'] === 'string' ? { rawResponseFile: value['rawResponseFile'] } : {})
+})
+
 const parseStoredProviderLastError = (
   value: unknown,
   target: OcrTarget
@@ -265,12 +285,8 @@ const parseStoredProviderLastError = (
     return undefined
   }
 
-  const storedCategory = typeof value['category'] === 'string' && OCR_PROVIDER_FAILURE_CATEGORIES.has(value['category'] as OcrProviderFailureCategory)
-    ? value['category'] as OcrProviderFailureCategory
-    : undefined
-  const storedFailureKind = typeof value['failureKind'] === 'string' && OCR_PROVIDER_FAILURE_KINDS.has(value['failureKind'] as OcrProviderFailureKind)
-    ? value['failureKind'] as OcrProviderFailureKind
-    : undefined
+  const storedCategory = parseStoredFailureCategory(value)
+  const storedFailureKind = parseStoredFailureKind(value)
   const classification = classifyOcrFailureSummary({
     service: target.service,
     message: value['message'],
@@ -286,11 +302,7 @@ const parseStoredProviderLastError = (
     ...(value['quota'] === true || classification.quota ? { quota: true } : {}),
     ...(value['providerWide'] === true || classification.providerWide ? { providerWide: true } : {}),
     ...(typeof value['blockedReason'] === 'string' ? { blockedReason: sanitizeLogText(value['blockedReason']) } : classification.blockedReason ? { blockedReason: classification.blockedReason } : {}),
-    ...(typeof value['stage'] === 'string' ? { stage: value['stage'] } : {}),
-    ...(typeof value['status'] === 'number' ? { status: value['status'] } : {}),
-    ...(typeof value['retryAfterMs'] === 'number' ? { retryAfterMs: value['retryAfterMs'] } : {}),
-    ...(typeof value['errorFile'] === 'string' ? { errorFile: value['errorFile'] } : {}),
-    ...(typeof value['rawResponseFile'] === 'string' ? { rawResponseFile: value['rawResponseFile'] } : {})
+    ...parseStoredErrorDetails(value)
   }
 }
 
@@ -454,6 +466,46 @@ export const readExistingOcrRun = async (
   }
 }
 
+const buildFailedProviderState = (
+  target: OcrTarget,
+  existing: OcrProviderState | undefined,
+  failure: OcrProviderFailureSummary
+): OcrProviderState => ({
+  service: target.service,
+  model: target.model,
+  artifactDir: getOcrProviderArtifactDir(target),
+  status: 'failed',
+  attempts: (existing?.attempts ?? 0) + 1,
+  ...(existing?.metadata ? { metadata: existing.metadata } : {}),
+  error: {
+    message: sanitizeLogText(failure.message),
+    category: failure.category,
+    failureKind: failure.failureKind,
+    retryable: failure.retryable,
+    ...(failure.quota ? { quota: true } : {}),
+    ...(failure.providerWide ? { providerWide: true } : {}),
+    ...(failure.blockedReason ? { blockedReason: sanitizeLogText(failure.blockedReason) } : {}),
+    ...(failure.stage ? { stage: failure.stage } : {}),
+    ...(typeof failure.status === 'number' ? { status: failure.status } : {}),
+    ...(typeof failure.retryAfterMs === 'number' ? { retryAfterMs: failure.retryAfterMs } : {}),
+    ...(failure.errorFile ? { errorFile: failure.errorFile } : {}),
+    ...(failure.rawResponseFile ? { rawResponseFile: failure.rawResponseFile } : {})
+  }
+})
+
+const buildUnresolvedProviderState = (
+  target: OcrTarget,
+  existing: OcrProviderState | undefined
+): OcrProviderState => ({
+  service: target.service,
+  model: target.model,
+  artifactDir: getOcrProviderArtifactDir(target),
+  status: existing?.status ?? 'missing',
+  attempts: existing?.attempts ?? 0,
+  ...(existing?.metadata ? { metadata: existing.metadata } : {}),
+  ...(existing?.error ? { error: existing.error } : {})
+})
+
 export const buildProviderStates = (
   requestedTargets: OcrTarget[],
   successes: Array<OcrProviderSuccess | undefined>,
@@ -480,39 +532,10 @@ export const buildProviderStates = (
     }
 
     if (failure) {
-      return {
-        service: target.service,
-        model: target.model,
-        artifactDir: getOcrProviderArtifactDir(target),
-        status: 'failed',
-        attempts: (existing?.attempts ?? 0) + 1,
-        ...(existing?.metadata ? { metadata: existing.metadata } : {}),
-        error: {
-          message: sanitizeLogText(failure.message),
-          category: failure.category,
-          failureKind: failure.failureKind,
-          retryable: failure.retryable,
-          ...(failure.quota ? { quota: true } : {}),
-          ...(failure.providerWide ? { providerWide: true } : {}),
-          ...(failure.blockedReason ? { blockedReason: sanitizeLogText(failure.blockedReason) } : {}),
-          ...(failure.stage ? { stage: failure.stage } : {}),
-          ...(typeof failure.status === 'number' ? { status: failure.status } : {}),
-          ...(typeof failure.retryAfterMs === 'number' ? { retryAfterMs: failure.retryAfterMs } : {}),
-          ...(failure.errorFile ? { errorFile: failure.errorFile } : {}),
-          ...(failure.rawResponseFile ? { rawResponseFile: failure.rawResponseFile } : {})
-        }
-      }
+      return buildFailedProviderState(target, existing, failure)
     }
 
-    return {
-      service: target.service,
-      model: target.model,
-      artifactDir: getOcrProviderArtifactDir(target),
-      status: existing?.status ?? 'missing',
-      attempts: existing?.attempts ?? 0,
-      ...(existing?.metadata ? { metadata: existing.metadata } : {}),
-      ...(existing?.error ? { error: existing.error } : {})
-    }
+    return buildUnresolvedProviderState(target, existing)
   })
 
 export const resolveCompletionStatus = (

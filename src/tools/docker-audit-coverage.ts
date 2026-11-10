@@ -29,13 +29,87 @@ const fullList = (value: unknown, key: string): ObjectValue[] => {
   return list.map(object)
 }
 const fallback = (reason: string): AuditTargetSelection => ({ targets: [...allTargets], reason })
+const lookupUnavailableReason = (context: CoverageContext): string | undefined => {
+  if (context.event !== 'push' || context.ref !== 'refs/heads/main' || !context.imageChanged) return 'Independent event or no image change'
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(context.repository) || !/^[a-f0-9]{40}$/.test(context.sha) || !context.token) return 'Release lookup context unavailable'
+  return undefined
+}
+const parseApiOrigin = (context: CoverageContext): URL | undefined => {
+  let apiUrl: URL
+  try { apiUrl = new URL(context.apiUrl ?? 'https://api.github.com') } catch { return undefined }
+  if (apiUrl.protocol !== 'https:' || apiUrl.username || apiUrl.password || apiUrl.search || apiUrl.hash) return undefined
+  return apiUrl
+}
+const isActiveReleaseWorkflow = (workflow: ObjectValue): boolean => workflow['state'] === 'active' && workflow['path'] === workflowPath && positiveId(workflow['id'])
+const isReleaseRun = (run: ObjectValue, context: CoverageContext, workflow: ObjectValue): boolean =>
+  run['head_sha'] === context.sha && run['event'] === 'push' && run['head_branch'] === 'main'
+  && run['path'] === workflowPath && run['workflow_id'] === workflow['id']
+  && String(object(run['repository'])['full_name']).toLowerCase() === context.repository.toLowerCase()
+  && String(object(run['head_repository'])['full_name']).toLowerCase() === context.repository.toLowerCase()
+const artifactRetainsAudit = (artifact: ObjectValue | undefined, job: ObjectValue, run: ObjectValue, context: CoverageContext): boolean => {
+  const artifactRun = object(artifact?.['workflow_run'])
+  const created = Date.parse(String(artifact?.['created_at']))
+  const started = Date.parse(String(job['started_at']))
+  const completed = Date.parse(String(job['completed_at']))
+  return !(!artifact || !positiveId(artifact['id']) || artifact['expired'] !== false || !(Number(artifact['size_in_bytes']) > 0)
+    || !/^sha256:[a-f0-9]{64}$/.test(String(artifact['digest'])) || artifactRun['id'] !== run['id']
+    || artifactRun['head_sha'] !== context.sha || artifactRun['head_branch'] !== 'main'
+    || !Number.isFinite(created) || !Number.isFinite(started) || !Number.isFinite(completed) || created < started || created > completed)
+}
+type ReleaseEvidence = { jobs: ObjectValue[]; artifacts: ObjectValue[]; run: ObjectValue; context: CoverageContext }
+/** Either the reason this release can never cover the architecture, or whether it covers it so far. */
+type ArchitectureAudit = { conflict: string } | { covered: boolean }
+const architectureAudit = (arch: string, evidence: ReleaseEvidence): ArchitectureAudit => {
+  const { run, context } = evidence
+  const auditJobs = evidence.jobs.filter(job => job['name'] === `Audit ${arch.toUpperCase()} image`)
+  if (auditJobs.length > 1) return { conflict: 'Ambiguous release audit jobs' }
+  const job = auditJobs[0]
+  if (job?.['status'] === 'completed' && job['conclusion'] !== 'success') return { conflict: 'Native release audit did not pass' }
+  if (!job || job['status'] !== 'completed' || job['conclusion'] !== 'success' || job['head_sha'] !== context.sha || job['run_id'] !== run['id']) return { covered: false }
+  const matching = evidence.artifacts.filter(artifact => artifact['name'] === `docker-audit-${arch}`)
+  if (matching.length > 1) return { conflict: 'Ambiguous release audit artifacts' }
+  return { covered: artifactRetainsAudit(matching[0], job, run, context) }
+}
+/** Undefined means the release run is still in progress without complete coverage. */
+const releaseRunSelection = (evidence: ReleaseEvidence): AuditTargetSelection | undefined => {
+  let covered = true
+  for (const arch of ['amd64', 'arm64']) {
+    const audit = architectureAudit(arch, evidence)
+    if ('conflict' in audit) return fallback(audit.conflict)
+    if (!audit.covered) covered = false
+  }
+  if (covered) return { targets: ['alignment'], reason: 'Both native release audits passed with retained same-commit artifacts', releaseRunId: Number(evidence.run['id']) }
+  if (evidence.run['status'] === 'completed') return fallback('Release audit evidence is incomplete')
+  return undefined
+}
+type ReleaseLookup = { fetchApi: NonNullable<CoverageOptions['fetch']>; now: () => number; deadline: number; expired: Error; prefix: string }
+const releaseMetadataRequest = (context: CoverageContext, lookup: ReleaseLookup) => async function request(path: string): Promise<unknown> {
+  const { fetchApi, now, deadline, expired, prefix } = lookup
+  const remaining = deadline - now()
+  if (remaining <= 0) throw expired
+  const controller = new AbortController()
+  const signal = controller.signal
+  const timer = setTimeout(() => controller.abort(new DOMException('Release metadata request timed out', 'TimeoutError')), Math.ceil(Math.min(10_000, remaining)))
+  try {
+    const response = await fetchApi(`${prefix}/${path}`, {
+      method: 'GET', redirect: 'error', signal,
+      headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${context.token}`, 'X-GitHub-Api-Version': '2022-11-28' }
+    })
+    if (!response.ok) throw InfraError('Release metadata unavailable', { stage: 'docker:audit-coverage' })
+    return await readHttpPayloadJson(response, 'Release metadata', { payloadClass: 'control', stage: 'docker:audit-coverage' })
+  } catch (error) {
+    if (signal.aborted && remaining <= 10_000) throw expired
+    throw error
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 export async function selectDockerAuditTargets(context: CoverageContext, options: CoverageOptions = {}): Promise<AuditTargetSelection> {
-  if (context.event !== 'push' || context.ref !== 'refs/heads/main' || !context.imageChanged) return fallback('Independent event or no image change')
-  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(context.repository) || !/^[a-f0-9]{40}$/.test(context.sha) || !context.token) return fallback('Release lookup context unavailable')
-  let apiUrl: URL
-  try { apiUrl = new URL(context.apiUrl ?? 'https://api.github.com') } catch { return fallback('Invalid GitHub API origin') }
-  if (apiUrl.protocol !== 'https:' || apiUrl.username || apiUrl.password || apiUrl.search || apiUrl.hash) return fallback('Invalid GitHub API origin')
+  const unavailable = lookupUnavailableReason(context)
+  if (unavailable) return fallback(unavailable)
+  const apiUrl = parseApiOrigin(context)
+  if (!apiUrl) return fallback('Invalid GitHub API origin')
   const fetchApi = options.fetch ?? fetch
   const now = options.now ?? Date.now
   const sleep = options.sleep ?? Bun.sleep
@@ -45,36 +119,14 @@ export async function selectDockerAuditTargets(context: CoverageContext, options
   const expired = new Error('Docker audit coverage wait expired')
   const timeoutReason = 'No complete release audit coverage within the bounded wait'
   const prefix = `${apiUrl.href.replace(/\/$/, '')}/repos/${context.repository}/actions`
-  async function request(path: string): Promise<unknown> {
-    const remaining = deadline - now()
-    if (remaining <= 0) throw expired
-    const controller = new AbortController()
-    const signal = controller.signal
-    const timer = setTimeout(() => controller.abort(new DOMException('Release metadata request timed out', 'TimeoutError')), Math.ceil(Math.min(10_000, remaining)))
-    try {
-      const response = await fetchApi(`${prefix}/${path}`, {
-        method: 'GET', redirect: 'error', signal,
-        headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${context.token}`, 'X-GitHub-Api-Version': '2022-11-28' }
-      })
-      if (!response.ok) throw InfraError('Release metadata unavailable', { stage: 'docker:audit-coverage' })
-      return await readHttpPayloadJson(response, 'Release metadata', { payloadClass: 'control', stage: 'docker:audit-coverage' })
-    } catch (error) {
-      if (signal.aborted && remaining <= 10_000) throw expired
-      throw error
-    } finally {
-      clearTimeout(timer)
-    }
-  }
+  const request = releaseMetadataRequest(context, { fetchApi, now, deadline, expired, prefix })
   try {
     const workflow = object(await request('workflows/docker-publish.yml'))
-    if (workflow['state'] !== 'active' || workflow['path'] !== workflowPath || !positiveId(workflow['id'])) return fallback('Release workflow is unavailable or inactive')
+    if (!isActiveReleaseWorkflow(workflow)) return fallback('Release workflow is unavailable or inactive')
     while (true) {
       if (now() >= deadline) return fallback(timeoutReason)
       const runs = fullList(await request(`workflows/${workflow['id']}/runs?event=push&branch=main&head_sha=${context.sha}&per_page=100`), 'workflow_runs')
-        .filter(run => run['head_sha'] === context.sha && run['event'] === 'push' && run['head_branch'] === 'main'
-          && run['path'] === workflowPath && run['workflow_id'] === workflow['id']
-          && String(object(run['repository'])['full_name']).toLowerCase() === context.repository.toLowerCase()
-          && String(object(run['head_repository'])['full_name']).toLowerCase() === context.repository.toLowerCase())
+        .filter(run => isReleaseRun(run, context, workflow))
       if (runs.some(run => !positiveId(run['id']) || !positiveId(run['run_attempt']))) return fallback('Invalid release run identity')
       const run = runs.sort((left, right) => Number(right['id']) - Number(left['id']))[0]
       if (run) {
@@ -83,29 +135,8 @@ export async function selectDockerAuditTargets(context: CoverageContext, options
           request(`runs/${run['id']}/attempts/${run['run_attempt']}/jobs?per_page=100`),
           request(`runs/${run['id']}/artifacts?per_page=100`)
         ])
-        const jobs = fullList(jobsBody, 'jobs')
-        const artifacts = fullList(artifactsBody, 'artifacts')
-        let covered = true
-        for (const arch of ['amd64', 'arm64']) {
-          const auditJobs = jobs.filter(job => job['name'] === `Audit ${arch.toUpperCase()} image`)
-          if (auditJobs.length > 1) return fallback('Ambiguous release audit jobs')
-          const job = auditJobs[0]
-          if (job?.['status'] === 'completed' && job['conclusion'] !== 'success') return fallback('Native release audit did not pass')
-          if (!job || job['status'] !== 'completed' || job['conclusion'] !== 'success' || job['head_sha'] !== context.sha || job['run_id'] !== run['id']) { covered = false; continue }
-          const matching = artifacts.filter(artifact => artifact['name'] === `docker-audit-${arch}`)
-          if (matching.length > 1) return fallback('Ambiguous release audit artifacts')
-          const artifact = matching[0]
-          const artifactRun = object(artifact?.['workflow_run'])
-          const created = Date.parse(String(artifact?.['created_at']))
-          const started = Date.parse(String(job['started_at']))
-          const completed = Date.parse(String(job['completed_at']))
-          if (!artifact || !positiveId(artifact['id']) || artifact['expired'] !== false || !(Number(artifact['size_in_bytes']) > 0)
-            || !/^sha256:[a-f0-9]{64}$/.test(String(artifact['digest'])) || artifactRun['id'] !== run['id']
-            || artifactRun['head_sha'] !== context.sha || artifactRun['head_branch'] !== 'main'
-            || !Number.isFinite(created) || !Number.isFinite(started) || !Number.isFinite(completed) || created < started || created > completed) covered = false
-        }
-        if (covered) return { targets: ['alignment'], reason: 'Both native release audits passed with retained same-commit artifacts', releaseRunId: Number(run['id']) }
-        if (run['status'] === 'completed') return fallback('Release audit evidence is incomplete')
+        const selection = releaseRunSelection({ jobs: fullList(jobsBody, 'jobs'), artifacts: fullList(artifactsBody, 'artifacts'), run, context })
+        if (selection) return selection
       }
       const remaining = deadline - now()
       if (remaining <= 0) return fallback(timeoutReason)

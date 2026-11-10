@@ -167,6 +167,20 @@ const recoverSlotReuseFromExistingWav = async (input: {
   })
 }
 
+const groupWorkspaceChunkNames = (names: string[], options: { target: { service: string } }): Map<number, string[]> => {
+  const escapedProvider = options.target.service.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const pattern = new RegExp(`^speech-${escapedProvider}-chunk-(\\d+)\\.[^.]+$`)
+  const namesByChunkIndex = new Map<number, string[]>()
+  for (const name of names) {
+    const match = pattern.exec(name)
+    if (!match?.[1]) continue
+    const chunkIndex = Number.parseInt(match[1], 10)
+    if (!Number.isSafeInteger(chunkIndex) || chunkIndex <= 0) continue
+    namesByChunkIndex.set(chunkIndex, [...(namesByChunkIndex.get(chunkIndex) ?? []), name])
+  }
+  return namesByChunkIndex
+}
+
 export const recoverInterruptedTtsWorkspaceSlots = async (
   options: PureCurrentTtsRenderPlanOptions & {
     rootDir: string
@@ -188,16 +202,7 @@ export const recoverInterruptedTtsWorkspaceSlots = async (
     if (hasErrorCode(error, 'ENOENT')) return []
     throw error
   }
-  const escapedProvider = options.target.service.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const pattern = new RegExp(`^speech-${escapedProvider}-chunk-(\\d+)\\.[^.]+$`)
-  const namesByChunkIndex = new Map<number, string[]>()
-  for (const name of names) {
-    const match = pattern.exec(name)
-    if (!match?.[1]) continue
-    const chunkIndex = Number.parseInt(match[1], 10)
-    if (!Number.isSafeInteger(chunkIndex) || chunkIndex <= 0) continue
-    namesByChunkIndex.set(chunkIndex, [...(namesByChunkIndex.get(chunkIndex) ?? []), name])
-  }
+  const namesByChunkIndex = groupWorkspaceChunkNames(names, options)
   const layout = resolveTtsOutputLayout(
     options.artifactRoot ?? (options.comicContext ? 'audio/providers' : 'providers'),
     pure.targetKey,

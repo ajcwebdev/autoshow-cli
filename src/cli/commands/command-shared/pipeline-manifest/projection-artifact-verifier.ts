@@ -1,3 +1,4 @@
+import type { Dirent } from 'node:fs'
 import { readdir, realpath, lstat } from 'node:fs/promises'
 import { resolve, relative, isAbsolute, posix } from 'node:path'
 import type {
@@ -28,6 +29,34 @@ import { validateProjectionArtifactGraphLinks } from './projection-artifact-grap
 import { readContainedArtifactFile } from '~/cli/commands/audio/tts/script-to-audio/safe-artifact-store'
 import { isTtsSlotPath } from '~/cli/commands/audio/tts/script-to-audio/tts-slot-bundle'
 
+const resolveAdmissionJournalAttemptDir = (reference: ProjectionArtifactReference): string => {
+  const attemptDir = posix.dirname(reference.path)
+  if (attemptDir === '.' || !isStrictArtifactRelativePath(attemptDir)) {
+    throw UsageError('Admission journal is not contained by a stable attempt directory.')
+  }
+  return attemptDir
+}
+
+const isRegularJsonEntry = (entry: Dirent): boolean =>
+  entry.isFile() && !entry.isSymbolicLink() && entry.name.endsWith('.json')
+
+const parseJsonBytesOrUndefined = (bytes: Buffer): unknown => {
+  try {
+    return JSON.parse(bytes.toString('utf8')) as unknown
+  } catch {
+    return undefined
+  }
+}
+
+const isPreviousAdmissionJournalSnapshot = (
+  candidate: unknown,
+  previousSnapshotId: string,
+  snapshot: Record<string, unknown>
+): boolean =>
+  isRecord(candidate)
+  && candidate['snapshotId'] === previousSnapshotId
+  && candidate['journalId'] === snapshot['journalId']
+
 export const discoverPreviousAdmissionJournalReference = async (
   artifactRoot: string,
   reference: ProjectionArtifactReference,
@@ -38,33 +67,20 @@ export const discoverPreviousAdmissionJournalReference = async (
   if (typeof previousSnapshotId !== 'string' || previousSnapshotId.length === 0) {
     throw UsageError('Admission journal predecessor ID is invalid.')
   }
-  const attemptDir = posix.dirname(reference.path)
-  if (attemptDir === '.' || !isStrictArtifactRelativePath(attemptDir)) {
-    throw UsageError('Admission journal is not contained by a stable attempt directory.')
-  }
+  const attemptDir = resolveAdmissionJournalAttemptDir(reference)
   const absoluteAttemptDir = resolve(artifactRoot, attemptDir)
   if (!isSafeRelativePath(artifactRoot, attemptDir) || !await hasNoSymlinkBelowRoot(artifactRoot, absoluteAttemptDir)) {
     throw UsageError('Admission journal attempt directory is unsafe.')
   }
   const matches: ProjectionArtifactReference[] = []
   for (const entry of await readdir(absoluteAttemptDir, { withFileTypes: true })) {
-    if (!entry.isFile() || entry.isSymbolicLink() || !entry.name.endsWith('.json')) continue
+    if (!isRegularJsonEntry(entry)) continue
     const candidatePath = posix.join(attemptDir, entry.name)
     if (candidatePath === reference.path || !isStrictArtifactRelativePath(candidatePath)) continue
     const absoluteCandidate = resolve(artifactRoot, candidatePath)
     if (!await hasNoSymlinkBelowRoot(artifactRoot, absoluteCandidate)) continue
     const bytes = await readFileBytes(absoluteCandidate)
-    let candidate: unknown
-    try {
-      candidate = JSON.parse(bytes.toString('utf8')) as unknown
-    } catch {
-      continue
-    }
-    if (
-      !isRecord(candidate)
-      || candidate['snapshotId'] !== previousSnapshotId
-      || candidate['journalId'] !== snapshot['journalId']
-    ) continue
+    if (!isPreviousAdmissionJournalSnapshot(parseJsonBytesOrUndefined(bytes), previousSnapshotId, snapshot)) continue
     matches.push({
       path: candidatePath,
       sha256: new Bun.CryptoHasher('sha256').update(bytes).digest('hex'),

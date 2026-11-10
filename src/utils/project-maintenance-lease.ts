@@ -71,23 +71,26 @@ const removeOwned = async (path: string, owner: Owner): Promise<void> => {
   if (contents.length !== 1 || contents[0] !== 'owner.json') throw InfraError('Workspace lease contains foreign entries; refusing cleanup')
   await rm(path, { recursive: true })
 }
+const parentAlreadyGoneOrInUse = (error: unknown): boolean => ['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(code(error) ?? '')
 const cleanupParents = async (paths: Layout, removeOutput: boolean): Promise<void> => {
-  try { await realDirectory(paths.base); await rmdir(paths.base) } catch (error) { if (!['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(code(error) ?? '')) throw error }
-  if (removeOutput) {
-    try { await realDirectory(paths.output); await rmdir(paths.output) } catch (error) {
-      if (!['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(code(error) ?? '')) throw error
-      if (code(error) !== 'ENOENT') {
-        try {
-          // A new claim can recreate the base before empty-output cleanup finishes.
-          // Transfer lease-created output ownership to that lifecycle under its gate.
-          if ((await entries(paths.output)).every(entry => entry === '.autoshow-workspace-leases')) {
-            paths.outputCreated = true
-            await withGate(paths, async () => undefined)
-          }
-        } catch (error) { if (code(error) !== 'ENOENT') throw error }
-      }
-    }
+  try { await realDirectory(paths.base); await rmdir(paths.base) } catch (error) { if (!parentAlreadyGoneOrInUse(error)) throw error }
+  if (!removeOutput) return
+  let outputStillPresent = false
+  try { await realDirectory(paths.output); await rmdir(paths.output) } catch (error) {
+    if (!parentAlreadyGoneOrInUse(error)) throw error
+    outputStillPresent = code(error) !== 'ENOENT'
   }
+  if (!outputStillPresent) return
+  try {
+    // A new claim can recreate the base before empty-output cleanup finishes.
+    // Transfer lease-created output ownership to that lifecycle under its gate.
+    // An output directory holding nothing but ignored entries has no new claim to hand ownership to.
+    const remaining = await entries(paths.output)
+    if (remaining.length > 0 && remaining.every(entry => entry === '.autoshow-workspace-leases')) {
+      paths.outputCreated = true
+      await withGate(paths, async () => undefined)
+    }
+  } catch (error) { if (code(error) !== 'ENOENT') throw error }
 }
 
 // A short structural gate serializes lease creation/release; unlike workflow leases it is never reaped automatically.
@@ -211,20 +214,9 @@ const workspaceAncestor = async (path: string): Promise<string | undefined> => {
   }
 }
 
-export const resolveProjectMaintenanceRoots = async (cwd: string, flags: Readonly<Record<string, unknown>>, parameters: Readonly<Record<string, string | string[]>> = {}): Promise<string[]> => {
-  const roots = new Set<string>(), own = await workspaceAncestor(cwd)
-  if (own) roots.add(own)
-  let explicitDestination = false
-  for (const key of ['output-dir', 'output-root']) {
-    const value = flags[key]
-    if (typeof value !== 'string' || !value.trim() || /^[a-z][a-z\d+.-]*:/i.test(value) || value.includes('\0')) continue
-    const destination = resolve(cwd, value)
-    roots.add(await workspaceAncestor(destination) ?? await existingDirectoryAncestor(destination))
-    explicitDestination = true
-  }
-  // A markerless invocation directory may be a read-only container workdir.
-  // Explicit destinations own its writes; real source workspaces still participate below.
-  if (!own && !explicitDestination) roots.add(await realpath(cwd))
+const notLocalPath = (value: string): boolean => !value.trim() || /^[a-z][a-z\d+.-]*:/i.test(value) || value.includes('\0')
+
+const collectWorkspacePathValues = (flags: Readonly<Record<string, unknown>>, parameters: Readonly<Record<string, string | string[]>>): string[] => {
   const values: string[] = []
   for (const key of ['output-dir', 'output-root', 'characters-root', 'input-dir', 'input-root']) if (typeof flags[key] === 'string') values.push(flags[key] as string)
   for (const key of ['input', 'outputDirs', 'path', 'scriptPath']) {
@@ -232,8 +224,25 @@ export const resolveProjectMaintenanceRoots = async (cwd: string, flags: Readonl
     if (Array.isArray(value)) values.push(...value)
     else if (typeof value === 'string') values.push(value)
   }
-  for (const value of values) {
-    if (!value.trim() || /^[a-z][a-z\d+.-]*:/i.test(value) || value.includes('\0')) continue
+  return values
+}
+
+export const resolveProjectMaintenanceRoots = async (cwd: string, flags: Readonly<Record<string, unknown>>, parameters: Readonly<Record<string, string | string[]>> = {}): Promise<string[]> => {
+  const roots = new Set<string>(), own = await workspaceAncestor(cwd)
+  if (own) roots.add(own)
+  let explicitDestination = false
+  for (const key of ['output-dir', 'output-root']) {
+    const value = flags[key]
+    if (typeof value !== 'string' || notLocalPath(value)) continue
+    const destination = resolve(cwd, value)
+    roots.add(await workspaceAncestor(destination) ?? await existingDirectoryAncestor(destination))
+    explicitDestination = true
+  }
+  // A markerless invocation directory may be a read-only container workdir.
+  // Explicit destinations own its writes; real source workspaces still participate below.
+  if (!own && !explicitDestination) roots.add(await realpath(cwd))
+  for (const value of collectWorkspacePathValues(flags, parameters)) {
+    if (notLocalPath(value)) continue
     const root = await workspaceAncestor(resolve(cwd, value))
     if (root) roots.add(root)
   }

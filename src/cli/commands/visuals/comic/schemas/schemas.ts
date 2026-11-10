@@ -370,41 +370,53 @@ export const validateStructuredScriptCharacters = (data: v.InferOutput<typeof St
   for (const segment of data.sourceSegments) if (segment.speakerKey) catalog.requireKey(segment.speakerKey)
 }
 
+type ScenePanel = v.InferOutput<typeof ScenePromptDataSchema>['panels'][number]
+
+const validatePanelReferences = (panel: ScenePanel, catalog: CharacterCatalogService): void => {
+  if (!panel.shotPlan.trim()) throw ValidationError(`Panel ${panel.number} shotPlan must be exhaustive prose, not blank`, { stage: 'comic:schema' })
+  assertKnownUniqueKeys(panel.characterKeys, catalog, `panel ${panel.number} characterKeys`)
+  const designKeys = panel.designReferences?.map(reference => reference.key) ?? []
+  if (new Set(designKeys).size !== designKeys.length) throw ValidationError(`Duplicate design reference key in panel ${panel.number}`, { stage: 'comic:schema' })
+  for (const reference of panel.designReferences ?? []) if (!reference.usage.trim()) throw ValidationError(`Panel ${panel.number} design reference "${reference.key}" usage must not be blank`, { stage: 'comic:schema' })
+  if (new Set(panel.sourceSegmentIds).size !== panel.sourceSegmentIds.length) {
+    throw ValidationError(`Duplicate source segment ID in panel ${panel.number} sourceSegmentIds`, { stage: 'comic:schema' })
+  }
+}
+
+const validatePanelSceneTextRules = (panel: ScenePanel, characterKey: string, visualText: string, catalog: CharacterCatalogService): void => {
+  const character = catalog.get(catalog.requireKey(characterKey))
+  for (const rule of character.sceneTextRules ?? []) {
+    const testedText = rule.kind === 'forbidden' ? positiveDepictionText(visualText) : visualText
+    const matches = new RegExp(rule.pattern, 'iu').test(testedText)
+    if ((rule.kind === 'required' && !matches) || (rule.kind === 'forbidden' && matches)) {
+      const expectation = rule.kind === 'required' ? 'must satisfy' : 'must not violate'
+      throw ValidationError(
+        `Panel ${panel.number} depiction of "${characterKey}" ${expectation} canonical rule: ${rule.description}`,
+        { stage: 'comic:schema' }
+      )
+    }
+  }
+}
+
+const validatePanelSpeakers = (panel: ScenePanel, visible: ReadonlySet<string>, catalog: CharacterCatalogService): void => {
+  for (const item of panel.speech) {
+    if (item.speaker.kind !== 'character') continue
+    catalog.requireKey(item.speaker.characterKey)
+    if (item.speaker.offscreen && visible.has(item.speaker.characterKey)) {
+      throw ValidationError(`Panel ${panel.number} offscreen speaker "${item.speaker.characterKey}" must not appear in characterKeys`, { stage: 'comic:schema' })
+    }
+    if (!item.speaker.offscreen && !visible.has(item.speaker.characterKey)) {
+      throw ValidationError(`Panel ${panel.number} on-screen speaker "${item.speaker.characterKey}" must appear in characterKeys`, { stage: 'comic:schema' })
+    }
+  }
+}
+
 export const validateSceneCharacters = (data: v.InferOutput<typeof ScenePromptDataSchema>, catalog: CharacterCatalogService): void => {
   for (const panel of data.panels) {
-    if (!panel.shotPlan.trim()) throw ValidationError(`Panel ${panel.number} shotPlan must be exhaustive prose, not blank`, { stage: 'comic:schema' })
-    assertKnownUniqueKeys(panel.characterKeys, catalog, `panel ${panel.number} characterKeys`)
-    const designKeys = panel.designReferences?.map(reference => reference.key) ?? []
-    if (new Set(designKeys).size !== designKeys.length) throw ValidationError(`Duplicate design reference key in panel ${panel.number}`, { stage: 'comic:schema' })
-    for (const reference of panel.designReferences ?? []) if (!reference.usage.trim()) throw ValidationError(`Panel ${panel.number} design reference "${reference.key}" usage must not be blank`, { stage: 'comic:schema' })
-    if (new Set(panel.sourceSegmentIds).size !== panel.sourceSegmentIds.length) {
-      throw ValidationError(`Duplicate source segment ID in panel ${panel.number} sourceSegmentIds`, { stage: 'comic:schema' })
-    }
+    validatePanelReferences(panel, catalog)
     const visible = new Set(panel.characterKeys)
     const visualText = `${panel.description}\n${panel.shotPlan}`.normalize('NFKC').replace(/[\u2018\u2019]/g, "'")
-    for (const characterKey of panel.characterKeys) {
-      const character = catalog.get(catalog.requireKey(characterKey))
-      for (const rule of character.sceneTextRules ?? []) {
-        const testedText = rule.kind === 'forbidden' ? positiveDepictionText(visualText) : visualText
-        const matches = new RegExp(rule.pattern, 'iu').test(testedText)
-        if ((rule.kind === 'required' && !matches) || (rule.kind === 'forbidden' && matches)) {
-          const expectation = rule.kind === 'required' ? 'must satisfy' : 'must not violate'
-          throw ValidationError(
-            `Panel ${panel.number} depiction of "${characterKey}" ${expectation} canonical rule: ${rule.description}`,
-            { stage: 'comic:schema' }
-          )
-        }
-      }
-    }
-    for (const item of panel.speech) {
-      if (item.speaker.kind !== 'character') continue
-      catalog.requireKey(item.speaker.characterKey)
-      if (item.speaker.offscreen && visible.has(item.speaker.characterKey)) {
-        throw ValidationError(`Panel ${panel.number} offscreen speaker "${item.speaker.characterKey}" must not appear in characterKeys`, { stage: 'comic:schema' })
-      }
-      if (!item.speaker.offscreen && !visible.has(item.speaker.characterKey)) {
-        throw ValidationError(`Panel ${panel.number} on-screen speaker "${item.speaker.characterKey}" must appear in characterKeys`, { stage: 'comic:schema' })
-      }
-    }
+    for (const characterKey of panel.characterKeys) validatePanelSceneTextRules(panel, characterKey, visualText, catalog)
+    validatePanelSpeakers(panel, visible, catalog)
   }
 }

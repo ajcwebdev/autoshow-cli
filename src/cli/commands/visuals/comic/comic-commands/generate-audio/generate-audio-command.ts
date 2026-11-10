@@ -11,6 +11,56 @@ import { finalizeComicAudioOutputs } from './comic-audio-finalize'
 
 export { buildTargetExecution, assertVoiceSnapshotCoversSelectedTargets }
 
+type PlannedComicAudio = Awaited<ReturnType<typeof planComicAudio>>
+type ComicAudioCheckpoints = Awaited<ReturnType<typeof finalizeComicAudioOutputs>>['checkpoints']
+
+const describeResumeDetail = (estimate: PlannedComicAudio['estimates'][number], maxGenerationSlots: PlannedComicAudio['invocation']['maxGenerationSlots']): string =>
+  maxGenerationSlots !== undefined
+    ? `, ${estimate.plannedSlotCount} unresolved slot checkpoint`
+    : estimate.recoveredSlotCount === 0
+      ? ''
+      : estimate.unresolvedSlotCount === 0
+        ? ', 0 unresolved slots, local finalization only'
+        : `, ${estimate.unresolvedSlotCount} unresolved slots remaining`
+
+const describeReconciliationDetail = (blockedSlotCount: number, allowAmbiguousRedispatch: PlannedComicAudio['invocation']['allowAmbiguousRedispatch']): string =>
+  blockedSlotCount === 0
+    ? ''
+    : allowAmbiguousRedispatch
+      ? `, ${blockedSlotCount} ambiguous slot redispatch authorized`
+      : `, blocked: ${blockedSlotCount} unresolved ${blockedSlotCount === 1 ? 'slot requires' : 'slots require'} reconciliation`
+
+const resolveAudioStageTargetKeys = (
+  compatible: PlannedComicAudio['invocation']['compatible'],
+  executions: PlannedComicAudio['executions'],
+  soundEffectRenderPlan: PlannedComicAudio['soundEffectRenderPlan'],
+): { dialogueStageTargetKeys: string[]; stageTargetKeys: string[] } => {
+  const targetKeys = executions.map(execution => execution.target.targetKey as string)
+  const soundTargetKeys = soundEffectRenderPlan ? [soundEffectRenderPlan.target.targetKey] : []
+  const retainedSoundTargetKeys = soundTargetKeys.filter(targetKey => compatible.manifest.items[0]?.providers.some(provider => provider.targetKey === targetKey))
+  const dialogueStageTargetKeys = [...new Set([...compatible.comicMetadata.stages.audio.targetKeys.filter(targetKey => !soundTargetKeys.includes(targetKey) || retainedSoundTargetKeys.includes(targetKey)), ...targetKeys])]
+  const stageTargetKeys = [...new Set([...dialogueStageTargetKeys, ...soundTargetKeys])]
+  return { dialogueStageTargetKeys, stageTargetKeys }
+}
+
+const logComicAudioCheckpoints = (checkpoints: ComicAudioCheckpoints, compatible: PlannedComicAudio['invocation']['compatible']): void => {
+  for (const { entry, checkpoint } of checkpoints) {
+    l.write('info', `${entry.ttsService}/${entry.ttsModel} generation checkpoint complete: ${checkpoint.completedGenerationSlotIds.length} retained, ${checkpoint.remainingGenerationSlotCount} remaining.`, {
+      category: 'command',
+      metadata: {
+        service: entry.ttsService,
+        model: entry.ttsModel,
+        retainedSlots: checkpoint.completedGenerationSlotIds.length,
+        remainingSlots: checkpoint.remainingGenerationSlotCount
+      }
+    })
+  }
+  l.write('info', `Comic audio generation checkpoint saved; no final WAV was published: ${compatible.sceneRunDir}`, {
+    category: 'command',
+    metadata: { sceneRunDir: compatible.sceneRunDir, published: false }
+  })
+}
+
 export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: string): Promise<void> => {
   const planned = await planComicAudio(ctx, scriptPath)
   const { invocation, turns, soundscapePlan, soundscapePrice, soundEffectRenderPlan, executions, snapshot, retainedSnapshot } = planned
@@ -67,19 +117,9 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     for (const execution of executions) {
       const estimate = planned.estimates[executions.indexOf(execution)]!
       const cost = estimate.plannedCost.amounts.map(amount => `${amount.amount.toFixed(4)} ${amount.currency}`).join(', ') || '0'
-      const resumeDetail = maxGenerationSlots !== undefined
-        ? `, ${estimate.plannedSlotCount} unresolved slot checkpoint`
-        : estimate.recoveredSlotCount === 0
-          ? ''
-          : estimate.unresolvedSlotCount === 0
-            ? ', 0 unresolved slots, local finalization only'
-            : `, ${estimate.unresolvedSlotCount} unresolved slots remaining`
+      const resumeDetail = describeResumeDetail(estimate, maxGenerationSlots)
       const blockedSlotCount = new Set(estimate.reconciliationBlockers.map((blocker) => blocker.generationSlotId)).size
-      const reconciliationDetail = blockedSlotCount === 0
-        ? ''
-        : allowAmbiguousRedispatch
-          ? `, ${blockedSlotCount} ambiguous slot redispatch authorized`
-          : `, blocked: ${blockedSlotCount} unresolved ${blockedSlotCount === 1 ? 'slot requires' : 'slots require'} reconciliation`
+      const reconciliationDetail = describeReconciliationDetail(blockedSlotCount, allowAmbiguousRedispatch)
       l.write('info', `${execution.target.service}/${execution.target.model}: ${estimate.readiness.strategy}, ${cost}${resumeDetail}${reconciliationDetail}`, {
       category: 'pricing',
       metadata: { service: execution.target.service, model: execution.target.model, strategy: estimate.readiness.strategy }
@@ -105,11 +145,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     structuredRef,
   })
 
-  const targetKeys = executions.map(execution => execution.target.targetKey as string)
-  const soundTargetKeys = soundEffectRenderPlan ? [soundEffectRenderPlan.target.targetKey] : []
-  const retainedSoundTargetKeys = soundTargetKeys.filter(targetKey => compatible.manifest.items[0]?.providers.some(provider => provider.targetKey === targetKey))
-  const dialogueStageTargetKeys = [...new Set([...compatible.comicMetadata.stages.audio.targetKeys.filter(targetKey => !soundTargetKeys.includes(targetKey) || retainedSoundTargetKeys.includes(targetKey)), ...targetKeys])]
-  const stageTargetKeys = [...new Set([...dialogueStageTargetKeys, ...soundTargetKeys])]
+  const { dialogueStageTargetKeys, stageTargetKeys } = resolveAudioStageTargetKeys(compatible, executions, soundEffectRenderPlan)
 
   const settled = await executeComicAudioTargets({
     compatible,
@@ -138,21 +174,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
 
   if (soundscapeRequiredFailure) throw UsageError('Comic soundscape failed one or more required cues; verified dialogue and sound-effect artifacts were retained for resume, but no master was published.')
   if (checkpoints.length > 0) {
-    for (const { entry, checkpoint } of checkpoints) {
-      l.write('info', `${entry.ttsService}/${entry.ttsModel} generation checkpoint complete: ${checkpoint.completedGenerationSlotIds.length} retained, ${checkpoint.remainingGenerationSlotCount} remaining.`, {
-        category: 'command',
-        metadata: {
-          service: entry.ttsService,
-          model: entry.ttsModel,
-          retainedSlots: checkpoint.completedGenerationSlotIds.length,
-          remainingSlots: checkpoint.remainingGenerationSlotCount
-        }
-      })
-    }
-    l.write('info', `Comic audio generation checkpoint saved; no final WAV was published: ${compatible.sceneRunDir}`, {
-      category: 'command',
-      metadata: { sceneRunDir: compatible.sceneRunDir, published: false }
-    })
+    logComicAudioCheckpoints(checkpoints, compatible)
     return
   }
   l.write('info', finalStageStatus === 'full' ? `Comic audio complete: ${compatible.sceneRunDir}` : `Comic audio target update complete; aggregate stage remains ${finalStageStatus}: ${compatible.sceneRunDir}`, {

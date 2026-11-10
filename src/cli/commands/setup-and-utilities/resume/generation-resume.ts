@@ -90,6 +90,20 @@ const buildGenerationFailureMessage = <TTarget extends ProviderIdentity, TMetada
   return `${config.stepLabel} resume still has ${providers.length} incomplete provider(s)`
 }
 
+const describeNothingToResume = <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  hasExplicitSelectedProviders: boolean,
+  unresolvedProviders: readonly GenerationResumeProviderIdentity[]
+): string => config.selectionMode === 'selected-only'
+  ? hasExplicitSelectedProviders
+    ? `all selected ${config.stepLabel.toLowerCase()} LLM providers already complete`
+    : `no ${config.stepLabel.toLowerCase()} LLM providers selected`
+  : hasExplicitSelectedProviders && unresolvedProviders.length > 0
+    ? 'selected providers complete; canonical item still incomplete'
+    : hasExplicitSelectedProviders
+      ? 'all selected providers already complete'
+      : 'all providers already complete'
+
 export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
   config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
@@ -121,15 +135,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
       status: 'full',
       outputDir: target.dir,
       providers: 'none',
-      detail: config.selectionMode === 'selected-only'
-        ? hasExplicitSelectedProviders
-          ? `all selected ${config.stepLabel.toLowerCase()} LLM providers already complete`
-          : `no ${config.stepLabel.toLowerCase()} LLM providers selected`
-        : hasExplicitSelectedProviders && unresolvedProviders.length > 0
-          ? 'selected providers complete; canonical item still incomplete'
-          : hasExplicitSelectedProviders
-            ? 'all selected providers already complete'
-            : 'all providers already complete'
+      detail: describeNothingToResume(config, hasExplicitSelectedProviders, unresolvedProviders)
     }, 'success')
     logResumeSummary({ full: 1, incomplete: 0, failed: 0 })
     return { full: 1, incomplete: 0, failed: 0 }

@@ -1,11 +1,14 @@
 import { posix } from 'node:path'
-import type { GraphLinkContext, RenderAdmissionJournalSnapshot } from '~/types'
+import type { GraphLinkContext, ProjectionArtifactReference, RenderAdmissionJournalSnapshot } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { hashCanonicalTtsValue } from '../../audio/tts/script-to-audio/contract-identity'
 import { validateRenderAdmissionJournalSnapshot } from '../../audio/tts/script-to-audio/contract-validation'
 import { canonicalManifestJson } from './guards'
 
-export const validateAdmissionJournalLinks = (ctx: GraphLinkContext): boolean => {
+const admissionSnapshotValueAt = (ctx: GraphLinkContext, snapshotId: unknown): Record<string, unknown> | undefined =>
+  typeof snapshotId === 'string' ? ctx.admissionSnapshots.get(snapshotId)?.value : undefined
+
+const indexAdmissionJournalSnapshots = (ctx: GraphLinkContext): boolean => {
   const attemptDirectories = new Map<string, string>()
   for (const reference of ctx.referencesForKind('admission-journal')) {
     const value = ctx.jsonAt(reference)
@@ -25,6 +28,17 @@ export const validateAdmissionJournalLinks = (ctx: GraphLinkContext): boolean =>
     if (prior && (prior.reference.path !== reference.path || prior.reference.sha256 !== reference.sha256)) return false
     ctx.admissionSnapshots.set(snapshotId, { reference, value })
   }
+  return true
+}
+
+const isEmptyJournalRootSnapshot = (value: Record<string, unknown>): boolean =>
+  Array.isArray(value['requests'])
+  && value['requests'].length === 0
+  && Array.isArray(value['recordedBatchResults'])
+  && value['recordedBatchResults'].length === 0
+  && value['recordedResult'] === undefined
+
+const validateJournalRootsAndTransitions = (ctx: GraphLinkContext): boolean => {
   const journalRoots = new Map<string, number>()
   const journalIds = new Set<string>()
   for (const { value } of ctx.admissionSnapshots.values()) {
@@ -33,16 +47,10 @@ export const validateAdmissionJournalLinks = (ctx: GraphLinkContext): boolean =>
     const previousSnapshotId = value['previousSnapshotId']
     if (previousSnapshotId === undefined) {
       const journalId = value['journalId'] as string
-      if (
-        !Array.isArray(value['requests'])
-        || value['requests'].length !== 0
-        || !Array.isArray(value['recordedBatchResults'])
-        || value['recordedBatchResults'].length !== 0
-        || value['recordedResult'] !== undefined
-      ) return false
+      if (!isEmptyJournalRootSnapshot(value)) return false
       journalRoots.set(journalId, (journalRoots.get(journalId) ?? 0) + 1)
     } else {
-      const previous = typeof previousSnapshotId === 'string' ? ctx.admissionSnapshots.get(previousSnapshotId)?.value : undefined
+      const previous = admissionSnapshotValueAt(ctx, previousSnapshotId)
       if (!previous) return false
       validateRenderAdmissionJournalSnapshot(
         value as unknown as RenderAdmissionJournalSnapshot,
@@ -50,24 +58,75 @@ export const validateAdmissionJournalLinks = (ctx: GraphLinkContext): boolean =>
       )
     }
   }
-  if ([...journalIds].some((journalId) => journalRoots.get(journalId) !== 1)) return false
-  for (const snapshot of ctx.admissionSnapshots.values()) {
-    const seen = new Set<string>()
-    let current: Record<string, unknown> | undefined = snapshot.value
-    while (current) {
-      const snapshotId = current['snapshotId']
-      if (typeof snapshotId !== 'string' || seen.has(snapshotId) || current['journalId'] !== snapshot.value['journalId']) return false
-      seen.add(snapshotId)
-      const previousSnapshotId: unknown = current['previousSnapshotId']
-      current = previousSnapshotId === undefined
-        ? undefined
-        : typeof previousSnapshotId === 'string'
-          ? ctx.admissionSnapshots.get(previousSnapshotId)?.value
-          : undefined
-      if (previousSnapshotId !== undefined && !current) return false
-    }
+  return ![...journalIds].some((journalId) => journalRoots.get(journalId) !== 1)
+}
+
+const hasAcyclicSameJournalChain = (ctx: GraphLinkContext, snapshot: { value: Record<string, unknown> }): boolean => {
+  const seen = new Set<string>()
+  let current: Record<string, unknown> | undefined = snapshot.value
+  while (current) {
+    const snapshotId = current['snapshotId']
+    if (typeof snapshotId !== 'string' || seen.has(snapshotId) || current['journalId'] !== snapshot.value['journalId']) return false
+    seen.add(snapshotId)
+    const previousSnapshotId: unknown = current['previousSnapshotId']
+    current = admissionSnapshotValueAt(ctx, previousSnapshotId)
+    if (previousSnapshotId !== undefined && !current) return false
   }
   return true
+}
+
+export const validateAdmissionJournalLinks = (ctx: GraphLinkContext): boolean => {
+  if (!indexAdmissionJournalSnapshots(ctx) || !validateJournalRootsAndTransitions(ctx)) return false
+  for (const snapshot of ctx.admissionSnapshots.values()) {
+    if (!hasAcyclicSameJournalChain(ctx, snapshot)) return false
+  }
+  return true
+}
+
+const validateProviderAttemptClosure = (
+  ctx: GraphLinkContext,
+  reference: ProjectionArtifactReference,
+  value: Record<string, unknown>,
+  closedBy: Record<string, unknown>
+): boolean => {
+  const terminalSnapshotIds = new Set(ctx.referencesForKind('provider-render-result').flatMap((candidate) =>
+    candidate.path === reference.path
+    && candidate.sha256 === reference.sha256
+    && candidate.context?.eventJournalSnapshotId
+      ? [candidate.context.eventJournalSnapshotId]
+      : []
+  ))
+  if (terminalSnapshotIds.size !== 1) return false
+  const terminalSnapshotId = [...terminalSnapshotIds][0]
+  const terminal = terminalSnapshotId ? ctx.admissionSnapshots.get(terminalSnapshotId) : undefined
+  const recorded = terminal?.value['recordedResult']
+  const attemptDir = terminal ? posix.dirname(terminal.reference.path) : undefined
+  const recordedPath = isRecord(recorded) ? ctx.resolveFrom(attemptDir, recorded['resultRef']) : undefined
+  if (
+    !terminal
+    || !isRecord(recorded)
+    || recorded['resultIdentity'] !== value['resultIdentity']
+    || recordedPath !== reference.path
+    || recorded['resultSha256'] !== reference.sha256
+    || recorded['batchResultSetHash'] !== hashCanonicalTtsValue(value['batchResults'])
+    || closedBy['invocationId'] !== terminal.value['invocationId']
+    || closedBy['attempt'] !== terminal.value['attempt']
+  ) return false
+  return true
+}
+
+const validateLocalCompositionClosure = (
+  reference: ProjectionArtifactReference,
+  value: Record<string, unknown>,
+  closedBy: Record<string, unknown>
+): boolean => {
+  if (closedBy['kind'] !== 'local-composition' || reference.context?.eventJournalSnapshotId !== undefined) return false
+  const expectedCompositionId = hashCanonicalTtsValue({
+    renderPlanId: value['renderPlanId'],
+    renderIdentity: value['renderIdentity'],
+    batchResults: value['batchResults']
+  })
+  return closedBy['compositionId'] === expectedCompositionId
 }
 
 export const validateRenderResultClosedByLinks = (ctx: GraphLinkContext): boolean => {
@@ -75,44 +134,74 @@ export const validateRenderResultClosedByLinks = (ctx: GraphLinkContext): boolea
     const value = ctx.jsonAt(reference)
     const closedBy = value?.['closedBy']
     if (!value || !isRecord(closedBy)) return false
-    if (closedBy['kind'] === 'provider-attempt') {
-      const terminalSnapshotIds = new Set(ctx.referencesForKind('provider-render-result').flatMap((candidate) =>
-        candidate.path === reference.path
-        && candidate.sha256 === reference.sha256
-        && candidate.context?.eventJournalSnapshotId
-          ? [candidate.context.eventJournalSnapshotId]
-          : []
-      ))
-      if (terminalSnapshotIds.size !== 1) return false
-      const terminalSnapshotId = [...terminalSnapshotIds][0]
-      const terminal = terminalSnapshotId ? ctx.admissionSnapshots.get(terminalSnapshotId) : undefined
-      const recorded = terminal?.value['recordedResult']
-      const attemptDir = terminal ? posix.dirname(terminal.reference.path) : undefined
-      const recordedPath = isRecord(recorded) ? ctx.resolveFrom(attemptDir, recorded['resultRef']) : undefined
-      if (
-        !terminal
-        || !isRecord(recorded)
-        || recorded['resultIdentity'] !== value['resultIdentity']
-        || recordedPath !== reference.path
-        || recorded['resultSha256'] !== reference.sha256
-        || recorded['batchResultSetHash'] !== hashCanonicalTtsValue(value['batchResults'])
-        || closedBy['invocationId'] !== terminal.value['invocationId']
-        || closedBy['attempt'] !== terminal.value['attempt']
-      ) return false
-    } else {
-      if (closedBy['kind'] !== 'local-composition' || reference.context?.eventJournalSnapshotId !== undefined) return false
-      const expectedCompositionId = hashCanonicalTtsValue({
-        renderPlanId: value['renderPlanId'],
-        renderIdentity: value['renderIdentity'],
-        batchResults: value['batchResults']
-      })
-      if (closedBy['compositionId'] !== expectedCompositionId) return false
-    }
+    const closed = closedBy['kind'] === 'provider-attempt'
+      ? validateProviderAttemptClosure(ctx, reference, value, closedBy)
+      : validateLocalCompositionClosure(reference, value, closedBy)
+    if (!closed) return false
   }
   return true
 }
 
 export { validateBatchResultProvenanceLinks } from './batch-result-provenance-links'
+
+const hasStrictAncestorSnapshot = (
+  ctx: GraphLinkContext,
+  value: Record<string, unknown>,
+  basisSnapshotId: unknown
+): boolean => {
+  let ancestor: Record<string, unknown> | undefined = value
+  while (ancestor && ancestor['previousSnapshotId'] !== undefined) {
+    ancestor = admissionSnapshotValueAt(ctx, ancestor['previousSnapshotId'])
+    if (ancestor?.['snapshotId'] === basisSnapshotId) return true
+  }
+  return false
+}
+
+const validateRecordedBatchLink = (
+  ctx: GraphLinkContext,
+  value: Record<string, unknown>,
+  attemptDir: string,
+  rawRecordedBatch: unknown
+): boolean => {
+  if (!isRecord(rawRecordedBatch) || typeof rawRecordedBatch['batchResultId'] !== 'string') return false
+  const batch = ctx.batchResults.get(rawRecordedBatch['batchResultId'])
+  const batchPath = ctx.resolveFrom(attemptDir, rawRecordedBatch['batchResultRef'])
+  const admissionBasis = batch?.value['admissionBasis']
+  const basisSnapshotId = rawRecordedBatch['admissionBasisSnapshotId']
+  const basis = typeof basisSnapshotId === 'string' ? ctx.admissionSnapshots.get(basisSnapshotId) : undefined
+  const basisPath = isRecord(admissionBasis) ? ctx.resolveFrom(attemptDir, admissionBasis['artifactRef']) : undefined
+  const foundStrictAncestor = hasStrictAncestorSnapshot(ctx, value, basisSnapshotId)
+  if (
+    !batch
+    || !batchPath
+    || batch.reference.path !== batchPath
+    || batch.reference.sha256 !== rawRecordedBatch['batchResultSha256']
+    || batch.value['batchId'] !== rawRecordedBatch['batchId']
+    || batch.value['generationSlotId'] !== rawRecordedBatch['generationSlotId']
+    || !isRecord(admissionBasis)
+    || admissionBasis['journalId'] !== value['journalId']
+    || admissionBasis['snapshotId'] !== basisSnapshotId
+    || !basis
+    || !basisPath
+    || basis.reference.path !== basisPath
+    || basis.reference.sha256 !== admissionBasis['sha256']
+    || !foundStrictAncestor
+  ) return false
+  return true
+}
+
+const validateRecordedResultLink = (ctx: GraphLinkContext, attemptDir: string, recorded: unknown): boolean => {
+  if (!isRecord(recorded)) return false
+  const resultPath = ctx.resolveFrom(attemptDir, recorded['resultRef'])
+  const aggregate = resultPath ? ctx.checkedProviderPath(resultPath)?.json : undefined
+  if (
+    !aggregate
+    || aggregate['resultIdentity'] !== recorded['resultIdentity']
+    || ctx.checkedProviderPath(resultPath as string)?.sha256 !== recorded['resultSha256']
+    || hashCanonicalTtsValue(aggregate['batchResults']) !== recorded['batchResultSetHash']
+  ) return false
+  return true
+}
 
 export const validateJournalRecordedBatchLinks = (ctx: GraphLinkContext): boolean => {
   for (const reference of ctx.referencesForKind('admission-journal')) {
@@ -121,52 +210,10 @@ export const validateJournalRecordedBatchLinks = (ctx: GraphLinkContext): boolea
     if (!Array.isArray(value['recordedBatchResults'])) return false
     const attemptDir = posix.dirname(reference.path)
     for (const rawRecordedBatch of value['recordedBatchResults']) {
-      if (!isRecord(rawRecordedBatch) || typeof rawRecordedBatch['batchResultId'] !== 'string') return false
-      const batch = ctx.batchResults.get(rawRecordedBatch['batchResultId'])
-      const batchPath = ctx.resolveFrom(attemptDir, rawRecordedBatch['batchResultRef'])
-      const admissionBasis = batch?.value['admissionBasis']
-      const basisSnapshotId = rawRecordedBatch['admissionBasisSnapshotId']
-      const basis = typeof basisSnapshotId === 'string' ? ctx.admissionSnapshots.get(basisSnapshotId) : undefined
-      const basisPath = isRecord(admissionBasis) ? ctx.resolveFrom(attemptDir, admissionBasis['artifactRef']) : undefined
-      let ancestor: Record<string, unknown> | undefined = value
-      let foundStrictAncestor = false
-      while (ancestor && ancestor['previousSnapshotId'] !== undefined) {
-        const previousId: unknown = ancestor['previousSnapshotId']
-        ancestor = typeof previousId === 'string' ? ctx.admissionSnapshots.get(previousId)?.value : undefined
-        if (ancestor?.['snapshotId'] === basisSnapshotId) {
-          foundStrictAncestor = true
-          break
-        }
-      }
-      if (
-        !batch
-        || !batchPath
-        || batch.reference.path !== batchPath
-        || batch.reference.sha256 !== rawRecordedBatch['batchResultSha256']
-        || batch.value['batchId'] !== rawRecordedBatch['batchId']
-        || batch.value['generationSlotId'] !== rawRecordedBatch['generationSlotId']
-        || !isRecord(admissionBasis)
-        || admissionBasis['journalId'] !== value['journalId']
-        || admissionBasis['snapshotId'] !== basisSnapshotId
-        || !basis
-        || !basisPath
-        || basis.reference.path !== basisPath
-        || basis.reference.sha256 !== admissionBasis['sha256']
-        || !foundStrictAncestor
-      ) return false
+      if (!validateRecordedBatchLink(ctx, value, attemptDir, rawRecordedBatch)) return false
     }
     const recorded = value['recordedResult']
-    if (recorded !== undefined) {
-      if (!isRecord(recorded)) return false
-      const resultPath = ctx.resolveFrom(attemptDir, recorded['resultRef'])
-      const aggregate = resultPath ? ctx.checkedProviderPath(resultPath)?.json : undefined
-      if (
-        !aggregate
-        || aggregate['resultIdentity'] !== recorded['resultIdentity']
-        || ctx.checkedProviderPath(resultPath as string)?.sha256 !== recorded['resultSha256']
-        || hashCanonicalTtsValue(aggregate['batchResults']) !== recorded['batchResultSetHash']
-      ) return false
-    }
+    if (recorded !== undefined && !validateRecordedResultLink(ctx, attemptDir, recorded)) return false
   }
   return true
 }

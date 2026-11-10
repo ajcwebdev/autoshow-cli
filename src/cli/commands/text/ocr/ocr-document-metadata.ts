@@ -84,6 +84,39 @@ export const buildSuccessfulResolvedProviderStates = (
     }
   })
 
+const buildEstimatedTimingInput = (
+  step1Metadata: ProcessDocumentOutput['step1Metadata'],
+  extractTargets: ReturnType<typeof collectEstimatedExtractTargets>,
+  options: OcrMetadataOptions
+): Parameters<typeof computeEstimatedProcessingTimes>[0] => ({
+  concurrencyMode: options.concurrencyMode,
+  extractTargets: extractTargets.map((target) => ({
+    provider: target.provider,
+    model: target.model,
+    pageCount: target.pageCount ?? step1Metadata.pageCount,
+    ...(typeof target.rasterizedPages === 'number' ? { rasterizedPages: target.rasterizedPages } : {}),
+    ...(typeof target.singlePagePdfFallbackPages === 'number' ? { singlePagePdfFallbackPages: target.singlePagePdfFallbackPages } : {})
+  })),
+  ...(typeof options.ocrConcurrency === 'number' ? { ocrConcurrency: options.ocrConcurrency } : {}),
+  ...(options.ocrConcurrencyMode ? { ocrConcurrencyMode: options.ocrConcurrencyMode } : {}),
+  ...(typeof options.ocrProviderConcurrency === 'number' ? { ocrProviderConcurrency: options.ocrProviderConcurrency } : {}),
+  ...(typeof options.ocrLocalConcurrency === 'number' ? { ocrLocalConcurrency: options.ocrLocalConcurrency } : {})
+})
+
+const buildActualTimingInput = (
+  step1Metadata: ProcessDocumentOutput['step1Metadata'],
+  normalizedStep2: ExtractionMetadata[],
+  partialStep2: NonNullable<OcrMetadataOptions['partialStep2']>,
+  options: OcrMetadataOptions
+): Parameters<typeof computeActualProcessingTimes>[0] => ({
+  step1: step1Metadata,
+  step2: normalizedStep2,
+  partialStep2,
+  ...(typeof options.ocrProviderConcurrency === 'number' ? { ocrProviderConcurrency: options.ocrProviderConcurrency } : {}),
+  ...(typeof options.ocrLocalConcurrency === 'number' ? { ocrLocalConcurrency: options.ocrLocalConcurrency } : {}),
+  ...(options.hostedOcrScheduler ? { hostedOcrScheduler: options.hostedOcrScheduler } : {})
+})
+
 export const buildDocumentMetadataPayload = (
   step1Metadata: ProcessDocumentOutput['step1Metadata'],
   step2Metadata: ProcessDocumentOutput['step2Metadata'] | undefined,
@@ -112,28 +145,8 @@ export const buildDocumentMetadataPayload = (
     ...(ocrDiagnostics.length > 0 ? { ocrDiagnostics } : {})
   }
 
-  const estimatedTiming = computeEstimatedProcessingTimes({
-    concurrencyMode: options.concurrencyMode,
-    extractTargets: extractTargets.map((target) => ({
-      provider: target.provider,
-      model: target.model,
-      pageCount: target.pageCount ?? step1Metadata.pageCount,
-      ...(typeof target.rasterizedPages === 'number' ? { rasterizedPages: target.rasterizedPages } : {}),
-      ...(typeof target.singlePagePdfFallbackPages === 'number' ? { singlePagePdfFallbackPages: target.singlePagePdfFallbackPages } : {})
-    })),
-    ...(typeof options.ocrConcurrency === 'number' ? { ocrConcurrency: options.ocrConcurrency } : {}),
-    ...(options.ocrConcurrencyMode ? { ocrConcurrencyMode: options.ocrConcurrencyMode } : {}),
-    ...(typeof options.ocrProviderConcurrency === 'number' ? { ocrProviderConcurrency: options.ocrProviderConcurrency } : {}),
-    ...(typeof options.ocrLocalConcurrency === 'number' ? { ocrLocalConcurrency: options.ocrLocalConcurrency } : {})
-  })
-  const actualTiming = computeActualProcessingTimes({
-    step1: step1Metadata,
-    step2: normalizedStep2,
-    partialStep2,
-    ...(typeof options.ocrProviderConcurrency === 'number' ? { ocrProviderConcurrency: options.ocrProviderConcurrency } : {}),
-    ...(typeof options.ocrLocalConcurrency === 'number' ? { ocrLocalConcurrency: options.ocrLocalConcurrency } : {}),
-    ...(options.hostedOcrScheduler ? { hostedOcrScheduler: options.hostedOcrScheduler } : {})
-  })
+  const estimatedTiming = computeEstimatedProcessingTimes(buildEstimatedTimingInput(step1Metadata, extractTargets, options))
+  const actualTiming = computeActualProcessingTimes(buildActualTimingInput(step1Metadata, normalizedStep2, partialStep2, options))
   const timing = estimatedTiming.steps.length > 0 || actualTiming.steps.length > 0
     ? { estimated: estimatedTiming, actual: actualTiming }
     : undefined

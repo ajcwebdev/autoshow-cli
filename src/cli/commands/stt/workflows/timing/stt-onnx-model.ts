@@ -30,6 +30,23 @@ const dimensions = (value: unknown, name: string): number[] => {
   return value as number[]
 }
 
+const readConvolutionLayout = (config: Record<string, unknown>): { strides: number[]; kernels: number[] } => {
+  if (config['model_type'] !== 'wav2vec2' || JSON.stringify(config['architectures'] ?? ['Wav2Vec2ForCTC']) !== '["Wav2Vec2ForCTC"]' || config['add_adapter'] === true) throw ValidationError('Only Wav2Vec2ForCTC ONNX models without adapters are supported.')
+  const strides = dimensions(config['conv_stride'], 'conv_stride'), kernels = dimensions(config['conv_kernel'], 'conv_kernel')
+  if (strides.length !== kernels.length) throw ValidationError('Model convolution strides and kernels disagree.')
+  return { strides, kernels }
+}
+
+const assertFeatureExtractor = (processor: Record<string, unknown>): void => {
+  if (processor['sampling_rate'] !== 16000 || (processor['feature_size'] ?? 1) !== 1 || (processor['do_normalize'] !== undefined && typeof processor['do_normalize'] !== 'boolean')) throw ValidationError('Expected a mono 16 kHz Wav2Vec2 feature extractor.')
+}
+
+const assertAlignmentVocabulary = (config: Record<string, unknown>, vocabulary: Record<string, number>): void => {
+  const ids = Object.values(vocabulary).toSorted((a, b) => a - b)
+  if (!ids.length || ids.length > 65536 || ids.some((id, index) => !Number.isInteger(id) || id !== index) || !['<pad>', '<unk>', '|'].every(key => Object.hasOwn(vocabulary, key))) throw ValidationError('Vocabulary IDs must be unique and contiguous, including <pad>, <unk>, and |.')
+  if (config['vocab_size'] !== ids.length || config['pad_token_id'] !== vocabulary['<pad>']) throw ValidationError('Model and vocabulary disagree.')
+}
+
 export const readAlignmentModel = async (model: string) => {
   const root = resolve(model)
   const allowed = new Set(['config.json', 'preprocessor_config.json', 'vocab.json', 'model.onnx', 'tokenizer_config.json', 'special_tokens_map.json', 'README.md', 'LICENSE', '.gitattributes'])
@@ -41,15 +58,11 @@ export const readAlignmentModel = async (model: string) => {
     if (!await Bun.file(join(root, name)).exists()) throw ValidationError(`Alignment requires ${name} in the local ONNX model directory.`)
   }
   const config = await readModelJson(root, 'config.json')
-  if (config['model_type'] !== 'wav2vec2' || JSON.stringify(config['architectures'] ?? ['Wav2Vec2ForCTC']) !== '["Wav2Vec2ForCTC"]' || config['add_adapter'] === true) throw ValidationError('Only Wav2Vec2ForCTC ONNX models without adapters are supported.')
-  const strides = dimensions(config['conv_stride'], 'conv_stride'), kernels = dimensions(config['conv_kernel'], 'conv_kernel')
-  if (strides.length !== kernels.length) throw ValidationError('Model convolution strides and kernels disagree.')
+  const { strides, kernels } = readConvolutionLayout(config)
   const processor = await readModelJson(root, 'preprocessor_config.json')
-  if (processor['sampling_rate'] !== 16000 || (processor['feature_size'] ?? 1) !== 1 || (processor['do_normalize'] !== undefined && typeof processor['do_normalize'] !== 'boolean')) throw ValidationError('Expected a mono 16 kHz Wav2Vec2 feature extractor.')
+  assertFeatureExtractor(processor)
   const vocabulary = await readModelJson(root, 'vocab.json') as Record<string, number>
-  const ids = Object.values(vocabulary).toSorted((a, b) => a - b)
-  if (!ids.length || ids.length > 65536 || ids.some((id, index) => !Number.isInteger(id) || id !== index) || !['<pad>', '<unk>', '|'].every(key => Object.hasOwn(vocabulary, key))) throw ValidationError('Vocabulary IDs must be unique and contiguous, including <pad>, <unk>, and |.')
-  if (config['vocab_size'] !== ids.length || config['pad_token_id'] !== vocabulary['<pad>']) throw ValidationError('Model and vocabulary disagree.')
+  assertAlignmentVocabulary(config, vocabulary)
   for (const name of ['tokenizer_config.json', 'special_tokens_map.json']) if (await Bun.file(join(root, name)).exists()) await readModelJson(root, name)
   const modelHashes: Record<string, string> = {}
   for (const name of (await readdir(root)).sort()) if (name.endsWith('.json') || name.endsWith('.onnx')) modelHashes[name] = await hashLocalTimingFile(join(root, name))

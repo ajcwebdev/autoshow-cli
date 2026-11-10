@@ -107,6 +107,42 @@ export const listInworldVoiceIdsForReadiness = async (
   ))
 }
 
+type ElevenLabsVoiceReadinessPayload = { voice_id?: unknown, sharing?: { disable_at_unix?: unknown } | null, fine_tuning?: { state?: Record<string, unknown> } | null }
+
+const isElevenLabsVoiceReady = (payload: ElevenLabsVoiceReadinessPayload, voiceId: string, target: TtsTarget): boolean => {
+  if (payload.voice_id !== voiceId) return false
+  const relevantFineTuningState = payload.fine_tuning?.state?.[target.model]
+  if (relevantFineTuningState === 'not_verified' || relevantFineTuningState === 'not_started' || relevantFineTuningState === 'failed') return false
+  const disableAtUnix = payload.sharing?.disable_at_unix
+  return typeof disableAtUnix !== 'number' || disableAtUnix * 1000 > Date.now()
+}
+
+const advancedVoiceFailureCode = (target: TtsTarget, status: number | undefined, metadata: Record<string, unknown>): string => {
+  if (status === 401) return 'provider-authentication-rejected'
+  if (status === 403) return 'provider-permission-denied'
+  if (status === 404) return `${target.service}-voice-not-ready`
+  if (status === 402) return 'provider-operation-not-admitted'
+  return metadata['readinessFailure'] === 'timeout' ? 'provider-readiness-timeout' : `${target.service}-readiness-inspection-failed`
+}
+
+const advancedVoiceFailureObservation = (target: TtsTarget, targetKey: string, error: unknown): TtsExecutionReadinessObservation => {
+  const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'inworld' ? 'Inworld' : target.service
+  const metadata = extractErrorMetadata(error)
+  const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+  const retryable = metadata['retryable'] === false ? false : true
+  return advancedVoiceBlockedObservation(
+    targetKey,
+    advancedVoiceFailureCode(target, status, metadata),
+    `${label} read-only voice readiness inspection failed before synthesis.`,
+    retryable,
+    {
+      ...(status !== undefined ? { status } : {}),
+      ...(typeof metadata['stage'] === 'string' ? { stage: metadata['stage'] } : {}),
+      ...(error instanceof Error ? { errorName: error.name, providerMessage: error.message } : {})
+    }
+  )
+}
+
 const checkAdvancedVoiceReadiness = async (
   target: TtsTarget,
   apiKey: string
@@ -123,12 +159,8 @@ const checkAdvancedVoiceReadiness = async (
       const results = await Promise.all(voiceIds.map(async voiceId => {
         const response = await request(`https://api.elevenlabs.io/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { 'xi-api-key': apiKey } })
         if (!response.ok) return false
-        const payload = await readHttpPayloadJson(response, 'ElevenLabs voice readiness response', CATALOG_PAYLOAD) as { voice_id?: unknown, sharing?: { disable_at_unix?: unknown } | null, fine_tuning?: { state?: Record<string, unknown> } | null }
-        if (payload.voice_id !== voiceId) return false
-        const relevantFineTuningState = payload.fine_tuning?.state?.[target.model]
-        if (relevantFineTuningState === 'not_verified' || relevantFineTuningState === 'not_started' || relevantFineTuningState === 'failed') return false
-        const disableAtUnix = payload.sharing?.disable_at_unix
-        return typeof disableAtUnix !== 'number' || disableAtUnix * 1000 > Date.now()
+        const payload = await readHttpPayloadJson(response, 'ElevenLabs voice readiness response', CATALOG_PAYLOAD) as ElevenLabsVoiceReadinessPayload
+        return isElevenLabsVoiceReady(payload, voiceId, target)
       }))
       if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'elevenlabs-voice-not-ready', 'One or more approved ElevenLabs voices are missing, inaccessible, or not synthesis-ready for the configured account.', false)
       return { targetKey, accountState: 'available', status: 'ready' }
@@ -141,21 +173,7 @@ const checkAdvancedVoiceReadiness = async (
     }
     throw ValidationError(`No voice-catalog readiness adapter for ${target.service}.`, { stage: 'tts:readiness', retryable: false })
   } catch (error) {
-    const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'inworld' ? 'Inworld' : target.service
-    const metadata = extractErrorMetadata(error)
-    const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
-    const retryable = metadata['retryable'] === false ? false : true
-    return advancedVoiceBlockedObservation(
-      targetKey,
-      status === 401 ? 'provider-authentication-rejected' : status === 403 ? 'provider-permission-denied' : status === 404 ? `${target.service}-voice-not-ready` : status === 402 ? 'provider-operation-not-admitted' : metadata['readinessFailure'] === 'timeout' ? 'provider-readiness-timeout' : `${target.service}-readiness-inspection-failed`,
-      `${label} read-only voice readiness inspection failed before synthesis.`,
-      retryable,
-      {
-        ...(status !== undefined ? { status } : {}),
-        ...(typeof metadata['stage'] === 'string' ? { stage: metadata['stage'] } : {}),
-        ...(error instanceof Error ? { errorName: error.name, providerMessage: error.message } : {})
-      }
-    )
+    return advancedVoiceFailureObservation(target, targetKey, error)
   }
 }
 

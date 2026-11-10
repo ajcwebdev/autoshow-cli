@@ -147,6 +147,39 @@ export const logIncompleteOcrRunSummary = (
   }
 }
 
+const buildOcrArtifactFiles = (opts: OcrExtractionOptions): Record<string, string> => {
+  const artifactFiles: Record<string, string> = {
+    manifest: 'manifest.json'
+  }
+  if (opts.out === 'json') {
+    artifactFiles['result'] = 'result.json'
+  } else {
+    artifactFiles['extraction'] = 'extraction.txt'
+  }
+  if (opts.docxMarkdown) artifactFiles['markdown'] = 'extraction.md'
+  return artifactFiles
+}
+
+const countSucceededOcrProviders = (extraction: ProcessDocumentOutput): number =>
+  extraction.ocrProviderMode === 'pool'
+    ? extraction.ocrPool?.targets.filter((target) => target.acceptedPages > 0).length ?? 0
+    : Array.isArray(extraction.step2Metadata) ? extraction.step2Metadata.length : 1
+
+const addSucceededProviderArtifacts = (
+  artifactFiles: Record<string, string>,
+  providerStates: Array<Record<string, unknown>>
+): void => {
+  for (const state of providerStates) {
+    const artifactDir = typeof state['artifactDir'] === 'string' ? state['artifactDir'] : undefined
+    const service = typeof state['service'] === 'string' ? state['service'] : undefined
+    const model = typeof state['model'] === 'string' ? state['model'] : undefined
+    if (!artifactDir || !service || !model || state['status'] !== 'succeeded') {
+      continue
+    }
+    artifactFiles[`result-${service}-${model}`] = `${artifactDir}/result.json`
+  }
+}
+
 export const processOcrSingle = async (
   target: string,
   baseDir: string,
@@ -170,21 +203,11 @@ export const processOcrSingle = async (
     preflightEstimate
   )
 
-  const artifactFiles: Record<string, string> = {
-    manifest: 'manifest.json'
-  }
-  if (opts.out === 'json') {
-    artifactFiles['result'] = 'result.json'
-  } else {
-    artifactFiles['extraction'] = 'extraction.txt'
-  }
-  if (opts.docxMarkdown) artifactFiles['markdown'] = 'extraction.md'
+  const artifactFiles = buildOcrArtifactFiles(opts)
   await appendChapterExportArtifacts(artifactFiles, extraction.step2Metadata, extraction.outputDir)
 
   const requestedCount = extraction.requestedProviders?.length ?? 0
-  const succeededCount = extraction.ocrProviderMode === 'pool'
-    ? extraction.ocrPool?.targets.filter((target) => target.acceptedPages > 0).length ?? 0
-    : Array.isArray(extraction.step2Metadata) ? extraction.step2Metadata.length : 1
+  const succeededCount = countSucceededOcrProviders(extraction)
   const failedCount = extraction.step2Errors?.length ?? 0
   const requestedMultipleProviders = requestedCount > 1
 
@@ -194,15 +217,7 @@ export const processOcrSingle = async (
   }
 
   if (requestedMultipleProviders && extraction.ocrProviderMode !== 'pool' && Array.isArray(extraction.providerStates)) {
-    for (const state of extraction.providerStates) {
-      const artifactDir = typeof state['artifactDir'] === 'string' ? state['artifactDir'] : undefined
-      const service = typeof state['service'] === 'string' ? state['service'] : undefined
-      const model = typeof state['model'] === 'string' ? state['model'] : undefined
-      if (!artifactDir || !service || !model || state['status'] !== 'succeeded') {
-        continue
-      }
-      artifactFiles[`result-${service}-${model}`] = `${artifactDir}/result.json`
-    }
+    addSucceededProviderArtifacts(artifactFiles, extraction.providerStates)
   }
 
   if (extraction.completionStatus === 'incomplete' || extraction.completionStatus === 'failed') {

@@ -3,6 +3,7 @@ import { AutoshowConfigSchema } from '~/types'
 import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import type { AutoshowConfig } from '~/types'
+import { resolveRuntimeBudgetMaxCents } from '~/utils/runtime-spending-budget'
 
 const asRecord = (value: unknown): Record<string, unknown> | undefined =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -141,4 +142,4 @@ export const loadConfig = async (configPath: string): Promise<AutoshowConfig> =>
 }
 
 export const resolveMaxCents = (pricing: AutoshowConfig['pricing']): number | undefined =>
-  pricing?.maxCents
+  resolveRuntimeBudgetMaxCents(pricing?.maxCents)

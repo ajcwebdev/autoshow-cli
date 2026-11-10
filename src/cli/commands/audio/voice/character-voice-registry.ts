@@ -103,6 +103,29 @@ const readJson = async (path: string, missingValue?: unknown): Promise<unknown> 
   }
 }
 
+const assertVoiceBriefAccent = (brief: CharacterVoiceBrief): void => {
+  if (!brief.accent) return
+  assertAllowedKeys(brief.accent, ['description', 'strength'], 'Voice brief accent')
+  if (!brief.accent.description.trim() || (brief.accent.strength !== undefined && !['light', 'moderate', 'strong'].includes(brief.accent.strength))) throw UsageError('Voice brief accent requires a description and supported strength.')
+}
+
+const assertVoiceBriefApparentAgeRange = (brief: CharacterVoiceBrief): void => {
+  if (brief.apparentAgeRange && (
+    !Number.isInteger(brief.apparentAgeRange.minimum)
+    || !Number.isInteger(brief.apparentAgeRange.maximum)
+    || brief.apparentAgeRange.minimum < 0
+    || brief.apparentAgeRange.maximum < brief.apparentAgeRange.minimum
+  )) throw UsageError('Voice brief apparent age range must be ordered non-negative integers.')
+  if (brief.apparentAgeRange) assertAllowedKeys(brief.apparentAgeRange, ['minimum', 'maximum'], 'Voice brief apparent age range')
+}
+
+const assertVoiceBriefPronunciations = (brief: CharacterVoiceBrief): void => {
+  for (const pronunciation of brief.pronunciations) assertAllowedKeys(pronunciation, ['term', 'pronunciation'], 'Voice brief pronunciation')
+  if (brief.pronunciations.some(entry => !entry.term.trim() || !entry.pronunciation.trim())) throw UsageError('Voice brief pronunciations require a term and pronunciation.')
+  const pronunciationTerms = brief.pronunciations.map(entry => entry.term.normalize('NFKC').toLocaleLowerCase('en-US'))
+  if (new Set(pronunciationTerms).size !== pronunciationTerms.length) throw UsageError('Voice brief contains duplicate pronunciation terms.')
+}
+
 const validateCharacterVoiceBrief = (brief: CharacterVoiceBrief): CharacterVoiceBrief => {
   if (!isRecord(brief)) throw UsageError('Character voice brief must be an object.')
   assertAllowedKeys(brief, [
@@ -112,24 +135,12 @@ const validateCharacterVoiceBrief = (brief: CharacterVoiceBrief): CharacterVoice
   ], 'Character voice brief')
   assertSubjectKey(brief.subjectKey, 'Voice brief subject key')
   assertSafeKey(brief.profileKey, 'Voice brief profile key')
-  if (brief.accent) {
-    assertAllowedKeys(brief.accent, ['description', 'strength'], 'Voice brief accent')
-    if (!brief.accent.description.trim() || (brief.accent.strength !== undefined && !['light', 'moderate', 'strong'].includes(brief.accent.strength))) throw UsageError('Voice brief accent requires a description and supported strength.')
-  }
-  if (brief.apparentAgeRange && (
-    !Number.isInteger(brief.apparentAgeRange.minimum)
-    || !Number.isInteger(brief.apparentAgeRange.maximum)
-    || brief.apparentAgeRange.minimum < 0
-    || brief.apparentAgeRange.maximum < brief.apparentAgeRange.minimum
-  )) throw UsageError('Voice brief apparent age range must be ordered non-negative integers.')
-  if (brief.apparentAgeRange) assertAllowedKeys(brief.apparentAgeRange, ['minimum', 'maximum'], 'Voice brief apparent age range')
+  assertVoiceBriefAccent(brief)
+  assertVoiceBriefApparentAgeRange(brief)
   if (!Array.isArray(brief.mannerisms) || !Array.isArray(brief.prohibitedCaricatures) || !Array.isArray(brief.pronunciations) || !Array.isArray(brief.allowedOrigins)) throw UsageError('Voice brief list fields must be arrays.')
   if (brief.allowedOrigins.length === 0 || brief.allowedOrigins.some(origin => !VOICE_ORIGINS.has(origin))) throw UsageError('Voice brief requires at least one supported allowed origin.')
   if (brief.preferredProviders && (!Array.isArray(brief.preferredProviders) || brief.preferredProviders.some(provider => !TTS_PROVIDERS.has(provider) && !RETIRED_TTS_PROVIDERS.has(provider)))) throw UsageError('Voice brief preferred providers contain an unsupported TTS provider.')
-  for (const pronunciation of brief.pronunciations) assertAllowedKeys(pronunciation, ['term', 'pronunciation'], 'Voice brief pronunciation')
-  if (brief.pronunciations.some(entry => !entry.term.trim() || !entry.pronunciation.trim())) throw UsageError('Voice brief pronunciations require a term and pronunciation.')
-  const pronunciationTerms = brief.pronunciations.map(entry => entry.term.normalize('NFKC').toLocaleLowerCase('en-US'))
-  if (new Set(pronunciationTerms).size !== pronunciationTerms.length) throw UsageError('Voice brief contains duplicate pronunciation terms.')
+  assertVoiceBriefPronunciations(brief)
   return brief
 }
 

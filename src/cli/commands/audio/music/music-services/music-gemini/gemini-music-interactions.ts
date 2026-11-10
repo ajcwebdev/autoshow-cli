@@ -3,37 +3,52 @@ import { join } from 'node:path'
 import { InfraError } from '~/utils/error-handler'
 import { isObjectLike } from '~/utils/value-helpers'
 
-export const writeGeminiMusicInteraction = async (response: unknown, outputDir: string) => {
-  const fail = (message: string): never => { throw InfraError(`Lyria 3.5 ${message}`, { stage: 'music:gemini' }) }
-  if (!isObjectLike(response)) return fail('returned an invalid interaction')
+const fail = (message: string): never => { throw InfraError(`Lyria 3.5 ${message}`, { stage: 'music:gemini' }) }
+
+const decodeGeminiMusicAudio = (part: Record<string, unknown>): Buffer => {
+  const data = part['data']
+  const mime = part['mime_type']
+  if (mime !== undefined && mime !== 'audio/mpeg' && mime !== 'audio/mp3') return fail('returned unsupported audio format; expected MP3')
+  if (typeof data !== 'string' || !data || data.length % 4 === 1 || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) {
+    return fail('returned invalid base64 audio')
+  }
+  const bytes = Buffer.from(data, 'base64')
+  if (!bytes.length || bytes.toString('base64').replace(/=+$/, '') !== data.replace(/=+$/, '')) return fail('returned invalid base64 audio')
+  return bytes
+}
+
+type GeminiMusicOutput = { text: string[], audio: Buffer[] }
+
+const collectGeminiMusicContent = (content: unknown[], output: GeminiMusicOutput): void => {
+  for (const part of content) {
+    if (!isObjectLike(part)) return fail('returned an invalid content block')
+    if (part['type'] === 'text' && typeof part['text'] === 'string') {
+      output.text.push(part['text'])
+    } else if (part['type'] === 'audio') {
+      output.audio.push(decodeGeminiMusicAudio(part))
+    }
+  }
+}
+
+const collectGeminiMusicOutput = (response: Record<string, unknown>): GeminiMusicOutput => {
   if (response['error'] !== undefined || (response['status'] !== undefined && response['status'] !== 'completed')) {
     return fail('interaction failed or did not complete')
   }
-  const text: string[] = []
-  const audio: Buffer[] = []
+  const output: GeminiMusicOutput = { text: [], audio: [] }
   const steps = response['steps']
   if (!Array.isArray(steps)) return fail('returned no model-output steps')
   for (const step of steps) {
     if (!isObjectLike(step) || step['type'] !== 'model_output') continue
     if (!Array.isArray(step['content'])) return fail('returned invalid model-output content')
-    for (const part of step['content']) {
-      if (!isObjectLike(part)) return fail('returned an invalid content block')
-      if (part['type'] === 'text' && typeof part['text'] === 'string') {
-        text.push(part['text'])
-      } else if (part['type'] === 'audio') {
-        const data = part['data']
-        const mime = part['mime_type']
-        if (mime !== undefined && mime !== 'audio/mpeg' && mime !== 'audio/mp3') return fail('returned unsupported audio format; expected MP3')
-        if (typeof data !== 'string' || !data || data.length % 4 === 1 || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) {
-          return fail('returned invalid base64 audio')
-        }
-        const bytes = Buffer.from(data, 'base64')
-        if (!bytes.length || bytes.toString('base64').replace(/=+$/, '') !== data.replace(/=+$/, '')) return fail('returned invalid base64 audio')
-        audio.push(bytes)
-      }
-    }
+    collectGeminiMusicContent(step['content'], output)
   }
-  if (audio.length === 0) return fail('completed without audio')
+  if (output.audio.length === 0) return fail('completed without audio')
+  return output
+}
+
+export const writeGeminiMusicInteraction = async (response: unknown, outputDir: string) => {
+  if (!isObjectLike(response)) return fail('returned an invalid interaction')
+  const { text, audio } = collectGeminiMusicOutput(response)
   const fileNames = audio.map((_, index) => index === 0
     ? generationArtifactFileName('music')
     : `${GENERATION_ARTIFACT_BASENAMES.music}-part-${index + 1}.mp3`)

@@ -25,8 +25,7 @@ const collectReadinessResultNested: NestedCollector = (ctx) => {
   })
 }
 
-const collectRenderPlanNested: NestedCollector = (ctx) => {
-  const { reference, value, renderDir, add } = ctx
+const hasUnsupportedRepairOrContinuation = (reference: ProjectionArtifactReference, value: Record<string, unknown>): boolean => {
   const repair = value['repair']
   const branchHasRepair = reference.kind === 'branch-plan'
     && Array.isArray(value['candidateStrategies'])
@@ -36,7 +35,63 @@ const collectRenderPlanNested: NestedCollector = (ctx) => {
     && value['batches'].some((batch) =>
       isRecord(batch) && isRecord(batch['continuation']) && batch['continuation']['kind'] === 'external-checkpoint'
     )
-  if (repair !== undefined || branchHasRepair || hasExternalContinuation) return false
+  return repair !== undefined || branchHasRepair || hasExternalContinuation
+}
+
+const plannedTurnsOf = (value: Record<string, unknown>): Record<string, unknown>[] => Array.isArray(value['nodes'])
+  ? value['nodes'].flatMap((node) => {
+      if (!isRecord(node)) return []
+      if (node['kind'] === 'turn' && isRecord(node['turn'])) return [node['turn']]
+      if (node['kind'] === 'overlap' && Array.isArray(node['turns'])) return node['turns'].filter(isRecord)
+      return []
+    })
+  : []
+
+const plannedSlotsOf = (value: Record<string, unknown>): Record<string, unknown>[] => Array.isArray(value['batches'])
+  ? value['batches'].flatMap((batch) => isRecord(batch) && Array.isArray(batch['generationSlots']) ? batch['generationSlots'].filter(isRecord) : [])
+  : []
+
+type AddNestedReference = Parameters<NestedCollector>[0]['add']
+
+type StrategyPlanArtifacts = Readonly<{
+  plannedTurns: readonly Record<string, unknown>[]
+  plannedSlots: readonly Record<string, unknown>[]
+  turnArtifacts: readonly unknown[]
+  slotArtifacts: readonly unknown[]
+}>
+
+const strategyArtifactsMatchPlan = ({ turnArtifacts, slotArtifacts, plannedTurns, plannedSlots }: StrategyPlanArtifacts): boolean =>
+  turnArtifacts.length === plannedTurns.length
+  && slotArtifacts.length === plannedSlots.length
+  && !turnArtifacts.some((artifact, index) => !isRecord(artifact) || artifact['turnId'] !== plannedTurns[index]?.['turnId'])
+  && !slotArtifacts.some((artifact, index) => !isRecord(artifact) || artifact['generationSlotId'] !== plannedSlots[index]?.['generationSlotId'])
+
+const hasUniqueArtifactPaths = (allArtifacts: readonly unknown[]): boolean => {
+  const artifactPaths = allArtifacts.flatMap((artifact) => isRecord(artifact) && typeof artifact['path'] === 'string' ? [artifact['path']] : [])
+  return artifactPaths.length === allArtifacts.length && new Set(artifactPaths).size === artifactPaths.length
+}
+
+const addTurnAndSlotTextArtifacts = (
+  add: AddNestedReference,
+  renderDir: string,
+  { turnArtifacts, plannedTurns, slotArtifacts }: StrategyPlanArtifacts
+): boolean => {
+  for (const [index, rawArtifact] of turnArtifacts.entries()) {
+    const plannedTurn = plannedTurns[index]
+    if (!isRecord(rawArtifact) || !isRecord(plannedTurn) || typeof plannedTurn['canonicalText'] !== 'string') return false
+    const canonicalText = plannedTurn['canonicalText'].endsWith('\n') ? plannedTurn['canonicalText'] : `${plannedTurn['canonicalText']}\n`
+    const expectedSha = new Bun.CryptoHasher('sha256').update(canonicalText).digest('hex')
+    if (rawArtifact['sha256'] !== expectedSha || !add(rawArtifact, 'path', 'sha256', 'strategy-text', renderDir, undefined, { renderDir })) return false
+  }
+  for (const rawArtifact of slotArtifacts) {
+    if (!isRecord(rawArtifact) || !add(rawArtifact, 'path', 'sha256', 'strategy-text', renderDir, undefined, { renderDir })) return false
+  }
+  return true
+}
+
+const collectRenderPlanNested: NestedCollector = (ctx) => {
+  const { reference, value, renderDir, add } = ctx
+  if (hasUnsupportedRepairOrContinuation(reference, value)) return false
   if (reference.kind !== 'render-plan') return true
   const strategy = value['strategyArtifacts']
   if (
@@ -50,42 +105,17 @@ const collectRenderPlanNested: NestedCollector = (ctx) => {
     || !Array.isArray(strategy['turns'])
     || !Array.isArray(strategy['generationSlots'])
   ) return false
-  const plannedTurns = Array.isArray(value['nodes'])
-    ? value['nodes'].flatMap((node) => {
-        if (!isRecord(node)) return []
-        if (node['kind'] === 'turn' && isRecord(node['turn'])) return [node['turn']]
-        if (node['kind'] === 'overlap' && Array.isArray(node['turns'])) return node['turns'].filter(isRecord)
-        return []
-      })
-    : []
-  const plannedSlots = Array.isArray(value['batches'])
-    ? value['batches'].flatMap((batch) => isRecord(batch) && Array.isArray(batch['generationSlots']) ? batch['generationSlots'].filter(isRecord) : [])
-    : []
+  const plannedTurns = plannedTurnsOf(value)
+  const plannedSlots = plannedSlotsOf(value)
   const turnArtifacts = strategy['turns']
   const slotArtifacts = strategy['generationSlots']
-  if (
-    turnArtifacts.length !== plannedTurns.length
-    || slotArtifacts.length !== plannedSlots.length
-    || turnArtifacts.some((artifact, index) => !isRecord(artifact) || artifact['turnId'] !== plannedTurns[index]?.['turnId'])
-    || slotArtifacts.some((artifact, index) => !isRecord(artifact) || artifact['generationSlotId'] !== plannedSlots[index]?.['generationSlotId'])
-  ) return false
-  const allArtifacts = [strategy['sourceIdentity'], strategy['dialoguePlan'], strategy['normalizedDialogue'], ...turnArtifacts, ...slotArtifacts]
-  const artifactPaths = allArtifacts.flatMap((artifact) => isRecord(artifact) && typeof artifact['path'] === 'string' ? [artifact['path']] : [])
-  if (artifactPaths.length !== allArtifacts.length || new Set(artifactPaths).size !== artifactPaths.length) return false
+  const planArtifacts: StrategyPlanArtifacts = { plannedTurns, plannedSlots, turnArtifacts, slotArtifacts }
+  if (!strategyArtifactsMatchPlan(planArtifacts)) return false
+  if (!hasUniqueArtifactPaths([strategy['sourceIdentity'], strategy['dialoguePlan'], strategy['normalizedDialogue'], ...turnArtifacts, ...slotArtifacts])) return false
   if (!add(strategy['sourceIdentity'], 'path', 'sha256', 'source-identity', renderDir, { identityHash: value['sourceIdentityHash'] as string }, { renderDir })) return false
   if (!add(strategy['dialoguePlan'], 'path', 'sha256', 'dialogue-plan', renderDir, { dialoguePlanId: value['dialoguePlanId'] as string }, { renderDir })) return false
   if (!add(strategy['normalizedDialogue'], 'path', 'sha256', 'strategy-text', renderDir, undefined, { renderDir })) return false
-  for (const [index, rawArtifact] of turnArtifacts.entries()) {
-    const plannedTurn = plannedTurns[index]
-    if (!isRecord(rawArtifact) || !isRecord(plannedTurn) || typeof plannedTurn['canonicalText'] !== 'string') return false
-    const canonicalText = plannedTurn['canonicalText'].endsWith('\n') ? plannedTurn['canonicalText'] : `${plannedTurn['canonicalText']}\n`
-    const expectedSha = new Bun.CryptoHasher('sha256').update(canonicalText).digest('hex')
-    if (rawArtifact['sha256'] !== expectedSha || !add(rawArtifact, 'path', 'sha256', 'strategy-text', renderDir, undefined, { renderDir })) return false
-  }
-  for (const rawArtifact of slotArtifacts) {
-    if (!isRecord(rawArtifact) || !add(rawArtifact, 'path', 'sha256', 'strategy-text', renderDir, undefined, { renderDir })) return false
-  }
-  return true
+  return addTurnAndSlotTextArtifacts(add, renderDir, planArtifacts)
 }
 
 export const RENDER_NESTED_COLLECTORS: Partial<Record<ProjectionArtifactReference['kind'], NestedCollector>> = {

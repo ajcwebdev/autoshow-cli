@@ -159,15 +159,17 @@ const MISSING_FORBIDDEN_FIELDS = ['readinessAuthorization', 'admissionJournalSna
 const FAILED_ATTEMPT_ZERO_FORBIDDEN_FIELDS = ['readinessAuthorization', 'admissionJournalSnapshotId', 'admissionJournalRef', 'admissionJournalSha256', 'providerRenderResultIdentity', 'providerRenderResultRef', 'providerRenderResultSha256', 'batchProgress', 'outputRefs', 'reportedOutputRefs', 'takeSelections', 'continuationCheckpoints', 'cacheEvidenceRefs', 'consumedSelectionRebuild', 'audioRunId', 'audioRunRef', 'audioRunSha256']
 const hasNoneOf = (value: Record<string, unknown>, keys: readonly string[]): boolean => keys.every(key => value[key] === undefined)
 
-const validateRenderEventStatusRules = (event: Record<string, unknown>): boolean => {
-  if (event['status'] === 'missing' && !hasNoneOf(event, MISSING_FORBIDDEN_FIELDS)) return false
-  if (event['status'] === 'failed' && event['attempt'] === 0 && !hasNoneOf(event, FAILED_ATTEMPT_ZERO_FORBIDDEN_FIELDS)) return false
+const hasValidArtifactRefLists = (event: Record<string, unknown>): boolean => {
   for (const listKey of ['outputRefs', 'takeSelections', 'continuationCheckpoints', 'cacheEvidenceRefs'] as const) {
     const list = event[listKey]
     if (list !== undefined && (!Array.isArray(list) || list.some((entry) => !isRecord(entry) || !hasArtifactRef(entry, 'path', 'sha256')))) {
       return false
     }
   }
+  return true
+}
+
+const hasValidReportedOutputRefs = (event: Record<string, unknown>): boolean => {
   const reportedOutputs = event['reportedOutputRefs']
   if (
     reportedOutputs !== undefined
@@ -178,7 +180,11 @@ const validateRenderEventStatusRules = (event: Record<string, unknown>): boolean
       || reportedOutputs.some((entry) => !isRecord(entry) || !hasArtifactRef(entry, 'path', 'sha256'))
     )
   ) return false
-  if (event['status'] === 'succeeded' && (
+  return true
+}
+
+const isIncompleteSucceededEvent = (event: Record<string, unknown>): boolean =>
+  event['status'] === 'succeeded' && (
     typeof event['providerRenderResultIdentity'] !== 'string'
     || typeof event['audioRunId'] !== 'string'
     || !hasArtifactRef(event, 'providerRenderResultRef', 'providerRenderResultSha256')
@@ -188,7 +194,14 @@ const validateRenderEventStatusRules = (event: Record<string, unknown>): boolean
     || !Array.isArray(event['reportedOutputRefs'])
     || event['reportedOutputRefs'].length === 0
     || event['error'] !== undefined
-  )) return false
+  )
+
+const validateRenderEventStatusRules = (event: Record<string, unknown>): boolean => {
+  if (event['status'] === 'missing' && !hasNoneOf(event, MISSING_FORBIDDEN_FIELDS)) return false
+  if (event['status'] === 'failed' && event['attempt'] === 0 && !hasNoneOf(event, FAILED_ATTEMPT_ZERO_FORBIDDEN_FIELDS)) return false
+  if (!hasValidArtifactRefLists(event)) return false
+  if (!hasValidReportedOutputRefs(event)) return false
+  if (isIncompleteSucceededEvent(event)) return false
   if (event['status'] === 'failed' && !isRecord(event['error'])) return false
   return true
 }
@@ -253,39 +266,46 @@ const validateRenderHistory = (ctx: AudioProjectionValidationContext): boolean =
   return true
 }
 
+const validateSucceededRenderPointer = (
+  ctx: AudioProjectionValidationContext,
+  pointer: Record<string, unknown>
+): boolean => {
+  const event = resolveRenderEvent(ctx.projection, pointer['renderIdentity'], pointer['eventSequence'])
+  return hasOnlyKeys(pointer, ['sequence', 'action', 'renderIdentity', 'eventSequence', 'resultIdentity', 'audioRunId', 'actor', 'at'])
+    && event?.['status'] === 'succeeded'
+    && event['providerRenderResultIdentity'] === pointer['resultIdentity']
+    && event['audioRunId'] === pointer['audioRunId']
+}
+
+const validatePointerAction = (
+  ctx: AudioProjectionValidationContext,
+  pointer: Record<string, unknown>
+): boolean => {
+  const action = pointer['action']
+  if (action === 'activate-branch') {
+    return hasOnlyKeys(pointer, ['sequence', 'action', 'branchPlanId', 'actor', 'at'])
+      && typeof pointer['branchPlanId'] === 'string'
+      && ctx.branchIds.has(pointer['branchPlanId'])
+  }
+  if (action === 'project-branch-readiness') {
+    return hasOnlyKeys(pointer, ['sequence', 'action', 'branchPlanId', 'readinessAttemptSequence', 'actor', 'at'])
+      && ctx.readinessAttempts.some((entry) => isRecord(entry) && entry['branchPlanId'] === pointer['branchPlanId'] && entry['sequence'] === pointer['readinessAttemptSequence'])
+  }
+  if (action === 'activate-render') {
+    return hasOnlyKeys(pointer, ['sequence', 'action', 'renderIdentity', 'eventSequence', 'actor', 'at'])
+      && !!resolveRenderEvent(ctx.projection, pointer['renderIdentity'], pointer['eventSequence'])
+  }
+  if (action === 'rollback-active' || action === 'select-success') return validateSucceededRenderPointer(ctx, pointer)
+  if (action === 'activate-policy-skip') {
+    return hasOnlyKeys(pointer, ['sequence', 'action', 'skipId', 'actor', 'at']) && typeof pointer['skipId'] === 'string'
+  }
+  return false
+}
+
 const validatePointerEvents = (ctx: AudioProjectionValidationContext): boolean => {
   for (const pointer of ctx.pointerEvents) {
     if (!isRecord(pointer) || !isAuditActor(pointer['actor']) || !isIsoDateTime(pointer['at'])) return false
-    const action = pointer['action']
-    if (action === 'activate-branch') {
-      if (
-        !hasOnlyKeys(pointer, ['sequence', 'action', 'branchPlanId', 'actor', 'at'])
-        || typeof pointer['branchPlanId'] !== 'string'
-        || !ctx.branchIds.has(pointer['branchPlanId'])
-      ) return false
-    } else if (action === 'project-branch-readiness') {
-      if (
-        !hasOnlyKeys(pointer, ['sequence', 'action', 'branchPlanId', 'readinessAttemptSequence', 'actor', 'at'])
-        || !ctx.readinessAttempts.some((entry) => isRecord(entry) && entry['branchPlanId'] === pointer['branchPlanId'] && entry['sequence'] === pointer['readinessAttemptSequence'])
-      ) return false
-    } else if (action === 'activate-render') {
-      if (
-        !hasOnlyKeys(pointer, ['sequence', 'action', 'renderIdentity', 'eventSequence', 'actor', 'at'])
-        || !resolveRenderEvent(ctx.projection, pointer['renderIdentity'], pointer['eventSequence'])
-      ) return false
-    } else if (action === 'rollback-active' || action === 'select-success') {
-      const event = resolveRenderEvent(ctx.projection, pointer['renderIdentity'], pointer['eventSequence'])
-      if (
-        !hasOnlyKeys(pointer, ['sequence', 'action', 'renderIdentity', 'eventSequence', 'resultIdentity', 'audioRunId', 'actor', 'at'])
-        || event?.['status'] !== 'succeeded'
-        || event['providerRenderResultIdentity'] !== pointer['resultIdentity']
-        || event['audioRunId'] !== pointer['audioRunId']
-      ) return false
-    } else if (action === 'activate-policy-skip') {
-      if (!hasOnlyKeys(pointer, ['sequence', 'action', 'skipId', 'actor', 'at']) || typeof pointer['skipId'] !== 'string') return false
-    } else {
-      return false
-    }
+    if (!validatePointerAction(ctx, pointer)) return false
   }
   return true
 }

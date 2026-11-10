@@ -37,26 +37,29 @@ const readPageQaEntries = async (sceneSlug: string, provided?: PageQaEntry[] | u
   } catch { return null }
 }
 
+const collectReviewSheetPanelFailureKeys = (panel: PageQaEntry['result']['panels'][number], panelNumber: number): string[] => {
+  const hardFailureKeys: string[] = []
+  const prefix = `panel-${panelNumber}:`
+  if (!panel.requiredCastPresent) hardFailureKeys.push(`${prefix}requiredCastPresent`)
+  if (!panel.unexpectedCastAbsent) hardFailureKeys.push(`${prefix}unexpectedCastAbsent`)
+  if (panel.identityIssueKind === 'unmistakable-mismatch') hardFailureKeys.push(`${prefix}identityMatch`)
+  if (!panel.locationMatch) hardFailureKeys.push(`${prefix}locationMatch`)
+  if (!panel.setContinuityMatch) hardFailureKeys.push(`${prefix}setContinuityMatch`)
+  if (!panel.sourcePrecedence) hardFailureKeys.push(`${prefix}sourcePrecedence`)
+  if (!panel.shotPlanMatch) hardFailureKeys.push(`${prefix}shotPlanMatch`)
+  if (panel.blockingAudit && panel.blockingAudit.some(item => item.status !== 'on-mark' && item.status !== 'not-assessable')) hardFailureKeys.push(`${prefix}blockingAudit`)
+  if (panel.axisSideMatch === false) hardFailureKeys.push(`${prefix}axisSideMatch`)
+  if (panel.dialogueIssueKind === 'content') hardFailureKeys.push(`${prefix}dialogueAccuracy`)
+  if (!panel.speakerAttribution) hardFailureKeys.push(`${prefix}speakerAttribution`)
+  return hardFailureKeys
+}
+
 const summarizeQa = (entries: PageQaEntry[] | null, panelNumber: number, attempts: number): ReviewSheetPanelQa | null => {
   if (!entries) return null
   const entry = entries.find(candidate => candidate.panelNumbers.includes(panelNumber))
   if (!entry) return null
   const panel = entry.result.panels.find(candidate => candidate.panelNumber === panelNumber)
-  const hardFailureKeys: string[] = []
-  if (panel) {
-    const prefix = `panel-${panelNumber}:`
-    if (!panel.requiredCastPresent) hardFailureKeys.push(`${prefix}requiredCastPresent`)
-    if (!panel.unexpectedCastAbsent) hardFailureKeys.push(`${prefix}unexpectedCastAbsent`)
-    if (panel.identityIssueKind === 'unmistakable-mismatch') hardFailureKeys.push(`${prefix}identityMatch`)
-    if (!panel.locationMatch) hardFailureKeys.push(`${prefix}locationMatch`)
-    if (!panel.setContinuityMatch) hardFailureKeys.push(`${prefix}setContinuityMatch`)
-    if (!panel.sourcePrecedence) hardFailureKeys.push(`${prefix}sourcePrecedence`)
-    if (!panel.shotPlanMatch) hardFailureKeys.push(`${prefix}shotPlanMatch`)
-    if (panel.blockingAudit && panel.blockingAudit.some(item => item.status !== 'on-mark' && item.status !== 'not-assessable')) hardFailureKeys.push(`${prefix}blockingAudit`)
-    if (panel.axisSideMatch === false) hardFailureKeys.push(`${prefix}axisSideMatch`)
-    if (panel.dialogueIssueKind === 'content') hardFailureKeys.push(`${prefix}dialogueAccuracy`)
-    if (!panel.speakerAttribution) hardFailureKeys.push(`${prefix}speakerAttribution`)
-  }
+  const hardFailureKeys = panel ? collectReviewSheetPanelFailureKeys(panel, panelNumber) : []
   const route = entry.repairPolicy
     ? `${entry.repairPolicy.action}${entry.repairPolicy.reason ? ` (${entry.repairPolicy.reason})` : ''}`
     : entry.hardFailure ? 'unresolved' : 'none'

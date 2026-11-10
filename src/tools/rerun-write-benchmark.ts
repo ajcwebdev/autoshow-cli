@@ -207,15 +207,33 @@ const casePlan = (original: WriteBenchmarkPlan, entry: WriteBenchmarkRerunCase):
   baseEstimatedCostCents: entry.estimatedCostCents
 })
 
-/** Existing native slot receipts block a second attempt, including failed or interrupted attempts. */
-export const executeWriteBenchmarkRerun = async (plan: WriteBenchmarkRerunPlan, targets?: LLMTarget[]): Promise<BenchmarkSlot[]> => {
-  const original = await assertCurrentPlan(plan)
-  assertAuthorization(plan)
+const assertRerunModelsRegistered = (plan: WriteBenchmarkRerunPlan): void => {
   for (const entry of plan.cases) {
     for (const provider of entry.providers) {
       if (!getModelRegistry().llm[provider.provider]?.models[provider.model]) throw ValidationError(`Retired or unsupported rerun model ${provider.provider}/${provider.model}; this historical plan is available through --verify-cache only.`)
     }
   }
+}
+const exactRerunTargets = (entry: WriteBenchmarkRerunCase, available: LLMTarget[]): LLMTarget[] => entry.providers.map(provider => {
+  const target = available.find(target => target.service === provider.provider && target.model === provider.model)
+  if (!target) throw ValidationError(`Missing exact rerun target: ${provider.provider}/${provider.model}.`)
+  return target
+})
+type RerunCaseRun = { selected: WriteBenchmarkPlan; entry: WriteBenchmarkRerunCase; prepared: Awaited<ReturnType<typeof prepareWriteBenchmarkCase>>; slots: BenchmarkSlot[] }
+/** One pool worker: drains the provider queue, recording each slot as it settles. */
+const rerunWorker = ({ selected, entry, prepared, slots }: RerunCaseRun, queue: LLMTarget[]) => async (): Promise<void> => {
+  for (let target = queue.shift(); target; target = queue.shift()) {
+    const slot = await runWriteBenchmarkSlot(selected, entry, prepared, target)
+    slots.push(slot)
+    writeCommandPayload(JSON.stringify({ case: entry.id, attempt, provider: slot.provider, model: slot.model, status: slot.status, elapsedMs: slot.wallTimeMs, ...(slot.error ? { error: slot.error } : {}) }) + '\n')
+  }
+}
+
+/** Existing native slot receipts block a second attempt, including failed or interrupted attempts. */
+export const executeWriteBenchmarkRerun = async (plan: WriteBenchmarkRerunPlan, targets?: LLMTarget[]): Promise<BenchmarkSlot[]> => {
+  const original = await assertCurrentPlan(plan)
+  assertAuthorization(plan)
+  assertRerunModelsRegistered(plan)
   const available = targets ?? collectLlmTargets(modelOptions(plan.cases.flatMap(entry => entry.providers)))
   const restore = installWriteBenchmarkFetchGuard()
   const result: BenchmarkSlot[] = []
@@ -232,20 +250,10 @@ export const executeWriteBenchmarkRerun = async (plan: WriteBenchmarkRerunPlan, 
       }
       const selected = casePlan(original, entry)
       const slots: BenchmarkSlot[] = []
-      const exactTargets = entry.providers.map(provider => {
-        const target = available.find(target => target.service === provider.provider && target.model === provider.model)
-        if (!target) throw ValidationError(`Missing exact rerun target: ${provider.provider}/${provider.model}.`)
-        return target
-      })
+      const exactTargets = exactRerunTargets(entry, available)
       const outcomes = await Promise.allSettled([...new Set(exactTargets.map(target => target.service))].map(async provider => {
         const queue = exactTargets.filter(target => target.service === provider)
-        const workers = await Promise.allSettled(Array.from({ length: plan.providerConcurrency }, async () => {
-          for (let target = queue.shift(); target; target = queue.shift()) {
-            const slot = await runWriteBenchmarkSlot(selected, entry, prepared, target)
-            slots.push(slot)
-            writeCommandPayload(JSON.stringify({ case: entry.id, attempt, provider: slot.provider, model: slot.model, status: slot.status, elapsedMs: slot.wallTimeMs, ...(slot.error ? { error: slot.error } : {}) }) + '\n')
-          }
-        }))
+        const workers = await Promise.allSettled(Array.from({ length: plan.providerConcurrency }, rerunWorker({ selected, entry, prepared, slots }, queue)))
         const failed = workers.find(worker => worker.status === 'rejected')
         if (failed?.status === 'rejected') throw failed.reason
       }))

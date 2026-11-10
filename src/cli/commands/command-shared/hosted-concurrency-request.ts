@@ -2,17 +2,19 @@ import type { HostedConcurrencyAdmission, HostedConcurrencyAdmissionToken, Hoste
 import { AppError, extractErrorMetadata } from '~/utils/error-handler'
 import { classifyHostedRateLimitPressure } from './hosted-rate-limit-pressure'
 
+const appendScalarHeader = (headers: Headers, key: string, value: unknown): void => {
+  if (typeof value === 'string' || typeof value === 'number') headers.append(key, String(value))
+}
+
 const toHeaders = (headers: unknown): Headers | undefined => {
   if (headers instanceof Headers) return headers
   if (!headers || typeof headers !== 'object') return undefined
   const normalized = new Headers()
   for (const [key, value] of Object.entries(headers)) {
     if (Array.isArray(value)) {
-      for (const item of value) {
-        if (typeof item === 'string' || typeof item === 'number') normalized.append(key, String(item))
-      }
-    } else if (typeof value === 'string' || typeof value === 'number') {
-      normalized.append(key, String(value))
+      for (const item of value) appendScalarHeader(normalized, key, item)
+    } else {
+      appendScalarHeader(normalized, key, value)
     }
   }
   return [...normalized.keys()].length > 0 ? normalized : undefined

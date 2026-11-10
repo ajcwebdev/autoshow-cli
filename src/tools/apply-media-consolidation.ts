@@ -253,18 +253,30 @@ const keeperPolicy = (inputs: Awaited<ReturnType<typeof loadInputs>>, compatible
   retainedFiles.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
   return { effectiveKeepers, retainedFiles }
 }
-const validateReceiptRows = (inputs: Awaited<ReturnType<typeof loadInputs>>, receipt: MediaConsolidationReceipt, complete: boolean): Map<string, AppliedFile> => {
+type LoadedInputs = Awaited<ReturnType<typeof loadInputs>>
+type KeeperCatalog = Awaited<ReturnType<typeof readKeeperCatalog>>
+type MediaRow = MediaConsolidationPlan['mediaFiles'][number]
+type ReceiptScope = { inputs: LoadedInputs; receipt: MediaConsolidationReceipt; auxiliary: AuxiliaryKeeper[]; retained: Set<string> }
+const effectiveKeeperValid = (scope: ReceiptScope, row: AppliedFile, authorized: MediaRow | undefined, original: NativeMetadata | undefined): boolean => {
+  const { inputs, receipt, auxiliary, retained } = scope
+  const effectivePath = row.effectiveKeeperPath ?? row.keeperPath, external = auxiliary.find(file => file.path === effectivePath), effective = inputs.nativeByPath.get(pathValue(effectivePath)) ?? external, effectiveMedia = inputs.plan.mediaFiles.find(file => file.path === effectivePath)
+  return receipt.keeperPolicy === 'metadata-compatible'
+    ? Boolean(effective && (external || effectiveMedia && (!effectiveMedia.plannedReplacement || retained.has(effectivePath))) && (external?.bytes ?? effectiveMedia?.bytes) === row.bytes && protectedMetadataClass(effective) === protectedMetadataClass(original!))
+    : effectivePath === authorized?.keeperPath
+}
+const authorizationDiffers = (row: AppliedFile, authorized: MediaRow, keeperValid: boolean): boolean =>
+  row.keeperPath !== authorized.keeperPath || !keeperValid || row.group !== authorized.group || row.bytes !== authorized.bytes || row.sha256 !== authorized.sha256
+const replacementInconsistent = (row: AppliedFile, original: NativeMetadata | undefined, expectedAfter: NativeMetadata | undefined): boolean =>
+  !same(row.before, original) || !same(contentMetadata(row.after), contentMetadata(expectedAfter!)) || row.after.ino === row.before.ino || row.after.dev !== row.before.dev
+const validateReceiptRows = (inputs: LoadedInputs, receipt: MediaConsolidationReceipt, complete: boolean): Map<string, AppliedFile> => {
   const planned = new Map(inputs.plan.mediaFiles.filter(row => row.plannedReplacement).map(row => [row.path, row])), applied = new Map<string, AppliedFile>(), auxiliary = receipt.auxiliaryKeepers ?? [], policy = keeperPolicy(inputs, receipt.keeperPolicy === 'metadata-compatible', auxiliary)
   if (receipt.keeperPolicy !== undefined && !['metadata-compatible', 'original-plan-with-kernel-provenance'].includes(receipt.keeperPolicy) || !same(receipt.retainedFiles ?? [], policy.retainedFiles)) throw ValidationError('Receipt retained metadata-class representatives differ from the original authorized scope')
-  const retained = new Set(policy.retainedFiles.map(row => row.path))
+  const retained = new Set(policy.retainedFiles.map(row => row.path)), scope: ReceiptScope = { inputs, receipt, auxiliary, retained }
   for (const row of receipt.appliedFiles) {
     const authorized = planned.get(pathValue(row.path)), original = inputs.nativeByPath.get(row.path)
-    const effectivePath = row.effectiveKeeperPath ?? row.keeperPath, external = auxiliary.find(file => file.path === effectivePath), effective = inputs.nativeByPath.get(pathValue(effectivePath)) ?? external, effectiveMedia = inputs.plan.mediaFiles.find(file => file.path === effectivePath)
-    const keeperValid = receipt.keeperPolicy === 'metadata-compatible'
-      ? effective && (external || effectiveMedia && (!effectiveMedia.plannedReplacement || retained.has(effectivePath))) && (external?.bytes ?? effectiveMedia?.bytes) === row.bytes && protectedMetadataClass(effective) === protectedMetadataClass(original!)
-      : effectivePath === authorized?.keeperPath
+    const keeperValid = effectiveKeeperValid(scope, row, authorized, original)
     const expectedAfter = original && metadataAfterKernelAssignment(original, row.kernelAssignedXattrChanges, receipt.keeperPolicy === 'original-plan-with-kernel-provenance')
-    if (!authorized || applied.has(row.path) || retained.has(row.path) || row.keeperPath !== authorized.keeperPath || !keeperValid || row.group !== authorized.group || row.bytes !== authorized.bytes || row.sha256 !== authorized.sha256 || !same(row.before, original) || !same(contentMetadata(row.after), contentMetadata(expectedAfter!)) || row.after.ino === row.before.ino || row.after.dev !== row.before.dev) throw ValidationError('Application receipt contains an unauthorized or inconsistent replacement')
+    if (!authorized || applied.has(row.path) || retained.has(row.path) || authorizationDiffers(row, authorized, keeperValid) || replacementInconsistent(row, original, expectedAfter)) throw ValidationError('Application receipt contains an unauthorized or inconsistent replacement')
     applied.set(row.path, row)
   }
   if (complete && (applied.size + retained.size !== planned.size || ![...planned.keys()].every(path => applied.has(path) || retained.has(path)))) throw ValidationError('Applied and retained path sets differ from authorized plan')
@@ -273,22 +285,40 @@ const validateReceiptRows = (inputs: Awaited<ReturnType<typeof loadInputs>>, rec
   return applied
 }
 
+type ApplicationRequest = { planPath: string; output: string; dependencies: MediaConsolidationDependencies }
+const resumeDiffers = (resumed: MediaConsolidationReceipt, request: ApplicationRequest, inputs: LoadedInputs): boolean =>
+  dirname(request.dependencies.resumeReceipt!) !== request.output || resumed.planPath !== request.planPath || resumed.planSha256 !== inputs.planSha256 || resumed.nativeBaselineSha256 !== inputs.nativeBaselineSha256 || !['running', 'failed'].includes(resumed.status)
+type KeeperPolicySelection = { catalogPath: string | undefined; acceptKernelProvenance: boolean | undefined; resumed: MediaConsolidationReceipt | undefined }
+const assertKeeperPolicySelection = (dependencies: MediaConsolidationDependencies, selection: KeeperPolicySelection): void => {
+  if (dependencies.acceptKernelProvenance && dependencies.metadataCompatibleKeepers) throw UsageError('Select one explicit keeper policy')
+  if (selection.catalogPath && !dependencies.metadataCompatibleKeepers && !selection.acceptKernelProvenance && selection.resumed?.keeperPolicy !== 'metadata-compatible') throw UsageError('Read-only keeper catalogs require the explicit metadata-compatible keeper policy')
+}
+const resumedCatalogChanged = (resumed: MediaConsolidationReceipt, catalogPath: string | undefined, catalog: KeeperCatalog | undefined): boolean =>
+  resumed.keeperCatalogPath !== catalogPath || resumed.keeperCatalogSha256 !== catalog?.sha256 || !same(resumed.auxiliaryKeepers, catalog?.keepers)
+const outputOverlapsSource = (inputs: LoadedInputs, output: string): boolean => {
+  for (const row of [...inputs.plan.mediaFiles, ...inputs.plan.preservedFiles]) if (row.path === output || row.path.startsWith(`${output}/`) || output.startsWith(`${row.path}/`)) return true
+  return false
+}
+const sharesFileIdentity = (candidate: { ino: number; nlink: number; dev: number }, before: NativeMetadata, keeperBefore: NativeMetadata): boolean =>
+  candidate.ino === before.ino || candidate.ino === keeperBefore.ino || candidate.nlink !== 1 || candidate.dev !== before.dev
+const kernelAssignmentChanged = (assignment: void | NativeCloneAssignment, atCreation: NativeMetadata, row: MediaRow, cloneIdentity: PreservedIdentity): boolean =>
+  !assignment || (atCreation.xattrSha256[KERNEL_PROVENANCE] ?? null) !== assignment.kernelAssignedXattrs[KERNEL_PROVENANCE] || atCreation.sha256 !== row.sha256 || atCreation.ino !== cloneIdentity.ino
+
 export const applyMediaConsolidation = async (projectRoot: string, planPath: string, output: string, dependencies: MediaConsolidationDependencies = {}): Promise<MediaConsolidationReceipt> => {
   const root = await rootPath(projectRoot)
   pathValue(planPath); pathValue(output)
   const inputs = await loadInputs(root, planPath)
   if (dependencies.expectedPlanSha256 && inputs.planSha256 !== dependencies.expectedPlanSha256) throw ValidationError('Plan differs from the explicitly authorized checksum')
   const resumed = dependencies.resumeReceipt ? await readReceipt(root, dependencies.resumeReceipt) : undefined
-  if (resumed && (dirname(dependencies.resumeReceipt!) !== output || resumed.planPath !== planPath || resumed.planSha256 !== inputs.planSha256 || resumed.nativeBaselineSha256 !== inputs.nativeBaselineSha256 || !['running', 'failed'].includes(resumed.status))) throw ValidationError('Resume receipt differs from the original incomplete application')
+  if (resumed && resumeDiffers(resumed, { planPath, output, dependencies }, inputs)) throw ValidationError('Resume receipt differs from the original incomplete application')
   const catalogPath = dependencies.keeperCatalogPath ?? resumed?.keeperCatalogPath
   const acceptKernelProvenance = dependencies.acceptKernelProvenance || resumed?.keeperPolicy === 'original-plan-with-kernel-provenance'
   const adapter = dependencies.adapter ?? await createNativeMediaCloneAdapter({ acceptKernelProvenance })
-  if (dependencies.acceptKernelProvenance && dependencies.metadataCompatibleKeepers) throw UsageError('Select one explicit keeper policy')
-  if (catalogPath && !dependencies.metadataCompatibleKeepers && !acceptKernelProvenance && resumed?.keeperPolicy !== 'metadata-compatible') throw UsageError('Read-only keeper catalogs require the explicit metadata-compatible keeper policy')
+  assertKeeperPolicySelection(dependencies, { catalogPath, acceptKernelProvenance, resumed })
   const catalog = catalogPath ? await readKeeperCatalog(root, catalogPath, inputs) : undefined
-  if (resumed?.keeperCatalogPath && (resumed.keeperCatalogPath !== catalogPath || resumed.keeperCatalogSha256 !== catalog?.sha256 || !same(resumed.auxiliaryKeepers, catalog?.keepers))) throw ValidationError('Original read-only keeper catalog changed')
+  if (resumed?.keeperCatalogPath && resumedCatalogChanged(resumed, catalogPath, catalog)) throw ValidationError('Original read-only keeper catalog changed')
   const outputPath = await checked(root, output, true)
-  for (const row of [...inputs.plan.mediaFiles, ...inputs.plan.preservedFiles]) if (row.path === output || row.path.startsWith(`${output}/`) || output.startsWith(`${row.path}/`)) throw ValidationError('Receipt output overlaps a source')
+  if (outputOverlapsSource(inputs, output)) throw ValidationError('Receipt output overlaps a source')
   if (!resumed) await mkdir(outputPath, { recursive: false, mode: 0o700 })
   const lease = await (dependencies.acquireLease ?? acquireProjectMaintenanceLease)(root)
   const receipt: MediaConsolidationReceipt = resumed ?? { schemaVersion: 1, operation: 'native-copy-on-write-consolidation', status: 'running', startedAt: new Date().toISOString(), planPath, planSha256: inputs.planSha256, nativeBaselinePath: inputs.nativeBaselinePath, nativeBaselineSha256: inputs.nativeBaselineSha256, logicalReplacementBytes: 0, appliedFiles: [], preservedFiles: [] }
@@ -360,16 +390,16 @@ export const applyMediaConsolidation = async (projectRoot: string, planPath: str
       await event({ phase: 'clone-started', path: row.path, keeperPath: row.keeperPath, effectiveKeeperPath, temporaryPath: temporaryRelative, before })
       const assignment = await adapter.clone(keeper, temporary)
       const cloneIdentity = await identity(root, temporaryRelative, row.sha256)
-      if (cloneIdentity.ino === before.ino || cloneIdentity.ino === keeperBefore.ino || cloneIdentity.nlink !== 1 || cloneIdentity.dev !== before.dev) throw ValidationError(`Clone is not an independent regular file: ${row.path}`)
+      if (sharesFileIdentity(cloneIdentity, before, keeperBefore)) throw ValidationError(`Clone is not an independent regular file: ${row.path}`)
       const changes = kernelChanges(before, assignment, receipt.keeperPolicy === 'original-plan-with-kernel-provenance'), expectedAfter = metadataAfterKernelAssignment(before, changes, receipt.keeperPolicy === 'original-plan-with-kernel-provenance')
       if (receipt.keeperPolicy === 'original-plan-with-kernel-provenance') {
         const atCreation = await adapter.capture(root, temporaryRelative)
-        if (!assignment || (atCreation.xattrSha256[KERNEL_PROVENANCE] ?? null) !== assignment.kernelAssignedXattrs[KERNEL_PROVENANCE] || atCreation.sha256 !== row.sha256 || atCreation.ino !== cloneIdentity.ino) throw ValidationError(`Native clone kernel assignment changed before metadata copying: ${row.path}`)
+        if (kernelAssignmentChanged(assignment, atCreation, row, cloneIdentity)) throw ValidationError(`Native clone kernel assignment changed before metadata copying: ${row.path}`)
         await event({ phase: 'native-kernel-assignment-captured', path: row.path, temporaryPath: temporaryRelative, assignment, kernelAssignedXattrChanges: changes })
       }
       await adapter.copyMetadata(target, temporary)
       const clone = await adapter.capture(root, temporaryRelative), cloneAsTarget = { ...clone, path: row.path }
-      if (!same(contentMetadata(cloneAsTarget), contentMetadata(expectedAfter)) || clone.ino === before.ino || clone.ino === keeperBefore.ino || clone.nlink !== 1 || clone.dev !== before.dev) throw ValidationError(`Clone integrity or metadata mismatch: ${row.path}`)
+      if (!same(contentMetadata(cloneAsTarget), contentMetadata(expectedAfter)) || sharesFileIdentity(clone, before, keeperBefore)) throw ValidationError(`Clone integrity or metadata mismatch: ${row.path}`)
       await dependencies.beforeReplace?.(row.path)
       await lease.assertHeld()
       if (!same(await adapter.capture(root, row.path), before) || !same(await adapter.capture(root, effectiveKeeperPath), keeperBefore)) throw ValidationError(`Source changed before atomic replacement: ${row.path}`)

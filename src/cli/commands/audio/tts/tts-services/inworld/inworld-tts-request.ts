@@ -58,13 +58,7 @@ const canonicalRanges = (text: string, words: readonly unknown[]): Array<{ canon
   })
 }
 
-export const normalizeInworldTimestampInfo = (input: Readonly<{
-  text: string
-  timestampInfo: unknown
-  identity: TtsTimingIdentity
-}>): NormalizedTiming<'take-audio-ms'> => {
-  const timestampInfo = record(input.timestampInfo)
-  const alignment = record(timestampInfo?.['wordAlignment'])
+const inworldWordTokens = (input: Readonly<{ text: string, identity: TtsTimingIdentity }>, alignment: Readonly<Record<string, unknown>> | undefined): TimedToken[] => {
   const rawWords = Array.isArray(alignment?.['words']) ? alignment['words'] : []
   const starts = Array.isArray(alignment?.['wordStartTimeSeconds']) ? alignment['wordStartTimeSeconds'] : []
   const ends = Array.isArray(alignment?.['wordEndTimeSeconds']) ? alignment['wordEndTimeSeconds'] : []
@@ -77,21 +71,42 @@ export const normalizeInworldTimestampInfo = (input: Readonly<{
     if (typeof text !== 'string' || start === undefined || end === undefined || end < start) continue
     words.push({ ...input.identity, text, startMs: milliseconds(start), endMs: milliseconds(end), ...ranges[index] })
   }
+  return words
+}
+
+const inworldPhonemeToken = (input: Readonly<{ identity: TtsTimingIdentity }>, rawPhone: unknown): TimedToken | undefined => {
+  const phone = record(rawPhone)
+  const text = phone?.['phoneSymbol']
+  const start = finiteNumber(phone?.['startTimeSeconds'])
+  const duration = finiteNumber(phone?.['durationSeconds'])
+  const visemeSymbol = typeof phone?.['visemeSymbol'] === 'string' && phone['visemeSymbol'].trim() ? phone['visemeSymbol'].trim() : undefined
+  if (typeof text !== 'string' || start === undefined || duration === undefined) return undefined
+  return { ...input.identity, text, startMs: milliseconds(start), endMs: milliseconds(start + duration), ...(visemeSymbol ? { visemeSymbol } : {}) }
+}
+
+const inworldPhonemeTokens = (input: Readonly<{ identity: TtsTimingIdentity }>, alignment: Readonly<Record<string, unknown>> | undefined): TimedToken[] => {
   const phonemes: TimedToken[] = []
   const details = Array.isArray(alignment?.['phoneticDetails']) ? alignment['phoneticDetails'] : []
   for (const rawDetail of details) {
     const detail = record(rawDetail)
     const phones = Array.isArray(detail?.['phones']) ? detail['phones'] : []
     for (const rawPhone of phones) {
-      const phone = record(rawPhone)
-      const text = phone?.['phoneSymbol']
-      const start = finiteNumber(phone?.['startTimeSeconds'])
-      const duration = finiteNumber(phone?.['durationSeconds'])
-      const visemeSymbol = typeof phone?.['visemeSymbol'] === 'string' && phone['visemeSymbol'].trim() ? phone['visemeSymbol'].trim() : undefined
-      if (typeof text !== 'string' || start === undefined || duration === undefined) continue
-      phonemes.push({ ...input.identity, text, startMs: milliseconds(start), endMs: milliseconds(start + duration), ...(visemeSymbol ? { visemeSymbol } : {}) })
+      const token = inworldPhonemeToken(input, rawPhone)
+      if (token) phonemes.push(token)
     }
   }
+  return phonemes
+}
+
+export const normalizeInworldTimestampInfo = (input: Readonly<{
+  text: string
+  timestampInfo: unknown
+  identity: TtsTimingIdentity
+}>): NormalizedTiming<'take-audio-ms'> => {
+  const timestampInfo = record(input.timestampInfo)
+  const alignment = record(timestampInfo?.['wordAlignment'])
+  const words = inworldWordTokens(input, alignment)
+  const phonemes = inworldPhonemeTokens(input, alignment)
   const tokens = [...words, ...phonemes]
   if (tokens.length === 0) return { availability: 'unavailable', clock: 'take-audio-ms', provenance: 'unavailable', turns: [input.identity], reason: 'Inworld returned no valid word or phoneme timestamps.' }
   return {

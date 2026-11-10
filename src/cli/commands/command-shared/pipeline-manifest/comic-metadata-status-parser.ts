@@ -33,6 +33,53 @@ const providerTargetStageStatus = (
   return 'incomplete'
 }
 
+type ParsedStageRecord = Record<string, unknown> & { targetKeys: unknown[], artifactRefs: unknown[] }
+
+const isNotRequestedStage = (value: ParsedStageRecord, execution: unknown): boolean =>
+  value['status'] === 'skipped'
+  && isRecord(execution)
+  && hasOnlyKeys(execution, ['kind', 'reason'])
+  && execution['kind'] === 'none'
+  && execution['reason'] === 'not-requested'
+  && value['targetKeys'].length === 0
+  && value['artifactRefs'].length === 0
+
+const validatesLocalStageExecution = (value: ParsedStageRecord, execution: Record<string, unknown>): boolean => {
+  if (!hasOnlyKeys(execution, ['kind', 'state', 'policyReason']) || !PROVIDER_STATUS_SET.has(execution['state'] as string) || value['targetKeys'].length !== 0) return false
+  const state = execution['state'] as PipelineProviderState['status']
+  const expected = state === 'succeeded' ? 'full' : state === 'skipped' ? 'skipped' : state === 'failed' ? 'failed' : 'incomplete'
+  if (value['status'] !== expected || (state === 'skipped' && (typeof execution['policyReason'] !== 'string' || !execution['policyReason'].trim()))) return false
+  return true
+}
+
+const validatesProviderTargetStageExecution = (
+  value: ParsedStageRecord,
+  execution: Record<string, unknown>,
+  providers: readonly PipelineProviderState[],
+  operations: readonly string[]
+): boolean => {
+  if (
+    !hasOnlyKeys(execution, ['kind'])
+    || value['targetKeys'].length === 0
+    || value['targetKeys'].some(key => typeof key !== 'string')
+    || new Set(value['targetKeys'] as string[]).size !== value['targetKeys'].length
+  ) return false
+  const expected = providerTargetStageStatus(value['targetKeys'] as string[], providers, operations)
+  if (expected === undefined || value['status'] !== expected) return false
+  return true
+}
+
+const validatesRequestedStageExecution = (
+  value: ParsedStageRecord,
+  execution: Record<string, unknown>,
+  providers: readonly PipelineProviderState[],
+  operations: readonly string[]
+): boolean => {
+  if (execution['kind'] === 'local') return validatesLocalStageExecution(value, execution)
+  if (execution['kind'] === 'provider-targets') return validatesProviderTargetStageExecution(value, execution, providers, operations)
+  return false
+}
+
 const parseComicStageRecord = (
   value: unknown,
   providers: readonly PipelineProviderState[],
@@ -45,41 +92,36 @@ const parseComicStageRecord = (
     || !Array.isArray(value['targetKeys'])
     || !isArtifactRefList(value['artifactRefs'])
   ) return undefined
+  const stage = value as ParsedStageRecord
   const execution = value['execution']
   if (value['requirement'] === 'not-requested') {
-    if (
-      value['status'] !== 'skipped'
-      || !isRecord(execution)
-      || !hasOnlyKeys(execution, ['kind', 'reason'])
-      || execution['kind'] !== 'none'
-      || execution['reason'] !== 'not-requested'
-      || value['targetKeys'].length !== 0
-      || value['artifactRefs'].length !== 0
-    ) return undefined
+    if (!isNotRequestedStage(stage, execution)) return undefined
     return { requirement: 'not-requested', status: 'skipped' }
   }
   if (value['requirement'] !== 'required' && value['requirement'] !== 'optional') return undefined
   if (!isRecord(execution)) return undefined
-  if (execution['kind'] === 'local') {
-    if (!hasOnlyKeys(execution, ['kind', 'state', 'policyReason']) || !PROVIDER_STATUS_SET.has(execution['state'] as string) || value['targetKeys'].length !== 0) return undefined
-    const state = execution['state'] as PipelineProviderState['status']
-    const expected = state === 'succeeded' ? 'full' : state === 'skipped' ? 'skipped' : state === 'failed' ? 'failed' : 'incomplete'
-    if (value['status'] !== expected || (state === 'skipped' && (typeof execution['policyReason'] !== 'string' || !execution['policyReason'].trim()))) return undefined
-  } else if (execution['kind'] === 'provider-targets') {
-    if (
-      !hasOnlyKeys(execution, ['kind'])
-      || value['targetKeys'].length === 0
-      || value['targetKeys'].some(key => typeof key !== 'string')
-      || new Set(value['targetKeys'] as string[]).size !== value['targetKeys'].length
-    ) return undefined
-    const expected = providerTargetStageStatus(value['targetKeys'] as string[], providers, operations)
-    if (expected === undefined || value['status'] !== expected) return undefined
-  } else return undefined
+  if (!validatesRequestedStageExecution(stage, execution, providers, operations)) return undefined
   return { requirement: value['requirement'], status: value['status'] as PipelineManifestItem['status'] }
 }
 
 const validatesOptionalArtifactRef = (envelope: Record<string, unknown>, key: string): boolean =>
   envelope[key] === undefined || isArtifactRef(envelope[key])
+
+const isSelectedAudioRunRef = (ref: unknown): boolean =>
+  isRecord(ref)
+  && hasOnlyKeys(ref, ['targetKey', 'renderIdentity', 'audioRunId', 'audioRunRef', 'audioRunSha256'])
+  && typeof ref['targetKey'] === 'string'
+  && ref['targetKey'].trim().length > 0
+  && isSha256(ref['renderIdentity'])
+  && isSha256(ref['audioRunId'])
+  && isStrictArtifactRelativePath(ref['audioRunRef'])
+  && isSha256(ref['audioRunSha256'])
+
+const isSelectedSoundscapeRunRef = (ref: unknown): boolean => {
+  if (!isRecord(ref) || !hasOnlyKeys(ref, ['targetKey', 'dialogueAudioRunId', 'soundscapeAudioRunId', 'audioRunRef', 'audioRunSha256', 'masterRef'])) return false
+  if (typeof ref['targetKey'] !== 'string' || !isSha256(ref['dialogueAudioRunId']) || !isSha256(ref['soundscapeAudioRunId']) || !isStrictArtifactRelativePath(ref['audioRunRef']) || !isSha256(ref['audioRunSha256'])) return false
+  return isArtifactRef(ref['masterRef'])
+}
 
 const parseAudioEnvelope = (value: unknown): Record<string, unknown> | undefined => {
   if (!isRecord(value) || !hasOnlyKeys(value, ['sceneRunIdentity', 'structuredScript', 'dialoguePlanId', 'dialoguePlanRef', 'snapshotId', 'snapshotRef', 'selectedAudioRuns', 'publishedAudioRunId', 'mixPlanRef', 'finalTimelineRef', 'finalOutputRefs', 'soundscapePlanId', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef', 'selectedSoundscapeRuns'])) return undefined
@@ -92,12 +134,8 @@ const parseAudioEnvelope = (value: unknown): Record<string, unknown> | undefined
     if (!validatesOptionalArtifactRef(value, key)) return undefined
   }
   if (value['finalOutputRefs'] !== undefined && !isArtifactRefList(value['finalOutputRefs'])) return undefined
-  if (value['selectedAudioRuns'] !== undefined && (!Array.isArray(value['selectedAudioRuns']) || value['selectedAudioRuns'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['targetKey', 'renderIdentity', 'audioRunId', 'audioRunRef', 'audioRunSha256']) || !Object.values(ref).every(field => typeof field === 'string') || !isSha256(ref['audioRunSha256'])))) return undefined
-  if (value['selectedSoundscapeRuns'] !== undefined && (!Array.isArray(value['selectedSoundscapeRuns']) || value['selectedSoundscapeRuns'].some(ref => {
-    if (!isRecord(ref) || !hasOnlyKeys(ref, ['targetKey', 'dialogueAudioRunId', 'soundscapeAudioRunId', 'audioRunRef', 'audioRunSha256', 'masterRef'])) return true
-    if (typeof ref['targetKey'] !== 'string' || !isSha256(ref['dialogueAudioRunId']) || !isSha256(ref['soundscapeAudioRunId']) || !isStrictArtifactRelativePath(ref['audioRunRef']) || !isSha256(ref['audioRunSha256'])) return true
-    return !isArtifactRef(ref['masterRef'])
-  }))) return undefined
+  if (value['selectedAudioRuns'] !== undefined && (!Array.isArray(value['selectedAudioRuns']) || value['selectedAudioRuns'].some(ref => !isSelectedAudioRunRef(ref)))) return undefined
+  if (value['selectedSoundscapeRuns'] !== undefined && (!Array.isArray(value['selectedSoundscapeRuns']) || value['selectedSoundscapeRuns'].some(ref => !isSelectedSoundscapeRunRef(ref)))) return undefined
   return value
 }
 

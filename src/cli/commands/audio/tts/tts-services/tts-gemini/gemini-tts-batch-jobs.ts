@@ -148,6 +148,14 @@ const downloadRows = async function* (response: Response): AsyncGenerator<unknow
     pending += decoder.decode(); if (pending.trim()) yield JSON.parse(pending)
   } finally { await reader.cancel().catch(() => {}); reader.releaseLock() }
 }
+const matchingGeminiJobIds = (operations: readonly unknown[], job: GeminiProviderJob): string[] => {
+  const matches: string[] = []
+  for (const value of operations) {
+    const operation = geminiObject(value), metadata = operation['metadata'] ? geminiObject(operation['metadata']) : {}
+    if (metadata['displayName'] === 'autoshow-' + job.requestFingerprint || metadata['display_name'] === 'autoshow-' + job.requestFingerprint) matches.push(safeJobId(operation['name']))
+  }
+  return matches
+}
 // A request fingerprint is also the remote display name. Recover an acknowledged
 // job after a client crash by listing operations before considering redispatch.
 export const recoverGeminiSubmissions = async (root: string, run: GeminiProviderJobRun, apiKey: string, allowAmbiguousRedispatch = false, signal?: AbortSignal): Promise<void> => {
@@ -161,10 +169,7 @@ export const recoverGeminiSubmissions = async (root: string, run: GeminiProvider
       const payload = geminiObject((await geminiJsonRequest(apiKey, 'batches?pageSize=100' + (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : ''), { method: 'GET', abortSignal: signal })).json)
       const operations = payload['operations'] ?? []
       if (!Array.isArray(operations)) throw UsageError('Gemini job reconciliation returned invalid operations.')
-      for (const value of operations) {
-        const operation = geminiObject(value), metadata = operation['metadata'] ? geminiObject(operation['metadata']) : {}
-        if (metadata['displayName'] === 'autoshow-' + job.requestFingerprint || metadata['display_name'] === 'autoshow-' + job.requestFingerprint) matches.push(safeJobId(operation['name']))
-      }
+      for (const jobId of matchingGeminiJobIds(operations, job)) matches.push(jobId)
       pageToken = typeof payload['nextPageToken'] === 'string' ? payload['nextPageToken'] : ''
     } while (pageToken)
     if (matches.length > 1) throw UsageError('Multiple Gemini jobs match this submission; reconcile the job ID manually before collection.')

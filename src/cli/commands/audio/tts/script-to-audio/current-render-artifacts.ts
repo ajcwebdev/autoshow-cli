@@ -117,6 +117,15 @@ export const getCurrentTtsJournalAttemptKey = (
   return `${state.targetKey ?? `${state.service}/${state.model ?? ''}`}\0${active.renderIdentity}\0${event.attempt}\0${active.journalPath}`
 }
 
+const isCompactArchiveOnlyProjection = (incomingProjection: CanonicalAudioProviderProjection): boolean => Boolean(
+  incomingProjection.archive
+  && incomingProjection.selectedSuccess
+  && !incomingProjection.activeWork
+  && incomingProjection.branchHistory.length === 0
+  && incomingProjection.readinessAttempts.length === 0
+  && incomingProjection.renderHistory.length === 0
+)
+
 export const appendCurrentTtsProviderState = (
   current: PipelineProviderState,
   incoming: PipelineProviderState
@@ -133,12 +142,7 @@ export const appendCurrentTtsProviderState = (
   ) {
     throw UsageError('TTS resume cannot change operation-scoped target identity or its stable artifact directory. Rebuild this TTS output with the current command before resuming it.')
   }
-  const projection = incomingProjection.archive
-    && incomingProjection.selectedSuccess
-    && !incomingProjection.activeWork
-    && incomingProjection.branchHistory.length === 0
-    && incomingProjection.readinessAttempts.length === 0
-    && incomingProjection.renderHistory.length === 0
+  const projection = isCompactArchiveOnlyProjection(incomingProjection)
     ? incomingProjection
     : appendCurrentTtsProjection(
         getTtsProjectionOrThrow(current),

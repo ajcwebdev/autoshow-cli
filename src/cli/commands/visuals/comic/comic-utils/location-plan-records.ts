@@ -78,6 +78,33 @@ const readCatalogSpecifications = (locationsRoot: string): Map<string, string> =
   return specifications
 }
 
+const validateLocationPlanAnchors = (plan: LocationPlanEntry, label: string, specification: string, path: string): void => {
+  const anchorKeys = new Set<string>()
+  for (const anchor of plan.anchors) {
+    if (anchorKeys.has(anchor.key)) fail(path, `${label} lists anchor "${anchor.key}" more than once`)
+    anchorKeys.add(anchor.key)
+    if (!isAnchorGroundedInSpecification(anchor.key, specification)) fail(path, `${label} anchor "${anchor.key}" is not a substring of the "${plan.locationKey}" specification`)
+  }
+}
+
+const validateLocationPlanCameraCells = (plan: LocationPlanEntry, label: string, path: string): void => {
+  const cellIds = new Set<string>()
+  for (const cell of plan.cameraCells) {
+    if (cellIds.has(cell.id)) fail(path, `${label} lists camera cell "${cell.id}" more than once`)
+    cellIds.add(cell.id)
+    const blocking = plan.anchors.find(anchor => pointInFootprint(cell.position, anchor))
+    if (blocking) fail(path, `${label} camera cell "${cell.id}" sits inside the "${blocking.key}" footprint`)
+  }
+}
+
+const validateLocationPlanDrawing = (plan: LocationPlanEntry, label: string, context: LocationPlanValidationContext, path: string): void => {
+  if (!plan.drawing) return
+  const drawingPath = resolveLocationAssetPath(plan.drawing.path, `${label} drawing`, context.locationsRoot)
+  if (!existsSync(drawingPath)) fail(path, `${label} drawing ${plan.drawing.path} is missing under the locations root`)
+  const actual = sha256Bytes(readFileSync(drawingPath))
+  if (actual !== plan.drawing.sha256) fail(path, `${label} drawing ${plan.drawing.path} does not match its registered sha256`)
+}
+
 export const validateLocationPlanRecord = (record: LocationPlanRecord, context: LocationPlanValidationContext, path: string = getLocationPlansPath(context.locationsRoot)): LocationPlanRecord => {
   const seen = new Set<string>()
   for (const plan of record.plans) {
@@ -86,25 +113,9 @@ export const validateLocationPlanRecord = (record: LocationPlanRecord, context: 
     seen.add(plan.locationKey)
     const specification = context.specifications.get(plan.locationKey)
     if (specification === undefined) fail(path, `${label} is not a catalog location`)
-    const anchorKeys = new Set<string>()
-    for (const anchor of plan.anchors) {
-      if (anchorKeys.has(anchor.key)) fail(path, `${label} lists anchor "${anchor.key}" more than once`)
-      anchorKeys.add(anchor.key)
-      if (!isAnchorGroundedInSpecification(anchor.key, specification!)) fail(path, `${label} anchor "${anchor.key}" is not a substring of the "${plan.locationKey}" specification`)
-    }
-    const cellIds = new Set<string>()
-    for (const cell of plan.cameraCells) {
-      if (cellIds.has(cell.id)) fail(path, `${label} lists camera cell "${cell.id}" more than once`)
-      cellIds.add(cell.id)
-      const blocking = plan.anchors.find(anchor => pointInFootprint(cell.position, anchor))
-      if (blocking) fail(path, `${label} camera cell "${cell.id}" sits inside the "${blocking.key}" footprint`)
-    }
-    if (plan.drawing) {
-      const drawingPath = resolveLocationAssetPath(plan.drawing.path, `${label} drawing`, context.locationsRoot)
-      if (!existsSync(drawingPath)) fail(path, `${label} drawing ${plan.drawing.path} is missing under the locations root`)
-      const actual = sha256Bytes(readFileSync(drawingPath))
-      if (actual !== plan.drawing.sha256) fail(path, `${label} drawing ${plan.drawing.path} does not match its registered sha256`)
-    }
+    validateLocationPlanAnchors(plan, label, specification!, path)
+    validateLocationPlanCameraCells(plan, label, path)
+    validateLocationPlanDrawing(plan, label, context, path)
     const expected = computeLocationPlanGeometrySha256(plan)
     if (plan.geometrySha256 !== expected) fail(path, `${label} geometrySha256 does not match its geometry (expected ${expected})`)
   }

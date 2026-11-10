@@ -103,6 +103,22 @@ const toTarget = (accumulator: TargetAccumulator): OcrBatchDiagnosticTarget => {
   }
 }
 
+const recordProviderError = (
+  accumulator: TargetAccumulator,
+  error: Record<string, unknown>,
+  itemIndex: number
+): void => {
+  const rateLimited = error['status'] === 429 || error['category'] === 'rate_limit' || error['failureKind'] === 'rate_limit'
+  if (rateLimited) accumulator.rateLimitFailures += 1
+  if (typeof error['retryAfterMs'] === 'number' && error['retryAfterMs'] > 0) accumulator.retryAfterMs += error['retryAfterMs']
+  if (error['retryable'] === false || typeof error['blockedReason'] === 'string') {
+    const category = normalizedBlockerCategory(error)
+    const items = accumulator.blockerItems.get(category) ?? new Set<number>()
+    items.add(itemIndex)
+    accumulator.blockerItems.set(category, items)
+  }
+}
+
 export const deriveOcrBatchDiagnostics = (
   manifest: PipelineManifest,
   sourceManifestSha256: string
@@ -124,17 +140,7 @@ export const deriveOcrBatchDiagnostics = (
       accumulator.retries += Math.max(0, attempts - 1)
 
       const error = providerState.error
-      if (error) {
-        const rateLimited = error['status'] === 429 || error['category'] === 'rate_limit' || error['failureKind'] === 'rate_limit'
-        if (rateLimited) accumulator.rateLimitFailures += 1
-        if (typeof error['retryAfterMs'] === 'number' && error['retryAfterMs'] > 0) accumulator.retryAfterMs += error['retryAfterMs']
-        if (error['retryable'] === false || typeof error['blockedReason'] === 'string') {
-          const category = normalizedBlockerCategory(error)
-          const items = accumulator.blockerItems.get(category) ?? new Set<number>()
-          items.add(itemIndex)
-          accumulator.blockerItems.set(category, items)
-        }
-      }
+      if (error) recordProviderError(accumulator, error, itemIndex)
 
       const providerEstimatedRows = matchingCostRows(estimatedRows, providerState.service, providerState.model)
       const providerActualRows = matchingCostRows(actualRows, providerState.service, providerState.model)

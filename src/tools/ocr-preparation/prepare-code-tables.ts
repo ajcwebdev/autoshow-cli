@@ -73,6 +73,53 @@ export const tableTokenText = (tokens: string[]): string => {
   return text.replace(/\s+/g, ' ').trim()
 }
 
+interface TableStructureCursor {
+  row: number
+  inRow: boolean
+  cellOpen: boolean
+  column: number
+  columns: number
+  header: boolean
+}
+
+/** Advance the cursor for every tag that does not open a cell; returns false for a possible cell opening. */
+const applyTableStructureTag = (cursor: TableStructureCursor, tag: string): boolean => {
+  if (tag === '<thead>') { cursor.header = true; return true }
+  if (tag === '</thead>') { cursor.header = false; return true }
+  if (['<tbody>', '</tbody>', '<table>', '</table>'].includes(tag)) return true
+  if (tag === '<tr>') {
+    if (cursor.inRow || cursor.cellOpen) throw new AppValidationError('Nested table row')
+    cursor.row++; cursor.inRow = true; cursor.column = 0; return true
+  }
+  if (tag === '</tr>') {
+    if (!cursor.inRow || cursor.cellOpen) throw new AppValidationError('Unclosed table cell')
+    cursor.inRow = false; return true
+  }
+  if (tag === '</td>' || tag === '</th>') {
+    if (!cursor.cellOpen) throw new AppValidationError('Unmatched closing table cell')
+    cursor.cellOpen = false; return true
+  }
+  return false
+}
+
+const parseTableCellOpening = (cursor: TableStructureCursor, tag: string): { element: string | undefined, rowSpan: number, columnSpan: number } => {
+  const opening = /^<(td|th)((?:\s+(?:rowspan|colspan)="[1-9]\d*")*)>$/.exec(tag)
+  if (!opening || !cursor.inRow || cursor.cellOpen) throw new AppValidationError(`Invalid table structure tag: ${tag}`)
+  const attrs = opening[2] ?? ''
+  const rowSpan = Number(/rowspan="(\d+)"/.exec(attrs)?.[1] ?? '1')
+  const columnSpan = Number(/colspan="(\d+)"/.exec(attrs)?.[1] ?? '1')
+  if ((attrs.match(/rowspan=/g)?.length ?? 0) > 1 || (attrs.match(/colspan=/g)?.length ?? 0) > 1 || rowSpan > 1000 || columnSpan > 1000) throw new AppValidationError('Invalid table span')
+  return { element: opening[1], rowSpan, columnSpan }
+}
+
+const occupyTableSpan = (occupied: Set<string>, cursor: TableStructureCursor, rowSpan: number, columnSpan: number): void => {
+  for (let r = cursor.row; r < cursor.row + rowSpan; r++) for (let c = cursor.column; c < cursor.column + columnSpan; c++) {
+    const key = `${r}:${c}`
+    if (occupied.has(key)) throw new AppValidationError('Overlapping table cells')
+    occupied.add(key)
+  }
+}
+
 /** Map official row-major structure onto source cells without deleting blank or merged cells. */
 export const canonicalizeTable = (source: TableSourceRecord): CanonicalTable => {
   if (!source.filename || !Array.isArray(source.html?.cells) || !Array.isArray(source.html.structure?.tokens)) throw new AppValidationError('Invalid table source record')
@@ -82,52 +129,25 @@ export const canonicalizeTable = (source: TableSourceRecord): CanonicalTable => 
   if (tags.join('') !== structure) throw new AppValidationError('Unexpected text in table structure')
   const occupied = new Set<string>()
   const cells: CanonicalTableCell[] = []
-  let row = -1
-  let inRow = false
-  let cellOpen = false
-  let column = 0
-  let columns = 0
-  let header = false
+  const cursor: TableStructureCursor = { row: -1, inRow: false, cellOpen: false, column: 0, columns: 0, header: false }
   for (const tag of tags) {
-    if (tag === '<thead>') { header = true; continue }
-    if (tag === '</thead>') { header = false; continue }
-    if (['<tbody>', '</tbody>', '<table>', '</table>'].includes(tag)) continue
-    if (tag === '<tr>') {
-      if (inRow || cellOpen) throw new AppValidationError('Nested table row')
-      row++; inRow = true; column = 0; continue
-    }
-    if (tag === '</tr>') {
-      if (!inRow || cellOpen) throw new AppValidationError('Unclosed table cell')
-      inRow = false; continue
-    }
-    if (tag === '</td>' || tag === '</th>') {
-      if (!cellOpen) throw new AppValidationError('Unmatched closing table cell')
-      cellOpen = false; continue
-    }
-    const opening = /^<(td|th)((?:\s+(?:rowspan|colspan)="[1-9]\d*")*)>$/.exec(tag)
-    if (!opening || !inRow || cellOpen) throw new AppValidationError(`Invalid table structure tag: ${tag}`)
-    const attrs = opening[2] ?? ''
-    const rowSpan = Number(/rowspan="(\d+)"/.exec(attrs)?.[1] ?? '1')
-    const columnSpan = Number(/colspan="(\d+)"/.exec(attrs)?.[1] ?? '1')
-    if ((attrs.match(/rowspan=/g)?.length ?? 0) > 1 || (attrs.match(/colspan=/g)?.length ?? 0) > 1 || rowSpan > 1000 || columnSpan > 1000) throw new AppValidationError('Invalid table span')
-    while (occupied.has(`${row}:${column}`)) column++
+    if (applyTableStructureTag(cursor, tag)) continue
+    const { element, rowSpan, columnSpan } = parseTableCellOpening(cursor, tag)
+    while (occupied.has(`${cursor.row}:${cursor.column}`)) cursor.column++
     const sourceCell = source.html.cells[cells.length]
     if (!sourceCell) throw new AppValidationError('Structure has more cells than annotations')
     if (sourceCell.span && (sourceCell.span.rowspan !== rowSpan || sourceCell.span.colspan !== columnSpan)) throw new AppValidationError('Cell span disagrees with structure')
-    for (let r = row; r < row + rowSpan; r++) for (let c = column; c < column + columnSpan; c++) {
-      const key = `${r}:${c}`
-      if (occupied.has(key)) throw new AppValidationError('Overlapping table cells')
-      occupied.add(key)
-    }
-    cells.push({ index: cells.length, row, column, rowSpan, columnSpan,
+    occupyTableSpan(occupied, cursor, rowSpan, columnSpan)
+    cells.push({ index: cells.length, row: cursor.row, column: cursor.column, rowSpan, columnSpan,
       text: tableTokenText(sourceCell.tokens), rawTokens: [...sourceCell.tokens],
-      ...(sourceCell.bbox ? { bbox: [...sourceCell.bbox] } : {}), isHeader: sourceCell.is_header ?? (header || opening[1] === 'th') })
-    column += columnSpan; columns = Math.max(columns, column); cellOpen = true
+      ...(sourceCell.bbox ? { bbox: [...sourceCell.bbox] } : {}), isHeader: sourceCell.is_header ?? (cursor.header || element === 'th') })
+    cursor.column += columnSpan; cursor.columns = Math.max(cursor.columns, cursor.column); cursor.cellOpen = true
   }
-  if (inRow || cellOpen || cells.length !== source.html.cells.length || row < 0) throw new AppValidationError('Table structure/reference cell mismatch')
+  const row = cursor.row
+  if (cursor.inRow || cursor.cellOpen || cells.length !== source.html.cells.length || row < 0) throw new AppValidationError('Table structure/reference cell mismatch')
   if (cells.some(cell => cell.row + cell.rowSpan > row + 1)) throw new AppValidationError('Row span extends beyond table')
   return { schemaVersion: 1, kind: 'ocr-table-canonical', filename: source.filename, rowCount: row + 1,
-    columnCount: columns, cells, structureTokens: [...source.html.structure.tokens] }
+    columnCount: cursor.columns, cells, structureTokens: [...source.html.structure.tokens] }
 }
 
 /** TSV is a derived reading view. Spanned continuations stay empty; source anchor text occurs once. */

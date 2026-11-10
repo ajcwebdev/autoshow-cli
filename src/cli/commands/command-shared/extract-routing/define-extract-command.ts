@@ -13,7 +13,7 @@ import { runExtractTranscriptVideo } from '../../stt/workflows/transcript-video/
 import { UsageError } from '~/utils/error-handler'
 import { formatValueList, withHelpGroup } from '~/cli/flags/flag-utils'
 import { CAPTION_FORMAT_SELECTIONS, DEFAULT_CAPTION_FORMAT } from '../../stt/workflows/captions/caption-editor-formats'
-import type { CliFlagsDefinition } from '~/types'
+import type { CliCommandContext, CliFlagsDefinition } from '~/types'
 import { TRANSCRIPT_CUE_LIMITS } from '../../audio/music/lyrics-video/cue-builder'
 
 const inputParameter = [{ key: '[input]', description: 'URL, local file, directory, URL list (.md/.txt), or X Space link' }] as const
@@ -87,6 +87,36 @@ const TRANSCRIPT_VIDEO_REQUIRING_FLAGS = [
   'keep-tmp'
 ] as const
 
+const assertDocxMarkdownExclusiveFlags = (ctx: CliCommandContext): void => {
+  const allowed = new Set(['docx-markdown', 'price', 'output-dir', 'output-root', 'json', 'quiet', 'verbose', 'log-level', 'color'])
+  for (const flag of ctx.rawParsed.explicitFlags) if (!allowed.has(flag)) throw UsageError(`--${flag} cannot be combined with --docx-markdown.`)
+}
+
+const assertTranscriptReviewIsOffline = (ctx: CliCommandContext): void => {
+  if (ctx.flags['transcript-review'] === true && ctx.flags['transcript-edits'] !== undefined) throw UsageError('--transcript-review and --transcript-edits are separate operations.')
+  if (ctx.flags['captions'] === true || ctx.flags['transcript-video'] === true || ctx.flags['embed-captions'] === true || ctx.flags['price'] === true || ctx.rawParsed.explicitFlags.has('provider')) throw UsageError('Transcript review/apply is an offline operation; use separate commands for transcription, pricing, and captions.')
+}
+
+const assertCaptionCommandFlags = (ctx: CliCommandContext): void => {
+  if (ctx.flags['transcript-video'] === true) throw UsageError('--captions and --transcript-video cannot be combined.')
+  validateCaptionOptions(ctx.flags)
+  if (ctx.flags['caption-container'] !== undefined && ctx.flags['embed-captions'] !== true) throw UsageError('--caption-container requires --embed-captions.')
+}
+
+const assertSavedResultCaptionFlags = (ctx: CliCommandContext): void => {
+  const incompatible = ['audio', 'transcript-text', 'font', 'keep-tmp', 'native-subtitles', 'diarization', 'stt-audio-profile', 'stt-response-format', 'stt-verbatim', 'stt-language'].filter(flag => ctx.rawParsed.explicitFlags.has(flag))
+  if (incompatible.length) throw UsageError('These options do not apply to saved-result caption export: ' + incompatible.map(flag => '--' + flag).join(', '))
+}
+
+const assertNoTranscriptVideoOnlyFlags = (ctx: CliCommandContext): void => {
+  const transcriptVideoOnlyFlags = TRANSCRIPT_VIDEO_REQUIRING_FLAGS
+    .filter((flag) => ctx.rawParsed.explicitFlags.has(flag))
+    .map((flag) => `--${flag}`)
+  if (transcriptVideoOnlyFlags.length > 0) {
+    throw UsageError(`${transcriptVideoOnlyFlags.join(', ')} require --transcript-video`)
+  }
+}
+
 export const extractCommand = defineCliCommand({
   name: 'extract',
   description: 'Route media to STT and documents/articles/images to text extraction',
@@ -117,27 +147,22 @@ export const extractCommand = defineCliCommand({
   if (ctx.flags['docx-markdown'] === true) {
     const input = ctx.parameters.input
     if (!input || !input.toLowerCase().endsWith('.docx') || !((await statPath(input).catch(() => undefined))?.isFile())) throw UsageError('--docx-markdown requires a local DOCX file.')
-    const allowed = new Set(['docx-markdown', 'price', 'output-dir', 'output-root', 'json', 'quiet', 'verbose', 'log-level', 'color'])
-    for (const flag of ctx.rawParsed.explicitFlags) if (!allowed.has(flag)) throw UsageError(`--${flag} cannot be combined with --docx-markdown.`)
+    assertDocxMarkdownExclusiveFlags(ctx)
     const { readDocxMarkdown } = await import('../../text/ocr/office/docx-markdown')
     await readDocxMarkdown(input)
   }
   if (ctx.flags['transcript-review'] === true || ctx.flags['transcript-edits'] !== undefined) {
-    if (ctx.flags['transcript-review'] === true && ctx.flags['transcript-edits'] !== undefined) throw UsageError('--transcript-review and --transcript-edits are separate operations.')
-    if (ctx.flags['captions'] === true || ctx.flags['transcript-video'] === true || ctx.flags['embed-captions'] === true || ctx.flags['price'] === true || ctx.rawParsed.explicitFlags.has('provider')) throw UsageError('Transcript review/apply is an offline operation; use separate commands for transcription, pricing, and captions.')
+    assertTranscriptReviewIsOffline(ctx)
     await runTranscriptReview(ctx.parameters.input, typeof ctx.flags['transcript-edits'] === 'string' ? ctx.flags['transcript-edits'] : undefined)
     return
   }
   if (ctx.flags['captions'] === true) {
-    if (ctx.flags['transcript-video'] === true) throw UsageError('--captions and --transcript-video cannot be combined.')
-    validateCaptionOptions(ctx.flags)
-    if (ctx.flags['caption-container'] !== undefined && ctx.flags['embed-captions'] !== true) throw UsageError('--caption-container requires --embed-captions.')
+    assertCaptionCommandFlags(ctx)
     if (ctx.flags['embed-captions'] === true) await preflightCaptionEmbedding(ctx.parameters.input, ctx.flags['caption-container'])
     const source = ctx.parameters.input
     const savedResult = typeof ctx.flags['transcript-result'] === 'string' || (typeof source === 'string' && (source.toLowerCase().endsWith('.json') || ((await statPath(source).catch(() => undefined))?.isDirectory() && await Bun.file(join(source, 'result.json')).exists())))
     if (savedResult) {
-      const incompatible = ['audio', 'transcript-text', 'font', 'keep-tmp', 'native-subtitles', 'diarization', 'stt-audio-profile', 'stt-response-format', 'stt-verbatim', 'stt-language'].filter(flag => ctx.rawParsed.explicitFlags.has(flag))
-      if (incompatible.length) throw UsageError('These options do not apply to saved-result caption export: ' + incompatible.map(flag => '--' + flag).join(', '))
+      assertSavedResultCaptionFlags(ctx)
       await runCaptionExport(ctx.parameters.input, ctx.flags)
       return
     }
@@ -149,12 +174,7 @@ export const extractCommand = defineCliCommand({
     return
   }
 
-  const transcriptVideoOnlyFlags = TRANSCRIPT_VIDEO_REQUIRING_FLAGS
-    .filter((flag) => ctx.rawParsed.explicitFlags.has(flag))
-    .map((flag) => `--${flag}`)
-  if (transcriptVideoOnlyFlags.length > 0) {
-    throw UsageError(`${transcriptVideoOnlyFlags.join(', ')} require --transcript-video`)
-  }
+  assertNoTranscriptVideoOnlyFlags(ctx)
 
   validateOcrProviderModeCommandFlags(ctx)
   await handleProcessTarget('extract', ctx.parameters.input, ctx.flags, ctx.rawParsed)

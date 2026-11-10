@@ -162,6 +162,32 @@ function rawWhisperMaxEndSeconds(rawResponse: unknown): number | null {
   return maxEndSeconds;
 }
 
+function latestSegmentEndSeconds(segments: unknown[]): number | null {
+  let latestEndSeconds: number | null = null;
+  for (const segment of segments) {
+    if (!isRecord(segment) || typeof segment["end"] !== "number" || !Number.isFinite(segment["end"])) {
+      continue;
+    }
+    latestEndSeconds = latestEndSeconds === null ? segment["end"] : Math.max(latestEndSeconds, segment["end"]);
+  }
+  return latestEndSeconds;
+}
+
+function geminiPartLatestEndSeconds(part: unknown): number | null {
+  if (!isRecord(part) || typeof part["text"] !== "string") {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(part["text"]) as unknown;
+    if (!isRecord(payload) || !Array.isArray(payload["segments"])) {
+      return null;
+    }
+    return latestSegmentEndSeconds(payload["segments"]);
+  } catch {
+    return null;
+  }
+}
+
 function rawGeminiLatestEndSeconds(rawResponse: unknown): number | null {
   if (!isRecord(rawResponse) || !Array.isArray(rawResponse["candidates"])) {
     return null;
@@ -171,26 +197,9 @@ function rawGeminiLatestEndSeconds(rawResponse: unknown): number | null {
       continue;
     }
     for (const part of candidate["content"]["parts"]) {
-      if (!isRecord(part) || typeof part["text"] !== "string") {
-        continue;
-      }
-      try {
-        const payload = JSON.parse(part["text"]) as unknown;
-        if (!isRecord(payload) || !Array.isArray(payload["segments"])) {
-          continue;
-        }
-        let latestEndSeconds: number | null = null;
-        for (const segment of payload["segments"]) {
-          if (!isRecord(segment) || typeof segment["end"] !== "number" || !Number.isFinite(segment["end"])) {
-            continue;
-          }
-          latestEndSeconds = latestEndSeconds === null ? segment["end"] : Math.max(latestEndSeconds, segment["end"]);
-        }
-        if (latestEndSeconds !== null) {
-          return latestEndSeconds;
-        }
-      } catch {
-        continue;
+      const latestEndSeconds = geminiPartLatestEndSeconds(part);
+      if (latestEndSeconds !== null) {
+        return latestEndSeconds;
       }
     }
   }
@@ -662,13 +671,58 @@ interface SttMetricProvider {
   actualProcessingTimeMs: number | null;
   actualCostCents: number | null;
   speakerPenalty: number;
-  speakerMap: Map<string, string>;
+  speakerMap: Record<string, string>;
   qualityWarnings: string[];
   duplicateGroupId?: string;
 }
 
 function finiteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function preservedProviderFromRecord(value: unknown): SttMetricProvider | null {
+  if (!isRecord(value) || typeof value["providerKey"] !== "string") {
+    return null;
+  }
+  const metrics = isRecord(value["metrics"]) ? value["metrics"] : {};
+  const score = finiteNumber(value["score"]) ?? finiteNumber(metrics["score"]);
+  const speakerAwareWER = finiteNumber(value["speakerAwareWER"]) ?? finiteNumber(metrics["speakerAwareWER"]);
+  const textOnlyWER = finiteNumber(value["textOnlyWER"]) ?? finiteNumber(metrics["textOnlyWER"]);
+  if (score === null || speakerAwareWER === null || textOnlyWER === null) {
+    return null;
+  }
+  const textOnlyBreakdown = isRecord(value["textOnlyBreakdown"])
+    ? value["textOnlyBreakdown"] as SttMetricProvider["textOnlyBreakdown"]
+    : { substitutions: 0, deletions: 0, insertions: 0, referenceWordCount: 0 };
+  const speakerAwareBreakdown = isRecord(value["speakerAwareBreakdown"])
+    ? value["speakerAwareBreakdown"] as SttMetricProvider["speakerAwareBreakdown"]
+    : { substitutions: 0, deletions: 0, insertions: 0, referenceWordCount: 0 };
+  const speakerMapValue = isRecord(value["speakerMap"]) ? value["speakerMap"] : {};
+  const supports = value["supportsDiarization"] === true;
+  const diarizationSupport: DiarizationSupport = supports ? "supported" : "not-supported";
+  return {
+    provider: typeof value["provider"] === "string" ? value["provider"] : value["providerKey"],
+    providerKey: value["providerKey"],
+    group: value["group"] === "local" ? "local" : "cloud",
+    supportsDiarization: supports,
+    diarizationSupport,
+    tokenCount: finiteNumber(value["tokenCount"]),
+    transcriptTextHash: typeof value["transcriptTextHash"] === "string" ? value["transcriptTextHash"] : "",
+    segmentStats: value["segmentStats"] as ReturnType<typeof computeProviderSegmentStats>,
+    score,
+    speakerAwareWER,
+    textOnlyWER,
+    textOnlyBreakdown,
+    speakerAwareBreakdown,
+    actualProcessingTimeMs: finiteNumber(value["actualProcessingTimeMs"]) ?? finiteNumber(value["processingTimeMs"]),
+    actualCostCents: finiteNumber(value["actualCostCents"]) ?? finiteNumber(value["costCents"]),
+    speakerPenalty: finiteNumber(value["speakerPenalty"]) ?? speakerAwareWER - textOnlyWER,
+    speakerMap: Object.fromEntries(Object.entries(speakerMapValue).filter((entry): entry is [string, string] => typeof entry[1] === "string")),
+    qualityWarnings: Array.isArray(value["qualityWarnings"])
+      ? value["qualityWarnings"].filter((warning): warning is string => typeof warning === "string")
+      : [],
+    ...(typeof value["duplicateGroupId"] === "string" ? { duplicateGroupId: value["duplicateGroupId"] } : {}),
+  };
 }
 
 function preservedProvidersFromReport(reportPath: string): SttMetricProvider[] {
@@ -683,48 +737,10 @@ function preservedProvidersFromReport(reportPath: string): SttMetricProvider[] {
       continue;
     }
     for (const value of groupValue["providers"]) {
-      if (!isRecord(value) || typeof value["providerKey"] !== "string") {
-        continue;
+      const provider = preservedProviderFromRecord(value);
+      if (provider) {
+        providers.push(provider);
       }
-      const metrics = isRecord(value["metrics"]) ? value["metrics"] : {};
-      const score = finiteNumber(value["score"]) ?? finiteNumber(metrics["score"]);
-      const speakerAwareWER = finiteNumber(value["speakerAwareWER"]) ?? finiteNumber(metrics["speakerAwareWER"]);
-      const textOnlyWER = finiteNumber(value["textOnlyWER"]) ?? finiteNumber(metrics["textOnlyWER"]);
-      if (score === null || speakerAwareWER === null || textOnlyWER === null) {
-        continue;
-      }
-      const textOnlyBreakdown = isRecord(value["textOnlyBreakdown"])
-        ? value["textOnlyBreakdown"] as SttMetricProvider["textOnlyBreakdown"]
-        : { substitutions: 0, deletions: 0, insertions: 0, referenceWordCount: 0 };
-      const speakerAwareBreakdown = isRecord(value["speakerAwareBreakdown"])
-        ? value["speakerAwareBreakdown"] as SttMetricProvider["speakerAwareBreakdown"]
-        : { substitutions: 0, deletions: 0, insertions: 0, referenceWordCount: 0 };
-      const speakerMapValue = isRecord(value["speakerMap"]) ? value["speakerMap"] : {};
-      const supports = value["supportsDiarization"] === true;
-      const diarizationSupport: DiarizationSupport = supports ? "supported" : "not-supported";
-      providers.push({
-        provider: typeof value["provider"] === "string" ? value["provider"] : value["providerKey"],
-        providerKey: value["providerKey"],
-        group: value["group"] === "local" ? "local" : "cloud",
-        supportsDiarization: supports,
-        diarizationSupport,
-        tokenCount: finiteNumber(value["tokenCount"]),
-        transcriptTextHash: typeof value["transcriptTextHash"] === "string" ? value["transcriptTextHash"] : "",
-        segmentStats: value["segmentStats"] as ReturnType<typeof computeProviderSegmentStats>,
-        score,
-        speakerAwareWER,
-        textOnlyWER,
-        textOnlyBreakdown,
-        speakerAwareBreakdown,
-        actualProcessingTimeMs: finiteNumber(value["actualProcessingTimeMs"]) ?? finiteNumber(value["processingTimeMs"]),
-        actualCostCents: finiteNumber(value["actualCostCents"]) ?? finiteNumber(value["costCents"]),
-        speakerPenalty: finiteNumber(value["speakerPenalty"]) ?? speakerAwareWER - textOnlyWER,
-        speakerMap: new Map(Object.entries(speakerMapValue).filter((entry): entry is [string, string] => typeof entry[1] === "string")),
-        qualityWarnings: Array.isArray(value["qualityWarnings"])
-          ? value["qualityWarnings"].filter((warning): warning is string => typeof warning === "string")
-          : [],
-        ...(typeof value["duplicateGroupId"] === "string" ? { duplicateGroupId: value["duplicateGroupId"] } : {}),
-      });
     }
   }
   return providers;

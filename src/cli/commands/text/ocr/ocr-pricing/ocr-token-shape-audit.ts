@@ -115,58 +115,71 @@ const collectManifestItems = async (
 const getPartialEntries = (item: PipelineManifestItem): unknown[] =>
   Array.isArray(item.metadata['partialStep2']) ? item.metadata['partialStep2'] : []
 
+type TokenShapeSampleOptions = Pick<AuditOcrTokenShapesOptions, 'includeAllTokenProviders'>
+type TokenShapeExclusionReason = 'failed' | 'incomplete' | 'missingUsage' | 'schemaInvalid'
+
+const countSelectedPartialEntries = (
+  item: PipelineManifestItem,
+  options: TokenShapeSampleOptions,
+  excluded: OcrTokenShapeAuditReport['excludedSamples']
+): void => {
+  for (const partial of getPartialEntries(item)) {
+    if (!isRecord(partial) || !isTokenPricedOcrProvider(partial['ocrService']) || typeof partial['ocrModel'] !== 'string') continue
+    if (targetSelected(partial['ocrService'], partial['ocrModel'], options.includeAllTokenProviders)) excluded.partial += 1
+  }
+}
+
+const classifyProviderSample = (
+  item: PipelineManifestItem,
+  providerState: PipelineManifestItem['providers'][number],
+  options: TokenShapeSampleOptions
+): TokenShapeSample | TokenShapeExclusionReason | undefined => {
+  if (!isTokenPricedOcrProvider(providerState.service) || typeof providerState.model !== 'string') return undefined
+  if (!targetSelected(providerState.service, providerState.model, options.includeAllTokenProviders)) return undefined
+  if (providerState.status === 'failed') return 'failed'
+  if (providerState.status !== 'succeeded') return undefined
+  if (item.status !== 'full') return 'incomplete'
+
+  const metadata = providerState.metadata
+  const promptTokens = metadata['promptTokens']
+  const completionTokens = metadata['completionTokens']
+  if (typeof promptTokens !== 'number' || typeof completionTokens !== 'number') return 'missingUsage'
+  const pageCount = metadata['totalPages']
+  if (typeof pageCount !== 'number' || !Number.isFinite(pageCount) || pageCount <= 0 || promptTokens < 0 || completionTokens < 0) return 'schemaInvalid'
+
+  const pages = Math.max(1, Math.floor(pageCount))
+  return {
+    provider: providerState.service,
+    model: providerState.model,
+    ocrMode: resolveHostedOcrModeFromExtractionMethod(
+      typeof metadata['extractionMethod'] === 'string' ? metadata['extractionMethod'] : undefined,
+      typeof metadata['inputFamily'] === 'string' ? metadata['inputFamily'] : undefined
+    ),
+    pageCountBand: resolveHostedOcrTokenPageCountBand(pages),
+    effectiveReasoningEffort: reasoningPolicy(metadata['effectiveReasoningEffort']),
+    promptTokensPerPage: promptTokens / pages,
+    completionTokensPerPage: completionTokens / pages
+  }
+}
+
 const collectSamples = (
   items: readonly PipelineManifestItem[],
-  options: Pick<AuditOcrTokenShapesOptions, 'includeAllTokenProviders'>,
+  options: TokenShapeSampleOptions,
   excluded: OcrTokenShapeAuditReport['excludedSamples']
 ): TokenShapeSample[] => {
   const samples: TokenShapeSample[] = []
 
   for (const item of items) {
-    for (const partial of getPartialEntries(item)) {
-      if (!isRecord(partial) || !isTokenPricedOcrProvider(partial['ocrService']) || typeof partial['ocrModel'] !== 'string') continue
-      if (targetSelected(partial['ocrService'], partial['ocrModel'], options.includeAllTokenProviders)) excluded.partial += 1
-    }
+    countSelectedPartialEntries(item, options, excluded)
 
     for (const providerState of item.providers) {
-      if (!isTokenPricedOcrProvider(providerState.service) || typeof providerState.model !== 'string') continue
-      if (!targetSelected(providerState.service, providerState.model, options.includeAllTokenProviders)) continue
-      if (providerState.status === 'failed') {
-        excluded.failed += 1
+      const outcome = classifyProviderSample(item, providerState, options)
+      if (outcome === undefined) continue
+      if (typeof outcome === 'string') {
+        excluded[outcome] += 1
         continue
       }
-      if (providerState.status !== 'succeeded') continue
-      if (item.status !== 'full') {
-        excluded.incomplete += 1
-        continue
-      }
-
-      const metadata = providerState.metadata
-      const promptTokens = metadata['promptTokens']
-      const completionTokens = metadata['completionTokens']
-      if (typeof promptTokens !== 'number' || typeof completionTokens !== 'number') {
-        excluded.missingUsage += 1
-        continue
-      }
-      const pageCount = metadata['totalPages']
-      if (typeof pageCount !== 'number' || !Number.isFinite(pageCount) || pageCount <= 0 || promptTokens < 0 || completionTokens < 0) {
-        excluded.schemaInvalid += 1
-        continue
-      }
-
-      const pages = Math.max(1, Math.floor(pageCount))
-      samples.push({
-        provider: providerState.service,
-        model: providerState.model,
-        ocrMode: resolveHostedOcrModeFromExtractionMethod(
-          typeof metadata['extractionMethod'] === 'string' ? metadata['extractionMethod'] : undefined,
-          typeof metadata['inputFamily'] === 'string' ? metadata['inputFamily'] : undefined
-        ),
-        pageCountBand: resolveHostedOcrTokenPageCountBand(pages),
-        effectiveReasoningEffort: reasoningPolicy(metadata['effectiveReasoningEffort']),
-        promptTokensPerPage: promptTokens / pages,
-        completionTokensPerPage: completionTokens / pages
-      })
+      samples.push(outcome)
     }
   }
   return samples

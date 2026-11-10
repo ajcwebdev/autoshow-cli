@@ -14,15 +14,22 @@ const SCHEMA_MAP_KEYS = new Set(['properties', 'patternProperties', '$defs', 'de
 const SCHEMA_LIST_KEYS = new Set(['allOf', 'anyOf', 'oneOf', 'prefixItems'])
 const SCHEMA_KEYS = new Set(['items', 'not', 'if', 'then', 'else', 'additionalItems', 'propertyNames'])
 
+const isLocallyCheckedConstraint = (key: string, value: unknown): boolean =>
+  DESCRIPTION_CONSTRAINTS.has(key)
+  || (key === 'minItems' && value !== 0 && value !== 1)
+  || (key === 'format' && (typeof value !== 'string' || !SUPPORTED_FORMATS.has(value)))
+
+const isObjectSchemaNode = (node: Record<string, unknown>): boolean =>
+  node['type'] === 'object' || isRecord(node['properties'])
+  || (Array.isArray(node['type']) && node['type'].includes('object'))
+
 const transformSchemaNode = (node: unknown): unknown => {
   if (!isRecord(node)) return node
   const transformed: Record<string, unknown> = {}
   const guidance: string[] = []
   for (const [key, value] of Object.entries(node)) {
     if (key === '$schema') continue
-    if (DESCRIPTION_CONSTRAINTS.has(key)
-      || (key === 'minItems' && value !== 0 && value !== 1)
-      || (key === 'format' && (typeof value !== 'string' || !SUPPORTED_FORMATS.has(value)))) {
+    if (isLocallyCheckedConstraint(key, value)) {
       guidance.push(`${key}=${JSON.stringify(value)}`)
       if (key === 'minItems' && typeof value === 'number' && value > 1) transformed[key] = 1
       continue
@@ -35,8 +42,7 @@ const transformSchemaNode = (node: unknown): unknown => {
       transformed[key] = SCHEMA_KEYS.has(key) ? transformSchemaNode(value) : value
     }
   }
-  if (node['type'] === 'object' || isRecord(node['properties'])
-    || (Array.isArray(node['type']) && node['type'].includes('object'))) {
+  if (isObjectSchemaNode(node)) {
     transformed['additionalProperties'] = false
   }
   if (guidance.length > 0) {

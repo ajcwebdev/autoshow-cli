@@ -70,6 +70,58 @@ const artifactStatus = (value: unknown, httpStatus: number): NonNullable<Receipt
 const expectedCharge = (plan: CapacityExecutionPlan, usage: { inputTokens: number, outputTokens: number }): number =>
   round((usage.inputTokens * plan.target.pricing.inputCentsPerMillion + usage.outputTokens * plan.target.pricing.outputCentsPerMillion) / 1_000_000)
 
+const receiptLeavesApprovedChain = (receipt: Receipt, previous: string | null, plan: CapacityExecutionPlan): boolean =>
+  receipt.previousSha256 !== previous || receipt.sha256 !== receiptDigest(withoutDigest(receipt))
+  || !plan.regions.some(region => region.id === receipt.regionId) || receipt.reservedCents !== plan.spending.perAttemptReservedCents
+  || !Number.isFinite(Date.parse(receipt.createdAt))
+
+const receiptCostsBreakReservationPolicy = (receipt: Receipt, plan: CapacityExecutionPlan): boolean =>
+  ['reserved', 'ambiguous'].includes(receipt.status) && receipt.chargedCents !== receipt.reservedCents
+  || receipt.status === 'rejected' && receipt.chargedCents !== 0
+  || receipt.status === 'settled' && (!receipt.usage || receipt.chargedCents !== expectedCharge(plan, receipt.usage))
+  || receipt.status === 'breach' && receipt.chargedCents < receipt.reservedCents
+
+const assertUsageMatchesResponseEvidence = (bytes: Uint8Array, usage: NonNullable<Receipt['usage']>): void => {
+  let payload: unknown
+  try { payload = JSON.parse(new TextDecoder().decode(bytes)) } catch { fail('settled response evidence is not JSON') }
+  if (!isDeepStrictEqual(readUsage(payload), usage)) fail('receipt usage differs from its original response')
+}
+
+/** Only the fixed native controls and one reviewed prompt next to the selected region's inline PNG are admitted. */
+const assertReviewedCapacityRequest = (bodyBytes: Uint8Array, selected: CapacityExecutionPlan['regions'][number]): void => {
+  let body: unknown
+  try { body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bodyBytes)) } catch { fail('request is not JSON') }
+  if (!object(body) || !isDeepStrictEqual(Object.keys(body).sort(), ['contents', 'generationConfig'])) fail('unapproved request fields')
+  const parsed = body as Record<string, unknown>, config = parsed['generationConfig']
+  if (!isDeepStrictEqual(config, { responseMimeType: 'application/json', responseJsonSchema: HOSTED_OCR_PAGES_JSON_SCHEMA,
+    maxOutputTokens: 8192, thinkingConfig: { thinkingLevel: 'LOW' } })) fail('native output, reasoning or schema controls changed')
+  const contents = parsed['contents']
+  if (!Array.isArray(contents) || contents.length !== 1 || !object(contents[0]) || contents[0]['role'] !== 'user' || !Array.isArray(contents[0]['parts'])
+    || !isDeepStrictEqual(Object.keys(contents[0]).sort(), ['parts', 'role']) || contents[0]['parts'].length !== 2) fail('expected one reviewed text-plus-image user input')
+  const first = (contents as Record<string, unknown>[])[0]!, [prompt, image] = first['parts'] as unknown[]
+  if (!object(prompt) || Object.keys(prompt).length !== 1 || ![buildHostedOcrJsonPrompt(1), retryPrompt].includes(String(prompt['text']))
+    || !object(image) || Object.keys(image).length !== 1 || !object(image['inlineData'])) fail('unreviewed prompt, extra media or file upload')
+  const inline = (image as Record<string, unknown>)['inlineData'] as Record<string, unknown>
+  if (!isDeepStrictEqual(Object.keys(inline).sort(), ['data', 'mimeType']) || inline['mimeType'] !== 'image/png' || typeof inline['data'] !== 'string') fail('expected exactly one inline PNG')
+  const base64 = inline['data'] as string, imageBytes = Buffer.from(base64, 'base64')
+  if (imageBytes.toString('base64') !== base64 || capacityHash(imageBytes) !== selected.inputSha256) fail('request image differs from the selected region')
+  const scrubbed = { ...parsed, contents: [{ role: 'user', parts: [prompt, { inlineData: '<pinned-region>' }] }] }
+  if (Buffer.byteLength(JSON.stringify(scrubbed)) > 8192 || imageBytes.length > 5 * 1024 * 1024) fail('request text/schema or PNG exceeds the reviewed allowance')
+}
+
+/** Apply the reservation policy to a completed response; returns whether reported usage breached the allowance. */
+const settleReceiptCharge = (receipt: Receipt, usage: ReturnType<typeof readUsage>, plan: CapacityExecutionPlan, response: Response): boolean => {
+  let breached = false
+  if (usage) {
+    receipt.usage = usage; receipt.chargedCents = expectedCharge(plan, usage)
+    breached = usage.inputTokens > plan.target.inputTokenAllowance || usage.outputTokens > plan.target.maxOutputTokens || receipt.chargedCents > receipt.reservedCents
+    receipt.status = breached ? 'breach' : 'settled'
+    if (breached) receipt.chargedCents = Math.max(receipt.reservedCents, receipt.chargedCents)
+  } else if ([400, 401, 403, 404, 429].includes(response.status)) { receipt.status = 'rejected'; receipt.chargedCents = 0 }
+  else { receipt.status = 'ambiguous'; receipt.chargedCents = receipt.reservedCents }
+  return breached
+}
+
 /** Reject before transport unless the whole new plan, all regions, budget risk and independent reference review are explicitly approved. */
 export const createCapacityProtocolFetchGuard = async (options: CapacityGuardOptions): Promise<typeof fetch> => {
   const root = await realpath(options.projectRoot ?? PROJECT_ROOT)
@@ -106,7 +158,6 @@ export const createCapacityProtocolFetchGuard = async (options: CapacityGuardOpt
   if (decoded.width !== selected.width || decoded.height !== selected.height || decoded.pixelSha256 !== selected.pixelSha256) fail('selected region PNG is invalid')
   const originalFetch = globalThis.fetch
   const fetchImplementation = options.fetchImplementation ?? (async (request: Request) => await originalFetch(request))
-  const usageCents = (usage: { inputTokens: number, outputTokens: number }) => expectedCharge(plan, usage)
 
   const loadLedger = async (): Promise<Ledger> => {
     if (await capacityExistingPath(root, plan.ledger) !== ledgerPath) fail('ledger route changed')
@@ -117,23 +168,14 @@ export const createCapacityProtocolFetchGuard = async (options: CapacityGuardOpt
     let previous: string | null = null
     const ids = new Set<string>()
     for (const receipt of ledger.receipts) {
-      if (ids.has(receipt.id) || receipt.previousSha256 !== previous || receipt.sha256 !== receiptDigest(withoutDigest(receipt))
-        || !plan.regions.some(region => region.id === receipt.regionId) || receipt.reservedCents !== plan.spending.perAttemptReservedCents
-        || !Number.isFinite(Date.parse(receipt.createdAt))) fail('receipt chain differs from the approved scope')
+      if (ids.has(receipt.id) || receiptLeavesApprovedChain(receipt, previous, plan)) fail('receipt chain differs from the approved scope')
       ids.add(receipt.id); previous = receipt.sha256
-      if (['reserved', 'ambiguous'].includes(receipt.status) && receipt.chargedCents !== receipt.reservedCents
-        || receipt.status === 'rejected' && receipt.chargedCents !== 0
-        || receipt.status === 'settled' && (!receipt.usage || receipt.chargedCents !== usageCents(receipt.usage))
-        || receipt.status === 'breach' && receipt.chargedCents < receipt.reservedCents) fail('receipt costs do not preserve the reservation policy')
+      if (receiptCostsBreakReservationPolicy(receipt, plan)) fail('receipt costs do not preserve the reservation policy')
       if (receipt.response) {
         if (receipt.response.path !== `${dirname(plan.ledger)}/receipts/${receipt.id}.json`) fail('response evidence path changed')
         const bytes = new Uint8Array(await readFile(await capacityExistingPath(root, receipt.response.path)))
         if (capacityHash(bytes) !== receipt.response.sha256) fail('response evidence bytes changed')
-        if (receipt.usage) {
-          let payload: unknown
-          try { payload = JSON.parse(new TextDecoder().decode(bytes)) } catch { fail('settled response evidence is not JSON') }
-          if (!isDeepStrictEqual(readUsage(payload), receipt.usage)) fail('receipt usage differs from its original response')
-        }
+        if (receipt.usage) assertUsageMatchesResponseEvidence(bytes, receipt.usage)
       } else if (receipt.status === 'settled' || receipt.status === 'rejected' || receipt.usage) fail('settled receipt lacks original response evidence')
     }
     for (const region of plan.regions) if (ledger.receipts.filter(receipt => receipt.regionId === region.id).length > plan.target.attemptsPerRegion) fail('per-region attempt limit was exceeded')
@@ -167,24 +209,7 @@ export const createCapacityProtocolFetchGuard = async (options: CapacityGuardOpt
     if (url.origin !== 'https://generativelanguage.googleapis.com' || url.pathname !== '/v1beta/models/gemini-3.8-flash:generateContent'
       || url.search || url.hash || url.username || url.password || request.method !== 'POST') fail('endpoint or method is outside the approved Gemini operation')
     const bodyBytes = new Uint8Array(await request.clone().arrayBuffer())
-    let body: unknown
-    try { body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bodyBytes)) } catch { fail('request is not JSON') }
-    if (!object(body) || !isDeepStrictEqual(Object.keys(body).sort(), ['contents', 'generationConfig'])) fail('unapproved request fields')
-    const parsed = body as Record<string, unknown>, config = parsed['generationConfig']
-    if (!isDeepStrictEqual(config, { responseMimeType: 'application/json', responseJsonSchema: HOSTED_OCR_PAGES_JSON_SCHEMA,
-      maxOutputTokens: 8192, thinkingConfig: { thinkingLevel: 'LOW' } })) fail('native output, reasoning or schema controls changed')
-    const contents = parsed['contents']
-    if (!Array.isArray(contents) || contents.length !== 1 || !object(contents[0]) || contents[0]['role'] !== 'user' || !Array.isArray(contents[0]['parts'])
-      || !isDeepStrictEqual(Object.keys(contents[0]).sort(), ['parts', 'role']) || contents[0]['parts'].length !== 2) fail('expected one reviewed text-plus-image user input')
-    const first = (contents as Record<string, unknown>[])[0]!, [prompt, image] = first['parts'] as unknown[]
-    if (!object(prompt) || Object.keys(prompt).length !== 1 || ![buildHostedOcrJsonPrompt(1), retryPrompt].includes(String(prompt['text']))
-      || !object(image) || Object.keys(image).length !== 1 || !object(image['inlineData'])) fail('unreviewed prompt, extra media or file upload')
-    const inline = (image as Record<string, unknown>)['inlineData'] as Record<string, unknown>
-    if (!isDeepStrictEqual(Object.keys(inline).sort(), ['data', 'mimeType']) || inline['mimeType'] !== 'image/png' || typeof inline['data'] !== 'string') fail('expected exactly one inline PNG')
-    const base64 = inline['data'] as string, imageBytes = Buffer.from(base64, 'base64')
-    if (imageBytes.toString('base64') !== base64 || capacityHash(imageBytes) !== selected.inputSha256) fail('request image differs from the selected region')
-    const scrubbed = { ...parsed, contents: [{ role: 'user', parts: [prompt, { inlineData: '<pinned-region>' }] }] }
-    if (Buffer.byteLength(JSON.stringify(scrubbed)) > 8192 || imageBytes.length > 5 * 1024 * 1024) fail('request text/schema or PNG exceeds the reviewed allowance')
+    assertReviewedCapacityRequest(bodyBytes, selected)
     const receiptId = randomUUID()
     await withLedger(async ledger => {
       if (capacityHash(new Uint8Array(await readFile(await capacityExistingPath(root, options.planPath)))) !== options.planSha256
@@ -220,13 +245,7 @@ export const createCapacityProtocolFetchGuard = async (options: CapacityGuardOpt
       const receipt = ledger.receipts.find(receipt => receipt.id === receiptId)!, usage = readUsage(payload)
       receipt.response = { path: responsePath, sha256: capacityHash(responseBytes) }; receipt.httpStatus = response.status
       receipt.artifactStatus = artifactStatus(payload, response.status)
-      if (usage) {
-        receipt.usage = usage; receipt.chargedCents = usageCents(usage)
-        breached = usage.inputTokens > plan.target.inputTokenAllowance || usage.outputTokens > plan.target.maxOutputTokens || receipt.chargedCents > receipt.reservedCents
-        receipt.status = breached ? 'breach' : 'settled'
-        if (breached) receipt.chargedCents = Math.max(receipt.reservedCents, receipt.chargedCents)
-      } else if ([400, 401, 403, 404, 429].includes(response.status)) { receipt.status = 'rejected'; receipt.chargedCents = 0 }
-      else { receipt.status = 'ambiguous'; receipt.chargedCents = receipt.reservedCents }
+      breached = settleReceiptCharge(receipt, usage, plan, response)
       receipt.sha256 = receiptDigest(withoutDigest(receipt)); await saveLedger(ledger)
     })
     if (breached) fail('provider usage exceeded the reviewed allowance; full hold retained and dispatch stopped')

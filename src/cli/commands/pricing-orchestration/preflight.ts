@@ -2,6 +2,7 @@ import type { CommandPricingOptions, PreflightBudgetOptions, PreflightResult, Pr
 import { UsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { buildAggregatedPriceEstimate } from './aggregate-pricing'
+import { assertRuntimeBudgetEstimate } from '~/utils/runtime-spending-budget'
 
 export const evaluatePreflightEstimate = (
   estimate: PreflightResult['estimate'],
@@ -13,6 +14,7 @@ export const evaluatePreflightEstimate = (
     return { estimate, shouldExit: true }
   }
 
+  assertRuntimeBudgetEstimate(estimate.totalEstimatedCost)
   l.report.estimate(estimate)
 
   if (maxCents !== undefined && estimate.totalEstimatedCost > maxCents) {

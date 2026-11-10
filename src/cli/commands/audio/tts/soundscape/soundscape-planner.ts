@@ -68,6 +68,35 @@ const validateAnchor = (anchor: SoundscapePlan['cues'][number]['anchor'], struct
   if (anchor.kind === 'source-text-offset' && (!Number.isSafeInteger(anchor.textOffset) || anchor.textOffset < 0 || anchor.textOffset > [...segment.text].length || anchor.indexUnit !== 'unicode-scalar-value')) throw UsageError(`${label} text offset is outside its canonical Unicode source segment.`)
 }
 
+type SoundscapePlanCue = SoundscapePlan['cues'][number] | SoundscapePlan['ambientBeds'][number]
+
+const validateCueAnchors = (cue: SoundscapePlanCue, structuredScript: StructuredScriptData): void => {
+  if (cue.kind === 'ambience') {
+    if (cue.range.kind === 'anchors') {
+      validateAnchor(cue.range.start, structuredScript, `Ambient cue ${cue.cueId} start`)
+      validateAnchor(cue.range.end, structuredScript, `Ambient cue ${cue.cueId} end`)
+    }
+  } else validateAnchor(cue.anchor, structuredScript, `Sound cue ${cue.cueId}`)
+}
+
+const validateSoundscapeCue = (cue: SoundscapePlanCue, structuredScript: StructuredScriptData | undefined): void => {
+  if (!cue.prompt.trim() || cue.prompt !== cue.prompt.normalize('NFKC').replace(/\s+/gu, ' ').trim()) throw UsageError(`Sound cue ${cue.cueId} prompt is empty or not canonically normalized.`)
+  if (!Number.isSafeInteger(cue.sourceSpan.start) || !Number.isSafeInteger(cue.sourceSpan.end) || cue.sourceSpan.start < 0 || cue.sourceSpan.end <= cue.sourceSpan.start || cue.sourceSpan.kind !== 'sound-effect' || cue.sourceSpan.indexUnit !== 'unicode-scalar-value') throw UsageError(`Sound cue ${cue.cueId} has an invalid exact source span.`)
+  finite(cue.durationSeconds, `Sound cue ${cue.cueId} duration`)
+  if (cue.durationSeconds !== undefined && (cue.durationSeconds < 0.5 || cue.durationSeconds > 30)) throw UsageError(`Sound cue ${cue.cueId} duration must be between 0.5 and 30 seconds.`)
+  finite(cue.gainDb, `Sound cue ${cue.cueId} gain`)
+  finite(cue.pan, `Sound cue ${cue.cueId} pan`)
+  if (cue.pan !== undefined && (cue.pan < -1 || cue.pan > 1)) throw UsageError(`Sound cue ${cue.cueId} pan must be between -1 and 1.`)
+  if (structuredScript) validateCueAnchors(cue, structuredScript)
+}
+
+const validateSoundSynthesisTask = (task: SoundEffectSynthesisTask, all: readonly SoundscapePlanCue[]): void => {
+  const cue = all.find(candidate => candidate.cueId === task.cueId)
+  if (!cue || task.prompt !== cue.prompt || task.kind !== cue.kind || task.required !== cue.required || task.durationSeconds !== cue.durationSeconds || task.loop !== (cue.kind === 'ambience')) throw UsageError(`Sound synthesis task ${task.taskId} does not bind its authored cue.`)
+  const generationBase = { schemaVersion: 1, operation: 'sound-effect-generation', kind: task.kind, prompt: task.prompt, durationSeconds: task.durationSeconds ?? null, loop: task.loop }
+  if (task.generationIdentity !== hashCanonicalTtsValue(generationBase) || task.taskId !== hashCanonicalTtsValue({ cueId: task.cueId, generationIdentity: task.generationIdentity })) throw UsageError(`Sound synthesis task ${task.taskId} has invalid content identity.`)
+}
+
 export const validateSoundscapePlan = (plan: SoundscapePlan, structuredScript?: StructuredScriptData): SoundscapePlan => {
   if (plan.schemaVersion !== 1 || !/^[a-f0-9]{64}$/u.test(plan.sceneRunIdentity) || !/^[a-f0-9]{64}$/u.test(plan.structuredScriptHash) || !/^[a-f0-9]{64}$/u.test(plan.dialoguePlanId)) throw UsageError('Soundscape plan requires strict scene, structured-script, and dialogue identities.')
   validateSoundscapeMixProfile(plan.mixProfile)
@@ -76,29 +105,10 @@ export const validateSoundscapePlan = (plan: SoundscapePlan, structuredScript?: 
   const all = [...plan.cues, ...plan.ambientBeds]
   if (new Set(all.map(cue => cue.cueId)).size !== all.length) throw UsageError('Soundscape plan contains duplicate cue IDs.')
   if (new Set(plan.synthesisTasks.map(task => task.taskId)).size !== plan.synthesisTasks.length) throw UsageError('Soundscape plan contains duplicate synthesis task IDs.')
-  for (const cue of all) {
-    if (!cue.prompt.trim() || cue.prompt !== cue.prompt.normalize('NFKC').replace(/\s+/gu, ' ').trim()) throw UsageError(`Sound cue ${cue.cueId} prompt is empty or not canonically normalized.`)
-    if (!Number.isSafeInteger(cue.sourceSpan.start) || !Number.isSafeInteger(cue.sourceSpan.end) || cue.sourceSpan.start < 0 || cue.sourceSpan.end <= cue.sourceSpan.start || cue.sourceSpan.kind !== 'sound-effect' || cue.sourceSpan.indexUnit !== 'unicode-scalar-value') throw UsageError(`Sound cue ${cue.cueId} has an invalid exact source span.`)
-    finite(cue.durationSeconds, `Sound cue ${cue.cueId} duration`)
-    if (cue.durationSeconds !== undefined && (cue.durationSeconds < 0.5 || cue.durationSeconds > 30)) throw UsageError(`Sound cue ${cue.cueId} duration must be between 0.5 and 30 seconds.`)
-    finite(cue.gainDb, `Sound cue ${cue.cueId} gain`)
-    finite(cue.pan, `Sound cue ${cue.cueId} pan`)
-    if (cue.pan !== undefined && (cue.pan < -1 || cue.pan > 1)) throw UsageError(`Sound cue ${cue.cueId} pan must be between -1 and 1.`)
-    if (structuredScript) {
-      if (cue.kind === 'ambience') {
-        if (cue.range.kind === 'anchors') {
-          validateAnchor(cue.range.start, structuredScript, `Ambient cue ${cue.cueId} start`)
-          validateAnchor(cue.range.end, structuredScript, `Ambient cue ${cue.cueId} end`)
-        }
-      } else validateAnchor(cue.anchor, structuredScript, `Sound cue ${cue.cueId}`)
-    }
-  }
-  for (const task of plan.synthesisTasks) {
-    const cue = all.find(candidate => candidate.cueId === task.cueId)
-    if (!cue || task.prompt !== cue.prompt || task.kind !== cue.kind || task.required !== cue.required || task.loop !== (cue.kind === 'ambience')) throw UsageError(`Sound synthesis task ${task.taskId} does not bind its authored cue.`)
-    const generationBase = { schemaVersion: 1, operation: 'sound-effect-generation', kind: task.kind, prompt: task.prompt, durationSeconds: task.durationSeconds ?? null, loop: task.loop }
-    if (task.generationIdentity !== hashCanonicalTtsValue(generationBase) || task.taskId !== hashCanonicalTtsValue({ cueId: task.cueId, generationIdentity: task.generationIdentity })) throw UsageError(`Sound synthesis task ${task.taskId} has invalid content identity.`)
-  }
+  const taskCueIds = new Set(plan.synthesisTasks.map(task => task.cueId))
+  if (plan.synthesisTasks.length !== all.length || taskCueIds.size !== all.length || all.some(cue => !taskCueIds.has(cue.cueId))) throw UsageError('Soundscape synthesis tasks must cover every authored cue exactly once.')
+  for (const cue of all) validateSoundscapeCue(cue, structuredScript)
+  for (const task of plan.synthesisTasks) validateSoundSynthesisTask(task, all)
   const { soundscapePlanId: _id, ...withoutId } = plan
   if (plan.soundscapePlanId !== hashCanonicalTtsValue(withoutId)) throw UsageError('Soundscape plan content identity is invalid.')
   return plan

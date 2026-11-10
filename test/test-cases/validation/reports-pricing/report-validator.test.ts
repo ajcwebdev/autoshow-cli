@@ -66,6 +66,15 @@ describe('explicit Markdown report validation', () => {
     expect(codes(await f.run()).filter(code => code === 'BROKEN_LINK')).toHaveLength(2)
   })
 
+  test('matches exact backtick runs when ignoring literal Markdown and HTML links', async () => {
+    const f = await fixture()
+    await f.write(reportPath, '# Notes\n\n``literal ` and ``` [example](absent.md) <a href="absent.html">example</a> ``\n\n'
+      + 'Unclosed ``` followed by `` and [real](missing.md).\n')
+    const result = await f.run()
+    expect(result.reports[0]?.linksChecked).toBe(1)
+    expect(result.diagnostics).toEqual([expect.objectContaining({ code: 'BROKEN_LINK', line: 5, message: 'Local target missing.md does not exist or cannot be read.' })])
+  })
+
   test('retains specific Markdown, HTML and source-fragment diagnostics while sanitizing missing-file errors', async () => {
     const f = await fixture()
     await f.write('docs/reports/target.md', '# Target\n')
@@ -126,6 +135,17 @@ describe('explicit Markdown report validation', () => {
     const selected = await f.run({ paths: ['docs/reports/escape.md'] })
     expect(codes(selected)).toContain('REPORT_INPUT')
     expect(selected.diagnostics.find(item => item.code === 'REPORT_INPUT')?.message).toBe('The selected path resolves outside the project; replace the escaping symlink or path')
+  })
+
+  test('does not count a terminal newline or an empty file as an additional source line', async () => {
+    const f = await fixture()
+    await f.write('src/one.ts', 'one\n')
+    await f.write('src/empty.ts', '')
+    await f.write(reportPath, '# Notes\n\n[valid](../../src/one.ts#L1) [past-end](../../src/one.ts#L2) [empty](../../src/empty.ts#L1)\n')
+    expect((await f.run()).diagnostics).toEqual([
+      expect.objectContaining({ code: 'BROKEN_LINK', message: 'The linked line range does not exist' }),
+      expect.objectContaining({ code: 'BROKEN_LINK', message: 'The linked line range does not exist' }),
+    ])
   })
 
   test('rejects unaligned tables, malformed columns and duplicate action ownership while permitting ordinary ID references', async () => {
