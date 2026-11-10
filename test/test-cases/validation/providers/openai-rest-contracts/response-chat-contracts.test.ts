@@ -10,11 +10,11 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 installOpenAIRestContractHooks()
 
 describe('OpenAI REST response and chat contracts', () => {
-  test('Sol selector preserves the exact model ID and supports xhigh; removed Astra rejects locally', () => {
+  test('Sol and restored Astra selectors preserve exact model IDs and support xhigh', () => {
     const opts = buildOptsFromFlags({ openai: 'gpt-6.1-sol', 'reasoning-effort': 'xhigh' })
     expect(opts.openaiModels).toEqual(['gpt-6.1-sol'])
     expect(opts.reasoningEffort).toBe('xhigh')
-    expect(() => buildOptsFromFlags({ openai: 'gpt-6-astra' })).toThrow('Invalid model "gpt-6-astra" for --llm openai[=model]. Allowed values: gpt-6.1-sol, gpt-6-luna')
+    expect(buildOptsFromFlags({ openai: 'gpt-6-astra', 'reasoning-effort': 'xhigh' })).toMatchObject({ openaiModels: ['gpt-6-astra'], reasoningEffort: 'xhigh' })
   })
 
   for (const effort of [undefined, 'default', 'low', 'medium', 'high', 'xhigh', 'max'] as const) {

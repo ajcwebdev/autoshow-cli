@@ -1,14 +1,13 @@
 import { mkdir, open } from 'node:fs/promises'
 import { join } from 'node:path'
 import { collectLlmTargets } from '~/cli/commands/text/write/run-llm'
-import { buildLlmEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/llm-estimates'
 import { getLlmCost, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { isRecord, sha256Bytes } from '~/utils/value-helpers'
 import { toProjectRelativePath } from '~/utils/project-root'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
-import { finalizeWriteBenchmarkCase, installWriteBenchmarkFetchGuard, prepareWriteBenchmarkCase, runWriteBenchmarkSlot, WRITE_BENCHMARK_PLAN } from '~/tools/write-benchmark'
+import { finalizeWriteBenchmarkCase, installWriteBenchmarkFetchGuard, prepareWriteBenchmarkCase, prepareRetainedWriteBenchmarkCase, runWriteBenchmarkSlot, WRITE_BENCHMARK_PLAN } from '~/tools/write-benchmark'
 import type { BenchmarkSlot, BenchmarkTarget, WriteBenchmarkCase, WriteBenchmarkPlan } from '~/tools/write-benchmark'
 import type { LLMOptions, LLMTarget, Step3Metadata } from '~/types'
 
@@ -114,7 +113,7 @@ const scenarioFor = (provider: Step3Metadata['llmService'], receipt: BenchmarkSl
   throw ValidationError(`No reviewed rerun spending scenario for ${provider}/${receipt.model}.`)
 }
 
-/** A retired route has no live reasoning policy; its purchased run retains the original estimate snapshot. */
+/** Purchased requests retain their original estimate rather than pricing current prompt instructions. */
 const historicalEstimate = async (entry: WriteBenchmarkCase, provider: WriteBenchmarkPlan['providers'][number]): Promise<{ totalCost: number; estimatedInputTokens: number; estimatedOutputTokens: number }> => {
   const manifest = await readManifest(entry.runDir)
   const cost = manifest?.items[0]?.metadata['cost']
@@ -123,7 +122,7 @@ const historicalEstimate = async (entry: WriteBenchmarkCase, provider: WriteBenc
   const snapshot = Array.isArray(steps) ? steps.find(row => isRecord(row) && row['provider'] === provider.provider && row['model'] === provider.model) : undefined
   const numeric = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0
   if (!isRecord(snapshot) || !numeric(snapshot['cost']) || !numeric(snapshot['estimatedInputTokens']) || !numeric(snapshot['estimatedOutputTokens']) || snapshot['inputCostPer1MCents'] !== provider.inputCostPer1MCents || snapshot['outputCostPer1MCents'] !== provider.outputCostPer1MCents) {
-    throw ValidationError(`Missing or invalid historical native estimate snapshot for ${entry.id}/${provider.provider}/${provider.model}; historical verification cannot use live retired-model dispatch settings.`)
+    throw ValidationError(`Missing or invalid historical native estimate snapshot for ${entry.id}/${provider.provider}/${provider.model}; historical recovery requires pinned request estimates.`)
   }
   return { totalCost: snapshot['cost'], estimatedInputTokens: snapshot['estimatedInputTokens'], estimatedOutputTokens: snapshot['estimatedOutputTokens'] }
 }
@@ -135,9 +134,9 @@ export const buildWriteBenchmarkRerunPlan = async (originalPlanPath = WRITE_BENC
   let knownCostCents = 0
   let unresolvedSlots = 0
   for (const entry of original.plan.cases) {
-    const prepared = await prepareWriteBenchmarkCase(entry)
-    assertCaseHashes(entry, prepared)
-    await assertSnapshots(entry, prepared)
+    // Purchased cases remain evidence even when current prompt instructions
+    // change. Check their pinned snapshots and schema without rebuilding them.
+    const prepared = await prepareRetainedWriteBenchmarkCase(entry)
     const receipts: Array<{ provider: WriteBenchmarkPlan['providers'][number]; receipt: BenchmarkSlot; path: string; sha256: string }> = []
     for (const provider of original.plan.providers) {
       const price = getLlmCost(provider.provider, provider.model)
@@ -154,13 +153,9 @@ export const buildWriteBenchmarkRerunPlan = async (originalPlanPath = WRITE_BENC
     }
     const failed = receipts.filter(item => item.receipt.status === 'failed' || item.receipt.status === 'validation-failed')
     if (!failed.length) continue
-    const active = failed.filter(item => getModelRegistry().llm[item.provider.provider]?.models[item.provider.model])
-    const estimates = active.length ? await buildLlmEstimates({ ...modelOptions(active.map(item => item.provider)), prompts: [entry.prompt] }, prepared.source) : []
+    assertCaseHashes(entry, prepared)
     const providers = await Promise.all(failed.map(async item => {
-      const estimate = getModelRegistry().llm[item.provider.provider]?.models[item.provider.model]
-        ? estimates.find(row => row.provider === item.provider.provider && row.model === item.provider.model)
-        : await historicalEstimate(entry, item.provider)
-      if (!estimate) throw ValidationError(`Missing native rerun estimate for ${item.provider.provider}/${item.provider.model}.`)
+      const estimate = await historicalEstimate(entry, item.provider)
       const scenario = scenarioFor(item.provider.provider, item.receipt, estimate.estimatedInputTokens ?? 0, estimate.estimatedOutputTokens ?? 0, receipts.map(row => row.receipt))
       return {
         ...item.provider, originalReceiptPath: toProjectRelativePath(item.path), originalReceiptSha256: item.sha256,
@@ -239,7 +234,7 @@ export const executeWriteBenchmarkRerun = async (plan: WriteBenchmarkRerunPlan, 
   const result: BenchmarkSlot[] = []
   try {
     for (const entry of plan.cases) {
-      const prepared = await prepareWriteBenchmarkCase(entry)
+      const prepared = await prepareRetainedWriteBenchmarkCase({ ...entry, runDir: entry.originalRunDir })
       assertCaseHashes(entry, prepared)
       await mkdir(entry.runDir, { recursive: true })
       for (const [name, value] of [['source.txt', prepared.source], ['prompt.md', prepared.prompt]]) {
@@ -281,7 +276,7 @@ export const verifyWriteBenchmarkRerunCache = async (plan: WriteBenchmarkRerunPl
   globalThis.fetch = Object.assign(async () => { throw ValidationError('Network access is blocked during rerun cache verification.') }, { preconnect: originalFetch.preconnect }) as typeof fetch
   try {
     for (const entry of plan.cases) {
-      const prepared = await prepareWriteBenchmarkCase(entry)
+      const prepared = await prepareRetainedWriteBenchmarkCase(entry)
       await assertSnapshots(entry, prepared)
       const manifest = await readManifest(entry.runDir)
       const requested = manifest?.items[0]?.providers.map(provider => `${provider.service}/${provider.model}`).sort()

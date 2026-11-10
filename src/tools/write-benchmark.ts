@@ -116,6 +116,23 @@ export const prepareWriteBenchmarkCase = async (entry: { prompt: string; input: 
   }
 }
 
+/** Reconstruct an already-purchased request from its hash-bound snapshots. */
+export const prepareRetainedWriteBenchmarkCase = async (entry: WriteBenchmarkCase): Promise<PreparedCase> => {
+  const schema = await resolveStructuredSchema([entry.prompt])
+  if (sha256Bytes(JSON.stringify(schema.jsonSchema)) !== entry.schemaSha256) throw ValidationError(`Cached benchmark schema changed: ${entry.id}`)
+  const snapshot = async (name: string, expected: string): Promise<string> => {
+    const path = join(entry.runDir, name)
+    if (!await Bun.file(path).exists()) throw ValidationError(`Cached benchmark snapshot missing or changed: ${toProjectRelativePath(path)}`)
+    const bytes = await Bun.file(path).text()
+    if (sha256Bytes(bytes) !== expected) throw ValidationError(`Cached benchmark snapshot missing or changed: ${toProjectRelativePath(path)}`)
+    return bytes
+  }
+  return {
+    source: await snapshot('source.txt', entry.sourceSha256), prompt: await snapshot('prompt.md', entry.promptSha256), schema,
+    context: { leafPromptNames: schema.leafPromptNames, presetNames: schema.presetNames, songLyricsTitle: getTextInputTitle(entry.input) }
+  }
+}
+
 export const buildWriteBenchmarkPlan = async (approval: WriteBenchmarkPlan['approval'] = null): Promise<WriteBenchmarkPlan> => {
   const options = selectedOptions()
   const providers = collectLlmTargets(options).map(target => {
@@ -167,6 +184,15 @@ const caseInputsChanged = (prepared: PreparedCase, entry: WriteBenchmarkCase): b
   sha256Bytes(prepared.source) !== entry.sourceSha256 || sha256Bytes(prepared.prompt) !== entry.promptSha256 || sha256Bytes(JSON.stringify(prepared.schema.jsonSchema)) !== entry.schemaSha256
 const cachedSlotIdentityChanged = (existing: BenchmarkSlot, expected: { plan: WriteBenchmarkPlan; entry: WriteBenchmarkCase; target: BenchmarkTarget }): boolean =>
   existing.planFingerprint !== expected.plan.fingerprint || existing.caseId !== expected.entry.id || existing.provider !== expected.target.service || existing.model !== expected.target.model
+const readCachedBenchmarkSlot = async (slotPath: string, expected: { plan: WriteBenchmarkPlan; entry: WriteBenchmarkCase; target: BenchmarkTarget }): Promise<BenchmarkSlot> => {
+  const existing = await Bun.file(slotPath).json() as BenchmarkSlot
+  if (cachedSlotIdentityChanged(existing, expected)) throw ValidationError(`Cached slot identity changed: ${toProjectRelativePath(slotPath)}`)
+  for (const [name, expectedHash] of Object.entries(existing.artifactHashes ?? {})) {
+    if (name !== name.split(/[/\\]/).pop()) throw ValidationError('Cached artifact must be a file within its run directory.')
+    if (!await Bun.file(join(expected.entry.runDir, name)).exists() || sha256Bytes(await Bun.file(join(expected.entry.runDir, name)).text()) !== expectedHash) throw ValidationError(`Cached artifact missing or changed: ${toProjectRelativePath(join(expected.entry.runDir, name))}; redispatch is blocked.`)
+  }
+  return existing
+}
 const dispatchableService = (target: BenchmarkTarget): LLMService => {
   const registeredModels = getModelRegistry().llm[target.service]?.models
   if (!['openai', 'gemini', 'anthropic', 'grok'].includes(target.service) || !registeredModels || !Object.hasOwn(registeredModels, target.model)) throw ValidationError(`Retired or unsupported benchmark model ${target.service}/${target.model}; new dispatch is blocked. Existing receipts remain available for cache verification.`)
@@ -193,13 +219,7 @@ export const runWriteBenchmarkSlot = async (plan: WriteBenchmarkPlan, entry: Wri
   const stem = safeStem(target.service, target.model)
   const slotPath = join(entry.runDir, `slot-${stem}.json`)
   if (await Bun.file(slotPath).exists()) {
-    const existing = await Bun.file(slotPath).json() as BenchmarkSlot
-    if (cachedSlotIdentityChanged(existing, { plan, entry, target })) throw ValidationError(`Cached slot identity changed: ${toProjectRelativePath(slotPath)}`)
-    for (const [name, expected] of Object.entries(existing.artifactHashes ?? {})) {
-      if (name !== name.split(/[/\\]/).pop()) throw ValidationError('Cached artifact must be a file within its run directory.')
-      if (!await Bun.file(join(entry.runDir, name)).exists() || sha256Bytes(await Bun.file(join(entry.runDir, name)).text()) !== expected) throw ValidationError(`Cached artifact missing or changed: ${toProjectRelativePath(join(entry.runDir, name))}; redispatch is blocked.`)
-    }
-    return existing
+    return await readCachedBenchmarkSlot(slotPath, { plan, entry, target })
   }
   const activeService = dispatchableService(target)
   await mkdir(entry.runDir, { recursive: true })
@@ -311,15 +331,14 @@ export const verifyWriteBenchmarkCache = async (plan: WriteBenchmarkPlan): Promi
   if (sha256Bytes(JSON.stringify(content)) !== fingerprint || plan.schemaVersion !== 1 || !plan.cases.length || !plan.providers.length) throw ValidationError('Saved benchmark plan contents changed or are unsupported.')
   const slots: BenchmarkSlot[] = []
   for (const entry of plan.cases) {
-    const prepared = await prepareWriteBenchmarkCase(entry)
-    for (const [name, expected] of [['source.txt', entry.sourceSha256], ['prompt.md', entry.promptSha256]]) {
-      const path = join(entry.runDir, name!)
-      if (!await Bun.file(path).exists() || sha256Bytes(await Bun.file(path).text()) !== expected) throw ValidationError(`Cached benchmark snapshot missing or changed: ${toProjectRelativePath(path)}`)
-    }
+    // Historical prompt/source snapshots are authoritative for cache verification.
+    // Regenerating a prompt from current instructions would invalidate purchased
+    // evidence whenever the preset changes, even though its pinned bytes survive.
+    await prepareRetainedWriteBenchmarkCase(entry)
     for (const provider of plan.providers) {
       const path = join(entry.runDir, `slot-${safeStem(provider.provider, provider.model)}.json`)
       if (!await Bun.file(path).exists()) throw ValidationError(`Missing benchmark cache receipt: ${entry.id}/${provider.provider}/${provider.model}; verification cannot dispatch.`)
-      slots.push(await runWriteBenchmarkSlot(plan, entry, prepared, { service: provider.provider, model: provider.model, label: provider.provider, run: async () => { throw ValidationError('Provider dispatch is blocked during benchmark cache verification.') } }))
+      slots.push(await readCachedBenchmarkSlot(path, { plan, entry, target: { service: provider.provider, model: provider.model, label: provider.provider, run: async () => { throw ValidationError('Provider dispatch is blocked during benchmark cache verification.') } } }))
     }
   }
   return slots

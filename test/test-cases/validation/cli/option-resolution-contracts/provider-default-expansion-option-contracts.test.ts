@@ -6,12 +6,12 @@ describe('option resolution contracts', () => {
   test('--all-llm expands OpenAI, Anthropic, Gemini and Grok to their supported models', () => {
       const opts = buildOptsFromFlags({ 'all-llm': true })
 
-      expect(opts.openaiModels).toEqual(['gpt-6.1-sol', 'gpt-6-luna'])
+      expect(opts.openaiModels).toEqual(['gpt-6-astra', 'gpt-6.1-sol', 'gpt-6.1-terra', 'gpt-6-luna'])
       expect(opts.openaiModels).not.toContain('gpt-5.6')
-      expect(opts.anthropicModels).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'])
+      expect(opts.anthropicModels).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-2'])
       expect(opts.anthropicModels).not.toContain('claude-fable-5')
       expect(opts.anthropicModels).not.toContain('claude-mythos-5')
-      expect(opts.geminiModels).toEqual(['gemini-4-argon', 'gemini-3.8-flash'])
+      expect(opts.geminiModels).toEqual(['gemini-4-argon', 'gemini-4-carbon', 'gemini-3.8-flash'])
       expect(opts.geminiModels).not.toContain('gemini-3.6-flash')
       expect(opts.geminiModels).not.toContain('gemini-3.5-flash')
       expect(opts.geminiModels).not.toContain('gemini-3.1-flash-lite')
@@ -39,9 +39,11 @@ describe('option resolution contracts', () => {
       const anthropicSonnet46OcrOpts = buildOptsFromFlags({ 'anthropic-ocr': 'claude-sonnet-5-5' })
       const anthropicHaikuOcrOpts = buildOptsFromFlags({ 'anthropic-ocr': 'claude-sonnet-5-5' })
 
-      // Fully removed OpenAI models reject for both write and OCR before any target is built.
-      for (const model of ['gpt-6-astra', 'gpt-5.6-terra']) {
-        expect(() => buildOptsFromFlags({ openai: model })).toThrow(`Invalid model "${model}" for --llm openai[=model]. Allowed values: gpt-6.1-sol, gpt-6-luna`)
+      expect(buildOptsFromFlags({ openai: 'gpt-6-astra' }).openaiModels).toEqual(['gpt-6-astra'])
+      for (const model of ['gpt-5.6-terra']) {
+        expect(() => buildOptsFromFlags({ openai: model })).toThrow(`Invalid model "${model}" for --llm openai[=model]. Allowed values: gpt-6-astra, gpt-6.1-sol, gpt-6.1-terra, gpt-6-luna`)
+      }
+      for (const model of ['gpt-6-astra', 'gpt-6.1-terra', 'gpt-5.6-terra']) {
         expect(() => buildOptsFromFlags({ 'openai-ocr': model })).toThrow(`Invalid model "${model}" for --provider/--ocr openai[=model]. Allowed values: gpt-6.1-sol, gpt-6-luna`)
       }
       expect(openaiSolWriteOpts.openaiModels?.[0]).toBe('gpt-6.1-sol')
@@ -59,10 +61,10 @@ describe('option resolution contracts', () => {
       expect(grok46OcrOpts.grokOcrModels?.[0]).toBe('grok-4.7')
       expect(gemini37OcrOpts.geminiOcrModels?.[0]).toBe('gemini-3.8-flash')
       expect(writeOpts.anthropicModels?.[0]).toBe('claude-sonnet-5-5')
-      expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5-1' })).toThrow('Invalid model "claude-fable-5-1" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5')
+      expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5-1' })).toThrow('Invalid model "claude-fable-5-1" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2')
       expect(() => buildOptsFromFlags({ 'anthropic-ocr': 'claude-fable-5-1' })).toThrow('Invalid model "claude-fable-5-1" for --provider/--ocr anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5')
       expect(() => buildOptsFromFlags({ grok: 'grok-4.5' })).toThrow('Invalid model "grok-4.5" for --llm grok[=model]. Allowed values: grok-4.7')
-      expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5' })).toThrow('Invalid model "claude-fable-5" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5')
+      expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5' })).toThrow('Invalid model "claude-fable-5" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2')
       expect(anthropicSonnet5WriteOpts.anthropicModels?.[0]).toBe('claude-sonnet-5-5')
       expect(anthropicFableOcrOpts.anthropicOcrModels?.[0]).toBe('claude-fable-5')
       expect(anthropicOpusOcrOpts.anthropicOcrModels?.[0]).toBe('claude-opus-5-5')

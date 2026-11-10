@@ -35,7 +35,7 @@ describe('Anthropic REST contracts', () => {
   test('Opus 5.5 resolves with documented pricing while removed Fable write models reject locally', () => {
     expect(buildOptsFromFlags({ anthropic: 'claude-opus-5-5' }).anthropicModels).toEqual(['claude-opus-5-5'])
     for (const model of ['claude-fable-5', 'claude-fable-5-1']) {
-      expect(() => buildOptsFromFlags({ anthropic: model })).toThrow(`Invalid model "${model}" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5`)
+      expect(() => buildOptsFromFlags({ anthropic: model })).toThrow(`Invalid model "${model}" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2`)
     }
     expect(getModelRegistry().llm['anthropic']?.models['claude-fable-5-1']).toBeUndefined()
     expect(getModelRegistry().llm['anthropic']?.models['claude-opus-5-5']).toMatchObject({

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { buildWriteBenchmarkRerunPlan, executeWriteBenchmarkRerun, verifyWriteBenchmarkRerunCache, WRITE_BENCHMARK_RERUN_COMMAND } from '~/tools/rerun-write-benchmark'
-import { prepareWriteBenchmarkCase, WRITE_BENCHMARK_PLAN } from '~/tools/write-benchmark'
+import { WRITE_BENCHMARK_PLAN } from '~/tools/write-benchmark'
 import type { WriteBenchmarkRerunPlan } from '~/tools/rerun-write-benchmark'
 import type { BenchmarkSlot, WriteBenchmarkPlan } from '~/tools/write-benchmark'
 import type { LLMService, LLMTarget, Step3Metadata } from '~/types'
@@ -56,9 +56,8 @@ const setup = async ({ activeFailures = true, retiredFailure = false } = {}): Pr
   original.fingerprint = sha256Bytes(JSON.stringify(content))
   for (const [index, entry] of original.cases.entries()) {
     await mkdir(entry.runDir, { recursive: true })
-    const prepared = await prepareWriteBenchmarkCase(entry)
-    await Bun.write(join(entry.runDir, 'source.txt'), prepared.source)
-    await Bun.write(join(entry.runDir, 'prompt.md'), prepared.prompt)
+    // Reproduce the purchased evidence, including instructions from its date.
+    for (const name of ['source.txt', 'prompt.md']) await Bun.write(join(entry.runDir, name), await Bun.file(join(inputDirectories[index]!, name)).text())
     const manifest = await Bun.file(join(inputDirectories[index]!, 'manifest.json')).json()
     if (retiredFailure) {
       // The retired route needs the purchased-run estimate snapshot because live dispatch settings no longer exist.
@@ -102,6 +101,30 @@ const fakeTargets = (plan: WriteBenchmarkRerunPlan, run: (target: Pick<LLMTarget
 }))
 
 describe('targeted write benchmark rerun safety', () => {
+  test('historical selected requests retain their original prompt bytes after current preset instructions change', async () => {
+    blockNetwork()
+    const fixture = await setup({ activeFailures: false })
+    expect(fixture.plan.cases.flatMap(entry => entry.providers.map(provider => `${entry.id}:${provider.provider}/${provider.model}`))).toEqual(expectedTargets)
+    const captured: string[] = []
+    const targets = fakeTargets(fixture.plan, async (target, prompt) => {
+      const entry = fixture.plan.cases.find(entry => entry.providers.some(provider => provider.provider === target.service && provider.model === target.model))!
+      expect(sha256Bytes(prompt)).toBe(entry.promptSha256)
+      expect(prompt).toBe(await Bun.file(join(entry.originalRunDir, 'prompt.md')).text())
+      captured.push(entry.id)
+      throw Error('Synthetic failed attempt after checking retained request bytes')
+    })
+    expect((await executeWriteBenchmarkRerun(authorizeFixture(fixture.plan), targets)).map(slot => slot.status)).toEqual(['failed', 'failed'])
+    expect(captured.sort()).toEqual(['01-short-summary', '05-rap-song-chapter'])
+    expect(await treeHashes(fixture.root)).toEqual(fixture.before)
+
+    fixture.original.cases[0]!.schemaSha256 = '0'.repeat(64)
+    const { fingerprint: _, ...content } = fixture.original
+    fixture.original.fingerprint = sha256Bytes(JSON.stringify(content))
+    await Bun.write(fixture.originalPath, JSON.stringify(fixture.original))
+    await expect(buildWriteBenchmarkRerunPlan(fixture.originalPath)).rejects.toThrow('Cached benchmark schema changed')
+    expect(captured).toHaveLength(2)
+  })
+
   test('price-only selection is exactly the two original failures, with observed reasoning risk and no inferred approval', async () => {
     blockNetwork()
     const plan = await buildWriteBenchmarkRerunPlan()

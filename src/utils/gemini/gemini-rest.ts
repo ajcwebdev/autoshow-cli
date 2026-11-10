@@ -6,8 +6,8 @@ import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { writeHttpPayloadToFile, readHttpPayloadText } from '~/utils/http-payload'
 import { createProviderRestClient, parseJsonOrText, readJsonResponse } from '~/utils/rest-client'
 import { pollUntil } from '~/utils/retries'
-import { isObjectLike } from '~/utils/value-helpers'
-import { GEMINI_ARGON_SYNC_OUTPUT_TOKENS, isGeminiArgonModel } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
+import { isObjectLike, isRecord } from '~/utils/value-helpers'
+import { GEMINI_4_SYNC_OUTPUT_TOKENS, isGemini4Model, isGeminiArgonModel } from '~/cli/commands/text/write/write-services/write-gemini/gemini-utils'
 
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
@@ -220,11 +220,11 @@ const assertGeminiThinkingConfigSupported = (params: { model: string }, config: 
   }
 }
 
-const assertGeminiArgonOutputLimit = (params: { model: string }, config: Record<string, unknown>): void => {
-  if (isGeminiArgonModel(params.model) && config['maxOutputTokens'] !== undefined) {
+const assertGemini4OutputLimit = (params: { model: string }, config: Record<string, unknown>): void => {
+  if (isGemini4Model(params.model) && config['maxOutputTokens'] !== undefined) {
     const limit = config['maxOutputTokens']
-    if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > GEMINI_ARGON_SYNC_OUTPUT_TOKENS) {
-      throw ValidationError(`${params.model} synchronous maxOutputTokens must be an integer from 1 to ${GEMINI_ARGON_SYNC_OUTPUT_TOKENS}; long decode requires a separate continuation workflow.`, { stage: 'gemini:rest' })
+    if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > GEMINI_4_SYNC_OUTPUT_TOKENS) {
+      throw ValidationError(`${params.model} synchronous maxOutputTokens must be an integer from 1 to ${GEMINI_4_SYNC_OUTPUT_TOKENS}; long decode requires a separate continuation workflow.`, { stage: 'gemini:rest' })
     }
   }
 }
@@ -237,7 +237,7 @@ const assertGeminiGenerationConfigSupported = (params: { model: string }, config
     }
   }
   assertGeminiThinkingConfigSupported(params, config)
-  assertGeminiArgonOutputLimit(params, config)
+  assertGemini4OutputLimit(params, config)
 }
 
 const buildGeminiGenerateContentBody = (params: GeminiGenerateContentBodyParams): Record<string, unknown> => {
@@ -258,9 +258,23 @@ const buildGeminiGenerateContentBody = (params: GeminiGenerateContentBodyParams)
   return body
 }
 
-const assertGeminiArgonResponseUsable = (params: { model: string }, response: GeminiGenerateContentResponse): void => {
-  const finishReason = response.candidates?.[0]?.finishReason
-  if ((finishReason !== undefined && finishReason !== 'STOP') || !response.text?.trim()) {
+const assertGemini4ResponseShape = (params: { model: string }, response: unknown): void => {
+  const candidates = isRecord(response) ? response['candidates'] : undefined
+  const candidate = Array.isArray(candidates) ? candidates[0] : undefined
+  const content = isRecord(candidate) ? candidate['content'] : undefined
+  const parts = isRecord(content) ? content['parts'] : undefined
+  if (!Array.isArray(candidates) || !isRecord(candidate) || !isRecord(content) || !Array.isArray(parts) || parts.some(part => !isRecord(part))) {
+    throw ValidationError(`${params.model} returned an incomplete or unusable synchronous response (malformed candidate/content/parts); no automatic continuation was dispatched.`, {
+      stage: 'gemini:rest',
+      metadata: { provider: 'gemini', model: params.model, rawProviderUsage: isRecord(response) ? response['usageMetadata'] : undefined, rawResponse: response }
+    })
+  }
+}
+
+const assertGemini4ResponseUsable = (params: { model: string }, response: GeminiGenerateContentResponse): void => {
+  const candidate = response.candidates?.[0]
+  const finishReason = candidate?.finishReason
+  if ((finishReason !== undefined && finishReason !== 'STOP') || candidate?.['continuationToken'] !== undefined || !response.text?.trim()) {
     throw ValidationError(`${params.model} returned an incomplete or unusable synchronous response${finishReason ? ` (${finishReason})` : ''}; no automatic continuation was dispatched.`, {
       stage: 'gemini:rest',
       metadata: { provider: 'gemini', model: params.model, finishReason, rawProviderUsage: response.usageMetadata, rawResponse: response }
@@ -279,7 +293,7 @@ export const geminiGenerateContent = async (
     abortSignal?: AbortSignal | undefined
   }
 ): Promise<GeminiGenerateContentResponse> => {
-  if ((params.model.replace(/^models\//, '') === 'gemini-3.8-flash' || isGeminiArgonModel(params.model)) && params.generationConfig) {
+  if ((params.model.replace(/^models\//, '') === 'gemini-3.8-flash' || isGemini4Model(params.model)) && params.generationConfig) {
     assertGeminiGenerationConfigSupported(params, params.generationConfig)
   }
   const body = buildGeminiGenerateContentBody(params)
@@ -289,10 +303,11 @@ export const geminiGenerateContent = async (
     body,
     ...(params.abortSignal ? { abortSignal: params.abortSignal } : {})
   })
+  if (isGemini4Model(params.model)) assertGemini4ResponseShape(params, json)
   const response = isObjectLike(json) ? json as GeminiGenerateContentResponse : {}
   response.text = extractGeminiResponseText(response)
-  if (isGeminiArgonModel(params.model)) {
-    assertGeminiArgonResponseUsable(params, response)
+  if (isGemini4Model(params.model)) {
+    assertGemini4ResponseUsable(params, response)
   }
   response.sdkHttpResponse = { headers, status }
   return response

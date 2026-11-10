@@ -21,15 +21,61 @@ const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Me
 
 describe('price mode contracts', () => {
 
+  // Expected tariffs come from the provider model/pricing pages checked 2026-11-10,
+  // independently of the runtime registry and its estimate multipliers.
+  const frontierRates = [
+    ['openai', 'gpt-6-astra', 1000, 100, 5000, 'https://developers.openai.com/api/docs/models/gpt-6-astra'],
+    ['openai', 'gpt-6.1-terra', 100, 5, 500, 'https://developers.openai.com/api/docs/models/gpt-6.1-terra'],
+    ['anthropic', 'claude-fable-5-2', 800, 20, 4000, 'https://platform.claude.com/docs/en/models/fable-5-2/overview'],
+    ['gemini', 'gemini-4-carbon', 400, 20, 2000, 'https://aistudio.google.com/docs/pricing#gemini-4-carbon']
+  ] as const
+
+  for (const [provider, model, input, cached, output, source] of frontierRates) {
+    test(`${model} retains standard pricing provenance and uncalibrated timing qualifications`, () => {
+      const entry = requireDefined(getModelRegistry().llm[provider]?.models[model], `${model} registry entry`)
+      expect(entry).toMatchObject({
+        inputCostPer1MCents: input, cachedInputCostPer1MCents: cached, outputCostPer1MCents: output,
+        pricingSourceUrl: source, pricingCheckedAt: '2026-11-10', pricingCurrency: 'USD'
+      })
+      expect(entry.pricingTier).toMatch(/standard/i)
+      expect(entry.pricingNotes).toContain('uncalibrated')
+      expect(entry.pricingNotes).toContain('timing')
+    })
+  }
+
+  for (const [provider, model, inputRate, outputRate] of [
+    ['anthropic', 'claude-fable-5-2', 800, 4000],
+    ['gemini', 'gemini-4-carbon', 400, 2000]
+  ] as const) {
+    test(`${model} estimates and observed costs use flat standard rates above long-context boundaries`, () => {
+      const estimated = computeEstimatedCosts({ applyCostMultipliers: false, llmTargets: [{
+        service: provider, model, inputTokens: 300_000, outputTokens: 1000
+      }] })
+      const actual = computeActualCosts({ step3: buildStep3CostMetadata({
+        llmService: provider, llmModel: model, inputTokenCount: 300_000, outputTokenCount: 1000
+      }) })
+      const expectedCents = 0.3 * inputRate + 0.001 * outputRate
+      expect(estimated.steps[0]?.cost).toBeCloseTo(expectedCents)
+      expect(actual.steps[0]?.cost).toBeCloseTo(expectedCents)
+      expect(estimated.steps[0]?.pricingBand).toBeUndefined()
+      expect(getLlmCost(provider, model)?.tokenPricingBands).toBeUndefined()
+    })
+  }
+
   test('GPT-6.1 Sol write and OCR and historical Grok 4.5 resolve through tariff accessors', () => {
       expect(getLlmCost('openai', 'gpt-6.1-sol')).toMatchObject({
         inputCostPer1MCents: 200,
         outputCostPer1MCents: 1000
       })
-      for (const removed of ['gpt-6-astra', 'gpt-5.6-terra']) {
+      for (const removed of ['gpt-5.6-terra']) {
         expect(getModelRegistry().llm['openai']?.models[removed]).toBeUndefined()
         expect(getModelRegistry().extract['openai']?.models[removed]).toBeUndefined()
         expect(getRetiredModelRate('llm', 'openai', removed)).toBeUndefined()
+      }
+      for (const writeOnly of ['gpt-6-astra', 'gpt-6.1-terra']) {
+        expect(getLlmCost('openai', writeOnly)).toBeDefined()
+        expect(getModelRegistry().extract['openai']?.models[writeOnly]).toBeUndefined()
+        expect(getRetiredModelRate('llm', 'openai', writeOnly)).toBeUndefined()
       }
       expect(getExtractPricing('openai', 'gpt-6.1-sol')).toMatchObject({
         inputCostPer1MCents: 200,

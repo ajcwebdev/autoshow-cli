@@ -50,5 +50,9 @@ export const createGeminiRetryClassifier = (retryClass: RetryClass): RetryClassi
   (error) => classifyGeminiRetry(error, retryClass)
 
 export const GEMINI_ARGON_MODEL = 'gemini-4-argon'
-export const GEMINI_ARGON_SYNC_OUTPUT_TOKENS = 65_536
+export const GEMINI_CARBON_MODEL = 'gemini-4-carbon'
+// Direct, non-streaming REST GenerateContent calls have a lower cap than SDK/streaming calls.
+export const GEMINI_4_SYNC_OUTPUT_TOKENS = 32_768
 export const isGeminiArgonModel = (model: string): boolean => model.replace(/^models\//, '') === GEMINI_ARGON_MODEL
+export const isGeminiCarbonModel = (model: string): boolean => model.replace(/^models\//, '') === GEMINI_CARBON_MODEL
+export const isGemini4Model = (model: string): boolean => isGeminiArgonModel(model) || isGeminiCarbonModel(model)

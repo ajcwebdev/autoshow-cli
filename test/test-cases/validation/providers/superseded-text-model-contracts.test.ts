@@ -84,9 +84,10 @@ describe('superseded write and OCR identities are retired without rewriting hist
     const grok = getLlmCost('grok', 'grok-4.5')!
     expect(computeTokenCost(grok, 200000, 1)).toMatchObject({ inputCostPer1MCents: 200, outputCostPer1MCents: 600 })
     expect(computeTokenCost(grok, 200001, 1)).toMatchObject({ inputCostPer1MCents: 400, outputCostPer1MCents: 1200 })
-    for (const model of ['gpt-6-astra', 'gpt-5.6-terra']) {
-      expect(() => buildOptsFromFlags({ openai: model })).toThrow('Allowed values: gpt-6.1-sol, gpt-6-luna')
-      expect(() => buildOptsFromFlags({ 'openai-ocr': model })).toThrow('Allowed values: gpt-6.1-sol, gpt-6-luna')
+    expect(buildOptsFromFlags({ openai: 'gpt-6-astra' }).openaiModels).toEqual(['gpt-6-astra'])
+    for (const model of ['gpt-5.6-terra']) {
+      expect(() => buildOptsFromFlags({ openai: model })).toThrow('Allowed values: gpt-6-astra, gpt-6.1-sol, gpt-6.1-terra, gpt-6-luna')
     }
+    for (const model of ['gpt-6-astra', 'gpt-6.1-terra', 'gpt-5.6-terra']) expect(() => buildOptsFromFlags({ 'openai-ocr': model })).toThrow('Allowed values: gpt-6.1-sol, gpt-6-luna')
   })
 })

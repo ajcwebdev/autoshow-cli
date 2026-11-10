@@ -24,19 +24,20 @@ const removedWrite = [
   ...routePairs('together', ['removed-kimi-model', 'glm-5.1']),
 ]
 const activeWrite = [
-  ...routePairs('openai', ['gpt-6.1-sol', 'gpt-6-luna']),
-  ...routePairs('anthropic', ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5']),
-  ...routePairs('gemini', ['gemini-4-argon', 'gemini-3.8-flash']),
+  ...routePairs('openai', ['gpt-6-astra', 'gpt-6.1-sol', 'gpt-6.1-terra', 'gpt-6-luna']),
+  ...routePairs('anthropic', ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-2']),
+  ...routePairs('gemini', ['gemini-4-argon', 'gemini-4-carbon', 'gemini-3.8-flash']),
   ...routePairs('grok', ['grok-4.7']),
 ]
-// Gemini 4 Argon remains a write route only.
-const writeOnly = new Set(['gemini/gemini-4-argon'])
+// New writing routes do not implicitly add OCR support.
+const writeOnly = new Set(['gemini/gemini-4-argon', 'gemini/gemini-4-carbon', 'openai/gpt-6-astra', 'openai/gpt-6.1-terra', 'anthropic/claude-fable-5-2'])
 const activeOcr = [
   ...activeWrite.filter(([key]) => !writeOnly.has(key)),
   ...routePairs('mistral', ['mistral-ocr-4-1']),
   ...routePairs('anthropic', ['claude-fable-5']),
 ]
 const removedOcr = [
+  ...activeWrite.filter(([key]) => writeOnly.has(key)),
   ...routePairs('openai', ['removed-openai-ocr-model']),
   ...routePairs('gemini', ['gemini-4-argon', 'removed-gemini-ocr-model']),
   ...routePairs('grok', ['removed-grok-ocr-model']),
@@ -145,7 +146,7 @@ describe('benchmark dashboard live CLI availability snapshot', () => {
       llm: { ...original.llm, openai: { ...original.llm['openai']!, models: { 'gpt-5.5': {} } } },
     }
     expect(supportedDashboardProviderKeys('write', dashboard([...activeWrite, ...removedWrite]), registry)).toEqual(activeWrite.filter(([key]) => !key.startsWith('openai/')).map(([key]) => key).sort((a, b) => a.localeCompare(b)))
-    expect(activeWrite).toHaveLength(8)
+    expect(activeWrite).toHaveLength(12)
     expect(activeOcr).toHaveLength(9)
   })
 })
