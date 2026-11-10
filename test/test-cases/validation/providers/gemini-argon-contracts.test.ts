@@ -25,11 +25,12 @@ const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini
 // Argon is write-only; shared Gemini OCR behavior is exercised through the remaining OCR model.
 const ocrModel = 'gemini-3.8-flash'
 // Independent expectations: the Argon card, migration guide, pricing page and GenerateContent
-// reference were checked on 2026-10-17, rather than inferred from the implementation.
+// reference were checked on 2026-11-10, rather than inferred from the implementation.
 // https://ai.google.dev/gemini-api/docs/models/gemini-4-argon
 // https://ai.google.dev/gemini-api/docs/latest-model
 // https://ai.google.dev/api/generate-content
 // https://ai.google.dev/gemini-api/docs/pricing
+// https://aistudio.google.com/docs/long-decode?generate-content=true#default-output-limits
 const response = (text: string, finishReason = 'STOP') => ({
   modelVersion: model,
   candidates: [{ finishReason, content: { parts: [{ thought: true, text: 'Private reasoning' }, { text }] } }],
@@ -58,9 +59,9 @@ describe('Gemini 4 Argon synchronous write contracts and write-only OCR rejectio
     expect(selectCheapestExtractModel('gemini')).toBe('gemini-3.8-flash')
     const registry = getModelRegistry()
     const entry = registry.llm['gemini']?.models[model]
-    expect(entry?.limits).toMatchObject({ contextTokens: 1_048_576, maxOutputTokens: 65_536 })
+    expect(entry?.limits).toMatchObject({ contextTokens: 1_048_576, maxOutputTokens: 32_768 })
     expect(entry?.limits?.notes).toContain('thinking')
-    expect(entry?.pricingCheckedAt).toBe('2026-10-17')
+    expect(entry?.pricingCheckedAt).toBe('2026-11-10')
     expect(entry?.pricingNotes).toContain('2026-11-30')
     expect(entry?.pricingNotes).toContain('2026-12-01')
     expect(entry?.pricingNotes).toContain('overstate')
@@ -87,7 +88,7 @@ describe('Gemini 4 Argon synchronous write contracts and write-only OCR rejectio
       expect(calls[0]?.method).toBe('POST')
       expect(calls[0]?.headers.get('x-goog-api-key')).toBe('test-key')
       expect(calls[0]?.bodyJson?.['generationConfig']).toEqual({
-        maxOutputTokens: 65_536,
+        maxOutputTokens: 32_768,
         responseMimeType: 'application/json',
         responseJsonSchema: schema.jsonSchema,
         ...(effort && effort !== 'default' ? { thinkingConfig: { thinkingLevel: effort.toUpperCase() } } : {})
@@ -123,11 +124,19 @@ describe('Gemini 4 Argon synchronous write contracts and write-only OCR rejectio
       ...['temperature', 'topP', 'topK', 'top_p', 'top_k'].map(key => ({ [key]: 1 })),
       { thinkingConfig: { thinkingBudget: 0 } },
       { thinkingConfig: { thinkingLevel: 'MINIMAL' } },
-      ...[0, -1, 65_537, 1_048_576, 1.5, '65536'].map(maxOutputTokens => ({ maxOutputTokens }))
+      ...[0, -1, 32_769, 1_048_576, 1.5, '32768'].map(maxOutputTokens => ({ maxOutputTokens }))
     ]) {
       await expect(geminiGenerateContent('test-key', { model, contents: 'Synthetic prompt', generationConfig })).rejects.toThrow(model)
     }
     expect(calls).toHaveLength(0)
+  })
+
+  test('direct non-streaming REST accepts 32,768 tokens and retains Argon candidate-count compatibility', async () => {
+    const calls = installMockFetch(() => jsonResponse(response('Complete answer')))
+    await geminiGenerateContent('test-key', { model: `models/${model}`, contents: 'Synthetic prompt', generationConfig: { maxOutputTokens: 32_768, candidateCount: 1 } })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.url).toBe(endpoint)
+    expect(calls[0]?.bodyJson?.['generationConfig']).toEqual({ maxOutputTokens: 32_768, candidateCount: 1 })
   })
 
   for (const artifact of ['missing-candidates', 'thought-only', 'MAX_TOKENS', 'CONTINUATION'] as const) {

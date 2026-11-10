@@ -4,6 +4,18 @@ import { command, exact } from '../helpers'
 const WRITE_PRICE_INPUT = 'input/examples/tts/01-tts-short.md'
 
 export const writeRegistry: PriceSelectionEntry[] = [
+  ...exact('test/test-cases/e2e/service/text/write/gemini-4-carbon.test.ts', [
+    command('write-gemini-gemini-4-carbon', 'write-gemini-gemini-4-carbon', ['src/cli/create-cli.ts', 'write', WRITE_PRICE_INPUT, '--provider', 'gemini=gemini-4-carbon', '--prompt', 'shortSummary', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/text/write/anthropic-claude-fable-5-2.test.ts', [
+    command('write-anthropic-claude-fable-5-2', 'write-anthropic-claude-fable-5-2', ['src/cli/create-cli.ts', 'write', WRITE_PRICE_INPUT, '--provider', 'anthropic=claude-fable-5-2', '--prompt', 'shortSummary', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/text/write/openai-gpt-6.1-terra.test.ts', [
+    command('write-openai-gpt-6.1-terra', 'write-openai-gpt-6.1-terra', ['src/cli/create-cli.ts', 'write', WRITE_PRICE_INPUT, '--provider', 'openai=gpt-6.1-terra', '--prompt', 'shortSummary', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/text/write/openai-gpt-6-astra.test.ts', [
+    command('write-openai-gpt-6-astra', 'write-openai-gpt-6-astra', ['src/cli/create-cli.ts', 'write', WRITE_PRICE_INPUT, '--provider', 'openai=gpt-6-astra', '--prompt', 'shortSummary', '--price']),
+  ]),
   ...exact('test/test-cases/e2e/service/text/write/openai-gpt-6.1-sol.test.ts', [
     command('write-openai-gpt-6.1-sol', 'write-openai-gpt-6.1-sol', ['src/cli/create-cli.ts', 'write', WRITE_PRICE_INPUT, '--provider', 'openai=gpt-6.1-sol', '--prompt', 'shortSummary', '--price']),
   ]),

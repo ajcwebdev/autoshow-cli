@@ -6,12 +6,19 @@ import { applyAnthropicReasoning } from '~/cli/commands/setup-and-utilities/mode
 import { llmRequestSettings } from '~/cli/commands/text/write/write-utils/llm-request-settings'
 import { ValidationError } from '~/utils/error-handler'
 import { transformAnthropicJsonSchema } from '~/utils/anthropic/anthropic-json-schema'
+import { isRecord } from '~/utils/value-helpers'
 
-const extractAnthropicText = (content: Array<{ type: string, text?: string | undefined }>): string =>
-  content
-    .filter((block) => block.type === 'text')
-    .map((block) => block.text ?? '')
-    .join('')
+const extractAnthropicText = (content: unknown): string | undefined => {
+  if (!Array.isArray(content)) return undefined
+  let text = ''
+  for (const block of content) {
+    if (!isRecord(block) || typeof block['type'] !== 'string') return undefined
+    if (block['type'] !== 'text') continue
+    if (typeof block['text'] !== 'string') return undefined
+    text += block['text']
+  }
+  return text
+}
 
 export const runAnthropicCompatibleModel = async ({
   prompt,
@@ -55,14 +62,27 @@ export const runAnthropicCompatibleModel = async ({
         signal: createSignal()
       })
 
+      const responseEvidence = {
+        rawResponse: message,
+        requestedModel: model,
+        ...(isRecord(message) ? { rawProviderUsage: message['usage'], returnedModel: message['model'] } : {})
+      }
+      if (!isRecord(message)) {
+        throw ValidationError(`${providerLabel} returned a malformed message.`, { stage: 'write:anthropic', metadata: responseEvidence })
+      }
       if (message['stop_reason'] === 'refusal' || message['stop_reason'] === 'max_tokens' || message['stop_reason'] === 'pause_turn') {
         throw ValidationError(`${providerLabel} returned an incomplete response (${message['stop_reason']}).`, {
           stage: 'write:anthropic',
-          metadata: { rawResponse: message, rawProviderUsage: message.usage, returnedModel: message.model }
+          metadata: responseEvidence
         })
       }
 
-      const text = extractAnthropicText(message.content ?? [])
+      const text = extractAnthropicText(message.content)
+      if (text === undefined || !text.trim()) {
+        throw ValidationError(text === undefined ? `${providerLabel} returned malformed content blocks.` : 'No response text from model', {
+          stage: 'write:anthropic', metadata: responseEvidence
+        })
+      }
       return {
         text,
         usage: message.usage,

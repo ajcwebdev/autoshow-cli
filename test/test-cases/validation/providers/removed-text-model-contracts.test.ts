@@ -81,16 +81,15 @@ describe('removed text selections reject before dispatch', () => {
 })
 
 const fullyRemoved = [
-  ['gemini', 'gemini-3.6-flash', 'gemini-4-argon, gemini-3.8-flash', 'gemini-3.8-flash'],
-  ['gemini', 'gemini-3.5-flash', 'gemini-4-argon, gemini-3.8-flash', 'gemini-3.8-flash'],
+  ['gemini', 'gemini-3.6-flash', 'gemini-4-argon, gemini-4-carbon, gemini-3.8-flash', 'gemini-3.8-flash'],
+  ['gemini', 'gemini-3.5-flash', 'gemini-4-argon, gemini-4-carbon, gemini-3.8-flash', 'gemini-3.8-flash'],
   ['grok', 'grok-4.5', 'grok-4.7', 'grok-4.7'],
-  ['openai', 'gpt-6-astra', 'gpt-6.1-sol, gpt-6-luna', 'gpt-6.1-sol, gpt-6-luna'],
-  ['openai', 'gpt-5.6-terra', 'gpt-6.1-sol, gpt-6-luna', 'gpt-6.1-sol, gpt-6-luna'],
-  ['anthropic', 'claude-fable-5-1', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5'],
+  ['openai', 'gpt-5.6-terra', 'gpt-6-astra, gpt-6.1-sol, gpt-6.1-terra, gpt-6-luna', 'gpt-6.1-sol, gpt-6-luna'],
+  ['anthropic', 'claude-fable-5-1', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5'],
 ] as const
 
 const writeRemoved = [
-  ['anthropic', 'claude-fable-5', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5'],
+  ['anthropic', 'claude-fable-5', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2'],
 ] as const
 
 const ocrFlag = (provider: string) => `${provider}-ocr`
@@ -138,7 +137,7 @@ describe('write-only catalog removals stay valid for OCR; fully removed IDs reje
   test('Gemini 3.6 Flash is rejected for write, OCR and STT', () => {
     expect(() => buildOptsFromFlags({ 'gemini-ocr': 'gemini-3.6-flash' })).toThrow('Allowed values: gemini-3.8-flash')
     expect(() => parseWrite('gemini', 'gemini-3.6-flash')).toThrow(
-      'Invalid model "gemini-3.6-flash" for --llm gemini[=model]. Allowed values: gemini-4-argon, gemini-3.8-flash'
+      'Invalid model "gemini-3.6-flash" for --llm gemini[=model]. Allowed values: gemini-4-argon, gemini-4-carbon, gemini-3.8-flash'
     )
     expect(() => buildOptsFromFlags({ 'gemini-stt': 'gemini-3.6-flash' })).toThrow(
       'Model "gemini-3.6-flash" is retired for --provider/--stt gemini[=model]. Use "gemini-3.5-transcribe" instead.'
@@ -152,9 +151,9 @@ describe('write-only catalog removals stay valid for OCR; fully removed IDs reje
       expect(Reflect.get(llmOpts, `${provider}Models`) ?? []).not.toContain(model)
       expect(Reflect.get(ocrOpts, `${provider}OcrModels`) ?? []).toContain(model)
     }
-    expect(llmOpts.geminiModels).toEqual(['gemini-4-argon', 'gemini-3.8-flash'])
+    expect(llmOpts.geminiModels).toEqual(['gemini-4-argon', 'gemini-4-carbon', 'gemini-3.8-flash'])
     expect(llmOpts.grokModels).toEqual(['grok-4.7'])
-    expect(llmOpts.anthropicModels).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'])
+    expect(llmOpts.anthropicModels).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-2'])
   })
 })
 

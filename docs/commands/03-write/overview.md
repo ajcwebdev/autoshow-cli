@@ -100,7 +100,7 @@ Write `--price` estimates use the selected prompt and source text. Use `--json` 
 
 `--provider` accepts `provider[=model]`. Omitting the model uses the cheapest supported model for that provider. Headline per-1M rates are in [Provider Capabilities](#provider-capabilities).
 
-`--all-providers` selects all active write models. Retired model names fail locally; where a replacement is recorded, the error names it. Claude Haiku 5.5 and GPT-6 Luna tie at the lowest headline rates; omitting the provider selects Anthropic.
+`--all-providers` selects all 12 active write models. The four frontier additions are write models only; their IDs are not accepted by OCR or STT. Retired model names fail locally; where a replacement is recorded, the error names it. Claude Haiku 5.5 and GPT-6 Luna tie at the lowest headline rates; omitting the provider selects Anthropic.
 
 | Provider  | Selector                         | Default model      |
 | --------- | -------------------------------- | ------------------ |
@@ -112,16 +112,21 @@ Write `--price` estimates use the selected prompt and source text. Use `--json` 
 ### OpenAI
 
 ```bash
+bun autoshow write input/examples/document/harborlight-field-notes.md --provider openai=gpt-6-astra --prompt shortSummary --reasoning-effort high
+bun autoshow write input/examples/document/harborlight-field-notes.md --provider openai=gpt-6.1-terra --prompt shortSummary --reasoning-effort disabled
 bun autoshow write input/examples/document/harborlight-field-notes.md --provider openai=gpt-6.1-sol --prompt shortSummary --reasoning-effort high
 bun autoshow write input/examples/document/harborlight-field-notes.md --provider openai=gpt-6-luna --prompt shortSummary --reasoning-effort disabled
 ```
-GPT-6.1 Sol and GPT-6 Luna have a 1,050,000-token context and 128,000-token maximum output. Both accept `low`, `medium`, `high`, `xhigh`, and `max`; omitted effort or `default` uses `medium`. Sol requires reasoning; Luna also accepts `disabled`. Both reject `minimal`. [Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna).
+GPT-6 Astra, GPT-6.1 Terra, GPT-6.1 Sol, and GPT-6 Luna accept `low`, `medium`, `high`, `xhigh`, and `max`; all reject `minimal`. Astra and Sol require reasoning and reject `disabled`. Terra and Luna accept `disabled`, serialized as native `reasoning.effort: "none"`. Omitted effort and explicit `default` remove the override and delegate to provider defaults; Terra, Sol, and Luna default to `medium`. Requests use Responses and native `text.format` JSON schema output without unsupported sampling controls. [Astra](https://developers.openai.com/api/docs/models/gpt-6-astra), [Terra](https://developers.openai.com/api/docs/models/gpt-6.1-terra), [Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna).
 
-Above 272,000 input tokens, the entire request reprices: GPT-6.1 Sol `$4.00 / $15.00` and GPT-6 Luna `$0.20 / $0.75` per 1M input/output tokens.
+All four have a 1,050,000-token context and 128,000-token provider maximum output. Astra and Terra have a separate 922,000-token maximum input; context size does not increase that input allowance. See the [migration guidance](https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra.md#migration-quickstart).
+
+The base rates in the capability table apply through 272,000 input tokens. At 272,001 or more, the entire request reprices: Astra `$20 / $75`, Terra `$2 / $7.50`, Sol `$4 / $15`, and Luna `$0.20 / $0.75` per 1M input/output tokens. Cached-input rates also double: Astra `$2` and Terra `$0.10` per 1M. Published 30-minute/12-hour cache-write rates are `$12.50 / $25` for Astra and `$1.25 / $2.50` for Terra before the long-context multiplier. These caching rates are provenance metadata; write does not request explicit caching. The new models use uncalibrated timing estimates. [Pricing](https://developers.openai.com/api/docs/pricing).
 
 ### Anthropic
 
 ```bash
+bun autoshow write input/examples/document/harborlight-field-notes.md --provider anthropic=claude-fable-5-2 --prompt shortSummary --reasoning-effort high
 bun autoshow write input/examples/document/harborlight-field-notes.md --provider anthropic=claude-opus-5-5 --prompt shortSummary --reasoning-effort medium
 bun autoshow write input/examples/document/harborlight-field-notes.md --provider anthropic=claude-sonnet-5-5 --prompt shortSummary --reasoning-effort high
 bun autoshow write input/examples/document/harborlight-field-notes.md --provider anthropic=claude-haiku-5-5 --prompt shortSummary --reasoning-effort disabled
@@ -130,14 +135,25 @@ Claude Opus, Sonnet and Haiku 5.5 accept `low`, `medium`, `high`, `xhigh`, and `
 
 Haiku 5.5 uses `$0.10 / $0.50` per 1M input/output tokens through 100,000 prompt tokens. Above that threshold, its entire request, including output, uses `$0.50 / $2.50`. Opus 5.5 uses `$4.00 / $20.00`; Sonnet 5.5 uses `$2.00 / $10.00`. [Pricing](https://platform.claude.com/docs/en/about-claude/pricing).
 
+Claude Fable 5.2 also accepts `low`, `medium`, `high`, `xhigh`, and `max`, and rejects `minimal` and `disabled`. Adaptive thinking is always enabled: AutoShow omits `thinking` and sends an explicit effort only through `output_config.effort`; omitted effort or `default` delegates to native `high`. Its 1,000,000-token context and 128,000-token provider maximum output are distinct from AutoShow's unchanged 16,000-token application budget for thinking plus text. Rates are `$8 / $0.20 / $40` per 1M input/cached-input/output tokens across the full context window, without long-context bands. Its timing estimate is uncalibrated. [Fable specifications](https://platform.claude.com/docs/en/models/fable-5-2/overview).
+
+Fable 5.2 requires 30-day retention unless Anthropic expressly authorizes zero data retention. Native structured output is unavailable in CMEK organizations. AutoShow preserves those provider errors: it does not substitute a model or remove `output_config.format` schema enforcement. Adding Fable 5.2 does not restore Fable 5 or 5.1. [Migration requirements](https://platform.claude.com/docs/en/models/fable-5-2/migration-guide).
+
 ### Gemini
 
 Gemini 3.8 Flash accepts `--reasoning-effort low`, `medium`, or `high`; `minimal` and `disabled` are rejected. Its `--price` estimates use the standard `$1.50 / $7.50` rates that take effect 2027-01-01, so they overstate cost during the introductory `$0.75 / $3.75` window through 2026-12-31.
 
 ```bash
 bun autoshow write input/examples/document/harborlight-field-notes.md --provider gemini=gemini-4-argon --prompt shortSummary --reasoning-effort medium
+bun autoshow write input/examples/document/harborlight-field-notes.md --provider gemini=gemini-4-carbon --prompt shortSummary --reasoning-effort high
 ```
-Gemini 4 Argon accepts `low`, `medium`, and `high`; omitted effort or `default` uses `medium`. `minimal` and `disabled` are rejected. Its 1,048,576-token window is shared by input, thinking and output; AutoShow caps thinking/output at 65,536 tokens. Estimates conservatively use `$4 / $20` per 1M input/output tokens, overstating the introductory `$2 / $10` rates through 2026-11-30; standard rates begin 2026-12-01. [Model](https://ai.google.dev/gemini-api/docs/models/gemini-4-argon), [pricing](https://ai.google.dev/gemini-api/docs/pricing).
+Gemini 4 Argon and Gemini 4 Carbon accept `low`, `medium`, and `high`, serialized as `LOW`, `MEDIUM`, and `HIGH`. Omitted effort or `default` removes the override and delegates to native `medium`. `disabled`, `minimal`, `xhigh`, `max`, numeric thinking budgets, and unsupported sampling controls are rejected before dispatch. Carbon candidate-count overrides are unsupported; Argon retains its existing behavior. [Argon](https://aistudio.google.com/docs/models/gemini-4-argon), [Carbon](https://aistudio.google.com/docs/models/gemini-4-carbon).
+
+Both use a unified 1,048,576-token window shared by input, thinking, and output. AutoShow calls direct, non-streaming REST `generateContent` and limits thinking plus output to 32,768 tokens. The 65,536-token figure applies to streaming or SDK invocation modes; existing Flash OCR retains its separate 65,536-token cap. AutoShow rejects truncated, continuation, missing-candidate, and thinking-only responses, retains raw evidence, and does not automatically continue or redispatch. [REST limits](https://aistudio.google.com/docs/long-decode?generate-content=true#default-output-limits).
+
+Carbon requests `POST https://generativelanguage.googleapis.com/v1beta/models/gemini-4-carbon:generateContent` with native `generationConfig.responseFormat.text` containing `mimeType: "APPLICATION_JSON"` and the schema. Argon and Flash retain their existing schema serialization. [Structured output](https://aistudio.google.com/docs/structured-output?generate-content=true).
+
+Both Gemini 4 models conservatively use `$4 / $0.20 / $20` per 1M input/cached-input/output tokens, overstating introductory `$2 / $0.10 / $10` rates through 2026-11-30. Standard rates begin 2026-12-01. Output pricing includes thinking tokens, counted once. Explicit caching and automatic date-based tariff changes are unsupported; Carbon timing is uncalibrated. [Carbon pricing](https://aistudio.google.com/docs/pricing#gemini-4-carbon), [Argon pricing](https://aistudio.google.com/docs/pricing#gemini-4-argon).
 
 ### Grok
 
@@ -277,15 +293,19 @@ Lyric drafts pair with `music --lyrics-file`.
 
 ## Provider Capabilities
 
-All active write models use native JSON schema output. `write` does not browse or send web-search tools. Prices below are uncached USD per 1M input/output tokens; context thresholds and introductory-rate qualifications are described above. A dash means the CLI does not publish a context limit for that model.
+All active write models use native JSON schema output. `write` does not browse or send web-search tools. Prices below are standard USD per 1M input/cached-input/output tokens; estimates use uncached rates, and cached-input values are metadata only. Context thresholds and introductory-rate qualifications are described above. A dash means the CLI does not publish that value for the model.
 
-| Provider  | Model               | Reasoning               | Context tokens | Input / 1M | Output / 1M |
-| --------- | ------------------- | ----------------------- | -------------- | ---------- | ----------- |
-| Gemini    | `gemini-4-argon`    | Required; through high  | 1,048,576      | $4.00      | $20.00      |
-| Anthropic | `claude-haiku-5-5`  | Optional; through max   | 1,000,000      | $0.10      | $0.50       |
-| OpenAI    | `gpt-6.1-sol`       | Required; through max   | 1,050,000      | $2.00      | $10.00      |
-| Anthropic | `claude-sonnet-5-5` | Optional; through max   | 1,000,000      | $2.00      | $10.00      |
-| OpenAI    | `gpt-6-luna`        | Optional; through max   | 1,050,000      | $0.10      | $0.50       |
-| Anthropic | `claude-opus-5-5`   | Required; through max   | 1,000,000      | $4.00      | $20.00      |
-| Grok      | `grok-4.7`          | Required; through xhigh | 500,000        | $2.00      | $6.00       |
-| Gemini    | `gemini-3.8-flash`  | Optional; through high  | —              | $1.50      | $7.50       |
+| Provider  | Model               | Reasoning               | Context tokens | Input / 1M | Cached input / 1M | Output / 1M |
+| --------- | ------------------- | ----------------------- | -------------- | ---------- | ----------------- | ----------- |
+| OpenAI    | `gpt-6-astra`       | Required; through max   | 1,050,000      | $10.00     | $1.00             | $50.00      |
+| OpenAI    | `gpt-6.1-sol`       | Required; through max   | 1,050,000      | $2.00      | $0.10             | $10.00      |
+| OpenAI    | `gpt-6.1-terra`     | Optional; through max   | 1,050,000      | $1.00      | $0.05             | $5.00       |
+| OpenAI    | `gpt-6-luna`        | Optional; through max   | 1,050,000      | $0.10      | $0.01             | $0.50       |
+| Anthropic | `claude-fable-5-2`  | Required; through max   | 1,000,000      | $8.00      | $0.20             | $40.00      |
+| Anthropic | `claude-opus-5-5`   | Required; through max   | 1,000,000      | $4.00      | $0.20             | $20.00      |
+| Anthropic | `claude-sonnet-5-5` | Optional; through max   | 1,000,000      | $2.00      | $0.10             | $10.00      |
+| Anthropic | `claude-haiku-5-5`  | Optional; through max   | 1,000,000      | $0.10      | $0.01             | $0.50       |
+| Gemini    | `gemini-4-argon`    | Required; through high  | 1,048,576      | $4.00      | $0.20             | $20.00      |
+| Gemini    | `gemini-4-carbon`   | Required; through high  | 1,048,576      | $4.00      | $0.20             | $20.00      |
+| Gemini    | `gemini-3.8-flash`  | Optional; through high  | —              | $1.50      | —                 | $7.50       |
+| Grok      | `grok-4.7`          | Required; through xhigh | 500,000        | $2.00      | $0.50             | $6.00       |

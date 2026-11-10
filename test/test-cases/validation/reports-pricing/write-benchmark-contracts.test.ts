@@ -30,18 +30,27 @@ const setup = async (): Promise<{ plan: WriteBenchmarkPlan; entry: WriteBenchmar
 }
 
 describe('write benchmark dispatch and evidence', () => {
-  test('price-only plan binds five inputs and 8 active model routes without reusing historical approval or network dispatch', async () => {
+  test('price-only plan binds five inputs and 12 active model routes without reusing historical approval or network dispatch', async () => {
     globalThis.fetch = Object.assign(async () => { throw new Error('Price must not call a provider') }, { preconnect: originalFetch.preconnect }) as typeof fetch
     const plan = await buildWriteBenchmarkPlan()
     expect(plan.cases.map(entry => entry.prompt)).toEqual(['shortSummary', 'longSummary', 'mediumChapters', 'blog', 'rapSongChapter'])
-    expect(plan.providers).toHaveLength(8)
-    expect(plan.providers.length * plan.cases.length).toBe(40)
-    expect(plan.baseEstimatedCostCents).toBeCloseTo(77.07020865, 6)
+    expect(plan.providers).toHaveLength(12)
+    expect(plan.providers.length * plan.cases.length).toBe(60)
+    // Original fixed corpus/prompt estimates: 20,458 input and 6,200 output tokens per route.
+    // Added Standard input/output cents per million: Astra 1000/5000,
+    // Terra 100/500, Fable 5.2 800/4000, Carbon 400/2000 (post-introductory).
+    // All inputs are below Astra/Terra's 272,000-token pricing threshold.
+    const addedCostCents = (20_458 * (1000 + 100 + 800 + 400) + 6200 * (5000 + 500 + 4000 + 2000)) / 1_000_000
+    // The revised rap instruction grows from 11,448 to 12,762 trimmed characters:
+    // ceil(chars / 4) adds 329 input tokens. Flash retains its 0.8395 estimator
+    // multiplier; the other eleven routes use 1. Output estimates stay unchanged.
+    const promptRevisionCostCents = 329 * (1000 + 200 + 100 + 10 + 400 + 400 + 150 * 0.8395 + 400 + 200 + 10 + 800 + 200) / 1_000_000
+    expect(plan.baseEstimatedCostCents).toBeCloseTo(77.07020865 + addedCostCents + promptRevisionCostCents, 6)
     expect(plan.approval).toBeNull()
     expect(plan.providers.map(provider => `${provider.provider}/${provider.model}`)).toEqual([
-      'gemini/gemini-4-argon', 'gemini/gemini-3.8-flash',
-      'anthropic/claude-opus-5-5', 'anthropic/claude-sonnet-5-5', 'anthropic/claude-haiku-5-5',
-      'openai/gpt-6.1-sol', 'openai/gpt-6-luna',
+      'gemini/gemini-4-argon', 'gemini/gemini-4-carbon', 'gemini/gemini-3.8-flash',
+      'anthropic/claude-opus-5-5', 'anthropic/claude-sonnet-5-5', 'anthropic/claude-haiku-5-5', 'anthropic/claude-fable-5-2',
+      'openai/gpt-6-astra', 'openai/gpt-6.1-sol', 'openai/gpt-6.1-terra', 'openai/gpt-6-luna',
       'grok/grok-4.7'
     ])
     expect(plan.cases.every(entry => /^[a-f0-9]{64}$/.test(entry.promptSha256))).toBe(true)
@@ -59,7 +68,7 @@ describe('write benchmark dispatch and evidence', () => {
     expect(receipts).toHaveLength(40)
     expect(receipts.filter(receipt => receipt.model === 'grok-4.7')).toHaveLength(5)
     expect(await Bun.file(WRITE_BENCHMARK_PLAN).text()).toBe(historicalBytes)
-    await expect(executeWriteBenchmark(historical)).rejects.toThrow('requires its own explicit cost-specific approval')
+    await expect(executeWriteBenchmark(historical)).rejects.toThrow('models, prices or plan contents changed')
   })
 
   test('a missing retired-model receipt rejects before an attempt is saved or its adapter dispatches', async () => {
@@ -69,6 +78,41 @@ describe('write benchmark dispatch and evidence', () => {
     await expect(runWriteBenchmarkSlot(plan, entry, prepared, target)).rejects.toThrow('Retired or unsupported benchmark model')
     expect(await Bun.file(join(entry.runDir, 'slot-grok-grok-4.5.json')).exists()).toBe(false)
     expect(calls).toBe(0)
+  })
+
+  test('historical cache uses pinned snapshots and validates schema, receipt identity and artifacts without live input', async () => {
+    const { entry: initialEntry, prepared: currentPrepared } = await setup()
+    const prepared = { ...currentPrepared, prompt: 'An earlier retained instruction that differs from the current preset.' }
+    const entry = { ...initialEntry, input: join(initialEntry.runDir, 'absent-original-input.txt'), promptSha256: sha256Bytes(prepared.prompt) }
+    const full = await buildWriteBenchmarkPlan()
+    const { fingerprint: _, ...content } = { ...full, cases: [entry], providers: full.providers.filter(provider => provider.provider === 'openai' && provider.model === 'gpt-6.1-sol') }
+    const plan = { ...content, fingerprint: sha256Bytes(JSON.stringify(content)) }
+    let calls = 0
+    const target: LLMTarget = { service: 'openai', model: 'gpt-6.1-sol', label: 'OpenAI', run: async () => {
+      calls++
+      return { result: JSON.stringify({ episodeDescription: 'A retained synthetic result.' }), metadata }
+    } }
+    const slot = await runWriteBenchmarkSlot(plan, entry, prepared, target)
+    await Bun.write(join(entry.runDir, 'source.txt'), prepared.source)
+    await Bun.write(join(entry.runDir, 'prompt.md'), prepared.prompt)
+    expect(await Bun.file(entry.input).exists()).toBe(false)
+    expect(await verifyWriteBenchmarkCache(plan)).toEqual([slot])
+    expect(calls).toBe(1)
+
+    for (const [name, bytes] of [['source.txt', prepared.source], ['prompt.md', prepared.prompt]]) {
+      await Bun.write(join(entry.runDir, name!), 'changed snapshot')
+      await expect(verifyWriteBenchmarkCache(plan)).rejects.toThrow('Cached benchmark snapshot missing or changed')
+      await Bun.write(join(entry.runDir, name!), bytes!)
+    }
+    const schemaContent = { ...content, cases: [{ ...entry, schemaSha256: '0'.repeat(64) }] }
+    await expect(verifyWriteBenchmarkCache({ ...schemaContent, fingerprint: sha256Bytes(JSON.stringify(schemaContent)) })).rejects.toThrow('Cached benchmark schema changed')
+    const slotPath = join(entry.runDir, 'slot-openai-gpt-6.1-sol.json')
+    await Bun.write(slotPath, JSON.stringify({ ...slot, caseId: 'wrong-case' }))
+    await expect(verifyWriteBenchmarkCache(plan)).rejects.toThrow('Cached slot identity changed')
+    await Bun.write(slotPath, JSON.stringify(slot))
+    await Bun.write(join(entry.runDir, 'text-openai-gpt-6.1-sol.json'), '{}')
+    await expect(verifyWriteBenchmarkCache(plan)).rejects.toThrow('Cached artifact missing or changed')
+    expect(calls).toBe(1)
   })
 
   test('saved plan mutations with stale fingerprints are rejected before dispatch', async () => {

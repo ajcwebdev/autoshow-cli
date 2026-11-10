@@ -33,7 +33,7 @@ const MARKDOWN_PROMPT_SNAPSHOT = {
   questions: 'bc6211e86975ad7b454a49b0bde581de3d85e93b2ecd657e2efb8667da033e25',
   quotes: '60b990695179204ff5dbc0278fda7b37fa58bc232d4286ff4c55c27647c6e1f2',
   rapSong: 'b878f63611bad3f34ac2fd9c14323193e4e01dc80463abb0508b631a48f139c6',
-  rapSongChapter: '2109fc5180a1007cda496c1ecd0b810ea711f30b9551dbad76ccba1e75af46d9',
+  rapSongChapter: '9efc2276b616921968e83efce339fb0d6f8ccc73af20b47550c9fabdb140161b',
   rapSongLong: '2f80d2edcde52f3e3abb6eb37e30697df632a438a2da8d1a8faad590335de91c',
   rockSong: 'dd95a09981c53b03d89a0fcafec003bbc93510cbdc1ec8e478445af32d9724f7',
   screenplay: 'e34dbfcea0400550285bc959a016d67c1d9f0524c467eafe40f4aacca245169e',

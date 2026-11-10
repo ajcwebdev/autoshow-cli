@@ -6,6 +6,8 @@ import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/
 import { applyOpenAIResponsesReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
 import { resolveLlmReasoningOptions } from '../llm-reasoning-options'
 import { llmRequestSettings } from '~/cli/commands/text/write/write-utils/llm-request-settings'
+import { isAppError, ValidationError } from '~/utils/error-handler'
+import { isRecord } from '~/utils/value-helpers'
 
 export const runOpenAIModel = async (
   prompt: string,
@@ -45,13 +47,40 @@ export const runOpenAIModel = async (
         signal: createSignal()
       })
 
-      const text = extractOpenAIResponseText(response) ?? ''
+      const requestSettings = llmRequestSettings(requestBody)
+      const responseEvidence = {
+        rawResponse: response,
+        requestedModel: model,
+        ...(isRecord(response) ? { rawProviderUsage: response['usage'], returnedModel: response['model'] } : {}),
+        requestSettings
+      }
+      if (!isRecord(response) || (response.output !== undefined && !Array.isArray(response.output))) {
+        throw ValidationError('OpenAI returned a malformed Responses envelope.', {
+          stage: 'write:openai', retryable: false, metadata: responseEvidence
+        })
+      }
+      let text: string | undefined
+      try {
+        text = extractOpenAIResponseText(response)
+      } catch (error) {
+        if (isAppError(error)) {
+          Object.assign(error.metadata, responseEvidence)
+        }
+        throw error
+      }
+      if (!text?.trim()) {
+        throw ValidationError('OpenAI returned no response text from model.', {
+          stage: 'write:openai',
+          retryable: false,
+          metadata: responseEvidence
+        })
+      }
       return {
         text,
         usage: response.usage,
         rawProviderUsage: response.usage,
         returnedModel: response.model,
-        requestSettings: llmRequestSettings(requestBody)
+        requestSettings
       }
     }
   })
