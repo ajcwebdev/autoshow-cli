@@ -2,7 +2,7 @@
 
 Default verification is `bun run check`, `bun t --price`, and targeted local behavioral tests. Full-suite execution requires explicit authorization, including fixture mode. Paid batches follow [repository spending rules](../../AGENTS.md): known cumulative totals below $1 USD are authorized within the task; unknown totals or $1 and above need command/cost-specific approval. Include minimum billing, add-ons, and billable retries.
 
-`bun t` loads `.env` and forwards configured hosted credentials. `bun t:local <paths>` forwards none and skips live service tests, but fixture mode does not block network downloads or tool installation. Normal `bun autoshow` commands load `.env`.
+`bun t` loads `.env` and forwards configured hosted credentials. `bun t:local <paths>` forwards none and skips credential-backed live service tests, but fixture mode does not block network downloads or tool installation. Normal `bun autoshow` commands load `.env`.
 
 ## Local Quick Start
 
@@ -21,6 +21,8 @@ bun t:local test/test-cases/e2e/local/sources/download/download-input-types-loca
 ```
 
 Types and price preflight do not replace functional verification. Distinguish transport, decoded integrity, spoken/text correctness, and perceptual quality; mocks do not prove the latter two.
+
+Local streaming download acceptance uses a runtime-contained extractor transport fixture and loopback-served real media. It verifies CLI routing, metadata, byte preservation, decoded integrity, and invalid-artifact rejection. Real public YouTube/Twitch acceptance remains separately selectable under `e2e/service/sources/download/`; it uses the managed extractor and may fail when a site refuses anonymous access. See [download tests](01-sources/download/tests.md) for the explicit commands and coverage limits.
 
 ## Service Quick Start
 

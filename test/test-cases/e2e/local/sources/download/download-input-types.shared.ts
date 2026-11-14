@@ -153,10 +153,13 @@ const assertDownloadOnlyArtifacts = async (outputDir: string, metadata: Download
   await assertDownloadOnly(outputDir, { ...metadata })
 }
 
-export const defineSingleCaseTest = (tc: DownloadE2eSingleCase): void => {
+export const defineSingleCaseTest = (
+  tc: DownloadE2eSingleCase,
+  executionOptions?: () => Parameters<typeof createNativeScenarioAdapter>[1]
+): void => {
   test(tc.name, async () => {
     const input = await resolveCaseInput(tc.input)
-    const result = await createNativeScenarioAdapter({}, { testName: tc.name }).execute(['download', input])
+    const result = await createNativeScenarioAdapter({}, { ...executionOptions?.(), testName: tc.name }).execute(['download', input])
     expect(result.exitCode).toBe(0)
 
     const outputDir = await resolveSingleOutputDir(result, tc.suffix)
