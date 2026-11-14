@@ -6,15 +6,16 @@ import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speak
 import { validateGeminiVoice, geminiSpeechMime } from './gemini-tts-request'
 import { runGeminiTts } from './run-gemini-tts'
 import { getSpeakerVoice, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../../dialogue-normalizer'
+import { GEMINI_TTS_DEFAULT_MODE } from '~/cli/flags/gemini-tts-contract'
 
 export const collectGeminiTtsTargets = (selection: TtsTargetSelection): TtsTarget[] => selection.geminiModels.map(rawModel => {
   const model = validateGeminiTtsModel(rawModel), voice = validateGeminiVoice(selection.geminiVoice ?? 'Kore')
   geminiSpeechMime(selection.geminiResponseFormat, selection.geminiMode === 'stream')
   return {
-    service: 'gemini', model, voice, transport: `gemini-${selection.geminiMode ?? 'unary'}`,
+    service: 'gemini', model, voice, transport: `gemini-${selection.geminiMode ?? GEMINI_TTS_DEFAULT_MODE}`,
     run: async (text, outputDir, opts, invocation, requestEvidence) => {
       if (invocation?.voice.kind === 'ref-audio') throw UsageError('Gemini reference-audio synthesis is unsupported; use voice clone with recorded consent.')
-      opts = { ...opts, geminiTtsMode: selection.geminiMode ?? 'unary' }
+      opts = { ...opts, geminiTtsMode: selection.geminiMode ?? GEMINI_TTS_DEFAULT_MODE }
       const controls = resolveTtsTargetInvocationControls('gemini', invocation, { instructions: selection.geminiInstructions, responseFormat: selection.geminiResponseFormat })
       if (!invocation && opts.ttsSpeakers?.length) {
         const registry = parseSpeakerVoiceMappings(opts.ttsSpeakers)

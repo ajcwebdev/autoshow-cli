@@ -1,21 +1,6 @@
 # setup
 
-Install local runtimes and prerequisite tools. Use `--models` to pre-download local STT models without running inference. Use `--doctor` to check readiness without installing. Configuration flags write persistent defaults without running installation.
-
-Run installation, model downloads, diagnostics, and configuration changes separately. `--strict` requires `--doctor`.
-
-For Docker-only network diagnostics (`setup --network-check serve|probe`), see [Docker-only network diagnostics](../../docker.md#docker-only-network-diagnostic).
-
-## Outline
-
-- [Usage](#usage)
-- [Disk and Network Requirements](#disk-and-network-requirements)
-- [Doctor](#doctor)
-- [Targeted Setup Steps](#targeted-setup-steps)
-- [Model Downloads](#model-downloads)
-- [Setting Defaults and Configuration](#setting-defaults-and-configuration)
-- [Config Schema](#config-schema)
-- [Persisted Defaults and Precedence](#persisted-defaults-and-precedence)
+Install local tools, download STT models, inspect readiness, or save defaults. Run these modes separately: configuration flags skip installation, `--models` downloads without inference, and `--strict` requires `--doctor`. [Docker network diagnostics](../../docker.md#docker-only-network-diagnostic) are another separate mode.
 
 ## Usage
 
@@ -23,45 +8,46 @@ For Docker-only network diagnostics (`setup --network-check serve|probe`), see [
 bun autoshow setup
 ```
 
-Full setup installs tools for local download, OCR, STT, and article extraction. On macOS, it builds FFmpeg, MuPDF, qpdf, and Tesseract from source; install Xcode command-line tools and CMake first. On Linux, it installs missing core tools through `sudo apt` and keeps downloaded tools and model bundles under `runtime/`.
-
-Full setup also requires host-installed ImageMagick with TIFF support, Fontconfig, and DejaVu Sans. Lyric rendering needs FFmpeg's `ass` filter or Pango. Install these prerequisites before running setup:
+macOS builds managed FFmpeg, MuPDF, qpdf, and Tesseract under `runtime/` and extracts Calibre. Install Xcode command-line tools and these host prerequisites first:
 
 ```bash
-# macOS, with Xcode command-line tools already installed
 brew install cmake imagemagick pango fontconfig font-dejavu
+```
 
-# Debian/Ubuntu
+Linux installs missing core tools through `sudo apt`; install rendering prerequisites separately:
+
+```bash
 sudo apt-get install imagemagick pango1.0-tools fontconfig fonts-dejavu-core
 ```
 
+ImageMagick needs TIFF support. Lyric rendering needs FFmpeg `ass` or Pango. Binary precedence is `--bin-dir`, managed tools, then `PATH` on non-macOS hosts; macOS does not fall back to `PATH` for managed tools.
+
 ## Disk and Network Requirements
 
-A full `bun autoshow setup` downloads local tools and the default whisperfile `tiny` model. Budget roughly **10 GB free** for default setup; larger models need additional space. Cold macOS setup time includes source compilation and depends on the machine as well as network speed. Re-runs reuse healthy installed assets.
-
-Managed installs live under `runtime/` in the project checkout; Linux system packages remain system-installed. Interrupted downloads resume instead of restarting from zero.
+Allow roughly 10 GB for tools and default whisperfile `tiny`; larger models need more. Cold macOS setup includes compilation. Re-runs reuse healthy assets, and interrupted downloads resume. Linux system packages remain system-installed.
 
 ## Doctor
-
-Check prerequisites, configuration, and which provider API keys are set without installing anything:
 
 ```bash
 bun autoshow setup --doctor
 bun autoshow setup --doctor --strict
 ```
-Doctor checks API-key presence without live provider calls. Warnings do not change the default exit code. `--strict` exits 2 for readiness warnings, including missing credentials required by configured defaults, invalid configuration, unreadable configured cookies, and unavailable runtimes or model assets. Optional unselected credentials do not fail strict mode. Native invocations read `.env` from the working directory; exported environment variables win over file values. [Docker uses explicit credential injection](../../docker.md#provider-credentials).
 
-Doctor also reports whether configured YouTube cookies are readable. If anonymous `yt-dlp` requests start failing, follow the [YouTube cookies guide](cookies.md).
+Doctor checks tools, assets, configuration, cookie readability, and API-key presence without installation or live provider calls. Warnings are advisory unless `--strict`, which exits 2 on any readiness warning. Missing optional, unselected keys do not fail strict mode. Native invocations load working-directory `.env`; exported variables win. [Docker injects credentials explicitly](../../docker.md#provider-credentials).
+
+## Runtime Environment Overrides
+
+Provider credentials are listed in `.env.example`. Export overrides before starting the CLI:
+
+- `AUTOSHOW_PROJECT_ROOT` relocates managed tools, mutable runtime storage, and project-relative identity/path helpers. It does not change configuration-file discovery; use `--config-path` for that. `--bin-dir` changes only binary lookup.
+- `AUTOSHOW_OCR_PAGE_REQUEST_TIMEOUT_MS` sets the hosted per-page OCR deadline: integer `1–900000` ms, default `300000`. Whole-document deadlines are separate.
+- `AUTOSHOW_SOURCE_IDENTITY_ROOT` and `AUTOSHOW_SOURCE_IDENTITY_ALIAS` must be paired: an absolute local root and normalized absolute POSIX alias without traversal. They map recorded source identities without changing file access.
+
+See [payload limits](../../docker.md#large-provider-responses), [shared budgets](usage.md#shared-runtime-budget), and [internal process-state policy](../../adr/ADR-004-setup-toolchain-and-runtime-configuration.md) for other environment contracts.
 
 ## Targeted Setup Steps
 
-Valid `--step` values:
-
-```text
-yt-dlp | defuddle | whisperfile | calibre | all | transcription | music
-```
-
-An isolated step assumes its prerequisites are already present. Add `--force-redownload` to remove and reinstall that step's managed artifacts.
+`--step` accepts `yt-dlp`, `defuddle`, `whisperfile`, `calibre`, `all`, `transcription`, or `music`. Isolated steps assume prerequisites exist. `--force-redownload` removes and reinstalls that step's managed artifacts.
 
 ```bash
 bun autoshow setup --step whisperfile
@@ -70,58 +56,42 @@ bun autoshow setup --step whisperfile --force-redownload
 
 ## Model Downloads
 
-Ordinary setup (`setup`, `setup --step whisperfile`, or `setup --step transcription`) installs only whisperfile `tiny` for local STT. `setup --step music` installs `small.en`. Missing explicitly selected models can also download on demand during transcription.
-
-Install additional models with repeatable `--models` flags:
+Default setup, `--step whisperfile`, and `--step transcription` install only whisperfile `tiny`; `--step music` installs `small.en`. Explicitly selected missing models can download during transcription.
 
 ```bash
-bun autoshow setup --models tiny --models tiny.en --models small --models whisperfile:small.en
+bun autoshow setup --models tiny.en --models whisperfile:small.en
+bun autoshow setup --models whisperfile:medium --models whisperfile:large-v3
 ```
 
-Larger models require explicit selection:
-
-```bash
-bun autoshow setup --models whisperfile:medium --models whisperfile:medium.en
-bun autoshow setup --models whisperfile:large-v2 --models whisperfile:large-v3
-```
-Bare names and `whisperfile:<model>` are equivalent.
+Bare names and `whisperfile:<model>` are equivalent. Use `setup --help` for the current model list.
 
 ## Setting Defaults and Configuration
 
-View or set persistent defaults in `config/autoshow.json`. Override that path with `--config-path`. These flags save the file and skip runtime installation and doctor checks:
+Defaults normally live in `config/autoshow.json` beneath the nearest ancestor with `package.json`, or the working directory if none exists. `--config-path` overrides discovery. These operations save/read configuration without installing tools:
 
 ```bash
 bun autoshow setup --show
 bun autoshow setup --reset
 bun autoshow setup --llm openai=gpt-6-luna
 bun autoshow setup --stt whisperfile=small.en
-bun autoshow setup --ocr tesseract
-bun autoshow setup --ocr mistral=mistral-ocr-4-1 --ocr-language eng --ocr-dpi 300
-bun autoshow setup --tts elevenlabs=eleven_v3 --tts-voice voice_123
+bun autoshow setup --ocr tesseract --ocr-language eng --ocr-dpi 300
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --step-concurrency tts-chunk=3
 bun autoshow setup --image openai=gpt-image-2.5-flare
-bun autoshow setup --video grok=grok-imagine-video-1.5
 bun autoshow setup --batch-limit 20 --batch-order oldest --batch-concurrency 2
 bun autoshow setup --concurrency-mode immediate
 bun autoshow setup --prompt shortSummary --prompt longChapters
-bun autoshow setup --chapters --length 50 --pdf-chapter-mode auto
 bun autoshow setup --max-cents 100
-bun autoshow setup --cookies-from-browser chrome
-bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
 ```
 
-`--concurrency-mode ramp` (the native default) starts hosted provider traffic gradually up to the configured cap. `immediate` starts at that cap.
-
-Model selector flags are repeatable. Repeating a provider selector saves all selected models in first-seen order:
+Provider selectors are repeatable; multiple models of one provider retain first-seen order:
 
 ```bash
-bun autoshow setup --stt deepinfra=openai/whisper-large-v3 --stt deepinfra=openai/whisper-large-v3-turbo
 bun autoshow setup --llm openai=gpt-6.1-sol --llm openai=gpt-6-luna
 ```
 
 ## Config Schema
 
-Representative JSON shape:
+Model fields are arrays. This representative sample uses the strict current schema:
 
 ```json
 {
@@ -180,34 +150,18 @@ Representative JSON shape:
 }
 ```
 
-Model-selecting fields are arrays of models, not single strings. Use `bun autoshow setup --show` to inspect the saved file.
-
-Image, video, and music tuning defaults such as `duration` and `format` are edited in `config/autoshow.json`. The `setup` flags for image, video, and music persist the provider and model selectors.
-
-Save a TTS model with `--tts provider=model`. Pass transport mode and remote-job wait controls directly to individual `tts` invocations.
+Edit image/video/music tuning fields such as `duration` directly in JSON; setup's selectors persist provider/model choices. Gemini transport and remote-job wait controls belong on individual `tts` invocations.
 
 ## Persisted Defaults and Precedence
 
-Set the URL article backend in `config/autoshow.json` as `defaults.extract.url.provider` (`defuddle`, `spider`, or `zyte`). `setup` has no `--url-provider` flag. Once saved, `extract` inherits it like any other default. `metadata` and `download` still take `--url-provider` at runtime.
+Explicit CLI flags override saved configuration, which overrides native defaults. Built-in flag defaults never erase saved values. Any runtime provider selector replaces that family's configured provider selections rather than merging them.
 
-Generic `--tts-*` options resolve to the selected provider, so they take a bare value when one provider is selected and `provider=value` when several are. Use `--tts-voice` for single-speaker synthesis or `--tts-speaker` mappings for multi-speaker synthesis; these cannot be combined. In JSON, use either `voice` or `ttsSpeakers` with an optional `ttsDialogueFormat`. Create or clone voices with [`voice`](../04-audio/voice/00-voice-overview.md).
+Set article defaults through `defaults.extract.url.provider` (`defuddle`, `spider`, or `zyte`); setup has no `--url-provider`. `metadata` and `download` accept that flag at runtime.
 
-`--tts-speaker` selects multi-speaker TTS. A saved `--tts-dialogue-format` with no saved `--tts-speaker` is inert: runs that inherit it log a warning and continue as single-speaker.
+Generic TTS controls use bare values with one selected provider or `provider=value` with several. Single-speaker `--tts-voice` and multi-speaker `--tts-speaker` are mutually exclusive; JSON uses `voice` or `ttsSpeakers`, optionally `ttsDialogueFormat`. A saved dialogue format without speaker mappings is inert and warns. Create/clone voices with [voice management](../04-audio/voice/00-voice-overview.md).
 
-Cookie auth persists the cookies file path or browser name only. Do not copy cookie-file contents into `config/autoshow.json`.
-
-`default` prompt expansion is `shortSummary + longSummary + longChapters`.
-
-### Precedence
-
-```text
-Explicit CLI flags > config file defaults > native CLI defaults
-```
-
-A flag overrides the saved value only when you pass it. Built-in defaults do not replace saved config.
-
-If you type any provider/model selector for a step family at runtime, configured provider selections for that family are replaced instead of merged. For example, passing `--llm openai=...` on `write` suppresses configured Gemini and Anthropic LLM defaults for that run.
+Cookie settings store only a path or browser name, never cookie contents; see [YouTube cookies](cookies.md). Prompt `default` expands to `shortSummary`, `longSummary`, and `longChapters`. Hosted `ramp` admission starts gradually; `immediate` starts at the configured cap.
 
 ### Pricing and Budgets
 
-Set a hard budget with `--max-cents`. Hosted and mixed-provider commands fail before execution when the estimate exceeds that limit. `--allow-over-budget` is a one-off runtime override and is never persisted.
+`--max-cents` blocks execution when the estimate exceeds the saved limit. `--allow-over-budget` overrides that estimate gate for one invocation and is never persisted; it does not cap actual provider charges or bypass [shared runtime budgeting](usage.md#shared-runtime-budget).

@@ -1,29 +1,18 @@
 # Music Tests
 
-Tests cover local lyric-video rendering and hosted music generation for `music`. The local suite uses installed media tools and whisperfile; the hosted suite may incur provider charges.
-
-## Quick Start
+Local/mocked contracts cover provider payloads, lyric selection, and render plans without third-party calls:
 
 ```bash
-bun t test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts
-
-bun t test/test-cases/e2e/service/audio/music/
+bun test test/test-cases/validation/audio/music/
 ```
 
-## Provider Env Vars
-
-Live music generation tests need the matching provider key: `ELEVENLABS_API_KEY`, `GEMINI_API_KEY`, or `MINIMAX_API_KEY`.
-
-## Price Preflight
+Local rendering e2e tests require the installed media tools, fonts, and whisperfile. Preflight their mapped cases or the hosted suite before running them:
 
 ```bash
+bun t test/test-cases/e2e/local/audio/music/music-lyrics-video.test.ts --price
 bun t test/test-cases/e2e/service/audio/music/ --price
-bun t test/test-cases/e2e/service/audio/music/ --budget 2500
 ```
 
-`--price` runs mapped estimates without generating audio. `--budget 2500` can run paid tests whose mapped estimates are at most 25¢ per test key. Total spending can exceed that threshold.
+Hosted execution needs the matching `ELEVENLABS_API_KEY`, `GEMINI_API_KEY`, or `MINIMAX_API_KEY` and must meet [spending rules](../../../../AGENTS.md#paid-providers). Run the selected command without `--price` only within that authorization. `--budget 2500` filters paid cases at 25¢ per test key; it is not a cumulative spending cap.
 
-## Related Docs
-
-- [Testing Overview](../../testing.md)
-- [Music Command](overview.md)
+See the [testing guide](../../testing.md) and [music command](overview.md).

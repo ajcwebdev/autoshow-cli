@@ -1,80 +1,39 @@
 # extract URL and X
 
-Remote article URLs default to local `defuddle` extraction and can run hosted article backends instead. Public YouTube URLs can retrieve existing transcripts without downloading audio. X/Twitter Space inputs use the X API for metadata extraction.
-
-## Outline
-
-- [Local URL](#local-url)
-- [URL and X Environment](#url-and-x-environment)
-- [Shared URL Options](#shared-url-options)
-- [Public media URL transcripts](#public-media-url-transcripts)
-- [YouTube Caption Fallback](#youtube-caption-fallback)
-- [URL Output](#url-output)
-- [Provider Capabilities](#provider-capabilities)
-  - [Article backends](#article-backends)
-  - [Transcript backends](#transcript-backends)
-- [X Space Path](#x-space-path)
-- [X Space Output](#x-space-output)
-
-See the [`extract` overview](../overview.md) for input routing and default article extraction. Audio transcription engines remain under [STT](../stt/overview.md).
+Extract article text with local Defuddle or explicit hosted backends, retrieve existing YouTube transcripts, or collect X Space metadata. Audio transcription uses [STT](../stt/overview.md); [input routing](../overview.md) selects the path.
 
 ## Local URL
 
-Default for remote articles and local HTML, or select with `--provider defuddle`. Local HTML supports only `defuddle`; hosted backends are skipped in provider-group runs.
+Remote articles and local HTML default to `defuddle`. Local `.html`/`.htm` always use it; group runs skip hosted backends. Install Defuddle through [`setup`](../../00-setup-and-utilities/setup.md). Local HTML then needs no network or credentials; remote articles still require a fetch. A Defuddle failure never silently purchases hosted fallback.
 
 ```bash
 bun autoshow extract https://ajcwebdev.com
 bun autoshow extract input/examples/document/harborlight-article.html
 ```
 
-The local page needs no network or provider credentials after Defuddle is installed with `setup`. A failed `defuddle` request reports its error; select `spider` or `zyte` explicitly to use a hosted article backend.
-
-## URL and X Environment
-
-| Provider        | Required env             |
-| --------------- | ------------------------ |
-| Spider          | `SPIDER_API_KEY`         |
-| ScrapeCreators  | `SCRAPECREATORS_API_KEY` |
-| Zyte            | `ZYTE_API_KEY`           |
-| X/Twitter Space | `X_BEARER_TOKEN`         |
-
 ## Shared URL Options
 
-Select one article backend with `--provider`, or use the group flags. Do not combine `--provider` with `--all-providers` or `--all-local`.
+Select one backend with `--provider defuddle|spider|zyte`, or use `--all-providers` for Spider and Zyte. `--all-local` adds Defuddle; it may combine with `--all-providers`, but neither shortcut may combine with an explicit provider.
 
-| Flag                           | Description                                                                                             |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `--provider <backend>`         | Article extraction backend for remote article URLs: `defuddle` (default), `spider`, or `zyte`           |
-| `--all-providers`              | Run all hosted URL article backends: `spider` and `zyte`                                                |
-| `--all-local`                  | Select `defuddle`; combine with `--all-providers` to include it in a remote article comparison          |
-| `--provider-concurrency <n>`   | Hosted URL backends to run concurrently per item; default `7`                                           |
-| `--url-request-timeout-ms <n>` | Article request timeout per attempt in milliseconds; default `60000`                                    |
-| `--url-request-attempts <n>`   | Maximum article request attempts including retries; default `3`                                         |
-| `--format <format>`            | Output format for single-backend runs: `text` or `json`                                                 |
-| `--price`                      | Show the aggregated URL extraction estimate and exit                                                    |
-| `--max-model-cents <n>`        | Exclude each backend whose estimated total across the invocation exceeds the per-model ceiling in cents |
+| Flag                              | Behavior                                                         |
+| --------------------------------- | ---------------------------------------------------------------- |
+| `--provider-concurrency N`        | Hosted backends per item; default seven                          |
+| `--url-request-timeout-ms N`      | Per-attempt timeout; default 60000 ms                            |
+| `--url-request-attempts N`        | Total attempts including retries; default three                  |
+| `--format text` / `--format json` | Single-backend artifact format; default `text`                   |
+| `--price`                         | Estimate without extraction                                      |
+| `--max-model-cents N`             | Filter each backend by its estimated total across the invocation |
 
 ```bash
-bun autoshow extract https://example.com/article --provider spider
-bun autoshow extract https://example.com/article --all-providers --price
-bun autoshow extract https://example.com/article --all-providers --provider-concurrency 2
+bun autoshow extract https://example.com/article --provider spider --price
+bun autoshow extract https://example.com/article --all-providers --provider-concurrency 2 --price
 ```
 
-Hosted requests with an ambiguous outcome, such as a timeout, are not automatically repeated even when attempts remain.
+Set `SPIDER_API_KEY` or `ZYTE_API_KEY` for those backends. Estimates use registry reference rates, not invoices or guaranteed spending caps. Hosted ambiguous outcomes, including timeouts, do not automatically redispatch even when attempts remain.
 
 ## Public media URL transcripts
 
-ScrapeCreators retrieves an existing transcript from the original public YouTube URL instead of downloading audio. Select it with `--provider`. Other supported media URLs use the selected audio STT engine.
-
-### ScrapeCreators
-
-| Option        | Value                                                |
-| ------------- | ---------------------------------------------------- |
-| Selector      | `--provider scrapecreators=youtube-transcript`       |
-| Language      | `--stt-language scrapecreators=<code>`, default `en` |
-| Input support | Public `youtube.com` and `youtu.be` URLs only        |
-
-Set `SCRAPECREATORS_API_KEY` and supply a public YouTube watch URL with an existing transcript in the requested language. `metadata` checks source metadata through `yt-dlp`; it does not confirm that ScrapeCreators can retrieve captions.
+ScrapeCreators retrieves existing public YouTube captions without downloading audio. It requires `SCRAPECREATORS_API_KEY`, a `youtube.com`/`youtu.be` watch URL, and captions in the requested language. Language defaults to `en`.
 
 ```bash
 YOUTUBE_URL='<your-public-youtube-watch-url>'
@@ -82,61 +41,25 @@ bun autoshow metadata "$YOUTUBE_URL"
 bun autoshow extract "$YOUTUBE_URL" --provider scrapecreators=youtube-transcript --stt-language scrapecreators=en --price
 ```
 
-After reviewing the estimate, remove `--price` to retrieve the transcript. A quote does not establish video or caption availability, API-key validity, or account access.
+Remove `--price` after reviewing the estimate. Metadata success and a quote establish neither caption availability nor API access. Other media URLs follow the selected STT engine.
 
 ## YouTube Caption Fallback
 
-`--youtube-captions` looks for English captions on YouTube inputs first. When captions are available, selected STT providers are skipped; otherwise extraction falls back to those providers.
-
-Use `YOUTUBE_URL` from above and set `DEEPGRAM_API_KEY` for the fallback. Budget for the STT request even when you expect captions to be present.
+`--youtube-captions` first tries English YouTube captions. Available captions skip selected STT providers; otherwise those providers transcribe audio. Budget for the fallback:
 
 ```bash
 bun autoshow extract "$YOUTUBE_URL" --youtube-captions --provider deepgram=nova-3 --price
 ```
 
-Remove `--price` after reviewing the estimate. Caption availability can change between the quote and execution.
+The Deepgram fallback requires `DEEPGRAM_API_KEY`. Caption availability may change after preflight. For ajcwebdev episode publishing, follow the [required AssemblyAI workflow](../../../../AGENTS.md#episode-publishing) rather than caption substitution.
 
 ## URL Output
 
-Single-backend article extraction writes the selected output format and `manifest.json`:
-
-```text
-output/YYYY-MM-DD_HH-MM-SS-mmm_title/
-  extraction.txt      # default --format text
-  result.json         # if --format json
-  manifest.json
-```
-
-`--all-providers` writes `extraction.txt` and `result.json` per backend under `providers/`:
-
-```text
-output/YYYY-MM-DD_HH-MM-SS-mmm_title/
-  providers/
-    spider/
-    zyte/
-  manifest.json
-```
-
-## Provider Capabilities
-
-Article prices below are AutoShow reference estimates per 1,000 pages. Actual Spider charges depend on bandwidth and compute; Zyte charges depend on site tier and requested features. ScrapeCreators uses a credit-based reference estimate per request. Estimates do not establish observed charges. [Spider pricing](https://spider.cloud/pricing/), [Zyte pricing](https://docs.zyte.com/zyte-api/pricing.html).
-
-### Article backends
-
-| Provider        | Output                                     | Pricing        |
-| --------------- | ------------------------------------------ | -------------- |
-| Spider `spider` | Markdown                                   | $1.20/1k pages |
-| Zyte `zyte`     | Markdown from a structured article extract | $1.60/1k pages |
-
-### Transcript backends
-
-| Provider                            | Pages        | Timestamps | Limits            | Pricing          |
-| ----------------------------------- | ------------ | ---------- | ----------------- | ---------------- |
-| ScrapeCreators `youtube-transcript` | YouTube only | Cue times  | Existing captions | $0.00188/request |
+A single article backend writes `extraction.txt` or `result.json`, plus `manifest.json`. Provider-group runs write both extraction artifacts per successful backend under `providers/<backend>/`, retaining requested-target progress in the manifest. Recover incomplete article runs with [`resume`](../../00-setup-and-utilities/resume.md).
 
 ## X Space Path
 
-X/Twitter Space URLs, post URLs, and raw Space IDs are auto-detected. Set `X_BEARER_TOKEN` for an X API project that can read your selected input, then replace the value below with an accessible input. Metadata checks also use the X API and are subject to its access and billing terms.
+Space URLs, post URLs, and raw Space IDs use the X API with `X_BEARER_TOKEN`; they produce metadata, not an audio transcript. Supported URL forms include `twitter.com`, mobile/www hosts, and `/i/web/status/`. A post without a linked Space can still produce a report with an empty Space section.
 
 ```bash
 X_INPUT='<your-accessible-x-space-url-post-url-or-space-id>'
@@ -144,14 +67,12 @@ bun autoshow metadata "$X_INPUT"
 bun autoshow extract "$X_INPUT"
 ```
 
-AutoShow does not estimate X API read charges, so `--price` does not establish that these requests are free. Review account access and billing before requesting metadata, and resolve access errors before extraction.
-
-`twitter.com`, `mobile.`, `www.`, and `/i/web/status/` variants are also supported. A post URL that does not link to a Space still extracts; the Space section of the report is empty.
+Both commands require suitable X API access and may incur read charges. AutoShow does not estimate those charges; `--price` is not proof that X API requests are free. X Space runs are not resumable.
 
 ## X Space Output
 
-X Space extraction writes:
+- `result.json`: Space metadata, profiles, posts, sources, and errors.
+- `extraction.md`: the readable report.
+- `manifest.json`: canonical run metadata.
 
-- `result.json` - Space metadata, user profiles, post references, sources, and errors
-- `extraction.md` - Markdown report with summary and post tables
-- `manifest.json`
+[URL tests](tests.md)

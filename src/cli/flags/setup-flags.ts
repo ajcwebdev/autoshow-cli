@@ -12,7 +12,7 @@ const setupOptionFlags = {
   'probe-url': strFlag('Required with --network-check probe: HTTP origin on localhost, 127.0.0.1, [::1], or host.docker.internal, e.g. http://host.docker.internal:8787'),
   'probe-client': strFlag(`Client used with --network-check probe: ${formatValueList(NETWORK_PROBE_CLIENTS)}`, DEFAULT_NETWORK_PROBE_CLIENT),
   doctor: boolFlag('Check prerequisites, configuration, and which provider API keys are set (presence only) without installing anything'),
-  strict: boolFlag('With --doctor, exit 2 when configured defaults require missing provider credentials'),
+  strict: boolFlag('With --doctor, exit 2 on any readiness warning, including missing credentials or runtime assets'),
   models: strListFlag(`Download local models without inference; repeatable as <model> or whisperfile:<model>. Available models: ${formatValueList(SUPPORTED_WHISPERFILE_MODELS)}`),
   step: strFlag(`Run only a specific setup step: ${formatValueList(SETUP_STEP_IDS)}. Assumes prerequisites are already installed for isolated steps.`, 'all'),
   'force-redownload': boolFlag('Remove existing artifacts before downloading')

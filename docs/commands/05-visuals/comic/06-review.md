@@ -1,82 +1,36 @@
 # comic review
 
-Build a local per-panel review sheet, or map supplied reviewer notes to paste-ready staging directives. Both modes read existing scene artifacts and make no provider calls.
+Build a local review sheet or map supplied notes into staging directives. Both read existing scene artifacts without provider calls or source/scene mutation; there is no `--price` flag.
 
-See the [`comic` overview](./00-comic-overview.md) for catalogs, runtime paths, and the full walkthrough.
+## Options
 
-## Outline
+With no mode flag, write the HTML sheet. `--export-doc` adds a shared-document export. `--notes <path>` processes reviewer notes instead; empty paths or combining notes/export are rejected. Notes need the character catalog; the sheet does not.
 
-- [review](#review)
-  - [Options](#options)
-  - [Examples](#examples)
-  - [Review sheet](#review-sheet)
-  - [Notes processing](#notes-processing)
+## Examples
 
-## review
-
-### Options
-
-| Flag             | Description                                                                                | Default |
-| ---------------- | ------------------------------------------------------------------------------------------ | ------- |
-| `--export-doc`   | Write the HTML sheet and a shared-document export; cannot be combined with `--notes`       | `false` |
-| `--notes <path>` | Process a Markdown notes file with `### Panel NN` headings instead of generating the sheet | none    |
-
-With neither option, the command writes the HTML review sheet. An empty `--notes` path, or `--notes` combined with `--export-doc`, is rejected. Neither mode rewrites the script, the scene JSON, or the structured script. Notes processing requires the character catalog; the sheet does not.
-
-### Examples
-
-Use the variables and fresh workspace from the [Harborlight setup](./00-comic-overview.md#setup). These examples share the same four-panel scene.
-
-The reviewed Harborlight scene is required. The sheet can show missing-image notices; to include images, publish canonical panels through the [local publication step](./00-comic-overview.md#4-build-panel-prompts-generate-images-and-review). Generated candidates alone do not populate the sheet.
+Use [setup](./00-comic-overview.md#setup) variables and a reviewed scene. [Publish canonical panels](./00-comic-overview.md#4-build-panel-prompts-generate-images-and-review) first if images should appear; nested candidates are not selected automatically.
 
 ```bash
-bun --no-env-file autoshow comic review "$SCRIPT" --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 bun --no-env-file autoshow comic review "$SCRIPT" --export-doc --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 bun --no-env-file autoshow comic review "$SCRIPT" --notes "$ROOT/review-notes.md" --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
-Inspect mapped, unmatched, and unresolved entries. Paste only accepted directives into the copied script, refresh the saved structure, rebind the existing plan, then reconcile and rebuild panel prompts in the same pinned run. Follow the [reconcile example](./01-draft-scenes.md#examples); notes processing itself changes neither source nor scene.
+## Review sheet
 
-### Review sheet
+`metadata/review/review-sheet.html` shows panel sources, description, shot, cast, speech, stage board, canonical image, and retained QA. Missing images or QA are explicit. Notes collect under `### Panel NN` headings. `--export-doc` also writes `metadata/review/export-doc.md` with image links and note space. Files are replaced in place; keep relative run layout when sharing the HTML.
 
-- The static HTML sheet opens locally and links panel images within the run directory. Keep that directory layout when sharing it.
-- Each panel section shows source segments, description, shot plan, characters, speech, an available stage board, and the promoted `panels/panel-NN.png` image.
-- The QA section shows whatever evidence was kept for the panel. When none was kept, it reads `QA evidence not retained`.
-- The notes box under each panel collects into the `### Panel NN` format that [`comic review --notes`](#notes-processing) reads back.
-- `--export-doc` writes one `### Panel NN` heading per panel, the promoted image or a missing-image notice, and space for notes beneath it.
+## Notes processing
 
-#### Output
+A `### Panel NN` heading opens a note section; another heading at levels 1–3 ends it. Empty sections are ignored; no note text fails. Unknown panels are unmatched; unresolved script lines are reported. Each mapped note targets the panel's first source segment.
 
-`metadata/review/review-sheet.html`, and `metadata/review/export-doc.md` when `--export-doc` is set. Each file is rewritten in place on the run that writes it.
+The first matching lexical cue chooses the directive:
 
-### Notes processing
+- Axis/crossed-line/swapped-side wording → `**BREAK-180:** {panel: N}`.
+- Wardrobe/costume/wearing → `**COSTUME:** {character: key}`.
+- Extras/crowd/background people → `**EXTRAS:** {group: <ensemble-key>}`.
+- Camera/framing/close-up → `**CAMERA:** {panel: N}`.
+- Otherwise → `**BLOCKING:** {state: <state-id>, location: key}`.
 
-- The notes file is plain Markdown. Each `### Panel NN` heading opens a note section; another heading of level 1–3 ends it. Empty sections are ignored, and a file with no note text is rejected. Unknown panel numbers are reported as unmatched.
-- Each note targets that panel's first source segment and its script line. A line that cannot be found is reported as unresolved.
+This is cue matching, not semantic judging. Costume keys prefer recognized panel characters, then the panel's first character; unresolved values remain placeholders. Fill placeholders and review mappings before use.
 
-#### Classification
-
-Each note takes the first matching kind below, from top to bottom. These are representative cues rather than a semantic assessment of the note.
-
-| Kind         | Directive        | Typical wording                       |
-| ------------ | ---------------- | ------------------------------------- |
-| `axis-break` | `**BREAK-180:**` | axis, crossed the line, swapped sides |
-| `costume`    | `**COSTUME:**`   | wardrobe, costume, wearing            |
-| `extras`     | `**EXTRAS:**`    | extras, crowd, background people      |
-| `camera`     | `**CAMERA:**`    | camera, framing, close-up             |
-| `blocking`   | `**BLOCKING:**`  | everything else                       |
-
-#### Output
-
-`metadata/review/review-notes-<run-id>.md` lists the mapped notes, any unmatched notes, and one paste-ready directive per mapped note. The same directive lines are printed to the terminal.
-
-Headers use available panel and catalog values; fill any remaining placeholders:
-
-- `**BLOCKING:** {state: <state-id>, location: <panel location key>}` — fill in the stage state id.
-- `**CAMERA:** {panel: <panel number>}` and `**BREAK-180:** {panel: <panel number>}`.
-- `**COSTUME:** {character: <key>}` — the character the note names when the catalog recognizes one, preferring a key the panel already lists, otherwise the panel's first character, otherwise `<character-key>`.
-- `**EXTRAS:** {group: <ensemble-key>}` — always a placeholder.
-
-Paste each directive into the source script immediately after its target beat. The [reconcile pass](./01-draft-scenes.md#reconcile-from-directives) applies camera, axis-break, costume, and extras directives from the refreshed structured script. General `**BLOCKING:**` notes require a reviewed plan change; reconcile does not translate their prose into character positions.
-
-Next: [comic overview](./00-comic-overview.md).
+`metadata/review/review-notes-<run-id>.md` records mapped/unmatched notes and paste-ready directives, also printed to the terminal. Paste accepted directives after their target source beat, refresh structure/rebind, then [reconcile and rebuild prompts](./01-draft-scenes.md#reconcile-from-directives). Reconcile handles camera, axis, costume, and extras; general blocking prose needs a reviewed plan edit.

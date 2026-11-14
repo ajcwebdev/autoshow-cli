@@ -95,7 +95,12 @@
         "inputImageCostCents": 1,
         "estimation": {
           "costMultiplier": 1,
-          "msPerSecond": 10000
+          "msPerSecond": 10000,
+          "timingProvenance": {
+            "status": "provisional",
+            "sourceModel": "grok-imagine-video-1.5",
+            "notes": "Reuses the sibling model timing heuristic; not measured latency for this model. Published prices are independent of this estimate."
+          }
         }
       }
     }

@@ -7,6 +7,7 @@ import { UsageError } from '~/utils/error-handler'
 import { parseSpeakerVoiceMappings } from '~/cli/commands/audio/tts/dialogue-normalizer'
 import { normalizeControlValue } from '~/cli/commands/audio/tts/tts-targets/tts-invocation-controls'
 import { ttsControlsForFlag } from '~/cli/flags/service-selector-normalization/generic-tts-controls'
+import { GEMINI_TTS_MODES, GEMINI_TTS_BATCH_WAIT_RANGE } from '~/cli/flags/gemini-tts-contract'
 import {
   parseGenericTtsBooleanOption,
   readSelectedTtsProviders,
@@ -260,11 +261,11 @@ export const buildTtsOptions = (
 
   const mode = readOptionalStringFlag(flags, 'gemini-tts-mode')
   const wait = readOptionalStringFlag(flags, 'gemini-tts-batch-wait-seconds')
-  if (mode !== undefined && !['unary', 'stream', 'batch'].includes(mode)) throw UsageError('--gemini-tts-mode must be unary, stream, or batch.')
+  if (mode !== undefined && !GEMINI_TTS_MODES.some(candidate => candidate === mode)) throw UsageError(`--gemini-tts-mode must be one of: ${GEMINI_TTS_MODES.join(', ')}.`)
   if ((mode !== undefined || wait !== undefined) && !options.geminiTtsModels?.length) throw UsageError('Gemini transport controls require an explicit Gemini TTS selection.')
   if (mode === 'batch' && options.ttsAllProvidersSelected) throw UsageError('Gemini remote Batch mode requires explicit --provider gemini selection.')
-  if (wait !== undefined && (mode !== 'batch' || !Number.isSafeInteger(Number(wait)) || Number(wait) < 0 || Number(wait) > 86400)) throw UsageError('--gemini-tts-batch-wait-seconds requires batch mode and an integer from 0 to 86400.')
-  if (mode) options.geminiTtsMode = mode as 'unary' | 'stream' | 'batch'
+  if (wait !== undefined && (mode !== 'batch' || !Number.isSafeInteger(Number(wait)) || Number(wait) < GEMINI_TTS_BATCH_WAIT_RANGE[0] || Number(wait) > GEMINI_TTS_BATCH_WAIT_RANGE[1])) throw UsageError(`--gemini-tts-batch-wait-seconds requires batch mode and an integer from ${GEMINI_TTS_BATCH_WAIT_RANGE[0]} to ${GEMINI_TTS_BATCH_WAIT_RANGE[1]}.`)
+  if (mode) options.geminiTtsMode = mode as NonNullable<TtsRuntimeOptions['geminiTtsMode']>
   if (wait !== undefined) options.geminiTtsBatchWaitSeconds = Number(wait)
   applyGenericTtsRuntimeOptions(options, flags, flagOccurrences, modelOptions)
   return options

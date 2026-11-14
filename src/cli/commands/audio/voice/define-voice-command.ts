@@ -1,7 +1,8 @@
 import type { CliCommandDefinition } from '~/types'
-import { DEFAULT_PROVIDER_VOICE_CATALOG_SOURCE, PROVIDER_VOICE_CATALOG_SOURCES } from '~/types/tts-workflow/provider-port-types'
+import { DEFAULT_PROVIDER_VOICE_CATALOG_SOURCE, PROVIDER_VOICE_CATALOG_SOURCES } from '~/types'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { boolFlag, formatValueList, strFlag, strListFlag } from '~/cli/flags/flag-utils'
+import { sharedConcurrencyFlags } from '~/cli/flags/shared-flags'
 import { handleClone } from './voice-command-clone-handlers'
 import { handleConsent, handleImport } from './voice-command-consent-import-handlers'
 import { handleDesign } from './voice-command-design-handlers'
@@ -75,6 +76,7 @@ const auditionCommand = defineCliCommand({
   name: 'voice audition', description: 'Synthesize and protect the canonical pre-approval audition set',
   parameters: [{ key: '<registration-id>', description: 'Voice registration ID' }],
   flags: {
+    'concurrency-mode': sharedConcurrencyFlags['concurrency-mode'],
     'generation-id': generationIdFlag('Ready draft'),
     'representative-line': strFlag('Required representative script line for the audition set'),
     takes: strFlag('Takes per audition passage (integer 1-5)', '1'), 'max-cents': strFlag('Maximum authorized provider spend in cents, a non-negative number; no additional cap when omitted'),

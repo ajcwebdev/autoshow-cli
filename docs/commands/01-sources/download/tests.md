@@ -1,30 +1,11 @@
 # Download Tests
 
-Coverage for local files, hosted media URLs, feeds, and streaming sources. The first command uses local fixtures and a loopback RSS server. The second downloads from external sites and depends on their availability and the installed download tools.
-
-## Quick Start
+Local smoke coverage uses fixture files and a loopback RSS server:
 
 ```bash
-bun t \
-  test/test-cases/e2e/local/sources/download/download-input-types-local-file.test.ts \
-  test/test-cases/e2e/local/sources/download/download-input-types-feed-or-channel.test.ts
-
-bun t \
-  test/test-cases/e2e/local/sources/download/download-input-types-direct-url.test.ts \
-  test/test-cases/e2e/local/sources/download/download-input-types-streaming.test.ts
+bun t test/test-cases/e2e/local/sources/download/download-input-types-local-file.test.ts test/test-cases/e2e/local/sources/download/download-input-types-feed-or-channel.test.ts
 ```
 
-## Coverage
+`test/test-cases/validation/sources/download/` covers yt-dlp options and passthrough without downloads. Direct-URL and streaming e2e tests contact external sites and depend on tool/site availability.
 
-- Local runs cover audio files, PDFs, and RSS feed batching.
-- Network runs cover direct media URLs, URL lists, YouTube, and Twitch.
-- yt-dlp option and passthrough checks that do not download anything are in `test/test-cases/validation/sources/download/`.
-
-## Price Preflight
-
-These download tests make no billable provider calls. `bun t --price` on these paths runs mapped price-only checks instead of the download tests; it does not verify that downloads work.
-
-## Related Docs
-
-- [Testing Overview](../../testing.md)
-- [Download](overview.md)
+`bun t --price` on selected paths runs mapped estimates, not download behavior. See the [testing rules](../../testing.md) before broader execution and the [download guide](overview.md) for usage.

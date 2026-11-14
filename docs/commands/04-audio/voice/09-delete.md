@@ -1,28 +1,11 @@
 # voice delete
 
-Delete a project-owned remote provider voice.
-
-See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
-
-## delete
-
-```bash
-bun autoshow voice delete <registration-id> [flags]
-```
-
-`delete` requires a ready, deletion-eligible remote voice owned by this project. If another current registration shares that provider voice, [retire](./08-retire.md) the other registration first.
-
-### Options
-
-| Flag                       | Description                                                         |
-| -------------------------- | ------------------------------------------------------------------- |
-| `--generation-id <sha256>` | Optional unless more than one generation could match                |
-| `--confirm-voice-id <id>`  | Required exact provider resource ID confirmation                    |
-| `--reconcile`              | Finish ambiguous provisioning without creating the voice again      |
-| `--price`                  | Check resource eligibility and confirmation without calls or writes |
-
-### Examples
+Explicitly delete a ready, eligibility-checked, project-owned remote voice and tombstone its registration.
 
 ```bash
 bun autoshow voice delete vr_ID --generation-id GENERATION_SHA256 --confirm-voice-id EXACT_RESOURCE_ID --price
 ```
+
+Supported providers: Gemini, ElevenLabs, Grok, and Inworld. `--confirm-voice-id` must exactly match the registered provider resource ID. Retire other current registrations sharing that resource first. Use `--generation-id` when ambiguous; `--reconcile` recovers interrupted provisioning without creating another voice.
+
+`--price` checks local eligibility and confirmation without calls or writes. Remove it only to perform the deletion; [retirement](08-retire.md) alone never deletes a remote voice.

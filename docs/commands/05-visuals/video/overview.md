@@ -1,131 +1,74 @@
 # video
 
-Generate a video from a text prompt or input image with one or more hosted video providers and models.
-
-## Outline
-
-- [Setup](#setup)
-  - [Environment](#environment)
-- [Usage](#usage)
-- [Modes](#modes)
-- [Shared Video Options](#shared-video-options)
-- [Video Services](#video-services)
-  - [Gemini Omni](#gemini-omni)
-  - [Grok](#grok)
-- [Output](#output)
-- [Notes](#notes)
-- [Provider Capabilities](#provider-capabilities)
-
-## Setup
-
-```bash
-bun autoshow setup --doctor
-```
-
-### Environment
-
-```bash
-GEMINI_API_KEY=...
-XAI_API_KEY=...
-```
+Generate video from text or images with Gemini and Grok. Configure `GEMINI_API_KEY` or `XAI_API_KEY` and check local readiness with `bun autoshow setup --doctor`.
 
 ## Usage
 
 ```bash
-bun autoshow video <input> [flags]
+bun autoshow video "a red kite above a field" --provider grok=grok-imagine-video-1.5-lite --duration 5 --resolution 720p --price
+bun autoshow video input/examples/image/harborlight-mug.png --provider gemini=gemini-omni-1.1-flash --price
+bun autoshow video "a rainy neon street, slow camera pan" --all-providers --max-model-cents 100 --price
 ```
 
-The positional input is a text prompt or an image path, URL, or data URL. A positional image input infers `--mode image-to-video` and cannot be combined with media-input flags. Saved `defaults.video` settings apply when not overridden. When no provider is specified or saved, a text prompt in `text` mode runs the cheapest default target and a positional image input runs every supported provider.
+The positional input is a text prompt or image path, URL, or data URL. An image infers `image-to-video` and rejects other media-input flags or an incompatible explicit mode. Saved `defaults.video` applies unless overridden. Without a selected/saved provider, text mode selects the cheapest default target; positional images select all supported video models. Use an explicit target to limit cost.
+
+`--provider` is repeatable; bare providers select their cheapest eligible model. `--all-providers` includes only models supporting the selected mode. `--price` previews without generation; `--max-model-cents` filters estimates, not billed spending. See [shared usage](../../00-setup-and-utilities/usage.md) for global controls.
 
 ## Modes
 
-Without an explicit or saved mode, media flags are rejected under the default `text` mode. A positional image input infers `image-to-video`.
+Media flags require an explicit/saved mode, except positional images. Media references accept local files, URLs, or data URLs.
 
-| Mode                 | Providers           | Required media inputs                                                        | Notes                                      |
-| -------------------- | ------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
-| `text`               | All video providers | none                                                                         | Default mode                               |
-| `image-to-video`     | Gemini, Grok        | `--input-image`                                                              |                                            |
-| `reference-to-video` | Gemini, Grok        | `--reference-image` and/or `--reference-video`                               |                                            |
-| `interpolate`        | Gemini              | `--input-image`, `--last-frame`                                              | First/last-frame transition                |
-| `edit`               | Gemini Omni         | `--previous-interaction-id` or `--input-video`                               | Conversational or uploaded-video edit      |
-| `extend`             | Gemini Omni         | `--previous-interaction-id` or `--input-video`; optional `--reference-image` | Append-only continuation, 3–10s per extend |
+| Mode                 | Targets               | Required inputs                                                     |
+| -------------------- | --------------------- | ------------------------------------------------------------------- |
+| `text`               | All                   | Prompt; no media flags.                                             |
+| `image-to-video`     | All                   | Positional image or `--input-image`.                                |
+| `reference-to-video` | Gemini; Grok full 1.5 | `--reference-image`; Gemini also accepts `--reference-video`.       |
+| `interpolate`        | Gemini                | `--input-image` and `--last-frame`.                                 |
+| `edit`               | Gemini                | Exactly one `--previous-interaction-id` or `--input-video`.         |
+| `extend`             | Gemini                | Same as edit; uploaded-video extension may add `--reference-image`. |
 
-`--input-video` is the Gemini Omni source clip for `edit` and `extend`. `reference-to-video` uses `--reference-video`. To add new reference images during `extend`, use `--input-video`; stored-interaction extension currently does not forward them.
+`--input-video` supplies an edit/extend source, while `--reference-video` supplies reference material. Grok rejects video references; select Gemini explicitly for them. Stored-interaction extension does not forward added reference images; use an uploaded source for that combination. Audio references and voice editing have no CLI surface.
 
 ```bash
-bun autoshow video "animate the teal camping mug illustration with a gentle camera orbit; preserve its cream badge" --provider gemini=gemini-omni-1.1-flash --mode image-to-video --input-image input/examples/image/harborlight-mug.png --output-dir output/v-base
-bun autoshow video "transition the same Harborlight campsite from dusk to night; keep the tent and mug consistent" --provider gemini=gemini-omni-1.1-flash --mode interpolate --input-image input/examples/video/harborlight-start.png --last-frame input/examples/video/harborlight-end.png --aspect-ratio 9:16
+bun autoshow video "transition this campsite from dusk to night" --provider gemini=gemini-omni-1.1-flash --mode interpolate --input-image input/examples/video/harborlight-start.png --last-frame input/examples/video/harborlight-end.png --aspect-ratio 9:16 --price
+bun autoshow video "an explorer in the teal jacket and gold glasses walks beside the harbor" --provider grok=grok-imagine-video-1.5 --mode reference-to-video --reference-image input/examples/video/harborlight-jacket.png --reference-image input/examples/video/harborlight-glasses.png --price
 ```
 
-The bundled [Harborlight fixtures](../../../../input/examples/harborlight-README.md) supply the product, two distinct 1080 × 1920 campsite frames, and wardrobe references. Use `9:16` for the campsite interpolation. The jacket and glasses are object references rather than a verified character identity. Local decoding and price checks do not establish motion, reference fidelity, or provider output quality.
+The [bundled fixtures](../../../../input/examples/harborlight-README.md) include the mug, distinct 1080×1920 campsite frames, and wardrobe references. The latter do not establish character identity; decoded media does not establish motion or reference fidelity.
 
 ## Shared Video Options
 
-The `video` and `resume` commands use the same short option names, including `--duration`. Saved configuration uses the matching namespaced key, such as `defaults.video.duration`.
+`video` and `resume` share short option names; saved settings use matching `defaults.video` keys.
 
-| Flag                                   | Description                                                                                                               |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `--provider provider[=model]`          | Hosted video provider/model selector; repeat to run multiple targets                                                      |
-| `--all-providers`                      | Run every provider/model supporting the selected mode                                                                     |
-| `--provider-concurrency <n>`           | Hosted video providers/models to run concurrently; default `7`                                                            |
-| `--concurrency-mode <ramp\|immediate>` | Ramp from one request (`ramp`, default) or start at the configured cap (`immediate`)                                      |
-| `--duration <seconds>`                 | Requested video duration                                                                                                  |
-| `--aspect-ratio <ratio>`               | Provider-dependent aspect ratio                                                                                           |
-| `--resolution <res>`                   | Provider-dependent resolution control                                                                                     |
-| `--mode <mode>`                        | `text`, `image-to-video`, `reference-to-video`, `interpolate`, `edit`, or `extend`; default `text`                        |
-| `--input-image <path-or-url>`          | Input image for `image-to-video`; first frame for `interpolate`                                                           |
-| `--last-frame <path-or-url>`           | Last-frame image for `interpolate`                                                                                        |
-| `--reference-image <path-or-url>`      | Reference image for `reference-to-video` or Gemini Omni uploaded-video `extend`; repeatable                               |
-| `--reference-video <path-or-url>`      | Reference MP4 for Gemini Omni (up to 3, 3s each); repeatable                                                              |
-| `--input-video <path-or-url>`          | Gemini Omni `edit`/`extend` source MP4 (uploaded sources ≤10s)                                                            |
-| `--previous-interaction-id <id>`       | Gemini Omni prior interaction id from `providerRequestId`; use with `edit` or `extend` instead of re-uploading            |
-| `--price`                              | Show the estimate and exit                                                                                                |
-| `--max-model-cents <n>`                | Exclude each provider/model whose estimated total exceeds the per-model ceiling in cents; works with or without `--price` |
-| `--output-dir <dir>`                   | Global flag: pin an exact run directory instead of `output/<timestamp>_video-gen/`                                        |
-
-Video models have fixed provider audio behavior. Reference videos are rejected for Grok, whose reference mode accepts images.
-
-See [Provider Capabilities](#provider-capabilities) for the per-model matrix.
-
-```bash
-bun autoshow video "a rainy neon city street, slow camera pan" --provider gemini=gemini-omni-1.1-flash --provider grok=grok-imagine-video-1.5
-bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --price
-bun autoshow video "a rainy neon city street, slow camera pan" --all-providers --max-model-cents 100 --price
-```
+| Flag                                           | Purpose                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------- |
+| `--provider`, `--all-providers`                | Select targets supporting the mode.                         |
+| `--mode`                                       | One of the modes above; default `text`.                     |
+| `--duration`, `--resolution`, `--aspect-ratio` | Provider-specific generation controls.                      |
+| `--input-image`, `--last-frame`                | Initial/final frames.                                       |
+| `--reference-image`, `--reference-video`       | Repeatable reference inputs.                                |
+| `--input-video`, `--previous-interaction-id`   | Gemini edit/extend source or stored interaction.            |
+| `--provider-concurrency`, `--concurrency-mode` | Target cap (default 7); default `ramp`, or `immediate`.     |
+| `--price`, `--max-model-cents`                 | Preview or filter estimated costs.                          |
+| `--output-dir`                                 | Pin a directory instead of `output/<timestamp>_video-gen/`. |
 
 ## Video Services
 
 ### Gemini Omni
 
-| Option       | Value                                                    |
-| ------------ | -------------------------------------------------------- |
-| Selector     | `--provider gemini[=<model>]`                            |
-| Models       | `gemini-omni-1.1-flash` (bare default)                   |
-| Duration     | `--duration <seconds>`; accepted values `3` through `10` |
-| Resolution   | `--resolution 360p\|720p\|1080p\|4k`; default `720p`     |
-| Aspect ratio | `--aspect-ratio 16:9\|9:16`; default `16:9`              |
+`gemini-omni-1.1-flash` supports all modes. Explicit duration must be an integer from 3–10 seconds; omission leaves duration to the provider and estimates 10 seconds. Resolution is `360p`, `720p` (default), `1080p`, or `4k`; aspect ratio is `16:9` (default) or `9:16`. Higher resolutions are described as upscaled in the registry.
 
-```bash
-bun autoshow video "a sweeping Grand Canyon drone shot" --provider gemini=gemini-omni-1.1-flash --duration 8 --aspect-ratio 16:9 --resolution 1080p
-```
-
-- Native audio is always on. 1080p and 4K are upscaled. Unspecified duration is estimated at 10 seconds.
-- Uploaded edit/extend is not available in the EEA, Switzerland, or the United Kingdom. Audio references and voice editing are not supported.
-- [Omni docs](https://ai.google.dev/gemini-api/docs/omni), [pricing](https://ai.google.dev/gemini-api/docs/pricing)
+Gemini reference videos are limited to three MP4s of at most three seconds each; uploaded edit/extend sources must be at most ten seconds. These differ from reusable generated interaction IDs. Confirm project access, retention, and regional eligibility in the [Omni documentation](https://ai.google.dev/gemini-api/docs/omni) before spending; CLI validation does not prove live account eligibility. The CLI exposes no audio toggle. Estimates omit input/context and thinking/text charges; review the complete sequence, including retries, rather than treating output estimates as caps.
 
 #### Generate a base, then edit it
 
-Use a paid-tier Gemini API project with Omni access and keep `GEMINI_API_KEY` in that same project for every turn. This workflow needs a completed generated base; a price-only run creates no interaction ID. The generated interaction is stored for later editing turns. Deleted or expired interactions cannot be reused. [Stateful editing](https://ai.google.dev/gemini-api/docs/omni#stateful-video-editing), [interaction retention](https://ai.google.dev/gemini-api/docs/interactions-overview#data-storage-and-retention).
-
-Plan the whole sequence before generating the base. At the current CLI estimate of $0.10 per output second, the 3-second base plus one 3-second edit below total **$0.60 estimated output cost**. A separate 3-second extension adds $0.30. Input/context tokens and billable retries are additional and are not fully estimated here; Google's billing uses tokens. Review the complete budget and account eligibility before removing `--price`. [Official pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-omni-flash).
-
-First preview the base; after reviewing the combined budget, run the same command without `--price`. Choose a new output directory if `output/gemini-omni-base` already contains another run.
+Keep the same Gemini API project/key for every turn. Preflight the base and planned edit/extension together. After authorization, run the base command without `--price`, using a new directory or compatible saved work:
 
 ```bash
-bun autoshow video "a teal camping mug beside a glowing lantern at a Harborlight campsite, slow camera orbit" --provider gemini=gemini-omni-1.1-flash --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-base --price
+bun autoshow video "a teal camping mug beside a glowing lantern, slow camera orbit" --provider gemini=gemini-omni-1.1-flash --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-base --price
 ```
 
-After that generation completes, read its real interaction ID from `items[0].metadata.video[]` in `manifest.json`. This local command requires one completed Gemini Omni target and its nonempty `providerRequestId`; it does not contact Google or verify that the current API key can still access the stored interaction. Stop if it fails.
+A price-only run creates no interaction ID. Read one from the completed base manifest with this local guard; it checks recorded completion and identity, not remote retention or access:
 
 ```bash
 GEMINI_INTERACTION_ID="$(bun --no-env-file -e '
@@ -142,56 +85,22 @@ console.log(video.providerRequestId.trim());
 ' output/gemini-omni-base/manifest.json)"
 ```
 
-Preview the edit with that returned ID, then remove `--price` to execute it within the planned budget. The shell guard refuses an empty ID. Keep the same provider, model, project, and output settings; use a separate output directory for the edited result.
+Preview the edit, then remove `--price` only within the approved sequence:
 
 ```bash
-bun autoshow video "change the lantern glow to warm amber; preserve the teal mug and camera movement" --provider gemini=gemini-omni-1.1-flash --mode edit --previous-interaction-id "${GEMINI_INTERACTION_ID:?Read the completed base interaction first}" --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-edit --price
+bun autoshow video "change the lantern glow to amber; preserve the mug and camera movement" --provider gemini=gemini-omni-1.1-flash --mode edit --previous-interaction-id "${GEMINI_INTERACTION_ID:?Read the completed base interaction first}" --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-edit --price
 ```
 
-An optional extension can reference the same completed base ID; it is another purchase. To extend the edited result instead, read the new `providerRequestId` from `output/gemini-omni-edit/manifest.json` using the same checks. Reusing the base ID branches from the base, not the edit.
-
-```bash
-bun autoshow video "continue the campsite camera orbit beyond the end of the clip" --provider gemini=gemini-omni-1.1-flash --mode extend --previous-interaction-id "${GEMINI_INTERACTION_ID:?Read the completed base interaction first}" --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-extended --price
-```
-
-For uploaded edit/extend instead, supply your own compatible video of at most 10 seconds and check the regional restrictions above. The bundled 24-second dialogue fixture exceeds that upload limit. A local MP4 from another provider is not a Gemini interaction ID.
+`--mode extend` appends another 3–10 seconds and is another purchase. Reusing the base ID branches from the base; to extend the edit, read its new `providerRequestId`. Deleted/expired interactions cannot be reused, and a local MP4 is not an interaction ID. The bundled 24-second dialogue clip exceeds the uploaded-source limit.
 
 ### Grok
 
-| Option              | Value                                                                  |
-| ------------------- | ---------------------------------------------------------------------- |
-| Selector            | `--provider grok[=<model>]`                                            |
-| Models              | `grok-imagine-video-1.5`, `grok-imagine-video-1.5-lite` (bare default) |
-| Duration/resolution | `--duration <seconds>`, `--resolution 480p\|720p\|1080p`               |
+`grok-imagine-video-1.5-lite` is the bare-provider and omitted-provider text default; `grok-imagine-video-1.5` adds image-reference mode. Both accept text/image generation, default to 8 seconds/480p, floor/clamp supplied duration to 1–15 seconds, and support `480p`, `720p`, and `1080p`. See command help for the nine aspect ratios; omitted or unrecognized ratios resolve to `16:9`.
 
-```bash
-bun autoshow video "a red kite above a field" --provider grok=grok-imagine-video-1.5-lite --duration 5 --resolution 720p
-bun autoshow video "cinematic moonlit coastline" --provider grok=grok-imagine-video-1.5 --duration 8 --resolution 1080p
-bun autoshow video "an adult explorer wearing the teal jacket and round gold glasses walks along a harbor path" --provider grok=grok-imagine-video-1.5 --mode reference-to-video --reference-image input/examples/video/harborlight-jacket.png --reference-image input/examples/video/harborlight-glasses.png
-```
-
-- Both models accept text and image generation from 1–15 seconds (default 8); supplied values are floored and clamped to that range. The default resolution is 480p. Bare `--provider grok`, an explicit Lite selector, and omitted-provider text generation select Lite at 8s/480p when controls are omitted. The cheapest-candidate helper also exposes 1s/480p, but the command retains its 8-second request default.
-- Lite reaches 1080p by upscaling 720p and rejects reference, interpolate, edit, and extend modes before pricing or dispatch. Retain full 1.5 for native 1080p and image references (capped at 720p). Both models generate audio by default; the CLI exposes no audio toggle or voice references. Image-to-video follows the input image aspect ratio upstream.
-- Published Lite rates checked 2026-10-29: $0.02/s at 480p, $0.03/s at 720p, $0.14/s at 1080p, plus $0.01/input image. No Batch discount is assumed. Downloaded Grok videos must decode with local FFmpeg before success; invalid bytes remain available for recovery. Local fixture checks establish transport and decoding, while visual quality, spoken correctness, and live account access remain unmeasured. See the [Lite model](https://docs.x.ai/developers/models/grok-imagine-video-1.5-lite) and [video guide](https://docs.x.ai/developers/model-capabilities/video/generation).
+Full 1.5 accepts up to five reference images, capped at 720p. Lite rejects references, interpolation, editing, and extension; its 1080p is upscaled from 720p. Image-to-video follows the source image's aspect ratio upstream. Neither exposes an audio toggle or voice references. Grok input images add a per-image estimate; no Batch discount is assumed. Downloaded Grok outputs must decode locally with FFmpeg before success.
 
 ## Output
 
-- Single-target runs write `generated-video.mp4` and `manifest.json`.
-- Multi-target runs write `generated-video-<provider>-<model>.mp4` per successful target and `manifest.json`.
-- `items[0].metadata` in the manifest records the `video` array, `cost`, and `timing`.
+One target writes `generated-video.mp4`; multiple targets add `-<provider>-<model>`. `manifest.json` records filenames, targets, costs, timing, and Gemini `providerRequestId` values in `items[0].metadata.video[]`.
 
-## Notes
-
-- When multiple providers are specified, each generates independently. A failure from one provider does not cancel the others; the run succeeds if at least one provider succeeds.
-
-## Provider Capabilities
-
-Text-to-video and image-to-video are available on every provider.
-
-Prices are the CLI's default output estimates; input charges are additional where listed. Gemini input/context costs are not fully estimated.
-
-| Model                              | Additional modes                     | Duration | Maximum resolution      | Aspect ratio | Native audio | References                | Output estimate                                | Input charges       |
-| ---------------------------------- | ------------------------------------ | -------- | ----------------------- | ------------ | ------------ | ------------------------- | ---------------------------------------------- | ------------------- |
-| Gemini `gemini-omni-1.1-flash`     | Reference, interpolate, edit, extend | 3–10s    | 4K (upscaled)           | 16:9 or 9:16 | Always on    | Images and up to 3 videos | $0.10/s                                        | Not fully estimated |
-| Grok `grok-imagine-video-1.5`      | Reference                            | 1–15s    | 1080p; references ≤720p | 9 ratios     | Always on    | Up to 5 images            | $0.08/s at 480p; $0.14 at 720p; $0.25 at 1080p | $0.01/image         |
-| Grok `grok-imagine-video-1.5-lite` | None                                 | 1–15s    | 1080p (upscaled)        | 9 ratios     | Always on    | Input image only          | $0.02/s at 480p; $0.03 at 720p; $0.14 at 1080p | $0.01/image         |
+Targets run independently. If at least one succeeds, successful outputs are retained and the command completes with warnings for failures; the manifest remains `incomplete` when requested targets are missing. If none succeeds, the command fails. Inspect the manifest rather than treating one playable output as full completion, and use [resume](../../00-setup-and-utilities/resume.md) for compatible missing work.

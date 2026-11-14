@@ -67,7 +67,7 @@ const BATCH_LIST_CACHE_LOCK = 'batch-list-cache'
 const getCachedBatchListItems = async (filePath: string): Promise<string[] | undefined> => {
   const cache = await readJsonCacheMap<BatchListCacheEntry>(BATCH_LIST_CACHE_FILE)
   const entry = cache[resolve(filePath)]
-  if (!entry || !Array.isArray(entry.items) || !entry.fingerprint) {
+  if (!entry || !Array.isArray(entry.items) || !entry.items.every(item => typeof item === 'string') || !entry.fingerprint) {
     return undefined
   }
   return fileFingerprintsMatch(await getFileFingerprint(filePath), entry.fingerprint)
@@ -80,15 +80,12 @@ const writeBatchListCache = async (
   items: string[],
   fingerprint: FileFingerprint
 ): Promise<void> => {
-  try {
-    await writeJsonCacheEntry({
-      cachePath: BATCH_LIST_CACHE_FILE,
-      lockName: BATCH_LIST_CACHE_LOCK,
-      key: resolve(filePath),
-      value: { items, fingerprint }
-    })
-  } catch {
-  }
+  await writeJsonCacheEntry({
+    cachePath: BATCH_LIST_CACHE_FILE,
+    lockName: BATCH_LIST_CACHE_LOCK,
+    key: resolve(filePath),
+    value: { items, fingerprint }
+  })
 }
 
 export const readInputList = async (filePath: string): Promise<string[]> => {

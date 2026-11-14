@@ -85,6 +85,8 @@ test('batch wait=0 submits without polling and CLI resume status retrieves an ex
   const options: TtsOptions = { geminiTtsModels: [LITE], geminiTtsMode: 'batch', geminiTtsBatchWaitSeconds: 0 }
   await runGeminiRemoteBatch(input, options, collectTtsTargets(options))
   expect(calls.map(call => call.method)).toEqual(['POST'])
+  await expect(dispatchResume(output, { 'provider-job-action': 'retry' })).rejects.toThrow('--provider-job-action must be one of: status, wait, cancel')
+  expect(calls.map(call => call.method)).toEqual(['POST'])
   await dispatchResume(output, { 'provider-job-action': 'status' })
   expect(calls.map(call => call.method)).toEqual(['POST', 'GET'])
 })

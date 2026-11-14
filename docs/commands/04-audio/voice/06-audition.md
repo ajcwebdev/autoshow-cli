@@ -1,34 +1,15 @@
 # voice audition
 
-Synthesize the pre-approval audition set for a ready draft registration.
-
-See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
-
-## audition
-
-```bash
-bun autoshow voice audition <registration-id> [flags]
-```
-
-Remove `--price` only when you intend to purchase the synthesis. `--price` still only estimates when `--approve` is set.
-
-### Options
-
-| Flag                           | Description                                                            |
-| ------------------------------ | ---------------------------------------------------------------------- |
-| `--generation-id <sha256>`     | Optional unless more than one generation could match                   |
-| `--representative-line <text>` | Required representative script line for the audition set               |
-| `--takes <n>`                  | Takes per audition passage, 1-5; default `1`                           |
-| `--max-cents <n>`              | Reject an audition estimate above this many cents; no cap when omitted |
-| `--approve`                    | Approve the auditioned generation in the same run                      |
-| `--actor-id <id>`              | Opaque approving actor ID; required when `--approve` is set            |
-| `--price`                      | Validate and estimate without provider calls or artifact writes        |
-
-### Examples
+Purchase the canonical neutral, representative, pronunciation, and comparison passages for a ready draft registration, retaining audio in protected storage.
 
 ```bash
 bun autoshow voice audition vr_ID --representative-line "We leave at dawn." --price
-bun autoshow voice audition vr_ID --generation-id GENERATION_SHA256 --representative-line "We leave at dawn." --approve --actor-id casting_editor
+bun autoshow voice audition vr_ID --representative-line "We leave at dawn."
+bun autoshow voice approve vr_ID --generation-id AUDITIONED_GENERATION_SHA256 --actor-id casting_editor
 ```
 
-Next: [approve](./07-approve.md).
+`--representative-line` is required. `--takes` accepts 1–5 per passage, default 1. `--max-cents` rejects estimates above the specified nonnegative ceiling; omission adds no cap. `--concurrency-mode ramp|immediate` uses shared hosted admission, default ramp.
+
+Select `--generation-id` when ambiguous; use the new generation printed by audition for subsequent approval. The registered `--approve` shortcut requires `--actor-id`; `--price` still only estimates. The examples keep approval separate for review. Consent-bound voices require current permission for new synthesis. Remove `--price` only when intending to buy the audition; review the audio before approving it.
+
+[Approval](07-approve.md) makes the auditioned generation current.

@@ -1,4 +1,4 @@
-import { TTS_PROVIDERS as ACTIVE_TTS_PROVIDERS } from '~/types/provider-core/provider-types'
+import { TTS_PROVIDERS as ACTIVE_TTS_PROVIDERS } from '~/types'
 import { readUtf8FileExact } from '~/utils/bun-file-io'
 import { existsSync } from 'node:fs'
 import { link, mkdir } from 'node:fs/promises'

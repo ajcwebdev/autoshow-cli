@@ -48,9 +48,9 @@ describe('retired model successor contracts', () => {
           .map(([service]) => service)
         const label = `${category}/${retiredKey} -> ${replacement}`
         expect(activeHosts.length, label).toBeGreaterThan(0)
-        // Same-host successors retain their host; cross-host hints must resolve unambiguously.
-        if (!activeHosts.includes(originalService)) expect(activeHosts, label).toHaveLength(1)
-        const service = activeHosts.includes(originalService) ? originalService : activeHosts[0]!
+        // Replacement strings are model IDs within the original provider, not cross-provider selectors.
+        expect(activeHosts, label).toContain(originalService)
+        const service = originalService
         expect(getSupportedModelSource(category, service)?.models, label).toContain(replacement)
         const targets = providerTargets[category]
         // STT's gemini-stt registry identity is exposed as --provider gemini, not gemini-stt.
@@ -72,6 +72,52 @@ describe('retired model successor contracts', () => {
     }
     expect(checked).toBeGreaterThan(0)
   })
+
+  test('retired write/OCR selectors name active successors while removed image providers retain only historical identity', async () => {
+    const cases = [
+      { command: 'write', input: 'A short source note', selector: 'llm', provider: 'anthropic', model: 'claude-fable-5', replacement: 'claude-fable-5-2' },
+      { command: 'write', input: 'A short source note', selector: 'llm', provider: 'grok', model: 'grok-4.5', replacement: 'grok-4.7' },
+      { command: 'extract', input: 'input.pdf', selector: 'provider', provider: 'grok', model: 'grok-4.5', replacement: 'grok-4.7' },
+      { command: 'image', input: 'A simple static scene', selector: 'provider', provider: 'bfl', model: 'flux-2-pro' },
+      { command: 'image', input: 'A simple static scene', selector: 'provider', provider: 'recraft', model: 'recraftv4_1' }
+    ] as const
+    await withTempDir('autoshow-retired-text-images-', async root => {
+      const preload = join(root, 'deny-fetch.ts'), config = join(root, 'config.json'), pdf = join(root, 'input.pdf')
+      await writeFile(config, '{}\n')
+      await writeFile(pdf, '%PDF-1.4\n%%EOF')
+      await writeFile(preload, [
+        'import { writeFileSync } from "node:fs"',
+        'let calls = 0',
+        'globalThis.fetch = Object.assign(() => { calls++; throw new Error("Unexpected provider dispatch") }, { preconnect() {} })',
+        'process.once("exit", () => writeFileSync(process.env.AUTOSHOW_SUCCESSOR_FETCH_AUDIT!, JSON.stringify({ calls })))'
+      ].join('\n') + '\n')
+      for (const [index, entry] of cases.entries()) {
+        const audit = join(root, `fetch-${index}.json`), output = join(root, `output-${index}`)
+        const result = Bun.spawnSync([process.execPath, '--no-env-file', '--preload', preload,
+          'src/cli/create-cli.ts', entry.command, entry.command === 'extract' ? pdf : entry.input, `--${entry.selector}`, `${entry.provider}=${entry.model}`,
+          '--config-path', config, '--output-dir', output, '--price', '--json'], {
+          env: { PATH: process.env['PATH'] ?? '', NO_COLOR: '1', AUTOSHOW_SUCCESSOR_FETCH_AUDIT: audit },
+          stdout: 'pipe', stderr: 'pipe'
+        })
+        const record = JSON.parse(new TextDecoder().decode(result.stdout).trim()) as {
+          type: string, exitCode: number, error: { kind: string, message: string }
+        }
+        expect(result.exitCode, `${entry.provider}/${entry.model}`).toBe(2)
+        expect(record).toMatchObject({ type: 'result', exitCode: 2, error: { kind: 'usage' } })
+        if ('replacement' in entry) {
+          expect(record.error.message).toContain(`Model "${entry.model}" is retired`)
+          expect(record.error.message).toContain(`Use "${entry.replacement}" instead.`)
+        } else {
+          expect(record.error.message).toContain(`Unknown provider "${entry.provider}"`)
+          expect(record.error.message).toContain('gemini|openai|grok')
+          expect(record.error.message).not.toContain('gpt-image-2.5-flare')
+          expect(getRetiredModelReplacement('image', entry.provider, entry.model)).toBeUndefined()
+        }
+        expect(JSON.parse(await readFile(audit, 'utf8'))).toEqual({ calls: 0 })
+        expect(await stat(output).catch(() => null)).toBeNull()
+      }
+    })
+  }, 15000)
 
   test('the eight MiniMax video identities retain historical rates without advertising an unavailable successor', () => {
     const registry = getModelRegistry().video

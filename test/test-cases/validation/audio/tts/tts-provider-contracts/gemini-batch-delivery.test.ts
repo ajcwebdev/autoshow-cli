@@ -11,7 +11,7 @@ import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume
 import { resetLoggerForInvocation } from '~/utils/app-logger/app-logger'
 import { resolveTtsDeliveryOptions } from '~/cli/options/option-resolution/tts-delivery-options'
 import { readObservedAudio } from '~/cli/commands/audio/tts/script-to-audio/attempt-io'
-import type { GeminiProviderJobRun } from '~/types/tts-workflow/gemini-provider-job-types'
+import type { GeminiProviderJobRun } from '~/types'
 import { createSyntheticWavBytes } from '../../../../../test-utils/media-fixtures'
 import { jsonResponse } from '../../../../../test-utils/rest-contract-helpers'
 import { setupTtsContractLifecycle, installMockFetch } from './shared'

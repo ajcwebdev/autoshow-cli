@@ -1,30 +1,15 @@
 # STT Tests
 
-Local whisperfile and hosted speech-to-text coverage. Hosted tests may call paid or quota-limited providers. The whisperfile e2e tests run local inference but download their audio fixture and require the selected runtime and models.
-
-## Quick Start
+No-cost contracts live in `test/test-cases/validation/stt/`. Local inference requires installed Whisperfile models; its e2e fixture may download:
 
 ```bash
 bun t test/test-cases/e2e/local/stt/whisperfile/
-
-bun t test/test-cases/e2e/service/stt/
 ```
 
-## Price Preflight
+Preflight hosted coverage before spending:
 
 ```bash
 bun t test/test-cases/e2e/service/stt/ --price
 ```
 
-`--price` estimates cost without transcribing. The following command executes tests whose estimated cost per test key is at most $0.25; it does not cap total spending:
-
-```bash
-bun t test/test-cases/e2e/service/stt/ --budget 2500
-```
-
-No-cost contract checks are in `test/test-cases/validation/stt/`. Passing artifact and fixture-text checks does not establish comprehensive transcription or speaker accuracy.
-
-## Related Docs
-
-- [Testing Overview](../../testing.md)
-- [extract STT](overview.md)
+Removing `--price` executes paid/quota-limited tests. `--budget 2500` filters test keys estimated at no more than $0.25 each; it does not cap the total. Apply [testing and spending rules](../../testing.md), including full-suite approval. Artifact/fixture-text checks do not prove comprehensive speech or speaker accuracy.

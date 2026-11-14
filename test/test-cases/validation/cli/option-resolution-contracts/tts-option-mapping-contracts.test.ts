@@ -55,9 +55,9 @@ describe('option resolution contracts', () => {
       expect(opts.elevenlabsTtsTextNormalization).toBe('auto')
       expect(opts.elevenlabsTtsPronunciationDictionaryLocators).toEqual(['dict_1:version_2'])
 
-      expect(() => buildOptsFromFlags({ 'grok-tts': 'grok-tts', 'tts-language': 'xx' })).toThrow('Invalid --grok-tts-language "xx"')
+      expect(() => buildOptsFromFlags({ 'grok-tts': 'grok-tts', 'tts-language': 'xx' })).toThrow('Invalid --tts-language grok="xx"')
       expect(() => buildOptsFromFlags({ 'openai-tts': 'gpt-4o-mini-tts-2025-12-15', 'tts-speed': '0.1' })).toThrow('--tts-speed for openai: must be at least 0.25.')
-      expect(() => buildOptsFromFlags({ 'elevenlabs-tts': 'eleven_v3', 'tts-text-normalization': 'always' })).toThrow('Invalid --elevenlabs-tts-text-normalization "always"')
+      expect(() => buildOptsFromFlags({ 'elevenlabs-tts': 'eleven_v3', 'tts-text-normalization': 'always' })).toThrow('Invalid --tts-text-normalization elevenlabs="always"')
     })
 
   test('Inworld maps --tts-instructions onto request-level steering', () => {

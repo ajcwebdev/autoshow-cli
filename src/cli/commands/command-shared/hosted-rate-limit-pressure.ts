@@ -1,6 +1,7 @@
 import type { ProviderLanePressureFeedback } from '~/types'
 import { AppError, getErrorHeaders, isRetryExhaustedError, normalizeErrorHeaders } from '~/utils/error-handler'
 import { parseRetryAfterMs } from '~/utils/retries'
+import { classifyPaidCreateRetry } from '~/utils/retry-classification'
 
 const readNestedErrorValue = (error: unknown, key: string): unknown => {
   const seen = new Set<unknown>()
@@ -43,12 +44,11 @@ const collectErrorChainMessages = (error: unknown): string[] => {
   return messages
 }
 
-const isExplicitlyRateLimited = (status: unknown, category: unknown, code: unknown, message: string): boolean =>
+const isExplicitlyRateLimited = (status: unknown, category: unknown, code: unknown): boolean =>
   status === 429
   || status === 425
   || (typeof category === 'string' && /rate.?limit|too.?many.?requests|concurrenc/i.test(category))
   || (typeof code === 'string' && /rate.?limit|too.?many.?requests|concurrenc/i.test(code))
-  || /rate[-\s]?limit|too many requests|provider concurrency|concurrency limit/.test(message)
 
 export const classifyHostedRateLimitPressure = (
   error: unknown
@@ -57,6 +57,10 @@ export const classifyHostedRateLimitPressure = (
   if (isExplicitlyNonRetryable(error) || isRetryExhaustedError(error)) {
     return undefined
   }
+  // Lane recovery can resend a paid request, so it must satisfy the same
+  // admission evidence as provider retries. Wording and category alone cannot
+  // establish that the original request was rejected before billing.
+  if (!classifyPaidCreateRetry(error).shouldRetry) return undefined
 
   const status = readNestedErrorValue(error, 'status')
   const category = readNestedErrorValue(error, 'category')
@@ -66,9 +70,10 @@ export const classifyHostedRateLimitPressure = (
   if (/billing|payment required|insufficient (?:balance|credit)|quota[_\s-]*(?:exhaust|exceed|deplet)|exceed(?:ed|s|ing)? (?:your )?(?:current )?quota|quota[_\s-]*limit[_\s-]*(?:reached|exhaust)|check your plan|authentication|unauthorized|validation/.test(classificationText)) {
     return undefined
   }
-  if (!isExplicitlyRateLimited(status, category, code, message)) return undefined
+  if (!isExplicitlyRateLimited(status, category, code)) return undefined
   // Ambiguous HTTP statuses (e.g. 503 with rate-limit prose) must not redispatch paid work.
-  // Only definite admission rejections (425/429) or status-less structured concurrency signals qualify.
+  // Only definite admission rejections (425/429) or status-less structured
+  // rejected-and-retryable concurrency signals qualify.
   if (typeof status === 'number' && status !== 425 && status !== 429) {
     return undefined
   }

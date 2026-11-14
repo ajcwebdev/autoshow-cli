@@ -1,7 +1,7 @@
 import { inspectGeminiSynthesisVoices } from './gemini-voice-availability'
 import { mkdir, rename, open } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { GeminiBatchSlot, GeminiProviderJob, GeminiProviderJobRun } from '~/types/tts-workflow/gemini-provider-job-types'
+import type { GeminiBatchSlot, GeminiProviderJob, GeminiProviderJobRun } from '~/types'
 import { geminiJsonRequest, geminiFetch, geminiUploadFile } from '~/utils/gemini/gemini-rest'
 import { hashCanonicalTtsValue, sha256Bytes } from '../../script-to-audio/contract-identity'
 import { decodeGeminiGenerateContent, geminiObject, validateGeminiWav } from './gemini-tts-audio'

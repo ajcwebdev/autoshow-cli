@@ -1,32 +1,13 @@
-# Video Service Tests
+# Video Tests
 
-Live video generation for the `video` command: Gemini and Grok. The tests validate decodable MP4 artifacts and recorded metadata, not prompt adherence or perceptual quality. The directory also includes local usage-error coverage. Test execution may call paid or quota-limited providers.
+Live Gemini/Grok tests use `GEMINI_API_KEY` or `XAI_API_KEY` and may incur charges. They validate decodable MP4s and metadata, not prompt adherence or perceptual quality. Local usage-error coverage is also available without provider calls.
 
-## Quick Start
-
-```bash
-bun t test/test-cases/e2e/service/visuals/video/
-```
-
-## Provider Env Vars
-
-Live video generation tests need a configured provider key: `GEMINI_API_KEY` or `XAI_API_KEY`.
-
-## Price Preflight
-
-Estimate the mapped generation commands without running the tests:
+Preflight the mapped commands without generation:
 
 ```bash
 bun t test/test-cases/e2e/service/visuals/video/ --price
 ```
 
-Run tests whose mapped estimates are at most 25¢ per test key. This filter does not cap cumulative spending:
+After the required spending authorization, omit `--price` to run that targeted directory. `--budget 2500` filters test keys above a 25¢ estimate; it does not cap cumulative spending.
 
-```bash
-bun t test/test-cases/e2e/service/visuals/video/ --budget 2500
-```
-
-## Related Docs
-
-- [Testing Overview](../../testing.md)
-- [Video Command](overview.md)
+See [testing](../../testing.md) and the [video guide](overview.md).

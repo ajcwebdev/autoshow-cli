@@ -25,6 +25,9 @@ type ResultInvocation = {
 }
 
 const resultStore = new AsyncLocalStorage<ResultInvocation>()
+// Bun process-level fatal events do not retain the async context that failed.
+// Only a top-level CLI invocation opts in; isolated workflows must not replace it.
+const processFatalInvocations = new Set<ResultInvocation>()
 
 /** Write a standalone command's payload verbatim, without staging a terminal result or logging. */
 export const writeCommandPayload = (payload: string, stream: 'stdout' | 'stderr' = 'stdout'): void => {
@@ -34,22 +37,26 @@ export const writeCommandPayload = (payload: string, stream: 'stdout' | 'stderr'
 }
 
 export const runWithResultInvocation = async <T>(
-  options: { json: boolean, runId: string, command?: string, compact?: boolean },
+  options: { json: boolean, runId: string, command?: string, compact?: boolean, processFatal?: boolean },
   fn: () => Promise<T> | T
-): Promise<T> => await resultStore.run({
-  json: options.json,
-  runId: options.runId,
-  startedAtMs: Date.now(),
-  compact: options.compact ?? false,
-  ...(options.command ? { command: options.command } : {}),
-  flushed: false
-}, async () => {
-  try { return await fn() }
-  finally {
-    const active = invocation()
-    if (active?.resultFile) closeResultArtifact(active.resultFile)
+): Promise<T> => {
+  const active: ResultInvocation = {
+    json: options.json,
+    runId: options.runId,
+    startedAtMs: Date.now(),
+    compact: options.compact ?? false,
+    ...(options.command ? { command: options.command } : {}),
+    flushed: false
   }
-})
+  if (options.processFatal) processFatalInvocations.add(active)
+  return await resultStore.run(active, async () => {
+    try { return await fn() }
+    finally {
+      if (options.processFatal) processFatalInvocations.delete(active)
+      if (active.resultFile) closeResultArtifact(active.resultFile)
+    }
+  })
+}
 
 const invocation = (): ResultInvocation | undefined => resultStore.getStore()
 
@@ -85,6 +92,15 @@ export const requireIsolatedResult = <T>(isolated: IsolatedCommandResult<T>): { 
 }
 
 export const isJsonResultActive = (): boolean => invocation()?.json === true
+
+export const flushFatalResult = (error: unknown, exitCode: number, message: string, hints: string[] = []): void => {
+  const active = [...processFatalInvocations].at(-1) ?? invocation()
+  if (!active?.json || active.flushed) return
+  resultStore.run(active, () => {
+    stageFailureResult(error, exitCode, message, hints)
+    flushStagedResult()
+  })
+}
 
 export const setResultCommand = (command: string | undefined): void => {
   const active = invocation()

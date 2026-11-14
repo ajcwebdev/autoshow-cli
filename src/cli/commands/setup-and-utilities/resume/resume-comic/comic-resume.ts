@@ -14,7 +14,7 @@ import { inComicWorkspace, recoveryContext, stageOrder } from './comic-resume-co
 import { planComicRecoveryStage } from './comic-resume-stage-planners'
 import * as l from '~/utils/app-logger/app-logger'
 
-export const COMIC_RESUME_ALLOWED_FLAGS = new Set(['price', 'allow-ambiguous-redispatch', 'json', 'quiet', 'verbose', 'color', 'log-level', 'bin-dir'])
+export const COMIC_RESUME_ALLOWED_FLAGS = new Set(['price', 'allow-ambiguous-redispatch', 'json', 'result-file', 'require-shared-budget', 'quiet', 'verbose', 'color', 'log-level', 'bin-dir'])
 
 export const assertComicResumeFlags = (explicitFlags: ReadonlySet<string>): void => {
   for (const flag of explicitFlags) if (!COMIC_RESUME_ALLOWED_FLAGS.has(flag)) throw UsageError(`Comic resume does not accept --${flag}. It restores recorded options; use the explicit comic stage command to change providers, rendering options, or output paths.`)

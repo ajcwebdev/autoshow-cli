@@ -79,7 +79,7 @@ test('extract transcript-video renders from a media extract output directory', a
     '--transcript-video'
   ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
 
-  expect(result.exitCode).toBe(0)
+  expect(result.exitCode, result.stderr).toBe(0)
   expect(result.outputDir).not.toBeNull()
 
   if (result.outputDir) {
@@ -114,7 +114,7 @@ test('extract transcript-video renders from explicit audio and transcript text f
     '--keep-tmp'
   ], { timeoutMs: LONG_E2E_TEST_TIMEOUT_MS })
 
-  expect(result.exitCode).toBe(0)
+  expect(result.exitCode, result.stderr).toBe(0)
   expect(result.outputDir).not.toBeNull()
 
   if (result.outputDir) {

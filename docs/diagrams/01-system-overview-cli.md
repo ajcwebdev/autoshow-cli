@@ -1,128 +1,64 @@
-# System Overview & CLI Surface
-
-Command surface, routing, global flags, and provider selectors.
-
-## Outline
-
-- [System Layers](#system-layers)
-- [Dispatch](#dispatch)
-- [Command Surface](#command-surface)
-- [Flag System](#flag-system)
+# CLI Surface
 
 ## System Layers
 
-```
-bun autoshow <command> [<subcommand>] <target> [flags]
-            |
-            v
-+------------------+     +------------------+     +------------------+     +------------------+
-| CLI layer        | --> | Target layer     | --> | Processing layer | --> | Output layer     |
-| parse + dispatch |     | plan + routing   |     | steps 0-8        |     | manifest + files |
-+------------------+     +------------------+     +------------------+     +------------------+
+```text
+native parser / help
+        |
+        v
+config + target planning
+        |
+        v
+command-specific workflow
+        |
+        +--> local tools
+        +--> hosted provider/account admission --> provider adapter
+        |
+        v
+canonical manifest + artifacts + terminal result
 ```
 
-1. CLI layer: parse arguments, render help and version, reject unknown flags, and apply global runtime settings.
-2. Target layer: resolve the target, merge config defaults, and plan a single run or batch.
-3. Processing layer: commands enter the steps they need: Step 0 metadata, Step 1 download/detect, Step 2 STT/OCR/article/X extraction, Step 3 LLM writing, Steps 4-7 standalone TTS/image/video/music generation, and Step 8 comic workflows.
-4. Output layer: pipeline and generation runs record state in `manifest.json`, with generated files and optional per-provider `result.json` payloads beside it.
+Commands select the steps they need; `write` does not automatically attach extraction or media generation.
 
 ## Dispatch
 
-```
-bun autoshow <command> ...
-        |
-        +--> help?    -> root or command help
-        +--> version? -> print package version
-        |
-        v
-unknown flags?
-        |
-        +--> usage error
-        |
-        v
-apply global flags and config
-        |
-        v
-run the selected command
+```text
+argv --> native command tree --> validate flags / values
+                 |                        |
+                 +--> help / version      v
+                                apply runtime/configuration
+                                          |
+                                          v
+                                price plan or execution
+                                          |
+                                          v
+                                   terminal result
 ```
 
-Global flags:
+Unknown commands/flags and missing arguments fail before dispatch. `--json` sends diagnostics to stderr and one terminal result to stdout. `--json --result-file <new-path>` stores the complete sanitized result and emits a bounded artifact summary. Quiet logging never suppresses the result.
 
-| Flag                    | Effect                                                                                                               |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `--help`, `-h`          | Show root or command help.                                                                                           |
-| `--version`, `-v`       | Print CLI version.                                                                                                   |
-| `--config-path`         | Use a config file other than `config/autoshow.json`.                                                                 |
-| `--help-topic`          | Show focused help for a named topic and exit; use `--help` to list available topics.                                 |
-| `--output-root`         | Base directory for run outputs.                                                                                      |
-| `--output-dir`          | Pin one run or batch root instead of a timestamped directory. Accepted on commands that create run directories.      |
-| `--characters-root`     | Directory of comic character reference images and `characters-reference.json`. Accepted on `voice` and `comic` only. |
-| `--bin-dir`             | Directory of external tool binaries checked before the managed install and PATH.                                     |
-| `--allow-over-budget`   | Continue after cost preflight exceeds the configured budget; accepted on priced pipeline and generation commands.    |
-| `--verbose`             | Enable debug logging.                                                                                                |
-| `--quiet`, `-q`         | Suppress non-error diagnostics; JSON terminal results are always emitted.                                            |
-| `--json`                | Emit versioned diagnostic log records on stderr and exactly one terminal result record on stdout.                    |
-| `--log-level`           | Minimum log level: `debug`, `info`, `success`, `warn`, or `error`.                                                   |
-| `--color`, `--no-color` | Force ANSI colors on or off instead of auto-detecting the TTY.                                                       |
+Output, character-root, and budget flags are accepted only where applicable. `--require-shared-budget` requires configured budget enforcement; unsupported execution roots fail closed. See [global usage](../commands/00-setup-and-utilities/usage.md).
 
 ## Command Surface
 
+```text
+setup / config   install or inspect tools; read/write defaults
+links            fetch selected documentation
+resume           recover recorded pipeline/comic work
+metadata         inspect and expand sources
+download         acquire media and metadata
+extract          STT, OCR, articles, X Spaces; local transcript workflows
+write            LLM generation from local Markdown/plaintext
+tts / voice      speech synthesis / voice lifecycle
+image / video    standalone visual generation
+music            hosted music or local lyric-video
+comic            script, scene, reference, image, audio, presentation, review
 ```
-Setup and utilities:
-  setup     install local tools, report provider env readiness, and read/write persisted defaults (`config` is a setup alias)
-  links     fetch provider documentation markdown and write a combined file
-  resume    resume missing outputs or recorded comic stages in an existing run directory
-
-Processing and generation:
-  metadata  Step 0 metadata only
-  download  Step 1 download/detect only
-  extract   Step 1 + Step 2 extraction, captions, transcript review, and transcript video
-  write     Step 3 LLM text generation from local .md/.txt
-  tts       standalone TTS for .md/.txt files or directories
-  voice     voice registration and lifecycle management for standalone and comic use
-  image     standalone image generation
-  video     standalone video generation
-  music     standalone music generation or local lyric-video rendering
-  comic     nested draft-treatment, draft-scenes, generate-images, generate-audio, generate-slideshow, reference-sketch, and review workflows
-```
-
-Help and version are built into the root command. Metadata, download, and extract share target planning. `extract --transcript-video` renders a transcript video from a single media extract run, or from `--audio` plus exactly one of `--transcript-result` or `--transcript-text`.
 
 ## Flag System
 
-Command groups share the same selector model but expose it through different flags:
+Execution commands use `--provider provider[=model]`; multi-target workflows support repeated selections and `--all-providers`. Extract additionally supports `--all-local`. Write retains the mutually exclusive `--llm` alias. Setup uses domain flags such as `--stt`, `--ocr`, and `--tts` to persist defaults.
 
-```
-extract/resume
-  --provider provider[=model]
-  --all-providers
-  --all-local
-  --provider-concurrency N
-  --local-concurrency N
+Extract resolves selectors by route: media → STT, documents → OCR, articles → URL backends. Resume resolves them against the recorded command; comic recovery restores recorded choices and rejects overrides.
 
-standalone generation
-  --provider provider[=model]
-  --all-providers
-  --provider-concurrency N
-
-write
-  --provider provider[=model]
-  --llm provider[=model]          # compatibility alias for --provider; do not combine spellings
-  --all-providers
-  --provider-concurrency N
-
-setup persisted defaults
-  --stt provider[=model]
-  --ocr provider[=model]
-  --llm provider[=model]
-  --tts provider[=model]
-  --image provider[=model]
-  --video provider[=model]
-  --music provider[=model]
-```
-
-`extract --provider` is route-aware. A media item maps it to STT providers, a document/image item maps it to OCR providers, and an article route uses URL backend selection. Mixed extract batches are partitioned by route so generic selections apply to the matching route.
-
-`resume` interprets selectors according to the recorded command. Comic recovery restores the recorded choices and rejects provider, rendering, and configuration overrides. Repeatable `--step-concurrency <scope>=N` controls work within a step; command help lists the applicable scopes.
-
-The provider catalog is in [Providers, Models & Setup](04-providers-and-setup.md).
+Provider/account admission is shared within a run. `--provider-concurrency`, `--local-concurrency`, and command-scoped `--step-concurrency <scope>=N` bound different work; they are not a simple product. [ADR-007](../adr/ADR-007-decompose-work-into-chunks-and-concurrency-lanes.md) defines scheduling and recovery.

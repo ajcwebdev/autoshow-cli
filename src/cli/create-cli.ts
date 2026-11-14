@@ -15,6 +15,7 @@ import { dispatchNativeCli } from '~/cli/native/dispatcher'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { HTTP_PAYLOAD_MAX_BYTES_ENV, validateHttpPayloadEnvironment } from '~/utils/http-payload'
+import { buildSetupProviderPresence, SETUP_PROVIDER_PRESENCE_ENV } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from './command-definitions'
 
 export { COMMAND_DEFINITIONS, HELP_COMMAND_GROUP_BY_NAME } from './command-definitions'
@@ -161,7 +162,7 @@ export const runCliInProcess = async (argv: string[]): Promise<number> => {
   resetLoggerForInvocation(json, runId)
   configureColor(json ? 'disable' : 'auto')
 
-  return await runWithResultInvocation({ json, runId }, async () => {
+  return await runWithResultInvocation({ json, runId, processFatal: true }, async () => {
     try {
       const resultFile = preScanResultFile(argv)
       if (resultFile !== undefined) setResultFile(resultFile)
@@ -185,7 +186,13 @@ export const runCliInProcess = async (argv: string[]): Promise<number> => {
   })
 }
 
-export const buildSetupChildEnv = (): Record<string, string> => childEnv({ allow: ['TMPDIR', 'AUTOSHOW_PROJECT_ROOT', 'AUTOSHOW_DISABLE_HTTP_KEEPALIVE', HTTP_PAYLOAD_MAX_BYTES_ENV, 'AUTOSHOW_BUDGET_LEDGER', 'AUTOSHOW_BUDGET_CENTS', 'AUTOSHOW_BUDGET_RESERVE_CENTS'], set: { [SETUP_NO_ORPHANS_MARKER]: '1' } })
+export const buildSetupChildEnv = (): Record<string, string> => childEnv({
+  allow: ['TMPDIR', 'AUTOSHOW_PROJECT_ROOT', 'AUTOSHOW_DISABLE_HTTP_KEEPALIVE', HTTP_PAYLOAD_MAX_BYTES_ENV, 'AUTOSHOW_BUDGET_LEDGER', 'AUTOSHOW_BUDGET_CENTS', 'AUTOSHOW_BUDGET_RESERVE_CENTS'],
+  set: {
+    [SETUP_NO_ORPHANS_MARKER]: '1',
+    [SETUP_PROVIDER_PRESENCE_ENV]: buildSetupProviderPresence(process.env)
+  }
+})
 
 const main = async (): Promise<void> => {
   const argv = Bun.argv.slice(2)

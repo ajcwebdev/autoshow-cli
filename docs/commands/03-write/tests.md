@@ -1,27 +1,17 @@
-# Write Service Tests
+# Write Tests
 
-Provider-backed LLM coverage for the `write` command: OpenAI, Anthropic, Gemini, and Grok. These `bun t` commands may call paid or quota-limited providers.
-
-## Quick Start
+Local contracts cover structured output, prompts, rendered artifacts, provider settings, and request construction without paid calls:
 
 ```bash
-bun t test/test-cases/e2e/service/text/write/
+bun test test/test-cases/validation/text/write/
 ```
 
-## Provider Env Vars
-
-Live write tests need the matching provider key: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `XAI_API_KEY`.
-
-## Price Preflight
-
-`--price` estimates the mapped write commands without running provider tests. `--budget 2500` runs eligible live tests with a 25¢ estimate threshold per test key; it does not cap total spending.
+For hosted OpenAI, Anthropic, Gemini, and Grok coverage, estimate the selected service tests first:
 
 ```bash
 bun t test/test-cases/e2e/service/text/write/ --price
-bun t test/test-cases/e2e/service/text/write/ --budget 2500
 ```
 
-## Related Docs
+Live execution needs the matching `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `XAI_API_KEY` and the [repository spending authorization](../../../AGENTS.md#paid-providers). Add `--budget 2500` to a live test command to filter test keys above an estimated 25¢ each; this is neither a cumulative cap nor spending approval. Full-suite execution separately requires explicit authorization.
 
-- [Testing Overview](../testing.md)
-- [Write Command](overview.md)
+See the [testing guide](../testing.md) and [write guide](overview.md). Mocked contracts do not establish generated-text quality or live entitlement.

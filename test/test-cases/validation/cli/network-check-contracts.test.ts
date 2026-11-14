@@ -1,5 +1,37 @@
 import { expect, test } from 'bun:test'
 import { networkCheckOptions, serveNetworkFixture, probeNetworkFixture } from '~/cli/commands/setup-and-utilities/setup/network-check'
+import { readBoundedTextStream } from '~/utils/bounded-capture'
+
+test('network serve emits readiness on stderr and one terminal JSON result after a graceful stop', async () => {
+  const reservation = serveNetworkFixture(0, 1)
+  const port = reservation.port
+  reservation.stop(true)
+  const cli = new URL('../../../../src/cli/create-cli.ts', import.meta.url).pathname
+  const child = Bun.spawn([process.execPath, '--no-env-file', cli, 'setup', '--network-check', 'serve', '--port', String(port), '--delay-seconds', '1', '--json'], {
+    env: { PATH: process.env['PATH'], AUTOSHOW_SETUP_NO_ORPHANS_CHILD: '1' }, stdout: 'pipe', stderr: 'pipe'
+  })
+  let signalReady!: () => void
+  const ready = new Promise<void>(resolve => { signalReady = resolve })
+  let output = ''
+  const stderr = readBoundedTextStream(child.stderr, {}, undefined, chunk => {
+    output += chunk
+    if (output.includes('Network fixture ready')) signalReady()
+  })
+  const stdout = new Response(child.stdout).text()
+  let deadline: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([ready, new Promise<never>((_, reject) => { deadline = setTimeout(() => reject(new Error('Network fixture did not become ready')), 5000) })])
+    child.kill('SIGTERM')
+    const [exitCode, resultText, diagnostics] = await Promise.all([child.exited, stdout, stderr])
+    expect(exitCode, diagnostics.text).toBe(0)
+    expect(JSON.parse(resultText)).toMatchObject({ type: 'result', status: 'success', data: { ready: true, stopped: true, port } })
+    expect(diagnostics.text).toContain('Network fixture ready')
+  } finally {
+    clearTimeout(deadline)
+    child.kill('SIGKILL')
+    await child.exited
+  }
+}, 10_000)
 
 test('network options defaults and validation', () => {
   expect(networkCheckOptions({ 'network-check': 'serve' })).toMatchObject({ port: 8787, delaySeconds: 150, client: 'rest' })

@@ -96,12 +96,15 @@ export async function runNetworkCheck(flags: Record<string, unknown>, explicitFl
   const options = networkCheckOptions(flags, explicitFlags)
   if (options.mode === 'serve') {
     const server = serveNetworkFixture(options.port, options.delaySeconds)
-    console.log(JSON.stringify({ ready: true, port: server.port, delaySeconds: options.delaySeconds }))
+    const result = { ready: true, port: server.port, delaySeconds: options.delaySeconds }
+    if (l.isJsonResultActive()) l.write('info', 'Network fixture ready', { category: 'command', metadata: result })
+    else console.log(JSON.stringify(result))
     await new Promise<void>(resolve => {
       const stop = () => { server.stop(true); process.off('SIGTERM', stop); process.off('SIGINT', stop); resolve() }
       process.on('SIGTERM', stop)
       process.on('SIGINT', stop)
     })
+    l.report.result({ ...result, stopped: true }, 'Network fixture stopped')
     return
   }
   const childTimeout = process.env['AUTOSHOW_NETWORK_CHECK_CHILD_TIMEOUT_MS']

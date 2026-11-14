@@ -1,27 +1,23 @@
 # OCR Tests
 
-Local Tesseract and EPUB coverage, plus hosted PDF and image tests for Gemini and Mistral and image-only tests for Anthropic, Grok, and OpenAI.
+Default to local contracts for routing, chapters, provider requests, pooling, pricing, and resume:
 
-The hosted suite makes provider calls and may incur charges; the local suite does not.
+```bash
+bun test test/test-cases/validation/text/ocr/
+```
 
-## Quick Start
+Local end-to-end coverage uses installed Tesseract, ebook, and document tools:
 
 ```bash
 bun t test/test-cases/e2e/local/text/ocr/
-
-bun t test/test-cases/e2e/service/text/ocr/
 ```
 
-## Price Preflight
-
-`--price` estimates without running provider tests. `--budget 2500` runs eligible tests using a 25¢ estimate threshold per test key, not a total spending cap.
+Hosted tests make billable requests. Review their exact selection and estimate before execution:
 
 ```bash
 bun t test/test-cases/e2e/service/text/ocr/ --price
-bun t test/test-cases/e2e/service/text/ocr/ --budget 2500
 ```
 
-## Related Docs
+The hosted suite covers the current OCR adapters with PDF/image cases where defined. `--budget 2500` filters each test key at an estimated 25¢; it is not a cumulative spending cap or authorization for the resulting batch. Follow the [testing guide](../../testing.md) and [spending rules](../../../../AGENTS.md) before running paid coverage. Mocks and decoded artifacts do not establish text accuracy or perceptual quality.
 
-- [Testing Overview](../../testing.md)
-- [extract OCR](overview.md)
+[OCR usage](overview.md)

@@ -27,7 +27,16 @@
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash.md.txt",
       "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
       "https://ai.google.dev/gemini-api/docs/gemini-3.md.txt",
-      "https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.5.md.txt"
+      "https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.5.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-lite-tts.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-nano-banana-2.1",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-image.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-omni-flash.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/lyria-3.5.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/lyria-3.5-clip-preview.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/lyria-3.5-pro-preview.md.txt"
     ],
     "Text": [
       "https://aistudio.google.com/docs/long-decode?generate-content=true#default-output-limits",
@@ -46,13 +55,10 @@
     ],
     "STT": [
       "https://ai.google.dev/gemini-api/docs/audio.md.txt",
-      "https://ai.google.dev/gemini-api/docs/transcribe.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe.md.txt"
+      "https://ai.google.dev/gemini-api/docs/transcribe.md.txt"
     ],
     "TTS": [
       "https://ai.google.dev/gemini-api/docs/speech-generation.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts",
-      "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-lite-tts.md.txt",
       "https://ai.google.dev/gemini-api/docs/voice-design.md.txt",
       "https://ai.google.dev/gemini-api/docs/voice-replication.md.txt",
       "https://ai.google.dev/gemini-api/docs/generate-content/speech-generation.md.txt",
@@ -60,23 +66,17 @@
       "https://ai.google.dev/gemini-api/docs/generate-content/voice-replication.md.txt"
     ],
     "Image": [
-      "https://ai.google.dev/gemini-api/docs/models/gemini-nano-banana-2.1",
       "https://ai.google.dev/gemini-api/docs/generate-content/image-generation",
-      "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-image.md.txt",
       "https://ai.google.dev/gemini-api/docs/image-generation.md.txt"
     ],
     "Video": [
       "https://ai.google.dev/gemini-api/docs/video.md.txt",
       "https://ai.google.dev/gemini-api/docs/video-understanding.md.txt",
-      "https://ai.google.dev/gemini-api/docs/omni.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/gemini-omni-flash.md.txt"
+      "https://ai.google.dev/gemini-api/docs/omni.md.txt"
     ],
     "Music": [
       "https://ai.google.dev/gemini-api/docs/music-generation.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/lyria-3.5.md.txt",
-      "https://ai.google.dev/gemini-api/docs/lyria-prompt-guide.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/lyria-3.5-clip-preview.md.txt",
-      "https://ai.google.dev/gemini-api/docs/models/lyria-3.5-pro-preview.md.txt"
+      "https://ai.google.dev/gemini-api/docs/lyria-prompt-guide.md.txt"
     ]
   }
 }

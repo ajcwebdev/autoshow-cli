@@ -2,7 +2,18 @@ import type { LifecycleRegistryService } from '~/types'
 import * as v from 'valibot'
 import { NAMED_REASONING_EFFORTS } from '../reasoning-efforts'
 
+// Inherited heuristics stay provisional until qualified calibration evidence replaces them.
+// Missing provenance on older entries does not establish that an estimate is calibrated.
+const EstimationProvenanceFields = {
+  timingProvenance: v.optional(v.strictObject({
+    status: v.literal('provisional'),
+    sourceModel: v.pipe(v.string(), v.trim(), v.nonEmpty()),
+    notes: v.pipe(v.string(), v.trim(), v.nonEmpty())
+  }), undefined)
+}
+
 const SttEstimationSchema = v.object({
+  ...EstimationProvenanceFields,
   costMultiplier: v.optional(v.number(), undefined),
   msPerSecond: v.optional(v.number(), undefined)
 })
@@ -149,6 +160,7 @@ const ExtractModelObjectSchema = v.strictObject({
     higherContextPricing: v.optional(HigherContextPricingSchema, undefined),
     limits: v.optional(ExtractLimitsSchema, undefined),
     estimation: v.optional(v.object({
+      ...EstimationProvenanceFields,
       costMultiplier: v.optional(v.number(), undefined),
       msPerPage: v.optional(v.number(), undefined),
       singlePagePdfFallbackMsPerPage: v.optional(v.number(), undefined),
@@ -199,6 +211,7 @@ const LlmModelSchema = v.strictObject({
   tokenPricingBands: v.optional(v.array(TokenPricingBandSchema), undefined),
   higherContextPricing: v.optional(HigherContextPricingSchema, undefined),
   estimation: v.optional(v.object({
+    ...EstimationProvenanceFields,
     costMultiplier: v.optional(v.number(), undefined),
     msPer1KTokens: v.optional(v.number(), undefined)
   }), undefined),
@@ -238,6 +251,7 @@ const TtsModelSchema = v.strictObject({
     maxInputCharacters: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
   }), undefined),
   estimation: v.optional(v.object({
+    ...EstimationProvenanceFields,
     costMultiplier: v.optional(v.number(), undefined),
     msPer1KChars: v.optional(v.number(), undefined)
   }), undefined)
@@ -276,6 +290,7 @@ const ImageModelSchema = v.strictObject({
   imageOutputCostPer1MCents: v.optional(v.number(), undefined),
   referenceImages: v.optional(ImageReferenceCapabilitiesSchema, undefined),
   estimation: v.optional(v.object({
+    ...EstimationProvenanceFields,
     costMultiplier: v.optional(v.number(), undefined),
     msPerImage: v.optional(v.number(), undefined)
   }), undefined)
@@ -295,6 +310,7 @@ const MusicModelSchema = v.strictObject({
   costPerMinuteCents: v.optional(v.number(), undefined),
   lyricsCostPerTrackCents: v.optional(v.number(), undefined),
   estimation: v.optional(v.object({
+    ...EstimationProvenanceFields,
     costMultiplier: v.optional(v.number(), undefined),
     msPerSecond: v.optional(v.number(), undefined)
   }), undefined)
@@ -333,6 +349,7 @@ const VideoModelSchema = v.strictObject({
   audioCostPerSecondByResolutionCents: v.optional(VideoCostPerSecondByResolutionSchema, undefined),
   videoInputCostPerSecondByResolutionCents: v.optional(VideoCostPerSecondByResolutionSchema, undefined),
   estimation: v.optional(v.object({
+    ...EstimationProvenanceFields,
     costMultiplier: v.optional(v.number(), undefined),
     msPerSecond: v.optional(v.number(), undefined)
   }), undefined)
