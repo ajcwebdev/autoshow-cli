@@ -26,7 +26,7 @@ const componentSources: Partial<Record<SetupInstallationComponent, readonly stri
 }
 
 const componentNativeSources: Partial<Record<SetupInstallationComponent, readonly NativeDependencyName[]>> = {
-  media: ['libass', 'x264'], documents: ['libjpeg-turbo'], ocr: ['zlib', 'libpng', 'libjpeg-turbo', 'libtiff'],
+  media: ['libass', 'x264'], documents: ['libjpeg-turbo'], ocr: ['zlib', 'libpng', 'libjpeg-turbo', 'libtiff', 'giflib'],
   rendering: ['imagemagick', 'pango', 'fontconfig', 'dejavu-fonts']
 }
 

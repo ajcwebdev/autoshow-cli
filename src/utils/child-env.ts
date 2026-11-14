@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { PROJECT_ROOT } from './project-root'
+import { AppError } from './app-error'
 import { assertManagedRuntimePath, pathIsPhysicallyWithinRoot, pathIsWithinRoot } from './runtime-containment'
 import {
   RUNTIME_CACHE_DIR,
@@ -41,7 +42,7 @@ const containedTemporaryDirectory = (source: Readonly<Record<string, string | un
   if (!pathIsWithinRoot(RUNTIME_TEMP_DIR, candidate)) return RUNTIME_TEMP_DIR
   assertManagedRuntimePath(candidate)
   if (!pathIsPhysicallyWithinRoot(RUNTIME_TEMP_DIR, candidate)) {
-    throw new TypeError('Managed temporary paths must resolve inside runtime/tmp/.')
+    throw new AppError('Managed temporary paths must resolve inside runtime/tmp/.', { kind: 'validation', stage: 'runtime:environment', retryable: false })
   }
   return candidate
 }

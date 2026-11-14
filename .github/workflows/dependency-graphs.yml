@@ -208,8 +208,16 @@ jobs:
         with:
           image: autoshow-audit:${{ github.sha }}
           evidence-dir: runtime/dependency-evidence
+      - name: Archive authored runtime state without changing it
+        if: always()
+        uses: ./.github/actions/archive-authored-cache
+        with:
+          image: autoshow-audit:${{ github.sha }}
+          evidence-dir: runtime/dependency-evidence
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: current-image-${{ matrix.target }}-${{ matrix.platform.arch }}-${{ github.sha }}
-          path: runtime/dependency-evidence
+          path: |
+            runtime/dependency-evidence
+            !runtime/dependency-evidence/runtime-state/authored-cache/**

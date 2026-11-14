@@ -5,6 +5,7 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { lstat, mkdir, open, readFile, readdir, readlink, rename, rm, symlink, unlink } from 'node:fs/promises'
 import { SOURCE_ROOT } from '../utils/project-root'
 import { pathIsPhysicallyWithinRoot, pathIsWithinRoot } from '../utils/runtime-containment'
+import { AppError } from '../utils/app-error'
 
 export interface ProjectDependenciesOptions {
   projectRoot?: string
@@ -64,7 +65,7 @@ const absent = (error: unknown): boolean => (error as NodeJS.ErrnoException).cod
 const statMaybe = async (path: string) => {
   try { return await lstat(path) } catch (error) { if (absent(error)) return undefined; throw error }
 }
-function fail(message: string): never { throw new Error(`Project dependency runtime: ${message}`) }
+function fail(message: string): never { throw new AppError(`Project dependency runtime: ${message}`, { kind: 'infrastructure', stage: 'bootstrap:project-dependencies', retryable: false }) }
 const pathsFor = (options: ProjectDependenciesOptions): Paths => {
   const project = resolve(options.projectRoot ?? SOURCE_ROOT)
   const runtime = resolve(options.runtimeRoot ?? join(project, 'runtime'))
@@ -433,12 +434,12 @@ const runProjectDependencyBootstrap = async (): Promise<void> => {
   }
   if ((install && verify) || (offline && !install)) fail('--install and --verify are exclusive; --offline requires --install.')
   const receipt = await (install ? installProjectRuntimeDependencies({ ...options, offline }) : verify ? validateProjectRuntimeDependencies(options) : ensureProjectRuntimeDependencies(options))
-  console.log(JSON.stringify({ status: verify ? 'verified' : 'ready', production: receipt.production, entries: receipt.entries.length }))
+  process.stdout.write(`${JSON.stringify({ status: verify ? 'verified' : 'ready', production: receipt.production, entries: receipt.entries.length })}\n`)
 }
 
 if (import.meta.main) {
   void runProjectDependencyBootstrap().catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : String(error))
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
     process.exitCode = 1
   })
 }

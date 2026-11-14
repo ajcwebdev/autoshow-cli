@@ -11,6 +11,7 @@ export type ActiveTarEntry = {
   payloadFinished?: boolean | undefined
   handle?: FileHandle | undefined
   mode?: number | undefined
+  mtime?: number | undefined
   path?: string | undefined
   metadataChunks?: Buffer[] | undefined
 }

@@ -3,6 +3,7 @@ import { chmod, cp, mkdir, readlink, realpath, rename, rm, stat, symlink, utimes
 import { dirname, join } from 'node:path'
 import {
   assertManagedFfmpegCapabilities,
+  assertManagedOcrCodecDiscovery,
   buildManagedCalibreSandboxArguments,
   buildManagedCalibreWrapperScript,
   buildManagedQpdfWrapperScript,
@@ -29,6 +30,20 @@ const runShellFixture = async (path: string, args: string[] = [], environment: R
 }
 
 describe('managed macOS native capabilities', () => {
+  test('OCR configuration rejects a substituted GIF library before compilation and accepts the pinned runtime library', async () => {
+    await withLocalTestDir('ocr-gif-discovery', async directory => {
+      const build = join(directory, 'build'), managed = join(directory, 'managed/giflib/libgif.a'), substitute = join(directory, 'external/tools/giflib/libgif.a')
+      await mkdir(build, { recursive: true })
+      await Bun.write(managed, 'managed static GIF fixture')
+      await Bun.write(substitute, 'unapproved GIF fixture')
+      await Bun.write(join(build, 'CMakeCache.txt'), `GIF_LIBRARY:FILEPATH=${substitute}\n`)
+      await expect(assertManagedOcrCodecDiscovery(build, { GIF_LIBRARY: managed })).rejects.toThrow('unexpected GIF_LIBRARY dependency')
+      await Bun.write(join(build, 'CMakeCache.txt'), `GIF_LIBRARY:FILEPATH=${managed}\n`)
+      await expect(assertManagedOcrCodecDiscovery(build, { GIF_LIBRARY: managed })).resolves.toBeUndefined()
+      await Bun.write(join(build, 'CMakeCache.txt'), 'GIF_LIBRARY:FILEPATH=GIF_LIBRARY-NOTFOUND\n')
+      await expect(assertManagedOcrCodecDiscovery(build, { GIF_LIBRARY: managed })).rejects.toThrow()
+    })
+  })
   test('source prerequisites forward normal, forced and reset options to build helpers, every native component and LAME before application builds', async () => {
     const events: Array<{ component: string, forceRedownload: boolean }> = []
     const record = (component: string, options: { forceRedownload?: boolean }) => { events.push({ component, forceRedownload: options.forceRedownload === true }) }
@@ -308,9 +323,9 @@ describe('managed macOS native capabilities', () => {
   })
   test('static Leptonica exports resolve codec targets before downstream CMake compile probes', () => {
     const config = completeManagedLeptonicaConfig('include(CMakeFindDependencyMacro)\ninclude(${CMAKE_CURRENT_LIST_DIR}/LeptonicaTargets.cmake)\n')
-    for (const dependency of ['ZLIB', 'PNG', 'JPEG', 'TIFF']) {
-      expect(config.indexOf(`find_dependency(${dependency} REQUIRED)`)).toBeGreaterThanOrEqual(0)
-      expect(config.indexOf(`find_dependency(${dependency} REQUIRED)`)).toBeLessThan(config.indexOf('include(${CMAKE_CURRENT_LIST_DIR}/LeptonicaTargets.cmake)'))
+    for (const dependency of ['ZLIB REQUIRED', 'PNG REQUIRED', 'JPEG REQUIRED', 'TIFF REQUIRED', 'GIF 5 REQUIRED']) {
+      expect(config.indexOf(`find_dependency(${dependency})`)).toBeGreaterThanOrEqual(0)
+      expect(config.indexOf(`find_dependency(${dependency})`)).toBeLessThan(config.indexOf('include(${CMAKE_CURRENT_LIST_DIR}/LeptonicaTargets.cmake)'))
     }
   })
   test('the FFmpeg recipe explicitly requests ASS rendering and CPU H.264/AAC/MP3 support', () => {

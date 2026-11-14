@@ -10,6 +10,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-artifact-transaction'
 import { isIgnoredManagedArtifactPath } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-artifact-schema'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
+import { AppError, serializeDiagnosticError } from '~/utils/error-handler'
 import { setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 const temporary = setupContractSuiteLifecycle({ envKeys: [], tempPrefix: 'managed-install-transaction-' })
@@ -149,9 +150,14 @@ describe('durable managed installation recovery', () => {
       await promoteManagedToolDirectory({ stagingDir: staging, destinationDir: destination, validateStaging: async () => undefined,
         activate: async () => { throw new Error('activation failed first') }, rollbackActivation: async () => { throw new Error('shim rollback also failed') } })
     } catch (error) { failure = error }
-    expect(failure).toBeInstanceOf(AggregateError)
-    expect((failure as AggregateError).message).toContain('activation failed first')
-    expect((failure as AggregateError).errors.map(error => error.message)).toEqual(['activation failed first', 'shim rollback also failed'])
+    expect(failure).toBeInstanceOf(AppError)
+    const applicationFailure = failure as AppError
+    expect(applicationFailure).toMatchObject({ kind: 'infrastructure', stage: 'setup:managed-artifact', retryable: false })
+    expect(applicationFailure.message).toContain('activation failed first')
+    expect(applicationFailure.cause).toBeInstanceOf(AggregateError)
+    expect((applicationFailure.cause as AggregateError).errors.map(error => error.message)).toEqual(['activation failed first', 'shim rollback also failed'])
+    expect((applicationFailure.cause as AggregateError).cause).toBe((applicationFailure.cause as AggregateError).errors[0])
+    expect(serializeDiagnosticError(applicationFailure)).toMatchObject({ metadata: { failures: ['activation failed first', 'shim rollback also failed'] } })
     expect(await Bun.file(join(destination, 'payload')).text()).toBe('healthy prior')
     const candidate = (await ownEntries(root)).find(name => name.startsWith(`.${basename(destination)}.interrupted-`))
     expect(candidate).toBeDefined()

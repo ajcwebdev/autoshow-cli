@@ -155,7 +155,7 @@ export const inspectImmutableApplication = async (root: string, policy: { ownerU
   return { checkedPaths, alignment }
 }
 
-if (import.meta.main) {
+const runInstalledDependenciesVerification = async (): Promise<void> => {
   if (Bun.version !== SUPPORTED_BUN_VERSION) throw ValidationError('Unexpected shipped Bun version')
   if (process.getuid?.() === 0) throw ValidationError('Run installed-image verification as the runtime user')
   const root = '/app'
@@ -166,7 +166,8 @@ if (import.meta.main) {
     if (!hydrated.reused) {
       // Reset Bun's package-directory lookup cache after cold graph activation.
       const child = Bun.spawn([process.execPath, '--no-env-file', import.meta.path, ...Bun.argv.slice(2)], { stdin: 'inherit', stdout: 'inherit', stderr: 'inherit' })
-      process.exit(await child.exited)
+      process.exitCode = await child.exited
+      return
     }
   }
   const inventory = await inspectInstalledDependencies(root)
@@ -198,3 +199,5 @@ if (import.meta.main) {
   }
   writeCommandPayload(`${JSON.stringify({ status: 'passed', bun: Bun.version, uid: process.getuid?.(), inventory, immutableApplication: true, immutable, state: process.argv.includes('--state') })}\n`)
 }
+
+if (import.meta.main) await runInstalledDependenciesVerification()

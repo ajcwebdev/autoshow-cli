@@ -30,7 +30,8 @@ export type ManagedNativeSetupOptions = { forceRedownload?: boolean }
 // The generic recipe identity covers these common flags as well as each
 // package's recorded overrides. Any policy change requires a revision bump.
 const NATIVE_RECIPE_REVISION = 'r1'
-const nativeRecipeRevision = (name: NativeDependencyName): string => name === 'libpng' || name === 'pcre2' || name === 'imagemagick' ? 'r2-portable-config' : NATIVE_RECIPE_REVISION
+const usesPortableConfigUpgrade = (name: NativeDependencyName): boolean => name === 'libpng' || name === 'pcre2' || name === 'imagemagick'
+const nativeRecipeRevision = (name: NativeDependencyName): string => name === 'fontconfig' ? 'r2-release-source-mtimes' : usesPortableConfigUpgrade(name) ? 'r2-portable-config' : NATIVE_RECIPE_REVISION
 export const MANAGED_NATIVE_CMAKE_POLICY_FLAGS = [
   '-DCMAKE_BUILD_TYPE=Release', '-DBUILD_SHARED_LIBS=OFF',
   '-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY', '-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY',
@@ -181,12 +182,12 @@ const sourceArchive = async (name: NativeDependencyName, force: boolean): Promis
 }
 
 const nativeRecipe = (name: NativeDependencyName) => {
-  const recipe = NATIVE_DEPENDENCY_RECIPES[name]
-  return { binaryRelativePath: recipe.healthFiles[0]!, sourceNames: [name], buildFlags: [...recipe.configureArgs, ...((recipe as NativeDependencyRecipe).linkLibraries ?? []).map(library => `-l${library}`)], requiredPaths: [...recipe.healthFiles] }
+  const recipe: NativeDependencyRecipe = NATIVE_DEPENDENCY_RECIPES[name]
+  return { binaryRelativePath: recipe.healthFiles[0]!, sourceNames: [name], buildFlags: [...recipe.configureArgs, ...(recipe.linkLibraries ?? []).map(library => `-l${library}`), ...(recipe.makeArgs ?? []), ...(recipe.buildTargets ?? []).map(target => `make-target=${target}`), ...(recipe.installFiles ?? []).map(file => `install=${file.source}:${file.destination}`)], requiredPaths: [...recipe.healthFiles] }
 }
 
 const nativeSources = (name: NativeDependencyName) => {
-  const recipe = NATIVE_DEPENDENCY_RECIPES[name]
+  const recipe: NativeDependencyRecipe = NATIVE_DEPENDENCY_RECIPES[name]
   return [{ name, version: recipe.version, url: recipe.url, sha256: recipe.sha256 }]
 }
 
@@ -325,13 +326,13 @@ export const normalizeManagedNativeMetadata = async (stagingPrefix: string, fina
 }
 
 const buildNative = async (name: NativeDependencyName, options: ManagedNativeSetupOptions): Promise<void> => {
-  const recipe = NATIVE_DEPENDENCY_RECIPES[name]
+  const recipe: NativeDependencyRecipe = NATIVE_DEPENDENCY_RECIPES[name]
   const prefix = nativeDependencyPrefix(name)
   await ensureRuntimeDirectory(dirname(prefix))
   await recoverManagedToolDirectory(prefix)
   if (!options.forceRedownload) {
     try { await validateNative(name, prefix); return } catch { /* Repair only this managed component. */ }
-    if (nativeRecipeRevision(name) !== NATIVE_RECIPE_REVISION) {
+    if (usesPortableConfigUpgrade(name)) {
       try {
         await validateNative(name, prefix, NATIVE_RECIPE_REVISION)
         const original = await Bun.file(assertManagedRuntimePath(join(prefix, NATIVE_MANIFEST))).json() as { macosDeploymentTarget: string }
@@ -373,6 +374,15 @@ const buildNative = async (name: NativeDependencyName, options: ManagedNativeSet
     await cp(join(source, 'ttf'), destination, { recursive: true, filter: path => basename(path) !== '.DS_Store' })
     for (const license of ['LICENSE', 'README', 'AUTHORS']) {
       if (await pathExists(join(source, license))) await cp(join(source, license), join(stagingPrefix, license))
+    }
+  } else if (recipe.buildSystem === 'make') {
+    // GIFLIB's supported static archive target has no configure/install phase.
+    // Building only that target avoids unrelated shared libraries and utilities.
+    await runNativeBuildCommand(name, '/usr/bin/make', ['-j', jobs, ...(recipe.makeArgs ?? []), ...(recipe.buildTargets ?? [])], { cwd: source, env })
+    for (const file of recipe.installFiles ?? []) {
+      const destination = assertManagedRuntimePath(join(stagingPrefix, file.destination))
+      await ensureRuntimeDirectory(dirname(destination))
+      await cp(assertManagedRuntimePath(join(source, file.source)), destination)
     }
   } else if (recipe.buildSystem === 'cmake') {
     await runNativeBuildCommand(name, managedBuildToolPath('cmake'), [

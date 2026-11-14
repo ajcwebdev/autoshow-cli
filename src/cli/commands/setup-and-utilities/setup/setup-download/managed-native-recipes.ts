@@ -1,3 +1,5 @@
+import { GIFLIB_SOURCE_RECIPE } from './managed-native-giflib'
+
 /** Source pins are official upstream release archives, verified before extraction. */
 export type NativeDependencyRecipe = {
   version: string
@@ -5,16 +7,20 @@ export type NativeDependencyRecipe = {
   sha256: string
   archiveFormat: 'tar-gz' | 'tar-xz' | 'tar-bz2'
   dependencies: readonly string[]
-  buildSystem: 'cmake' | 'configure' | 'meson' | 'fonts'
+  buildSystem: 'cmake' | 'configure' | 'meson' | 'fonts' | 'make'
   configureArgs: readonly string[]
   healthFiles: readonly string[]
   noticeFiles?: readonly string[]
   linkLibraries?: readonly string[]
+  makeArgs?: readonly string[]
+  buildTargets?: readonly string[]
+  installFiles?: readonly { source: string, destination: string }[]
 }
 
 const staticConfigure = ['--disable-shared', '--enable-static'] as const
 
 export const NATIVE_DEPENDENCY_RECIPES = {
+  giflib: GIFLIB_SOURCE_RECIPE,
   zlib: {
     noticeFiles: ['LICENSE'],
     version: '1.3.1',

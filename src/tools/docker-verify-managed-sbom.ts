@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { ValidationError } from '../utils/error-handler'
+import { writeCommandPayload } from '../utils/app-logger/result-emitter'
 import { validateManagedLinuxToolchain } from '../cli/commands/setup-and-utilities/setup/setup-download/managed-linux-tools'
 
 const asRecord = (value: unknown): Record<string, unknown> | undefined =>
@@ -86,10 +87,10 @@ if (import.meta.main) {
     const bytes = await Bun.file(join(first, 'tools/linux-root/.autoshow-linux-toolchain.json')).text()
     readExpectedPackages(JSON.parse(bytes) as unknown)
     // Preserve the image evidence bytes so an earlier checksum manifest remains valid.
-    process.stdout.write(bytes)
+    writeCommandPayload(bytes)
   } else if (mode === 'verify' && first && second && extra.length === 0) {
     const receipt = await Bun.file(first).json() as unknown
     const sbom = await Bun.file(second).json() as unknown
-    process.stdout.write(`${JSON.stringify(verifyManagedSbomCoverage(receipt, sbom))}\n`)
+    writeCommandPayload(`${JSON.stringify(verifyManagedSbomCoverage(receipt, sbom))}\n`)
   } else throw ValidationError('Expected docker-verify-managed-sbom.ts receipt RUNTIME_ROOT or verify RECEIPT_JSON SPDX_JSON')
 }

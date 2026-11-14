@@ -192,12 +192,6 @@ export const getDenoBinary = (): string => getRuntimeToolCommand('deno')
 // An existing invalid entry must fail visibly instead of silently changing models.
 export const resolveTessdataPrefix = (directory = tessdataDir): string | undefined => {
   const englishData = join(directory, 'eng.traineddata')
-  // Explicit custom directories remain useful for packaged data and fixtures;
-  // the default installation must stay physically inside its managed runtime.
-  if (resolve(directory) === resolve(tessdataDir)) {
-    assertManagedRuntimePath(directory)
-    assertManagedRuntimePath(englishData)
-  }
   const invalid = (reason: string) => InfraError(
     `Managed Tesseract English data at ${toProjectDisplayPath(englishData)} ${reason}`,
     {
@@ -205,6 +199,18 @@ export const resolveTessdataPrefix = (directory = tessdataDir): string | undefin
       hints: ['Restore readable, valid eng.traineddata, or remove the invalid managed entry to use packaged data when available.']
     }
   )
+  // Explicit custom directories remain useful for packaged data and fixtures;
+  // the default installation must stay physically inside its managed runtime.
+  if (resolve(directory) === resolve(tessdataDir)) {
+    try {
+      assertManagedRuntimePath(directory)
+      assertManagedRuntimePath(englishData)
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code === 'EACCES' || code === 'EPERM') throw invalid('is not readable.')
+      throw error
+    }
+  }
   try {
     lstatSync(englishData)
   } catch (error) {

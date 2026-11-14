@@ -110,7 +110,7 @@ export const createDoctorToolProvenance = (options: { platform?: NodeJS.Platform
                 : tool === 'qpdf' ? [qpdfToolDir] : [ytDlpManagedBinaryPath]
         const issue = await transactions(roots)
         if (issue) return issue
-        const nativeDependencies: readonly NativeDependencyName[] = tool === 'ffmpeg' || tool === 'ffprobe' ? ['libass', 'x264'] : tool === 'tesseract' ? ['zlib', 'libpng', 'libjpeg-turbo', 'libtiff'] : []
+        const nativeDependencies: readonly NativeDependencyName[] = tool === 'ffmpeg' || tool === 'ffprobe' ? ['libass', 'x264'] : tool === 'tesseract' ? ['zlib', 'libpng', 'libjpeg-turbo', 'libtiff', 'giflib'] : []
         for (const dependencyName of nativeDependencies) {
           const result = await native(dependencyName)
           if (!result.healthy) return result

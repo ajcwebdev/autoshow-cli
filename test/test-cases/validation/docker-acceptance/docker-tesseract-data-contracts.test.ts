@@ -211,5 +211,12 @@ test('CI archives Tesseract failure diagnostics with the existing native evidenc
   expect(steps.find(step => step.name === 'Verify Tesseract packaged and managed data offline')?.run).toContain('--output runtime/dependency-evidence/tesseract')
   const upload = steps.find(step => step.uses?.startsWith('actions/upload-artifact@'))
   expect(upload?.if).toBe('always()')
-  expect(upload?.with?.['path']).toBe('runtime/dependency-evidence')
+  const archive = steps.find(step => step.uses === './.github/actions/archive-authored-cache')
+  expect(archive?.if).toBe('always()')
+  expect(archive?.with?.['evidence-dir']).toBe('runtime/dependency-evidence')
+  expect(steps.indexOf(archive!)).toBeLessThan(steps.indexOf(upload!))
+  expect(upload?.with?.['path']?.trim().split('\n').map(path => path.trim())).toEqual([
+    'runtime/dependency-evidence',
+    '!runtime/dependency-evidence/runtime-state/authored-cache/**'
+  ])
 })

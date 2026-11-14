@@ -2,6 +2,7 @@ import { mkdir, mkdtemp } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { assertManagedRuntimePath, pathIsPhysicallyWithinRoot, RUNTIME_ROOT_PATH } from './runtime-containment'
+import { AppError } from './app-error'
 
 const runtimeRoot = RUNTIME_ROOT_PATH
 
@@ -13,7 +14,7 @@ const testStateRoot = (): string | undefined => {
   const candidate = assertManagedRuntimePath(requested)
   assertManagedRuntimePath(RUNTIME_TEMP_DIR)
   if (candidate === resolve(RUNTIME_TEMP_DIR) || !pathIsPhysicallyWithinRoot(RUNTIME_TEMP_DIR, candidate) || !existsSync(candidate)) {
-    throw new TypeError('The test state root must be an existing private directory below runtime/tmp/.')
+    throw new AppError('The test state root must be an existing private directory below runtime/tmp/.', { kind: 'validation', stage: 'runtime:state', retryable: false })
   }
   return candidate
 }
@@ -50,7 +51,7 @@ export const ensureRuntimeStateDirectories = async (): Promise<void> => {
 
 export const createRuntimeTempDirectory = async (prefix: string): Promise<string> => {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(prefix)) {
-    throw new TypeError('Runtime temporary-directory prefixes must be simple names.')
+    throw new AppError('Runtime temporary-directory prefixes must be simple names.', { kind: 'validation', stage: 'runtime:state', retryable: false })
   }
   await ensureRuntimeDirectory(RUNTIME_TEMP_DIR)
   const directory = await mkdtemp(join(RUNTIME_TEMP_DIR, prefix))

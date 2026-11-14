@@ -12,6 +12,7 @@ import {
 import { buildGithubArchiveUrl, buildGithubCommitArchiveUrl } from '~/cli/commands/setup-and-utilities/setup/setup-download/github-archives'
 import { buildManagedLeptonicaCmakeArguments, buildManagedTesseractCmakeArguments, buildManagedQpdfWrapperScript } from '~/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools'
 import { nativeDependencyPrefix } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-native-dependencies'
+import { managedBuildToolPath } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-build-tools'
 import {
   buildLibjpegTurboCmakeArguments,
   buildQpdfCmakeArguments,
@@ -451,6 +452,8 @@ describe('managed macOS Tesseract setup', () => {
     expect(leptonica).toContain('-DENABLE_WEBP=OFF')
     expect(leptonica).toContain('-DENABLE_OPENJPEG=OFF')
     expect(leptonica).toContain('-DBUILD_SHARED_LIBS=OFF')
+    expect(leptonica).toContain('-DSTRICT_CONF=ON')
+    expect(leptonica).toContain('-DENABLE_GIF=ON')
     expect(tesseract.some(argument => argument.startsWith('-DLeptonica_DIR=') && argument.endsWith('/tools/leptonica/lib/cmake/leptonica'))).toBe(true)
     expect(tesseract).toContain('-DBUILD_TESTS=OFF')
     expect(tesseract).toContain('-DBUILD_TRAINING_TOOLS=OFF')
@@ -475,6 +478,16 @@ describe('managed macOS Tesseract setup', () => {
     expect(arguments_).toContain(`-DPNG_LIBRARY=${nativeDependencyPrefix('libpng')}/lib/libpng16.a`)
     expect(arguments_).toContain(`-DJPEG_LIBRARY=${nativeDependencyPrefix('libjpeg-turbo')}/lib/libjpeg.a`)
     expect(arguments_).toContain(`-DTIFF_LIBRARY=${nativeDependencyPrefix('libtiff')}/lib/libtiff.a`)
+    for (const args of [arguments_, buildManagedTesseractCmakeArguments('/managed/tesseract-build', '/managed/tesseract-install')]) {
+      expect(args).toContain(`-DGIF_INCLUDE_DIR=${nativeDependencyPrefix('giflib')}/include`)
+      expect(args).toContain(`-DGIF_LIBRARY=${nativeDependencyPrefix('giflib')}/lib/libgif.a`)
+      expect(args).toContain('-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY')
+      expect(args).toContain('-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY')
+      expect(args).toContain('-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY')
+      const roots = args.find(argument => argument.startsWith('-DCMAKE_FIND_ROOT_PATH='))
+      expect(roots).toContain(nativeDependencyPrefix('giflib'))
+      expect(args).toContain(`-DPKG_CONFIG_EXECUTABLE=${managedBuildToolPath('pkgconf')}`)
+    }
     expect(arguments_).toContain('-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF')
     expect(source).not.toContain("!await pathExists(join(leptonicaToolDir, 'lib'))")
   })

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { chmod, mkdir, readlink, rename, stat, symlink } from 'node:fs/promises'
+import { chmod, mkdir, readlink, rename, stat, symlink, utimes } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import {
   assertNativeArchivePaths,
@@ -12,6 +12,7 @@ import {
   normalizeManagedNativeMetadata
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-native-dependencies'
 import type { NativeDependencyName } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-native-dependencies'
+import { NATIVE_DEPENDENCY_RECIPES } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-native-recipes'
 import { setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 const directories = setupContractSuiteLifecycle({ envKeys: [], tempPrefix: 'native-source-contract-' })
@@ -23,6 +24,21 @@ const tar = async (args: string[]): Promise<void> => {
 }
 
 describe('managed native dependency boundaries', () => {
+  test('builds only the verified GIF static archive and stages its public header and license', () => {
+    const recipe = NATIVE_DEPENDENCY_RECIPES.giflib
+    expect(recipe.version).toBe('6.1.3')
+    expect(recipe.sha256).toBe('b65b66b99f0424b93525f987386f22fc5efb9da2bfc92ad4a532249aaffbab0e')
+    expect(recipe.buildSystem).toBe('make')
+    expect(recipe.buildTargets).toEqual(['libgif.a'])
+    expect(recipe.makeArgs).toContain('CC=/usr/bin/clang')
+    expect(recipe.installFiles).toEqual([
+      { source: 'libgif.a', destination: 'lib/libgif.a' },
+      { source: 'gif_lib.h', destination: 'include/gif_lib.h' }
+    ])
+    expect(recipe.noticeFiles).toEqual(['COPYING'])
+    expect(nativeDependencyOrder(['giflib'])).toEqual(['giflib'])
+  })
+
   test('orders codecs and text libraries before their consuming native packages', () => {
     const order = nativeDependencyOrder(['libtiff', 'libass'])
     for (const [dependency, consumer] of [
@@ -157,11 +173,13 @@ describe('managed native dependency boundaries', () => {
       await mkdir(join(input, 'bin'), { recursive: true })
       await Bun.write(join(input, 'bin/tool'), '#!/bin/sh\nprintf source-tool\n')
       await chmod(join(input, 'bin/tool'), 0o751)
+      await utimes(join(input, 'bin/tool'), 1_737_127_086, 1_737_127_086)
       await symlink('tool', join(input, 'bin/alias'))
       await tar([compression === 'xz' ? '-cJf' : '-cjf', archive, '-C', root, 'package'])
       await extractManagedNativeSource(archive, destination)
       expect(await Bun.file(join(destination, 'bin/tool')).text()).toBe('#!/bin/sh\nprintf source-tool\n')
       expect((await stat(join(destination, 'bin/tool'))).mode & 0o777).toBe(0o751)
+      expect((await stat(join(destination, 'bin/tool'))).mtimeMs).toBe(1_737_127_086_000)
       expect(await readlink(join(destination, 'bin/alias'))).toBe('tool')
       expect(await Bun.file(join(destination, 'bin/alias')).text()).toBe(await Bun.file(join(destination, 'bin/tool')).text())
     })

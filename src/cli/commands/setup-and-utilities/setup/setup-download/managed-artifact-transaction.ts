@@ -239,7 +239,15 @@ export const promoteManagedToolDirectory = async (options: {
     const failures: unknown[] = [error]
     try { await recoverTransaction(destination, true) } catch (recoveryError) { failures.push(recoveryError) }
     try { await options.rollbackActivation?.(transaction.hadPreviousInstall) } catch (rollbackError) { failures.push(rollbackError) }
-    if (failures.length > 1) throw new AggregateError(failures, `Managed promotion failed: ${error instanceof Error ? error.message : String(error)}; recovery or activation rollback also failed.`, { cause: error })
+    if (failures.length > 1) {
+      const message = `Managed promotion failed: ${error instanceof Error ? error.message : String(error)}; recovery or activation rollback also failed.`
+      throw InfraError(message, {
+        stage: 'setup:managed-artifact',
+        retryable: false,
+        cause: new AggregateError(failures, message, { cause: error }),
+        metadata: { failures: failures.map(failure => failure instanceof Error ? failure.message : String(failure)) }
+      })
+    }
     throw error
   }
   // A durable committed receipt permits safe cleanup after interruption.

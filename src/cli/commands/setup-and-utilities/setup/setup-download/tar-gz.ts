@@ -1,4 +1,4 @@
-import { chmod, lstat, mkdir, mkdtemp, readdir, rename, rm, rmdir } from 'node:fs/promises'
+import { chmod, lstat, mkdir, mkdtemp, readdir, rename, rm, rmdir, utimes } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
 import { hasErrorCode } from '~/utils/error-handler'
 import type { TarGzExtractOptions } from '~/types'
@@ -34,7 +34,7 @@ const extractTarStreamInto = async (
     new DecompressionStream('gzip') as unknown as TransformStream<Uint8Array, Uint8Array>
   )
   const metadata = createTarMetadataState()
-  const { startEntry, directoryModes } = createTarEntryAdmission(stagingRoot, options, metadata)
+  const { startEntry, directoryMetadata } = createTarEntryAdmission(stagingRoot, options, metadata)
   let active: ActiveTarEntry | undefined
   let buffered = Buffer.alloc(0)
   let expandedBytes = 0
@@ -78,7 +78,12 @@ const extractTarStreamInto = async (
 
   if (active || buffered.byteLength !== 0 || !complete) throw archiveError('Truncated tar archive rejected.')
   assertTarMetadataConsumed(metadata)
-  for (const directory of directoryModes.reverse()) await chmod(directory.path, directory.mode & 0o777)
+  // Child creation changes directory mtimes; restore them only after all entries.
+  for (const directory of directoryMetadata.reverse()) {
+    const timestamp = directory.mtime < 0 ? new Date(directory.mtime * 1000) : directory.mtime
+    await utimes(directory.path, timestamp, timestamp)
+    await chmod(directory.path, directory.mode & 0o777)
+  }
 }
 
 const extractTarGzStream = async (

@@ -308,7 +308,7 @@ export const ensureManagedAlignmentRuntime = async (options: { forceRedownload?:
         await assertManagedDynamicLibraryClosure(binaries)
       }
       if (!(await validateManagedJsRuntime('bun')).ok) throw InfraError('Managed Bun integrity changed before alignment validation', { stage: 'setup:alignment' })
-      const probe = Bun.spawn([getBunBinary(), '--no-env-file', '-e', 'const {createRequire}=require("node:module");const r=createRequire(process.cwd()+"/package.json");const o=r("onnxruntime-node");if(!o.InferenceSession||!o.Tensor)process.exit(1)'], { cwd: assertManagedRuntimePath(root), env: childEnv(), stdout: 'pipe', stderr: 'pipe', signal: AbortSignal.timeout(30_000) })
+      const probe = Bun.spawn([getBunBinary(), '--no-env-file', '-e', 'const {createRequire}=require("node:module");const r=createRequire(process.cwd()+"/package.json");const o=r("onnxruntime-node");if(!o.InferenceSession||!o.Tensor)process.exitCode=1'], { cwd: assertManagedRuntimePath(root), env: childEnv(), stdout: 'pipe', stderr: 'pipe', signal: AbortSignal.timeout(30_000) })
       const [probeCode, , probeError] = await Promise.all([probe.exited, readBoundedTextStream(probe.stdout), readBoundedTextStream(probe.stderr)])
       if (probeCode !== 0) throw InfraError(`Managed alignment native backend failed loading: ${probeError.text}`, { stage: 'setup:alignment' })
     } })

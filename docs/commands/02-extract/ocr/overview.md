@@ -23,7 +23,7 @@ bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provi
 | MOBI, AZW/AZW3, PRC, FB2, LIT   | Calibre conversion to EPUB, then native text | Follows EPUB                     |
 | DOCX, PPTX, XLSX, ODF, RTF, CSV | Native text                                  | OCR flags ignored with a warning |
 
-Images include PNG, JPEG, TIFF, WebP, BMP, and GIF. Unsupported provider image formats convert to PNG. TIFF normalization requires ImageMagick unless sent directly to a compatible provider such as Mistral. `--docx-markdown` preserves local DOCX formatting in `extraction.md` without a provider.
+Images include PNG, JPEG, TIFF, WebP, BMP, and GIF. Local GIF decoding uses managed giflib; Tesseract reads only the first frame of an animated GIF. See [Tesseract input formats](https://github.com/tesseract-ocr/tessdoc/blob/main/InputFormats.md#animated-gif). Unsupported provider image formats convert to PNG. TIFF normalization requires ImageMagick unless sent directly to a compatible provider such as Mistral. `--docx-markdown` preserves local DOCX formatting in `extraction.md` without a provider.
 
 ## Shared OCR Options
 

@@ -3,7 +3,8 @@ import { appendFile, chmod, cp, lstat, readdir, rename, rm, symlink } from 'node
 import { dirname, isAbsolute, join, relative } from 'node:path'
 import { PROJECT_ROOT, toProjectRelativePath } from '~/utils/project-root'
 import { childEnv } from '~/utils/child-env'
-import { InfraError } from '~/utils/error-handler'
+import { InfraError, ValidationError } from '~/utils/error-handler'
+import { l } from '~/utils/app-logger/app-logger'
 import { pathExists } from '~/utils/filesystem'
 import { logicalCpuCount } from '~/utils/logical-cpu-count'
 import { withProcessLock } from '~/utils/process-lock'
@@ -108,7 +109,7 @@ const hashBuildToolFile = async (path: string): Promise<string> => {
 }
 
 export const runManagedBuildToolCommand = async (name: string, command: string, args: string[], cwd: string, env: Record<string, string | undefined> = {}): Promise<string> => {
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) throw new TypeError('Managed build-tool names must be simple names.')
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) throw ValidationError('Managed build-tool names must be simple names.', { stage: 'setup:build-tool' })
   const workingDirectory = assertManagedRuntimePath(cwd)
   const executable = isAbsolute(command) ? command : assertManagedRuntimePath(join(workingDirectory, command))
   if (!['/usr/bin/', '/bin/', '/usr/sbin/', '/sbin/'].some(prefix => executable.startsWith(prefix))) assertManagedRuntimePath(executable)
@@ -127,7 +128,7 @@ export const runManagedBuildToolCommand = async (name: string, command: string, 
     stdout: 'pipe', stderr: 'pipe'
   })
   const timeout = setTimeout(() => proc.kill('SIGTERM'), 30 * 60_000)
-  const heartbeat = setInterval(() => process.stderr.write(`Building managed ${name}; diagnostics: ${toProjectRelativePath(logPath)}\n`), 30_000)
+  const heartbeat = setInterval(() => l.write('info', `Building managed ${name}; diagnostics: ${toProjectRelativePath(logPath)}`, { category: 'command' }), 30_000)
   try {
     const [stdout, stderr, exitCode] = await Promise.all([
       readBoundedTextStream(proc.stdout, { maxBytes: 64 * 1024 }, 64 * 1024, chunk => appendFileSync(assertManagedRuntimePath(logPath), chunk)),

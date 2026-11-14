@@ -15,7 +15,7 @@ Local workflows depend on media, document, and rendering tools. Setup must verif
 
 ### Toolchain and readiness
 
-Provide FFmpeg/`ffprobe`, `yt-dlp`, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, Tesseract with English trained data and image codecs, ImageMagick, Pango, Fontconfig, fonts, and supporting worker runtimes. Provision the complete toolchain beneath `runtime/`, including transitive third-party libraries, build helpers, dependency configuration, models, package installations, caches, locks, and temporary workspaces. Source, frozen manifests, authored inputs, and requested outputs retain their established locations.
+Provide FFmpeg/`ffprobe`, `yt-dlp`, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, Tesseract with English trained data and image codecs including giflib, ImageMagick, Pango, Fontconfig, fonts, and supporting worker runtimes. Provision the complete toolchain beneath `runtime/`, including transitive third-party libraries, build helpers, dependency configuration, models, package installations, caches, locks, and temporary workspaces. Source, frozen manifests, authored inputs, and requested outputs retain their established locations. Local OCR reads only the first frame of an animated GIF.
 
 Build pinned macOS native dependencies from verified upstream sources. Bootstrap additional build helpers under runtime; Apple's compiler/SDK and the initial CLI launcher form the explicit host boundary. Debian/Ubuntu payloads and dependencies are verified and extracted privately rather than installed into the host system. Container images distribute immutable seed artifacts and activate managed installations inside the mounted runtime root.
 

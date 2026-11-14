@@ -14,6 +14,9 @@ const LOGGER_SINK_FILES = [
 ]
 
 const PAYLOAD_STDOUT_FILES = [
+  // Source-checkout bootstrap emits one JSON status or one plain error before
+  // installed dependencies and the shared logging runtime are available.
+  'src/tools/project-runtime-dependencies.ts',
   'src/tools/tts-controls-benchmark.ts',
   'src/tools/compact-tts-benchmarks.ts',
   'src/cli/commands/setup-and-utilities/setup/network-check.ts',

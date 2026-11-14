@@ -1,0 +1,17 @@
+name: Archive authored runtime cache
+description: Preserve private runtime evidence as a metadata-complete archive before artifact upload.
+inputs:
+  image:
+    description: Already verified local image used for isolated read-only archiving
+    required: true
+  evidence-dir:
+    description: Runtime evidence directory containing runtime-state/authored-cache
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        IMAGE_REFERENCE: ${{ inputs.image }}
+        EVIDENCE_DIR: ${{ inputs.evidence-dir }}
+      run: bash "${GITHUB_ACTION_PATH}/archive-authored-cache.sh"

@@ -1,4 +1,3 @@
-import { chmod } from 'node:fs/promises'
 import type { ActiveTarEntry, TarMetadataState, TarPayloadWrite } from './tar-stream-types'
 import { archiveError, isZeroBlock } from './tar-archive-guards'
 import { applyTarExtendedMetadata } from './tar-extended-metadata'
@@ -20,9 +19,13 @@ export const writeTarPayloadFully = async (
 
 const finishTarEntryPayload = async (entry: ActiveTarEntry, metadata: TarMetadataState): Promise<void> => {
   if (entry.handle) {
+    if (entry.mode !== undefined) await entry.handle.chmod(entry.mode & 0o777)
+    if (entry.mtime !== undefined) {
+      const timestamp = entry.mtime < 0 ? new Date(entry.mtime * 1000) : entry.mtime
+      await entry.handle.utimes(timestamp, timestamp)
+    }
     await entry.handle.close()
     entry.handle = undefined
-    if (entry.path && entry.mode !== undefined) await chmod(entry.path, entry.mode & 0o777)
   }
   applyTarExtendedMetadata(entry, metadata)
 }

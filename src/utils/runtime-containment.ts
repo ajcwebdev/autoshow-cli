@@ -1,6 +1,7 @@
 import { lstatSync, readlinkSync, realpathSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { PROJECT_ROOT } from './project-root'
+import { AppError } from './app-error'
 
 export const RUNTIME_ROOT_PATH = join(PROJECT_ROOT, 'runtime')
 
@@ -33,7 +34,7 @@ export const resolveRuntimePhysicalPath = (
         if (entryCode !== 'ENOENT' && entryCode !== 'ENOTDIR') throw entryError
       }
       if (linkTarget !== undefined) {
-        if (remainingLinks <= 0) throw new TypeError('Managed runtime paths contain an unresolved symbolic-link cycle.')
+        if (remainingLinks <= 0) throw new AppError('Managed runtime paths contain an unresolved symbolic-link cycle.', { kind: 'validation', stage: 'runtime:containment', retryable: false })
         return join(resolveRuntimePhysicalPath(resolve(dirname(current), linkTarget), readRealpath, remainingLinks - 1), ...suffix)
       }
       const parent = dirname(current)
@@ -54,7 +55,7 @@ export const pathIsPhysicallyWithinRoot = (
 export const assertManagedRuntimePath = (path: string): string => {
   const resolved = resolve(path)
   if (!pathIsPhysicallyWithinRoot(RUNTIME_ROOT_PATH, resolved)) {
-    throw new TypeError('Managed runtime paths must resolve inside the project runtime directory.')
+    throw new AppError('Managed runtime paths must resolve inside the project runtime directory.', { kind: 'validation', stage: 'runtime:containment', retryable: false })
   }
   return resolved
 }

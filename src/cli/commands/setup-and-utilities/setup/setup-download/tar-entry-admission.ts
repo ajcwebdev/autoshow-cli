@@ -1,5 +1,5 @@
 import { constants } from 'node:fs'
-import { mkdir, open, symlink } from 'node:fs/promises'
+import { lutimes, mkdir, open, symlink } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { TarGzExtractOptions } from '~/types'
 import type { ActiveTarEntry, TarMetadataState } from './tar-stream-types'
@@ -17,7 +17,7 @@ export const createTarEntryAdmission = (stagingRoot: string, options: TarGzExtra
   const seenPaths = new Set<string>()
   const explicitDirectories = new Set<string>()
   const symlinkPaths = new Set<string>()
-  const directoryModes: Array<{ path: string, mode: number }> = []
+  const directoryMetadata: Array<{ path: string, mode: number, mtime: number }> = []
   let entryCount = 0
 
   const startEntry = async (header: Buffer): Promise<ActiveTarEntry> => {
@@ -36,7 +36,7 @@ export const createTarEntryAdmission = (stagingRoot: string, options: TarGzExtra
 
     entryCount++
     if (entryCount > maxEntries) throw archiveError(`Tar archive exceeds the ${maxEntries} entry limit.`)
-    const { rawPath, linkName, size } = resolveTarEntryMetadata(header, headerSize, metadata)
+    const { rawPath, linkName, size, mtime } = resolveTarEntryMetadata(header, headerSize, metadata)
     if (size > maxEntryBytes) throw archiveError(`Tar entry exceeds the ${maxEntryBytes} byte limit: ${rawPath}`)
     const relativePath = sanitizeArchivePath(rawPath, stripComponents)
     if (!relativePath) return { typeFlag, remaining: size, paddingRemaining: roundToBlock(size) - size }
@@ -54,7 +54,7 @@ export const createTarEntryAdmission = (stagingRoot: string, options: TarGzExtra
       if (size !== 0) throw archiveError(`Tar directory contains an unexpected payload: ${relativePath}`)
       await mkdir(destinationPath, { recursive: true, mode: mode | 0o700 })
       explicitDirectories.add(relativePath)
-      directoryModes.push({ path: destinationPath, mode })
+      directoryMetadata.push({ path: destinationPath, mode, mtime })
       return { typeFlag, remaining: 0, paddingRemaining: 0 }
     }
     if (typeFlag === '2') {
@@ -62,6 +62,8 @@ export const createTarEntryAdmission = (stagingRoot: string, options: TarGzExtra
       assertSafeSymlinkTarget(linkName, relativePath)
       await mkdir(dirname(destinationPath), { recursive: true })
       await symlink(linkName, destinationPath)
+      const timestamp = mtime < 0 ? new Date(mtime * 1000) : mtime
+      await lutimes(destinationPath, timestamp, timestamp)
       symlinkPaths.add(relativePath)
       return { typeFlag, remaining: 0, paddingRemaining: 0 }
     }
@@ -80,8 +82,9 @@ export const createTarEntryAdmission = (stagingRoot: string, options: TarGzExtra
       paddingRemaining: roundToBlock(size) - size,
       handle,
       mode,
+      mtime,
       path: destinationPath
     }
   }
-  return { startEntry, directoryModes }
+  return { startEntry, directoryMetadata }
 }

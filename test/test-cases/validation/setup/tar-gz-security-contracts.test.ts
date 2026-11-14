@@ -13,6 +13,8 @@ type RawTarRecord = {
   payload?: Uint8Array
   linkName?: string
   mode?: number
+  mtime?: number
+  binaryMtime?: bigint
 }
 
 const tempDirs = setupContractSuiteLifecycle({ envKeys: [], tempPrefix: 'autoshow-tar-security-' })
@@ -34,7 +36,15 @@ const tarHeader = (record: RawTarRecord): Uint8Array => {
   writeOctal(header, 108, 8, 0)
   writeOctal(header, 116, 8, 0)
   writeOctal(header, 124, 12, payloadSize)
-  writeOctal(header, 136, 12, 0)
+  writeOctal(header, 136, 12, record.mtime ?? 0)
+  if (record.binaryMtime !== undefined) {
+    let value = record.binaryMtime
+    for (let offset = 147; offset >= 136; offset--) {
+      header[offset] = Number(value & 0xffn)
+      value >>= 8n
+    }
+    header[136] = (header[136] ?? 0) | 0x80
+  }
   header.fill(0x20, 148, 156)
   writeField(header, 156, 1, record.typeFlag ?? '0')
   if (record.linkName) writeField(header, 157, 100, record.linkName)
@@ -98,6 +108,65 @@ const binaryPaxRecord = (key: string, value: Uint8Array): Uint8Array => {
 }
 
 describe('streamed tar.gz security and correctness corpus', () => {
+  test('preserves release-source timestamps so make does not regenerate shipped outputs', async () => {
+    const destination = await tempDirs.make()
+    const generated = 1_737_127_086
+    const input = 1_737_126_905
+    await extractTarGzBuffer(rawTarGz([
+      { path: 'root/m4', typeFlag: '5', mode: 0o755, mtime: input },
+      { path: 'root/configure', payload: encoder.encode('generated'), mode: 0o755, mtime: generated },
+      { path: 'root/aclocal.m4', payload: encoder.encode('generated macros'), mtime: generated - 1 },
+      { path: 'root/configure.ac', payload: encoder.encode('source input'), mtime: input },
+      { path: 'root/m4/input.m4', payload: encoder.encode('macro input'), mtime: input },
+      { path: 'root/Makefile', payload: encoder.encode('all: configure\nconfigure: aclocal.m4 configure.ac\n\t@echo unexpected-autoconf >&2; exit 61\naclocal.m4: configure.ac m4/input.m4\n\t@echo unexpected-aclocal >&2; exit 62\n'), mtime: generated },
+      { path: 'root/configure-link', typeFlag: '2', linkName: 'configure', mtime: input }
+    ]), { destination, stripComponents: 1 })
+    expect((await stat(join(destination, 'configure'))).mtimeMs).toBe(generated * 1000)
+    expect((await stat(join(destination, 'configure.ac'))).mtimeMs).toBe(input * 1000)
+    expect((await stat(join(destination, 'configure'))).mode & 0o777).toBe(0o755)
+    expect((await stat(join(destination, 'm4'))).mtimeMs).toBe(input * 1000)
+    expect((await lstat(join(destination, 'configure-link'))).mtimeMs).toBe(input * 1000)
+    const child = Bun.spawn(['/usr/bin/make', 'all'], { cwd: destination, env: { PATH: '/usr/bin:/bin' }, stdout: 'pipe', stderr: 'pipe' })
+    const [stdout, stderr, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
+    expect(code, `${stdout}\n${stderr}`).toBe(0)
+    expect(`${stdout}\n${stderr}`).not.toContain('unexpected-')
+  })
+
+  test('preserves global and per-entry PAX timestamps and rejects malformed timestamps before publication', async () => {
+    const destination = await tempDirs.make()
+    await extractTarGzBuffer(rawTarGz([
+      { path: 'global', typeFlag: 'g', payload: paxRecord('mtime', '1000.125') },
+      { path: 'one', payload: encoder.encode('one'), mtime: 2 },
+      { path: 'pax', typeFlag: 'x', payload: paxRecord('mtime', '-1.25') },
+      { path: 'two', payload: encoder.encode('two'), mtime: 2 },
+      { path: 'three', payload: encoder.encode('three'), mtime: 2 },
+      { path: 'delete-local', typeFlag: 'x', payload: paxRecord('mtime', '') },
+      { path: 'four', payload: encoder.encode('four'), binaryMtime: -2n },
+      { path: 'delete-global', typeFlag: 'g', payload: paxRecord('mtime', '') },
+      { path: 'five', payload: encoder.encode('five'), binaryMtime: -1n }
+    ]), { destination })
+    expect((await stat(join(destination, 'one'))).mtimeMs).toBeCloseTo(1_000_125, 1)
+    expect((await stat(join(destination, 'two'))).mtimeMs).toBeCloseTo(-1250, 1)
+    expect((await stat(join(destination, 'three'))).mtimeMs).toBeCloseTo(1_000_125, 1)
+    expect((await stat(join(destination, 'four'))).mtimeMs).toBe(-2000)
+    expect((await stat(join(destination, 'five'))).mtimeMs).toBe(-1000)
+    for (const value of ['NaN', 'Infinity', '1e3', '123 trailing', '8640000000001']) {
+      const target = join(await tempDirs.make(), 'target')
+      await expect(extractTarGzBuffer(rawTarGz([
+        { path: 'pax', typeFlag: 'x', payload: paxRecord('mtime', value) },
+        { path: 'payload', payload: encoder.encode('unpublished') }
+      ]), { destination: target })).rejects.toThrow('timestamp')
+      expect(await Bun.file(join(target, 'payload')).exists()).toBe(false)
+    }
+    for (const binaryMtime of [-8_640_000_000_001n, 8_640_000_000_001n]) {
+      const target = join(await tempDirs.make(), 'target')
+      await expect(extractTarGzBuffer(rawTarGz([
+        { path: 'payload', payload: encoder.encode('unpublished'), binaryMtime }
+      ]), { destination: target })).rejects.toThrow('timestamp range')
+      expect(await Bun.file(join(target, 'payload')).exists()).toBe(false)
+    }
+  })
+
   test('retries short file writes and rejects writers that make no progress', async () => {
     const expected = encoder.encode('payload split across short writes')
     const written: number[] = []

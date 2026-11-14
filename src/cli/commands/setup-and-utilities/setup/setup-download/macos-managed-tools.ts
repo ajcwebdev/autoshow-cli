@@ -191,7 +191,7 @@ const hasValidManagedSourcePayload = async (tool: 'mupdf' | 'qpdf'): Promise<boo
   }
 }
 
-const nativeCodecDependencies = ['zlib', 'libpng', 'libjpeg-turbo', 'libtiff'] as const satisfies readonly NativeDependencyName[]
+const nativeCodecDependencies = ['zlib', 'libpng', 'libjpeg-turbo', 'libtiff', 'giflib'] as const satisfies readonly NativeDependencyName[]
 const ffmpegNativeDependencies = ['libass', 'x264', 'zlib'] as const satisfies readonly NativeDependencyName[]
 
 export const ensureManagedMacosSourceDependencies = async (
@@ -214,12 +214,15 @@ export const MANAGED_FFMPEG_BUILD_FLAGS = [
 export const MANAGED_LEPTONICA_BUILD_FLAGS = [
   '-DCMAKE_BUILD_TYPE=Release', '-DBUILD_SHARED_LIBS=OFF',
   '-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF', '-DCMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY=OFF',
+  '-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY', '-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY', '-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY', '-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER',
+  '-DSTRICT_CONF=ON', '-DENABLE_ZLIB=ON', '-DENABLE_PNG=ON', '-DENABLE_JPEG=ON', '-DENABLE_TIFF=ON', '-DENABLE_GIF=ON',
   '-DENABLE_WEBP=OFF', '-DENABLE_OPENJPEG=OFF', '-DBUILD_PROG=OFF', '-DSW_BUILD=OFF'
 ] as const
 
 export const MANAGED_TESSERACT_BUILD_FLAGS = [
   '-DCMAKE_BUILD_TYPE=Release', '-DBUILD_SHARED_LIBS=OFF', '-DBUILD_TESTS=OFF',
   '-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF', '-DCMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY=OFF',
+  '-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY', '-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY', '-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY', '-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER',
   '-DBUILD_TRAINING_TOOLS=OFF', '-DOPENMP_BUILD=OFF', '-DGRAPHICS_DISABLED=ON'
 ] as const
 
@@ -885,29 +888,57 @@ export const ensureManagedTessdataSupportFiles = async (): Promise<void> => {
   }
 }
 
+const managedOcrCodecLocations = (): Record<string, string> => ({
+  ZLIB_INCLUDE_DIR: join(nativeDependencyPrefix('zlib'), 'include'),
+  ZLIB_LIBRARY: join(nativeDependencyPrefix('zlib'), 'lib/libz.a'),
+  PNG_PNG_INCLUDE_DIR: join(nativeDependencyPrefix('libpng'), 'include'),
+  PNG_LIBRARY: join(nativeDependencyPrefix('libpng'), 'lib/libpng16.a'),
+  JPEG_INCLUDE_DIR: join(nativeDependencyPrefix('libjpeg-turbo'), 'include'),
+  JPEG_LIBRARY: join(nativeDependencyPrefix('libjpeg-turbo'), 'lib/libjpeg.a'),
+  TIFF_INCLUDE_DIR: join(nativeDependencyPrefix('libtiff'), 'include'),
+  TIFF_LIBRARY: join(nativeDependencyPrefix('libtiff'), 'lib/libtiff.a'),
+  GIF_INCLUDE_DIR: join(nativeDependencyPrefix('giflib'), 'include'),
+  GIF_LIBRARY: join(nativeDependencyPrefix('giflib'), 'lib/libgif.a')
+})
+
+export const assertManagedOcrCodecDiscovery = async (buildDir: string, expected = managedOcrCodecLocations()): Promise<void> => {
+  assertRuntimeContainedPath(buildDir)
+  const cache = await Bun.file(join(buildDir, 'CMakeCache.txt')).text()
+  for (const [name, expectedPath] of Object.entries(expected)) {
+    const selected = cache.split('\n').find(line => line.startsWith(`${name}:`))?.split('=').slice(1).join('=').trim()
+    if (!selected) throw InfraError(`Managed OCR configuration did not select its required ${name} dependency`, { stage: 'setup:tesseract' })
+    assertRuntimeContainedPath(selected)
+    assertRuntimeContainedPath(expectedPath)
+    if (await realpath(selected) !== await realpath(expectedPath)) {
+      throw InfraError(`Managed OCR configuration selected an unexpected ${name} dependency: ${toProjectDisplayPath(selected)}`, { stage: 'setup:tesseract' })
+    }
+  }
+}
+
+const managedOcrCodecCmakeArguments = (): string[] => [
+  `-DPKG_CONFIG_EXECUTABLE=${managedBuildToolPath('pkgconf')}`,
+  ...Object.entries(managedOcrCodecLocations()).map(([name, path]) => `-D${name}=${path}`),
+  '-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF'
+]
+
 export const buildManagedLeptonicaCmakeArguments = (buildDir: string, installDir: string): string[] => [
   '-S', leptonicaBuildDir, '-B', buildDir, `-DCMAKE_INSTALL_PREFIX=${installDir}`,
-  ...MANAGED_LEPTONICA_BUILD_FLAGS,
-  `-DZLIB_INCLUDE_DIR=${join(nativeDependencyPrefix('zlib'), 'include')}`,
-  `-DZLIB_LIBRARY=${join(nativeDependencyPrefix('zlib'), 'lib/libz.a')}`,
-  `-DPNG_PNG_INCLUDE_DIR=${join(nativeDependencyPrefix('libpng'), 'include')}`,
-  `-DPNG_LIBRARY=${join(nativeDependencyPrefix('libpng'), 'lib/libpng16.a')}`,
-  `-DJPEG_INCLUDE_DIR=${join(nativeDependencyPrefix('libjpeg-turbo'), 'include')}`,
-  `-DJPEG_LIBRARY=${join(nativeDependencyPrefix('libjpeg-turbo'), 'lib/libjpeg.a')}`,
-  `-DTIFF_INCLUDE_DIR=${join(nativeDependencyPrefix('libtiff'), 'include')}`,
-  `-DTIFF_LIBRARY=${join(nativeDependencyPrefix('libtiff'), 'lib/libtiff.a')}`,
-  '-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF'
+  `-DCMAKE_PREFIX_PATH=${nativeCodecDependencies.map(nativeDependencyPrefix).join(';')}`,
+  `-DCMAKE_FIND_ROOT_PATH=${nativeCodecDependencies.map(nativeDependencyPrefix).join(';')}`,
+  ...MANAGED_LEPTONICA_BUILD_FLAGS, ...managedOcrCodecCmakeArguments()
 ]
 
 export const buildManagedTesseractCmakeArguments = (buildDir: string, installDir: string): string[] => [
   '-S', tesseractBuildDir, '-B', buildDir, `-DCMAKE_INSTALL_PREFIX=${installDir}`,
+  `-DCMAKE_PREFIX_PATH=${[leptonicaToolDir, ...nativeCodecDependencies.map(nativeDependencyPrefix)].join(';')}`,
+  `-DCMAKE_FIND_ROOT_PATH=${[leptonicaToolDir, ...nativeCodecDependencies.map(nativeDependencyPrefix)].join(';')}`,
   `-DLeptonica_DIR=${leptonicaCmakeConfigDir}`, ...MANAGED_TESSERACT_BUILD_FLAGS,
-  '-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF'
+  ...managedOcrCodecCmakeArguments()
 ]
 
 export const completeManagedLeptonicaConfig = (configuration: string): string => configuration.replace(
   'include(CMakeFindDependencyMacro)',
-  'include(CMakeFindDependencyMacro)\nfind_dependency(ZLIB REQUIRED)\nfind_dependency(PNG REQUIRED)\nfind_dependency(JPEG REQUIRED)\nfind_dependency(TIFF REQUIRED)'
+  'include(CMakeFindDependencyMacro)\nfind_dependency(ZLIB REQUIRED)\nfind_dependency(PNG REQUIRED)\nfind_dependency(JPEG REQUIRED)\nfind_dependency(TIFF REQUIRED)\nfind_dependency(GIF 5 REQUIRED)'
 )
 
 const installManagedLeptonicaMacos = async (options: ManagedMacosInstallOptions): Promise<void> => withProcessLock(`setup-leptonica-${leptonicaBuildDir}`, async () => {
@@ -925,6 +956,7 @@ const installManagedLeptonicaMacos = async (options: ManagedMacosInstallOptions)
   try {
     await recordSetupPerformancePhase('leptonica', 'configure-generate', async () => {
       await runInherit(cmake, buildManagedLeptonicaCmakeArguments(buildDir, leptonicaToolDir), { env })
+      await assertManagedOcrCodecDiscovery(buildDir)
     })
     await recordSetupPerformancePhase('leptonica', 'compile-link', async () => {
       await runInherit(cmake, ['--build', buildDir, '--parallel', String(jobs)], { env })
@@ -958,7 +990,7 @@ const validateTesseractInstall = async (toolDir: string, dependencies: ManagedAr
     throw InfraError('Managed Tesseract failed its pinned version check', { stage: 'setup:tesseract' })
   }
   const output = `${version.stdout}\n${version.stderr}`
-  for (const codec of ['libpng', 'libjpeg', 'libtiff']) {
+  for (const codec of ['libpng', 'libjpeg', 'libtiff', 'libgif']) {
     if (!output.includes(codec)) throw InfraError(`Managed Tesseract/Leptonica is missing ${codec} decoding support`, { stage: 'setup:tesseract' })
   }
 }
@@ -995,6 +1027,7 @@ const installManagedTesseractMacosUnlocked = async (options: ManagedMacosInstall
     try {
       await recordSetupPerformancePhase('tesseract', 'configure-generate', async () => {
         await runInherit(cmake, buildManagedTesseractCmakeArguments(buildDir, tesseractToolDir), { env })
+        await assertManagedOcrCodecDiscovery(buildDir)
       })
       await recordSetupPerformancePhase('tesseract', 'compile-link', async () => {
         await runInherit(cmake, ['--build', buildDir, '--parallel', String(jobs)], { env })
