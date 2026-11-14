@@ -13,7 +13,7 @@ import { downloadFile } from './download'
 import { createManagedToolStagingDirectory, promoteManagedToolDirectory, recoverManagedToolDirectory } from './managed-artifact'
 import {
   buildManagedAptOptions, buildManagedAptPlanArgs, LINUX_TOOLCHAIN_PACKAGES,
-  managedAptBootstrapConfig, parseInstalledLinuxPackages, parseLinuxDebContents, parseManagedAptUris, readCachedLinuxPackagePlan, resolveInstalledLinuxPackageClosure, resolveManagedAptSha256
+  managedAptBootstrapConfig, parseInstalledLinuxPackages, parseLinuxDebContents, readCachedLinuxPackagePlan, resolveInstalledLinuxPackageClosure, resolveManagedAptSha256, resolveManagedAptUris
 } from './managed-linux-package-plan'
 import type { LinuxPackageDownload } from './managed-linux-package-plan'
 import {
@@ -208,7 +208,7 @@ const resolvePackagePlan = async (requestedPackages: string[], state: string, ru
   await Bun.write(assertManagedRuntimePath(join(state, 'status')), '')
   await Bun.write(assertManagedRuntimePath(join(state, 'bootstrap.conf')), managedAptBootstrapConfig())
   await checkedRun(run, '/usr/bin/apt-get', [...buildManagedAptOptions(state), 'update'])
-  const entries = parseManagedAptUris(await checkedRun(run, '/usr/bin/apt-get', buildManagedAptPlanArgs(state, requestedPackages)))
+  const entries = await resolveManagedAptUris(await checkedRun(run, '/usr/bin/apt-get', buildManagedAptPlanArgs(state, requestedPackages)))
   const result: LinuxPackageDownload[] = []
   for (const entry of entries) {
     const parts = entry.fileName.split('_')

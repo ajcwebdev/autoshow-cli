@@ -1,4 +1,5 @@
-import { basename, join } from 'node:path'
+import { readFile, realpath, stat } from 'node:fs/promises'
+import { basename, dirname, isAbsolute, join, relative, sep } from 'node:path'
 import { InfraError } from '~/utils/error-handler'
 
 export type LinuxPackageDownload = {
@@ -57,6 +58,62 @@ export const parseManagedAptUris = (text: string): Array<Omit<LinuxPackageDownlo
   if (entries.length === 0) throw InfraError('APT did not resolve any packages for the managed toolchain', { stage: 'setup:linux' })
   if (new Set(entries.map(entry => entry.fileName)).size !== entries.length) throw InfraError('APT returned duplicate package destinations', { stage: 'setup:linux' })
   return entries
+}
+
+/** Resolve APT's local mirror-list transport without permitting local package archives. */
+export const resolveManagedAptUris = async (text: string, mirrorRoot = '/etc/apt'): Promise<ReturnType<typeof parseManagedAptUris>> => {
+  const within = (root: string, path: string): boolean => {
+    const suffix = relative(root, path)
+    return suffix !== '' && suffix !== '..' && !suffix.startsWith(`..${sep}`) && !isAbsolute(suffix)
+  }
+  const lists = new Map<string, string>()
+  const resolved: string[] = []
+  for (const line of text.split('\n')) {
+    const raw = line.trim().match(/^'([^']+)'/)
+    if (!raw?.[1]?.startsWith('mirror+file:')) { resolved.push(line); continue }
+    const uri = new URL(raw[1])
+    const path = decodeURIComponent(uri.pathname)
+    if (!isAbsolute(mirrorRoot) || mirrorRoot === sep || !within(mirrorRoot, path) || uri.host || uri.search || uri.hash || path.includes('\\') || path.includes('\0') || path.split('/').some(part => part === '..' || part === '.')) throw InfraError('APT mirror lists must be read-only files inside the OS APT configuration directory', { stage: 'setup:linux' })
+    let listPath = dirname(path)
+    let target: string | undefined
+    while (within(mirrorRoot, listPath)) {
+      let info
+      try { info = await stat(listPath) } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code
+        if (code !== 'ENOENT' && code !== 'ENOTDIR') throw error
+      }
+      if (info?.isFile()) {
+        const physicalRoot = await realpath(mirrorRoot), physicalList = await realpath(listPath)
+        if (!within(physicalRoot, physicalList) || info.size > 1024 * 1024 || !uri.pathname.startsWith(`${listPath}/`)) throw InfraError('APT mirror list escapes its OS configuration directory or exceeds its size limit', { stage: 'setup:linux' })
+        let mirror = lists.get(listPath)
+        if (!mirror) {
+          const candidates = (await readFile(physicalList, 'utf8')).split('\n').flatMap((entry, index) => {
+            const trimmed = entry.trim()
+            if (!trimmed || trimmed.startsWith('#')) return []
+            const [address, ...metadata] = trimmed.split(/\s+/)
+            const base = new URL(address!)
+            if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password || base.search || base.hash) throw InfraError('APT mirrors must be HTTP(S) distribution archives without embedded credentials', { stage: 'setup:linux' })
+            if (metadata.some(field => !/^priority:\d+$/.test(field))) throw InfraError('Managed APT mirror lists support only unconditional HTTP(S) mirrors and numeric priorities', { stage: 'setup:linux' })
+            const priority = Number(metadata.find(field => field.startsWith('priority:'))?.slice('priority:'.length) ?? Number.MAX_SAFE_INTEGER)
+            if (!Number.isSafeInteger(priority)) throw InfraError('APT mirror list contains an invalid priority', { stage: 'setup:linux' })
+            return [{ address: base.href.endsWith('/') ? base.href : `${base.href}/`, priority, index }]
+          }).sort((a, b) => a.priority - b.priority || a.index - b.index)
+          mirror = candidates[0]?.address
+          if (!mirror) throw InfraError('APT mirror list has no HTTP(S) distribution archives', { stage: 'setup:linux' })
+          lists.set(listPath, mirror)
+        }
+        const suffix = uri.pathname.slice(listPath.length + 1)
+        const base = new URL(mirror), archive = new URL(suffix, base)
+        if (!suffix || suffix.startsWith('/') || archive.origin !== base.origin || !archive.pathname.startsWith(base.pathname)) throw InfraError('APT mirror package path escapes its distribution archive', { stage: 'setup:linux' })
+        target = archive.href
+        break
+      }
+      listPath = dirname(listPath)
+    }
+    if (!target) throw InfraError('APT package URI does not reference a readable OS mirror list', { stage: 'setup:linux' })
+    resolved.push(line.replace(`'${raw[1]}'`, `'${target}'`))
+  }
+  return parseManagedAptUris(resolved.join('\n'))
 }
 
 export const resolveManagedAptSha256 = (entry: ReturnType<typeof parseManagedAptUris>[number], metadata: string): string => {

@@ -1,4 +1,4 @@
-import { chmod, mkdir, rm } from 'node:fs/promises'
+import { chmod, mkdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { DockerEngine } from './docker-engine'
 import { parseDockerOptions } from './docker-options'
@@ -52,14 +52,14 @@ export async function runDockerTesseractDataAcceptance(image: string, processRun
       // Each successful case has independent authored state; keep its recorded
       // result/logs while bounding disk use to one complete native payload.
       // A failed case reaches the catch below with its state still intact.
-      if (caseRuntime) await rm(caseRuntime, { recursive: true, force: true })
+      if (caseRuntime) await engine.removePassedAuthoredDirectory(caseRuntime, directory)
     }
     return { status: 'passed', image: identity.reference, platform: identity.platform, caseCount: cases.length, phaseCount: cases.reduce((count, item) => count + item.phases.length, 0), cases }
   }
   try {
     let result: Awaited<ReturnType<typeof runCases>>
     try { result = await runCases() } finally { await engine?.cleanup() }
-    await rm(directory, { recursive: true, force: true })
+    await engine!.removePassedAuthoredDirectory(directory, directory)
     return result
   } catch (error) {
     // Keep failed authored state outside the uploaded diagnostics directory: a

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   buildManagedAptPlanArgs, managedAptBootstrapConfig, parseInstalledLinuxPackages, parseLinuxDebContents, parseManagedAptUris,
-  readCachedLinuxPackagePlan, resolveInstalledLinuxPackageClosure, resolveManagedAptSha256
+  readCachedLinuxPackagePlan, resolveInstalledLinuxPackageClosure, resolveManagedAptSha256, resolveManagedAptUris
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-linux-package-plan'
 import {
   collectLinuxPayload, copyInstalledLinuxPackagePaths, installLinuxToolWrappers,
@@ -47,8 +47,41 @@ test('signed APT package records bind URI, filename, byte size and SHA256 before
 test('APT planning rejects unsafe destinations, embedded credentials and incomplete package lists', () => {
   expect(() => parseManagedAptUris("'https://deb.debian.org/a.deb' ../a.deb 12 SHA256:a")).toThrow('unsafe')
   expect(() => parseManagedAptUris("'https://user:password@example.test/a.deb' a.deb 12 SHA256:a")).toThrow('without embedded credentials')
+  expect(() => parseManagedAptUris("'file:/etc/apt/a.deb' a.deb 12 SHA256:a")).toThrow('HTTP(S)')
+  expect(() => parseManagedAptUris("'mirror+file:/etc/apt/apt-mirrors.txt/pool/a.deb' a.deb 12 SHA256:a")).toThrow('HTTP(S)')
   expect(() => parseManagedAptUris('Reading package lists...')).toThrow('did not resolve any packages')
   expect(() => linuxPayloadPath('/runtime/tools/linux-root', '../../outside')).toThrow('escapes')
+})
+
+test('APT mirror-list references resolve prioritized HTTP archives before unchanged signed-hash validation', async () => {
+  await withTemp(async root => {
+    const config = join(root, 'etc/apt'), list = join(config, 'apt-mirrors.txt')
+    await mkdir(config, { recursive: true })
+    await Bun.write(list, '# distribution mirrors\nhttps://fallback.example.test/ubuntu/\tpriority:2\nhttps://primary.example.test/ubuntu/\tpriority:1\n')
+    const raw = `'mirror+file:${list}/pool/main/q/qpdf/qpdf_1.0%2b1_arm64.deb' qpdf_1.0+1_arm64.deb 123 MD5Sum:weak\n`
+    const entries = await resolveManagedAptUris(raw, config)
+    expect(entries).toEqual([{ url: 'https://primary.example.test/ubuntu/pool/main/q/qpdf/qpdf_1.0%2b1_arm64.deb', fileName: 'qpdf_1.0+1_arm64.deb', size: 123, hash: 'MD5Sum:weak' }])
+    const sha256 = 'b'.repeat(64)
+    expect(resolveManagedAptSha256(entries[0]!, `Filename: pool/main/q/qpdf/qpdf_1.0+1_arm64.deb\nSize: 123\nSHA256: ${sha256}\n`)).toBe(sha256)
+    expect(() => resolveManagedAptSha256(entries[0]!, `Filename: pool/main/q/qpdf/qpdf_1.0+1_arm64.deb\nSize: 124\nSHA256: ${sha256}\n`)).toThrow('no matching SHA256')
+    await expect(resolveManagedAptUris(`'mirror+file:${list}//outside.deb' outside.deb 123 SHA256:strong`, config)).rejects.toThrow('does not reference a readable OS mirror list')
+    expect(await resolveManagedAptUris("'https://archive.example.test/a.deb' a.deb 12 SHA256:strong", config)).toEqual(parseManagedAptUris("'https://archive.example.test/a.deb' a.deb 12 SHA256:strong"))
+    await Bun.write(list, 'file:/tmp/local-archive/\n')
+    await expect(resolveManagedAptUris(raw, config)).rejects.toThrow('HTTP(S)')
+    await Bun.write(list, 'https://user:password@example.test/ubuntu/\n')
+    await expect(resolveManagedAptUris(raw, config)).rejects.toThrow('without embedded credentials')
+    await Bun.write(list, 'https://archive.example.test/ubuntu/\tarchitecture:amd64\n')
+    await expect(resolveManagedAptUris(raw, config)).rejects.toThrow('unconditional')
+    await Bun.write(list, '# no mirrors\n')
+    await expect(resolveManagedAptUris(raw, config)).rejects.toThrow('no HTTP(S)')
+    await rm(list)
+    const external = join(root, 'external-mirrors.txt')
+    await Bun.write(external, 'https://external.example.test/ubuntu/\n')
+    await symlink(external, list)
+    await expect(resolveManagedAptUris(raw, config)).rejects.toThrow('escapes')
+    await expect(resolveManagedAptUris(`'mirror+file:${external}/pool/a.deb' a.deb 123 SHA256:strong`, config)).rejects.toThrow('inside the OS APT')
+    await expect(resolveManagedAptUris(`'mirror+file://host${list}/pool/a.deb' a.deb 123 SHA256:strong`, config)).rejects.toThrow('inside the OS APT')
+  })
 })
 
 test('offline repair reuses an exact strong-hash package plan and rejects image-only or malformed records', () => {
