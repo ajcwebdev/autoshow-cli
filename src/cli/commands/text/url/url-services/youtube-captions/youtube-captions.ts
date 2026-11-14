@@ -1,7 +1,7 @@
 import { copyFileExact } from '~/utils/bun-file-io'
-import { mkdir, mkdtemp, readdir, rm } from 'node:fs/promises'
+import { mkdir, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { tmpdir } from 'node:os'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import * as l from '~/utils/app-logger/app-logger'
 import type { ParsedYoutubeCue, Step2Metadata, SttProviderSuccess, SttTarget, TranscriptionEvidenceSegment, TranscriptionResult, YoutubeCaptionMetadataFile, YoutubeCaptionSelection, YoutubeCaptionTrack, YtDlpVideoInfo } from '~/types'
 import { exec } from '~/utils/cli-utils'
@@ -508,7 +508,7 @@ export const tryResolveYoutubeCaptionTranscription = async (
   await mkdir(providerDir, { recursive: true })
 
   const startedAt = Date.now()
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-youtube-captions-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-youtube-captions-')
 
   try {
     const args = await buildYtDlpSubtitleDownloadArgs(watchUrl, tempDir, selection.kind)

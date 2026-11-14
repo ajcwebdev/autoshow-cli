@@ -12,9 +12,33 @@ type ManagedArtifactPayloadFile = {
   sha256: string
 }
 
+export type ManagedSourcePayloadFile = ManagedArtifactPayloadFile & {
+  kind?: 'file' | 'directory' | 'symlink' | undefined
+  mode?: number | undefined
+  size?: number | undefined
+  target?: string | undefined
+}
+
+export type ManagedArtifactDependency = {
+  name: string
+  version: string
+  manifestSha256: string
+}
+
+export type ManagedUnavailableSignedComponent = {
+  image: string
+  missingDependencies: string[]
+}
+
+export type ManagedDynamicLibraryClosureResult = {
+  inertRunpaths: string[]
+  unavailableComponents: ManagedUnavailableSignedComponent[]
+  absentFrameworks: string[]
+}
+
 export type ManagedSourceArtifactManifest = {
   schemaVersion: 1
-  tool: ManagedArtifactToolId
+  tool: string
   version: string
   distribution: 'source'
   platform: 'darwin'
@@ -22,7 +46,9 @@ export type ManagedSourceArtifactManifest = {
   macosDeploymentTarget: string
   sources: ManagedArtifactSource[]
   buildFlags: string[]
-  payload: ManagedArtifactPayloadFile[]
+  payload: ManagedSourcePayloadFile[]
+  recipeRevision?: string | undefined
+  dependencies?: ManagedArtifactDependency[] | undefined
 }
 
 type ManagedPrebuiltPayloadFile = ManagedArtifactPayloadFile & {
@@ -184,4 +210,5 @@ export type ManagedSourceRecipe = {
   binaryRelativePath: string
   sourceNames: readonly string[]
   buildFlags: readonly string[]
+  requiredPaths?: readonly string[]
 }

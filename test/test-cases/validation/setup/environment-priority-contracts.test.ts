@@ -9,6 +9,7 @@ import { shouldRelaunchSetupWithNoOrphans } from '~/cli/create-cli'
 import { readConfiguredEnvVarSync } from '../../../test-utils/test-helpers'
 import { findUnevaluatedBudgetKeys, shouldSkipBudgetKeys } from '../../../test-utils/budget'
 import { withEnv } from '../../../test-utils/rest-contract-helpers'
+import { MANAGED_CHILD_PATH } from '~/utils/child-env'
 
 for (const [provider, envKey] of Object.entries({ spider: 'SPIDER_API_KEY', zyte: 'ZYTE_API_KEY' })) {
   test(`doctor selects only ${provider} URL credentials`, () => {
@@ -34,7 +35,7 @@ test('sync children and fixture workers exclude unrelated secrets and arbitrary 
     const worker = buildTestWorkerEnv([], { runDir: '/tmp/test', commandLogPath: '/tmp/commands', metricsLogPath: '/tmp/metrics' } as Parameters<typeof buildTestWorkerEnv>[1], true, {})
     expect(worker).not.toHaveProperty('OPENAI_API_KEY')
     expect(worker).not.toHaveProperty('AUTOSHOW_TEST_UNRELATED_SECRET')
-    expect(worker['PATH']).toBe(process.env['PATH'])
+    expect(worker['PATH']).toBe(MANAGED_CHILD_PATH)
     expect(worker['AUTOSHOW_TEST_CREDENTIAL_MODE']).toBe('fixture')
     expect(worker['AUTOSHOW_TEST_ADAPTIVE_CONCURRENCY']).toBe('1')
     expect(worker['AUTOSHOW_TEST_OUTPUT_DIR']).toBe('/tmp/explicit-test-output')

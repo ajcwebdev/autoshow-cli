@@ -9,10 +9,13 @@ With Bun installed:
 ```bash
 bun install
 bun autoshow setup --doctor
+bun autoshow setup --dry-run
 bun autoshow setup
 ```
 
-Doctor checks tools, configuration, and credential presence without installing or calling providers. Setup installs local tools. Add hosted credentials to `.env`; see [setup](./docs/commands/00-setup-and-utilities/setup.md), [Docker](./docs/docker.md), and [YouTube cookies](./docs/commands/00-setup-and-utilities/cookies.md).
+Doctor checks tools, configuration, and credential presence without installing or calling providers. Setup provisions tools, libraries, fonts, models, caches, and internal state beneath `runtime/`; `--dry-run` previews its work without mutation. macOS source builds use Apple's compiler and SDK. Add hosted credentials to `.env`; see [setup](./docs/commands/00-setup-and-utilities/setup.md), [Docker](./docs/docker.md), and [YouTube cookies](./docs/commands/00-setup-and-utilities/cookies.md).
+
+The default package install also places the application dependency graph under `runtime/tools/project-dependencies`; the root `node_modules` entry is a relative lookup link. If runtime was removed or the package graph needs repair, run `bun run setup:dependencies --install` before invoking the source CLI. Maintainer installs using `--ignore-scripts` must explicitly run `BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun --no-env-file src/tools/project-runtime-dependencies.ts` before invoking the source CLI.
 
 ## Command Guide
 
@@ -75,7 +78,7 @@ bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 
 
 ## Configuration and Pricing
 
-Save defaults in `config/autoshow.json`; explicit runtime flags override them:
+Save defaults in `runtime/autoshow.json`; explicit runtime flags override them:
 
 ```bash
 bun autoshow setup --show

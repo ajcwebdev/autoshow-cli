@@ -1,11 +1,27 @@
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
+import { existsSync } from 'node:fs'
 
 const projectRootOverride = process.env['AUTOSHOW_PROJECT_ROOT']?.trim()
+// Source bundles can live below output/ or runtime/. Locate their checkout assets
+// independently of the mutable project root used by an isolated invocation.
+const findSourceRoot = (start: string): string | undefined => {
+  let candidate = resolve(start)
+  while (true) {
+    if (existsSync(resolve(candidate, 'package.json')) && existsSync(resolve(candidate, 'src/cli/create-cli.ts'))) return candidate
+    const parent = dirname(candidate)
+    if (parent === candidate) return undefined
+    candidate = parent
+  }
+}
+export const SOURCE_ROOT = findSourceRoot(import.meta.dir)
+  ?? (projectRootOverride ? findSourceRoot(projectRootOverride) : undefined)
+  ?? findSourceRoot(process.cwd())
+  ?? resolve(import.meta.dir, '../..')
 export const PROJECT_ROOT = projectRootOverride
   ? resolve(projectRootOverride)
   : Bun.isStandaloneExecutable
     ? dirname(process.execPath)
-    : resolve(import.meta.dir, '../..')
+    : SOURCE_ROOT
 
 const toPosix = (value: string): string => value.replace(/\\/g, '/')
 

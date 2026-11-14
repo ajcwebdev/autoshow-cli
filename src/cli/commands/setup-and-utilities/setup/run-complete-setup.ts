@@ -1,5 +1,5 @@
 import { requireRenderingPrerequisites } from './rendering-readiness'
-import { mkdir, readdir, rm } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
 import type { DirectoryEntry } from '~/types'
 import { join } from 'node:path'
@@ -10,14 +10,13 @@ import { defuddleRuntimeDir, setupDefuddleCli } from '~/cli/commands/text/url/ur
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
 import { setupCalibreDocumentTools } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
 import { formatSetupElapsed, runWithSetupHeartbeat } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
-import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
+import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, RunOptions, RunResult, SetupLifecycleOperations, SetupPlatform, SetupRunOptions, SetupStepId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { isJsonResultActive, isLogLevelEnabled } from '~/utils/app-logger/app-logger'
 import { isCompactSetupMode, setCompactSetupMode } from '~/utils/setup-output-mode'
 import { extractErrorHints, InfraError, InternalError, serializeDiagnosticError } from '~/utils/error-handler'
 import {
   RUNTIME_BIN_DIR,
-  RUNTIME_BUILD_DIR,
   RUNTIME_DIR,
   RUNTIME_TOOLS_DIR,
   calibreToolDir,
@@ -26,7 +25,6 @@ import {
   ffmpegManagedBinaryPath,
   ffmpegToolDir,
   ffprobeManagedBinaryPath,
-  getFfmpegBinary,
   hasRuntimeTool,
   lameBuildDir,
   lameToolDir,
@@ -47,6 +45,13 @@ import { beginSetupPerformanceRun, finishSetupPerformanceRun } from './setup-per
 import { pathExists } from '~/utils/filesystem'
 import { childEnv } from '~/utils/child-env'
 import { readBoundedTextStream } from '~/utils/bounded-capture'
+import { ensureManagedBuildTools } from './setup-download/managed-build-tools'
+import { ensureManagedRenderingDependencies } from './setup-download/managed-native-dependencies'
+import { ensureManagedAlignmentRuntime, ensureManagedBunRuntime, ensureManagedDenoRuntime } from './setup-download/managed-js-runtime'
+import { ensureRuntimeDirectory, ensureRuntimeStateDirectories } from '~/utils/runtime-state'
+import { ensureManagedLinuxRendering, ensureManagedLinuxToolchain } from './setup-download/managed-linux-tools'
+import { migrateLegacyRuntimeState } from '~/utils/runtime-state-migration'
+import { ensureProjectRuntimeDependencies } from '~/tools/project-runtime-dependencies'
 
 const RUNTIME = RUNTIME_DIR
 
@@ -214,9 +219,9 @@ const withCompactSetup = async (fn: () => Promise<void>): Promise<void> => {
 
 const ensureRuntimeDirs = async (): Promise<void> => {
   await Promise.all([
-    mkdir(RUNTIME_BIN_DIR, { recursive: true }),
-    mkdir(RUNTIME_TOOLS_DIR, { recursive: true }),
-    mkdir(whisperfileDir, { recursive: true })
+    ensureRuntimeDirectory(RUNTIME_BIN_DIR),
+    ensureRuntimeDirectory(RUNTIME_TOOLS_DIR),
+    ensureRuntimeDirectory(whisperfileDir)
   ])
 }
 
@@ -247,12 +252,6 @@ const logSetupProviderConfiguration = (
     mode: shouldUseVerboseHumanOutput() ? 'all' : 'missing'
   })
 
-const formatBytes = (bytes: number): string => {
-  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GiB`
-  if (bytes >= 1024 ** 2) return `${Math.round(bytes / 1024 ** 2)} MiB`
-  return `${bytes} B`
-}
-
 const walkDirectorySize = async (root: string): Promise<number> => {
   let total = 0
   const walk = async (dir: string): Promise<void> => {
@@ -263,6 +262,7 @@ const walkDirectorySize = async (root: string): Promise<number> => {
       return
     }
     for (const entry of entries) {
+      if (entry.name === '.DS_Store') continue
       const path = join(dir, entry.name)
       if (entry.isDirectory()) {
         await walk(path)
@@ -279,25 +279,6 @@ const walkDirectorySize = async (root: string): Promise<number> => {
 }
 
 const directorySize = async (root: string): Promise<number> => await walkDirectorySize(root)
-
-const RECLAIMED_BUILD_TREE_MIN_BYTES = 10 * 1024 * 1024
-
-export const shouldReportReclaimedBuildTrees = (bytes: number): boolean =>
-  bytes >= RECLAIMED_BUILD_TREE_MIN_BYTES
-
-const pruneBuildTrees = async (): Promise<void> => {
-  const before = await directorySize(RUNTIME_BUILD_DIR)
-
-  await rm(RUNTIME_BUILD_DIR, { recursive: true, force: true })
-  await mkdir(RUNTIME_BUILD_DIR, { recursive: true })
-
-  if (!shouldReportReclaimedBuildTrees(before)) return
-
-  l.write('info', `Reclaimed ${formatBytes(before)} from setup build trees`, {
-    category: 'artifact',
-    metadata: { path: RUNTIME_BUILD_DIR, reclaimedBytes: before }
-  })
-}
 
 const logSetupStepTimings = (): void => {
   const timings = [...getSetupStepTimings()].sort((a, b) => b.durationMs - a.durationMs)
@@ -360,14 +341,39 @@ const logSetupSummary = async (
   return healthy
 }
 
-const runFullSetup = async (): Promise<boolean> => {
+const runSetupToolchain = async (options: SetupRunOptions): Promise<void> => {
+  if (!Bun.isStandaloneExecutable) await ensureProjectRuntimeDependencies()
+  await runConcurrentSetupTasks([
+    { label: 'managed build tools', run: async () => {
+      if (detectPlatform() === 'linux') await ensureManagedLinuxToolchain(options)
+      else await ensureManagedBuildTools(options)
+    } },
+    { label: 'managed Bun', run: async () => { await ensureManagedBunRuntime(options) } },
+    { label: 'managed downloader runtime', run: async () => { await ensureManagedDenoRuntime(options) } }
+  ])
+}
+
+const setupManagedRendering = async (options: SetupRunOptions): Promise<void> => {
+  if (detectPlatform() === 'linux') await ensureManagedLinuxRendering(options)
+  else await ensureManagedRenderingDependencies(options)
+}
+
+const runFullSetup = async (options: SetupRunOptions = {}, overrides: Partial<SetupLifecycleOperations> = {}): Promise<boolean> => {
+  const operations: SetupLifecycleOperations = {
+    toolchain: runSetupToolchain, media: setupYtDependencies, documents: setupCalibreDocumentTools,
+    ocr: setupTesseractOcr, rendering: setupManagedRendering, defuddle: setupDefuddleCli,
+    alignment: ensureManagedAlignmentRuntime, whisperfile: setupWhisperfile,
+    migrateState: async () => { await migrateLegacyRuntimeState() },
+    verifyRendering: requireRenderingPrerequisites, summarize: logSetupSummary,
+    ...overrides
+  }
   const startedAtMs = Date.now()
   setupStepTimings.length = 0
   const dependencyVersions = Object.fromEntries(
     (await listPinnedDependencies()).map(({ name, version }) => [name, version])
   )
   beginSetupPerformanceRun({
-    topology: 'ungated-source-builds-v1',
+    topology: 'managed-dependency-graph-v2',
     dependencyVersions
   })
   let healthy = false
@@ -376,28 +382,32 @@ const runFullSetup = async (): Promise<boolean> => {
     l.write('info', 'Starting complete AutoShow setup', { category: 'command' })
     await logPinnedVersions()
     await ensureRuntimeDirs()
+    await ensureRuntimeStateDirectories()
+    await operations.migrateState()
 
     const providerSummary = logSetupProviderConfiguration('Hosted Provider Configuration')
 
     await withCompactSetup(async () => {
+      await operations.toolchain(options)
       await runConcurrentSetupTasks([
-        { label: 'media tools', run: setupYtDependencies },
-        { label: 'Defuddle', run: setupDefuddleCli },
+        { label: 'media tools', run: async () => { await operations.media(options) } },
+        { label: 'Defuddle', run: async () => { await operations.defuddle(options) } },
         {
           label: 'Whisperfile',
           run: async () => {
-            await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL)
+            await operations.whisperfile(DEFAULT_WHISPERFILE_MODEL, options)
           }
         },
-        { label: 'document tools', run: setupCalibreDocumentTools },
-        { label: 'OCR', run: setupTesseractOcr }
+        { label: 'document tools', run: async () => { await operations.documents(options) } },
+        { label: 'OCR', run: async () => { await operations.ocr(options) } },
+        { label: 'rendering dependencies', run: async () => { await operations.rendering(options) } },
+        { label: 'alignment runtime', run: async () => { await operations.alignment(options) } }
       ])
     })
 
-    await requireRenderingPrerequisites()
-    await pruneBuildTrees()
+    await operations.verifyRendering()
     logSetupStepTimings()
-    healthy = await logSetupSummary(startedAtMs, providerSummary)
+    healthy = await operations.summarize(startedAtMs, providerSummary)
 
     l.write('info', 'You can now run: bun autoshow extract "https://www.youtube.com/watch?v=u1-WHqATSQU"', { category: 'command' })
     return healthy
@@ -417,40 +427,25 @@ const runFullSetup = async (): Promise<boolean> => {
   }
 }
 
-export const runCompleteSetup = async (): Promise<boolean> => await runFullSetup()
+export const runCompleteSetup = async (options: SetupRunOptions = {}, operations: Partial<SetupLifecycleOperations> = {}): Promise<boolean> => await runFullSetup(options, operations)
 
-const runSetupTranscription = async (): Promise<void> => {
-  await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL)
+const runSetupTranscription = async (options: SetupRunOptions): Promise<void> => {
+  await setupYtDependencies(options)
+  await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL, options)
   logSetupProviderConfiguration('Transcription Provider Configuration', TRANSCRIPTION_PROVIDER_ENV_KEYS)
   l.write('info', 'Transcription setup complete', { category: 'command' })
 }
 
-const runSetupMusic = async (): Promise<void> => {
+const runSetupRendering = async (options: SetupRunOptions): Promise<void> => {
+  await setupYtDependencies(options)
+  await setupManagedRendering(options)
+  await requireRenderingPrerequisites()
+}
+
+const runSetupMusic = async (options: SetupRunOptions): Promise<void> => {
   logSetupProviderConfiguration('Music Provider Configuration', MUSIC_PROVIDER_ENV_KEYS)
-  const requiredTools = ['ffmpeg', 'ffprobe'] as const
-  const missing = requiredTools.filter((tool) => !hasRuntimeTool(tool))
-  if (missing.length > 0) {
-    throw InfraError(
-      `Music lyric-video setup: missing required tools: ${missing.join(', ')}. Install them via your system package manager or run: bun autoshow setup`,
-      {
-        stage: 'setup:music',
-        hints: ["Run 'bun autoshow setup' to install yt-dlp and other dependencies"]
-      }
-    )
-  }
-
-  const ffmpegFilters = await runCapture(getFfmpegBinary(), ['-hide_banner', '-filters'], { allowFailure: true })
-  const hasAssFilter = ffmpegFilters.exitCode === 0
-    && ffmpegFilters.stdout.split('\n').some((line) => line.trim().split(/\s+/).includes('ass'))
-  const hasFallbackRenderer = commandExists('pango-view') && (commandExists('magick') || commandExists('convert'))
-  if (!hasAssFilter && !hasFallbackRenderer) {
-    throw InfraError(
-      'Music lyric-video setup: ffmpeg does not expose the ass filter, and the fallback renderer is unavailable. Install pango-view plus ImageMagick, or use an ffmpeg build with ass support.',
-      { stage: 'setup:music' }
-    )
-  }
-
-  await setupWhisperfile(defaultMusicWhisperfileModel)
+  await runSetupRendering(options)
+  await setupWhisperfile(defaultMusicWhisperfileModel, options)
   l.write('info', 'Music setup complete', { category: 'command' })
 }
 
@@ -460,6 +455,10 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
     case 'whisperfile': return [whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL)]
     case 'defuddle': return [defuddleRuntimeDir]
     case 'music': return [whisperfileBinaryPath(defaultMusicWhisperfileModel)]
+    case 'toolchain': return [join(RUNTIME_TOOLS_DIR, 'build-tools'), join(RUNTIME_TOOLS_DIR, 'bun'), join(RUNTIME_TOOLS_DIR, 'deno')]
+    case 'ocr': return [tesseractManagedBinaryPath, tesseractBuildDir, tessdataDir, join(RUNTIME_TOOLS_DIR, 'tesseract')]
+    case 'rendering': return [ffmpegManagedBinaryPath, ffprobeManagedBinaryPath, ffmpegToolDir, join(RUNTIME_TOOLS_DIR, 'native')]
+    case 'alignment': return [join(RUNTIME_TOOLS_DIR, 'stt-alignment')]
     case 'all': return [
       whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL),
       defuddleRuntimeDir,
@@ -484,32 +483,28 @@ export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readon
   }
 }
 
-const applyRunOptions = async (step: SetupStepId, options?: { forceRedownload?: boolean }): Promise<void> => {
-  if (!options?.forceRedownload) return
-  const paths = await getForceRedownloadPaths(step)
-  if (paths.length === 0) return
-  await Promise.all(paths.map(p => rm(p, { recursive: true, force: true })))
-  l.write('info', `Cleared ${paths.length} artifacts for forced ${step} redownload`, {
-    category: 'artifact',
-    metadata: { step, clearedArtifacts: paths.length, paths }
-  })
-}
-
-const executeStepOnce = async (step: SetupStepId): Promise<boolean> => {
+const executeStepOnce = async (step: SetupStepId, options: SetupRunOptions): Promise<boolean> => {
   switch (step) {
-    case 'all': return await runCompleteSetup()
-    case 'yt-dlp': await setupYtDependencies(); return true
-    case 'whisperfile': await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL); return true
-    case 'defuddle': await setupDefuddleCli(); return true
-    case 'calibre': await setupCalibreDocumentTools(); return true
-    case 'transcription': await runSetupTranscription(); return true
-    case 'music': await runSetupMusic(); return true
+    case 'all': return await runCompleteSetup(options)
+    case 'toolchain': return true
+    case 'yt-dlp': await setupYtDependencies(options); return true
+    case 'whisperfile': await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL, options); return true
+    case 'defuddle': await setupDefuddleCli(options); return true
+    case 'calibre': await setupCalibreDocumentTools(options); return true
+    case 'ocr': await setupTesseractOcr(options); return true
+    case 'rendering': await runSetupRendering(options); return true
+    case 'alignment': await ensureManagedAlignmentRuntime(options); return true
+    case 'transcription': await runSetupTranscription(options); return true
+    case 'music': await runSetupMusic(options); return true
     default: { const exhaustive: never = step; throw InternalError(`Unknown setup step: ${exhaustive}`, { stage: 'setup:run' }) }
   }
 }
 
-export const runSetupStep = async (step: SetupStepId, options?: { forceRedownload?: boolean }): Promise<boolean> => {
+export const runSetupStep = async (step: SetupStepId, options: SetupRunOptions = {}): Promise<boolean> => {
+  if (step === 'all') return await runCompleteSetup(options)
   await ensureRuntimeDirs()
-  await applyRunOptions(step, options)
-  return await executeStepOnce(step)
+  await ensureRuntimeStateDirectories()
+  await migrateLegacyRuntimeState()
+  await runSetupToolchain(options)
+  return await executeStepOnce(step, options)
 }

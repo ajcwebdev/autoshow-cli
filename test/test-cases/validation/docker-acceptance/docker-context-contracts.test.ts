@@ -3,6 +3,7 @@ import { lstat, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { EXCLUDED_CONTEXT_FILES, REQUIRED_CONTEXT_FILES, runDockerContextAcceptance, verifyDockerContextOutput } from '../../../docker-acceptance/docker-context-acceptance'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { RUNTIME_DIR } from '../../../../src/utils/runtime-paths'
 
 async function exportRequired(directory: string): Promise<void> {
   for (const [path, content] of Object.entries(REQUIRED_CONTEXT_FILES)) await Bun.write(join(directory, path), content)
@@ -15,7 +16,7 @@ test('authored build-context gate uses scratch COPY, exact current ignore bytes,
     expect(argv.slice(0, 7)).toEqual(['build', '--network', 'none', '--no-cache', '--progress', 'plain', '--output'])
     expect(timeout).toBe(120_000)
     context = argv.at(-1)!
-    expect(context).not.toStartWith(process.cwd())
+    expect(context).toStartWith(join(RUNTIME_DIR, 'tmp', 'autoshow-authored-docker-context-'))
     expect(await Bun.file(join(context, 'Dockerfile')).text()).toBe('FROM scratch\nCOPY . /\n')
     expect(await Bun.file(join(context, '.dockerignore')).bytes()).toEqual(ignore)
     for (const [path, authored] of Object.entries({ ...REQUIRED_CONTEXT_FILES, ...EXCLUDED_CONTEXT_FILES })) expect(await Bun.file(join(context, path)).text()).toBe(authored)

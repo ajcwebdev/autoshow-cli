@@ -1,7 +1,7 @@
 import { statPath } from '~/utils/bun-file-io'
 import { readdir } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { getRuntimeCachePath } from '~/utils/runtime-state'
+import { basename, dirname, extname, resolve } from 'node:path'
 import type { BatchListCacheEntry, FileFingerprint, MetadataTopLevelTargetInfo } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
 import { InfraError } from '~/utils/error-handler'
@@ -61,7 +61,7 @@ const listCandidateExists = async (candidate: string): Promise<boolean> => {
   }
 }
 
-const BATCH_LIST_CACHE_FILE = join(tmpdir(), 'autoshow-batch-list-cache.json')
+const BATCH_LIST_CACHE_FILE = getRuntimeCachePath('autoshow-batch-list-cache.json')
 const BATCH_LIST_CACHE_LOCK = 'batch-list-cache'
 
 const getCachedBatchListItems = async (filePath: string): Promise<string[] | undefined> => {

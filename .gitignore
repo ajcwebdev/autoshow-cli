@@ -4,6 +4,7 @@ docs/todo
 
 .DS_Store
 node_modules/
+/node_modules
 *.env
 *.log
 **/*/__pycache__

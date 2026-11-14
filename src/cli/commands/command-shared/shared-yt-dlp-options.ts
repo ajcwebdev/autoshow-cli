@@ -1,8 +1,10 @@
 import { access } from 'node:fs/promises'
 import { constants as fsConstants } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { YtDlpAuthMode, YtDlpListOptions } from '~/types'
+import { getDenoBinary, getFfmpegBinary } from '~/utils/runtime-paths'
+import { getRuntimeCachePath } from '~/utils/runtime-state'
 
 const YOUTUBE_BOT_CHECK_PATTERN = /Sign in to confirm you(?:’|’)re not a bot/i
 const warnedUnreadableCookiePaths = new Set<string>()
@@ -72,7 +74,17 @@ export const inspectYtDlpAuthState = async (
 
 const buildSharedYtDlpArgs = async (): Promise<string[]> => {
   const authState = await inspectYtDlpAuthState()
-  const args: string[] = []
+  // Native syntax: https://github.com/yt-dlp/yt-dlp/blob/2026.08.19/README.md#general-options
+  // Explicit locations keep extractor helpers and postprocessors in runtime/.
+  const args: string[] = [
+    '--ignore-config',
+    '--no-plugin-dirs',
+    '--no-remote-components',
+    '--cache-dir', getRuntimeCachePath('yt-dlp'),
+    '--no-js-runtimes',
+    '--js-runtimes', `deno:${getDenoBinary()}`,
+    '--ffmpeg-location', dirname(getFfmpegBinary())
+  ]
 
   if (authState.warning) {
     const warningKey = authState.resolvedCookiesPath ?? authState.cookiesPath ?? authState.warning

@@ -8,23 +8,24 @@ Install local tools, download STT models, inspect readiness, or save defaults. R
 bun autoshow setup
 ```
 
-macOS builds managed FFmpeg, MuPDF, qpdf, and Tesseract under `runtime/` and extracts Calibre. Install Xcode command-line tools and these host prerequisites first:
+Setup owns the local toolchain beneath `runtime/`: executables, native libraries, build helpers, fonts, trained data, models, package installations, caches, locks, and temporary workspaces. Source files, frozen dependency manifests, authored inputs, and requested outputs retain their established locations.
+
+The source checkout's default `bun install` post-install step moves the application package graph into `runtime/tools/project-dependencies/node_modules` and keeps a relative `node_modules` lookup link at the project root. `--ignore-scripts` opts out of that hook; maintainers using it must invoke `BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun --no-env-file src/tools/project-runtime-dependencies.ts` before source CLI commands. Dependency verification reads the frozen graph and runtime manifest without installing packages. Maintained source launch scripts disable Bun's startup transpiler cache; direct source invocations need the same environment setting to avoid the host's default transpiler cache.
+
+If runtime was removed and the root lookup link is dangling, or the installed application graph is damaged, run `bun run setup:dependencies --install`. This standalone bootstrap stages a frozen install beneath runtime, validates it, and replaces the graph atomically while retaining the previous installation. Add `--offline` when the runtime package cache is complete. Ordinary warm `bun install` verifies the existing receipt; it refuses modified package bytes rather than accepting them as a new baseline.
 
 ```bash
-brew install cmake imagemagick pango fontconfig font-dejavu
+bun autoshow setup --dry-run
+bun autoshow setup
 ```
 
-Linux installs missing core tools through `sudo apt`; install rendering prerequisites separately:
+macOS source builds require Apple's Command Line Tools and SDK. Setup builds additional helpers, including CMake, from pinned upstream source inside `runtime/`; CMake does not require an installed application bundle. Setup does not install system packages or register fonts globally. On Debian/Ubuntu, native package payloads and their dependencies are downloaded, verified, and extracted into `runtime/` without installing them globally.
 
-```bash
-sudo apt-get install imagemagick pango1.0-tools fontconfig fonts-dejavu-core
-```
-
-ImageMagick needs TIFF support. Lyric rendering needs FFmpeg `ass` or Pango. Binary precedence is `--bin-dir`, managed tools, then `PATH` on non-macOS hosts; macOS does not fall back to `PATH` for managed tools.
+The managed toolchain includes FFmpeg/ffprobe with ASS rendering, MuPDF, qpdf, Calibre, Tesseract with English data and image codecs, ImageMagick, Pango, Fontconfig, and private fonts. The initial Bun executable launches setup; managed child runtimes are resolved explicitly. Application tools resolve through validated runtime paths. `--bin-dir` selects a tool directory inside the runtime root; global executable discovery is not an installation mechanism.
 
 ## Disk and Network Requirements
 
-Allow roughly 10 GB for tools and default whisperfile `tiny`; larger models need more. Cold macOS setup includes compilation. Re-runs reuse healthy assets, and interrupted downloads resume. Linux system packages remain system-installed.
+Allow space for source archives, temporary build trees, installed libraries, tools, and the default whisperfile `tiny`; larger models need additional storage. `--dry-run` previews the selected graph and installation actions without creating runtime state. Cold macOS setup includes compilation. Re-runs verify and reuse compatible assets, interrupted downloads resume, and failed replacements retain the previous working installation.
 
 ## Doctor
 
@@ -33,13 +34,13 @@ bun autoshow setup --doctor
 bun autoshow setup --doctor --strict
 ```
 
-Doctor checks tools, assets, configuration, cookie readability, and API-key presence without installation or live provider calls. Warnings are advisory unless `--strict`, which exits 2 on any readiness warning. Missing optional, unselected keys do not fail strict mode. Native invocations load working-directory `.env`; exported variables win. [Docker injects credentials explicitly](../../docker.md#provider-credentials).
+Doctor verifies resolved tool origins, installation receipts, resources, configuration, cookie readability, and API-key presence without installation or live provider calls. On macOS, safe executable probes run in a process sandbox that denies writes and network access. Probes that cannot remain read-only, including the self-extracting `yt-dlp` launcher, Calibre, and whisperfile, are deferred to setup after receipt and payload verification; platforms without that sandbox verify receipts and resources instead of executing those probes. Setup performs the functional codec, font, and rendering checks. Warnings are advisory unless `--strict`, which exits 2 on any readiness warning. Missing optional, unselected keys do not fail strict mode. Native invocations load working-directory `.env`; exported variables win. [Docker injects credentials explicitly](../../docker.md#provider-credentials).
 
 ## Runtime Environment Overrides
 
 Provider credentials are listed in `.env.example`. Export overrides before starting the CLI:
 
-- `AUTOSHOW_PROJECT_ROOT` relocates managed tools, mutable runtime storage, and project-relative identity/path helpers. It does not change configuration-file discovery; use `--config-path` for that. `--bin-dir` changes only binary lookup.
+- `AUTOSHOW_PROJECT_ROOT` relocates managed tools, mutable runtime storage, and project-relative identity/path helpers. The default saved configuration is `runtime/autoshow.json`; `--config-path` explicitly selects another configuration file. `--bin-dir` changes only binary lookup within the runtime root.
 - `AUTOSHOW_OCR_PAGE_REQUEST_TIMEOUT_MS` sets the hosted per-page OCR deadline: integer `1–900000` ms, default `300000`. Whole-document deadlines are separate.
 - `AUTOSHOW_SOURCE_IDENTITY_ROOT` and `AUTOSHOW_SOURCE_IDENTITY_ALIAS` must be paired: an absolute local root and normalized absolute POSIX alias without traversal. They map recorded source identities without changing file access.
 
@@ -47,11 +48,16 @@ See [payload limits](../../docker.md#large-provider-responses), [shared budgets]
 
 ## Targeted Setup Steps
 
-`--step` accepts `yt-dlp`, `defuddle`, `whisperfile`, `calibre`, `all`, `transcription`, or `music`. Isolated steps assume prerequisites exist. `--force-redownload` removes and reinstalls that step's managed artifacts.
+`--step` accepts `toolchain`, `ocr`, `rendering`, `alignment`, `yt-dlp`, `defuddle`, `whisperfile`, `calibre`, `all`, `transcription`, or `music`. Each step provisions its own required dependencies. Re-running a step reuses healthy installations and repairs incomplete assets. `--force-redownload` requests replacement of that step's managed artifacts; active installations remain available until replacements pass validation.
+
+macOS targeted steps provision the selected native dependency graph. Debian/Ubuntu steps share one verified distribution baseline, so the first targeted step also downloads the common document, OCR, media, and rendering package closure. Inspect `--dry-run` before starting a cold installation when download size matters.
 
 ```bash
 bun autoshow setup --step whisperfile
 bun autoshow setup --step whisperfile --force-redownload
+bun autoshow setup --step ocr
+bun autoshow setup --step rendering
+bun autoshow setup --step alignment
 ```
 
 ## Model Downloads
@@ -67,7 +73,7 @@ Bare names and `whisperfile:<model>` are equivalent. Use `setup --help` for the 
 
 ## Setting Defaults and Configuration
 
-Defaults normally live in `config/autoshow.json` beneath the nearest ancestor with `package.json`, or the working directory if none exists. `--config-path` overrides discovery. These operations save/read configuration without installing tools:
+Defaults live in `runtime/autoshow.json`. Existing `config/autoshow.json` settings remain migration input and are preserved when brought into runtime state. `--config-path` selects an explicit configuration file. These operations save/read configuration without installing tools:
 
 ```bash
 bun autoshow setup --show

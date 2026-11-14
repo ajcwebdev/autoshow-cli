@@ -92,6 +92,16 @@ test('missing ebook-convert error names normalizable ebook setup', () => {
   }
 })
 
+test('ebook conversion rejects external executable resolver results before dispatch', () => {
+  expect(() => resolveEbookConvertCommand({
+    resolveCalibreBin: () => '/external/tools/ebook-convert'
+  })).toThrow('inside the project runtime directory')
+  expect(() => resolveEbookConvertCommand({
+    resolveCalibreBin: () => 'ebook-convert',
+    which: () => '/external/tools/ebook-convert'
+  })).toThrow('inside the project runtime directory')
+})
+
 test('normalizable ebook routing resolves to the EPUB native path', () => {
   const emptyOptions = {} as Parameters<typeof resolveOcrStep2ExecutionFromFormat>[1]
   for (const format of ['mobi', 'azw3', 'fb2', 'lit'] as const) {

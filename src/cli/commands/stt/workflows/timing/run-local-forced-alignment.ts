@@ -4,7 +4,8 @@ import { statPath } from '~/utils/bun-file-io'
 import { mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type { TranscriptionEvidenceWord } from '~/types'
-import { getFfmpegBinary, PROJECT_ROOT } from '~/utils/runtime-paths'
+import { getBunBinary, getFfmpegBinary, PROJECT_ROOT } from '~/utils/runtime-paths'
+import { validateManagedJsRuntime } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-js-runtime'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 import { captionTextKey, captionTimestampSeconds } from '../captions/caption-word-coverage'
 import { alignCtcWords } from './ctc-word-alignment'
@@ -42,10 +43,11 @@ export const runLocalForcedAlignment = async (audioInput: string, transcriptInpu
   if (ordered.some((segment, index) => index > 0 && segment.begin < ordered[index - 1]!.finish)) throw ValidationError('Forced alignment cannot resolve overlapping speech on one channel. Separate channels or provide non-overlapping reviewed spans.')
   const localModel = await readAlignmentModel(model)
   const worker = join(PROJECT_ROOT, 'src/cli/commands/stt/workflows/timing/stt-onnx-worker.js')
-  const workerBun = Bun.isStandaloneExecutable ? Bun.which('bun') : undefined
+  const workerBun = Bun.isStandaloneExecutable ? getBunBinary() : undefined
   if (Bun.isStandaloneExecutable) {
-    if (!workerBun || !await Bun.file(worker).exists()) throw UsageError('Compiled alignment requires Bun on PATH and the bundled src/cli/commands/stt/workflows/timing/stt-onnx-worker.js. See the STT timing guide for compiled packaging.')
-  } else loadAlignmentRuntime()
+    if (!(await validateManagedJsRuntime('bun')).ok) throw UsageError('Managed Bun provenance or executable integrity is invalid. Run bun autoshow setup --step toolchain.')
+    if (!await Bun.file(workerBun!).exists() || !await Bun.file(worker).exists()) throw UsageError('Compiled alignment requires the managed Bun runtime and bundled src/cli/commands/stt/workflows/timing/stt-onnx-worker.js. Run bun autoshow setup --step alignment; see the STT timing guide for compiled packaging.')
+  } else await loadAlignmentRuntime()
   const work = join(output, 'alignment-work')
   for (const path of [work, join(output, 'result.json'), join(output, 'alignment.json')]) if (await statPath(path).catch(() => undefined)) throw ValidationError(`Alignment output already exists at ${path}; choose a new --output-dir.`)
   await mkdir(work, { recursive: true })

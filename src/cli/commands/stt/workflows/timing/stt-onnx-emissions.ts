@@ -1,6 +1,8 @@
 import { createRequire } from 'node:module'
-import { join } from 'node:path'
+import { isAbsolute, join, relative } from 'node:path'
+import { realpath } from 'node:fs/promises'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
+import { hasFrozenAlignmentRuntime, managedAlignmentRuntimeDir, MANAGED_ALIGNMENT_RUNTIME_VERSION } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-js-runtime'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 import { readAlignmentModel, tokenizeCtcWords } from './stt-onnx-model'
 import { ctcLogProbabilities, decodeAlignmentWave } from './stt-alignment-audio'
@@ -15,21 +17,27 @@ type OnnxRuntime = {
   Tensor: new (type: 'float32' | 'int64', data: Float32Array | BigInt64Array, dims: number[]) => OnnxTensor
   InferenceSession: { create(bytes: Uint8Array, options: { executionProviders: string[]; intraOpNumThreads: number; interOpNumThreads: number }): Promise<OnnxSession> }
 }
-export const ALIGNMENT_RUNTIME_VERSION = '1.29.0'
+export const ALIGNMENT_RUNTIME_VERSION = MANAGED_ALIGNMENT_RUNTIME_VERSION
 
-export const loadAlignmentRuntime = (projectRoot = PROJECT_ROOT): OnnxRuntime => {
+export const loadAlignmentRuntime = async (projectRoot = PROJECT_ROOT): Promise<OnnxRuntime> => {
   try {
-    const require = createRequire(join(projectRoot, 'config/stt-alignment/package.json'))
+    const root = managedAlignmentRuntimeDir(projectRoot)
+    const canonicalRuntime = await realpath(join(projectRoot, 'runtime'))
+    const installedRelative = relative(canonicalRuntime, await realpath(root))
+    if (installedRelative === '..' || installedRelative.startsWith('../') || isAbsolute(installedRelative) || !await hasFrozenAlignmentRuntime(root)) throw UsageError('Managed alignment graph provenance or payload integrity is invalid.')
+    const require = createRequire(join(root, 'package.json'))
     if ((require('onnxruntime-node/package.json') as { version: string }).version !== ALIGNMENT_RUNTIME_VERSION) throw UsageError('Runtime version differs from the frozen alignment graph.')
+    // ORT's POSIX provider reads this before creating telemetry storage or starting upload threads.
+    process.env['ORT_DISABLE_TELEMETRY'] = '1'
     return require('onnxruntime-node') as OnnxRuntime
   } catch (cause) {
-    throw UsageError(`Local ONNX alignment runtime is unavailable. Run bun --no-env-file install --cwd config/stt-alignment --frozen-lockfile --ignore-scripts with the supported Bun version. ${cause instanceof Error ? cause.message : String(cause)}`)
+    throw UsageError(`Local ONNX alignment runtime is unavailable. Run bun autoshow setup --step alignment. ${cause instanceof Error ? cause.message : String(cause)}`)
   }
 }
 
 export const computeOnnxEmissions = async (model: Awaited<ReturnType<typeof readAlignmentModel>>, clips: Array<{ audio: string; words: string[] }>, projectRoot = PROJECT_ROOT) => {
   const wordInputs = clips.map(clip => tokenizeCtcWords(clip.words, model.vocabulary))
-  const runtime = loadAlignmentRuntime(projectRoot)
+  const runtime = await loadAlignmentRuntime(projectRoot)
   const session = await runtime.InferenceSession.create(await Bun.file(join(model.root, 'model.onnx')).bytes(), { executionProviders: ['cpu'], intraOpNumThreads: 1, interOpNumThreads: 1 })
   try {
     if (!session.inputNames.includes('input_values') || session.inputNames.some(name => !['input_values', 'attention_mask'].includes(name)) || !session.outputNames.includes('logits')) throw ValidationError('Expected ONNX input_values, optional int64 attention_mask, and logits output.')

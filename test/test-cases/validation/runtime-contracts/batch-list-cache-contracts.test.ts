@@ -12,7 +12,7 @@ type ProbeResult = {
   error?: { message: string, kind?: string, stage?: string, code?: string, causeCode?: string }
 }
 
-// TMPDIR and module mocks are process-local so parallel suites never share this cache.
+// Runtime state namespaces and module mocks are process-local so parallel suites never share this cache.
 const runBatchProbe = async (
   root: string,
   filePath: string,
@@ -28,7 +28,7 @@ const runBatchProbe = async (
     'mock.module(' + JSON.stringify(cliUtilsPath) + ', () => ({ ...cliUtils, fileExists: async path => {',
     'if (path === ' + JSON.stringify(filePath) + ') {',
     options.requireCacheHit ? "throw new Error('A cache hit must not probe the input again');" : '',
-    options.failWrite ? 'await mkdir(' + JSON.stringify(join(root, CACHE_NAME)) + ');' : '',
+    options.failWrite ? 'await mkdir(' + JSON.stringify(join(root, 'cache', CACHE_NAME)) + ');' : '',
     '}',
     'return await originalFileExists(path);',
     '} }));',
@@ -40,7 +40,7 @@ const runBatchProbe = async (
     '}'
   ].join('\n')
   const child = Bun.spawn([process.execPath, '--no-env-file', '-e', source], {
-    env: { PATH: process.env['PATH'], TMPDIR: root },
+    env: { PATH: process.env['PATH'], TMPDIR: root, AUTOSHOW_TEST_STATE_ROOT: root },
     stdout: 'pipe',
     stderr: 'pipe'
   })
@@ -58,8 +58,9 @@ const makeInput = async (root: string, name = 'inputs.txt', items = INPUTS) => {
 describe('batch input-list cache', () => {
   test('reuses a validated entry with matching source fingerprint before parsing inputs', async () => {
     await withTempDir('autoshow-batch-list-hit-', async root => {
+      await mkdir(join(root, 'cache'), { recursive: true })
       const { filePath, entry } = await makeInput(root)
-      await writeFile(join(root, CACHE_NAME), JSON.stringify({ [filePath]: entry }))
+      await writeFile(join(root, 'cache', CACHE_NAME), JSON.stringify({ [filePath]: entry }))
       expect(await runBatchProbe(root, filePath, { requireCacheHit: true })).toEqual({ items: INPUTS })
     })
   })
@@ -67,8 +68,9 @@ describe('batch input-list cache', () => {
   for (const invalid of ['missing', 'malformed JSON', 'invalid map', 'non-string item', 'invalid fingerprint'] as const) {
     test('treats ' + invalid + ' as a cache miss and preserves source-to-items/fingerprint metadata', async () => {
       await withTempDir('autoshow-batch-list-miss-', async root => {
+      await mkdir(join(root, 'cache'), { recursive: true })
         const { filePath, entry } = await makeInput(root)
-        const cachePath = join(root, CACHE_NAME)
+        const cachePath = join(root, 'cache', CACHE_NAME)
         const contents = invalid === 'missing' ? undefined
           : invalid === 'malformed JSON' ? '{'
             : invalid === 'invalid map' ? '[]'
@@ -83,14 +85,16 @@ describe('batch input-list cache', () => {
 
   test('propagates cache read I/O failures rather than treating them as a miss', async () => {
     await withTempDir('autoshow-batch-list-read-error-', async root => {
+      await mkdir(join(root, 'cache'), { recursive: true })
       const { filePath } = await makeInput(root)
-      await mkdir(join(root, CACHE_NAME))
+      await mkdir(join(root, 'cache', CACHE_NAME))
       expect(await runBatchProbe(root, filePath)).toMatchObject({ error: { code: 'EISDIR' } })
     })
   })
 
   test('propagates cache write I/O failures with input-list context and the original cause', async () => {
     await withTempDir('autoshow-batch-list-write-error-', async root => {
+      await mkdir(join(root, 'cache'), { recursive: true })
       const { filePath } = await makeInput(root)
       expect(await runBatchProbe(root, filePath, { failWrite: true })).toMatchObject({
         error: { kind: 'infrastructure', stage: 'metadata:input-list', causeCode: 'EISDIR' }
@@ -100,12 +104,13 @@ describe('batch input-list cache', () => {
 
   test('preserves every source-to-items/fingerprint relationship across concurrent processes', async () => {
     await withTempDir('autoshow-batch-list-concurrent-', async root => {
+      await mkdir(join(root, 'cache'), { recursive: true })
       const entries = await Promise.all(Array.from({ length: 8 }, (_, index) =>
         makeInput(root, `inputs-${index}.txt`, [`https://example.test/${index}/first`, `https://example.test/${index}/second`])
       ))
       expect(await Promise.all(entries.map(({ filePath }) => runBatchProbe(root, filePath))))
         .toEqual(entries.map(({ entry }) => ({ items: entry.items })))
-      expect(JSON.parse(await readFile(join(root, CACHE_NAME), 'utf8')))
+      expect(JSON.parse(await readFile(join(root, 'cache', CACHE_NAME), 'utf8')))
         .toEqual(Object.fromEntries(entries.map(({ filePath, entry }) => [filePath, entry])))
       for (const { filePath, entry } of entries) {
         expect(await getFileFingerprint(filePath)).toEqual(entry.fingerprint)

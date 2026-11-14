@@ -44,7 +44,7 @@ bun test test/test-cases/validation/stt/
 bun test test/test-cases/validation/providers/openai-rest-contracts/audio-stt-contracts.test.ts
 ```
 
-Local/mocked contracts cover timing, coverage, provenance, model-specific requests, and recovery. Real transcript-video tests require FFmpeg `ass` support or ImageMagick/Pango plus fonts; the managed macOS FFmpeg lacks `ass`. Rendering and transport checks do not establish transcription accuracy or speaker identity.
+Local/mocked contracts cover timing, coverage, provenance, model-specific requests, and recovery. Real transcript-video tests use managed FFmpeg `ass` support or the managed ImageMagick/Pango fallback and private fonts. Rendering and transport checks do not establish transcription accuracy or speaker identity.
 
 ## References
 

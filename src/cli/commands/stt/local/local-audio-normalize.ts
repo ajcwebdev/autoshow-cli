@@ -1,5 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from "~/utils/runtime-state"
 import { extname, join } from 'node:path'
 import type { PreparedLocalSttInput } from '~/types'
 import { exec } from '~/utils/cli-utils'
@@ -65,7 +65,7 @@ export const prepareLocalSttInput = async (
   }
 
   const convertFormat = options?.convertFormat ?? 'wav'
-  const workspaceDir = await mkdtemp(join(tmpdir(), tempPrefix))
+  const workspaceDir = await createRuntimeTempDirectory(tempPrefix)
   const outputPath = join(workspaceDir, convertFormat === 'flac' ? 'input.flac' : 'input.wav')
   const minimumDurationSeconds = options?.minimumDurationSeconds
   const baseFilters = minimumDurationSeconds ? [`apad=whole_dur=${minimumDurationSeconds}`] : []

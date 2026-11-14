@@ -1,7 +1,7 @@
 import { expect } from 'bun:test'
 import { requireCondition } from '../test-utils/require-condition'
-import { chmod, mkdir } from 'node:fs/promises'
-import { isAbsolute, join, posix, relative, resolve } from 'node:path'
+import { chmod, lstat, mkdir, realpath, rm } from 'node:fs/promises'
+import { dirname, isAbsolute, join, posix, relative, resolve, sep } from 'node:path'
 import { canonicalImageRepository, nativePlatform, parseImageReference, validateContainerUser } from './docker-options'
 import type { DockerOptions, Platform, PullPolicy } from './docker-options'
 import { runDockerProcess } from '../../src/tools/docker-process'
@@ -40,6 +40,10 @@ export function mapArtifactPath(path: string, mounts: MountMapping[], relativeTo
 }
 
 export interface ContainerRuntimePolicy { user?: string; restricted?: boolean }
+
+export const PASSED_AUTHORED_DIRECTORY_CLEANUP_SCRIPT = `import {readdir,rm} from 'node:fs/promises';
+const root='/authored-passed-state';
+for(const name of (await readdir(root)).filter(name=>name!=='.DS_Store'))await rm(root+'/'+name,{recursive:true,force:true});`
 
 /** Existing mount permissions are part of the state contract, not something acceptance repairs. */
 export async function prepareAcceptanceDirectory(path: string): Promise<void> {
@@ -167,7 +171,8 @@ for(const root of ['/results','/app/runtime','/home/bun']) {
  finally {await rm(directory,{recursive:true});}
 }
 console.log(JSON.stringify({stateAccess:'passed',uid:process.getuid(),gid:process.getgid()}));`
-    this.requireSuccess(await this.container(['--no-env-file', '-e', script], 'none', 30_000, 'bun'),
+    const hydrate = `const {hydrateDockerRuntime}=await import('/app/src/tools/docker-runtime-seed-bundle.js');await hydrateDockerRuntime('/opt/autoshow-runtime','/app/runtime');`
+    this.requireSuccess(await this.container(['--no-env-file', '-e', `${script}\n${hydrate}`], 'none', 120_000, 'bun'),
       'State mounts must be writable by the selected non-root user. Use --user UID:GID for host-owned caches; acceptance never repairs existing ownership or modes')
   }
 
@@ -198,6 +203,29 @@ console.log(JSON.stringify({stateAccess:'passed',uid:process.getuid(),gid:proces
     if (!this.owned.has(name)) return
     const result = await this.command(['rm', '--force', name], 20_000)
     if (result.exitCode === 0 || result.stderr.includes('No such container')) this.owned.delete(name)
+  }
+
+  /** Discard only passed, suite-authored state, including files owned by the image UID. */
+  async removePassedAuthoredDirectory(path: string, authoredRoot: string): Promise<void> {
+    requireCondition(this.identity, 'Passed state cleanup requires a verified image')
+    requireCondition(!this.interrupted && this.owned.size === 0, 'Active or interrupted acceptance state must be retained')
+    const root = resolve(authoredRoot), target = resolve(path)
+    requireCondition(root !== dirname(root) && target !== dirname(target), 'Passed state cleanup cannot target a filesystem root')
+    const within = (parent: string, child: string): boolean => {
+      const suffix = relative(parent, child)
+      return suffix === '' || (suffix !== '..' && !suffix.startsWith(`..${sep}`) && !isAbsolute(suffix))
+    }
+    requireCondition(within(root, target), 'Passed state cleanup escaped its authored directory')
+    requireCondition((await lstat(root)).isDirectory() && (await lstat(target)).isDirectory(), 'Passed state cleanup requires actual authored directories')
+    const physicalRoot = await realpath(root), physicalTarget = await realpath(target)
+    requireCondition(within(physicalRoot, physicalTarget), 'Passed state cleanup resolves outside its authored directory')
+    const name = `${this.runId}-passed-cleanup-${++this.sequence}`
+    const argv = containerArguments(this.identity, name, this.runId,
+      [{ host: physicalTarget, container: '/authored-passed-state' }], 'none', ['--no-env-file', '-e', PASSED_AUTHORED_DIRECTORY_CLEANUP_SCRIPT], '/usr/local/bin/bun', { restricted: true })
+    argv[argv.indexOf('--workdir') + 1] = '/'
+    argv.splice(argv.indexOf(this.identity.reference), 0, '--user', '0:0', '--read-only', '--cap-add', 'DAC_OVERRIDE')
+    this.requireSuccess(await this.ownedCommand(name, argv, 120_000), 'Remove passed authored acceptance contents')
+    await rm(target, { recursive: true, force: true })
   }
 
   async cleanup(): Promise<void> {

@@ -47,7 +47,7 @@ runtime/
   tools/               # installed prefixes
 ```
 
-An explicit tool directory takes precedence; macOS has no implicit PATH fallback. See [setup resolution](04-providers-and-setup.md#setup-pipeline).
+An explicit runtime-owned tool directory takes precedence over the default managed paths. Application dependencies do not fall back to globally installed executables. See [setup resolution](04-providers-and-setup.md#setup-pipeline).
 
 ### Comic character and run layout
 

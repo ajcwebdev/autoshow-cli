@@ -1,11 +1,11 @@
-import { chmod, mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { chmod, mkdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { DockerEngine } from './docker-engine'
 import { parseDockerOptions } from './docker-options'
 import type { ProcessRunner } from '../../src/tools/docker-process'
 import { toProjectRelativePath } from '../../src/utils/project-root'
 import { requireCondition } from '../test-utils/require-condition'
+import { createRuntimeTempDirectory } from '../../src/utils/runtime-state'
 
 export const TESSERACT_DATA_CASES = [
   'no-runtime-mount', 'empty-runtime', 'empty-tessdata', 'managed-valid',
@@ -13,7 +13,7 @@ export const TESSERACT_DATA_CASES = [
 ] as const
 
 export async function runDockerTesseractDataAcceptance(image: string, processRunner?: ProcessRunner, outputDirectory?: string) {
-  const directory = await mkdtemp(join(tmpdir(), 'autoshow-tesseract-data-acceptance-'))
+  const directory = await createRuntimeTempDirectory('autoshow-tesseract-data-acceptance-')
   const evidenceDirectory = outputDirectory ? resolve(outputDirectory) : join(directory, 'evidence')
   await mkdir(dirname(evidenceDirectory), { recursive: true })
   await mkdir(evidenceDirectory)
@@ -27,6 +27,7 @@ export async function runDockerTesseractDataAcceptance(image: string, processRun
     await chmod(output, 0o777)
     const cases: Array<{ status: string; case: string; architecture: string; phases: Array<Record<string, unknown>> }> = []
     for (const mode of TESSERACT_DATA_CASES) {
+      let caseRuntime: string | undefined
       engine.mounts.length = 0
       engine.mounts.push(
         { host: resolve(import.meta.dir, '../fixtures/setup/managed-toolchain-smoke.pdf'), container: '/fixture.pdf', readonly: true },
@@ -34,10 +35,10 @@ export async function runDockerTesseractDataAcceptance(image: string, processRun
         { host: output, container: '/results' },
       )
       if (mode !== 'no-runtime-mount') {
-        const runtime = join(directory, 'states', mode)
-        await mkdir(runtime, { recursive: true })
-        await chmod(runtime, 0o777)
-        engine.mounts.push({ host: runtime, container: '/app/runtime' })
+        caseRuntime = join(directory, 'states', mode)
+        await mkdir(caseRuntime, { recursive: true })
+        await chmod(caseRuntime, 0o777)
+        engine.mounts.push({ host: caseRuntime, container: '/app/runtime' })
       }
       const result = engine.requireSuccess(await engine.container([
         '--no-env-file', '/app/test/docker-acceptance/docker-tesseract-data-probe.ts', mode,
@@ -48,13 +49,17 @@ export async function runDockerTesseractDataAcceptance(image: string, processRun
       requireCondition(evidence.status === 'passed' && evidence.case === mode && evidence.phases.length === (mode === 'reset-managed' ? 4 : 1), `Tesseract data case ${mode} did not pass`)
       requireCondition(evidence.architecture === (identity.platform === 'linux/arm64' ? 'arm64' : 'x64'), `Tesseract data case ${mode} was not native`)
       cases.push(evidence)
+      // Each successful case has independent authored state; keep its recorded
+      // result/logs while bounding disk use to one complete native payload.
+      // A failed case reaches the catch below with its state still intact.
+      if (caseRuntime) await engine.removePassedAuthoredDirectory(caseRuntime, directory)
     }
     return { status: 'passed', image: identity.reference, platform: identity.platform, caseCount: cases.length, phaseCount: cases.reduce((count, item) => count + item.phases.length, 0), cases }
   }
   try {
     let result: Awaited<ReturnType<typeof runCases>>
     try { result = await runCases() } finally { await engine?.cleanup() }
-    await rm(directory, { recursive: true, force: true })
+    await engine!.removePassedAuthoredDirectory(directory, directory)
     return result
   } catch (error) {
     // Keep failed authored state outside the uploaded diagnostics directory: a

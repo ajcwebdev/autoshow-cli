@@ -6,6 +6,7 @@ import { selectBatchItems } from '~/cli/commands/sources/metadata/metadata-batch
 import { resolveProcessTargetDoubleDash } from '~/cli/commands/sources/download/download-targets/handle-process-target'
 import { buildDownloadMediaOptions } from '~/cli/commands/sources/download/download-targets/single/media-runner'
 import { resolveYtDlpBinaryInfo } from '~/cli/commands/command-shared/shared-yt-dlp-binary'
+import { RUNTIME_BIN_DIR } from '~/utils/runtime-paths'
 import { runCommand } from '../../../../test-utils/test-helpers'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 
@@ -91,25 +92,35 @@ afterEach(async () => {
 })
 
 describe('yt-dlp binary resolution', () => {
-  test('prefers managed binary before PATH', () => {
+  test('resolves the managed binary without consulting external executable search paths', () => {
+    const managedPath = join(RUNTIME_BIN_DIR, 'fixture-yt-dlp')
+    let searches = 0
     const resolved = resolveYtDlpBinaryInfo({
-      managedPath: '/managed/yt-dlp',
-      exists: (path) => path === '/managed/yt-dlp',
-      which: () => '/path/yt-dlp'
+      managedPath,
+      exists: (path) => path === managedPath,
+      which: () => { searches++; return '/external/tools/yt-dlp' }
     })
 
-    expect(resolved).toEqual({ path: '/managed/yt-dlp', source: 'managed' })
+    expect(resolved).toEqual({ path: managedPath, source: 'managed' })
+    expect(searches).toBe(0)
   })
 
-  test('falls back to PATH when no managed binary exists', () => {
-    const resolved = resolveYtDlpBinaryInfo({
-      managedPath: '/managed/yt-dlp',
-      exists: () => false,
-      which: () => '/path/yt-dlp',
-      platform: 'linux'
-    })
+  test('reports missing managed binaries on every platform without executing a globally installed substitute', () => {
+    for (const platform of ['darwin', 'linux'] as const) {
+      let searches = 0
+      expect(resolveYtDlpBinaryInfo({
+        managedPath: join(RUNTIME_BIN_DIR, 'missing-yt-dlp'),
+        exists: () => false,
+        which: () => { searches++; return '/external/tools/yt-dlp' },
+        platform
+      })).toBeUndefined()
+      expect(searches).toBe(0)
+    }
+  })
 
-    expect(resolved).toEqual({ path: '/path/yt-dlp', source: 'path' })
+  test('rejects explicit external managed entries and override directories before dispatch', () => {
+    expect(() => resolveYtDlpBinaryInfo({ managedPath: '/external/tools/yt-dlp', exists: () => true })).toThrow('inside the project runtime directory')
+    expect(() => resolveYtDlpBinaryInfo({ overrideBinDir: '/external/tools', exists: () => true })).toThrow('inside the project runtime directory')
   })
 })
 
@@ -244,6 +255,11 @@ describe('yt-dlp passthrough execution contracts', () => {
     expect(userFormatIndex).toBeGreaterThan(defaultFormatIndex)
     expect(args[userFormatIndex + 1]).toBe('bestaudio')
     expect(args).toContain('--write-thumbnail')
+    expect(args[args.indexOf('--ffmpeg-location') + 1]).toBe(fakeBinDir)
+    expect(args[args.indexOf('--js-runtimes') + 1]).toBe(`deno:${join(RUNTIME_BIN_DIR, 'deno')}`)
+    expect(args).toContain('--ignore-config')
+    expect(args).toContain('--no-plugin-dirs')
+    expect(args).toContain('--no-remote-components')
     expect(printToFileIndex).toBeGreaterThan(userFormatIndex)
     expect(args.at(-1)).toBe('https://example.com/audio.mp3')
   })

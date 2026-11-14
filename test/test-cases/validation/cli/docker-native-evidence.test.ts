@@ -7,7 +7,7 @@ const roots: string[] = []
 afterAll(async () => { for (const root of roots) await rm(root, { recursive: true, force: true }) })
 const repository = resolve(import.meta.dir, '../../../..')
 const imageId = `sha256:${'a'.repeat(64)}`, digest = `sha256:${'b'.repeat(64)}`, revision = 'c'.repeat(40)
-type Failure = 'wrong-arch' | 'wrong-revision' | 'invalid-id' | 'invalid-notices' | 'invalid-packages' | 'invalid-pins' | 'empty-rendering' | 'capture-failed'
+type Failure = 'wrong-arch' | 'wrong-revision' | 'invalid-id' | 'invalid-notices' | 'invalid-packages' | 'invalid-pins' | 'invalid-toolchain' | 'invalid-payload' | 'empty-rendering' | 'capture-failed'
 
 async function capture(arch: 'amd64' | 'arm64', release: boolean, failure?: Failure, repositoryName = 'Owner/AutoShow-CLI') {
   const root = await mkdtemp(join(tmpdir(), 'docker-native-evidence-'))
@@ -35,7 +35,13 @@ else if(args[0] === 'run') {
     case 'tar': process.stdout.write(failure === 'invalid-notices'?Buffer.from('bad archive'):Buffer.from(await Bun.file(env['CAPTURE_TEST_NOTICES']).arrayBuffer())); break;
     case 'sh': if(failure !== 'empty-rendering') console.log('Synthetic FFmpeg filters, ImageMagick formats, and DejaVu font'); break;
     case 'bun': console.log(failure === 'invalid-pins'?'[]':JSON.stringify({'yt-dlp':{version:'2026.08.19',linuxSha256:'${'d'.repeat(64)}'}})); break;
-    case 'cat': console.log(args.at(-1).includes('whisperfile')?'export const fixtureModelPins = "from-image"':'export const fixturePolicy = "from-image"'); break;
+    case 'cat': {
+      const path = args.at(-1);
+      if(path.endsWith('.autoshow-linux-toolchain.json')) console.log(JSON.stringify(failure === 'invalid-toolchain' ? {schemaVersion:2,packages:[],payload:[]} : {schemaVersion:2,architecture:env['CAPTURE_TEST_ARCH'],packages:[{name:'example-tools',version:'1'}],payload:[{path:'usr/bin/example-tool',kind:'file',sha256:'${'e'.repeat(64)}',mode:493}]}));
+      else if(path.endsWith('.autoshow-docker-runtime.json')) console.log(JSON.stringify(failure === 'invalid-payload' ? {schemaVersion:1,entries:[],exports:[]} : {schemaVersion:1,entries:[{path:'bin/example-tool',kind:'file',sha256:'${'f'.repeat(64)}',mode:493}],exports:['bin/example-tool']}));
+      else console.log(path.includes('whisperfile')?'export const fixtureModelPins = "from-image"':'export const fixturePolicy = "from-image"');
+      break;
+    }
     default: throw new Error('Unexpected capture entrypoint '+entry);
   }
 } else throw new Error('Unexpected Docker command');
@@ -66,13 +72,16 @@ test('exact-digest release and local audit capture preserve the same complete na
       expect(evidence.image).toMatchObject({ id: imageId, platform: `linux/${arch}`, revision })
       expect(evidence.network).toBe('none')
       const runs = result.calls.filter(args => args[0] === 'run')
-      expect(runs).toHaveLength(6)
+      expect(runs).toHaveLength(8)
       for (const args of runs) {
         expect(args[args.indexOf('--platform') + 1]).toBe(`linux/${arch}`)
         expect(args[args.indexOf('--network') + 1]).toBe('none')
         expect(args[args.indexOf('--entrypoint') + 2]).toBe(imageId)
       }
       expect(runs.find(args => args.includes('sh'))).toContain('-ec')
+      expect(runs.find(args => args.includes('tar'))).toEqual(expect.arrayContaining(['/usr/share/doc', '/opt/autoshow-runtime/tools/linux-root/usr/share/doc']))
+      expect(await Bun.file(join(result.evidence, 'managed-linux-toolchain.json')).json()).toMatchObject({ schemaVersion: 2, packages: [{ name: 'example-tools', version: '1' }] })
+      expect(await Bun.file(join(result.evidence, 'runtime-payload-manifest.json')).json()).toMatchObject({ schemaVersion: 1, exports: ['bin/example-tool'] })
       expect(await Bun.file(join(result.evidence, 'native-distribution-policy.ts')).text()).toContain('from-image')
       expect(await Bun.file(join(result.evidence, 'model-artifact-pins.ts')).text()).toContain('from-image')
       const verified = Bun.spawnSync(['sha256sum', '-c', 'SHA256SUMS'], { cwd: result.evidence, stdout: 'pipe', stderr: 'pipe' })
@@ -81,7 +90,7 @@ test('exact-digest release and local audit capture preserve the same complete na
     const [release, audit] = captures
     expect(release!.calls.find(args => args[0] === 'pull')).toContain(`ghcr.io/owner/autoshow-cli@${digest}`)
     expect(audit!.calls.some(args => args[0] === 'pull')).toBe(false)
-    for (const file of ['debian-packages.tsv', 'rendering-capabilities.txt', 'native-source-pins.json', 'native-distribution-policy.ts', 'model-artifact-pins.ts']) {
+    for (const file of ['debian-packages.tsv', 'managed-linux-toolchain.json', 'runtime-payload-manifest.json', 'rendering-capabilities.txt', 'native-source-pins.json', 'native-distribution-policy.ts', 'model-artifact-pins.ts']) {
       expect(await Bun.file(join(release!.evidence, file)).bytes()).toEqual(await Bun.file(join(audit!.evidence, file)).bytes())
     }
     for (const result of captures) {
@@ -108,8 +117,8 @@ test('the release audit rejects invalid repository identities before pulling or 
   expect(await Bun.file(join(result.evidence, 'native-evidence.json')).exists()).toBe(false)
 })
 
-test('failed capture and invalid package, notice, pin, and capability artifacts cannot emit completed evidence', async () => {
-  for (const failure of ['capture-failed', 'invalid-packages', 'invalid-notices', 'invalid-pins', 'empty-rendering'] as const) {
+test('failed capture and invalid package, notice, pin, managed-payload, and capability artifacts cannot emit completed evidence', async () => {
+  for (const failure of ['capture-failed', 'invalid-packages', 'invalid-notices', 'invalid-pins', 'invalid-toolchain', 'invalid-payload', 'empty-rendering'] as const) {
     const result = await capture('amd64', true, failure)
     expect(result.code).not.toBe(0)
     expect(await Bun.file(join(result.evidence, 'native-evidence.json')).exists()).toBe(false)

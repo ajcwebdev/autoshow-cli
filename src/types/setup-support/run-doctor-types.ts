@@ -1,4 +1,4 @@
-import type { AutoshowConfig, ManagedArtifactToolId, ManagedArtifactValidation, ResolvedYtDlpBinary, RunOptions, RunResult } from '~/types'
+import type { AutoshowConfig, ManagedArtifactToolId, ManagedArtifactValidation, ResolvedYtDlpBinary, RunOptions, RunResult, RuntimeToolId } from '~/types'
 export type DoctorStatus = 'OK' | 'MISSING' | 'WARN' | 'INFO'
 
 export type DoctorSeverity = 'warn' | 'info'
@@ -16,6 +16,8 @@ export type DoctorSection = {
   checks: DoctorCheck[]
 }
 
+export type DoctorToolProvenance = { healthy: true, detail: string, version?: string } | { healthy: false, reason: string }
+
 export type DoctorProbes = {
   bunVersion: string
   platform: NodeJS.Platform
@@ -24,6 +26,13 @@ export type DoctorProbes = {
   pathExists: (path: string) => Promise<boolean>
   listDirectory: (path: string) => Promise<string[]>
   directoryHasFiles: (path: string) => Promise<boolean>
+  executeReadOnlyTools: boolean
+  validateRuntimeTool: (tool: RuntimeToolId, path: string) => Promise<DoctorToolProvenance>
+  validateRenderingConfiguration: () => Promise<DoctorToolProvenance>
+  validateWhisperfile: (model: string, path: string) => Promise<DoctorToolProvenance>
+  validateTesseractData: (prefix: string | undefined) => Promise<DoctorToolProvenance>
+  validateAlignmentRuntime: () => Promise<DoctorToolProvenance>
+  validateProjectDependencies: () => Promise<DoctorToolProvenance>
   run: (command: string, args: string[], options?: RunOptions) => Promise<RunResult>
   resolveTessdataPrefix: () => string | undefined
   resolveYtDlpBinaryInfo: () => ResolvedYtDlpBinary | undefined

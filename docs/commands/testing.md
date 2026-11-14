@@ -80,6 +80,8 @@ Preserve interrupted TTS directories and temporary audio. Before `--allow-ambigu
 
 The verification job on PRs and pushes to `main` runs repository checks and price preflight, plus selected local contracts when the diff can affect them. Benchmark/report/todo/diagram-only changes and root Markdown other than README skip that contract step; unknown diff bases run it. This job supplies no provider credentials and runs neither the full suite nor provider-backed commands.
 
+Code changes also run managed macOS ARM64 acceptance. That job installs the application graph into runtime while leaving the native toolchain cold, limits executable discovery to operating-system paths and the explicit bootstrap Bun, and compares complete runtime snapshots around a dry-run. Snapshots preserve paths, content hashes, file/directory permissions and timestamps, ownership, and symlink relationships. It then performs cold setup, warm reuse through `BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun --no-env-file test/setup-acceptance/managed-offline-setup.ts`, and strict doctor checks. The warm harness blocks JavaScript network dispatch and denies networking in child-process sandboxes; Calibre uses its verified production sandbox profile so profiles are not nested. It runs the curated free e2e selection with no provider credentials. Source downloads and compilation require network access; the e2e selection includes public downloads and is not an offline suite. Native tool provisioning and the independent dependency jobs install their application tools under `runtime/`.
+
 For retained timings, use `bun src/tools/ci-run-timings.ts price <metrics.ndjson>` or `run <run-id>`; `--json-file` reads a saved run payload.
 
 ## Package Review

@@ -1,5 +1,5 @@
 name: Scan image
-description: Inventory an image once with Syft, audit it once with a date-cached Grype database, and gate on fixable findings derived from that single scan.
+description: Inventory an image once with Syft, verify its managed native package coverage, audit it once with a date-cached Grype database, and gate on fixable findings derived from that single scan.
 inputs:
   image:
     description: Image reference to inventory (mutually exclusive with sbom)
@@ -8,7 +8,7 @@ inputs:
     description: Existing SPDX JSON to scan instead of an image
     default: ''
   evidence-dir:
-    description: Directory receiving image.spdx.json, image-advisories.json, image-advisories-fixable.json, and grype-db.json
+    description: Directory receiving SPDX, advisory, database, verified native receipt, and managed package coverage evidence
     required: true
   cache-key-salt:
     description: Extra Grype database cache key discriminator
@@ -65,6 +65,28 @@ runs:
       run: |
         set -euo pipefail
         syft "${IMAGE}" -o "spdx-json=${SBOM}"
+    - name: Verify relocated native package coverage
+      if: inputs.image != ''
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        SBOM: ${{ steps.paths.outputs.sbom }}
+        EVIDENCE_DIR: ${{ inputs.evidence-dir }}
+        BUN_RUNTIME_TRANSPILER_CACHE_PATH: '0'
+      run: |
+        set -euo pipefail
+        docker run --rm --read-only --network none --env BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 --entrypoint /usr/local/bin/bun "${IMAGE}" \
+          --no-env-file /app/src/tools/docker-verify-managed-sbom.ts receipt /app/runtime \
+          > "${EVIDENCE_DIR}/managed-linux-toolchain.json"
+        managed_receipt_path="$(realpath "${EVIDENCE_DIR}/managed-linux-toolchain.json")"
+        managed_sbom_path="$(realpath "${SBOM}")"
+        docker run --rm --read-only --network none --env BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 \
+          --entrypoint /usr/local/bin/bun \
+          --mount "type=bind,src=${managed_receipt_path},dst=/evidence/managed-linux-toolchain.json,readonly" \
+          --mount "type=bind,src=${managed_sbom_path},dst=/evidence/image.spdx.json,readonly" "${IMAGE}" \
+          --no-env-file --no-install /app/src/tools/docker-verify-managed-sbom.ts verify \
+          /evidence/managed-linux-toolchain.json /evidence/image.spdx.json \
+          > "${EVIDENCE_DIR}/managed-sbom-coverage.json"
     - name: Prepare the Grype vulnerability database
       id: grype-db
       uses: ./.github/actions/prepare-grype-db

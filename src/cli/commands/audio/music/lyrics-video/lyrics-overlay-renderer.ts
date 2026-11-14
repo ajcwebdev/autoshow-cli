@@ -2,8 +2,9 @@ import { writeFileExact } from '~/utils/bun-file-io'
 
 import { join } from 'node:path'
 import type { CaptionCue, OverlaySegment, OverlayTextLayout } from '~/types'
-import { commandExists, exec } from '~/utils/cli-utils'
+import { exec } from '~/utils/cli-utils'
 import { InfraError } from '~/utils/error-handler'
+import { getImageMagickBinary, getPangoViewBinary, hasRuntimeTool } from '~/utils/runtime-paths'
 
 export const DEFAULT_OVERLAY_TEXT_LAYOUT: OverlayTextLayout = {
   activeFontScale: 0.045,
@@ -87,11 +88,7 @@ export const buildOverlaySegments = (cues: CaptionCue[], options?: { includeCont
 }
 
 export const resolveConvertCommand = (): string | undefined => {
-  if (commandExists('magick')) return 'magick'
-  if (commandExists('convert')) {
-    return 'convert'
-  }
-  return undefined
+  return hasRuntimeTool('magick') || hasRuntimeTool('convert') ? getImageMagickBinary() : undefined
 }
 
 export const escapePangoMarkup = (text: string): string =>
@@ -119,13 +116,13 @@ export const renderPangoLayer = async (
     return undefined
   }
 
-  if (!commandExists('pango-view')) {
-    throw InfraError('Lyrics rendering fallback requires pango-view when ffmpeg lacks the ass filter', { stage: 'music:lyrics-video' })
+  if (!hasRuntimeTool('pango-view')) {
+    throw InfraError('Lyrics rendering fallback requires managed pango-view. Run bun autoshow setup --step rendering.', { stage: 'music:lyrics-video' })
   }
 
   const weight = options.bold ? ' weight="bold"' : ''
   const markup = `<span foreground="${options.fill}"${weight}>${escapePangoMarkup(text)}</span>`
-  const result = await exec('pango-view', [
+  const result = await exec(getPangoViewBinary(), [
     '--no-display',
     '--markup',
     '--text', markup,
@@ -168,7 +165,7 @@ export const renderOverlayCard = async (options: {
 }): Promise<void> => {
   const convert = resolveConvertCommand()
   if (!convert) {
-    throw InfraError('Lyrics rendering requires either ffmpeg with the ass filter or ImageMagick convert for fallback text overlays', { stage: 'music:lyrics-video' })
+    throw InfraError('Lyrics rendering requires managed FFmpeg with ASS support or the managed text-overlay tools. Run bun autoshow setup --step rendering.', { stage: 'music:lyrics-video' })
   }
 
   const layout = options.layout ?? DEFAULT_OVERLAY_TEXT_LAYOUT

@@ -74,7 +74,7 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
     label: 'OpenAI OCR',
     limitSource: 'https://developers.openai.com/api/docs/guides/images-vision.md',
     directImageFormats: ['png', 'jpg', 'webp', 'gif'],
-    directImageSupportError: 'The OpenAI OCR provider supports PDF and PNG/JPG/WEBP/GIF images directly. AutoShow normalizes BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
+    directImageSupportError: 'The OpenAI OCR provider supports PDF and PNG/JPG/WEBP/GIF images directly. AutoShow normalizes BMP images locally with Bun.Image. Run bun autoshow setup --step rendering to enable managed ImageMagick TIF normalization.',
     selectModel: (opts) => hasOpenAIOcr(opts) ? opts.openaiOcrModel as string : undefined,
     request: async ({ inputPath, inputMetadata, ocrModel, opts, onRetryable }) => {
       const run = await runOpenAIOcr(inputPath, inputMetadata, ocrModel, {
@@ -97,7 +97,7 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
     label: 'Grok OCR',
     limitSource: GROK_OCR_LIMIT_SOURCE,
     directImageFormats: ['png', 'jpg'],
-    directImageSupportError: 'The Grok OCR provider sends PNG/JPG images to Grok directly; PDF pages are rendered to PNG. AutoShow normalizes WEBP/GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
+    directImageSupportError: 'The Grok OCR provider sends PNG/JPG images to Grok directly; PDF pages are rendered to PNG. AutoShow normalizes WEBP/GIF/BMP images locally with Bun.Image. Run bun autoshow setup --step rendering to enable managed ImageMagick TIF normalization.',
     selectModel: (opts) => hasGrokOcr(opts) ? opts.grokOcrModel as string : undefined,
     request: async (request) => {
       const run = await runGrokOcr(request.inputPath, request.inputMetadata, request.ocrModel, pageRenderingProviderOptions(request))
@@ -118,7 +118,7 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
     label: 'Anthropic OCR',
     limitSource: ANTHROPIC_OCR_LIMIT_SOURCE,
     directImageFormats: ['png', 'jpg', 'webp', 'gif'],
-    directImageSupportError: 'The Anthropic OCR provider supports PDF and PNG/JPG/WEBP/GIF images directly. AutoShow normalizes BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
+    directImageSupportError: 'The Anthropic OCR provider supports PDF and PNG/JPG/WEBP/GIF images directly. AutoShow normalizes BMP images locally with Bun.Image. Run bun autoshow setup --step rendering to enable managed ImageMagick TIF normalization.',
     selectModel: (opts) => hasAnthropicOcr(opts) ? opts.anthropicOcrModel as string : undefined,
     request: async ({ inputPath, inputMetadata, ocrModel, opts, onRetryable }) => {
       const run = await runAnthropicOcr(inputPath, inputMetadata, ocrModel, {
@@ -141,7 +141,7 @@ export const HOSTED_OCR_ADAPTERS: readonly HostedOcrAdapterDescriptor[] = [
     label: 'Gemini OCR',
     limitSource: GEMINI_OCR_LIMIT_SOURCE,
     directImageFormats: ['png', 'jpg', 'webp'],
-    directImageSupportError: 'The Gemini OCR provider supports PDF and PNG/JPG/WEBP images directly. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.',
+    directImageSupportError: 'The Gemini OCR provider supports PDF and PNG/JPG/WEBP images directly. AutoShow normalizes GIF/BMP images locally with Bun.Image. Run bun autoshow setup --step rendering to enable managed ImageMagick TIF normalization.',
     selectModel: (opts) => hasGeminiOcr(opts) ? opts.geminiOcrModel as string : undefined,
     request: async ({ inputPath, inputMetadata, ocrModel, opts, onRetryable, pageNumber }) => {
       const run = await runGeminiOcr(inputPath, inputMetadata, ocrModel, {

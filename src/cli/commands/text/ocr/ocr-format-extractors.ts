@@ -1,6 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import type {
   DocumentMetadata,
   ExtractionOptions,
@@ -100,7 +99,7 @@ export const extractEpubOcrFormat = async (
   if (epubExportFlagsActive) {
     l.warn(EPUB_EXPORT_FLAGS_IGNORED_OCR_WARNING, { category: 'pipeline' })
   }
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-epub-ocr-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-epub-ocr-')
   try {
     const { pdfPath, conversionChain: epubConversionChain } = await convertEpubToPdfForOcr(filePath, tempDir, opts.password)
     const tempMeta = await buildHostedUploadMetadata(pdfPath, step1Metadata, 'pdf', opts.password)
@@ -245,7 +244,7 @@ export const extractCbzFormat = async (
   opts: ExtractionOptions
 ): Promise<FormatExtractionResult> => {
   l.write('info', 'Extracting images from CBZ archive', { category: 'pipeline' })
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-cbz-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-cbz-')
   try {
     const images = await extractCbzImages(filePath, tempDir)
     l.write('info', `Processing ${images.length} images from CBZ`, { category: 'pipeline', metadata: { format: 'cbz', imageCount: images.length } })
@@ -257,7 +256,7 @@ export const extractCbzFormat = async (
       }
       const totals = createCbzHostedOcrTotals()
 
-      const hostedNormDir = await mkdtemp(join(tmpdir(), 'autoshow-cbz-hosted-'))
+      const hostedNormDir = await createRuntimeTempDirectory('autoshow-cbz-hosted-')
       try {
         for (let i = 0; i < images.length; i++) {
           const imgPath = images[i]!
@@ -289,7 +288,7 @@ export const extractCbzFormat = async (
         effectiveReasoningEffort: totals.effectiveReasoningEffort,
       }
     } else {
-      const ocrNormDir = await mkdtemp(join(tmpdir(), 'autoshow-cbz-ocr-'))
+      const ocrNormDir = await createRuntimeTempDirectory('autoshow-cbz-ocr-')
       try {
         const imagePages: PageResult[] = []
         for (let i = 0; i < images.length; i++) {
@@ -322,7 +321,7 @@ export const extractImageFormat = async (
       throw UsageError('Hosted OCR requested without a configured hosted OCR model.')
     }
 
-    const hostedNormDir = await mkdtemp(join(tmpdir(), 'autoshow-img-hosted-'))
+    const hostedNormDir = await createRuntimeTempDirectory('autoshow-img-hosted-')
     try {
       const normalized = await normalizeHostedDirectImageInput(filePath, hostedEngine, hostedNormDir, 'input-image')
       const tempMeta = normalized.filePath === filePath && normalized.format === step1Metadata.format
@@ -349,7 +348,7 @@ export const extractImageFormat = async (
       await rm(hostedNormDir, { recursive: true, force: true })
     }
   } else {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-img-ocr-'))
+    const tempDir = await createRuntimeTempDirectory('autoshow-img-ocr-')
     try {
       const result = await ocrSingleImage(filePath, 1, opts, tempDir)
       return {

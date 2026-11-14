@@ -8,7 +8,7 @@ Generate hosted music from a prompt or local `.md`/`.txt` file, or render lyric 
 bun autoshow setup --step music
 ```
 
-Hosted generation needs the selected provider's `ELEVENLABS_API_KEY`, `MINIMAX_API_KEY`, or `GEMINI_API_KEY`. The setup step checks key presence, verifies FFmpeg/ffprobe and lyric overlays, then installs whisperfile `small.en`. Overlays require FFmpeg's `ass` filter or Pango plus ImageMagick. Local rendering needs no hosted key.
+Hosted generation needs the selected provider's `ELEVENLABS_API_KEY`, `MINIMAX_API_KEY`, or `GEMINI_API_KEY`. The setup step provisions the managed media/rendering graph, verifies FFmpeg/ffprobe and lyric overlays, and installs whisperfile `small.en`. Overlays use FFmpeg's `ass` filter or managed Pango/ImageMagick with private fonts. Local rendering needs no hosted key.
 
 ## Usage
 

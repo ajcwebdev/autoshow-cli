@@ -4,6 +4,8 @@ import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import type { AutoshowConfig } from '~/types'
 import { resolveRuntimeBudgetMaxCents } from '~/utils/runtime-spending-budget'
+import { basename, dirname, join, resolve } from 'node:path'
+import { pathIsWithinRoot, resolveRuntimePhysicalPath } from '~/utils/runtime-containment'
 
 const asRecord = (value: unknown): Record<string, unknown> | undefined =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -50,7 +52,7 @@ const validateSttConfigAuthority = (parsed: unknown): void => {
   const renamed = RENAMED_STT_CONFIG_KEYS.filter(([key]) => key in stt)
   if (renamed.length > 0) {
     throw ValidationError(
-      `STT configuration ${renamed.map(([key, replacement]) => `${key} (use ${replacement})`).join(', ')} moved to the provider-general option keys. Update config/autoshow.json, giving each value as "<provider>=<value>" when more than one provider is selected.`,
+      `STT configuration ${renamed.map(([key, replacement]) => `${key} (use ${replacement})`).join(', ')} moved to the provider-general option keys. Update runtime/autoshow.json, giving each value as "<provider>=<value>" when more than one provider is selected.`,
       { stage: 'config:load' }
     )
   }
@@ -72,7 +74,7 @@ const validateTtsConfigAuthority = (parsed: unknown): void => {
   const renamed = RENAMED_TTS_CONFIG_KEYS.filter(([key]) => key in tts)
   if (renamed.length > 0) {
     throw ValidationError(
-      `TTS configuration ${renamed.map(([key, replacement]) => `${key} (use ${replacement})`).join(', ')} moved to the provider-general option keys. Update config/autoshow.json, giving each value as "elevenlabs=<value>" when more than one provider is selected.`,
+      `TTS configuration ${renamed.map(([key, replacement]) => `${key} (use ${replacement})`).join(', ')} moved to the provider-general option keys. Update runtime/autoshow.json, giving each value as "elevenlabs=<value>" when more than one provider is selected.`,
       { stage: 'config:load' }
     )
   }
@@ -100,28 +102,59 @@ const findProjectRoot = async (startDir: string): Promise<string> => {
 
 export const resolveConfigPath = async (configPathOverride?: string): Promise<string> => {
   if (configPathOverride) return configPathOverride
-  const root = await findProjectRoot(process.cwd())
-  return `${root}/config/autoshow.json`
+  const projectRootOverride = process.env['AUTOSHOW_PROJECT_ROOT']?.trim()
+  const root = projectRootOverride ? resolve(projectRootOverride) : await findProjectRoot(process.cwd())
+  return assertDefaultConfigPath(join(root, 'runtime/autoshow.json'))
 }
 
-export const loadConfig = async (configPath: string): Promise<AutoshowConfig> => {
-  const file = Bun.file(configPath)
+export const assertDefaultConfigPath = (configPath: string, writeTarget = configPath): string => {
+  const target = resolve(configPath)
+  if (basename(target) !== 'autoshow.json' || basename(dirname(target)) !== 'runtime') {
+    throw InfraError('The default configuration path must be runtime/autoshow.json.', { stage: 'config:path' })
+  }
+  const projectRoot = dirname(dirname(target))
+  const physicalRuntimeRoot = join(resolveRuntimePhysicalPath(projectRoot), 'runtime')
+  if (!pathIsWithinRoot(physicalRuntimeRoot, resolveRuntimePhysicalPath(dirname(target)))
+    || !pathIsWithinRoot(physicalRuntimeRoot, resolveRuntimePhysicalPath(target))
+    || !pathIsWithinRoot(physicalRuntimeRoot, resolveRuntimePhysicalPath(writeTarget))) {
+    throw InfraError('The default configuration must resolve inside the project runtime directory.', { stage: 'config:path' })
+  }
+  return target
+}
+
+export type LoadConfigOptions = { allowLegacyFallback?: boolean; managedDefault?: boolean }
+
+export const loadConfig = async (configPath: string, options: LoadConfigOptions = {}): Promise<AutoshowConfig> => {
+  const managedDefault = options.managedDefault ?? options.allowLegacyFallback ?? false
+  if (managedDefault) assertDefaultConfigPath(configPath)
+  let readPath = configPath
+  if (options.allowLegacyFallback && basename(configPath) === 'autoshow.json' && basename(dirname(configPath)) === 'runtime' && !await Bun.file(configPath).exists()) {
+    const legacyPath = join(dirname(dirname(configPath)), 'config/autoshow.json')
+    const physicalProjectRoot = resolveRuntimePhysicalPath(dirname(dirname(configPath)))
+    if (!pathIsWithinRoot(physicalProjectRoot, resolveRuntimePhysicalPath(legacyPath))) {
+      throw InfraError('Legacy default configuration must resolve inside the project directory.', { stage: 'config:path' })
+    }
+    if (await Bun.file(legacyPath).exists()) readPath = legacyPath
+  }
+  if (managedDefault) assertDefaultConfigPath(configPath)
+  const file = Bun.file(readPath)
   if (!await file.exists()) {
     return {}
   }
 
   let text: string
   try {
+    if (managedDefault) assertDefaultConfigPath(configPath)
     text = await file.text()
   } catch {
-    throw InfraError(`Failed to read autoshow config at ${configPath}`, { stage: 'config:load' })
+    throw InfraError(`Failed to read autoshow config at ${readPath}`, { stage: 'config:load' })
   }
 
   let parsed: unknown
   try {
     parsed = JSON.parse(text)
   } catch {
-    throw ValidationError(`Invalid JSON in autoshow config at ${configPath}`, { stage: 'config:load' })
+    throw ValidationError(`Invalid JSON in autoshow config at ${readPath}`, { stage: 'config:load' })
   }
 
   const defaults = asRecord(asRecord(parsed)?.['defaults'])
@@ -143,3 +176,6 @@ export const loadConfig = async (configPath: string): Promise<AutoshowConfig> =>
 
 export const resolveMaxCents = (pricing: AutoshowConfig['pricing']): number | undefined =>
   resolveRuntimeBudgetMaxCents(pricing?.maxCents)
+
+export const loadConfigWithDefaults = async (configPathOverride?: string): Promise<AutoshowConfig> =>
+  await loadConfig(await resolveConfigPath(configPathOverride), { allowLegacyFallback: configPathOverride === undefined })

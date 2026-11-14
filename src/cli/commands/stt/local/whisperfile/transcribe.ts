@@ -1,4 +1,5 @@
 import { verifyWhisperfileArtifact } from './whisperfile-integrity'
+import { assertManagedRuntimePath } from '~/utils/runtime-containment'
 import { WHISPERFILE_ARTIFACTS } from './whisperfile-artifacts'
 import { whisperfileBinaryPath } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { toTimestamp } from '../../stt-utils/stt-utils'
@@ -69,8 +70,9 @@ export const transcribeWhisperfile = async (
   const resolveInvocation = async (model: string, args: string[]) => {
     const artifact = Object.hasOwn(WHISPERFILE_ARTIFACTS, model) ? WHISPERFILE_ARTIFACTS[model] : undefined
     if (!artifact) throw ValidationError(`No pinned Whisperfile artifact for ${model}`)
-    await verifyWhisperfileArtifact(whisperfileBinaryPath(model), artifact)
-    return { command: 'sh', args: [whisperfileBinaryPath(model), ...args], modelDescriptor: toProjectRelativePath(whisperfileBinaryPath(model)) }
+    const binary = assertManagedRuntimePath(whisperfileBinaryPath(model))
+    await verifyWhisperfileArtifact(binary, artifact)
+    return { command: '/bin/sh', args: [binary, ...args], modelDescriptor: toProjectRelativePath(binary) }
   }
   const {
     model: modelName,

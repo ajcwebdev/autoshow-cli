@@ -1,12 +1,13 @@
 import { join } from 'node:path'
 import type { QpdfSourceBuildLayout } from '~/types'
-import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
-import { InfraError } from '~/utils/error-handler'
+import { assertManagedDynamicLibraryClosure } from './managed-artifact-closure'
 
 export const QPDF_SOURCE_RECIPE_STAMP = 'qpdf-12.3.2-static-native-libjpeg-turbo-3.2.0-v3\n'
 
 export const LIBJPEG_TURBO_SOURCE_BUILD_FLAGS = [
   '-DCMAKE_BUILD_TYPE=Release',
+  '-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF',
+  '-DCMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY=OFF',
   '-DENABLE_SHARED=OFF',
   '-DENABLE_STATIC=ON',
   '-DWITH_JPEG8=ON',
@@ -17,6 +18,8 @@ export const LIBJPEG_TURBO_SOURCE_BUILD_FLAGS = [
 
 export const QPDF_SOURCE_BUILD_FLAGS = [
   '-DCMAKE_BUILD_TYPE=Release',
+  '-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF',
+  '-DCMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY=OFF',
   '-DBUILD_SHARED_LIBS=OFF',
   '-DBUILD_STATIC_LIBS=ON',
   '-DPKG_CONFIG_EXECUTABLE=/usr/bin/false',
@@ -85,23 +88,9 @@ const allowedMacosDynamicLibraryReference = (path: string): boolean =>
 export const findForbiddenMacosDynamicLibraryReferences = (otoolOutput: string): string[] =>
   otoolOutput
     .split('\n')
-    .map(line => line.trim().match(/^(\S+)\s+\(compatibility version/)?.[1])
+    .map(line => line.trim().match(/^(.+?)\s+\(compatibility version/)?.[1])
     .filter((path): path is string => path !== undefined && !allowedMacosDynamicLibraryReference(path))
 
 export const assertPortableQpdfDynamicLibraryClosure = async (binaryPath: string): Promise<void> => {
-  const result = await runCapture('otool', ['-L', binaryPath], { allowFailure: true })
-  if (result.exitCode !== 0) {
-    throw InfraError(
-      result.stderr || result.stdout || `otool could not inspect managed qpdf (exit ${result.exitCode})`,
-      { stage: 'setup:qpdf' }
-    )
-  }
-
-  const forbidden = findForbiddenMacosDynamicLibraryReferences(result.stdout)
-  if (forbidden.length > 0) {
-    throw InfraError(
-      `Managed qpdf has non-system dynamic-library references: ${forbidden.join(', ')}`,
-      { stage: 'setup:qpdf' }
-    )
-  }
+  await assertManagedDynamicLibraryClosure([binaryPath])
 }

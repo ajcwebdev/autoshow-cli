@@ -4,6 +4,9 @@ auto = "disable"
 linker = "isolated"
 minimumReleaseAge = 43200
 
+[install.cache]
+dir = "runtime/cache/bun"
+
 [test]
 root = "./test"
 preload = ["./test/test-utils/test-temp-isolation.ts", "./test/test-utils/test-console-harness.ts"]

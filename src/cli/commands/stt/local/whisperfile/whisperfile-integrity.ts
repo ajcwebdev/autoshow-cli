@@ -7,5 +7,5 @@ export const verifyWhisperfileArtifact = async (path: string, expected: { sha256
     for await (const bytes of file.stream()) hash.update(bytes)
     if (hash.digest('hex') === expected.sha256) return
   }
-  throw InfraError(`Whisperfile integrity check failed: ${path}. Cache preserved; move the invalid file aside and rerun setup.`, { stage: 'setup:whisperfile' })
+  throw InfraError(`Whisperfile integrity check failed: ${path}. Cache preserved; run bun autoshow setup --step whisperfile to repair the managed artifact.`, { stage: 'setup:whisperfile' })
 }

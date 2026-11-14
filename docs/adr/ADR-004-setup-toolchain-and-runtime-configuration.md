@@ -15,11 +15,17 @@ Local workflows depend on media, document, and rendering tools. Setup must verif
 
 ### Toolchain and readiness
 
-Provide FFmpeg/`ffprobe`, `yt-dlp`, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, and Tesseract with English trained data. Manage macOS tools under `runtime/` without Homebrew. Build pinned MuPDF and qpdf from source without package-manager libraries; cold setup also compiles FFmpeg and Tesseract and extracts Calibre. Linux uses existing tools or `apt` for missing dependencies and downloads checksum-verified `yt-dlp` when absent.
+Provide FFmpeg/`ffprobe`, `yt-dlp`, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, Tesseract with English trained data and image codecs, ImageMagick, Pango, Fontconfig, fonts, and supporting worker runtimes. Provision the complete toolchain beneath `runtime/`, including transitive third-party libraries, build helpers, dependency configuration, models, package installations, caches, locks, and temporary workspaces. Source, frozen manifests, authored inputs, and requested outputs retain their established locations.
 
-Resolve binaries through `--bin-dir`, then managed `runtime/`, then `PATH` on non-macOS hosts. Do not support per-tool environment overrides. Compilers, Xcode tools, and `cmake` remain host prerequisites. Full setup also requires host ImageMagick with TIFF, Fontconfig, and DejaVu Sans; lyric rendering needs FFmpeg `ass` or Pango.
+Build pinned macOS native dependencies from verified upstream sources. Bootstrap additional build helpers under runtime; Apple's compiler/SDK and the initial CLI launcher form the explicit host boundary. Debian/Ubuntu payloads and dependencies are verified and extracted privately rather than installed into the host system. Container images distribute immutable seed artifacts and activate managed installations inside the mounted runtime root.
 
-Downloads resume after interruption and verify checksums. Abort after 60 seconds without data or total limits of 15 minutes, extended to 60 minutes for Calibre and whisperfile. Bound concurrent transfers and subprocess diagnostic capture; drain streams even when retained output is truncated. Partial setup fails non-zero. `setup --doctor` executes resolved tools and validates managed provenance. Doctor is advisory; `--strict` exits 2 on any readiness warning, including invalid configuration, missing configured credentials/assets, or unreadable cookies.
+Resolve application dependencies only through validated runtime paths. `--bin-dir` may select a directory within that root, with symlink routes checked for escape. Do not support per-tool environment overrides or implicit global-tool discovery. Child environments specify private cache/temp, library, delegate, and font paths while preserving credential isolation. Keep fonts private rather than registering them globally. Managed FFmpeg provides the `ass` filter; the supported Pango fallback and ImageMagick operations use the same managed dependencies.
+
+Stage replacements separately, validate capabilities and complete payload metadata, then promote atomically. Retain the last working installation after download, build, validation, or interruption failures. Validate native dependency closure recursively and permit external references only to approved platform libraries. Reuse compatible artifacts by source pins, recipe revision, architecture, dependency identities, payload integrity, and capability checks.
+
+The pinned, signed macOS Calibre 9.9 distribution contains five optional GUI/test plugins whose four Qt frameworks are absent from the upstream bundle. Preserve the signed bundle unchanged, record the six unresolved dependency edges in its receipt, and restrict the exception to those exact plugin images. Before every `ebook-convert` dispatch, recheck the signature and absent frameworks, and use a process sandbox to deny networking and reads of those images; signature assessment uses its own network-denied child sandbox. Fail closed when the required sandbox is unavailable. All other dependency edges remain subject to strict closure validation. Support CLI conversion, with a functional setup check; these optional GUI/test components remain unavailable.
+
+Downloads resume after interruption and verify checksums. Abort after 60 seconds without data or total limits of 15 minutes, extended to 60 minutes for Calibre and whisperfile. Bound concurrent transfers and subprocess diagnostic capture; drain streams even when retained output is truncated. Partial setup fails non-zero. `setup --dry-run` plans work without filesystem mutation. Targeted toolchain, OCR, rendering, and alignment steps provision their dependency graphs and execute functional capability checks. `setup --doctor` verifies complete managed receipts/resources without installation or repair; safe macOS executable probes run with writes and networking denied. Probe execution is deferred to setup on platforms without the read-only sandbox, and for tools that cannot be probed safely. Doctor is advisory; `--strict` exits 2 on any readiness warning, including invalid configuration, missing configured credentials/assets, or unreadable cookies.
 
 ### Credentials and environment
 
@@ -31,7 +37,7 @@ One credential registry drives `.env.example`, missing-key errors, and doctor. M
 
 Non-credential overrides are documented in the [setup guide](../commands/00-setup-and-utilities/setup.md#runtime-environment-overrides):
 
-- `AUTOSHOW_PROJECT_ROOT` relocates the mutable project/runtime root, managed binaries, and project-relative path resolution. Set it before module initialization. Config lookup independently follows the working directory's nearest `package.json`; use `--config-path` to select another file.
+- `AUTOSHOW_PROJECT_ROOT` relocates the mutable project/runtime root, managed binaries, and project-relative path resolution. Set it before module initialization. Saved configuration defaults to `runtime/autoshow.json`; preserve legacy configuration during migration, and use `--config-path` to select another file explicitly.
 - `AUTOSHOW_OCR_PAGE_REQUEST_TIMEOUT_MS` sets the hosted per-page timeout: default `300000`, integer range `1–900000` ms. It does not change whole-document deadlines.
 - `AUTOSHOW_SOURCE_IDENTITY_ROOT` and `AUTOSHOW_SOURCE_IDENTITY_ALIAS` map persisted display identities across mounts without changing file access. Use an absolute local root and normalized absolute POSIX alias without traversal.
 - `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES` follows [ADR-019](ADR-019-read-successful-http-bodies-whole-under-a-payload-class-ceiling.md).
@@ -48,7 +54,7 @@ Reconcile only through the operator tool with receipt ID, immutable cap, integer
 
 ## Trade-offs
 
-Pinned source builds avoid global package mutation and prebuilt signing infrastructure but add cold compilation and recipe maintenance. Explicit environment allowlists reduce credential exposure but must track tool needs. Conservative budget holds prevent optimistic reuse of uncertain funds but require manual reconciliation.
+Pinned source builds avoid global package mutation and prebuilt signing infrastructure but add cold compilation, storage, and recipe maintenance. Complete dependency closure improves relocation and reproducibility while requiring functional codec, font, and rendering probes. Explicit environment allowlists reduce credential exposure but must track tool needs. Conservative budget holds prevent optimistic reuse of uncertain funds but require manual reconciliation.
 
 ## Verification
 
@@ -58,7 +64,7 @@ bun test test/test-cases/validation/cli/child-env-contracts.test.ts
 bun test test/test-cases/validation/runtime-contracts/spending-ledger.test.ts test/test-cases/validation/runtime-contracts/runtime-spending-budget.test.ts
 ```
 
-Local contracts cover verified downloads, partial failure, readiness, credential isolation, bounded capture, concurrent reservations, unsafe paths, and explicit reconciliation. They do not validate live credentials or provider invoices. The guarded prebuilt validator is tested but current provisioning has no pinned prebuilt candidates.
+Local contracts cover verified downloads, partial failure, readiness, credential isolation, bounded capture, concurrent reservations, unsafe paths, and explicit reconciliation. They do not validate live credentials or provider invoices. The guarded MuPDF/qpdf prebuilt distribution validator remains tested; those native recipes use source artifacts. Managed JavaScript runtimes use separately verified upstream distribution artifacts.
 
 ## References
 

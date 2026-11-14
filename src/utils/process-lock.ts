@@ -1,13 +1,15 @@
 import { readUtf8FileExact, writeFileExact } from '~/utils/bun-file-io'
 import { mkdir, rename, rm } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
-import { homedir, hostname } from 'node:os'
+import { hostname } from 'node:os'
 import { join } from 'node:path'
 import type { ActiveProcessLockOwner, HeartbeatHealth, ProcessLockDirIdentity, ProcessLockOptions, ProcessLockOwner, ProcessLockOwnerReadResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { AppError, InfraError } from '~/utils/error-handler'
 import { formatRetryExhaustedMessage, sleepWithAbortSignal } from '~/utils/retries'
 import { formatErrorMessage } from '~/utils/value-helpers'
+import { RUNTIME_LOCK_DIR } from '~/utils/runtime-state'
+import { assertManagedRuntimePath, pathIsWithinRoot, RUNTIME_ROOT_PATH } from './runtime-containment'
 
 const DEFAULT_LOCK_STALE_MS = 60_000
 const DEFAULT_LOCK_WAIT_TIMEOUT_MS = 2 * 60 * 60 * 1000
@@ -53,11 +55,8 @@ const sanitizeLockName = (lockName: string): string => {
   return `${sanitized.slice(0, MAX_LOCK_DIR_NAME_LENGTH - LOCK_NAME_DIGEST_LENGTH - 1)}-${digest}`
 }
 
-const getDefaultProcessStateDir = (): string =>
-  join(homedir(), '.cache', 'autoshow-cli')
-
 const resolveProcessLockRoot = (options: ProcessLockOptions = {}): string =>
-  options.lockRoot ?? join(getDefaultProcessStateDir(), 'process-locks')
+  options.lockRoot ?? RUNTIME_LOCK_DIR
 
 const getLockOwnerPath = (lockDir: string): string => join(lockDir, LOCK_OWNER_FILE)
 
@@ -275,7 +274,9 @@ export const withProcessLock = async <T,>(
   const waitMs = resolvePositiveInteger(options.waitMs, DEFAULT_LOCK_WAIT_MS)
   const startedAt = Date.now()
 
+  if (pathIsWithinRoot(RUNTIME_ROOT_PATH, lockRoot)) assertManagedRuntimePath(lockRoot)
   await mkdir(lockRoot, { recursive: true })
+  if (pathIsWithinRoot(RUNTIME_ROOT_PATH, lockRoot)) assertManagedRuntimePath(lockRoot)
 
   let owner: ActiveProcessLockOwner | null = null
   let waitAttempts = 0
