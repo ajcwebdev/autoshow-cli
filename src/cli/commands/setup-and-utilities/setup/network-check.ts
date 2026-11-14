@@ -97,13 +97,15 @@ export async function runNetworkCheck(flags: Record<string, unknown>, explicitFl
   if (options.mode === 'serve') {
     const server = serveNetworkFixture(options.port, options.delaySeconds)
     const result = { ready: true, port: server.port, delaySeconds: options.delaySeconds }
-    if (l.isJsonResultActive()) l.write('info', 'Network fixture ready', { category: 'command', metadata: result })
-    else console.log(JSON.stringify(result))
-    await new Promise<void>(resolve => {
+    const stopped = new Promise<void>(resolve => {
       const stop = () => { server.stop(true); process.off('SIGTERM', stop); process.off('SIGINT', stop); resolve() }
       process.on('SIGTERM', stop)
       process.on('SIGINT', stop)
     })
+    // Readiness also guarantees that an immediate shutdown signal is handled.
+    if (l.isJsonResultActive()) l.write('info', 'Network fixture ready', { category: 'command', metadata: result })
+    else console.log(JSON.stringify(result))
+    await stopped
     l.report.result({ ...result, stopped: true }, 'Network fixture stopped')
     return
   }
