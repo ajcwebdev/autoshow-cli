@@ -1,6 +1,6 @@
 # resume
 
-Backfill missing provider outputs or continue recorded comic stages in an existing run directory.
+Recover missing outputs or recorded comic stages in existing canonical run directories; it never accepts a new source.
 
 ## Usage
 
@@ -8,43 +8,25 @@ Backfill missing provider outputs or continue recorded comic stages in an existi
 bun autoshow resume <outputDirs...> [flags]
 ```
 
-`resume` does not accept a new source input. Point it at one or more existing output directories that contain `manifest.json`.
-
 ## Behavior
 
-- Supported targets: `extract` (STT, OCR, URL article), write LLM, TTS, image, video, music, and comic scene runs.
-- Standalone and extract runs retry missing or failed providers and can add `--provider` / `--all-providers` selections. Extract also accepts `--all-local`. Successful targets are skipped. Write LLM resume runs only explicit `--provider` or `--all-providers` selections; omitting them is a no-op.
-- Successful outputs are kept if some providers fail.
-- A split STT provider keeps each finished segment in `split-attempts/`. A recovery pass or a later `resume` that plans the same segment from the same audio, model, and options reuses it, so only unfinished segments are sent again.
-- Multiple directories are processed sequentially with the same flags. Per-directory failures do not stop later directories; all failures are reported at the end.
-- Parent `extract` batch directories resume their media, document, or article children. X Space runs are not resumable.
-- `--price` estimates the same missing or additive work without calling providers or writing files.
-- `resume` updates the existing output directory in place.
-- Failed or incomplete backfill attempts exit with code `2`. A successful no-op or completed explicit selection can leave other manifest targets incomplete, so inspect the manifest when checking the whole run.
-
-Shared flag meanings depend on the recorded command: `--format` selects OCR output or image encoding, `--aspect-ratio` selects image or video shape, and `--duration` selects video or music length. Comic recovery restores recorded choices and rejects these overrides; see [Comic Recovery](#comic-recovery).
+- Supports extract STT/OCR/article, write, TTS, image, video, music, and single-scene comic manifests. X Spaces cannot resume.
+- Standalone/extract runs preserve successes, retry eligible missing/failed targets, and permit additive selections. Write runs only explicitly selected providers; no selection is a no-op.
+- Parent extract batches recover their children. Multiple directories run sequentially with the same flags; failures are collected without stopping later directories.
+- `--price` plans the same remaining/additive work without provider calls or writes. Execution updates the existing run; incomplete/failed backfills exit 2. A successful no-op can leave unselected targets incomplete, so inspect manifest status.
+- Split STT reuses completed `split-attempts/` segments only when source audio, model, segment, and options match.
 
 ## Provider Selection
 
-These selectors apply to standalone and extract runs. See [Comic Recovery](#comic-recovery) for comic directories.
+`--provider provider[=model]` is repeatable and resolves against the recorded command/extract route. `--all-providers` selects its hosted inventory; extract-only `--all-local` selects local engines. Article runs accept one explicit backend or a backend group through the all flags. Local HTML remains Defuddle-only.
 
-| Flag                          | Description                                                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------ |
-| `--provider provider[=model]` | Add one provider/model for this directory's command or extract route                 |
-| `--all-providers`             | Add every hosted provider/model for this directory's command or extract route        |
-| `--all-local`                 | Add every local extract engine; rejected for write LLM, TTS, image, video, and music |
+Use `resume --help` and the original command guide for current catalogs/options. Provider-named option flags are rejected; use generic controls such as `--tts-stability elevenlabs=0.4`. Shared `--format`, `--duration`, and `--aspect-ratio` retain their original command meanings.
 
-`--provider` is repeatable. On extract directories, the same flag selects STT, OCR, or URL backends based on the original run. Article directories accept one `--provider` backend at a time; use `--all-providers` or `--all-local` for URL backend groups. Provider names match the original command; `bun autoshow resume --help` lists the current names.
-
-See [`extract`](../02-extract/overview.md), [`write`](../03-write/overview.md), [`tts`](../04-audio/tts/overview.md), [`image`](../05-visuals/image/overview.md), [`video`](../05-visuals/video/overview.md), and [`music`](../04-audio/music/overview.md) for catalogs and option meanings.
-
-Automatic OCR resume skips providers that failed with a non-retryable error such as quota, billing, account suspension, content policy, or auth. If only those providers remain, it reports `only blocked OCR providers remain` instead of rerunning them. Pass `--provider provider=model` to retry a blocked provider after the cause is fixed.
-
-Resume rejects provider-named option flags such as `--elevenlabs-tts-stability`. Use the provider-general spelling where one exists (`--tts-stability elevenlabs=0.4`), set the value under `defaults` in `config/autoshow.json`, or rerun the original command.
+Automatic OCR recovery skips deterministic quota, billing, account, policy, and auth blockers. After fixing the cause, explicitly reselect `--provider provider=model` to include that target. Preserve successful outputs and receipts; a failed request may already be charged, so preflight additional work and cumulative retry spending under [project rules](../../../AGENTS.md#paid-providers).
 
 ## Create the runs used below
 
-Run these commands from the repository root after local setup. The examples use a fresh `output/resume-example` workspace. The preparation command refuses an existing workspace; choose another name throughout if it already exists. It creates inputs and catalogs; the CLI commands below create the manifests.
+From the repository root after local setup, create an unused example workspace. Preparation refuses an existing destination; choose another root consistently if needed. It creates inputs, catalogs, and empty config; subsequent CLI calls create genuine manifests.
 
 ```bash
 bun --no-env-file - <<'JS'
@@ -68,121 +50,76 @@ await writeFile(root + '/empty-config.json', '{}\n', { flag: 'wx' })
 JS
 ```
 
-The comic scene has no characters or dialogue, so its cast catalog is empty. It uses the location catalog and style image to create a local structure-only run without requesting generated images or audio.
-
 ### Local item, batch, and document runs
 
-These commands need the local extraction tools installed by `setup`. They make no hosted calls. Each destination must be unused before its creation command.
+These use installed local tools without hosted requests:
 
 ```bash
 bun autoshow extract input/examples/document/harborlight-article.html --output-dir output/resume-example/article --config-path output/resume-example/empty-config.json
 bun autoshow extract output/resume-example/batch-inputs --batch-limit all --output-dir output/resume-example/batch --config-path output/resume-example/empty-config.json
 bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provider tesseract --no-chapters --output-dir output/resume-example/document --config-path output/resume-example/empty-config.json
-```
-
-The item and document destinations contain `manifest.json` and `extraction.txt`. The batch manifest links to its article children. Pass the parent directory to resume and preserve its child directories.
-
-All paths below are artifacts of the preceding commands. Completed extraction is reused. A shared selector must fit every directory: `defuddle` applies to the article item and batch, while `tesseract` applies to the document.
-
-```bash
-bun autoshow resume output/resume-example/article --price
-bun autoshow resume output/resume-example/article
-bun autoshow resume output/resume-example/article --provider defuddle --price
-bun autoshow resume output/resume-example/batch --price
-bun autoshow resume output/resume-example/batch
 bun autoshow resume output/resume-example/article output/resume-example/batch --provider defuddle --price
-bun autoshow resume output/resume-example/document --provider tesseract --price
+bun autoshow resume output/resume-example/article output/resume-example/batch --provider defuddle
 bun autoshow resume output/resume-example/document --all-local --price
 ```
 
-For documents, `--all-local` selects Tesseract without installing tools or downloading models. Local HTML uses Defuddle and skips hosted article backends. The following plans add hosted OCR and can cost money when executed; inspect them first:
+The item/document roots contain `manifest.json` and extraction; the batch manifest links its preserved children. Selectors must fit every supplied directory. Completed compatible extraction is reused. `--all-local` does not install tools/models.
+
+Plan additional hosted OCR separately before execution:
 
 ```bash
 bun autoshow resume output/resume-example/document --provider openai=gpt-6-luna --price
-bun autoshow resume output/resume-example/document --all-providers --price
 ```
-
-For your own runs, use explicit compatible manifest directories; a wildcard may also match input folders or incompatible commands.
 
 ### Write output and a real incomplete provider
 
-Write uses hosted LLMs. Configure Grok and OpenAI credentials and review the upstream estimate before running it. The price command does not create the subsequent write manifest.
+Configure Grok/OpenAI credentials and inspect cost before creating this hosted run:
 
 ```bash
 bun autoshow write input/examples/document/harborlight-field-notes.md --provider grok=grok-4.7 --provider openai=gpt-6-luna --prompt shortSummary --price --config-path output/resume-example/empty-config.json
 bun autoshow write input/examples/document/harborlight-field-notes.md --provider grok=grok-4.7 --provider openai=gpt-6-luna --prompt shortSummary --output-dir output/resume-example/write --config-path output/resume-example/empty-config.json
-```
-
-The upstream run creates `output/resume-example/write/manifest.json`, a source snapshot, `prompt.md`, and successful provider JSON outputs. If one provider actually fails after another succeeds, the run retains the successful output and records the incomplete target. Initial write can exit successfully with a partial-failure warning, so inspect the manifest's item and provider statuses instead of relying on its exit code. Fix the reported provider cause, preserve the source snapshot and prompt, then inspect and retry that existing run:
-
-```bash
 bun autoshow resume output/resume-example/write --provider grok=grok-4.7 --provider openai=gpt-6-luna --price
 bun autoshow resume output/resume-example/write --provider grok=grok-4.7 --provider openai=gpt-6-luna
 ```
 
-Only missing selected outputs are requested; successful outputs are preserved. If both selected targets succeeded, this is a no-op. Preserve the run directory and its manifest rather than deleting outputs or editing statuses to force a backfill.
+Initial write can succeed with partial-failure warnings; inspect item/provider states. Fix the provider cause before retrying. Resume sends only missing selected outputs, retaining the source snapshot, `prompt.md`, and successes; all-complete selections are no-ops. Never delete outputs or edit statuses to force requests.
 
-When every provider fails, the manifest, prompt, and source snapshot are retained and can support a named-preset retry. Custom prompt-file-only runs and JSON leaf prompt-file runs cannot restore their validation schema for missing targets; preserve them and start a new write with the original prompt file. Named presets combined with a recorded plaintext prompt file remain resumable.
-
-The retry quote covers additional work. A failed request without a valid output may already have been charged. Keep historical receipts and successful outputs, and include possible charges for both the original request and its retry in cumulative spending.
+Named-preset runs can recover even when every initial provider failed. Named presets plus plaintext prompt files are resumable; prompt-file-only and JSON leaf prompt-file runs cannot restore custom validation schemas for missing targets and require a new write with the original prompt file.
 
 ## Recovery Controls
 
-These concurrency controls apply to standalone and extract runs. Comic recovery restores recorded concurrency; its accepted flags are listed under [Comic Recovery](#comic-recovery).
-
-| Flag                                   | Description                                                                                             |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `--price`                              | Estimate the providers resume would run and exit without provider calls or writes                       |
-| `--batch-concurrency <n>`              | Number of batch items to process concurrently                                                           |
-| `--provider-concurrency <n>`           | Max hosted providers/models running in parallel for one item                                            |
-| `--local-concurrency <n>`              | Max local providers/models running in parallel for one item                                             |
-| `--concurrency-mode <ramp\|immediate>` | Ramp hosted concurrency from one request (`ramp`, default) or start at the configured cap (`immediate`) |
-| `--step-concurrency <scope>=N`         | Intra-step parallelism (`stt-segment`, `stt-preflight`, `ocr-page`, `tts-chunk`); repeatable            |
+Standalone/extract recovery accepts `--batch-concurrency`, `--provider-concurrency`, `--local-concurrency`, `--concurrency-mode ramp|immediate` (default ramp), and repeatable `--step-concurrency scope=N` for `stt-segment`, `stt-preflight`, `ocr-page`, and `tts-chunk`. Comic restores recorded concurrency instead.
 
 ## Comic Recovery
 
-Create a comic scene manifest from the local character-free scene prepared above. Omit `--provider` so structure parsing stays local. Keep its source script and catalog workspace available.
+Create a local structure-only run from the character-free scene above; omit providers to avoid generation:
 
 ```bash
 bun autoshow comic draft-scenes output/resume-example/comic-inputs/scene.md --only structure --characters-root output/resume-example/comic-inputs/characters --output-dir output/resume-example/comic --config-path output/resume-example/empty-config.json
-bun autoshow resume output/resume-example/comic --price
 bun autoshow resume output/resume-example/comic --price --json
 bun autoshow resume output/resume-example/comic
 ```
 
-The command creates `metadata/structured-script.json` and `manifest.json`. Its price plan is ready with zero provider cost and image, audio, and presentation marked `not-requested`; resume is a no-op. To recover generated stages, first run the relevant [comic stage commands](../05-visuals/comic/00-comic-overview.md) so their requested choices are recorded.
+This creates structured script/manifest with unrequested image/audio/presentation stages; recovery is a ready, zero-cost no-op. Use the [comic stages](../05-visuals/comic/00-comic-overview.md) to record actual generation requests first, retaining source/catalog files.
 
-Recovery continues requested image, audio, and presentation work in that order using recorded choices. Current configuration defaults never select replacement providers. A `--max-generation-slots` limit is not restored; resume finishes the remaining audio slots. Completed compatible runs are no-ops, and unrequested stages remain unrequested.
+Recovery continues requested image, audio, then presentation using recorded choices. Compatible completed stages are reused; unrequested stages stay unrequested. Configuration never supplies replacement providers. The original `--max-generation-slots` limit is not restored; audio recovery finishes remaining slots.
 
-`--price` inspects the run without provider calls or writes. Each stage is marked `reuse`, `resume`, `not-requested`, `blocked`, or `after-audio`. With `--json`, check `comicPlans` and `ready` before running the same directory. A blocked plan can be inspected (`ready: false`), but its total covers only work that could be priced. Execution refuses a blocked plan. Invalid manifests or missing source files fail inspection.
+Price JSON exposes `data.comicPlans`, readiness, and stage actions `reuse`, `resume`, `not-requested`, `blocked`, or `after-audio`. Blocked totals include only priceable work; execution refuses blockers. Invalid manifests and missing sources fail inspection. Changed inputs/casting, missing original intent, stale presentation dependencies, or unpriceable remaining work block recovery.
 
-A `generate-audio --slideshow` run reuses completed audio and then finishes the local slideshow. A presentation-only recovery never generates missing images, voices, or sound effects. Slideshow readiness still requires `panels/panel-NN.png`; resume does not choose or promote image variants.
+Interrupted `generate-audio --slideshow` finishes locally after audio recovery. Presentation-only recovery requires complete upstream media and canonical `panels/panel-NN.png`; it never prepares sources, generates missing assets, promotes variants, changes approvals/providers, or runs forced regeneration/audits/revisions.
 
-Recovery blocks when the original request is missing, inputs or casting changed, presentation dependencies are stale, or remaining provider work cannot be priced. Forced image regeneration, audits, and revision evaluation remain `comic generate-images` operations. Source preparation, references, voice approvals, provider additions, and rendering changes use their existing commands.
-
-Comic directories accept `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`, and logging flags (`--json`, `--quiet`, `--verbose`, `--color` / `--no-color`, `--log-level`). Provider, rendering, configuration, catalog, output-path, and concurrency overrides are rejected. `--allow-ambiguous-redispatch` can repurchase a TTS request that has no recoverable audio; completed audio stays reusable. It does not authorize blocked sound-effect work.
-
-See the [comic overview](../05-visuals/comic/00-comic-overview.md), [image generation](../05-visuals/comic/03-generate-images.md), [audio generation](../05-visuals/comic/04-generate-audio.md), and [local slideshow](../05-visuals/comic/05-generate-slideshow.md) for preparation and explicit stage operations.
+Accept `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`, logging controls, and `--json --result-file`. `--require-shared-budget` allows configured price inspection, but budgeted resume execution remains unsupported and fails before dispatch. Reject provider, rendering, configuration, catalog, output-path, and concurrency overrides. Explicit ambiguous redispatch may repurchase unresolved TTS slots while reusing completed audio; it does not authorize blocked sound effects.
 
 ## Write Options
 
-Write resumes send the stored `prompt.md` and run only selected LLM targets without matching output. New filenames avoid overwriting existing outputs by adding a provider name or numeric suffix when needed.
-
-| Flag                 | Description                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `--prompt <name...>` | Choose the preset used to validate new outputs; the saved prompt text is still sent. Omit to retain the original preset. |
+Resume sends retained `prompt.md` and avoids overwrites with provider/numeric filename suffixes. `--prompt` selects validation presets for new outputs while saved text is still sent; omit it to retain the original preset. Custom-schema restrictions above still apply.
 
 ## Extract And TTS Options
 
-These flags match the original commands. Meanings are the same unless noted.
-
-- Extract: `--ocr-provider-mode` must match the original run. Omit it to keep the stored mode; a different value is rejected.
-- TTS uses provider-general options and rejects `--tts-book`. Saved chunking, mastering, export, and pronunciation settings preserve compatible completed audio. Older compatible runs retain their original chunk boundaries. Explicit changes to voice, casting, synthesis controls, or the output plan must match retained work or stop before dispatch. `--allow-ambiguous-redispatch` can repurchase a stored request with no recoverable audio; preserve its cached files and inspect `--price` first.
+OCR `--ocr-provider-mode` defaults to the stored mode; an explicit mismatch fails. TTS rejects `--tts-book` and restores compatible chunking, mastering, export, and pronunciation settings. Canonical pre-mastering runs retain legacy chunk plans/delivery when no override is explicit. Voice, casting, synthesis, and output-plan changes must remain compatible or fail before dispatch. Preserve cached audio and inspect `--price` before ambiguous redispatch.
 
 ## Gemini remote TTS jobs
 
-For a recorded Gemini Batch run, `--provider-job-action status|wait|cancel` defaults to `wait`. `status` retrieves provider status and available results without assembling final outputs. `wait` also submits prepared remaining jobs, waits, and assembles audio. `cancel` requests remote cancellation and reconciles completed work. Local interruption leaves remote execution active; known job IDs and successful slots are never resubmitted.
+Recorded Batch jobs use `--provider-job-action status|wait|cancel`, default `wait`. `status` retrieves state/available results without final assembly; `wait` also submits prepared remaining jobs, waits, and assembles; `cancel` requests remote cancellation and reconciles completed work. Local interruption does not cancel remote jobs.
 
-`resume <output-dir> --price` is local and reports possible additional spending for unsubmitted or ambiguous slots. An ambiguous submission blocks until reconciled; `--allow-ambiguous-redispatch` can purchase that work again. See [Gemini TTS](../04-audio/tts/overview.md#gemini).
-
-Recorded Gemini Batch jobs preserve their original synthesis and delivery settings; resume rejects TTS overrides. Pending jobs and validated audio are reused, and custom voices are rechecked for expiry before any unsubmitted work is dispatched.
+Price inspection stays local and includes possible unsubmitted/ambiguous work. Known jobs and validated audio are reused; unresolved submission blocks recreation unless later explicitly authorized through `--allow-ambiguous-redispatch`. Original synthesis/delivery settings are pinned and reject overrides; expiring custom voices are rechecked before unsubmitted dispatch. See [Gemini TTS](../04-audio/tts/overview.md#gemini).

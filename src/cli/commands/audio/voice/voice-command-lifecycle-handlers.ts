@@ -2,6 +2,8 @@ import type { CliCommandContext } from '~/types'
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { withProcessLock } from '~/utils/process-lock'
 import { UsageError } from '~/utils/error-handler'
+import { createHostedConcurrencyCoordinator } from '~/cli/commands/command-shared/hosted-concurrency-coordinator'
+import { parseHostedConcurrencyMode } from '~/cli/options/option-resolution/flag-readers'
 import { hashCanonicalTtsValue } from '../tts/script-to-audio/contract-identity'
 import { planCanonicalVoiceAudition, runCanonicalVoiceAudition } from './canonical-voice-audition'
 import {
@@ -52,6 +54,7 @@ export const handleAudition = async (ctx: CliCommandContext): Promise<void> => {
   const representativeLine = requiredFlag(ctx, 'representative-line')
   const plan = planCanonicalVoiceAudition(registration, brief, representativeLine, takeCount)
   const maxCents = nonNegativeNumberFlag(ctx, 'max-cents')
+  const concurrencyMode = parseHostedConcurrencyMode(optionalFlag(ctx, 'concurrency-mode'))
   if (maxCents !== undefined && plan.estimatedCostCents > maxCents) throw UsageError(`Canonical audition estimate ${plan.estimatedCostCents.toFixed(4)} cents exceeds --max-cents ${maxCents}.`)
   if (ctx.flags['price'] === true) {
     reportVoicePrice('Voice audition estimate', { operation: 'voice-audition', estimatedCostCents: plan.estimatedCostCents, mutation: false, characterCount: plan.characterCount, takeCount })
@@ -65,15 +68,17 @@ export const handleAudition = async (ctx: CliCommandContext): Promise<void> => {
     }
     const currentBrief = await requireBrief(currentRegistration.subjectKey, currentRegistration.profileKey)
     const currentConsent = currentRegistration.consentRecordRef ? await loadVoiceConsentRecord(managedVoiceAssetStore, currentRegistration.consentRecordRef) : undefined
-    const generated = await runCanonicalVoiceAudition({ registration: currentRegistration, brief: currentBrief, representativeLine, protectedStore: managedVoiceAssetStore, consent: currentConsent, takeCount, maxCents })
+    const generated = await runCanonicalVoiceAudition({
+      registration: currentRegistration, brief: currentBrief, representativeLine, protectedStore: managedVoiceAssetStore, consent: currentConsent, takeCount, maxCents,
+      scheduling: { concurrencyMode, hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: concurrencyMode }) }
+    })
     const recorded = await recordVoiceAudition({ charactersRoot: getCharactersRoot(), registrationId, generationId, audition: generated })
     return { audition: generated, auditioned: recorded }
   })
-  reportVoiceResult('Voice audition recorded', { auditionId: audition.auditionId, registrationId, generationId: auditioned.generationId, state: auditioned.approval.state })
-  if (approve) {
-    const approved = await approveRegistration(registrationId, auditioned.generationId, requiredFlag(ctx, 'actor-id'))
-    reportVoiceResult('Voice registration approved', { registrationId, generationId: approved.generationId, state: approved.approval.state })
-  }
+  const completed = approve ? await approveRegistration(registrationId, auditioned.generationId, requiredFlag(ctx, 'actor-id')) : auditioned
+  reportVoiceResult(approve ? 'Voice registration approved' : 'Voice audition recorded', {
+    auditionId: audition.auditionId, registrationId, generationId: completed.generationId, state: completed.approval.state
+  })
 }
 
 export const handleApprove = async (ctx: CliCommandContext): Promise<void> => {

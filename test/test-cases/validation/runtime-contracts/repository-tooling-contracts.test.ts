@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { findRawHttpBodyReads, findRepositoryStructureViolations } from '~/tools/repository-structure-check'
+import { findRawHttpBodyReads, findRepositoryStructureViolations, findTypesBarrelBypasses } from '~/tools/repository-structure-check'
 import { triageImageAdvisories } from '~/tools/triage-image-advisories'
 
 test('repository structure rejects new root directories and Python sources while allowing nested tools', () => {
@@ -36,6 +36,21 @@ test('repository structure rejects raw HTTP body reads in source outside the pay
   expect(violations).toHaveLength(1)
   expect(violations[0]).toContain('src/cli/commands/example.ts:2')
   expect(violations[0]).toContain('src/utils/http-payload.ts')
+})
+
+test('public type imports use the barrel while internal type modules retain subsystem imports', () => {
+  const deepImport = 'import { TTS_DELIVERY_SEAM_BOUNDARIES } from "~/types/tts-workflow/tts-types"'
+  expect(findTypesBarrelBypasses('src/cli/example.ts', deepImport)).toHaveLength(1)
+  expect(findTypesBarrelBypasses('test/example.test.ts', 'type Job = import("~/types/tts-workflow/gemini-provider-job-types").GeminiProviderJob')).toHaveLength(1)
+  expect(findTypesBarrelBypasses('src/cli/example.ts', 'export type { TtsOptions } from "../types/tts-workflow/tts-types"')).toHaveLength(1)
+  expect(findTypesBarrelBypasses('src/cli/example.ts', 'import "../types/tts-workflow/tts-types"')).toHaveLength(1)
+  expect(findTypesBarrelBypasses('src/cli/example.ts', 'const types = require("~/types/tts-workflow/tts-types")')).toHaveLength(1)
+  expect(findTypesBarrelBypasses('src/cli/example.ts', 'import { TtsOptions } from "~/cli/../types/tts-workflow/tts-types"')).toHaveLength(1)
+  expect(findTypesBarrelBypasses('src/types/index.ts', deepImport)).toEqual([])
+  expect(findTypesBarrelBypasses('src/types/tts-workflow/example.ts', 'import type { TtsOptions } from "./tts-types"')).toEqual([])
+  expect(findTypesBarrelBypasses('src/cli/example.ts', 'import type { TtsOptions } from "~/types"')).toEqual([])
+  expect(findTypesBarrelBypasses('src/cli/example.ts', 'import type { TtsOptions } from "../types/index"')).toEqual([])
+  expect(findTypesBarrelBypasses('test/example.test.ts', `const fixture = '${deepImport}'`)).toEqual([])
 })
 
 test('advisory triage retains duplicate match counts, distinct binaries, fixes and exact scan provenance', () => {

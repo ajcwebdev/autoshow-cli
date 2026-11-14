@@ -244,9 +244,15 @@ describe('hosted concurrency coordinator', () => {
 
   test('classifies explicit rate pressure but excludes billing, quota, auth, timeout, server, terminal, and exhausted failures', () => {
     expect(classifyHostedRateLimitPressure(ProviderError('limited', { status: 429 }))).toMatchObject({ status: 429 })
+    expect(classifyHostedRateLimitPressure(ProviderError('not admitted yet', { status: 425 }))).toMatchObject({ status: 425 })
     expect(classifyHostedRateLimitPressure(ProviderError('billing quota exhausted', { status: 429 }))).toBeUndefined()
     expect(classifyHostedRateLimitPressure(ProviderError('request rejected', { status: 429, metadata: { category: 'quota_exceeded' } }))).toBeUndefined()
-    expect(classifyHostedRateLimitPressure(ProviderError('request rejected', { metadata: { category: 'concurrency_limit' } }))).toMatchObject({ reason: 'concurrency_limit' })
+    expect(classifyHostedRateLimitPressure(ProviderError('request rejected', { retryable: true, metadata: { category: 'concurrency_limit', admissionDisposition: 'rejected' } }))).toMatchObject({ reason: 'concurrency_limit' })
+    expect(classifyHostedRateLimitPressure(ProviderError('request rejected', { retryable: true, metadata: { code: 'rate_limit', admissionDisposition: 'rejected' } }))).toMatchObject({ reason: 'rate-limit' })
+    expect(classifyHostedRateLimitPressure(ProviderError('rate limit'))).toBeUndefined()
+    expect(classifyHostedRateLimitPressure(ProviderError('too many requests'))).toBeUndefined()
+    expect(classifyHostedRateLimitPressure(ProviderError('request rejected', { metadata: { category: 'concurrency_limit' } }))).toBeUndefined()
+    expect(classifyHostedRateLimitPressure(ProviderError('request rejected', { retryable: true, metadata: { code: 'rate_limit' } }))).toBeUndefined()
     expect(classifyHostedRateLimitPressure(ProviderError('timeout', { status: 408 }))).toBeUndefined()
     expect(classifyHostedRateLimitPressure(ProviderError('server error', { status: 503 }))).toBeUndefined()
     expect(classifyHostedRateLimitPressure(ProviderError('upstream rate limit', { status: 503 }))).toBeUndefined()
@@ -257,6 +263,30 @@ describe('hosted concurrency coordinator', () => {
       retryable: false,
       cause: ProviderError('rate limit', { status: 429 })
     }))).toBeUndefined()
+  })
+
+  test('message-only and incomplete structured pressure failures leave the hosted request at one attempt', async () => {
+    for (const error of [
+      ProviderError('rate limit'),
+      ProviderError('too many requests'),
+      ProviderError('provider concurrency limit'),
+      ProviderError('rate limit', { retryable: true }),
+      ProviderError('rejected', { metadata: { category: 'concurrency_limit' } }),
+      ProviderError('rejected', { retryable: true, metadata: { category: 'concurrency_limit' } })
+    ]) {
+      const coordinator = createHostedConcurrencyCoordinator({ mode: 'immediate' })
+      let attempts = 0
+      try {
+        await expect(runHostedConcurrencyRequest({ coordinator, admission: admission('openai', 0) }, async () => {
+          attempts += 1
+          throw error
+        })).rejects.toBe(error)
+        expect(attempts).toBe(1)
+        expect(coordinator.snapshot().lanes[0]).toMatchObject({ pressureEvents: [], active: 0 })
+      } finally {
+        coordinator.dispose()
+      }
+    }
   })
 
   test('cleans up queued abort listeners and timers on cancellation and disposal', async () => {

@@ -1,6 +1,9 @@
 import * as v from 'valibot'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import { exec } from '~/utils/cli-utils'
+import { readJsonCacheMap, writeJsonCacheEntry } from '~/utils/file-fingerprint-cache'
 import { isLikelyUrl } from '../metadata-targets/metadata-input-classifier'
 import { validateDataSafe } from '~/utils/validate/validation'
 import { buildYtDlpListArgs, buildYtDlpFailureMessage } from '~/cli/commands/command-shared/shared-yt-dlp-options'
@@ -21,46 +24,30 @@ const isYoutubeUrl = (s: string): boolean => {
   try {
     const u = new URL(s)
     const h = u.hostname.toLowerCase()
-    return h.includes('youtube.com') || h.includes('youtu.be')
+    return (u.protocol === 'http:' || u.protocol === 'https:') &&
+      (h === 'youtube.com' || h.endsWith('.youtube.com') || h === 'youtu.be' || h.endsWith('.youtu.be'))
   } catch {
     return false
   }
 }
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-
 const COLLECTION_CACHE_FILE = join(tmpdir(), 'autoshow-yt-collection-cache.json')
-
-const readCollectionCache = (): Record<string, string[]> => {
-  try {
-    if (existsSync(COLLECTION_CACHE_FILE)) {
-      return JSON.parse(readFileSync(COLLECTION_CACHE_FILE, 'utf-8'))
-    }
-  } catch {
-  }
-  return {}
-}
-
-const writeCollectionCache = (url: string, items: string[]): void => {
-  try {
-    const cache = readCollectionCache()
-    cache[url] = items
-    writeFileSync(COLLECTION_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8')
-  } catch {
-  }
-}
+const COLLECTION_CACHE_LOCK = 'yt-collection-cache'
+const YoutubeCollectionItemsSchema = v.array(v.pipe(v.string(), v.check(isYoutubeUrl)))
 
 const buildYoutubeCollectionListArgs = async (url: string): Promise<string[]> =>
   await buildYtDlpListArgs(url, { limit: 'all', order: 'newest' })
 
 const getYoutubeCollectionItems = async (url: string): Promise<string[]> => {
-  const cached = readCollectionCache()[url]
+  const cached = validateDataSafe(
+    YoutubeCollectionItemsSchema,
+    (await readJsonCacheMap<unknown>(COLLECTION_CACHE_FILE))[url]
+  )
   if (cached) {
     return cached
   }
 
+  let items: string[]
   try {
     const args = await buildYoutubeCollectionListArgs(url)
     const res = await exec(getYtDlpBinary(), args)
@@ -69,7 +56,7 @@ const getYoutubeCollectionItems = async (url: string): Promise<string[]> => {
       return []
     }
     const lines = res.stdout.split('\n').map((s: string) => s.trim()).filter((s: string) => s.length > 0)
-    const items: string[] = lines.map((line: string) => {
+    const parsedItems = lines.map((line: string) => {
       try {
         const raw: unknown = JSON.parse(line)
         const parsed = validateDataSafe(YtDlpPlaylistItemSchema, raw)
@@ -81,14 +68,20 @@ const getYoutubeCollectionItems = async (url: string): Promise<string[]> => {
       } catch {
         return ''
       }
-    }).filter((u: string) => u.length > 0)
-    const uniq = Array.from(new Set(items))
-    writeCollectionCache(url, uniq)
-    return uniq
-  } catch {
-    l.warn(`Failed to enumerate YouTube items`, { category: 'pipeline' })
+    }).filter(isYoutubeUrl)
+    items = Array.from(new Set(parsedItems))
+  } catch (error) {
+    l.warn('Failed to enumerate YouTube items', { category: 'pipeline', error })
     return []
   }
+
+  await writeJsonCacheEntry({
+    cachePath: COLLECTION_CACHE_FILE,
+    lockName: COLLECTION_CACHE_LOCK,
+    key: url,
+    value: items
+  })
+  return items
 }
 
 export const resolveYoutubeCollectionItems = async (

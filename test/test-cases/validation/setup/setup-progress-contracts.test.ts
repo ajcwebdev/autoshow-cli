@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   runConcurrentSetupTasks,
+  runCapture,
   runInherit,
   shouldReportReclaimedBuildTrees
 } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
@@ -13,6 +14,22 @@ const waitForTurn = async (): Promise<void> => {
 }
 
 describe('setup progress contracts', () => {
+  test('setup capture drains chatty subprocess pipes while retaining only bounded UTF-8 tails', async () => {
+    const result = await runCapture(process.execPath, ['--no-env-file', '-e', `
+      process.stdout.write('out-start'); process.stderr.write('err-start');
+      for (let i = 0; i < 100; i++) { process.stdout.write('界'.repeat(20_000)); process.stderr.write('文'.repeat(20_000)); }
+      process.stdout.write('out-end'); process.stderr.write('err-end');
+    `])
+    expect(result.exitCode).toBe(0)
+    for (const [stream, start, end] of [[result.stdout, 'out-start', 'out-end'], [result.stderr, 'err-start', 'err-end']]) {
+      expect(stream).toContain('[setup output truncated;')
+      expect(stream).not.toContain(start!)
+      expect(stream!.endsWith(end!)).toBe(true)
+      expect(Buffer.byteLength(stream!)).toBeLessThan(4 * 1024 * 1024 + 100)
+      expect(stream).not.toContain('\uFFFD')
+    }
+  })
+
   test('compact setup subprocess failures include a bounded output tail', async () => {
     setCompactSetupMode(true)
     try {

@@ -36,7 +36,12 @@
         },
         "estimation": {
           "costMultiplier": 1,
-          "msPer1KTokens": 4125
+          "msPer1KTokens": 4125,
+          "timingProvenance": {
+            "status": "provisional",
+            "sourceModel": "gpt-6.1-sol",
+            "notes": "Reuses the sibling model timing heuristic; not measured latency for this model. Published prices are independent of this estimate."
+          }
         },
         "reasoning": {
           "support": "required",
@@ -130,7 +135,12 @@
         },
         "estimation": {
           "costMultiplier": 1,
-          "msPer1KTokens": 3484
+          "msPer1KTokens": 3484,
+          "timingProvenance": {
+            "status": "provisional",
+            "sourceModel": "gpt-6-luna",
+            "notes": "Reuses the sibling model timing heuristic; not measured latency for this model. Published prices are independent of this estimate."
+          }
         },
         "reasoning": {
           "support": "optional",
@@ -243,7 +253,12 @@
         },
         "estimation": {
           "costMultiplier": 1,
-          "msPer1KTokens": 2537
+          "msPer1KTokens": 2537,
+          "timingProvenance": {
+            "status": "provisional",
+            "sourceModel": "gemini-3.8-flash",
+            "notes": "Reuses the sibling model timing heuristic; not measured latency for this model. Published prices are independent of this estimate."
+          }
         },
         "reasoning": {
           "support": "required",
@@ -409,7 +424,12 @@
         },
         "estimation": {
           "costMultiplier": 1,
-          "msPer1KTokens": 4524
+          "msPer1KTokens": 4524,
+          "timingProvenance": {
+            "status": "provisional",
+            "sourceModel": "claude-opus-5-5",
+            "notes": "Reuses the sibling model timing heuristic; not measured latency for this model. Published prices are independent of this estimate."
+          }
         },
         "reasoning": {
           "support": "required",

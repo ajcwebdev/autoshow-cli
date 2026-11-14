@@ -70,9 +70,12 @@ describe('shared and TTS help audit', () => {
     expect(() => resolveTtsDeliveryOptions({ 'tts-chunk-boundary': 'word' })).toThrow('Invalid --tts-chunk-boundary')
   })
 
-  test('hidden controls still reject unsupported Eleven v3 settings before provider dispatch', () => {
+  test('help exposes v4 similarity while unsupported controls still reject for Eleven v3', () => {
+    const help = renderCommandHelp(root, command('tts'))
+    expect(help).toContain('--tts-similarity')
+    expect(help).not.toContain('--tts-style')
+    expect(help).not.toContain('--tts-speaker-boost')
     for (const [flag, value] of Object.entries({ 'tts-similarity': '0.5', 'tts-style': '0.5', 'tts-speaker-boost': 'true' })) {
-      expect(renderCommandHelp(root, command('tts'))).not.toContain(`--${flag}`)
       expect(() => collectTtsTargets(buildOptsFromFlags({ 'elevenlabs-tts': 'eleven_v3', [flag]: value }))).toThrow('Eleven v3 does not expose')
     }
   })

@@ -68,7 +68,7 @@ export const registerRootRenderingCases = (): void => {
     expect(result.stdout).toContain('bun autoshow links models')
     expect(result.stdout).toContain('Fetch model documentation across every provider')
     expect(result.stdout).toContain('--refresh')
-    expect(result.stdout).toContain('Compare with the previous refresh in docs/links/<selection>')
+    expect(result.stdout).toContain('Compare with the previous refresh in docs/links/<selection>-links/')
   })
 
 

@@ -1,58 +1,37 @@
 # Caption Export
 
-See the [STT overview](../../overview.md) for provider selection and shared options.
-
-Generate captions from an audio or video file with `--captions`. Caption export uses the resulting transcript locally and adds no provider call. By default it writes `captions.srt`, `captions.vtt`, and `captions.json` beside each provider's `result.json`. The same export works for media URLs, media batches, split transcription, and [YouTube caption fallback](../../../url/overview.md#youtube-caption-fallback). `--price` estimates transcription without running it.
+`extract --captions` formats completed transcript evidence locally. Fresh media transcription still requires the selected provider and may be billable; export itself adds no provider call. Defaults are `captions.srt`, `captions.vtt`, and timing/layout metadata in `captions.json` beside each target's `result.json`.
 
 ```bash
-bun autoshow extract input/examples/audio/1-audio.mp3 --provider deepinfra --captions
-bun autoshow extract input/examples/video/01-two-speaker-speech.mp4 --provider deepinfra --captions --caption-mode word --output-dir output/video-captions
-bun autoshow extract input/examples/video/01-two-speaker-speech.mp4 --provider deepgram=nova-3 --diarization --captions --caption-format vtt
-```
-The maintained MP3 contains speech. The video is a licensed dialogue excerpt with two speakers; [its provenance and matching transcript](../../../../../../input/examples/video/README.md) accompany it. The commands above perform hosted transcription and require the selected provider's credentials. They do not reuse the bundled transcript.
-
-Invalid caption options fail before transcription. If caption generation fails, the transcript remains. Export again from the saved result to change the layout without paying for transcription again.
-
-Export from a saved `result.json`, or from a directory that contains that file. This path needs no audio, model, API credentials, or video rendering. Use a new `--output-dir` for each layout; existing caption files are not overwritten. Aligned and reconciled results from [local timing and speaker workflows](../timing/overview.md#local-timing-and-speaker-workflows) use this same export.
-
-The bundled transcript matches the excerpt and supplies a standalone local export example. Its coarse segments come from the published subtitles; they are not measured word boundaries:
-
-```bash
+bun autoshow extract input/examples/audio/1-audio.mp3 --provider deepinfra --captions --price
 bun autoshow extract input/examples/video/01-two-speaker-speech.transcript.json --captions --output-dir output/captions-fixture
 ```
 
-After completing the [review/apply chain](../transcript-review/overview.md), export its saved result with a different layout without another transcription:
+The second example is local and needs no audio, model, credentials, or renderer. The [bundled transcript](../../../../../../input/examples/video/README.md) uses published subtitle spans, not measured word boundaries. Saved `result.json` files or directories containing one also support export, including [aligned/reconciled results](../timing/overview.md#local-timing-and-speaker-workflows).
 
-```bash
-bun autoshow extract --captions --transcript-result runtime/examples/speech-workflows/reviewed/result.json --caption-mode word --caption-format vtt --no-caption-speakers --output-dir runtime/examples/speech-workflows/captions-words
-```
+Choose a fresh output directory: existing caption files are not overwritten. Invalid options fail before transcription. Export failure preserves the transcript, allowing another layout without repurchasing inference.
 
-| Flag                                                   | Behavior                                                                                                                                                                                                 |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--caption-format srt\|vtt\|ass\|ttml\|lrc\|both\|all` | Defaults to SRT and VTT (`both`). `all` writes all five formats.                                                                                                                                         |
-| `--caption-mode phrase\|word`                          | Defaults to phrases. Word mode puts one timed word on each cue. A timed span that already contains several words stays one cue.                                                                          |
-| `--caption-speakers`, `--no-caption-speakers`          | Include or hide speaker prefixes. The default includes them.                                                                                                                                             |
-| `--caption-max-words`, `--caption-max-characters`      | Phrase grouping limits. Defaults are 10 words and 58 characters. A single word can exceed the character limit.                                                                                           |
-| `--caption-max-duration`, `--caption-break-gap`        | Cue length and silence-gap limits in seconds. Defaults are 5 and 0.9. These grouping limits preserve existing timing evidence.                                                                           |
-| `--caption-line-width`, `--caption-max-lines`          | Defaults are 42 characters and 2 lines. A long word or speaker prefix can exceed those limits.                                                                                                           |
-| `--caption-max-cps`                                    | Reading-speed warning threshold, default 20 characters/second. Warnings are listed in `captions.json` without retiming cues.                                                                             |
-| `--caption-offset <seconds>`                           | Shift cue times onto the source video timeline. Saved-result export defaults to 0. Fresh embedding uses the source audio start, records it in `captions.json`, and a later export needs the same offset. |
+## Caption options
 
-`captions.json` lists cue boundaries, layout warnings, and counts of inferred or invalid words. A transcript with only segment timing can still export word-mode cues, using estimated word times. Export requires usable timing that covers the transcript text; repair the saved result before retrying if coverage is incomplete.
+- `--caption-format srt|vtt|ass|ttml|lrc|both|all`: default `both` means SRT/VTT; `all` writes all five.
+- `--caption-mode phrase|word`: default `phrase`. Word mode preserves indivisible multiword timed spans.
+- `--no-caption-speakers`: hide default speaker prefixes.
+- `--caption-max-words`, `--caption-max-characters`: phrase limits, default `10` and `58`.
+- `--caption-max-duration`, `--caption-break-gap`: defaults `5` and `0.9` seconds.
+- `--caption-line-width`, `--caption-max-lines`: defaults `42` characters and `2` lines. Indivisible words/prefixes can exceed layout limits.
+- `--caption-max-cps`: reading-speed warning threshold, default `20` characters/second; warnings never retime cues.
+- `--caption-offset`: finite seconds to add to the source timeline. Saved export defaults to `0`; fresh embedding uses the audio start offset recorded in `captions.json`. Preserve that offset on later exports.
 
-ASS and LRC store centiseconds, and LRC stores cue starts without end times. `captions.json` keeps the full time ranges. ASS rejects literal braces or ASS control sequences in the transcript; use SRT, VTT, or TTML for that text.
+Usable timing must cover the full transcript. Segment-only results can produce estimated word cues; `captions.json` records inferred/invalid word counts and warnings. Repair missing coverage before retrying. ASS/LRC round to centiseconds; LRC omits end times. ASS rejects literal braces/control sequences; use SRT, VTT, or TTML instead.
 
 ## Container options and compatibility
 
-Use `--captions --embed-captions` with a local video to transcribe once, keep standalone SRT and VTT, and embed an English subtitle track in a separate video. `--caption-container mp4|mkv|both` defaults to MP4 for an MP4 source and MKV otherwise. Video and audio are copied without re-encoding, and the source file is left unchanged. The English track is selectable and is not forced on. Other containers are not supported.
-
-To embed an existing transcript with no provider call:
+Embedding copies local video/audio and compatible subtitle tracks into a separate MP4/MKV without re-encoding or changing the source. The new English track is selectable, not forced. `--caption-container mp4|mkv|both` defaults to MP4 for MP4 input and MKV otherwise.
 
 ```bash
 bun autoshow extract input/examples/video/01-two-speaker-speech.mp4 --captions --transcript-result input/examples/video/01-two-speaker-speech.transcript.json --embed-captions --caption-container both --no-caption-speakers --output-dir output/captioned-fixture
 ```
-The output is `captioned.mp4` (mov_text), `captioned.mkv` (SubRip), `captions.srt`, `captions.vtt`, `captions.json`, and `caption-embedding.json`. Embedding keeps standalone SRT and VTT, so omit `--caption-format` or select `both` or `all`.
 
-Chapters, metadata, and compatible existing subtitle tracks are kept. Incompatible tracks are reported before transcription. An MP4 mov_text track cannot be copied into MKV, and an MKV ASS track cannot be copied into MP4. Choose a compatible container, or start from a source that already matches it.
+This local example writes `captioned.mp4` (mov_text), `captioned.mkv` (SubRip), standalone SRT/VTT, `captions.json`, and `caption-embedding.json`. Embedding requires `--caption-format both` or `all` (or omission).
 
-If embedding fails after a container is written, that container and the transcript remain. Retry from the saved result into a new output directory.
+Chapters/metadata and compatible existing subtitles are retained. Incompatible tracks fail before transcription: MP4 mov_text cannot copy into MKV, nor MKV ASS into MP4. If partial embedding fails, preserve completed containers/transcripts and retry from the saved result into a fresh directory. See the [STT guide](../../overview.md) for transcription and [review](../transcript-review/overview.md) for text repair.

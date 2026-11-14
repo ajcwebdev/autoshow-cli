@@ -1,5 +1,6 @@
 import { batchFlags, booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags, stepConcurrencyFlag } from './shared-flags'
-import { boolFlag, formatProviderList, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { boolFlag, formatProviderList, formatRange, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { GEMINI_TTS_MODES, GEMINI_TTS_DEFAULT_MODE, GEMINI_TTS_BATCH_WAIT_RANGE, GEMINI_TTS_BATCH_WAIT_DEFAULT_SECONDS } from './gemini-tts-contract'
 import { genericTtsOptionDescription } from './service-selector-normalization/generic-tts-controls'
 import { TTS_DIALOGUE_FORMATS } from '~/cli/options/option-resolution/flag-readers'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
@@ -19,9 +20,9 @@ export const genericTtsOptionFlags = {
   'tts-text-normalization': strListFlag(genericTtsOptionDescription('tts-text-normalization', 'Generic TTS text normalization')),
   'tts-instructions': strListFlag(genericTtsOptionDescription('tts-instructions', 'Generic TTS voice/style instructions or free-form delivery description')),
   'tts-stability': strListFlag(genericTtsOptionDescription('tts-stability', 'Generic TTS voice stability')),
+  'tts-similarity': strListFlag(genericTtsOptionDescription('tts-similarity', 'Generic TTS voice similarity boost')),
   // None of the active ElevenLabs models supports these controls. Preserve parsing and explicit
   // rejection for older callers, but do not advertise options that cannot affect an active model.
-  'tts-similarity': { ...strListFlag(genericTtsOptionDescription('tts-similarity', 'Generic TTS voice similarity boost')), help: { hidden: true } },
   'tts-style': { ...strListFlag(genericTtsOptionDescription('tts-style', 'Generic TTS voice style exaggeration')), help: { hidden: true } },
   'tts-speaker-boost': { ...strListFlag(genericTtsOptionDescription('tts-speaker-boost', 'Generic TTS speaker boost')), help: { hidden: true } },
   'tts-seed': strListFlag(genericTtsOptionDescription('tts-seed', 'Generic TTS deterministic generation seed')),
@@ -30,8 +31,8 @@ export const genericTtsOptionFlags = {
 } as const satisfies CliFlagsDefinition
 
 const standaloneTtsOnlyFlags = {
-  'gemini-tts-mode': strFlag('Gemini transport: unary|stream|batch (default: unary); requires an explicit Gemini selection. Batch submits remote Batch API jobs; directory batching is local.'),
-  'gemini-tts-batch-wait-seconds': strFlag('Seconds to wait for Gemini Batch jobs; integer 0-86400 (default: 86400; 0 submits and returns); requires --gemini-tts-mode batch. Resume retains pending jobs.'),
+  'gemini-tts-mode': strFlag(`Gemini transport: ${formatValueList(GEMINI_TTS_MODES)} (default: ${GEMINI_TTS_DEFAULT_MODE}); requires an explicit Gemini selection. Batch submits remote Batch API jobs; directory batching is local.`),
+  'gemini-tts-batch-wait-seconds': strFlag(`Seconds to wait for Gemini Batch jobs; integer ${formatRange(GEMINI_TTS_BATCH_WAIT_RANGE)} (default: ${GEMINI_TTS_BATCH_WAIT_DEFAULT_SECONDS}; 0 submits and returns); requires --gemini-tts-mode batch. Resume retains pending jobs.`),
 } as const satisfies CliFlagsDefinition
 
 const ttsProviderSelectionFlags = {

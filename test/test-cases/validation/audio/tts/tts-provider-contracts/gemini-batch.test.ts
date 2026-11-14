@@ -6,7 +6,7 @@ import { resumeGeminiRemoteBatch, geminiBatchManifest } from '~/cli/commands/aud
 import { hashCanonicalTtsValue } from '~/cli/commands/audio/tts/script-to-audio/contract-identity'
 import { providerAccountScopeHash } from '~/cli/commands/audio/tts/script-to-audio/advanced-provider-contracts'
 import { writeManifest } from '~/cli/commands/command-shared/pipeline-manifest'
-import type { GeminiProviderJobRun } from '~/types/tts-workflow/gemini-provider-job-types'
+import type { GeminiProviderJobRun } from '~/types'
 import { jsonResponse } from '../../../../../test-utils/rest-contract-helpers'
 import { setupTtsContractLifecycle, installMockFetch } from './shared'
 import { FLASH, LITE, batchAudio, wav } from './gemini-fixtures'

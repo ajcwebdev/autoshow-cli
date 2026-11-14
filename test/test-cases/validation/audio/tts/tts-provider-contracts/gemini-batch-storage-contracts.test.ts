@@ -5,7 +5,7 @@ import { collectGeminiJobResults, GEMINI_JOB_FILE, partitionGeminiJobs, persistG
 import { hashCanonicalTtsValue } from '~/cli/commands/audio/tts/script-to-audio/contract-identity'
 import { providerAccountScopeHash } from '~/cli/commands/audio/tts/script-to-audio/advanced-provider-contracts'
 import { AppError } from '~/utils/error-handler'
-import type { GeminiProviderJobRun } from '~/types/tts-workflow/gemini-provider-job-types'
+import type { GeminiProviderJobRun } from '~/types'
 import { captureLogEvents } from '../../../../../test-utils/console-capture'
 import { setupTtsContractLifecycle, installMockFetch } from './shared'
 import { LITE, batchAudio } from './gemini-fixtures'

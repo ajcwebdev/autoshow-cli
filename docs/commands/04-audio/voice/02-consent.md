@@ -1,37 +1,14 @@
 # voice consent
 
-Create a protected consent record with explicit per-action grants, or revoke an existing locator.
-
-See the [`voice` overview](./00-voice-overview.md) for catalogs, artifacts, and the full flow.
-
-## consent
-
-```bash
-bun autoshow voice consent [subject-key] [flags]
-```
-
-Grant requires `<subject-key>`, `--provenance-ref`, `--actor-id`, and `--allow` with at least one explicit action. Omitted actions stay denied. `--revoke` cannot be combined with `--allow` or a subject key.
-
-Consent records cannot be edited. A grant prints a `protected-consent:v1:...` locator for [clone](./05-clone.md) and other `--consent-ref` commands; after revoke, that locator is rejected. Do not put contact PII in `--actor-id` or `--provenance-ref`.
-
-### Options
-
-| Flag                     | Description                                                                                                   |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `--provenance-ref <ref>` | Opaque non-secret provenance record reference                                                                 |
-| `--allow <grants>`       | Comma-separated grants: `upload`, `new-synthesis`, `cache-reuse`, `resume`, `export`, `retention`, `deletion` |
-| `--evidence <file>`      | Optional consent evidence file                                                                                |
-| `--revoke <consent-ref>` | Protected consent-record locator to revoke                                                                    |
-| `--reason <text>`        | Required non-sensitive revocation reason when `--revoke` is set                                               |
-| `--actor-namespace <ns>` | Actor namespace: `local-user`, `project-role`, or `automation`; default `local-user`                          |
-| `--actor-id <id>`        | Required opaque actor ID                                                                                      |
-| `--price`                | Report $0 without provider calls or writes; revocation checks locator syntax only                             |
-
-### Examples
+Create an immutable protected consent record or revoke its locator. Omitted actions remain denied.
 
 ```bash
 bun autoshow voice consent hero --provenance-ref release:hero-v1 --allow upload,new-synthesis,retention,deletion --actor-id casting_editor
 bun autoshow voice consent --revoke protected-consent:v1:STORE:ASSET:SHA256 --reason "Authorization withdrawn" --actor-id casting_editor
 ```
 
-Next: [import](./03-import.md).
+A grant requires the subject, opaque `--provenance-ref`, `--actor-id`, and at least one comma-separated `--allow` action: `upload`, `new-synthesis`, `cache-reuse`, `resume`, `export`, `retention`, or `deletion`. Optional `--evidence` stays in protected storage. `--actor-namespace` accepts `local-user` (default), `project-role`, or `automation`; keep actor/provenance references free of contact PII.
+
+Use the returned `protected-consent:v1:...` locator with consent-gated commands. Revocation requires `--reason` and `--actor-id`, rejects a subject or `--allow`, and makes the locator unusable. `--price` reports $0 without writes or provider calls; revocation planning validates locator syntax only.
+
+See [clone](05-clone.md) for sample consent requirements.

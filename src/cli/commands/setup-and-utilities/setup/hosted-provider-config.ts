@@ -3,6 +3,29 @@ import type { AutoshowConfig, HostedProviderConfigurationLogMode, HostedProvider
 import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
 
+// The setup supervisor forwards presence only; managed tools never receive credentials.
+export const SETUP_PROVIDER_PRESENCE_ENV = 'AUTOSHOW_SETUP_PROVIDER_PRESENCE'
+
+export const buildSetupProviderPresence = (env: Readonly<Record<string, string | undefined>>): string =>
+  JSON.stringify(HOSTED_PROVIDER_ENV_CHECKS.filter(check => normalizeCredentialValue(env[check.envVar]) !== undefined).map(check => check.envVar))
+
+/** A diagnostic-only environment: these sentinels must never be used for provider requests. */
+export const setupProviderSummaryEnvironment = (env: Record<string, string | undefined>): Record<string, string | undefined> => {
+  const snapshot = env[SETUP_PROVIDER_PRESENCE_ENV]
+  if (env['AUTOSHOW_SETUP_NO_ORPHANS_CHILD'] !== '1' || snapshot === undefined) return env
+  let keys: unknown
+  try {
+    keys = JSON.parse(snapshot)
+  } catch {
+    throw InternalError('Invalid setup provider-presence snapshot', { stage: 'setup:hosted-providers' })
+  }
+  const allowed = new Set<string>(HOSTED_PROVIDER_ENV_CHECKS.map(check => check.envVar))
+  if (!Array.isArray(keys) || !keys.every(key => typeof key === 'string' && allowed.has(key))) {
+    throw InternalError('Invalid setup provider-presence snapshot', { stage: 'setup:hosted-providers' })
+  }
+  return Object.fromEntries(keys.map(key => [key, 'configured-in-supervisor']))
+}
+
 export const HOSTED_PROVIDER_ENV_CHECKS = [
   {
     providerId: 'openai',

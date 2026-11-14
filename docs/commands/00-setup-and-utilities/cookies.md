@@ -1,49 +1,30 @@
 # YouTube Cookies
 
-Save a cookie source with `bun autoshow setup` when `yt-dlp` requests YouTube sign-in or reports `Sign in to confirm you're not a bot`. Commands that access YouTube through `yt-dlp` use that saved source.
-
-- A cookies file is used instead of browser import. If the file is unreadable, AutoShow warns and does not use the browser.
-- `bun autoshow setup --doctor` reports the cookie source and whether a cookies file is readable.
+Configure a cookie source when yt-dlp requests YouTube sign-in or reports a bot check. YouTube operations use that saved source. A configured file takes precedence over browser import; an unreadable file warns and does not fall back to the browser. `setup --doctor` reports the selected source and file readability.
 
 ## Browser Import
 
-Use this when `yt-dlp` can read a logged-in YouTube profile on this machine.
+Use a logged-in browser profile available on this machine:
 
 ```bash
 bun autoshow setup --cookies-from-browser chrome
 ```
 
-Replace `chrome` with `firefox`, `opera`, `edge`, `chromium`, `brave`, `vivaldi`, or `safari`. Name a profile when the default one is not logged in, for example `chrome:Default`. Then retry the command that failed.
+yt-dlp browser/profile syntax is passed through, for example `chrome:Default`. Then retry the failed command.
 
 ## Export `cookies.txt`
 
-Use this when browser import does not work, or when you want a cookie file for this project.
-
-1. Open a fresh private/incognito window.
-2. Log into YouTube there.
-3. In the same tab, open `https://www.youtube.com/robots.txt`, keeping it as the only private/incognito tab.
-4. Export only `youtube.com` cookies in Netscape format using `Get cookies.txt LOCALLY` (Chrome) or `cookies.txt` (Firefox). Close the private window and do not reopen that session, to prevent cookie rotation. Do not commit the file.
-5. Put the file somewhere stable:
+Follow yt-dlp's [YouTube cookie export instructions](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies) to produce a Netscape-format file. It should begin with `# Netscape HTTP Cookie File`. Keep it private and never commit it.
 
 ```bash
 mkdir -p runtime/auth
 cp ~/Downloads/cookies.txt runtime/auth/youtube.cookies.txt
 chmod 600 runtime/auth/youtube.cookies.txt
-```
-
-6. Save the absolute path. AutoShow does not expand `~`.
-
-```bash
 bun autoshow setup --cookies /absolute/path/to/runtime/auth/youtube.cookies.txt
 ```
 
-The file should start with `# Netscape HTTP Cookie File`.
+Use a stable absolute path; AutoShow does not expand `~`. Configuration stores the path or browser name, never cookie contents.
 
 ## If It Still Fails
 
-- Doctor reports a missing or unreadable cookies file: fix the path with `bun autoshow setup --cookies <file>`.
-- Extra `yt-dlp` options on `download` go after `--` and only for a media URL. Set cookies with `setup`, not with `--cookies` after `--`. See [yt-dlp Passthrough](../01-sources/download/overview.md#yt-dlp-passthrough).
-
-## References
-
-- [Exporting YouTube cookies](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)
+Fix unreadable paths through `setup --cookies <file>`. Download's media-only yt-dlp passthrough goes after `--`; configure cookies through setup instead of forwarding them there. See [yt-dlp passthrough](../01-sources/download/overview.md#yt-dlp-passthrough).

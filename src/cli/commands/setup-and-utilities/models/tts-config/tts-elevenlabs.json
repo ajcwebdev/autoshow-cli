@@ -35,7 +35,12 @@
         },
         "estimation": {
           "costMultiplier": 1,
-          "msPer1KChars": 35885
+          "msPer1KChars": 35885,
+          "timingProvenance": {
+            "status": "provisional",
+            "sourceModel": "eleven_v3",
+            "notes": "Reuses the sibling model timing heuristic; not measured latency for this model. Published prices are independent of this estimate."
+          }
         }
       }
     }

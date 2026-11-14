@@ -1,30 +1,23 @@
 # URL Tests
 
-Local e2e fetches a public article; hosted e2e may call paid or quota-limited providers.
+Use local/mocked contracts for article adapters, retries, orchestration, transcript retrieval, and X reports:
 
-## Quick Start
+```bash
+bun test test/test-cases/validation/text/url/
+```
+
+The local end-to-end suite fetches a public article; it requires network access but no hosted-provider call:
 
 ```bash
 bun t test/test-cases/e2e/local/text/url/
-
-bun t test/test-cases/e2e/service/text/url/
 ```
 
-## Coverage
-
-- Local e2e covers Defuddle article extraction.
-- Hosted e2e covers Spider and Zyte article extraction and ScrapeCreators YouTube transcript retrieval.
-- Local and mocked validation is in `test/test-cases/validation/text/url/` and makes no live provider calls.
-
-## Price Preflight
+Hosted tests call Spider, Zyte, or ScrapeCreators and may incur charges. Preflight the selected suite before authorized execution:
 
 ```bash
 bun t test/test-cases/e2e/service/text/url/ --price
 ```
 
-Preflight estimates charges; it does not verify extraction or transcript accuracy.
+Estimates do not establish extraction accuracy, caption availability, or account access. Follow the [testing guide](../../testing.md) and [spending rules](../../../../AGENTS.md).
 
-## Related Docs
-
-- [Testing Overview](../../testing.md)
-- [extract URL and X](overview.md)
+[URL and X usage](overview.md)

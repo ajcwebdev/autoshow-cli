@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import type {
   CharacterVoiceBrief,
+  HostedConcurrencyRuntimeOptions,
   ProviderVoiceRef,
   TtsOptions,
   TtsTarget,
@@ -20,6 +21,7 @@ import { computeVoiceAuditionId, assertVoiceConsentAllows, validateVoiceAudition
 import { hashCharacterVoiceBrief } from './character-voice-registry'
 import { prepareElevenLabsDialogueText } from '../tts/tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { createHostedTtsChunkScheduler } from '../tts/tts-utils/hosted-tts-chunk-scheduler'
+import { DEFAULT_HOSTED_CONCURRENCY_MODE } from '~/cli/options/option-resolution/flag-readers'
 
 const COMPARISON_PASSAGE = 'Morning light crossed the quiet station while a distant bell marked the hour.'
 const NEUTRAL_PASSAGE = 'This is my voice: clear, steady, and ready to tell the story.'
@@ -86,10 +88,18 @@ const requireSingleTarget = (registration: VoiceRegistration): { target: TtsTarg
   return { target: targets[0], options }
 }
 
-export const withCanonicalVoiceAuditionScheduler = (options: TtsOptions): TtsOptions => ({
-  ...options,
-  hostedTtsChunkScheduler: createHostedTtsChunkScheduler({ maxConcurrency: 1, concurrencyMode: 'immediate' })
-})
+export const withCanonicalVoiceAuditionScheduler = (options: TtsOptions): TtsOptions => {
+  const concurrencyMode = options.concurrencyMode ?? DEFAULT_HOSTED_CONCURRENCY_MODE
+  return {
+    ...options,
+    concurrencyMode,
+    hostedTtsChunkScheduler: options.hostedTtsChunkScheduler ?? createHostedTtsChunkScheduler({
+      maxConcurrency: 1,
+      concurrencyMode,
+      hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator
+    })
+  }
+}
 
 const quoteAuditionText = (target: TtsTarget, options: TtsOptions, text: string): number => target.service === 'openai'
   ? buildPureCurrentTtsRenderPlan({ target, sourceText: text, ttsOptions: options }).plannedRenderCost.amounts.reduce((sum, amount) => sum + amount.amount * 100, 0)
@@ -118,6 +128,7 @@ export const runCanonicalVoiceAudition = async (input: {
   consent?: VoiceConsentRecord | undefined
   takeCount?: number | undefined
   maxCents?: number | undefined
+  scheduling?: HostedConcurrencyRuntimeOptions | undefined
   now?: string | undefined
 }): Promise<VoiceAuditionManifest> => {
   const registration = input.registration
@@ -127,7 +138,7 @@ export const runCanonicalVoiceAudition = async (input: {
   if (input.maxCents !== undefined && plan.estimatedCostCents > input.maxCents) throw UsageError(`Canonical audition estimate ${plan.estimatedCostCents.toFixed(4)} cents exceeds --max-cents ${input.maxCents}.`)
   if (!input.protectedStore.withWorkspace || !input.protectedStore.storeBytes) throw UsageError('Canonical audition requires a managed protected store with workspaces.')
   const { target, options } = requireSingleTarget(registration)
-  const auditionOptions = withCanonicalVoiceAuditionScheduler(options)
+  const auditionOptions = withCanonicalVoiceAuditionScheduler({ ...options, ...input.scheduling })
   const providerVoice = registration.provisioning.providerVoice
   const providerVoiceId = voiceId(providerVoice)
   const createdAt = input.now ?? new Date().toISOString()

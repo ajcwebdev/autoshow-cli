@@ -4,7 +4,7 @@ import { withProcessLock } from '~/utils/process-lock'
 import { mkdir, copyFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import type { AggregatedPriceEstimate, PipelineManifestItem, Step4Metadata, PipelineManifest, TtsOptions, TtsStepEstimate, TtsTarget } from '~/types'
-import type { GeminiProviderJobRun } from '~/types/tts-workflow/gemini-provider-job-types'
+import type { GeminiProviderJobRun } from '~/types'
 import { createGenerationOutputDir } from '~/cli/commands/command-shared/generation-command-utils'
 import { createManifest, readManifest, writeManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { collectTextInputFiles } from '~/cli/commands/text/write/text-input-utils'
@@ -25,6 +25,7 @@ import { collectTtsTargets, validateTtsTargetsForExecution } from '../../tts-tar
 import { toProjectRelativePath } from '~/utils/project-root'
 import { UsageError, annotateAppError, isAppError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
+import { GEMINI_TTS_BATCH_WAIT_DEFAULT_SECONDS, GEMINI_TTS_PROVIDER_JOB_ACTIONS, GEMINI_TTS_PROVIDER_JOB_DEFAULT_ACTION } from '~/cli/flags/gemini-tts-contract'
 
 export const geminiBatchManifestItems = (run: GeminiProviderJobRun, metadata: Step4Metadata[][] = []): PipelineManifestItem[] => run.items.map((item, index) => {
   const slots = run.slots.filter(slot => slot.itemIndex === index)
@@ -118,7 +119,7 @@ export const executeGeminiRemoteBatch = async (plan: GeminiRemoteBatchPlan, opti
       await persistGeminiJobs(root, run)
       await writeManifest(root, geminiBatchManifest(run))
       await submitGeminiJobs(root, run, apiKey, signal)
-      if ((options.geminiTtsBatchWaitSeconds ?? 86400) > 0) await reconcileGeminiJobs(root, run, apiKey, 'wait', options.geminiTtsBatchWaitSeconds ?? 86400, signal)
+      if ((options.geminiTtsBatchWaitSeconds ?? GEMINI_TTS_BATCH_WAIT_DEFAULT_SECONDS) > 0) await reconcileGeminiJobs(root, run, apiKey, 'wait', options.geminiTtsBatchWaitSeconds ?? GEMINI_TTS_BATCH_WAIT_DEFAULT_SECONDS, signal)
       await assembleGeminiBatchOutputs(root, run)
     }), { lockRoot: join(root, '.locks') })
   } catch (error) {
@@ -148,8 +149,8 @@ export const resumeGeminiRemoteBatch = async (root: string, flags: Record<string
     return undefined
   }
   for (const key of explicitFlags) if ((key.startsWith('tts-') || ['provider', 'all-providers', 'all-local'].includes(key)) && flags[key] !== undefined && flags[key] !== false) throw UsageError(`Recorded Gemini Batch jobs reject --${key} overrides.`)
-  const action = flags['provider-job-action'] ?? 'wait'
-  if (!['status', 'wait', 'cancel'].includes(String(action))) throw UsageError('--provider-job-action must be status, wait, or cancel.')
+  const action = flags['provider-job-action'] ?? GEMINI_TTS_PROVIDER_JOB_DEFAULT_ACTION
+  if (!GEMINI_TTS_PROVIDER_JOB_ACTIONS.some(candidate => candidate === action)) throw UsageError(`--provider-job-action must be one of: ${GEMINI_TTS_PROVIDER_JOB_ACTIONS.join(', ')}.`)
   if (flags['price'] !== true && flags['gemini-job-lock-held'] !== true) return withProcessLock('gemini-provider-jobs', () => resumeGeminiRemoteBatch(root, { ...flags, 'gemini-job-lock-held': true }, explicitFlags), { lockRoot: join(root, '.locks') })
   const run = validateGeminiJobRun(await Bun.file(join(root, GEMINI_JOB_FILE)).json() as GeminiProviderJobRun)
   const additional = run.jobs.filter(job => !job.jobId && ['prepared', 'uploading', 'submitting'].includes(job.state)).flatMap(job => job.keys).map(key => run.slots.find(slot => slot.key === key)!)
@@ -164,7 +165,7 @@ export const resumeGeminiRemoteBatch = async (root: string, flags: Record<string
       await reconcileGeminiJobs(root, run, apiKey, 'status', 0, signal)
       await submitGeminiJobs(root, run, apiKey, signal)
     }
-    await reconcileGeminiJobs(root, run, apiKey, action as 'status' | 'wait' | 'cancel', 86400, signal)
+    await reconcileGeminiJobs(root, run, apiKey, action as typeof GEMINI_TTS_PROVIDER_JOB_ACTIONS[number], GEMINI_TTS_BATCH_WAIT_DEFAULT_SECONDS, signal)
     if (action !== 'status') await assembleGeminiBatchOutputs(root, run)
   })
   const result = report(root, run)

@@ -1,161 +1,53 @@
-# Types, Metadata & Output Layout
-
-Public output artifacts, the pipeline manifest, runtime directories, and metadata fields.
-
-## Outline
-
-- [Output Layout](#output-layout)
-- [Canonical Manifest](#canonical-manifest)
-- [Runtime Layout](#runtime-layout)
-- [Metadata](#metadata)
+# Types and Output Ownership
 
 ## Output Layout
 
-The trees show common artifacts across commands; a run contains only the files produced by its command and selected options. `--output-root` changes the parent directory, and `--output-dir` pins an exact run directory.
+Each run owns a canonical manifest and only the artifacts its workflow produces:
 
 ```text
-output/
-  YYYY-MM-DD_HH-MM-SS-mmm_<title>/
-    manifest.json                       # every run root, including metadata
-    metadata.md                         # metadata --save --markdown only
-
-    <media-stem>.(mp3|m4a|ogg|flac|wav)    # source basename or publish-date/title slug; lossless uses wav
-    source-timeline.json                # lossless audio profile
-    transcription.txt                   # single-provider or primary text output
-    youtube-captions.vtt                 # when --youtube-captions succeeds
-    youtube-captions.json
-    prompt.md
-    prompt-md.md                        # when --prompt-md is set
-    text.json                           # single LLM target
-    text-<model>.json                    # multiple LLM targets; shared model IDs add a provider prefix
-    text.md                             # when --rendered-text is set
-    text-<model>.md
-    show-note.md
-    show-note-<model>.md
-    providers/<service>-<model>/         # STT targets
-      transcription.txt
-      result.json
-
-    extraction.txt
-    extraction.md                       # X Space runs and document --docx-markdown
-    result.json
-    providers/<service>-<model>/         # OCR targets
-      extraction.txt
-      result.json
-    providers/<backend>/                # HTML article backends
-      extraction.txt
-      result.json
-
-    speech.wav                          # speech-<provider>-<model>.wav for multiple TTS targets
-    slots/audio.zip                     # retained TTS request audio after successful completion
-    <target-key>/
-      render.json                       # TTS render record
-      timeline.json
-    generated-image.*                   # extra images append -<n>; multiple targets add a provider/model suffix
-    generated-video.mp4                 # generated-video-<provider>-<model>.mp4 for multiple targets
-    generated-music.mp3                 # generated-music-<provider>-<model>.mp3 for multiple targets
-
-    <stem>.mp4
-    <stem>.vtt
-    <stem>.srt
+output/<timestamp>_<slug>/
+  manifest.json
+  <source media / extracted text / generated output>
+  result.json                         # retained STT/extraction payload when applicable
+  providers/<target>/                 # independent multi-provider results or OCR attempts
 ```
 
-Batch roots:
+Common families:
 
-```text
-non-extract batch:
-  manifest.json
-  <item-output>/
+- STT: `transcription.txt`, provider evidence, optional captions, and `source-timeline.json` for lossless preparation.
+- Extraction: `extraction.txt`/JSON, optional chapters or Markdown, attributed provider results/attempts.
+- Write: `source.txt`, `prompt.md`, `text.json`, and `show-note.md`; optional `prompt-md.md` and rendered `text.md`. Multiple targets qualify names by model and, on collisions, provider.
+- Generation: speech, images, video, or music plus recorded target settings. TTS separates purchased clips (`slots/audio.zip` after successful compaction), render/timeline records, masters, and derived exports.
 
-extract batch:
-  manifest.json                 # parent items and child links
-  media/
-    manifest.json
-    <item-output>/
-  document/
-    manifest.json
-    <item-output>/
-  article/
-    manifest.json
-    <item-output>/
-  x-space/
-    manifest.json
-    <item-output>/
-
-standalone tts directory batch:
-  manifest.json
-  <item-stem>.<ext>                       # one target
-  <item-stem>-<provider>-<model>.<ext>    # multiple targets
-  items/<item-stem>/
-    slots/audio.zip
-    <target-key>/
-      render.json
-      timeline.json
-```
-
-Each run root owns one `manifest.json`; batch trees can contain child manifests. Extract parent items link to route child manifests by a relative directory. TTS directory batch items record the input, audio stem, status, providers, cost, timing, and errors. See [Input Routing & Batch Orchestration](02-input-routing-batch.md) for how extract batches are partitioned by route.
-
-Multi-target write outputs use the same stem for JSON, rendered Markdown, and show notes.
+`--output-root` changes the parent; applicable commands accept `--output-dir` to pin a run. Ordinary batches place items beside their parent manifest; extract batches add route child manifests. TTS directory batches publish item audio at the root and retain item state beneath `items/<item-stem>/`. [Batch routing](02-input-routing-batch.md#batch-layout) and command guides own exact naming rules.
 
 ## Canonical Manifest
 
-Single runs and batches use the same shape:
-
-```json
-{
-  "command": "extract",
-  "scope": "single",
-  "createdAt": "2026-08-10T12:00:00.000Z",
-  "updatedAt": "2026-08-10T12:00:05.000Z",
-  "source": {},
-  "items": [
-    {
-      "input": "input/audio.mp3",
-      "inputFamily": "media",
-      "extractRoute": "media",
-      "outputDir": ".",
-      "status": "full",
-      "metadata": {},
-      "providers": [
-        {
-          "service": "whisperfile",
-          "model": "small",
-          "local": true,
-          "artifactDir": ".",
-          "status": "succeeded",
-          "attempts": 1,
-          "options": {},
-          "metadata": {},
-          "result": {}
-        }
-      ]
-    }
-  ]
-}
+```text
+manifest.json
+  command + scope + timestamps + optional source
+  items[]
+    input / route / outputDir / optional child-manifest link
+    status + metadata
+    providers[]
+      service/model + artifactDir + status/attempts
+      options + metadata + optional settings/result/error
+  optional providerJobs --> gemini-provider-jobs.json
 ```
 
-Commands are `metadata`, `download`, `extract`, `write`, `tts`, `image`, `video`, `music`, and `comic`. Scope is `single` or `batch`. Item status is `full`, `incomplete`, `failed`, or `skipped`; provider status is `running`, `succeeded`, `missing`, `failed`, or `skipped`.
+Item statuses are `full`, `incomplete`, `failed`, or `skipped`; provider statuses are `running`, `succeeded`, `missing`, `failed`, or `skipped`. Child links and artifacts use relative directories. Optional provider settings record effective controls; they can reject incompatible recovery but never prove completed work.
 
-`source` is optional top-level data for source-backed work such as podcast feeds or YouTube collections.
-
-Provider directories may keep a raw `result.json` next to generated text. That file is the transcription or extraction payload, not a second manifest:
-
-```json
-{
-  "text": "…",
-  "segments": []
-}
-```
+The Gemini provider-job ledger is linked recovery evidence, not a second inferred completion authority. Result payloads, diagnostics, and `--json --result-file` artifacts likewise do not replace the manifest. [ADR-002](../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) defines persistence and resume; the schema lives in `src/types/provider-core/provider-contract-types.ts` and is exported through `~/types`.
 
 ## Runtime Layout
 
-Managed installs live under `runtime/` in the project checkout. A tool found in `--bin-dir` takes precedence over its managed install. macOS requires an override or managed binary; other hosts can fall back to `PATH`.
-
 ```text
 runtime/
-  bin/                           # managed binaries, including whisperfile models
-  tools/                         # installed tool prefixes
+  bin/                 # managed tools and Whisperfile bundles
+  tools/               # installed prefixes
 ```
+
+An explicit tool directory takes precedence; macOS has no implicit PATH fallback. See [setup resolution](04-providers-and-setup.md#setup-pipeline).
 
 ### Comic character and run layout
 
@@ -163,78 +55,31 @@ runtime/
 input/characters/
   characters-reference.json
   character-sketches.json
-  <canonical-source-image>
-  <source-stem>--outline-sheet.png
-
+  <canonical source images>
 input/locations/
   locations-reference.json
   location-sketches.json
-  location-plans.json                # optional reviewed room geometry
-  plans/
-    <location-key>--floor-plan.png   # optional drawing behind a reviewed record
+  location-plans.json
 
 output/<timestamp>_<scene-slug>/
   manifest.json
   metadata/
     structured-script.json
-    structured-script.previous.json  # written only when a structure re-run replaces an existing script
-    draft-prompt.md
     scene.json
-    scene.invalid.json               # only when validation preserves invalid model output
-    blocking-prompt.md               # blocking drafter prompt, written by the prompt stage
-    blocking-plan.json               # reviewed stage marks and camera setups, written by the blocking stage
-    blocking-plan.invalid.json       # only when the blocking stage preserves an invalid plan candidate
-    blocking-bindings.json           # only in bind mode, when a reviewed scene.json predates the plan
-    blocking/                        # compiled by panel-prompts when a plan exists
-      plan-overview.svg
-      panel-NN.svg
-      panel-NN-layout.png             # dense ledgers only
-      blocking-ledger.md
-    review/                          # written by comic review and draft-scenes --reconcile-from-directives
-      review-notes-<run-id>.md
-      review-sheet.html
-      export-doc.md                  # only with comic review --export-doc
-      reconcile-<run-id>.json        # only with draft-scenes --reconcile-from-directives
-    panel-prompts/
-      source-coverage.json
-      panel-NN/
-        <scene>-panel-N.md            # stable keys/mappings; images read directly from current canonical roots
-  panels/
-  pages/
+    blocking-plan.json
+    blocking/                       # compiled diagrams and ledger
+    panel-prompts/                  # images read directly from current canonical roots
+    review/
+  panels/                           # reviewed still panels
+  pages/                            # grouped pages
   sketches/
-  qa/                                  # written only by generate-images --qa-only
-    panel-audit-<run-id>/
-      page-qa-report.json
-      page-qa-report.md
-      qa-only-audit.json
-    continuity-audit-<run-id>/         # only with --continuity-qa
-      stage-state.json
-      continuity-report.json
-      continuity-report.md
-      panel-NN-continuity.json
-    continuity-labels.json             # optional human labels, read by --labels; "labeled": false marks an unfilled template that --labels refuses
-
-<output-root>/bloopers/               # only with generate-images --bloopers; never canonical
-  bloopers.json
-  README.md
-  <episode>/<scene-slug>/
-    panel-NN-attempt-N.png
-    panel-NN-attempt-N.png.json
+  qa/                               # image/continuity audits
+  audio/                            # retained scene audio/soundscape state and masters
+  presentation/                     # derived plan, WAV, and MP4
 ```
+
+Reviewed source coverage and voice snapshots bind downstream work. Protected voice registrations, consent, and reference recordings remain outside run outputs and the visual catalog. Optional invalid candidates, review/reconciliation logs, and bloopers are diagnostic evidence, not canonical replacements. [Comic guides](../commands/05-visuals/comic/00-comic-overview.md) describe stage artifacts and recovery.
 
 ## Metadata
 
-Item `status` and `providers` record completion and provider progress. Item metadata commonly includes title, slug, duration or page count, source URL or path, output file names, token or character counts, timings, and cost.
-
-Typical metadata by command or artifact:
-
-- Media: title, slug, duration, channel, source, publish metadata, and audio file name/size.
-- Document: title, slug, author, page count when available, format, file size, and source.
-- STT: service, model, output files, segment counts, timings, cost, and YouTube caption language/format when captions were used.
-- Extraction: method, provider/model/backend, format, page counts, language, and cost.
-- Write: service/model, output file, token counts, processing time, and cost.
-- TTS: provider/model, voice/speaker/language, audio file names/sizes, chunk counts, processing time, and cost.
-- Image: provider/model, file names/sizes, dimensions, format, request mode, and cost.
-- Video: provider/model, file name/size/duration, resolution/aspect ratio, request mode, and cost.
-- Music: provider/model, file name/size/duration, lyrics source, generated title/style, and cost.
-- Comic: stage progress (structure, image, audio, presentation), scene identity, structured script, dialogue plan, and selected audio/soundscape/presentation refs. The script slug lives in the manifest `source` block.
+Metadata records available source identity, title, duration/pages, provider/model, timing, usage, costs, and artifact references. Command-specific fields differ; consumers should read the canonical typed projection rather than infer completion from filenames. Registry prices, estimated costs, recorded usage, and reconciled billing are separate evidence.

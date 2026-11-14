@@ -12,6 +12,38 @@ const FAST_RETRY_POLICY = {
 
 describe('retry error contracts', () => {
 
+  test('withHostedTtsRetry never redispatches on rate-limit wording or unconfirmed structured pressure alone', async () => {
+    for (const error of [
+      ProviderError('rate limit'),
+      ProviderError('too many requests'),
+      ProviderError('provider concurrency limit'),
+      ProviderError('rejected', { retryable: true, metadata: { category: 'concurrency_limit' } })
+    ]) {
+      let attempts = 0
+      await expect(withHostedTtsRetry({
+        operationName: 'hosted-tts-unconfirmed-rate-pressure',
+        policy: { ...FAST_RETRY_POLICY, maxAttempts: 4 }
+      }, async () => {
+        attempts += 1
+        throw error
+      })).rejects.toBe(error)
+      expect(attempts).toBe(1)
+    }
+  })
+
+  test('withHostedTtsRetry accepts an explicit structured rejected-and-retryable rate verdict', async () => {
+    let attempts = 0
+    await expect(withHostedTtsRetry({
+      operationName: 'hosted-tts-confirmed-rate-pressure',
+      policy: { ...FAST_RETRY_POLICY, maxAttempts: 2 }
+    }, async () => {
+      attempts += 1
+      if (attempts === 1) throw ProviderError('rejected', { retryable: true, metadata: { category: 'concurrency_limit', admissionDisposition: 'rejected' } })
+      return 'audio'
+    })).resolves.toBe('audio')
+    expect(attempts).toBe(2)
+  })
+
   test('withHostedTtsRetry does not redispatch an ambiguous timeout', async () => {
     let attempts = 0
     const signals: boolean[] = []

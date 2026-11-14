@@ -1,6 +1,6 @@
 # CLI Usage
 
-Shared command syntax, help, logging, and JSON output. See the [command guide](../../../README.md#command-guide) to choose a command.
+Choose a command from the [command guide](../../../README.md#command-guide). `bun as` is equivalent to `bun autoshow`.
 
 ## Command Syntax and Help
 
@@ -8,69 +8,41 @@ Shared command syntax, help, logging, and JSON output. See the [command guide](.
 bun autoshow <command> [input] [flags]
 bun autoshow help <command>
 bun autoshow <command> --help
+bun autoshow extract --help-topic documents
+bun autoshow --help-topic globals
 bun autoshow --version
 ```
 
-`bun as <command>` is a shorter equivalent. Put flags after the command. Prefix a filename that begins with `-` with `./` so it is not parsed as a flag.
-
-Use `--help-topic` to print one topic without an input and without running the command. `--help` lists the topics.
-
-```bash
-bun autoshow extract --help-topic documents
-bun autoshow video --help-topic provider:grok
-bun autoshow resume --help-topic concurrency
-```
+`--help-topic` prints focused help without input or execution; `--help` lists topics. Prefix filenames beginning with `-` with `./`. Unknown flags fail before execution; `--` ends option parsing where positional/passthrough input is supported.
 
 ## Global Flags
 
-Shared across commands unless a command's help omits them:
+Each command's help lists the globals it accepts. `--config-path` selects saved defaults; `--output-root` changes the timestamped-output base, while `--output-dir` pins a run directory on commands that create one. `--characters-root` applies only to voice/comic. `--bin-dir` overrides tool lookup; see [setup](setup.md).
 
-| Flag                      | Effect                                                                                                           |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `--config-path <path>`    | Config file path (default: `config/autoshow.json` in the project root).                                          |
-| `--output-root <dir>`     | Base directory for timestamped run folders (default: `./output`).                                                |
-| `--output-dir <dir>`      | Pin the run directory instead of `output/<timestamp>_<slug>`. Requires a command that creates one run directory. |
-| `--characters-root <dir>` | Comic/voice character reference directory (default: `input/characters`). `voice` and `comic` only.               |
-| `--bin-dir <dir>`         | Prefer tool binaries in this directory before installed tools and `PATH`.                                        |
-| `--allow-over-budget`     | Continue above the budget set with `config --max-cents`. The override is not saved.                              |
-| `--require-shared-budget` | Require a complete shared-budget scope; older CLI images reject this capability flag before execution.           |
-
-`bun autoshow --help-topic globals` lists these controls. Each command's `--help` shows only the globals it accepts.
+`--allow-over-budget` bypasses the configured estimate limit for one invocation, is never saved, and cannot bypass shared-budget enforcement. Actual charges can differ from estimates.
 
 ## Logging
 
-Text is the default. Each diagnostic is one line.
+Text diagnostics are one line per event. `--quiet` suppresses non-errors, `--verbose` enables debug, and `--log-level` selects `debug`, `info`, `success`, `warn`, or `error`.
 
-| Flag                     | Effect                                                                 |
-| ------------------------ | ---------------------------------------------------------------------- |
-| `--quiet`, `-q`          | Suppress non-error diagnostics.                                        |
-| `--verbose`              | Include debug diagnostics.                                             |
-| `--log-level <level>`    | Set the minimum level: `debug`, `info`, `success`, `warn`, or `error`. |
-| `--color` / `--no-color` | Enable or disable terminal color.                                      |
-
-Color is enabled on a TTY. `NO_COLOR` disables color whenever it is set, including an empty value. A non-empty, non-zero `FORCE_COLOR` enables color, including in redirected output, and takes precedence over `NO_COLOR`. `--color` and `--no-color` override both.
+Color follows TTY detection. Any `NO_COLOR` disables it; nonempty/nonzero `FORCE_COLOR` takes precedence. `--color` / `--no-color` override both.
 
 ## JSON Output
 
-`--json` writes diagnostic records to stderr and exactly one result record to stdout. `--quiet` and `--log-level` do not suppress that result. Diagnostics and errors are redacted.
+`--json` emits redacted diagnostics on stderr and exactly one terminal result on stdout, including help, parse failures, and fatal errors. Logging filters never suppress the result. `--no-json` or `--json=false` selects text output.
 
 ```bash
 bun autoshow setup --show --json 2>diagnostics.jsonl | jq '.data'
+bun autoshow setup --show --json --quiet --result-file output/results/setup-result.json
 ```
 
-For agent workflows, add `--result-file <new-path>` to save the complete sanitized terminal result and receive a compact summary on stdout:
+`--result-file` requires JSON. It saves the complete sanitized envelope and emits a summary of at most 8 KiB, marked `resultMode: "summary"`, with status, exit code, run ID, bounded previews, and `artifact: { path, bytes, sha256 }`. Read the artifact for full nested data and exact prices; verify bytes/checksum across storage boundaries.
 
-```bash
-bun autoshow setup --show --json --quiet --result-file .tmp/setup-result.json
-```
-
-The summary retains status, exit code, run ID, bounded field/count/error previews and an `artifact` reference containing the file path, byte count and SHA-256. It is marked `resultMode: "summary"` and fits within 8 KiB. Read the artifact's `data` for full results or exact price estimates; the summary is not a replacement pricing contract. Existing `--json` output is unchanged when `--result-file` is absent.
-
-The path resolves from the command's working directory. Missing parent directories are created privately, and the result file is created with mode `0600` before command execution. Existing files and symlinks are rejected rather than overwritten; choose a fresh path for each invocation. Credential fields and sensitive text are redacted without truncating nested result data. A file-creation failure prevents command execution; a later artifact-write failure returns a nonzero failure result. Raw standalone payload output cannot be combined with this mode. Diagnostic stderr follows the existing logging rules; use `--quiet` when only error diagnostics are wanted. Result files are projections, so canonical output files and manifests remain the owning evidence.
+Paths resolve from the working directory. Creation precedes command execution, uses `0600` files and `0700` new parents, and rejects existing files/symlinks. Choose a fresh path each time. Creation/write failures fail the command; raw standalone payload output cannot bypass compact mode. Result artifacts are projections, not replacements for canonical manifests or provider evidence.
 
 ## Shared Runtime Budget
 
-Independent operator commands can share one cumulative admission ledger. Give every participating process the same ledger and cap, with an explicit per-invocation allocation:
+Related processes can share one cumulative admission ledger:
 
 ```bash
 mkdir -p output/budgets
@@ -80,25 +52,25 @@ export AUTOSHOW_BUDGET_RESERVE_CENTS=25
 bun autoshow write notes.md --provider openai=gpt-6.1-sol --prompt shortSummary --json --require-shared-budget
 ```
 
-All three environment values are required together. Cap and allocation are positive safe-integer cents; the allocation cannot exceed the cap. Every invocation reserves before entering its command handler. A new ledger's parent directory must already exist. Reuse the same ledger across related workers and retries; do not replace it or increase its immutable cap to resume the same authorized batch. Retain it with the batch's resumable state rather than treating it as disposable scratch.
+Require all three variables: positive safe-integer cap/allocation in cents, allocation no larger than cap, and an existing ledger-parent directory. Every related worker/retry must use the same ledger and immutable cap; preserve it with resumable state. `--require-shared-budget` also makes older CLI images fail instead of ignoring the scope.
 
-The command's complete selected estimate must fit its allocation. Partial batch estimates fail closed, and `--allow-over-budget` cannot bypass this gate. Shared paid-create retry and REST boundaries require accepted pricing. Supported execution roots are `write`, `extract`, `download`, `tts`, `image`, `video`, and `music`. Other execution paths, including `comic`, `voice`, and `resume`, currently reject a configured scope before their handlers. Valid `--price` runs and help/version do not consume reservations. Without the scope, existing command behavior is unchanged.
+Before handlers, reserve the allocation; before paid dispatch, require a complete accepted estimate within it. Unknown/skipped prices and `--allow-over-budget` cannot bypass this gate. Execution supports `write`, `extract`, `download`, `tts`, `image`, `video`, and `music`; configured `comic`, `voice`, and `resume` execution fail before handlers. Valid price-only commands and help/version consume no reservation.
 
-Successful commands conservatively consume their full declared allocation, even if estimated cost is lower. Failed or interrupted work keeps the full allocation held; a missing response is not proof of no charge. This is cumulative command-admission accounting, not a provider-enforced invoice cap. Provider charges can exceed estimates, and external clients such as OpenCode do not participate. Existing project approval thresholds, credentials, and model policies remain applicable.
+Success books the entire allocation. Failures retain uncertain holds; killed processes leave durable reservations. This is command-admission accounting, not an invoice cap: actual charges may differ, external clients do not participate, and [project spending approval](../../../AGENTS.md#paid-providers) still applies.
 
-Inspect the cap, total held amount, receipt count, and last twenty receipts through the supported local tool:
+Inspect the latest twenty receipts or a specific reservation:
 
 ```bash
 bun src/tools/spending-ledger-command.ts status output/budgets/selected-batch.json
 bun src/tools/spending-ledger-command.ts status output/budgets/selected-batch.json --id <reservation-id>
 ```
 
-Stop every participating process and resolve all outstanding provider requests before reducing any hold. A partially observed bill does not establish that an active request is finished. After reconciling provider records, explicitly confirm this stopped state and settle an outstanding receipt with a rounded-up integer-cent charge and billing evidence:
+Stop all participating processes and resolve outstanding provider requests before reducing a hold. Reconcile provider records, round the charge up to integer cents, and explicitly confirm stopped state:
 
 ```bash
 bun src/tools/spending-ledger-command.ts reconcile output/budgets/selected-batch.json --budget-cents 100 --id <reservation-id> --charged-cents 3 --evidence "Provider usage export confirms the interrupted request charged three cents." --confirm-stopped
 ```
 
-Reconciliation applies only to outstanding reservations or uncertain holds. It cannot silently refund a completed allocation or clear a recorded breach. An observed charge above its reservation records a fatal ledger state and blocks further admission. Lock acquisition has a deadline; stale locks are never automatically removed. Preserve the ledger, investigate the owner and billing evidence, and stop affected work rather than manually rewriting accounting.
+Only outstanding/uncertain receipts can be reconciled. Completed allocations and breaches cannot be silently refunded/cleared. Charges above a reservation record a fatal state blocking admission. Lock acquisition is bounded; stale locks are never automatically removed. Preserve and investigate accounting instead of rewriting it manually.
 
-Docker wrappers must explicitly forward the complete scope and mount the ledger's parent directory writable at a stable container path. Every worker must address the same host-backed file. Include `--require-shared-budget` on execution and pricing invocations so an older image fails on the unknown flag instead of silently ignoring the budget variables. The scope is admission state and does not authorize any provider charge by itself.
+Docker wrappers must forward all three variables, mount the ledger parent writable at a stable path shared by workers, and pass `--require-shared-budget` for execution/pricing. The scope itself authorizes no provider charge.

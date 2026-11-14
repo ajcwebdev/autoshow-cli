@@ -61,6 +61,26 @@ test('raw link manifests do not repeat URLs across categories', () => {
   expect(duplicates).toEqual([])
 })
 
+test('model catalogs and model-reference routes belong to Models sections', () => {
+  // Match catalog/reference routes, while leaving usage guides such as
+  // Grok's model-capabilities/ in their modality sections.
+  const modelReferencePath = /(?:^|\/)(?:models|model|tts-models|models-languages-overview|get_models|get_tts_models)(?:[/.]|$)/
+  const misplaced: string[] = []
+
+  for (const [provider, sections] of DISK_MANIFESTS) {
+    for (const [section, urls] of Object.entries(sections)) {
+      if (section === 'Models') continue
+      for (const url of urls) {
+        if (modelReferencePath.test(new URL(url).pathname)) {
+          misplaced.push(`${provider}/${section}: ${url}`)
+        }
+      }
+    }
+  }
+
+  expect(misplaced).toEqual([])
+})
+
 test('link sections are non-empty and free of repeats within themselves', () => {
   const offenders: string[] = []
 

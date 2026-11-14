@@ -256,10 +256,13 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'grok:speech-to-text': 'grok-voice-transcribe-2.0'
   },
   extract: {
-    'gemini:gemini-3.1-flash-lite': 'gemini-3.8-flash'
+    'gemini:gemini-3.1-flash-lite': 'gemini-3.8-flash',
+    'grok:grok-4.5': 'grok-4.7'
   },
   llm: {
-    'gemini:gemini-3.1-flash-lite': 'gemini-3.8-flash'
+    'gemini:gemini-3.1-flash-lite': 'gemini-3.8-flash',
+    'grok:grok-4.5': 'grok-4.7',
+    'anthropic:claude-fable-5': 'claude-fable-5-2'
   },
   tts: {
     'elevenlabs:eleven_flash_v2_5': 'eleven_v3',
@@ -268,20 +271,12 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
     'openai:tts-1-hd': 'gpt-4o-mini-tts-2025-12-15',
     'inworld:realtime-tts-2-flash': 'realtime-tts-2'
   },
+  // Removed whole providers retain historical rates above, without naming another provider's model as a successor.
   image: {
     'grok:grok-imagine-image': 'grok-imagine-image-2.0',
     'grok:grok-imagine-image-quality': 'grok-imagine-image-2.0',
     'gemini:gemini-3.1-flash-image': 'gemini-3.1-flash-lite-image',
-    'gemini:gemini-3-pro-image': 'gemini-3.1-flash-lite-image',
-    'bfl:flux-2-klein-4b': 'gpt-image-2.5-flare',
-    'bfl:flux-2-klein-9b': 'gpt-image-2.5-flare',
-    'bfl:flux-2-pro': 'gpt-image-2.5-flare',
-    'bfl:flux-2-max': 'gpt-image-2.5-flare',
-    'bfl:flux-2-flex': 'gpt-image-2.5-flare',
-    'recraft:recraftv4_1': 'gpt-image-2.5-flare',
-    'recraft:recraftv4_1_pro': 'gpt-image-2.5-flare',
-    'recraft:recraftv4_1_utility': 'gpt-image-2.5-flare',
-    'recraft:recraftv4_1_utility_pro': 'gpt-image-2.5-flare'
+    'gemini:gemini-3-pro-image': 'gemini-3.1-flash-lite-image'
   },
   music: {
     'elevenlabs:music_v1': 'music_v2',

@@ -104,7 +104,7 @@ export const registerMediaCommandHelpCases = (): void => {
     expect(result.stdout).not.toContain('--elevenlabs-tts-optimize-streaming-latency')
     // Supported controls stay public; controls rejected by every active model remain compatibility-only.
     expect(result.stdout).toContain('--tts-stability')
-    expect(result.stdout).not.toContain('--tts-similarity')
+    expect(result.stdout).toContain('--tts-similarity')
     expect(result.stdout).not.toContain('--tts-style')
     expect(result.stdout).not.toContain('--tts-speaker-boost')
     expect(result.stdout).toContain('--tts-seed')

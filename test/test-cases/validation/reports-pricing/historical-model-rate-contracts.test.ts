@@ -178,9 +178,9 @@ describe('historical model rate contracts', () => {
     expect(getVideoModelMeta('runway', 'gen4.5')).toMatchObject({ baseCostPerSecondCents: 12 })
   })
 
-  test('retired image selectors retain exact rates and refresh-report replacements', () => {
+  test('retired image selectors retain rates and same-provider successors without cross-provider substitution', () => {
     expect(getImageCost('bfl', 'flux-2-pro')).toBe(3)
-    expect(getRetiredModelReplacement('image', 'bfl', 'flux-2-pro')).toBe('gpt-image-2.5-flare')
+    expect(getRetiredModelReplacement('image', 'bfl', 'flux-2-pro')).toBeUndefined()
     expect(getImageCost('recraft', 'recraftv4_1')).toBe(4)
     expect(getImageCost('recraft', 'recraftv4_1_utility')).toBe(4)
     expect(getImageCost('recraft', 'recraftv4_1_pro')).toBe(25)
@@ -188,8 +188,8 @@ describe('historical model rate contracts', () => {
     expect(getImageCost('grok', 'grok-imagine-image')).toBe(2)
     expect(getRetiredModelReplacement('image', 'grok', 'grok-imagine-image')).toBe('grok-imagine-image-2.0')
     expect(getRetiredModelReplacement('image', 'grok', 'grok-imagine-image-quality')).toBe('grok-imagine-image-2.0')
-    expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1')).toBe('gpt-image-2.5-flare')
-    expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1_pro')).toBe('gpt-image-2.5-flare')
+    expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1')).toBeUndefined()
+    expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1_pro')).toBeUndefined()
     expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3.1-flash-image')).toBe('gemini-3.1-flash-lite-image')
     expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3-pro-image')).toBe('gemini-3.1-flash-lite-image')
   })

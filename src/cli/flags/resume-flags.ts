@@ -23,12 +23,13 @@ import type { CliFlagsDefinition } from '~/types'
 import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from './service-selector-normalization/extract-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/command-shared/extract-routing/provider-registry'
+import { GEMINI_TTS_PROVIDER_JOB_ACTIONS, GEMINI_TTS_PROVIDER_JOB_DEFAULT_ACTION } from './gemini-tts-contract'
 
 const extractProvidersFor = (kind: 'stt' | 'ocr'): Record<string, unknown> =>
   Object.fromEntries(Object.entries(EXTRACT_PUBLIC_SELECTOR_FLAGS).filter(([, targets]) => targets[kind] !== undefined))
 
 const resumeProviderSelectionFlags = {
-  'provider-job-action': strFlag('Recorded Gemini TTS Batch job: status|wait|cancel (default wait). Local interruption does not cancel remote work.'),
+  'provider-job-action': strFlag(`Recorded Gemini TTS Batch job: ${GEMINI_TTS_PROVIDER_JOB_ACTIONS.join('|')} (default ${GEMINI_TTS_PROVIDER_JOB_DEFAULT_ACTION}). Local interruption does not cancel remote work.`),
   ...booleanAllProvidersFlag,
   ...booleanAllLocalFlag,
   provider: strListFlag([

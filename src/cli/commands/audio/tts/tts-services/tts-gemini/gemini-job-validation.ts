@@ -1,5 +1,5 @@
-import type { GeminiBatchSlot, GeminiProviderJob, GeminiProviderJobRun } from '~/types/tts-workflow/gemini-provider-job-types'
-import { TTS_DELIVERY_SEAM_BOUNDARIES } from '~/types/tts-workflow/tts-types'
+import type { GeminiBatchSlot, GeminiProviderJob, GeminiProviderJobRun } from '~/types'
+import { TTS_DELIVERY_SEAM_BOUNDARIES } from '~/types'
 import { validateGeminiTtsModel } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import { hashCanonicalTtsValue } from '../../script-to-audio/contract-identity'
 import { UsageError } from '~/utils/error-handler'

@@ -58,7 +58,8 @@ export const createProviderSettingsRecord = (input: ProviderSettingsInput): Prov
   }
 }
 
-// Content files that shape output (lexicons, lyrics, prompt files, cover art, reference media) are recorded by project-relative path plus content hash.
+// Callers use this helper to record content hashes for lexicons and prompt files.
+// Lyrics, cover art, and generation reference media currently use path-only settings.
 export const describeSettingsFile = async (path: string | undefined): Promise<JsonObject | undefined> => {
   if (!path) return undefined
   const file = Bun.file(path)

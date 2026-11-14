@@ -17,6 +17,7 @@ import {
 } from '~/cli/commands/audio/voice/voice-command-support'
 import { buildReadyVoiceRegistrationDraft } from '~/cli/commands/audio/voice/voice-registration-management'
 import { planCanonicalVoiceAudition, withCanonicalVoiceAuditionScheduler } from '~/cli/commands/audio/voice/canonical-voice-audition'
+import { createHostedConcurrencyCoordinator } from '~/cli/commands/command-shared/hosted-concurrency-coordinator'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { captureLogEvents } from '../../../../test-utils/console-capture'
@@ -218,8 +219,35 @@ test('canonical audition planning resolves every active TTS provider', () => {
 
 test('canonical auditions install the shared hosted TTS scheduler', () => {
   const options = withCanonicalVoiceAuditionScheduler({ openaiTtsModels: ['gpt-4o-mini-tts-2025-12-15'], openaiVoiceId: 'alloy' })
+  expect(options.concurrencyMode).toBe('ramp')
   expect(options.hostedTtsChunkScheduler).toBeDefined()
   expect(typeof options.hostedTtsChunkScheduler?.runChunks).toBe('function')
+  expect(withCanonicalVoiceAuditionScheduler(options).hostedTtsChunkScheduler).toBe(options.hostedTtsChunkScheduler)
+  expect(withCanonicalVoiceAuditionScheduler({ concurrencyMode: 'immediate' }).concurrencyMode).toBe('immediate')
+})
+
+test('canonical audition chunks wait for the shared run lane before dispatch', async () => {
+  const coordinator = createHostedConcurrencyCoordinator({ mode: 'immediate' })
+  const active = await coordinator.acquire({ provider: 'openai', workClass: 'tts-chunk', configuredLimit: 1, workId: 'existing-run-work', unitIndex: 0 })
+  try {
+    const options = withCanonicalVoiceAuditionScheduler({ hostedConcurrencyCoordinator: coordinator })
+    let dispatched = false
+    const pending = options.hostedTtsChunkScheduler!.runChunks('openai', ['audition'], async () => {
+      dispatched = true
+      return 'audio'
+    })
+    for (let index = 0; index < 8; index += 1) await Promise.resolve()
+    expect(dispatched).toBe(false)
+    expect(coordinator.snapshot().lanes).toHaveLength(1)
+    expect(coordinator.snapshot().lanes[0]).toMatchObject({ active: 1, queuedWork: 1 })
+    coordinator.release(active)
+    await expect(pending).resolves.toEqual(['audio'])
+    expect(dispatched).toBe(true)
+    expect(coordinator.snapshot().lanes[0]).toMatchObject({ completed: 2, active: 0, queuedWork: 0 })
+  } finally {
+    coordinator.release(active)
+    coordinator.dispose()
+  }
 })
 
 test('voice clone explains each intentionally deferred workflow', async () => {

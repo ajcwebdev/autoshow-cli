@@ -7,6 +7,9 @@
       "https://docs.speechmatics.com/get-started/authentication.md",
       "https://docs.speechmatics.com/administration/regions.md"
     ],
+    "Models": [
+      "https://docs.speechmatics.com/speech-to-text/models.md"
+    ],
     "STT": [
       "https://docs.speechmatics.com/speech-to-text/batch/quickstart.md",
       "https://docs.speechmatics.com/speech-to-text/batch/input.md",
@@ -14,7 +17,6 @@
       "https://docs.speechmatics.com/speech-to-text/batch/limits.md",
       "https://docs.speechmatics.com/speech-to-text/batch/batch-diarization.md",
       "https://docs.speechmatics.com/speech-to-text/languages.md",
-      "https://docs.speechmatics.com/speech-to-text/models.md",
       "https://docs.speechmatics.com/speech-to-text/features/diarization.md",
       "https://raw.githubusercontent.com/speechmatics/docs/main/spec/batch.yaml",
       "https://docs.speechmatics.com/speech-to-text/batch/srt-format.md",

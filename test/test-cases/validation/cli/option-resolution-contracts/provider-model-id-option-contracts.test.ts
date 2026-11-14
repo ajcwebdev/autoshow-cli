@@ -18,7 +18,7 @@ describe('option resolution contracts', () => {
 
       expect(validateGrokModel('grok-4.7')).toBe('grok-4.7')
       expect(validateGrokModel('grok-4.7')).toBe('grok-4.7')
-      expect(() => validateGrokModel('grok-4.5')).toThrow(`Invalid model "grok-4.5" for --llm grok[=model]. ${expectedAllowed}`)
+      expect(() => validateGrokModel('grok-4.5')).toThrow('Model "grok-4.5" is retired for --llm grok[=model]. Use "grok-4.7" instead.')
       expect(() => validateGrokModel('grok-4.5-latest')).toThrow(`Invalid model "grok-4.5-latest" for --llm grok[=model]. ${expectedAllowed}`)
       expect(() => validateGrokModel('grok-build-latest')).toThrow(`Invalid model "grok-build-latest" for --llm grok[=model]. ${expectedAllowed}`)
     })
@@ -35,7 +35,7 @@ describe('option resolution contracts', () => {
       expect(validateOpenAIOcrModel('gpt-6.1-sol')).toBe('gpt-6.1-sol')
       expect(validateOpenAIOcrModel('gpt-6-luna')).toBe('gpt-6-luna')
       for (const model of ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-4-argon']) expect(() => validateGeminiOcrModel(model)).toThrow(`Invalid model "${model}" for --provider/--ocr gemini[=model]. Allowed values: gemini-3.8-flash`)
-      expect(() => validateGrokOcrModel('grok-4.5')).toThrow('Invalid model "grok-4.5" for --provider/--ocr grok[=model]. Allowed values: grok-4.7')
+      expect(() => validateGrokOcrModel('grok-4.5')).toThrow('Model "grok-4.5" is retired for --provider/--ocr grok[=model]. Use "grok-4.7" instead.')
       expect(() => validateOpenAIOcrModel('gpt-6-astra')).toThrow('Invalid model "gpt-6-astra" for --provider/--ocr openai[=model]. Allowed values: gpt-6.1-sol, gpt-6-luna')
 
       expect(() => validateMistralOcrModel('mistral-ocr-2405')).toThrow('Invalid model "mistral-ocr-2405" for --provider/--ocr mistral[=model]')

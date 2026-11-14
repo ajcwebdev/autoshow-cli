@@ -1,6 +1,7 @@
 import { InfraError } from '~/utils/error-handler'
 import { readdirSync, statSync } from 'node:fs'
-import { basename } from 'node:path'
+import { basename, posix } from 'node:path'
+import { preProcessFile } from 'typescript'
 import { PROJECT_ROOT } from '~/utils/project-root'
 
 const ROOT_DIRECTORIES = new Set(['.claude', '.codex', '.git', '.github', 'config', 'docs', 'input', 'node_modules', 'output', 'runtime', 'src', 'test'])
@@ -30,11 +31,25 @@ export const findRawHttpBodyReads = (path: string, content: string): string[] =>
     ? [`Raw HTTP body read in ${path}:${index + 1}. Use readJsonResponse or the readers in ${HTTP_PAYLOAD_MODULE} so the body is read whole under the shared payload ceiling.`]
     : [])
 
-export const findRepositoryStructureViolations = (rootDirectories: string[], projectFiles: string[], fileContents: ReadonlyMap<string, string> = new Map(), sourceContents: ReadonlyMap<string, string> = new Map()): string[] => [
+export const findTypesBarrelBypasses = (path: string, content: string): string[] => {
+  if (!/^(src|test)\/.*\.ts$/.test(path) || path.startsWith('src/types/')) return []
+  const violations: string[] = []
+  for (const reference of preProcessFile(content, true, true).importedFiles) {
+    const specifier = reference.fileName
+    const target = specifier.startsWith('~/') ? posix.normalize(`src/${specifier.slice(2)}`) : specifier.startsWith('.') ? posix.normalize(posix.join(posix.dirname(path), specifier)) : specifier
+    if (!target.startsWith('src/types/') || /^src\/types\/index(?:\.ts)?$/.test(target)) continue
+    const line = content.slice(0, reference.pos).split('\n').length
+    violations.push(`Type barrel bypass in ${path}:${line}: ${specifier}. Import public types and constants through ~/types.`)
+  }
+  return violations
+}
+
+export const findRepositoryStructureViolations = (rootDirectories: string[], projectFiles: string[], fileContents: ReadonlyMap<string, string> = new Map(), sourceContents: ReadonlyMap<string, string> = new Map(), importContents: ReadonlyMap<string, string> = sourceContents): string[] => [
   ...rootDirectories.filter(name => !ROOT_DIRECTORIES.has(name)).map(name => `Prohibited root directory: ${name}/. Use an existing directory under src/, test/, config/, or docs/.`),
   ...projectFiles.filter(path => /\.py$/i.test(path)).map(path => `Python source files are prohibited: ${path}`),
   ...[...fileContents].flatMap(([path, content]) => findMachineSpecificPaths(path, content)),
-  ...[...sourceContents].flatMap(([path, content]) => findRawHttpBodyReads(path, content))
+  ...[...sourceContents].flatMap(([path, content]) => findRawHttpBodyReads(path, content)),
+  ...[...importContents].flatMap(([path, content]) => findTypesBarrelBypasses(path, content))
 ]
 
 const listGitGrepMatches = (patternArgs: string[]): string[] => {
@@ -49,6 +64,8 @@ const listCheckoutPathCandidates = (): string[] => listGitGrepMatches(REPOSITORY
 
 const listRawHttpBodyReadCandidates = (): string[] => listGitGrepMatches(['-E', '-e', String.raw`\.(json|text|arrayBuffer|bytes|blob)\(\)`, '--', 'src/*.ts'])
 
+const listTypeImportCandidates = (): string[] => listGitGrepMatches(['-e', 'types', '--', 'src/*.ts', 'test/*.ts'])
+
 const readContents = async (paths: string[]): Promise<Map<string, string>> =>
   new Map(await Promise.all(paths.map(async path => [path, await Bun.file(path).text()] as const)))
 
@@ -59,7 +76,7 @@ if (import.meta.main) {
     try { return statSync(path).isFile() } catch { return false }
   })
   const directories = readdirSync('.', { withFileTypes: true }).filter(entry => entry.isDirectory() || (entry.isSymbolicLink() && statSync(entry.name).isDirectory())).map(entry => entry.name)
-  const violations = findRepositoryStructureViolations(directories, files, await readContents(listCheckoutPathCandidates()), await readContents(listRawHttpBodyReadCandidates()))
+  const violations = findRepositoryStructureViolations(directories, files, await readContents(listCheckoutPathCandidates()), await readContents(listRawHttpBodyReadCandidates()), await readContents(listTypeImportCandidates()))
   if (violations.length) {
     console.error(violations.join('\n'))
     process.exitCode = 1

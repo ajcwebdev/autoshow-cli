@@ -42,17 +42,20 @@ import {
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
 import { listPinnedDependencies } from './dependency-metadata'
-import { getHostedProviderEnvKeysForConfigPrefix, HOSTED_PROVIDER_ENV_CHECKS, logHostedProviderConfiguration } from './hosted-provider-config'
+import { getHostedProviderEnvKeysForConfigPrefix, HOSTED_PROVIDER_ENV_CHECKS, logHostedProviderConfiguration, setupProviderSummaryEnvironment } from './hosted-provider-config'
 import { beginSetupPerformanceRun, finishSetupPerformanceRun } from './setup-performance'
 import { pathExists } from '~/utils/filesystem'
 import { childEnv } from '~/utils/child-env'
+import { readBoundedTextStream } from '~/utils/bounded-capture'
 
 const RUNTIME = RUNTIME_DIR
 
 export const whisperfileDir = join(RUNTIME, 'bin/whisperfile')
 export const whisperfileBinaryPath = (model: string): string => join(whisperfileDir, `whisper-${model}.llamafile`)
-const readStream = async (stream: ReadableStream<Uint8Array> | null | undefined): Promise<string> =>
-  stream ? await new Response(stream).text() : ''
+const readStream = async (stream: ReadableStream<Uint8Array> | null): Promise<string> => {
+  const capture = await readBoundedTextStream(stream)
+  return capture.truncated ? `[setup output truncated; ${capture.omittedBytes} bytes omitted]\n${capture.text}` : capture.text
+}
 
 const fmtCmd = (command: string, args: string[]): string => [command, ...args].join(' ').trim()
 const SETUP_OUTPUT_TAIL_LINES = 40
@@ -238,6 +241,7 @@ const logSetupProviderConfiguration = (
   envVars: readonly string[] = ALL_PROVIDER_ENV_KEYS
 ): HostedProviderConfigurationSummary =>
   logHostedProviderConfiguration({
+    env: setupProviderSummaryEnvironment(process.env),
     title,
     envVars,
     mode: shouldUseVerboseHumanOutput() ? 'all' : 'missing'
@@ -395,7 +399,7 @@ const runFullSetup = async (): Promise<boolean> => {
     logSetupStepTimings()
     healthy = await logSetupSummary(startedAtMs, providerSummary)
 
-    l.write('info', 'You can now run: bun autoshow "https://www.youtube.com/watch?v=u1-WHqATSQU"', { category: 'command' })
+    l.write('info', 'You can now run: bun autoshow extract "https://www.youtube.com/watch?v=u1-WHqATSQU"', { category: 'command' })
     return healthy
   } finally {
     try {

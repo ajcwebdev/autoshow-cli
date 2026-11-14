@@ -21,7 +21,7 @@ export const validateElevenLabsTtsTextNormalization = (value: string): string =>
   const normalized = normalizeListedValue(value, SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS)
   if (!normalized) {
     throw UsageError(
-      `Invalid --elevenlabs-tts-text-normalization "${value}". Allowed values: ${formatAllowedValues(SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS)}`
+      `Invalid --tts-text-normalization elevenlabs="${value}". Allowed values: ${formatAllowedValues(SUPPORTED_ELEVENLABS_TTS_TEXT_NORMALIZATIONS)}`
     )
   }
   return normalized
@@ -71,7 +71,7 @@ export const validateGrokTtsVoice = (voice: string): string => {
   const normalized = voice.trim().toLowerCase()
   if (!SUPPORTED_GROK_TTS_VOICES.includes(normalized) && !/^[a-z0-9]{8}$/.test(normalized)) {
     throw UsageError(
-      `Invalid --grok-tts-voice "${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_GROK_TTS_VOICES)}, or an 8-character custom voice ID.`
+      `Invalid --tts-voice grok="${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_GROK_TTS_VOICES)}, or an 8-character custom voice ID.`
     )
   }
   return normalized
@@ -81,7 +81,7 @@ export const validateGrokTtsLanguage = (language: string): string => {
   const normalized = normalizeListedValue(language, SUPPORTED_GROK_TTS_LANGUAGES)
   if (!normalized) {
     throw UsageError(
-      `Invalid --grok-tts-language "${language}". Allowed values: ${formatAllowedValues(SUPPORTED_GROK_TTS_LANGUAGES)}`
+      `Invalid --tts-language grok="${language}". Allowed values: ${formatAllowedValues(SUPPORTED_GROK_TTS_LANGUAGES)}`
     )
   }
   return normalized
@@ -125,7 +125,7 @@ export const validateInworldTtsModel = createRetiringModelValidator<InworldTtsMo
 export const validateInworldTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
-    throw UsageError('Invalid --inworld-voice value. Expected a non-empty Inworld voice ID.')
+    throw UsageError('Invalid --tts-voice for inworld. Expected a non-empty Inworld voice ID.')
   }
   return normalized
 }

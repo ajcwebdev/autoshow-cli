@@ -8,9 +8,8 @@ import {
 } from '~/utils/concurrency-defaults'
 import type { CliFlagOccurrence } from '~/types'
 
-// Single source of truth for `--step-concurrency <scope>=N`. Intra-step parallelism used to be five
-// separate flags; the scopes below are the same knobs, named once, with their defaults imported from
-// the concurrency constants rather than restated.
+// Single source of truth for `--step-concurrency <scope>=N`. Commands register their applicable
+// scopes from this table; shared defaults come from concurrency constants rather than help text.
 export type StepConcurrencyScopeDefinition = Readonly<{
   description: string
   /** The static default. `'auto'` means the step chooses per run and there is no fixed number. */

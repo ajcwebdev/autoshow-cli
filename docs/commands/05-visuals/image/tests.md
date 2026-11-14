@@ -1,32 +1,13 @@
-# Image Service Tests
+# Image Tests
 
-Live image generation for the `image` command: Gemini, Grok, and OpenAI, alongside local usage-error checks. Live tests verify image decoding, aspect ratio where specified, and model metadata; they do not assess prompt fidelity or perceptual quality. Commands that run live tests may call paid or quota-limited providers.
+Live image tests use `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `XAI_API_KEY` and may incur charges. They check decoding, requested aspect ratios, and model metadata; they do not establish prompt fidelity or perceptual quality.
 
-## Quick Start
-
-```bash
-bun t test/test-cases/e2e/service/visuals/image/
-```
-
-## Provider Env Vars
-
-Live image generation tests need a configured provider key: `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `XAI_API_KEY`.
-
-## Price Preflight
-
-Estimate mapped generation commands without running the tests:
+Preflight without generation:
 
 ```bash
 bun t test/test-cases/e2e/service/visuals/image/ --price
 ```
 
-Run tests with a 25¢ estimated-cost threshold per test key. This filters eligible tests rather than capping total spending:
+After the required spending authorization, omit `--price` to run that targeted directory. `--budget 2500` filters test keys above a 25¢ estimate; it is not a cumulative spending cap. Local usage-error coverage is also available without provider calls.
 
-```bash
-bun t test/test-cases/e2e/service/visuals/image/ --budget 2500
-```
-
-## Related Docs
-
-- [Testing Overview](../../testing.md)
-- [Image Command](overview.md)
+See [testing](../../testing.md) and the [image guide](overview.md).

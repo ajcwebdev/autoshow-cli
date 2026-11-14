@@ -24,7 +24,7 @@ describe('official TTS provider catalog refresh', () => {
     ]))
     expect(validateGrokTtsVoice('CARINA')).toBe('carina')
     expect(validateGrokTtsVoice('AB12CD34')).toBe('ab12cd34')
-    expect(() => validateGrokTtsVoice('not-a-voice')).toThrow('Invalid --grok-tts-voice')
+    expect(() => validateGrokTtsVoice('not-a-voice')).toThrow('Invalid --tts-voice grok=')
   })
 
   test('OpenAI retains fixed request-schema models and types eligible custom voices as objects', () => {

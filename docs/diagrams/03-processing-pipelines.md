@@ -1,225 +1,78 @@
 # Processing Pipelines
 
-Media, document, article, text writing, transcript-video, and lyric-video flows.
-
-## Outline
-
-- [Media STT Pipeline](#media-stt-pipeline)
-- [Document and Article Pipeline](#document-and-article-pipeline)
-- [Write Outputs](#write-outputs)
-- [Transcript Video Pipeline](#transcript-video-pipeline)
-- [Music Lyric-Video Pipeline](#music-lyric-video-pipeline)
-
 ## Media STT Pipeline
 
-For media inputs, `metadata` stops after metadata extraction, `download` stops after Step 1, and `extract` runs Steps 1-2.
-
-```
-media target
-  |
-  v
-Step 1: source metadata + media staging
-  |
-  +--> streaming URL: yt-dlp metadata and download
-  +--> direct media URL: fetch/save
-  +--> local media: inspect with ffprobe
-  |
-  v
-stage one shared audio artifact for transcription
-  |
-  v
-Step 2: STT or YouTube captions
+```text
+media input
+  --> metadata / staging (yt-dlp, direct fetch, or local inspection)
+  --> shared audio preparation
+  --> selected STT targets
+  --> canonical result + transcript
+  --> optional caption/timing exports
 ```
 
-When `--youtube-captions` is set, YouTube inputs first try caption extraction:
+`metadata` stops after inspection; `download` stops after acquisition. Whisperfile is local; other STT targets are hosted. Successful results are saved before derived exports so export failure cannot repurchase transcription.
 
-```
---youtube-captions
-  |
-  v
-caption extraction
-  |
-  +--> success:
-  |      youtube-captions.vtt
-  |      youtube-captions.json
-  |      transcription.txt
-  |      result.json
-  |      selected STT providers are skipped and are not recorded on the run
-  |
-  +--> unavailable:
-         fall back to selected STT providers
-```
+With `--youtube-captions`, usable YouTube captions replace selected STT work and produce `youtube-captions.vtt`, `youtube-captions.json`, `transcription.txt`, and `result.json`. Unavailable captions fall back to selected STT targets. These retrieved captions are not native acoustic word timing.
 
-Whisperfile runs locally; other audio STT providers are hosted.
-
-Output layout:
-
-```
-single audio STT provider:
-  transcription.txt
-  result.json
-  manifest.json
-
-multi-provider, or one ScrapeCreators target:
-  providers/<service>-<model>/
-    transcription.txt
-    result.json
-  manifest.json
-```
-
-Provider failures do not discard the whole output directory. A run can finish as:
-
-| Status       | Meaning                                                                                       |
-| ------------ | --------------------------------------------------------------------------------------------- |
-| `full`       | At least one provider succeeded, and every other requested provider succeeded or was skipped. |
-| `incomplete` | A provider is missing or running, or at least one succeeded while another failed.             |
-| `failed`     | No requested provider succeeded, and none are missing or still running.                       |
+Single audio STT targets normally write top-level results; multiple targets and ScrapeCreators use `providers/<service>-<model>/`. Completed providers survive sibling failures. Item status distinguishes `full`, `incomplete`, and `failed`; provider status records individual progress.
 
 ## Document and Article Pipeline
 
-Documents include PDFs, EPUB, Office/ODF files, ebooks, comic archives, RTF, CSV, and common image formats. HTML files and article URLs use article extraction. The input format selects article extraction, native text, or OCR. EPUB and convertible ebooks use native text unless an OCR provider is selected.
+```text
+detected source
+  +--> HTML/article -------------> Defuddle, Spider, or Zyte
+  +--> CSV/Office/ODF/RTF --------> native extraction
+  +--> EPUB/convertible ebook ---> native text, or explicitly selected OCR
+  +--> PDF/image/CBZ ------------> Tesseract or hosted OCR
+```
 
-```
-document/html target
-  |
-  v
-detect format
-  |
-  +--> html/article URL or .html/.htm
-  |      article extraction
-  |
-  +--> CSV
-  |      native CSV extraction
-  |
-  +--> DOCX/PPTX/XLSX/ODF/RTF
-  |      native document extraction
-  |
-  +--> EPUB or convertible ebook
-  |      convertible formats normalize to EPUB first
-  |      native text by default, or OCR when an OCR provider is selected
-  |
-  +--> PDF, images, CBZ
-         OCR
-```
-OCR path:
+Convertible ebooks normalize to EPUB first. Local HTML uses Defuddle; hosted article backends require explicit selection. See [format routing](../commands/02-extract/overview.md#input-routing).
 
+```text
+OCR fanout (default)                 OCR pool
+  each target reads full document     targets claim shared pages
+  independent provider results        one ordered composite
+  optional --primary-ocr output       retained attributed attempts
+                                      --primary-ocr rejected
 ```
-OCR
-  |
-  +--> local: tesseract
-  |
-  +--> hosted OCR providers
-```
-Document extract output:
 
-```
-single provider/native route:
-  extraction.txt | result.json
-  manifest.json
-
-multi-provider OCR, fanout (default):
-  providers/<service>-<model>/
-    extraction.txt             # omitted with --out json
-    result.json
-  extraction.txt | result.json  # primary provider output when --primary-ocr is set
-  manifest.json
-
-multi-provider OCR, pool:
-  extraction.txt | result.json  # composite extraction in page order; --primary-ocr is rejected
-  providers/<service>-<model>/attempts/
-  manifest.json
-```
-Article output:
-
-```
-single backend:
-  extraction.txt | result.json
-  manifest.json
-
-all URL backends:
-  providers/<backend>/
-    extraction.txt
-    result.json
-  manifest.json
-```
-Local HTML and default remote articles use Defuddle. Select Spider or Zyte explicitly for hosted article extraction.
+OCR and article results use `extraction.txt` or JSON output, with provider directories for multi-target work. Page progress, attempts, and costs belong to the canonical manifest. Native/hosted extraction and pooled recovery details are in the [OCR](../commands/02-extract/ocr/overview.md) and [URL](../commands/02-extract/url/overview.md) guides.
 
 ## Write Outputs
 
-`write` runs Step 3 text generation over local `.md` / `.txt` files or directories of those files. URLs, media, documents, HTML, and X Spaces go through `extract` first; pass the extracted text to `write` separately.
-
-```
-local .md/.txt source
-  |
-  v
-build prompt
-  |
-  +--> prompt.md
-  +--> prompt-md.md when --prompt-md is set
-  |
-  v
-run LLM
-  |
-  +--> text.json                 single LLM provider
-  +--> text-<model>.json         multi-provider LLM output
-  |
-  v
-write rendered text
-  |
-  +--> text.md or text-<model>.md when --rendered-text is set
-  +--> external rendered files under --rendered-out-dir when configured
-  |
-  v
-write show notes
-  |
-  +--> show-note.md or show-note-<model>.md
+```text
+local .md/.txt
+  --> prompt + source snapshot
+  --> selected hosted LLM targets
+  --> text.json + show-note.md
+  --> optional text.md / external rendered Markdown
 ```
 
-When two providers share a model id, the JSON, rendered markdown, and show-note filenames include the provider (`text-<provider>-<model>.json`, and the same stem for `text-*.md` and `show-note-*.md`).
+`--prompt-md` also saves `prompt-md.md`; `--rendered-text` enables rendered output. Multiple targets use `text-<model>` and matching show-note stems, adding the provider when model IDs collide. `write` never acquires or transcribes its source.
 
 ## Transcript Video Pipeline
 
-`extract --transcript-video` renders a video with captions from an existing extract run or from explicit audio and transcript files.
+```text
+completed media extract run          --audio + exactly one transcript source
+  --> infer audio/result                 --transcript-result or --transcript-text
+                    \                  /
+                     v                v
+                  validate timing / build captions
+                              |
+                              v
+                   local renderer --> MP4 + VTT + SRT
+```
 
-```
-existing extract output
-  |
-  +--> infer audio and a single completed provider result
-  |    multiple provider results require --transcript-result
-  |
-  v
-render transcript video
-  |
-  +--> build captions from provider result or --transcript-text
-  +--> render video with resolved audio and optional --font
-  +--> keep temporary files when --keep-tmp is set
-  |
-  v
-<label>.mp4
-<label>.vtt
-<label>.srt
-manifest.json
-```
-Manual mode requires `--audio` plus exactly one of `--transcript-result` or `--transcript-text`.
+Ambiguous completed providers require `--transcript-result`. Rendering needs FFmpeg `ass` support or the supported ImageMagick/Pango fallback and fonts. `--keep-tmp` retains renderer intermediates. See [transcript video](../commands/02-extract/stt/workflows/transcript-video/overview.md).
 
 ## Music Lyric-Video Pipeline
 
-Hosted music generation is a standalone provider run. The local lyric-video path is selected by any lyric-video flag (`--audio`, `--captions`, `--batch`, `--model`, `--font`) and requires either `--audio` or `--batch`.
+```text
+--audio or --batch
+  --> supplied VTT/SRT captions, or local Whisperfile inference
+  --> timed lyric cues
+  --> local renderer --> MP4 + VTT + SRT
+```
 
-```
-music lyric-video mode
-  |
-  +--> resolve audio/caption paths against the project root and require them to exist
-  |
-  +--> caption source:
-  |      --captions -> parse VTT/SRT
-  |      no captions -> run local whisperfile (--model, default small.en) and create lyric cues
-  |
-  +--> render with ffmpeg
-  |
-  v
-<stem>.mp4
-<stem>.vtt
-<stem>.srt
-manifest.json
-```
+Lyric-video flags select this local workflow, separate from hosted music generation. Without supplied captions, Whisperfile defaults to `small.en`. Rendering uses FFmpeg plus its caption renderer prerequisites. See [music](../commands/04-audio/music/overview.md).

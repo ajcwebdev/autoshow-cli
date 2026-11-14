@@ -1,5 +1,5 @@
 import type { ProviderRenderPlan } from '~/types'
-import type { ProviderResolvedDialogueTurn } from '~/types/tts-workflow/voice-and-dialogue-types'
+import type { ProviderResolvedDialogueTurn } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { assertExactStringSet, assertUnique, validatePlannedCost, validateTypedSettings } from './contract-validation-primitives'
 

@@ -45,12 +45,12 @@ const validateExample = (command: string): void => {
   }
 }
 
-test('README and command-guide examples use registered commands, flags, and explicit provider models', async () => {
-  const files = ['README.md', ...await Array.fromAsync(new Bun.Glob('docs/commands/**/*.md').scan({ cwd: PROJECT_ROOT, onlyFiles: true }))].sort()
+test('README, Docker, and command-guide examples use registered commands, flags, and explicit provider models', async () => {
+  const files = ['README.md', 'docs/docker.md', ...await Array.fromAsync(new Bun.Glob('docs/commands/**/*.md').scan({ cwd: PROJECT_ROOT, onlyFiles: true }))].sort()
   const failures: string[] = []
   for (const file of files) {
     const examples = concreteExamples(await Bun.file(resolve(PROJECT_ROOT, file)).text())
-    if (file === 'README.md') expect(examples.length).toBeGreaterThan(0)
+    if (file === 'README.md' || file === 'docs/docker.md') expect(examples.length, file).toBeGreaterThan(0)
     for (const example of examples) {
       try { validateExample(example) }
       catch (error) { failures.push(`${file}: ${example}\n${String(error)}`) }

@@ -13,6 +13,12 @@
       "https://soniox.com/docs/guides/usage-summary.mdx",
       "https://soniox.com/pricing"
     ],
+    "Models": [
+      "https://soniox.com/docs/api-reference/stt/get_models.mdx",
+      "https://soniox.com/docs/stt/models",
+      "https://soniox.com/docs/tts/models.mdx",
+      "https://soniox.com/docs/api-reference/tts/get_tts_models.mdx"
+    ],
     "STT": [
       "https://soniox.com/docs/api-reference/stt/files/upload_file.mdx",
       "https://soniox.com/docs/api-reference/stt/files/delete_file.mdx",
@@ -20,9 +26,7 @@
       "https://soniox.com/docs/api-reference/stt/transcriptions/get_transcription.mdx",
       "https://soniox.com/docs/api-reference/stt/transcriptions/get_transcription_transcript.mdx",
       "https://soniox.com/docs/api-reference/stt/transcriptions/delete_transcription.mdx",
-      "https://soniox.com/docs/api-reference/stt/get_models.mdx",
       "https://soniox.com/docs/stt/async/async-transcription.mdx",
-      "https://soniox.com/docs/stt/models",
       "https://soniox.com/docs/stt/async/limits-and-quotas",
       "https://soniox.com/docs/stt/async/error-handling.mdx",
       "https://soniox.com/docs/stt/concepts/speaker-diarization.mdx",
@@ -31,10 +35,8 @@
     ],
     "TTS": [
       "https://soniox.com/docs/tts/get-started.mdx",
-      "https://soniox.com/docs/tts/models.mdx",
       "https://soniox.com/docs/api-reference/tts/generate_tts.mdx",
       "https://soniox.com/docs/api-reference/tts/websocket-api.mdx",
-      "https://soniox.com/docs/api-reference/tts/get_tts_models.mdx",
       "https://soniox.com/docs/api-reference/tts/get_shared_voices.mdx",
       "https://soniox.com/docs/api-reference/tts/voices/create_voice.mdx",
       "https://soniox.com/docs/api-reference/tts/voices/get_voices.mdx",

@@ -1,30 +1,19 @@
-# TTS Service Tests
+# TTS Tests
 
-Live synthesis coverage for the `tts` command includes ElevenLabs, Grok, and OpenAI. Inworld has local target-selection coverage and a price estimate only. Commands below can incur provider charges except in `--price` mode.
-
-## Quick Start
+Local contracts cover selection, provider payloads, control rejection, delivery, and retained-audio recovery:
 
 ```bash
-bun t test/test-cases/e2e/service/audio/tts/
+bun test test/test-cases/validation/audio/tts/tts-provider-contracts/
 ```
 
-## Provider Env Vars
+Live synthesis covers ElevenLabs v3/v4, Grok, and OpenAI. Inworld has local target-selection coverage and a price estimate. Live cases require the matching API key, media tools, and local Whisperfile `small.en` before synthesis. They check decoding, recorded provider/model/voice, and approximate transcript agreement; they do not establish perceptual quality.
 
-Live synthesis needs the matching key: `ELEVENLABS_API_KEY`, `XAI_API_KEY`, or `OPENAI_API_KEY`. It also requires installed media tools and the local Whisperfile `small.en` model before synthesis. Tests validate decodable audio, provider/model/voice metadata, and approximate spoken-text agreement; they do not establish perceptual quality.
-
-## Price Preflight
+Preflight the selected service tests before any paid run:
 
 ```bash
 bun t test/test-cases/e2e/service/audio/tts/ --price
 ```
 
-`--price` estimates mapped commands without synthesis. `--budget 2500` runs the tests after excluding budgeted test keys estimated above 25¢; it is not a total spending cap.
+After satisfying the [spending rules](../../../../AGENTS.md#paid-providers), run the same command without `--price`. Runner `--budget 2500` filters individual test keys above 25¢; it is not a cumulative spending cap.
 
-```bash
-bun t test/test-cases/e2e/service/audio/tts/ --budget 2500
-```
-
-## Related Docs
-
-- [Testing Overview](../../testing.md)
-- [TTS Command](overview.md)
+See [testing](../../testing.md) and the [TTS command](overview.md).

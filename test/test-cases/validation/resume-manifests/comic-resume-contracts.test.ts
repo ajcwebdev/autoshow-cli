@@ -32,7 +32,7 @@ import { buildComicAudioPhase2SnapshotEntry, buildComicAudioPhase2Structured, CO
 import { createLiveCharacterFixture } from '../../../test-utils/live-character-reference-fixture'
 import { createLiveLocationFixture } from '../../../test-utils/live-location-reference-fixture'
 
-const tempDirs = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'GEMINI_API_KEY', 'AUTOSHOW_REQUIRED_IMAGE_MODEL'], tempPrefix: 'autoshow-comic-resume-' })
+const tempDirs = setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'GEMINI_API_KEY', 'AUTOSHOW_REQUIRED_IMAGE_MODEL', 'AUTOSHOW_BUDGET_LEDGER', 'AUTOSHOW_BUDGET_CENTS', 'AUTOSHOW_BUDGET_RESERVE_CENTS'], tempPrefix: 'autoshow-comic-resume-' })
 afterEach(() => { resetPinnedRunDir(); resetSceneRunContext(); configureCharactersRoot('input/characters'); resetLoggerForInvocation(false) })
 
 const fixture = async () => {
@@ -252,6 +252,35 @@ test('comic price uses one JSON result with explicit blocked readiness and does 
   configurePinnedRunDir(join(f.root, 'absent'))
   await expect(generateComicAudio(context(f.scriptPath, [...audioArgs, '--price']), f.scriptPath)).rejects.toThrow('read-only planning')
   expect(await Bun.file(join(f.root, 'absent/manifest.json')).exists()).toBe(false)
+})
+
+test('comic resume accepts budgeted price/result files and rejects unsupported budgeted execution before mutation', async () => {
+  const f = await fixture()
+  await updateManifest(f.run, manifest => {
+    const metadata = manifest.items[0]!.metadata['comic'] as unknown as CanonicalComicItemMetadata
+    metadata.stages.presentation = { requirement: 'optional', status: 'incomplete', execution: { kind: 'local', state: 'missing' }, targetKeys: [], artifactRefs: [] }
+    return manifest
+  })
+  const resultPath = join(f.root, 'result.json')
+  const ledgerPath = join(f.root, 'budget.json')
+  process.env['AUTOSHOW_BUDGET_LEDGER'] = ledgerPath
+  process.env['AUTOSHOW_BUDGET_CENTS'] = '50'
+  process.env['AUTOSHOW_BUDGET_RESERVE_CENTS'] = '10'
+  const calls = installMockFetch(() => { throw new Error('Price planning must not dispatch') })
+  const before = await hashes(f.run)
+  const output = await captureProcessOutput(() => runCliInProcess(['resume', f.run, '--price', '--json', '--result-file', resultPath, '--require-shared-budget']))
+  expect(output.result).toBe(0)
+  const summary = JSON.parse(output.stdout)
+  expect(summary).toMatchObject({ status: 'success', resultMode: 'summary' })
+  const result = await Bun.file(resultPath).json()
+  expect(result.data.comicPlans[0].ready).toBe(false)
+  expect(summary.runId).toBe(result.runId)
+  const rejected = await captureProcessOutput(() => runCliInProcess(['resume', f.run, '--json', '--require-shared-budget']))
+  expect(rejected.result).toBe(2)
+  expect(JSON.parse(rejected.stdout).message).toContain('Shared runtime budgeting does not support resume')
+  expect(await hashes(f.run)).toEqual(before)
+  expect(await Bun.file(ledgerPath).exists()).toBe(false)
+  expect(calls).toHaveLength(0)
 })
 
 test('slideshow price validates missing visual inputs and writes nothing', async () => {
