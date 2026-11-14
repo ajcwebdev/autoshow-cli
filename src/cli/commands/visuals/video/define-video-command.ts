@@ -167,7 +167,7 @@ export const videoCommand = defineCliCommand({
     { allProvidersTarget: 'all-video' }
   )
   const configPath = await resolveConfigPath(typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined)
-  const config = await loadConfig(configPath)
+  const config = await loadConfig(configPath, { allowLegacyFallback: typeof flags['config-path'] !== 'string' })
   providerNormalized.flags = mergeConfigIntoRawFlags(providerNormalized.flags, config, providerNormalized.explicitFlags, 'video')
   const resolvedInput = resolveVideoInput(input, providerNormalized.flags, providerNormalized.explicitFlags)
   applyDefaultVideoSelection(providerNormalized.flags, resolvedInput.kind)

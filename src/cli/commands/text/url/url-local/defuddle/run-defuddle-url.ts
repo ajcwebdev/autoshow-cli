@@ -1,5 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from "~/utils/runtime-state"
 import { join } from 'node:path'
 import type { ExtractHtmlToMarkdownInput, ExtractHtmlToMarkdownResult, UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -42,7 +42,7 @@ export const stripNonHidingHiddenClasses = (html: string): string =>
 export const extractHtmlToMarkdown = async (
   input: ExtractHtmlToMarkdownInput
 ): Promise<ExtractHtmlToMarkdownResult> => {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-defuddle-'))
+  const tempRoot = await createRuntimeTempDirectory('autoshow-defuddle-')
   const tempHtmlPath = join(tempRoot, 'article.html')
 
   try {

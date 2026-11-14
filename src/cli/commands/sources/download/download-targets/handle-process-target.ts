@@ -177,7 +177,7 @@ const resolveNormalizedProcessOptions = async (input: {
 }> => {
   const configPathOverride = typeof input.rawFlags['config-path'] === 'string' ? input.rawFlags['config-path'] : undefined
   const resolvedConfigPath = await resolveConfigPath(configPathOverride)
-  const config = await loadConfig(resolvedConfigPath)
+  const config = await loadConfig(resolvedConfigPath, { allowLegacyFallback: configPathOverride === undefined })
   const configExplicitFlags = input.rawParsed.explicitFlags
   const mergedFlags = mergeConfigIntoRawFlags(
     input.rawFlags,

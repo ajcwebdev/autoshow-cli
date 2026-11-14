@@ -12,7 +12,7 @@ bun autoshow extract input/examples/document/harborlight-field-notes.pdf --provi
 
 ## OCR Setup
 
-[`setup`](../../00-setup-and-utilities/setup.md) installs the local toolchain. `bun autoshow setup --step calibre` installs ebook conversion alone. Hosted OCR additionally needs the provider's API key.
+[`setup`](../../00-setup-and-utilities/setup.md) installs the local toolchain. `bun autoshow setup --step calibre` provisions the PDF and ebook tools; `bun autoshow setup --step ocr` provisions Tesseract, image codecs, and English trained data. Hosted OCR additionally needs the provider's API key.
 
 ## OCR Routing
 

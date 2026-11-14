@@ -1,6 +1,6 @@
 import { basename, join } from 'node:path'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import * as v from 'valibot'
 import * as l from '~/utils/app-logger/app-logger'
 import type { DocumentMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, NormalizedReasoningEffort, PageResult } from '~/types'
@@ -224,7 +224,7 @@ const runPdfChunk = async (
   const useInputAsChunk = options.inputAlreadySinglePageChunk === true
     && startPage === 1
     && endPage === 1
-  const tempDir = useInputAsChunk ? undefined : await mkdtemp(join(tmpdir(), 'autoshow-anthropic-ocr-'))
+  const tempDir = useInputAsChunk ? undefined : await createRuntimeTempDirectory('autoshow-anthropic-ocr-')
   const chunkPath = useInputAsChunk
     ? filePath
     : join(tempDir as string, `chunk-${startPage}-${endPage}.pdf`)

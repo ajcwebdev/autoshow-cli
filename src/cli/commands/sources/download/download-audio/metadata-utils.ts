@@ -11,10 +11,10 @@ import { getYtDlpBinary } from '~/cli/commands/command-shared/shared-yt-dlp-bina
 import type { FileFingerprint, LocalFileMetadataCacheEntry, Step1SourceRef, VideoMetadata, YtDlpVideoInfo } from '~/types'
 import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry } from '~/utils/file-fingerprint-cache'
 
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { getRuntimeCachePath } from '~/utils/runtime-state'
+import { resolve } from 'node:path'
 
-const VIDEO_INFO_CACHE_FILE = join(tmpdir(), 'autoshow-yt-video-info-cache.json')
+const VIDEO_INFO_CACHE_FILE = getRuntimeCachePath('autoshow-yt-video-info-cache.json')
 const VIDEO_INFO_CACHE_LOCK = 'yt-video-info-cache'
 
 const writeVideoInfoCache = async (url: string, data: YtDlpVideoInfo): Promise<void> => {
@@ -222,7 +222,7 @@ export const createUniqueDirectoryName = (title: string): string => {
   return `${dateTimeId}_${sanitizeTitleSlug(title)}`
 }
 
-const LOCAL_FILE_METADATA_CACHE_FILE = join(tmpdir(), 'autoshow-local-file-metadata-cache.json')
+const LOCAL_FILE_METADATA_CACHE_FILE = getRuntimeCachePath('autoshow-local-file-metadata-cache.json')
 const LOCAL_FILE_METADATA_CACHE_LOCK = 'local-file-metadata-cache'
 
 const getCachedLocalFileMetadata = async (filePath: string): Promise<VideoMetadata | undefined> => {

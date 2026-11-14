@@ -12,6 +12,7 @@ import {
   helpColorsEnabled
 } from '~/cli/help-colors'
 import { dispatchNativeCli } from '~/cli/native/dispatcher'
+import { parseNativeCli } from '~/cli/native/native-parser'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { HTTP_PAYLOAD_MAX_BYTES_ENV, validateHttpPayloadEnvironment } from '~/utils/http-payload'
@@ -26,7 +27,17 @@ export const shouldRelaunchSetupWithNoOrphans = (
   argv: readonly string[],
   env: Readonly<Record<string, string | undefined>> = process.env,
   isStandaloneExecutable = Bun.isStandaloneExecutable
-): boolean => !isStandaloneExecutable && argv[0] === 'setup' && !argv.some(arg => arg === '--doctor' || arg.startsWith('--doctor=') || arg === '--show' || arg === '--reset') && env[SETUP_NO_ORPHANS_MARKER] !== '1'
+): boolean => {
+  if (isStandaloneExecutable || argv[0] !== 'setup' || env[SETUP_NO_ORPHANS_MARKER] === '1') return false
+  try {
+    const parsed = parseNativeCli([...argv], COMMAND_DEFINITIONS, GLOBAL_FLAG_DEFINITIONS)
+    if (parsed.mode === 'help' || parsed.mode === 'version') return false
+    return !['doctor', 'show', 'reset', 'dry-run'].some(flag => parsed.flags[flag] === true)
+  } catch {
+    // The regular dispatcher owns invalid-argument diagnostics.
+    return true
+  }
+}
 
 
 export const buildSetupNoOrphansArgs = (
@@ -114,6 +125,9 @@ const stripResultFileArgs = (argv: readonly string[]): string[] => {
   return out
 }
 
+export const normalizeCliDispatchArgs = (argv: readonly string[]): string[] =>
+  stripResultFileArgs(stripJsonProtocolArgs(argv))
+
 const setCommandHelpGroup = (command: unknown, group: HelpCommandGroupKey): void => {
   if (typeof command !== 'object' || command === null) {
     return
@@ -167,7 +181,7 @@ export const runCliInProcess = async (argv: string[]): Promise<number> => {
       const resultFile = preScanResultFile(argv)
       if (resultFile !== undefined) setResultFile(resultFile)
       validateHttpPayloadEnvironment()
-      await dispatchNativeCli(stripResultFileArgs(stripJsonProtocolArgs(argv)), createNativeRootDefinition(), COMMAND_DEFINITIONS)
+      await dispatchNativeCli(normalizeCliDispatchArgs(argv), createNativeRootDefinition(), COMMAND_DEFINITIONS)
       try {
         flushStagedResult()
         return 0

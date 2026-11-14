@@ -1,5 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { join } from 'node:path'
 import type { OcrCloudStagingObject, OcrPreparationCache } from '~/types'
 import { InternalError } from '~/utils/error-handler'
@@ -17,7 +17,7 @@ export const createOcrPreparationCache = (): OcrPreparationCache => ({
 // cleanup never sees.
 const getCacheTempDir = async (cache: OcrPreparationCache): Promise<string> => {
   if (!cache.tempDir) {
-    const created = mkdtemp(join(tmpdir(), 'autoshow-ocr-prep-'))
+    const created = createRuntimeTempDirectory('autoshow-ocr-prep-')
     cache.tempDir = created
     created.catch(() => {
       if (cache.tempDir === created) {

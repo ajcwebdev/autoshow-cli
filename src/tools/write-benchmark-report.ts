@@ -1,9 +1,10 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { copyFile, mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, open, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
-import { tmpdir } from 'node:os'
+import { crc32, deflateRawSync } from 'node:zlib'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { dirname, join, relative, resolve } from 'node:path'
-import { InfraError, UsageError, ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { buildTextDashboard, writeDashboardLinkRoot, WRITE_BENCHMARK_CASES, type WriteDashboardSample } from '../../.codex/skills/consensus/scripts/text/build_text_dashboard'
 import { writePortableFileSync } from '../../.codex/skills/consensus/scripts/shared/portable_paths'
@@ -42,11 +43,69 @@ const collectEvidenceFiles = (rootDir: string): string[] => {
   return files
 }
 
+const writeEvidenceZip = async (stage: string, paths: readonly string[], destination: string): Promise<void> => {
+  const output = await open(destination, 'wx', 0o600)
+  const members: Array<{ name: Buffer, crc: number, size: number, compressedSize: number, offset: number, mode: number }> = []
+  let offset = 0
+  const append = async (bytes: Buffer): Promise<void> => {
+    if (offset + bytes.length >= 0xffffffff) throw ValidationError('Write evidence exceeds the ZIP size limit; the earlier archive was preserved.')
+    await output.writeFile(bytes)
+    offset += bytes.length
+  }
+  try {
+    if (paths.length >= 0xffff) throw ValidationError('Write evidence has too many entries for its ZIP archive.')
+    for (const path of paths) {
+      const source = join(stage, path), info = await stat(source), name = Buffer.from(path, 'utf8')
+      if (info.size > 512 * 1024 * 1024 || name.length > 0xffff) throw ValidationError('Write evidence entry exceeds the archive size limit.')
+      const bytes = Buffer.from(await Bun.file(source).bytes()), packed = deflateRawSync(bytes, { level: 6 })
+      const member = { name, crc: crc32(bytes), size: bytes.length, compressedSize: packed.length, offset, mode: info.mode }
+      const header = Buffer.alloc(30)
+      header.writeUInt32LE(0x04034b50)
+      header.writeUInt16LE(20, 4)
+      header.writeUInt16LE(0x800, 6)
+      header.writeUInt16LE(8, 8)
+      header.writeUInt16LE(33, 12)
+      header.writeUInt32LE(member.crc, 14)
+      header.writeUInt32LE(member.compressedSize, 18)
+      header.writeUInt32LE(member.size, 22)
+      header.writeUInt16LE(name.length, 26)
+      await append(header)
+      await append(name)
+      await append(packed)
+      members.push(member)
+    }
+    const centralOffset = offset
+    for (const member of members) {
+      const header = Buffer.alloc(46)
+      header.writeUInt32LE(0x02014b50)
+      header.writeUInt16LE(0x314, 4)
+      header.writeUInt16LE(20, 6)
+      header.writeUInt16LE(0x800, 8)
+      header.writeUInt16LE(8, 10)
+      header.writeUInt16LE(33, 14)
+      header.writeUInt32LE(member.crc, 16)
+      header.writeUInt32LE(member.compressedSize, 20)
+      header.writeUInt32LE(member.size, 24)
+      header.writeUInt16LE(member.name.length, 28)
+      header.writeUInt32LE((member.mode << 16) >>> 0, 38)
+      header.writeUInt32LE(member.offset, 42)
+      await append(header)
+      await append(member.name)
+    }
+    const end = Buffer.alloc(22)
+    end.writeUInt32LE(0x06054b50)
+    end.writeUInt16LE(members.length, 8)
+    end.writeUInt16LE(members.length, 10)
+    end.writeUInt32LE(offset - centralOffset, 12)
+    end.writeUInt32LE(centralOffset, 16)
+    await append(end)
+    await output.sync()
+  } finally { await output.close() }
+}
+
 export async function archiveWriteBenchmarkEvidence(rootDir: string): Promise<void> {
-  const zip = Bun.which('zip')
-  if (!zip) throw InfraError('zip is required to package Write benchmark evidence.')
   const files = collectEvidenceFiles(rootDir)
-  const stage = await mkdtemp(join(tmpdir(), 'autoshow-write-evidence-'))
+  const stage = await createRuntimeTempDirectory('autoshow-write-evidence-')
   try {
     const checksums = []
     for (const name of files) {
@@ -59,9 +118,7 @@ export async function archiveWriteBenchmarkEvidence(rootDir: string): Promise<vo
     const archive = resolve(rootDir, evidenceName)
     const temporaryArchive = `${archive}.${crypto.randomUUID()}.tmp.zip`
     try {
-      const child = Bun.spawn([zip, '-q', '-r', temporaryArchive, '.'], { cwd: stage, stdout: 'pipe', stderr: 'pipe' })
-      const [stdout, stderr, exitCode] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
-      if (exitCode !== 0) throw InfraError(`Evidence archive failed: ${stderr || stdout}`)
+      await writeEvidenceZip(stage, [...files, 'SHA256SUMS'], temporaryArchive)
       await rename(temporaryArchive, archive)
     } finally { await rm(temporaryArchive, { force: true }) }
     writeCommandPayload(`Updated ${relative(process.cwd(), archive)} (${files.length} evidence files and SHA256SUMS)` + '\n')

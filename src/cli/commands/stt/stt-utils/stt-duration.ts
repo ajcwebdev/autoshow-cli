@@ -1,6 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from "~/utils/runtime-state"
 import { downloadAudio } from '~/cli/commands/sources/download/download-audio/dl-audio'
 import { extractSourceMetadata, getVideoInfo } from '~/cli/commands/sources/download/download-audio/metadata-utils'
 import { getAudioDuration } from './audio-splitter'
@@ -69,7 +68,7 @@ const resolveByTemporaryDownload = async (
   source: { url?: string, filePath?: string },
   logLabel: string
 ): Promise<number> => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-price-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-price-')
   try {
     l.write('info', `Resolving media duration for STT pricing via temporary ${logLabel} download`, { category: 'pricing', metadata: { source: logLabel } })
     const metadata = await extractSourceMetadata(source)

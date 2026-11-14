@@ -57,4 +57,4 @@ Multiple STT targets use provider directories; ScrapeCreators also uses one for 
 
 ## Credentials and Runtime
 
-[Setup](04-providers-and-setup.md#hosted-provider-env-checks) documents credential lookup and local tools. Flags and `config/autoshow.json` control execution; [usage](../commands/00-setup-and-utilities/usage.md) covers logging, result artifacts, outputs, and budgets. [Processing pipelines](03-processing-pipelines.md) describes document/article extraction and local transcript/lyric-video workflows.
+[Setup](04-providers-and-setup.md#hosted-provider-env-checks) documents credential lookup and local tools. Flags and `runtime/autoshow.json` control execution; [usage](../commands/00-setup-and-utilities/usage.md) covers logging, result artifacts, outputs, and budgets. [Processing pipelines](03-processing-pipelines.md) describes document/article extraction and local transcript/lyric-video workflows.

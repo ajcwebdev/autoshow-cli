@@ -88,7 +88,47 @@ export type SetupToolStatus = {
 export const SETUP_STEP_IDS = [
   'yt-dlp', 'defuddle', 'whisperfile',
   'calibre', 'all',
-  'transcription', 'music'
+  'transcription', 'music',
+  'toolchain', 'ocr', 'rendering', 'alignment'
 ] as const
 
 export type SetupStepId = typeof SETUP_STEP_IDS[number]
+
+export type SetupRunOptions = { forceRedownload?: boolean }
+
+export type SetupLifecycleOperations = {
+  toolchain: (options: SetupRunOptions) => Promise<void>
+  media: (options: SetupRunOptions) => Promise<void>
+  documents: (options: SetupRunOptions) => Promise<void>
+  ocr: (options: SetupRunOptions) => Promise<void>
+  rendering: (options: SetupRunOptions) => Promise<void>
+  defuddle: (options: SetupRunOptions) => Promise<void>
+  alignment: (options: SetupRunOptions) => Promise<void>
+  whisperfile: (model: string, options: SetupRunOptions) => Promise<void>
+  migrateState: () => Promise<void>
+  verifyRendering: () => Promise<void>
+  summarize: (startedAtMs: number, providerSummary: import('~/types').HostedProviderConfigurationSummary) => Promise<boolean>
+}
+
+export type SetupInstallationComponent = 'toolchain' | 'media' | 'documents' | 'ocr' | 'rendering' | 'defuddle' | 'alignment' | 'whisperfile'
+
+export type SetupInstallationPlanTask = {
+  component: SetupInstallationComponent
+  dependsOn: SetupInstallationComponent[]
+  target: string
+  action: 'verify-or-repair' | 'install' | 'replace'
+}
+
+export type SetupInstallationPlan = {
+  schemaVersion: 1
+  dryRun: true
+  step: SetupStepId
+  platform: string
+  architecture: string
+  runtimeRoot: string
+  forceRedownload: boolean
+  tasks: SetupInstallationPlanTask[]
+  dependencies: { name: string, version: string, url?: string, sha256?: string, lockfile?: string }[]
+  models: string[]
+  estimates: { downloadBytes: null, additionalDiskBytes: null, reason: string }
+}

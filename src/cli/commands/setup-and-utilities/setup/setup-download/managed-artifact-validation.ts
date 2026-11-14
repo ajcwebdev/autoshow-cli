@@ -8,6 +8,8 @@ import {
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy'
 import type {
   ManagedArtifactManifest,
+  ManagedArtifactDependency,
+  ManagedArtifactSource,
   ManagedArtifactToolId,
   ManagedArtifactValidation,
   ManagedPrebuiltArtifactManifest,
@@ -15,12 +17,26 @@ import type {
   ManagedPrebuiltPayloadManifest,
   ManagedPrebuiltReleaseManifest,
   ManagedSourceArtifactManifest,
-  ManagedSourceArtifactValidation
+  ManagedSourceArtifactValidation,
+  ManagedSourceRecipe
 } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { sha256Bytes } from '~/utils/value-helpers'
-import { MANAGED_ARTIFACT_MANIFEST_NAME, MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME, managedArtifactManifestPath, managedPrebuiltPayloadManifestPath, parseManagedArtifactManifest, parseManagedPrebuiltPayloadManifest, parseManagedPrebuiltReleaseManifest } from './managed-artifact-schema'
+import { isIgnoredManagedArtifactPath, MANAGED_ARTIFACT_MANIFEST_NAME, MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME, managedArtifactManifestPath, managedPrebuiltPayloadManifestPath, parseManagedArtifactManifest, parseManagedPrebuiltPayloadManifest, parseManagedPrebuiltReleaseManifest } from './managed-artifact-schema'
 import { MANAGED_TOOL_DIRS, compareMacosVersions, managedArtifactBinaryRelativePath, managedArtifactBuildFlags, readExpectedManagedArtifactSources, resolveHostMacosVersion, sha256File } from './managed-source-artifact'
+import { collectManagedSourcePayload, managedSourcePayloadIssue } from './managed-artifact-payload'
+
+export type ManagedSourceValidationOptions = {
+  toolDir?: string
+  platform?: NodeJS.Platform
+  architecture?: string
+  macosVersion?: string
+  recipe?: ManagedSourceRecipe
+  expectedVersion?: string
+  expectedSources?: ManagedArtifactSource[]
+  expectedDependencies?: ManagedArtifactDependency[]
+  expectedRecipeRevision?: string
+}
 
 const sameJson = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right)
 
@@ -35,16 +51,16 @@ const resolveValidationHostVersion = async (value: string | undefined): Promise<
   value ?? await resolveHostMacosVersion()
 
 const validateCommonIdentity = async (
-  tool: ManagedArtifactToolId,
+  tool: string,
   manifest: ManagedArtifactManifest,
-  options: { platform?: NodeJS.Platform, architecture?: string, macosVersion?: string }
+  options: ManagedSourceValidationOptions
 ): Promise<string | undefined> => {
   const platform = options.platform ?? process.platform
   const architecture = options.architecture ?? process.arch
   if (manifest.tool !== tool) return `manifest tool is ${manifest.tool}, expected ${tool}`
   if (manifest.platform !== platform) return `manifest platform is ${manifest.platform}, current platform is ${platform}`
   if (manifest.architecture !== architecture) return `manifest architecture is ${manifest.architecture}, current architecture is ${architecture}`
-  const expectedVersion = await readDependencyVersion(tool)
+  const expectedVersion = options.expectedVersion ?? await readDependencyVersion(tool)
   if (!expectedVersion || manifest.version !== expectedVersion) {
     return `manifest version is ${manifest.version}, expected ${expectedVersion ?? 'a pinned version'}`
   }
@@ -58,10 +74,10 @@ const validateCommonIdentity = async (
 }
 
 const validateManagedSourceManifest = async (
-  tool: ManagedArtifactToolId,
+  tool: string,
   toolDir: string,
   manifest: ManagedSourceArtifactManifest,
-  options: { platform?: NodeJS.Platform, architecture?: string, macosVersion?: string }
+  options: ManagedSourceValidationOptions
 ): Promise<ManagedSourceArtifactValidation> => {
   try {
     const identityIssue = await validateCommonIdentity(tool, manifest, options)
@@ -69,19 +85,23 @@ const validateManagedSourceManifest = async (
   } catch (error) {
     return validationFailure(error instanceof Error ? error.message : String(error))
   }
-  const expectedSources = await readExpectedManagedArtifactSources(tool)
-  if (!sameJson(manifest.sources, expectedSources)) return validationFailure('manifest source pins do not match dependency metadata')
-  if (!sameJson(manifest.buildFlags, managedArtifactBuildFlags(tool))) return validationFailure('manifest build flags do not match the source recipe')
-  const expectedPayloadPath = managedArtifactBinaryRelativePath(tool)
-  if (manifest.payload.length !== 1 || manifest.payload[0]?.path !== expectedPayloadPath) {
-    return validationFailure(`manifest payload must contain only ${expectedPayloadPath}`)
-  }
   try {
-    const actualSha256 = await sha256File(join(toolDir, expectedPayloadPath))
-    if (actualSha256 !== manifest.payload[0].sha256) return validationFailure(`payload hash mismatch for ${expectedPayloadPath}`)
+    const expectedSources = options.expectedSources ?? await readExpectedManagedArtifactSources(tool as ManagedArtifactToolId)
+    if (!sameJson(manifest.sources, expectedSources)) return validationFailure('manifest source pins do not match dependency metadata')
+    if (!sameJson(manifest.buildFlags, options.recipe?.buildFlags ?? managedArtifactBuildFlags(tool as ManagedArtifactToolId))) return validationFailure('manifest build flags do not match the source recipe')
+  } catch (error) {
+    return validationFailure(error instanceof Error ? error.message : String(error))
+  }
+  if (manifest.recipeRevision !== (options.expectedRecipeRevision ?? '1')) return validationFailure('manifest recipe revision does not match the source recipe')
+  if (!sameJson(manifest.dependencies, options.expectedDependencies ?? [])) return validationFailure('manifest dependency identities do not match the source recipe')
+  const requiredPaths = options.recipe ? [options.recipe.binaryRelativePath, ...(options.recipe.requiredPaths ?? [])] : [managedArtifactBinaryRelativePath(tool as ManagedArtifactToolId)]
+  for (const path of requiredPaths) if (!isIgnoredManagedArtifactPath(path) && !manifest.payload.some(entry => entry.path === path)) return validationFailure(`manifest payload is missing ${path}`)
+  try {
+    const issue = managedSourcePayloadIssue(manifest.payload, await collectManagedSourcePayload(toolDir))
+    if (issue) return validationFailure(issue)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    return validationFailure(`could not hash payload ${expectedPayloadPath}: ${message}`)
+    return validationFailure(`could not inspect source payload: ${message}`)
   }
   return {
     healthy: true,
@@ -133,6 +153,7 @@ const listRegularPackageFiles = async (toolDir: string, relativeDir = ''): Promi
   const entries = await readdir(directory, { withFileTypes: true })
   const paths: string[] = []
   for (const entry of entries) {
+    if (isIgnoredManagedArtifactPath(entry.name)) continue
     const relativePath = relativeDir ? `${relativeDir}/${entry.name}` : entry.name
     if (relativePath === MANAGED_ARTIFACT_MANIFEST_NAME) continue
     const entryStat = await lstat(join(toolDir, relativePath))
@@ -287,11 +308,13 @@ const validateManagedPrebuiltArtifact = async (
   if (inventoryIssue) return validationFailure(inventoryIssue)
   try {
     for (const file of manifest.packageFiles) {
+      if (isIgnoredManagedArtifactPath(file.path)) continue
       if (await sha256File(join(toolDir, file.path)) !== file.sha256) return validationFailure(`package file hash mismatch for ${file.path}`)
     }
     const verifySignature = options.verifyCodeSignature ?? verifyManagedPrebuiltCodeSignature
     const verifyArchitecture = options.verifyArchitecture ?? verifyManagedPrebuiltArchitecture
     for (const file of payload.payload) {
+      if (isIgnoredManagedArtifactPath(file.path)) continue
       await verifyArchitecture(join(toolDir, file.path), manifest.architecture)
       await verifySignature(join(toolDir, file.path), payload.trust)
     }
@@ -309,10 +332,11 @@ const validateManagedPrebuiltArtifact = async (
 }
 
 export const validateManagedSourceArtifact = async (
-  tool: ManagedArtifactToolId,
-  options: { toolDir?: string, platform?: NodeJS.Platform, architecture?: string, macosVersion?: string } = {}
+  tool: string,
+  options: ManagedSourceValidationOptions = {}
 ): Promise<ManagedSourceArtifactValidation> => {
-  const toolDir = options.toolDir ?? MANAGED_TOOL_DIRS[tool]
+  const toolDir = options.toolDir ?? MANAGED_TOOL_DIRS[tool as ManagedArtifactToolId]
+  if (!toolDir) return validationFailure(`no managed installation directory is configured for ${tool}`)
   try {
     const manifest = await readInstalledManifest(toolDir)
     if (manifest.distribution !== 'source') return validationFailure(`manifest distribution is ${manifest.distribution}, expected source`)

@@ -1,9 +1,10 @@
 import { afterAll, expect, test } from 'bun:test'
-import { lstat, mkdtemp, readdir, rm } from 'node:fs/promises'
+import { chmod, lstat, mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import type { ProcessRunner } from '../../../../src/tools/docker-process'
 import { runDockerTesseractDataAcceptance, TESSERACT_DATA_CASES } from '../../../docker-acceptance/docker-tesseract-data-acceptance'
+import { RUNTIME_DIR } from '../../../../src/utils/runtime-paths'
 
 const image = `sha256:${'a'.repeat(64)}`
 const fixtures: string[] = []
@@ -53,7 +54,7 @@ test('Tesseract data gate uses the exact local image offline with fresh owned st
     expect(Boolean(runtime)).toBe(argv.at(-1) !== 'no-runtime-mount')
     if (runtime) {
       const host = runtime.match(/src=([^,]+)/)![1]!
-      expect(host).not.toStartWith(process.cwd())
+      expect(host).toStartWith(join(RUNTIME_DIR, 'tmp', 'autoshow-tesseract-data-acceptance-'))
       await expect(lstat(host)).rejects.toThrow()
     }
   }
@@ -94,6 +95,40 @@ test('successful Tesseract probes retain configured diagnostics while removing o
   expect(await Bun.file(join(output, 'failure.json')).exists()).toBe(false)
   const state = runs[0]!.find(arg => arg.includes('dst=/results'))!.match(/src=([^,]+)/)![1]!
   await expect(lstat(state)).rejects.toThrow()
+})
+
+test('Tesseract gate bounds successful payload storage and preserves the failing case bytes and permissions', async () => {
+  const fixture = await mkdtemp(join(tmpdir(), 'tesseract-gate-bounded-storage-'))
+  fixtures.push(fixture)
+  const output = join(fixture, 'evidence')
+  const base = runner({ failCase: 'managed-valid' })
+  let previous: string | undefined
+  let failedRuntime: string | undefined
+  let successfulPayloads = 0
+  const execute: ProcessRunner = async (argv, timeoutMs, logPrefix) => {
+    if (argv[0] === 'run') {
+      if (previous) {
+        await expect(lstat(previous)).rejects.toThrow()
+        successfulPayloads++
+      }
+      const mount = argv.find(arg => arg.includes('dst=/app/runtime'))
+      const runtime = mount?.match(/src=([^,]+)/)?.[1]
+      if (runtime) {
+        await Bun.write(join(runtime, 'authored-sentinel'), 'independent case state\n')
+        await chmod(join(runtime, 'authored-sentinel'), 0o640)
+        previous = runtime
+        if (argv.at(-1) === 'managed-valid') failedRuntime = runtime
+      }
+    }
+    return base.execute(argv, timeoutMs, logPrefix)
+  }
+  await expect(runDockerTesseractDataAcceptance(image, execute, output)).rejects.toThrow('evidence retained at')
+  const failure = await Bun.file(join(output, 'failure.json')).json() as { temporaryState: string }
+  fixtures.push(failure.temporaryState)
+  expect(successfulPayloads).toBe(2)
+  expect(failedRuntime).toBeDefined()
+  expect(await Bun.file(join(failedRuntime!, 'authored-sentinel')).text()).toBe('independent case state\n')
+  expect((await lstat(join(failedRuntime!, 'authored-sentinel'))).mode & 0o777).toBe(0o640)
 })
 
 test('CI archives Tesseract failure diagnostics with the existing native evidence artifact', async () => {

@@ -2,8 +2,6 @@ import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { chmod, mkdir, rm, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
-import { collectDoctorReport } from '../../src/cli/commands/setup-and-utilities/setup/run-doctor'
-import { resolveTessdataPrefix } from '../../src/utils/runtime-paths'
 
 type DataState = 'packaged' | 'valid' | 'corrupt' | 'unreadable' | 'directory' | 'empty'
 const managed = '/app/runtime/tools/tessdata'
@@ -20,13 +18,19 @@ async function setManagedData(state: Exclude<DataState, 'packaged'>): Promise<vo
   if (state === 'directory') await mkdir(english)
   else {
     await Bun.write(english, state === 'valid' || state === 'unreadable'
-      ? Bun.file('/usr/share/tesseract-ocr/5/tessdata/eng.traineddata')
+      ? Bun.file('/app/runtime/tools/linux-root/usr/share/tesseract-ocr/5/tessdata/eng.traineddata')
       : state === 'empty' ? '' : 'Authored corrupt Tesseract English data.\n')
     if (state === 'unreadable') await chmod(english, 0)
   }
 }
 
 async function verifyPhase(directory: string, phase: string, state: DataState) {
+  const doctorModule = '../../src/cli/commands/setup-and-utilities/setup/run-doctor'
+  const pathsModule = '../../src/utils/runtime-paths'
+  const [{ collectDoctorReport }, { resolveTessdataPrefix }] = await Promise.all([
+    import(doctorModule) as Promise<typeof import('../../src/cli/commands/setup-and-utilities/setup/run-doctor')>,
+    import(pathsModule) as Promise<typeof import('../../src/utils/runtime-paths')>
+  ])
   let selected: string | undefined
   let selectionError: string | undefined
   try { selected = resolveTessdataPrefix() } catch (error) { selectionError = String(error) }
@@ -36,7 +40,7 @@ async function verifyPhase(directory: string, phase: string, state: DataState) {
   const setup = await capture(['bun', '--no-env-file', '-e', `import { ensureTesseractEnglishData } from '/app/src/cli/commands/text/ocr/ocr-local/tesseract-setup.ts'; await ensureTesseractEnglishData();`])
   const setupOutput = `${setup.stdout}\n${setup.stderr}`
   const output = join(directory, phase)
-  const ocr = await capture(['bun', '--no-env-file', '/app/src/cli/create-cli.ts',
+  const ocr = await capture(['bun', '--no-env-file', '/app/src/cli/bundled-cli.js',
     'extract', join(directory, 'fixture.png'), '--provider', 'tesseract', '--no-color',
     '--config-path', join(directory, 'empty-config.json'), '--output-root', output])
   const ocrOutput = `${ocr.stdout}\n${ocr.stderr}`
@@ -60,7 +64,7 @@ async function verifyPhase(directory: string, phase: string, state: DataState) {
     if (state === 'corrupt') {
       assert.equal(selectionError, undefined)
       assert.equal(selected, managed)
-      assert(doctor.detail.includes('could not initialize English language data'), doctor.detail)
+      assert(doctor.detail.includes('does not match a trusted English model checksum'), doctor.detail)
       assert(setupOutput.includes('Tesseract English data is unavailable (runtime/tools/tessdata)'), setupOutput)
       assert(setupOutput.includes('could not initialize English language data'), setupOutput)
       assert(ocrOutput.includes('Tesseract OCR failed (managed data: runtime/tools/tessdata)'), ocrOutput)
@@ -75,6 +79,15 @@ async function verifyPhase(directory: string, phase: string, state: DataState) {
 }
 
 if (import.meta.main) {
+  const bootstrapModule = '../../src/tools/docker-runtime-seed-bundle.js'
+  const { hydrateDockerRuntime } = await import(bootstrapModule) as typeof import('../../src/tools/docker-runtime-seed')
+  const hydrated = await hydrateDockerRuntime('/opt/autoshow-runtime', '/app/runtime')
+  if (!hydrated.reused) {
+    // Bun caches missing package directories while loading this source file.
+    // A fresh process resolves the newly activated runtime package graph.
+    const child = Bun.spawn([process.execPath, '--no-env-file', import.meta.path, ...Bun.argv.slice(2)], { stdin: 'inherit', stdout: 'inherit', stderr: 'inherit' })
+    process.exit(await child.exited)
+  }
   const mode = Bun.argv[2]
   assert(mode && ['no-runtime-mount', 'empty-runtime', 'empty-tessdata', 'managed-valid', 'managed-corrupt', 'managed-unreadable', 'managed-directory', 'managed-empty', 'reset-managed'].includes(mode), 'Unknown Tesseract data case')
   // The host can remove these authored artifacts even when its UID differs from

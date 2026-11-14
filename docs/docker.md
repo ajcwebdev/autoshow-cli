@@ -4,7 +4,7 @@ Run AutoShow and common local tools without a host Bun installation. The Debian 
 
 Native `linux/amd64` and `linux/arm64` candidates publish from image-input changes on `main`. Verification, smoke tests, scans, and every immutable-candidate acceptance shard must pass before promotion; docs-only pushes keep the previous `latest`. Pins and release gates live in [Dockerfile](../Dockerfile) and [ADR-014](adr/ADR-014-distribute-the-cli-as-a-docker-image.md).
 
-The image includes FFmpeg/ffprobe, yt-dlp/Deno, Tesseract with English data, MuPDF, qpdf, Calibre, and ImageMagick/Pango/DejaVu fonts. It omits heavyweight engines/weights, Defuddle, and credentials. Missing managed Tesseract data falls back to packaged English; invalid managed data fails in OCR, setup, and doctor.
+The image includes FFmpeg/ffprobe, yt-dlp/Deno, Tesseract with English data, MuPDF, qpdf, Calibre, and ImageMagick/Pango/DejaVu fonts. Dependency executables, their packaged libraries, installed package graphs, font/delegate configuration, and resources execute from `/app/runtime`. The final base contains OS support and the initial Bun launcher; immutable bundled application code lets help, doctor, dry-run, and argument validation run on a fresh runtime mount without installing packages. An immutable distribution payload at `/opt/autoshow-runtime` supplies fresh writable runtime mounts without downloads; activation preserves previous generations and unrelated configuration/assets. After initialization, normal invocations preserve runtime-owned tool upgrades; use setup and doctor for verification/repair, and changing the image does not silently replace unrelated installations. It omits heavyweight engines/weights, Defuddle, and credentials. Missing managed Tesseract data falls back to packaged English inside the runtime payload; invalid managed data fails in OCR, setup, and doctor.
 
 ## Pull or Build
 
@@ -72,7 +72,7 @@ Docker reads the host file and exports its entries; it does not mount the file. 
 
 ## Doctor
 
-`setup --doctor` checks the complete toolchain. Warnings about omitted engines, weights, Defuddle, and unconfigured provider keys are expected unless those capabilities are supplied separately.
+`setup --doctor` checks the installed toolchain without hydration, installation, or provider calls. Linux doctor verifies managed receipts, wrappers, payload integrity, and resources without launching tool capability probes; setup performs functional probes before activation, and native image acceptance exercises OCR and rendering. Help, version, and `setup --dry-run` are also read-only. On a fresh empty runtime bind mount, run `setup` once to activate the image payload before checking readiness. Warnings about omitted engines, weights, Defuddle, and unconfigured provider keys are expected unless those capabilities are supplied separately.
 
 ## Long requests and keepalive
 
@@ -86,7 +86,7 @@ Set `AUTOSHOW_HTTP_PAYLOAD_MAX_BYTES` to a positive whole byte count to replace 
 
 ## Project Workspace Invocation
 
-Export `AUTOSHOW_WORKSPACE` as the absolute project root, create its `.env`, and run `mkdir -p "$AUTOSHOW_WORKSPACE/.autoshow/home/.cache"` as your host user. This function preserves literal arguments, persistent state, and Linux host ownership; Docker failures never trigger native execution.
+Export `AUTOSHOW_WORKSPACE` as the absolute project root, create its `.env`, and run `mkdir -p "$AUTOSHOW_WORKSPACE/.autoshow/home"` as your host user. This function preserves literal arguments, persistent state, and Linux host ownership; Docker failures never trigger native execution.
 
 ```bash
 autoshow() (
@@ -107,7 +107,7 @@ autoshow() (
 
 The optional `AUTOSHOW_REQUIRED_IMAGE_MODEL` line requires exactly one matching OpenAI image selection for image-producing commands; all-provider selection fails. Help, version, and `comic generate-images --qa-only` are exempt. Violations exit 64 before pricing/output setup. Remove the line for unrestricted models.
 
-Keep both state mounts: `/app/runtime` retains voice assets, identities, tools, and the image's runtime-backed config; `/home/bun` holds home/cache state. Workspace config discovery is separate: pass `--config-path /app/config/autoshow.json` to read/save the runtime-backed defaults from these wrappers. Custom Linux users also need host-owned writable state, home, and output directories. Keep credentials and identity/voice state out of broad evidence uploads. `AUTOSHOW_IMAGE` selects a tag or digest.
+`/app/runtime` retains installed tools, package/model/font caches, temporary workspaces, locks, voice assets, identities, and the default `runtime/autoshow.json`. The optional `/home/bun` mount supplies a stable user home for explicit browser-cookie integration; application caches remain under runtime. Custom Linux users need host-owned writable runtime and output directories. Keep credentials and identity/voice state out of broad evidence uploads. `AUTOSHOW_IMAGE` selects a tag or digest.
 
 ### Restricted input/output invocation
 
@@ -116,7 +116,7 @@ This opt-in wrapper exposes only read-only input plus writable output/state/home
 ```bash
 autoshow_restricted() (
   autoshow_workspace=${AUTOSHOW_WORKSPACE:?Set AUTOSHOW_WORKSPACE to the absolute project root}
-  mkdir -p "$autoshow_workspace/input" "$autoshow_workspace/output" "$autoshow_workspace/.autoshow/home/.cache" || exit
+  mkdir -p "$autoshow_workspace/input" "$autoshow_workspace/output" "$autoshow_workspace/.autoshow/home" || exit
   set -- --rm -i --cap-drop ALL --security-opt no-new-privileges:true \
     --mount "type=bind,src=$autoshow_workspace/input,dst=/workspace/input,readonly" \
     --mount "type=bind,src=$autoshow_workspace/output,dst=/workspace/output" \

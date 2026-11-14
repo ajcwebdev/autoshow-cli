@@ -21,7 +21,7 @@ const HELP_FLAGS = new Set(['--help', '-h'])
 
 export const CLI_SOURCE_ENTRY = 'src/cli/create-cli.ts'
 
-const BASE_CHILD_ENV = childEnv({
+const baseChildEnv = (): Record<string, string> => childEnv({
   allow: [
     'AUTOSHOW_PROJECT_ROOT',
     'AUTOSHOW_TEST_CLI_BUNDLE'
@@ -91,7 +91,7 @@ export const buildChildEnv = (optsEnv: Record<string, string | undefined> | unde
   const credentials = liveCredentialContext.getStore()
   const gatewayId = credentials?.['CLOUDFLARE_API_TOKEN'] ? process.env['CLOUDFLARE_AI_GATEWAY_ID'] : undefined
   return {
-    ...BASE_CHILD_ENV,
+    ...baseChildEnv(),
     ...credentials,
     // Routing selects the billing path. Forward it only for a declared Cloudflare
     // live callback, without requiring a gateway or exposing unrelated settings.

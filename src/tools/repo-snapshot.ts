@@ -1,6 +1,6 @@
 import { lstatSync } from 'node:fs'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { join } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import type { TreeNode } from '~/types'
@@ -134,7 +134,7 @@ const resolveInstructionFile = async (): Promise<{ path: string, tempDir?: strin
     return { path: projectInstruction }
   }
 
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-repo-snapshot-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-repo-snapshot-')
   const instructionPath = join(tempDir, 'repo-snapshot-instruction-temp.md')
   await Bun.write(instructionPath, DEFAULT_INSTRUCTION)
   l.write('info', `Created temporary instruction file: ${instructionPath}`, { category: 'artifact', metadata: { instructionPath } })

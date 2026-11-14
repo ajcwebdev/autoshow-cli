@@ -167,7 +167,8 @@ for(const root of ['/results','/app/runtime','/home/bun']) {
  finally {await rm(directory,{recursive:true});}
 }
 console.log(JSON.stringify({stateAccess:'passed',uid:process.getuid(),gid:process.getgid()}));`
-    this.requireSuccess(await this.container(['--no-env-file', '-e', script], 'none', 30_000, 'bun'),
+    const hydrate = `const {hydrateDockerRuntime}=await import('/app/src/tools/docker-runtime-seed-bundle.js');await hydrateDockerRuntime('/opt/autoshow-runtime','/app/runtime');`
+    this.requireSuccess(await this.container(['--no-env-file', '-e', `${script}\n${hydrate}`], 'none', 120_000, 'bun'),
       'State mounts must be writable by the selected non-root user. Use --user UID:GID for host-owned caches; acceptance never repairs existing ownership or modes')
   }
 

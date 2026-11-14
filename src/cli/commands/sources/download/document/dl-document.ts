@@ -1,5 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { basename, join } from 'node:path'
 import { reserveBatchChildOutputDir } from '~/cli/commands/command-shared/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/command-shared/run-dir'
@@ -15,13 +15,12 @@ import * as l from '~/utils/app-logger/app-logger'
 import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getDocumentInfo } from './mutool-utils'
-import { resolveRuntimeToolInfo } from '~/utils/runtime-paths'
+import { assertRuntimeContainedPath, resolveRuntimeToolInfo } from '~/utils/runtime-paths'
 
 export const resolveEbookConvertCommand = (
   options: EbookConvertCommandOptions = {}
 ): string => {
   const resolveCalibreBin = options.resolveCalibreBin ?? calibreBin
-  const which = options.which ?? ((command: string) => Bun.which(command))
   if (!options.resolveCalibreBin) {
     const resolved = resolveRuntimeToolInfo('ebook-convert')
     if (resolved) return resolved.path
@@ -31,8 +30,9 @@ export const resolveEbookConvertCommand = (
       { stage: 'download:document', hints: ["Run 'bun autoshow setup --step calibre' to install Calibre"] }
     )
   }
-  const ebookConvert = resolveCalibreBin('ebook-convert')
-  if (ebookConvert === 'ebook-convert' && !which('ebook-convert')) {
+  const requested = resolveCalibreBin('ebook-convert')
+  const ebookConvert = requested === 'ebook-convert' ? options.which?.('ebook-convert') : requested
+  if (!ebookConvert) {
     throw InfraError(
       `Calibre is required to convert normalizable ebook files (${CONVERTIBLE_EBOOK_FORMAT_LABEL}) to EPUB. ` +
       'Install it with: bun autoshow setup',
@@ -40,7 +40,7 @@ export const resolveEbookConvertCommand = (
     )
   }
 
-  return ebookConvert
+  return assertRuntimeContainedPath(ebookConvert)
 }
 
 const normalizeEbookToEpub = async (
@@ -126,7 +126,7 @@ export const prepareDocumentMetadata = async (
       category: 'pipeline',
       metadata: { sourceFormat: detectedFormat, targetFormat: 'epub', tool: 'calibre' }
     })
-    tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ebook-norm-'))
+    tempDir = await createRuntimeTempDirectory('autoshow-ebook-norm-')
     tempCleanup = async () => {
       if (tempDir) {
         await rm(tempDir, { recursive: true, force: true })

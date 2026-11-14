@@ -10,6 +10,7 @@ import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/mode
 import type { AutoshowConfig, CliFlagOccurrence, RepeatableModelFlag } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
+import { SETUP_FOCUSED_MODE_FLAGS, SETUP_NETWORK_DEPENDENT_FLAGS } from '~/cli/flags/setup-mode-contract'
 import {
   REPEATABLE_MODEL_FLAGS,
   collectRepeatableModelFlagOccurrences,
@@ -344,11 +345,21 @@ const SCOPED_FLAG_TO_CONFIG_PATHS: Partial<Record<ConfigInjectionScope, Record<s
 }
 
 export const RUNTIME_ONLY_FLAGS = new Set([
+  ...SETUP_FOCUSED_MODE_FLAGS,
+  ...SETUP_NETWORK_DEPENDENT_FLAGS,
+  'network-check',
   'price',
   'allow-over-budget',
-  'show',
-  'reset',
   'config-path',
+  'bin-dir',
+  'output-root',
+  'output-dir',
+  'json',
+  'result-file',
+  'log-level',
+  'verbose',
+  'quiet',
+  'color',
   'password',
 ])
 

@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test'
-import { buildYtDlpDownloadArgs } from '~/cli/commands/command-shared/shared-yt-dlp-options'
+import { dirname } from 'node:path'
+import { buildYtDlpDownloadArgs, buildYtDlpListArgs, buildYtDlpMetadataArgs, buildYtDlpSubtitleDownloadArgs } from '~/cli/commands/command-shared/shared-yt-dlp-options'
+import { getDenoBinary, getFfmpegBinary } from '~/utils/runtime-paths'
+import { getRuntimeCachePath } from '~/utils/runtime-state'
 
 const valueAfter = (args: string[], flag: string): string | undefined => {
   const index = args.indexOf(flag)
@@ -13,6 +16,26 @@ const indexesOf = (args: string[], value: string): number[] =>
   args.flatMap((arg, index) => arg === value ? [index] : [])
 
 describe('yt-dlp option contracts', () => {
+  test('all generated downloader operations select managed helpers/cache and disable ambient configuration/plugins', async () => {
+    const url = 'https://example.test/watch?v=managed-tools'
+    const operations = await Promise.all([
+      buildYtDlpDownloadArgs(url, '/tmp/autoshow'),
+      buildYtDlpMetadataArgs(url),
+      buildYtDlpSubtitleDownloadArgs(url, '/tmp/autoshow', 'manual'),
+      buildYtDlpListArgs(url)
+    ])
+    for (const args of operations) {
+      expect(valueAfter(args, '--js-runtimes')).toBe(`deno:${getDenoBinary()}`)
+      expect(args.indexOf('--no-js-runtimes')).toBeLessThan(args.indexOf('--js-runtimes'))
+      expect(valueAfter(args, '--ffmpeg-location')).toBe(dirname(getFfmpegBinary()))
+      expect(valueAfter(args, '--cache-dir')).toBe(getRuntimeCachePath('yt-dlp'))
+      expect(args).toContain('--ignore-config')
+      expect(args).toContain('--no-plugin-dirs')
+      expect(args).toContain('--no-remote-components')
+      expect(args.at(-1)).toBe(url)
+    }
+  })
+
   test('default download args request best audio fallback', async () => {
     const args = await buildYtDlpDownloadArgs('https://example.com/watch?v=1', '/tmp/autoshow')
 

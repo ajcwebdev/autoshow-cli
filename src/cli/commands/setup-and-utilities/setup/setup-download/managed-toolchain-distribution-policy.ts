@@ -134,6 +134,9 @@ const LICENSE_POLICY: Record<ManagedArtifactToolId, ManagedPrebuiltLicense> = {
 
 const sameJson = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right)
 
+export const managedToolchainNoticePlan = (tool: ManagedArtifactToolId): ManagedToolchainNoticePlanEntry[] =>
+  structuredClone([...NOTICE_PLAN[tool]])
+
 export const managedToolchainDistributionLicense = (tool: ManagedArtifactToolId): ManagedPrebuiltLicense =>
   structuredClone(LICENSE_POLICY[tool])
 

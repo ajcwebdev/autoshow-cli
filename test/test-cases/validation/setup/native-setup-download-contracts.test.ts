@@ -10,7 +10,8 @@ import {
   setSetupDownloadConcurrency
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/download-admission'
 import { buildGithubArchiveUrl, buildGithubCommitArchiveUrl } from '~/cli/commands/setup-and-utilities/setup/setup-download/github-archives'
-import { buildManagedQpdfWrapperScript } from '~/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools'
+import { buildManagedLeptonicaCmakeArguments, buildManagedTesseractCmakeArguments, buildManagedQpdfWrapperScript } from '~/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools'
+import { nativeDependencyPrefix } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-native-dependencies'
 import {
   buildLibjpegTurboCmakeArguments,
   buildQpdfCmakeArguments,
@@ -443,37 +444,38 @@ describe('managed macOS Tesseract setup', () => {
 
   test('builds Leptonica and Tesseract with CMake instead of autotools', async () => {
     const source = await readInstallManagedTesseractMacosSource()
-
-    expect(source).toContain("runInherit('cmake'")
-    expect(source).toContain("'-S', leptonicaBuildDir")
-    expect(source).toContain("'-S', tesseractBuildDir")
-    expect(source).toContain('`-DLeptonica_DIR=${leptonicaCmakeConfigDir}`')
-    expect(source).toContain("'-DENABLE_WEBP=OFF'")
-    expect(source).toContain("'-DENABLE_OPENJPEG=OFF'")
-    expect(source).toContain("'-DBUILD_TESTS=OFF'")
-    expect(source).toContain("'-DBUILD_TRAINING_TOOLS=OFF'")
-    expect(source).toContain("'-DOPENMP_BUILD=OFF'")
-    expect(source).toContain("'-DGRAPHICS_DISABLED=ON'")
+    const leptonica = buildManagedLeptonicaCmakeArguments('/managed/leptonica-build', '/managed/leptonica-install')
+    const tesseract = buildManagedTesseractCmakeArguments('/managed/tesseract-build', '/managed/tesseract-install')
+    expect(source).toContain("managedBuildToolPath('cmake')")
+    expect(source).toContain('buildManagedTesseractCmakeArguments(buildDir, tesseractToolDir)')
+    expect(leptonica).toContain('-DENABLE_WEBP=OFF')
+    expect(leptonica).toContain('-DENABLE_OPENJPEG=OFF')
+    expect(leptonica).toContain('-DBUILD_SHARED_LIBS=OFF')
+    expect(tesseract.some(argument => argument.startsWith('-DLeptonica_DIR=') && argument.endsWith('/tools/leptonica/lib/cmake/leptonica'))).toBe(true)
+    expect(tesseract).toContain('-DBUILD_TESTS=OFF')
+    expect(tesseract).toContain('-DBUILD_TRAINING_TOOLS=OFF')
+    expect(tesseract).toContain('-DOPENMP_BUILD=OFF')
+    expect(tesseract).toContain('-DGRAPHICS_DISABLED=ON')
     expect(source).not.toContain('./autogen.sh')
     expect(source).not.toContain("runInherit('./configure'")
     expect(source).not.toContain("runInherit('make'")
   })
 
-  test('requires the managed Leptonica stamp and CMake config before treating Leptonica as ready', async () => {
+  test('validates the complete Leptonica codec identity and payload before reusing an installation', async () => {
     const fullSource = await Bun.file('src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts').text()
     const source = await readInstallManagedTesseractMacosSource()
 
     expect(fullSource).toContain("const leptonicaCmakeConfigDir = join(leptonicaToolDir, 'lib/cmake/leptonica')")
-    expect(fullSource).toContain("const leptonicaCmakeConfigPath = join(leptonicaCmakeConfigDir, 'LeptonicaConfig.cmake')")
-    expect(fullSource).toContain("const leptonicaManagedBuildStampPath = join(leptonicaToolDir, '.autoshow-managed-build')")
-    expect(fullSource).toContain('await pathExists(leptonicaCmakeConfigPath) && await pathExists(leptonicaManagedBuildStampPath)')
-    expect(source).toContain('!await hasManagedLeptonicaBuild()')
-    expect(source).toContain("await Bun.write(leptonicaManagedBuildStampPath, 'leptonica-cmake-v1\\n')")
-    const installIndex = source.indexOf("await runInherit('cmake', ['--install', leptonicaCmakeBuildDir]")
-    const stampIndex = source.indexOf('await Bun.write(leptonicaManagedBuildStampPath')
-    expect(installIndex).toBeGreaterThanOrEqual(0)
-    expect(stampIndex).toBeGreaterThanOrEqual(0)
-    expect(installIndex).toBeLessThan(stampIndex)
+    expect(fullSource).toContain("hasSourceRecipe('leptonica', leptonicaToolDir, leptonicaRecipe, dependencies)")
+    expect(fullSource).toContain("requiredPaths: ['lib/cmake/leptonica/LeptonicaConfig.cmake']")
+    expect(fullSource).toContain("await writeSourceRecipe('leptonica', stagingDir, leptonicaRecipe, dependencies)")
+    expect(fullSource).toContain('validateStaging: async toolDir => await validateSourceRecipe(\'leptonica\', toolDir, leptonicaRecipe, dependencies)')
+    const arguments_ = buildManagedLeptonicaCmakeArguments('/managed/build', '/managed/install')
+    expect(arguments_).toContain(`-DZLIB_LIBRARY=${nativeDependencyPrefix('zlib')}/lib/libz.a`)
+    expect(arguments_).toContain(`-DPNG_LIBRARY=${nativeDependencyPrefix('libpng')}/lib/libpng16.a`)
+    expect(arguments_).toContain(`-DJPEG_LIBRARY=${nativeDependencyPrefix('libjpeg-turbo')}/lib/libjpeg.a`)
+    expect(arguments_).toContain(`-DTIFF_LIBRARY=${nativeDependencyPrefix('libtiff')}/lib/libtiff.a`)
+    expect(arguments_).toContain('-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF')
     expect(source).not.toContain("!await pathExists(join(leptonicaToolDir, 'lib'))")
   })
 })
@@ -503,8 +505,10 @@ describe('managed macOS qpdf setup', () => {
 
     expect(exitCode).toBe(0)
     expect(stderr).toBe('')
-    expect(wrapperScript).not.toContain('DYLD_LIBRARY_PATH')
-    expect(wrapperScript).toContain(`exec "${installedQpdf}" "$@"`)
+    expect(wrapperScript).toContain('unset DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH')
+    expect(wrapperScript).not.toContain('export DYLD_LIBRARY_PATH')
+    expect(wrapperScript).toContain('exec "$qpdf_runtime_dir/tools/qpdf/bin/qpdf" "$@"')
+    expect(wrapperScript).not.toContain(dir)
     expect(stdout).toContain('qpdf version 12.0.0')
   })
 
@@ -514,6 +518,10 @@ describe('managed macOS qpdf setup', () => {
     const qpdfArgs = buildQpdfCmakeArguments(layout, '/tmp/qpdf-tool', '15.0')
     const env = buildQpdfSourceEnvironment(layout)
 
+    for (const args of [libjpegArgs, qpdfArgs]) {
+      expect(args).toContain('-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF')
+      expect(args).toContain('-DCMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY=OFF')
+    }
     expect(libjpegArgs).toContain('-DENABLE_SHARED=OFF')
     expect(libjpegArgs).toContain('-DENABLE_STATIC=ON')
     expect(libjpegArgs).toContain('-DWITH_JPEG8=ON')
@@ -539,12 +547,12 @@ describe('managed macOS qpdf setup', () => {
 \t/usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.12)
 \t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 3500.0.0)
 \t@loader_path/libpackaged.dylib (compatibility version 1.0.0, current version 1.0.0)
-\t/opt/homebrew/opt/jpeg-turbo/lib/libjpeg.8.dylib (compatibility version 8.0.0, current version 8.3.2)
+\t/external/tools/jpeg-turbo/lib/libjpeg.8.dylib (compatibility version 8.0.0, current version 8.3.2)
 \t/usr/local/lib/libcrypto.3.dylib (compatibility version 3.0.0, current version 3.0.0)
 `
 
     expect(findForbiddenMacosDynamicLibraryReferences(output)).toEqual([
-      '/opt/homebrew/opt/jpeg-turbo/lib/libjpeg.8.dylib',
+      '/external/tools/jpeg-turbo/lib/libjpeg.8.dylib',
       '/usr/local/lib/libcrypto.3.dylib'
     ])
   })
@@ -568,8 +576,8 @@ describe('managed macOS qpdf setup', () => {
     const installSource = source.slice(start, end)
     const healthIndex = installSource.indexOf('await resolveHealthyQpdfToolInfo()')
     const installIndex = installSource.indexOf("l.write('info', 'Installing qpdf'")
-    const darwinInstallIndex = installSource.indexOf('await installManagedQpdfMacos()')
-    const linuxInstallIndex = installSource.indexOf("await runInherit('sudo', ['apt', 'install', '-y', 'qpdf'])")
+    const darwinInstallIndex = installSource.indexOf('await installManagedQpdfMacos(options)')
+    const linuxInstallIndex = installSource.indexOf("await ensureManagedLinuxTool('qpdf', options)")
     const refreshIndexes = [...installSource.matchAll(/await refreshQpdfHealthCache\(\{ repairManaged: false \}\)/g)]
       .map(match => match.index ?? -1)
 
@@ -598,7 +606,7 @@ describe('managed macOS toolchain process locks', () => {
       ['installManagedQpdfMacos', 'setup-qpdf-']
     ]
     for (const [name, lockPrefix] of locks) {
-      expect(source).toContain(`export const ${name} = async (): Promise<void> =>`)
+      expect(source).toMatch(new RegExp(`export const ${name} = async \\(.*\\): Promise<void> =>`))
       expect(source).toContain(`withProcessLock(\`${lockPrefix}`)
     }
   })

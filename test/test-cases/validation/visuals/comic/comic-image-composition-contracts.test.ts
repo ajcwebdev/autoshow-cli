@@ -12,6 +12,7 @@ getSceneOutputDirectory
 } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import { pngSignature,redDotPng } from '../../../../test-utils/media-fixtures'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { hasRuntimeTool } from '~/utils/runtime-paths'
 
 const comicSourceRoot = 'src/cli/commands/visuals/comic'
 
@@ -63,8 +64,8 @@ describe('comic source coverage contracts', () => {
   })
 
   test('character sketch sheet composition uses ImageMagick without sharp', async () => {
-    if (!Bun.which('magick') && !Bun.which('convert')) {
-      throw new Error('ImageMagick magick or convert is required for sketch sheet composition coverage')
+    if (!hasRuntimeTool('magick') && !hasRuntimeTool('convert')) {
+      throw new Error('Managed ImageMagick is required for sketch sheet composition coverage; run bun autoshow setup --step rendering')
     }
 
     const dir = await makeTempDir('autoshow-comic-sketch-sheet-')
@@ -90,8 +91,8 @@ describe('comic source coverage contracts', () => {
   })
 
   test('comic grid composition uses ImageMagick and leaves partial cells blank', async () => {
-    if (!Bun.which('magick') && !Bun.which('convert')) {
-      throw new Error('ImageMagick magick or convert is required for comic grid composition coverage')
+    if (!hasRuntimeTool('magick') && !hasRuntimeTool('convert')) {
+      throw new Error('Managed ImageMagick is required for comic grid composition coverage; run bun autoshow setup --step rendering')
     }
 
     const dir = await makeTempDir('autoshow-comic-grid-page-')

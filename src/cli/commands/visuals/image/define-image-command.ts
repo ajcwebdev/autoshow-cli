@@ -37,7 +37,7 @@ const runImageCommand = async (
     { allProvidersTarget: 'all-image' }
   )
   const configPath = await resolveConfigPath(typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined)
-  const config = await loadConfig(configPath)
+  const config = await loadConfig(configPath, { allowLegacyFallback: typeof flags['config-path'] !== 'string' })
   providerNormalized.flags = mergeConfigIntoRawFlags(providerNormalized.flags, config, providerNormalized.explicitFlags, 'image')
   const imageOpts: StandaloneImageCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'image' })
   const unfilteredSteps = buildImageEstimates(imageOpts)

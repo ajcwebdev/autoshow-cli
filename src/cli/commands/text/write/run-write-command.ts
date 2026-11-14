@@ -85,7 +85,7 @@ export const runWriteCommand = async (
 
   const configPathOverride = typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined
   const resolvedConfigPath = await resolveConfigPath(configPathOverride)
-  const config = await loadConfig(resolvedConfigPath)
+  const config = await loadConfig(resolvedConfigPath, { allowLegacyFallback: configPathOverride === undefined })
   const mergedFlags = mergeConfigIntoRawFlags(flags, config, explicitFlags, 'write')
   const configuredFlags = readInjectedConfigFlags(mergedFlags)
   const optionExplicitFlags = new Set([...explicitFlags, ...configuredFlags])

@@ -1,5 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { basename, join } from 'node:path'
 import type { MaterializedMediaInput } from '~/types'
 import { InfraError } from '~/utils/error-handler'
@@ -45,7 +45,7 @@ export const materializeMediaInput = async (
     }
   }
 
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-media-url-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-media-url-')
   const fileName = fileNameFromUrl(normalizedInput)
   const outputPath = join(tempDir, fileName)
   const label = options.label ?? 'media URL'

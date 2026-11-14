@@ -80,7 +80,7 @@ describe('test-runner process and price orchestration', () => {
     try {
       process.env['AUTOSHOW_TEST_CLI_BUNDLE'] = '/tmp/cli.js'
       expect(buildPriceSpawnArgs(command('price', ['src/cli/create-cli.ts', 'extract', 'input.pdf', '--price']), artifacts)).toEqual([
-        'bun',
+        process.execPath,
         '--no-env-file',
         '/tmp/cli.js',
         'extract',
@@ -100,7 +100,7 @@ describe('test-runner process and price orchestration', () => {
     for (const entry of BUDGET_PRICE_SELECTION_REGISTRY) {
       const args = buildPriceSpawnArgs(withPriceExecutionConfig(entry), artifacts)
       expect(args).toContain('--price')
-      expect(args.slice(0, 2)).toEqual(['bun', '--no-env-file'])
+      expect(args.slice(0, 2)).toEqual([process.execPath, '--no-env-file'])
     }
     expect(() => buildPriceSpawnArgs(command('unsafe', ['src/cli/create-cli.ts', 'image', 'example']), artifacts))
       .toThrow('must explicitly select --price before dispatch')

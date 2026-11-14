@@ -6,6 +6,8 @@ name: Verify and Publish Docker Image
       - main
 permissions:
   contents: read
+env:
+  BUN_RUNTIME_TRANSPILER_CACHE_PATH: '0'
 concurrency:
   group: "autoshow-ghcr-${{ github.event_name == 'push' && 'latest' || github.ref }}"
   cancel-in-progress: "${{ github.event_name == 'pull_request' }}"
@@ -27,6 +29,72 @@ jobs:
       - name: Detect changed areas
         id: changes
         uses: ./.github/actions/detect-changes
+  managed-macos:
+    name: Managed macOS ARM64 setup and free e2e
+    needs: changes
+    if: "needs.changes.outputs.code == 'true'"
+    runs-on: macos-15
+    timeout-minutes: 180
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: "${{ github.sha }}"
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install supported bootstrap Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.4.2
+      - name: Install the frozen application graph
+        run: |
+          bun --no-env-file install --frozen-lockfile --ignore-scripts
+          bun --no-env-file src/tools/project-runtime-dependencies.ts
+      - name: Preview a cold setup without runtime mutation
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          bootstrap_bun="$(command -v bun)"
+          test ! -e runtime/tools/native
+          "${bootstrap_bun}" --no-env-file test/setup-acceptance/managed-runtime-snapshot.ts runtime > "${RUNNER_TEMP}/managed-runtime-before-plan.json"
+          env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin HOME="${HOME}" BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 CI=true AUTOSHOW_PROJECT_ROOT="${GITHUB_WORKSPACE}" \
+            "${bootstrap_bun}" --no-env-file src/cli/create-cli.ts setup --dry-run --json > "${RUNNER_TEMP}/managed-setup-plan.json"
+          "${bootstrap_bun}" --no-env-file test/setup-acceptance/managed-runtime-snapshot.ts runtime > "${RUNNER_TEMP}/managed-runtime-after-plan.json"
+          cmp "${RUNNER_TEMP}/managed-runtime-before-plan.json" "${RUNNER_TEMP}/managed-runtime-after-plan.json"
+      - name: Provision, reuse, and diagnose the managed native graph
+        run: |
+          set -euo pipefail
+          bootstrap_bun="$(command -v bun)"
+          env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin HOME="${HOME}" BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 CI=true AUTOSHOW_PROJECT_ROOT="${GITHUB_WORKSPACE}" \
+            "${bootstrap_bun}" --no-env-file src/cli/create-cli.ts setup
+          mkdir -p runtime/ci/managed-macos
+          test -x /usr/bin/sandbox-exec
+          env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin HOME="${HOME}" BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 CI=true AUTOSHOW_PROJECT_ROOT="${GITHUB_WORKSPACE}" \
+            "${bootstrap_bun}" --no-env-file test/setup-acceptance/managed-offline-setup.ts > runtime/ci/managed-macos/warm-setup.json
+          env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin HOME="${HOME}" BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 CI=true AUTOSHOW_PROJECT_ROOT="${GITHUB_WORKSPACE}" \
+            "${bootstrap_bun}" --no-env-file src/cli/create-cli.ts setup --doctor --strict --json > runtime/ci/managed-macos/doctor.json
+      - name: Run the curated free e2e selection without provider credentials
+        run: |
+          set -euo pipefail
+          bootstrap_bun="$(command -v bun)"
+          env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin HOME="${HOME}" BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 CI=true AUTOSHOW_PROJECT_ROOT="${GITHUB_WORKSPACE}" \
+            "${bootstrap_bun}" --no-env-file --no-orphans test/test-runner.ts \
+              test/test-cases/e2e/local \
+              test/test-cases/e2e/service/audio/music/provider-flag-validation.test.ts \
+              test/test-cases/e2e/service/audio/tts/removed-mistral.test.ts \
+              test/test-cases/e2e/service/audio/tts/inworld-realtime-tts-2.test.ts \
+              test/test-cases/e2e/service/visuals/image/image-usage-errors.test.ts \
+              test/test-cases/e2e/service/visuals/video/video-usage-errors.test.ts \
+              --no-cleanup --parallel=4 --max-concurrency=2
+      - name: Retain native setup diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: managed-macos-arm64-${{ github.sha }}
+          path: |
+            runtime/ci/managed-macos
+            runtime/setup-performance
+            output/test-output/latest.log
   verify:
     name: No-cost verification
     runs-on: ubuntu-24.04
@@ -49,23 +117,23 @@ jobs:
         run: "test \"$(bun --version)\" = \"1.4.2\""
       - name: Install frozen dependencies
         run: bun --no-env-file install --frozen-lockfile
-      - name: Install local image composition dependency and run repository checks
+      - name: Provision managed local dependencies and run repository checks
         run: |
           set -uo pipefail
-          (sudo apt-get update && sudo apt-get install --no-install-recommends --yes imagemagick ffmpeg mupdf-tools qpdf) > "${RUNNER_TEMP}/native-tools-install.log" 2>&1 &
-          apt_pid=$!
+          (bun --no-env-file src/cli/create-cli.ts setup --step rendering && bun --no-env-file src/cli/create-cli.ts setup --step calibre) > "${RUNNER_TEMP}/native-tools-install.log" 2>&1 &
+          native_pid=$!
           bun --no-env-file run check > "${RUNNER_TEMP}/repository-check.log" 2>&1 &
           check_pid=$!
-          apt_status=0; wait "${apt_pid}" || apt_status=$?
-          test "${apt_status}" -eq 0 || cat "${RUNNER_TEMP}/native-tools-install.log"
+          native_status=0; wait "${native_pid}" || native_status=$?
+          test "${native_status}" -eq 0 || cat "${RUNNER_TEMP}/native-tools-install.log"
           price_status=0
-          test "${apt_status}" -eq 0 && { bun --no-env-file t --price --no-cleanup || price_status=$?; }
+          test "${native_status}" -eq 0 && { bun --no-env-file t --price --no-cleanup || price_status=$?; }
           timings_status=0
           bun --no-env-file src/tools/ci-run-timings.ts price "$(ls -t1 output/test-output/*/metrics.ndjson | head -1)" || timings_status=$?
           check_status=0; wait "${check_pid}" || check_status=$?
           cat "${RUNNER_TEMP}/repository-check.log"
-          echo "check=${check_status} native-tools=${apt_status} price=${price_status} timings=${timings_status}"
-          test "${check_status}" -eq 0 && test "${apt_status}" -eq 0 && test "${price_status}" -eq 0 && test "${timings_status}" -eq 0
+          echo "check=${check_status} native-tools=${native_status} price=${price_status} timings=${timings_status}"
+          test "${check_status}" -eq 0 && test "${native_status}" -eq 0 && test "${price_status}" -eq 0 && test "${timings_status}" -eq 0
       - name: "Run local CLI, Docker, DOCX, and Bun migration contracts"
         if: "steps.changes.outputs.code == 'true'"
         run: |
@@ -415,6 +483,7 @@ jobs:
       packages: write
     needs:
       - verify
+      - managed-macos
       - package-hygiene
       - build-amd64
       - build-arm64

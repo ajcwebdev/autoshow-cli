@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs'
 import type { CharacterSketchSheetSelection, CharacterSketchSheetSource, CharacterSketchSheetSourceMetadata, CharacterSketchView } from '~/types'
-import { commandExists, exec } from '~/utils/cli-utils'
+import { exec } from '~/utils/cli-utils'
 import { InfraError, InternalError } from '~/utils/error-handler'
+import { getImageMagickBinary, hasRuntimeTool } from '~/utils/runtime-paths'
 import { CHARACTER_SKETCH_VIEWS, getCharacterSketchImagePathForDirectory, getCharacterSketchSheetImagePathForDirectory } from '../process-scenes/character-utils'
 
 const getMissingSketchViews = (
@@ -34,14 +35,9 @@ export const selectCharacterSketchSheetSources = (
 }
 
 const resolveImageMagickCommand = (): string => {
-  if (commandExists('magick')) {
-    return 'magick'
-  }
-  if (commandExists('convert')) {
-    return 'convert'
-  }
+  if (hasRuntimeTool('magick') || hasRuntimeTool('convert')) return getImageMagickBinary()
   throw InfraError(
-    'Character sketch sheet composition requires ImageMagick. Install ImageMagick so `magick` or `convert` is available on PATH.',
+    'Character sketch sheet composition requires managed ImageMagick. Run bun autoshow setup --step rendering.',
     { stage: 'comic:character-sketch-sheet' }
   )
 }

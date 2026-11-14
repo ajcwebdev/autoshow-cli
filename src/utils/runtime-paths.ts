@@ -2,10 +2,11 @@ import { accessSync, constants, existsSync, lstatSync, statSync } from 'node:fs'
 import { basename, extname, isAbsolute, join, posix, relative, resolve } from 'node:path'
 import type { ResolvedRuntimeTool, ResolveRuntimeToolOptions, RuntimeToolId } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
-import { PROJECT_ROOT } from '~/utils/project-root'
+import { PROJECT_ROOT, SOURCE_ROOT } from '~/utils/project-root'
+import { assertManagedRuntimePath, pathIsPhysicallyWithinRoot, RUNTIME_ROOT_PATH } from './runtime-containment'
 
 export { PROJECT_ROOT, toProjectRelativePath } from '~/utils/project-root'
-export const IMMUTABLE_ASSET_ROOT = Bun.isStandaloneExecutable ? import.meta.dir : PROJECT_ROOT
+export const IMMUTABLE_ASSET_ROOT = Bun.isStandaloneExecutable ? import.meta.dir : SOURCE_ROOT
 export const toPosixPath = (value: string): string => value.replace(/\\/g, '/')
 const displayRelativeTo = (root: string, absolutePath: string): string | undefined => {
   const rel = relative(root, absolutePath)
@@ -51,7 +52,7 @@ export const toSourceIdentityDisplayPath = (
 }
 export const resolveUserPath = (value: string): string => resolve(PROJECT_ROOT, value)
 export const baseStem = (filePath: string): string => basename(filePath, extname(filePath))
-export const RUNTIME_DIR = join(PROJECT_ROOT, 'runtime')
+export const RUNTIME_DIR = RUNTIME_ROOT_PATH
 export const RUNTIME_BIN_DIR = join(RUNTIME_DIR, 'bin')
 export const RUNTIME_BUILD_DIR = join(RUNTIME_DIR, 'build')
 export const RUNTIME_TOOLS_DIR = join(RUNTIME_DIR, 'tools')
@@ -100,8 +101,38 @@ const TOOL_MANAGED_PATHS: Record<RuntimeToolId, string> = {
   mutool: mutoolManagedBinaryPath,
   'ebook-convert': ebookConvertManagedBinaryPath,
   tesseract: tesseractManagedBinaryPath,
-  qpdf: qpdfManagedBinaryPath
+  qpdf: qpdfManagedBinaryPath,
+  magick: join(RUNTIME_BIN_DIR, 'magick'),
+  convert: join(RUNTIME_BIN_DIR, 'convert'),
+  identify: join(RUNTIME_BIN_DIR, 'identify'),
+  'pango-view': join(RUNTIME_BIN_DIR, 'pango-view'),
+  'fc-match': join(RUNTIME_BIN_DIR, 'fc-match'),
+  'fc-cache': join(RUNTIME_BIN_DIR, 'fc-cache'),
+  cmake: join(RUNTIME_BIN_DIR, 'cmake'),
+  pkgconf: join(RUNTIME_BIN_DIR, 'pkgconf'),
+  'pkg-config': join(RUNTIME_BIN_DIR, 'pkg-config'),
+  ninja: join(RUNTIME_BIN_DIR, 'ninja'),
+  meson: join(RUNTIME_BIN_DIR, 'meson'),
+  python3: join(RUNTIME_BIN_DIR, 'python3'),
+  bun: join(RUNTIME_BIN_DIR, 'bun'),
+  deno: join(RUNTIME_BIN_DIR, 'deno')
 }
+
+export const isPathInsideRuntime = (path: string): boolean =>
+  pathIsPhysicallyWithinRoot(RUNTIME_DIR, path)
+
+export const assertRuntimeContainedPath = (path: string, readRealpath?: (path: string) => string): string => {
+  const resolved = resolve(path)
+  if (!pathIsPhysicallyWithinRoot(RUNTIME_DIR, resolved, readRealpath)) {
+    throw ValidationError('Managed tool paths must resolve inside the project runtime directory.', {
+      stage: 'runtime:toolchain',
+      hints: ['Run bun autoshow setup to install managed tools inside runtime/.']
+    })
+  }
+  return resolved
+}
+
+export const getRuntimeToolManagedPath = (id: RuntimeToolId): string => TOOL_MANAGED_PATHS[id]
 
 const nonEmpty = (value: string | undefined): string | undefined => {
   const trimmed = value?.trim()
@@ -111,7 +142,8 @@ const nonEmpty = (value: string | undefined): string | undefined => {
 let overrideBinDir: string | undefined
 
 export const configureBinDir = (dir: string): void => {
-  overrideBinDir = nonEmpty(dir)
+  const configured = nonEmpty(dir)
+  overrideBinDir = configured ? assertRuntimeContainedPath(configured) : undefined
 }
 
 export const getConfiguredBinDir = (): string | undefined => overrideBinDir
@@ -121,31 +153,25 @@ export const resolveRuntimeToolInfo = (
   options: ResolveRuntimeToolOptions = {}
 ): ResolvedRuntimeTool | undefined => {
   const exists = options.exists ?? existsSync
-  const which = options.which ?? ((command: string) => Bun.which(command))
-  const platform = options.platform ?? process.platform
   const overrideDir = nonEmpty(options.overrideBinDir ?? overrideBinDir)
   if (overrideDir) {
-    const overridePath = join(overrideDir, id)
+    const overridePath = join(assertRuntimeContainedPath(overrideDir, options.realpath), id)
     if (exists(overridePath)) {
+      assertRuntimeContainedPath(overridePath, options.realpath)
       return { id, path: overridePath, source: 'override' }
     }
   }
 
   const managedPath = TOOL_MANAGED_PATHS[id]
   if (exists(managedPath)) {
+    assertRuntimeContainedPath(managedPath, options.realpath)
     return { id, path: managedPath, source: 'managed' }
   }
-
-  if (platform === 'darwin') {
-    return undefined
-  }
-
-  const pathBinary = which(id)
-  return pathBinary ? { id, path: pathBinary, source: 'path' } : undefined
+  return undefined
 }
 
-const getRuntimeToolCommand = (id: RuntimeToolId): string =>
-  resolveRuntimeToolInfo(id)?.path ?? (process.platform === 'darwin' ? TOOL_MANAGED_PATHS[id] : id)
+export const getRuntimeToolCommand = (id: RuntimeToolId): string =>
+  resolveRuntimeToolInfo(id)?.path ?? TOOL_MANAGED_PATHS[id]
 
 export const hasRuntimeTool = (id: RuntimeToolId, options: ResolveRuntimeToolOptions = {}): boolean =>
   resolveRuntimeToolInfo(id, options) !== undefined
@@ -155,11 +181,23 @@ export const getFfprobeBinary = (): string => getRuntimeToolCommand('ffprobe')
 export const getYtDlpBinaryPath = (): string => getRuntimeToolCommand('yt-dlp')
 export const getMutoolBinary = (): string => getRuntimeToolCommand('mutool')
 export const getTesseractBinary = (): string => getRuntimeToolCommand('tesseract')
+export const getImageMagickBinary = (): string =>
+  resolveRuntimeToolInfo('magick')?.path ?? resolveRuntimeToolInfo('convert')?.path ?? getRuntimeToolManagedPath('magick')
+export const getPangoViewBinary = (): string => getRuntimeToolCommand('pango-view')
+export const getFontconfigBinary = (): string => getRuntimeToolCommand('fc-match')
+export const getBunBinary = (): string => getRuntimeToolCommand('bun')
+export const getDenoBinary = (): string => getRuntimeToolCommand('deno')
 
 // Missing managed English data leaves Tesseract's packaged default in control.
 // An existing invalid entry must fail visibly instead of silently changing models.
 export const resolveTessdataPrefix = (directory = tessdataDir): string | undefined => {
   const englishData = join(directory, 'eng.traineddata')
+  // Explicit custom directories remain useful for packaged data and fixtures;
+  // the default installation must stay physically inside its managed runtime.
+  if (resolve(directory) === resolve(tessdataDir)) {
+    assertManagedRuntimePath(directory)
+    assertManagedRuntimePath(englishData)
+  }
   const invalid = (reason: string) => InfraError(
     `Managed Tesseract English data at ${toProjectDisplayPath(englishData)} ${reason}`,
     {

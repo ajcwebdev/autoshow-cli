@@ -9,11 +9,11 @@ The examples use the matching [24-second recording/transcript](../../../../../..
 Install the optional runtime and pinned English ONNX model once; these prerequisites need network access, while alignment itself never downloads anything:
 
 ```bash
-bun --no-env-file install --cwd config/stt-alignment --frozen-lockfile --ignore-scripts
+bun autoshow setup --step alignment
 bun --no-env-file src/tools/install-alignment-model.ts
 ```
 
-The installer verifies hashes, reuses matching files, and preserves conflicts. Supply the installed ONNX directory, not PyTorch weights. The runtime supports macOS/Linux x64/ARM64; Docker's optional `alignment` target includes it, the default image does not.
+Setup copies the frozen alignment package graph into `runtime/tools/stt-alignment` and installs it with a private package cache. The model installer verifies hashes, reuses matching files, and preserves conflicts. Supply the installed ONNX directory, not PyTorch weights. The runtime supports macOS/Linux x64/ARM64; Docker's optional `alignment` target includes it, the default image does not.
 
 ```bash
 bun autoshow extract input/examples/audio/01-two-speaker-speech-stereo.wav --align-transcript runtime/examples/speech-workflows/reviewed/result.json --alignment-model runtime/models/alignment/wav2vec2-base-960h-onnx --output-dir runtime/examples/speech-workflows/aligned --json

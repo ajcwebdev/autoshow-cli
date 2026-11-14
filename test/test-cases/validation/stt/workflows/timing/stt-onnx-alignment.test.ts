@@ -1,16 +1,35 @@
 import { expect, spyOn, test } from 'bun:test'
-import { mkdtemp, rm, symlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { readAlignmentModel, tokenizeCtcWords } from '~/cli/commands/stt/workflows/timing/stt-onnx-model'
 import { ctcLogProbabilities, decodeAlignmentWave } from '~/cli/commands/stt/workflows/timing/stt-alignment-audio'
-import { computeOnnxEmissions } from '~/cli/commands/stt/workflows/timing/stt-onnx-emissions'
+import { computeOnnxEmissions, loadAlignmentRuntime } from '~/cli/commands/stt/workflows/timing/stt-onnx-emissions'
 import { alignCtcWords } from '~/cli/commands/stt/workflows/timing/ctc-word-alignment'
 import { syntheticAlignmentWave, writeSyntheticAlignmentModel } from '../../../../../test-utils/onnx-alignment-fixture'
+import { getBunBinary, IMMUTABLE_ASSET_ROOT, PROJECT_ROOT } from '~/utils/runtime-paths'
+import { writeManagedPackageManifest } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-js-runtime'
+import { childEnv } from '~/utils/child-env'
 
 const withModel = async (run: (root: string) => Promise<void>) => {
   const root = await mkdtemp(join(tmpdir(), 'autoshow-onnx-test-'))
   try { await writeSyntheticAlignmentModel(root); await run(root) } finally { await rm(root, { recursive: true, force: true }) }
+}
+
+// Bun's parallel test workers do not reliably unload native ONNX addon threads.
+// Run actual inference in a bounded process while asserting the same acoustic output.
+const nativeEmissions = async (model: string, audio: string): Promise<Awaited<ReturnType<typeof computeOnnxEmissions>>> => {
+  const script = `import {readAlignmentModel} from ${JSON.stringify(join(PROJECT_ROOT, 'src/cli/commands/stt/workflows/timing/stt-onnx-model.ts'))};
+import {computeOnnxEmissions} from ${JSON.stringify(join(PROJECT_ROOT, 'src/cli/commands/stt/workflows/timing/stt-onnx-emissions.ts'))};
+globalThis.fetch=()=>{throw new Error('Offline alignment attempted a download')};
+const result=await computeOnnxEmissions(await readAlignmentModel(${JSON.stringify(model)}),[{audio:${JSON.stringify(audio)},words:['A','B']}]);
+console.log(JSON.stringify(result));`
+  const child = Bun.spawn([getBunBinary(), '--no-env-file', '-e', script], {
+    env: childEnv(), stdout: 'pipe', stderr: 'pipe', signal: AbortSignal.timeout(30_000)
+  })
+  const [status, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()])
+  expect(status, stderr).toBe(0)
+  return JSON.parse(stdout)
 }
 
 test('alignment validates model assets and vocabulary before loading the native backend', async () => withModel(async root => {
@@ -53,15 +72,36 @@ test('PCM preprocessing and log-softmax preserve acoustic values and reject malf
   expect(() => ctcLogProbabilities([NaN], 1, 1)).toThrow('non-finite')
 })
 
+test('alignment refuses a legacy package installation and loads only the managed runtime graph', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'autoshow-alignment-origin-'))
+  try {
+    const legacy = join(root, 'config/stt-alignment/node_modules/onnxruntime-node')
+    await mkdir(legacy, { recursive: true })
+    await Bun.write(join(legacy, 'package.json'), '{"name":"onnxruntime-node","version":"1.29.0","main":"index.js"}\n')
+    await Bun.write(join(legacy, 'index.js'), 'throw new Error("legacy backend was dispatched")\n')
+    await expect(loadAlignmentRuntime(root)).rejects.toThrow('setup --step alignment')
+    const managed = join(root, 'runtime/tools/stt-alignment/node_modules/onnxruntime-node')
+    await mkdir(managed, { recursive: true })
+    await Bun.write(join(managed, 'package.json'), '{"name":"onnxruntime-node","version":"1.29.0","main":"index.js"}\n')
+    await Bun.write(join(managed, 'index.js'), 'module.exports={Tensor:class Tensor{},InferenceSession:{create(){}}}\n')
+    const managedRoot = join(root, 'runtime/tools/stt-alignment')
+    for (const name of ['package.json', 'bun.lock', 'bunfig.toml']) await Bun.write(join(managedRoot, name), await Bun.file(join(IMMUTABLE_ASSET_ROOT, 'config/stt-alignment', name)).text())
+    await Bun.write(join(managedRoot, '.frozen-install'), '1.29.0\n')
+    await writeManagedPackageManifest(managedRoot, 'onnxruntime-node@1.29.0')
+    expect((await loadAlignmentRuntime(root)).Tensor.name).toBe('Tensor')
+    await Bun.write(join(managed, 'index.js'), 'throw new Error("corrupt backend was dispatched")\n')
+    await expect(loadAlignmentRuntime(root)).rejects.toThrow('payload integrity is invalid')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test('native ONNX inference produces audio-dependent logits and usable CTC timing without downloads', async () => withModel(async root => {
-  const model = await readAlignmentModel(root)
   const audio = join(tmpdir(), `autoshow-onnx-audio-${crypto.randomUUID()}.wav`)
   const noNetwork = () => { throw new Error('Offline alignment attempted a download') }
   const fetch = spyOn(globalThis, 'fetch').mockImplementation(Object.assign(noNetwork, { preconnect: noNetwork }))
   try {
     const wave = syntheticAlignmentWave()
     await Bun.write(audio, wave)
-    const result = await computeOnnxEmissions(model, [{ audio, words: ['A', 'B'] }])
+    const result = await nativeEmissions(root, audio)
     expect(result.backend).toBe('onnxruntime-wav2vec2-ctc')
     const clip = result.clips[0]!
     expect(clip.frames).toHaveLength(9)
@@ -74,7 +114,7 @@ test('native ONNX inference produces audio-dependent logits and usable CTC timin
     expect(words.map(word => word.text)).toEqual(['A', 'B'])
     expect(words.every(word => word.startSeconds >= 0 && word.endSeconds > word.startSeconds && word.endSeconds <= .2)).toBe(true)
     await Bun.write(audio, syntheticAlignmentWave(3200, .1))
-    const changed = await computeOnnxEmissions(model, [{ audio, words: ['A', 'B'] }])
+    const changed = await nativeEmissions(root, audio)
     expect(changed.clips[0]!.frames[0]).not.toEqual(clip.frames[0])
   } finally { fetch.mockRestore(); await rm(audio, { force: true }) }
 }))

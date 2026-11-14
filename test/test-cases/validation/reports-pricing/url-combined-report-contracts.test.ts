@@ -463,17 +463,17 @@ describe('URL combined-report aggregation', () => {
 })
 
 describe('committed URL combined dashboard', () => {
-  test('captures the seven-run URL schema v1 inventory', () => {
+  test('captures the six-run URL schema v2 inventory', () => {
     const artifactRoot = resolve(import.meta.dir, '../../../../docs/benchmarks/text/url')
     const report = JSON.parse(readFileSync(join(artifactRoot, 'combined-comparison-report.json'), 'utf8')) as UrlCombinedArtifact<AggregatedUrlProvider, UrlMetricRankingEntry>
 
     expect(report.schemaVersion).toBe(2)
-    expect(report.runCount).toBe(7)
+    expect(report.runCount).toBe(6)
     expect(report.providerCount).toBe(6)
-    expect(report.providerRowCount).toBe(37)
-    expect(report.automatedQualityRowCount).toBe(37)
+    expect(report.providerRowCount).toBe(31)
+    expect(report.automatedQualityRowCount).toBe(31)
     expect(report.humanQualityRowCount).toBe(0)
-    expect(report.runs).toHaveLength(7)
+    expect(report.runs).toHaveLength(6)
     expect(report.runs.every((run) => run.articleTitle.length > 0)).toBe(true)
     expect(report.runs.every((run) => run.sourceUrl?.startsWith('https://'))).toBe(true)
     expect(report.weightedRankings).toBeUndefined()

@@ -1,7 +1,7 @@
 import { copyFileExact, writeFileExact } from '~/utils/bun-file-io'
 import { constants as fsConstants } from 'node:fs'
-import { copyFile, link, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { copyFile, link, rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from "~/utils/runtime-state"
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { hasYtDlpBinary } from '~/cli/commands/command-shared/shared-yt-dlp-binary'
 import { materializeNormalizedAudioArtifact, planNormalizedAudioArtifact } from '~/cli/commands/sources/download/download-audio/audio-normalize'
@@ -272,7 +272,7 @@ export const prepareSttMedia = async (
   const { source, targets, outputDir } = options
   const sourceMediaProfile = options.audioProfile === 'lossless' ? 'lossless' : resolveSourceMediaProfile(targets)
   const resolvedSource = await resolveSttSource(source)
-  const workspaceDir = await mkdtemp(join(tmpdir(), 'autoshow-stt-acquire-'))
+  const workspaceDir = await createRuntimeTempDirectory('autoshow-stt-acquire-')
   const timings: PreparedSttMedia['timings'] = {}
 
   try {

@@ -205,7 +205,7 @@ const dispatchSingleResume = async (
   }
   const configPathOverride = typeof rawFlags['config-path'] === 'string' ? rawFlags['config-path'] : undefined
   const resolvedConfigPath = await resolveConfigPath(configPathOverride)
-  const config = await loadConfig(resolvedConfigPath)
+  const config = await loadConfig(resolvedConfigPath, { allowLegacyFallback: configPathOverride === undefined })
   const mergedFlags = mergeConfigIntoRawFlags(normalized.flags, config, normalized.explicitFlags, target.kind)
   const opts = {
     ...buildOptsFromFlags(mergedFlags, {}, normalized.explicitFlags, { flagOccurrences: normalized.flagOccurrences }),

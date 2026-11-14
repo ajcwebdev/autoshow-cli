@@ -1,28 +1,35 @@
 import { withProcessLock } from '~/utils/process-lock'
-import { mkdir, rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import type { DoctorCheck, ResolvedDefuddleCli, RunOptions, RunResult } from '~/types'
 import { InfraError } from '~/utils/error-handler'
-import { getConfiguredBinDir, PROJECT_ROOT, IMMUTABLE_ASSET_ROOT } from '~/utils/runtime-paths'
+import { assertRuntimeContainedPath, getBunBinary, getConfiguredBinDir, PROJECT_ROOT, IMMUTABLE_ASSET_ROOT } from '~/utils/runtime-paths'
 import { pathExists } from '~/utils/filesystem'
 import { childEnv } from '~/utils/child-env'
+import { ensureManagedBunRuntime, validateManagedJsRuntime, validateManagedPackageManifest, writeManagedPackageManifest } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-js-runtime'
+import { createManagedToolStagingDirectory, promoteManagedToolDirectory, recoverManagedToolDirectory } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-artifact'
+import { readBoundedTextStream } from '~/utils/bounded-capture'
+import { assertManagedRuntimePath } from '~/utils/runtime-containment'
+import { ensureRuntimeDirectory } from '~/utils/runtime-state'
 
 const DEFUDDLE_CLI_VERSION = '0.19.3'
 
 const frozenFiles = ['package.json', 'bun.lock', 'bunfig.toml'] as const
 const frozenDir = join(IMMUTABLE_ASSET_ROOT, 'config/defuddle')
-const hasFrozenInstall = async (): Promise<boolean> => {
+const hasFrozenInstall = async (root = defuddleRuntimeDir): Promise<boolean> => {
+  assertRuntimeContainedPath(root)
   for (const name of frozenFiles) {
-    const installed = Bun.file(join(defuddleRuntimeDir, name))
+    const installed = Bun.file(assertManagedRuntimePath(join(root, name)))
     if (!await installed.exists() || await installed.text() !== await Bun.file(join(frozenDir, name)).text()) return false
   }
-  const marker = Bun.file(join(defuddleRuntimeDir, '.frozen-install'))
+  const marker = Bun.file(assertManagedRuntimePath(join(root, '.frozen-install')))
   return await marker.exists() && (await marker.text()).trim() === DEFUDDLE_CLI_VERSION
+    && await validateManagedPackageManifest(root, `defuddle@${DEFUDDLE_CLI_VERSION}`)
 }
 
 const RUNTIME = join(PROJECT_ROOT, 'runtime')
-let defuddleCliSetupPromise: Promise<void> | undefined
+const defuddleCliSetupPromises = new Map<string, Promise<void>>()
 const DEFUDDLE_TEST_CHILD_ENV_KEYS = [
   'AUTOSHOW_DEFUDDLE_ARGS_LOG',
   'AUTOSHOW_FAKE_DEFUDDLE_MODE',
@@ -39,7 +46,7 @@ const defuddleRuntimeBinaryPath = join(
 )
 
 const readStream = async (stream: ReadableStream<Uint8Array> | null | undefined): Promise<string> =>
-  stream ? await new Response(stream).text() : ''
+  stream ? (await readBoundedTextStream(stream)).text : ''
 
 const runCapture = async (
   command: string,
@@ -47,10 +54,11 @@ const runCapture = async (
   options: RunOptions = {}
 ): Promise<RunResult> => {
   const proc = Bun.spawn([command, ...args], {
-    ...(options.cwd ? { cwd: options.cwd } : {}),
+    ...(options.cwd ? { cwd: assertManagedRuntimePath(options.cwd) } : {}),
     env: childEnv({ allow: DEFUDDLE_TEST_CHILD_ENV_KEYS, set: options.env }),
     stdout: 'pipe',
-    stderr: 'pipe'
+    stderr: 'pipe',
+    signal: AbortSignal.timeout(args.includes('install') ? 15 * 60_000 : 60_000)
   })
   const [stdout, stderr, exitCode] = await Promise.all([
     readStream(proc.stdout),
@@ -69,17 +77,12 @@ const resolveDefuddleCli = async (): Promise<ResolvedDefuddleCli | undefined> =>
   if (overrideDir) {
     const overrideBin = join(overrideDir, 'defuddle')
     if (await pathExists(overrideBin)) {
-      return { path: overrideBin, source: 'path' }
+      return { path: assertRuntimeContainedPath(overrideBin), source: 'path' }
     }
   }
 
   if (await pathExists(defuddleRuntimeBinaryPath)) {
-    return { path: defuddleRuntimeBinaryPath, source: 'runtime' }
-  }
-
-  const pathBin = Bun.which('defuddle')
-  if (typeof pathBin === 'string' && pathBin.length > 0) {
-    return { path: pathBin, source: 'path' }
+    return { path: assertRuntimeContainedPath(defuddleRuntimeBinaryPath), source: 'runtime' }
   }
 
   return undefined
@@ -110,9 +113,15 @@ export const runDefuddleCliCapture = async (
   binaryPath: string,
   args: string[],
   options: RunOptions = {}
-): Promise<RunResult> =>
-  await runCapture(binaryPath === defuddleRuntimeBinaryPath ? (Bun.isStandaloneExecutable ? 'bun' : process.execPath) : binaryPath,
-    binaryPath === defuddleRuntimeBinaryPath ? ['--no-env-file', binaryPath, ...args] : args, options)
+): Promise<RunResult> => {
+  assertRuntimeContainedPath(binaryPath)
+  const managedSuffix = '/node_modules/defuddle/dist/cli.js'
+  const managedPackage = binaryPath.endsWith(managedSuffix)
+  if (managedPackage && !await hasFrozenInstall(binaryPath.slice(0, -managedSuffix.length))) throw InfraError('Managed Defuddle package provenance or payload integrity is invalid', { stage: 'extract:defuddle' })
+  if (managedPackage && !(await validateManagedJsRuntime('bun')).ok) throw InfraError('Managed Bun provenance or executable integrity is invalid; run bun autoshow setup --step toolchain', { stage: 'extract:defuddle' })
+  return await runCapture(managedPackage ? getBunBinary() : binaryPath,
+    managedPackage ? ['--no-env-file', binaryPath, ...args] : args, options)
+}
 
 const verifyDefuddleCli = async (binaryPath: string): Promise<{ ok: boolean, detail: string }> => {
   let result: RunResult
@@ -142,6 +151,15 @@ const isPinnedDefuddleCli = (verified: { ok: boolean, detail: string }): boolean
 
 const DEFUDDLE_SETUP_NEXT_STEP = 'bun autoshow setup --step defuddle'
 
+export const validateManagedDefuddleRuntime = async (): Promise<{ ok: boolean, detail: string }> => {
+  try {
+    const root = assertRuntimeContainedPath(defuddleRuntimeDir)
+    assertRuntimeContainedPath(defuddleRuntimeBinaryPath)
+    const valid = await hasFrozenInstall(root)
+    return { ok: valid, detail: valid ? `defuddle@${DEFUDDLE_CLI_VERSION}; frozen graph and complete payload verified` : 'Managed Defuddle frozen graph or payload integrity is invalid' }
+  } catch (error) { return { ok: false, detail: error instanceof Error ? error.message : String(error) } }
+}
+
 export const readDefuddleCliReadiness = async (): Promise<DoctorCheck> => {
   const resolved = await resolveDefuddleCli()
   if (!resolved) {
@@ -154,8 +172,9 @@ export const readDefuddleCliReadiness = async (): Promise<DoctorCheck> => {
     }
   }
 
-  const verified = await verifyDefuddleCli(resolved.path)
-  if (verified.ok && (resolved.source !== 'runtime' || (isPinnedDefuddleCli(verified) && await hasFrozenInstall()))) {
+  const provenanceReady = resolved.source !== 'runtime' || await hasFrozenInstall()
+  const verified = provenanceReady ? await verifyDefuddleCli(resolved.path) : { ok: false, detail: 'managed package provenance or payload integrity is invalid' }
+  if (verified.ok && (resolved.source !== 'runtime' || isPinnedDefuddleCli(verified))) {
     return {
       label: 'defuddle',
       status: 'OK',
@@ -176,21 +195,25 @@ export const readDefuddleCliReadiness = async (): Promise<DoctorCheck> => {
   }
 }
 
-const writeRuntimePackageJson = async (): Promise<void> => {
-  await mkdir(defuddleRuntimeDir, { recursive: true })
+const writeRuntimePackageJson = async (root: string): Promise<void> => {
+  await ensureRuntimeDirectory(root)
   for (const name of frozenFiles) {
-    await Bun.write(join(defuddleRuntimeDir, name), await Bun.file(join(frozenDir, name)).text())
+    await Bun.write(assertManagedRuntimePath(join(root, name)), await Bun.file(join(frozenDir, name)).text())
   }
 }
 
-const setupDefuddleCliUnlocked = async (): Promise<void> => {
-  if (await pathExists(defuddleRuntimeBinaryPath)) {
-    const verified = await verifyDefuddleCli(defuddleRuntimeBinaryPath)
-    if (isPinnedDefuddleCli(verified) && await hasFrozenInstall()) {
+const setupDefuddleCliUnlocked = async (options: { forceRedownload?: boolean, directory?: string } = {}): Promise<void> => {
+  const destination = assertRuntimeContainedPath(options.directory ?? defuddleRuntimeDir)
+  const binaryPath = join(destination, 'node_modules/defuddle/dist/cli.js')
+  await ensureRuntimeDirectory(dirname(destination))
+  await recoverManagedToolDirectory(destination)
+  if (!options.forceRedownload && await pathExists(binaryPath) && await hasFrozenInstall(destination)) {
+    const verified = await verifyDefuddleCli(binaryPath)
+    if (isPinnedDefuddleCli(verified)) {
       logSetupToolStatus({
         tool: 'defuddle',
         status: 'ready',
-        detail: `${defuddleRuntimeBinaryPath} (${verified.detail})`
+        detail: `${binaryPath} (${verified.detail})`
       })
       return
     }
@@ -202,48 +225,67 @@ const setupDefuddleCliUnlocked = async (): Promise<void> => {
     detail: `defuddle@${DEFUDDLE_CLI_VERSION}`
   })
 
-  await rm(join(defuddleRuntimeDir, '.frozen-install'), { force: true })
-  await writeRuntimePackageJson()
-
-  const install = await runCapture(Bun.isStandaloneExecutable ? 'bun' : process.execPath, ['--no-env-file', 'install', '--frozen-lockfile', '--ignore-scripts'], {
-    cwd: defuddleRuntimeDir,
-    allowFailure: true
-  })
-  if (install.exitCode !== 0) {
-    throw InfraError(`Failed to install defuddle@${DEFUDDLE_CLI_VERSION}: ${formatDefuddleCliOutput(install)}`, { stage: 'extract:defuddle' })
+  await ensureManagedBunRuntime()
+  await ensureRuntimeDirectory(RUNTIME)
+  const staging = await createManagedToolStagingDirectory(destination)
+  let installed = false
+  try {
+    await writeRuntimePackageJson(staging)
+    if (!(await validateManagedJsRuntime('bun')).ok) throw InfraError('Managed Bun integrity changed before Defuddle package installation', { stage: 'extract:defuddle' })
+    const install = await runCapture(getBunBinary(), ['--no-env-file', 'install', '--frozen-lockfile', '--ignore-scripts'], {
+      cwd: staging,
+      allowFailure: true
+    })
+    if (install.exitCode !== 0) {
+      throw InfraError(`Failed to install defuddle@${DEFUDDLE_CLI_VERSION}: ${formatDefuddleCliOutput(install)}`, { stage: 'extract:defuddle' })
+    }
+    await Bun.write(assertManagedRuntimePath(join(staging, '.frozen-install')), `${DEFUDDLE_CLI_VERSION}\n`)
+    await writeManagedPackageManifest(staging, `defuddle@${DEFUDDLE_CLI_VERSION}`)
+    await promoteManagedToolDirectory({
+      stagingDir: staging,
+      destinationDir: destination,
+      validateStaging: async root => {
+        const binary = join(root, 'node_modules/defuddle/dist/cli.js')
+        if (!await hasFrozenInstall(root)) throw InfraError('Installed Defuddle package provenance or payload integrity is invalid', { stage: 'extract:defuddle' })
+        const verified = await verifyDefuddleCli(binary)
+        if (!isPinnedDefuddleCli(verified)) {
+          throw InfraError(`Installed Defuddle CLI failed verification: ${verified.detail}`, { stage: 'extract:defuddle' })
+        }
+      }
+    })
+    installed = true
+  } finally {
+    if (installed) await rm(assertManagedRuntimePath(staging), { recursive: true, force: true })
   }
-
-  const verified = await verifyDefuddleCli(defuddleRuntimeBinaryPath)
-  if (!isPinnedDefuddleCli(verified)) {
-    throw InfraError(`Installed Defuddle CLI failed verification: ${verified.detail}`, { stage: 'extract:defuddle' })
-  }
-
-  await Bun.write(join(defuddleRuntimeDir, '.frozen-install'), `${DEFUDDLE_CLI_VERSION}\n`)
   logSetupToolStatus({
     tool: 'defuddle',
     status: 'ready',
-    detail: `${defuddleRuntimeBinaryPath} (${verified.detail})`
+    detail: `${binaryPath} (${DEFUDDLE_CLI_VERSION})`
   })
 }
 
-export const setupDefuddleCli = async (): Promise<void> => {
-  if (!defuddleCliSetupPromise) {
-    defuddleCliSetupPromise = withProcessLock('setup-defuddle-runtime', setupDefuddleCliUnlocked).finally(() => {
-      defuddleCliSetupPromise = undefined
+export const setupDefuddleCli = async (options: { forceRedownload?: boolean, directory?: string } = {}): Promise<void> => {
+  const destination = assertRuntimeContainedPath(options.directory ?? defuddleRuntimeDir)
+  let pending = defuddleCliSetupPromises.get(destination)
+  if (!pending) {
+    pending = withProcessLock(`setup-defuddle-${destination}`, async () => await setupDefuddleCliUnlocked(options)).finally(() => {
+      defuddleCliSetupPromises.delete(destination)
     })
+    defuddleCliSetupPromises.set(destination, pending)
   }
-  await defuddleCliSetupPromise
+  await pending
 }
 
 export const ensureDefuddleCliSetup = async (): Promise<string> => {
   const resolved = await resolveDefuddleCli()
   if (resolved) {
-    const verified = await verifyDefuddleCli(resolved.path)
+    const provenanceReady = resolved.source !== 'runtime' || await hasFrozenInstall()
+    const verified = provenanceReady ? await verifyDefuddleCli(resolved.path) : { ok: false, detail: 'invalid managed package' }
     if (resolved.source !== 'runtime' && verified.ok) {
       return resolved.path
     }
 
-    if (resolved.source === 'runtime' && isPinnedDefuddleCli(verified) && await hasFrozenInstall()) {
+    if (resolved.source === 'runtime' && isPinnedDefuddleCli(verified)) {
       return resolved.path
     }
 

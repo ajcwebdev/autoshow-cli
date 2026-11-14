@@ -14,6 +14,7 @@ import { buildConfigPatchFromFlags, deepMergeConfig } from '../config-command/co
 import { writeConfig } from '../config-command/config-writer'
 import { normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { normalizeConfigStepSelectorFlags } from '~/cli/flags/service-selector-normalization/step-selectors'
+import { buildSetupInstallationPlan } from './setup-plan'
 
 
 const FOCUSED_SETUP_CONFLICT_FLAGS = SETUP_FOCUSED_MODE_FLAGS
@@ -38,6 +39,10 @@ export const setupCommand = defineCliCommand({
     notes: ['Save TTS models with --tts provider=model. Transport mode and remote-job wait controls apply only to individual tts invocations.'],
     examples: [
       ['bun autoshow setup', 'Install all dependencies'],
+      ['bun autoshow setup --dry-run', 'Preview managed installation without changing files'],
+      ['bun autoshow setup --step ocr', 'Install or repair local OCR and its prerequisites'],
+      ['bun autoshow setup --step rendering', 'Install or repair fonts, image tools, and lyric rendering'],
+      ['bun autoshow setup --step alignment', 'Install the frozen local alignment runtime'],
       ['bun autoshow setup --show', 'Print current config'],
       ['bun autoshow setup --llm openai=gpt-6-luna --stt whisperfile=small', 'Set default LLM and STT model'],
       ['bun autoshow setup --models tiny.en --models whisperfile:small', 'Download whisperfile models without running inference'],
@@ -65,21 +70,21 @@ export const setupCommand = defineCliCommand({
   const configPathOverride = typeof ctx.flags['config-path'] === 'string' ? ctx.flags['config-path'] : undefined
 
   if (ctx.flags['show'] === true) {
-    for (const flag of ['models', 'doctor', 'strict', 'step', 'force-redownload']) {
+    for (const flag of ['models', 'doctor', 'strict', 'step', 'force-redownload', 'dry-run']) {
       if (ctx.rawParsed.explicitFlags.has(flag)) throw UsageError(`--show cannot be combined with --${flag}`)
     }
     const resolvedPath = await resolveConfigPath(configPathOverride)
-    const config = await loadConfig(resolvedPath)
+    const config = await loadConfig(resolvedPath, { allowLegacyFallback: configPathOverride === undefined })
     l.report.result({ configPath: resolvedPath, config }, 'Config')
     return
   }
 
   if (ctx.flags['reset'] === true) {
-    for (const flag of ['models', 'doctor', 'strict', 'step', 'force-redownload']) {
+    for (const flag of ['models', 'doctor', 'strict', 'step', 'force-redownload', 'dry-run']) {
       if (ctx.rawParsed.explicitFlags.has(flag)) throw UsageError(`--reset cannot be combined with --${flag}`)
     }
     const resolvedPath = await resolveConfigPath(configPathOverride)
-    await writeConfig(resolvedPath, {})
+    await writeConfig(resolvedPath, {}, { managedDefault: configPathOverride === undefined })
     l.report.result({ configPath: resolvedPath, config: {}, changed: true }, 'Config reset')
     return
   }
@@ -101,20 +106,21 @@ export const setupCommand = defineCliCommand({
   )
 
   if (Object.keys(patch).length > 0) {
-    for (const flag of ['models', 'doctor', 'strict', 'step', 'force-redownload']) {
+    for (const flag of ['models', 'doctor', 'strict', 'step', 'force-redownload', 'dry-run']) {
       if (ctx.rawParsed.explicitFlags.has(flag)) {
         throw UsageError(`Configuring defaults cannot be combined with setup installation or diagnostics (--${flag})`)
       }
     }
     const resolvedPath = await resolveConfigPath(configPathOverride)
-    const current = await loadConfig(resolvedPath)
+    const current = await loadConfig(resolvedPath, { allowLegacyFallback: configPathOverride === undefined })
     const updated = deepMergeConfig(current as Record<string, unknown>, patch)
-    await writeConfig(resolvedPath, updated)
+    await writeConfig(resolvedPath, updated, { managedDefault: configPathOverride === undefined })
     l.report.result({ configPath: resolvedPath, config: updated, changed: true }, 'Config saved')
     return
   }
 
   if (ctx.calledAs === 'config') {
+    if (ctx.flags['dry-run']) throw UsageError('--dry-run previews setup installation; use bun autoshow setup --dry-run')
     const resolvedPath = await resolveConfigPath(configPathOverride)
     l.write('info', `No changes to write. Config path: ${resolvedPath}`, { category: 'command', metadata: { configPath: resolvedPath } })
     l.write('info', 'Use --show to print current config or --reset to clear it.', { category: 'command' })
@@ -147,6 +153,16 @@ export const setupCommand = defineCliCommand({
 
   if (ctx.flags['strict'] === true && !ctx.flags.doctor) {
     throw UsageError('--strict requires --doctor')
+  }
+
+  if (ctx.flags['dry-run'] === true) {
+    if (ctx.flags.doctor) throw UsageError('--dry-run cannot be combined with --doctor')
+    const selectedStep = ctx.flags.step as SetupStepId
+    if (!SETUP_STEP_IDS.includes(selectedStep)) throw UsageError(`Invalid --step value: ${selectedStep}. Valid values: ${SETUP_STEP_IDS.join(', ')}`)
+    const plan = await buildSetupInstallationPlan(selectedStep, { forceRedownload: ctx.flags['force-redownload'] === true })
+    for (const task of plan.tasks) l.write('info', `${task.action}: ${task.component} → ${task.target}`, { category: 'command' })
+    l.report.result({ mode: 'plan', ...plan }, `Setup plan: ${plan.tasks.length} managed components; no changes made`)
+    return
   }
 
   if (ctx.flags.doctor) {

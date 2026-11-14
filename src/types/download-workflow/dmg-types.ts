@@ -3,4 +3,6 @@ export type InstallDmgAppOptions = {
   sha256: string
   appName: string
   destinationAppPath: string
+  validateApp?: (appPath: string) => Promise<void>
+  forceRedownload?: boolean
 }

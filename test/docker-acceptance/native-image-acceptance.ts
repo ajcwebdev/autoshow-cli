@@ -4,13 +4,14 @@ import { requireRenderingPrerequisites } from '../../src/cli/commands/setup-and-
 import { renderPangoLayer } from '../../src/cli/commands/audio/music/lyrics-video/lyrics-overlay-renderer'
 import { combineCharacterSketchSheet } from '../../src/cli/commands/visuals/comic/comic-commands/character-sketch/character-sketch-sheet'
 import { exec } from '../../src/utils/cli-utils'
+import { getImageMagickBinary } from '../../src/utils/runtime-paths'
+import { createRuntimeTempDirectory } from '../../src/utils/runtime-state'
 
 const expected = process.argv[2]
 if (!['arm64', 'x64'].includes(expected ?? '') || process.arch !== expected) throw new Error(`Expected native ${expected}, found ${process.arch}`)
 await requireRenderingPrerequisites()
-const directory = '/tmp/autoshow-native-acceptance'
-await Bun.$`mkdir -p ${directory}`.quiet()
-const convert = Bun.which('magick') ?? Bun.which('convert')
+const directory = await createRuntimeTempDirectory('native-image-acceptance-')
+const convert = getImageMagickBinary()
 expect(convert).toBeTruthy()
 const first = join(directory, 'first.png'), second = join(directory, 'second.png'), sheet = join(directory, 'sheet.png')
 expect((await exec(convert!, ['-size', '16x24', 'xc:none', '-fill', 'red', '-draw', 'rectangle 4,4 12,20', first])).exitCode).toBe(0)

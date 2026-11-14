@@ -4,6 +4,7 @@ import type { CaptionCue, LyricsRenderSummary, LyricsVideoOverlaySource, Overlay
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
 import { childEnv } from '~/utils/child-env'
+import { RUNTIME_FONTS_DIR } from '~/utils/runtime-state'
 import { buildLyricsVideoFfmpegArgs, detectLyricsEncoder, getEncoderSettings, hasFfmpegFilter } from './lyrics-ffmpeg-plan'
 import { buildOverlaySequence } from './lyrics-overlay-renderer'
 
@@ -120,6 +121,7 @@ export const renderLyricsVideo = async (options: {
     encoderSettings,
     includeEq: useEqFilter,
     overlay,
+    fontsDirectory: join(RUNTIME_FONTS_DIR, 'dejavu'),
     ...(imageRelativePath ? { imageRelativePath } : {})
   })
 

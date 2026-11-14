@@ -49,16 +49,16 @@ const nonce=${JSON.stringify(nonce)};
 const status=await readFile('/proc/self/status','utf8');
 if(!/^CapEff:\\s+0+$/m.test(status)||!/^NoNewPrivs:\\s+1$/m.test(status))throw new Error('Runtime restrictions are not effective');
 if(!process.getuid())throw new Error('Runtime user is root');
-if(Object.keys(await loadConfig('/app/config/autoshow.json')).length)throw new Error('Fresh state was not empty');
-await writeConfig('/app/config/autoshow.json',{pricing:{maxCents:25}});
-await mkdir('/app/runtime/authored-state',{recursive:true});await mkdir('/home/bun/.cache/authored-state',{recursive:true});
-await writeFile('/app/runtime/authored-state/sentinel',nonce);await writeFile('/home/bun/.cache/authored-state/sentinel',nonce);
-console.log(JSON.stringify({uid:process.getuid(),gid:process.getgid(),capabilitiesDropped:true,noNewPrivileges:true}));`)).stdout)
+if(Object.keys(await loadConfig('/app/runtime/autoshow.json')).length)throw new Error('Fresh state was not empty');
+await writeConfig('/app/runtime/autoshow.json',{pricing:{maxCents:25}},{managedDefault:true});
+await mkdir('/app/runtime/authored-state',{recursive:true});await mkdir('/app/runtime/cache/authored-state',{recursive:true});
+await writeFile('/app/runtime/authored-state/sentinel',nonce);await writeFile('/app/runtime/cache/authored-state/sentinel',nonce);
+console.log(JSON.stringify({uid:process.getuid(),gid:process.getgid(),capabilitiesDropped:true,noNewPrivileges:true,configurationPath:'/app/runtime/autoshow.json',cachePath:'/app/runtime/cache/authored-state'}));`)).stdout)
       checks.push('fresh non-root state, config write and effective kernel restrictions')
       for (const suffix of ['reuse-one', 'reuse-two']) await run(`import {readFile,writeFile} from 'node:fs/promises';
 const {loadConfig}=await import('/app/src/cli/commands/setup-and-utilities/config-command/config-loader.ts');
-if((await loadConfig('/app/config/autoshow.json')).pricing?.maxCents!==25)throw new Error('Configuration did not persist');
-for(const root of ['/app/runtime/authored-state','/home/bun/.cache/authored-state']){
+if((await loadConfig('/app/runtime/autoshow.json')).pricing?.maxCents!==25)throw new Error('Configuration did not persist');
+for(const root of ['/app/runtime/authored-state','/app/runtime/cache/authored-state']){
  if(await readFile(root+'/sentinel','utf8')!==${JSON.stringify(nonce)})throw new Error('Cached asset changed');
  await writeFile(root+${JSON.stringify(`/${suffix}`)},'retained');
 }console.log(JSON.stringify({reused:true}));`)
@@ -103,7 +103,7 @@ console.log(JSON.stringify({protectedWritesRejected:true}));`)
       assert(timeout.timedOut && engine.owned.size === 0, 'Timed-out container was not removed by its owner')
       checks.push('deadline removes only the owned container and retains state')
       await run(`import {readFile} from 'node:fs/promises';
-for(const root of ['/app/runtime/authored-state','/home/bun/.cache/authored-state'])if(await readFile(root+'/sentinel','utf8')!==${JSON.stringify(nonce)})throw new Error('State was lost after failure/timeout');
+for(const root of ['/app/runtime/authored-state','/app/runtime/cache/authored-state'])if(await readFile(root+'/sentinel','utf8')!==${JSON.stringify(nonce)})throw new Error('State was lost after failure/timeout');
 console.log(JSON.stringify({cachedStatePreserved:true}));`)
       checks.push('authored protected assets remain intact after invalid input and timeout')
       results.push({ userMode: selected.name, ...initialized, image: identity,

@@ -57,10 +57,11 @@ test('Docker yt-dlp pin matches resolved native setup metadata in both direction
   }).toEqual({ missing: [], extra: [] })
   expect(dockerArgs).toEqual(expectedArgs)
 
-  const download = dockerfile.split('\n').find(line => /^ADD .*\/usr\/local\/bin\/yt-dlp$/.test(line)) ?? ''
+  const download = dockerfile.split('\n').find(line => line.startsWith('ADD ') && line.includes('${YT_DLP_URL}')) ?? ''
   expect(download).toContain('--checksum=sha256:${YT_DLP_SHA256}')
   expect(download).toContain('--chmod=0755')
   expect(download).toContain('${YT_DLP_URL}')
+  expect(download).toEndWith('/opt/autoshow-runtime/tools/yt-dlp/yt-dlp')
   expect(dockerfile.indexOf(download)).toBeGreaterThan(dockerfile.indexOf('apt-get upgrade'))
   expect(dockerfile).not.toMatch(/^FROM .* AS fetch$/m)
 })
@@ -69,10 +70,12 @@ test('Docker supplies a pinned native Deno runtime for yt-dlp in every runtime t
   const dockerfile = await readFile(dockerfilePath, 'utf8')
   expect(dockerfile).toContain('ARG DENO_BASE_IMAGE=denoland/deno:bin-2.9.8@sha256:b507583d3c68ba69f3ed2ce5969ae5b8b70f43421c781279c7aea06435263543')
   expect(dockerfile).toContain('FROM ${DENO_BASE_IMAGE} AS youtube-js')
+  const native = dockerfile.slice(dockerfile.indexOf('AS native-tools'), dockerfile.indexOf('AS runtime'))
   const runtime = dockerfile.slice(dockerfile.indexOf('AS runtime'), dockerfile.indexOf('FROM runtime AS alignment'))
-  expect(runtime).toContain('COPY --from=youtube-js /deno /usr/local/bin/deno')
-  expect(runtime).toContain('deno --version')
-  expect(runtime).toContain('yt-dlp --version')
+  expect(native).toContain('COPY --from=youtube-js /deno /opt/autoshow-runtime/tools/deno/bin/deno')
+  expect(runtime).toContain('/app/runtime/bin/deno --version')
+  expect(runtime).toContain('/app/runtime/bin/yt-dlp --version')
+  expect(runtime).toMatch(/COPY --from=native-tools(?:\s+--\S+)*\s+\/opt\/autoshow-runtime\s+\/opt\/autoshow-runtime/)
 })
 
 test('Docker documentation supports direct image invocation without a root scripts directory', async () => {
@@ -169,16 +172,17 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
   expect(verifyRuns).toContain('cli-help-contracts.test.ts')
   expect(verifyRuns).toContain('cli-usage-errors/')
   expect(verifyRuns).toContain('option-resolution-contracts/')
-  expect(verifyRuns).toContain('apt-get install --no-install-recommends --yes imagemagick')
-  expect(verifyRuns).toContain('imagemagick ffmpeg mupdf-tools qpdf')
+  expect(verifyRuns).toContain('bun --no-env-file src/cli/create-cli.ts setup --step rendering')
+  expect(verifyRuns).toContain('bun --no-env-file src/cli/create-cli.ts setup --step calibre')
+  expect(verifyRuns).not.toContain('apt-get install')
   expect(verifyRuns).toContain('bun --no-env-file t --price --no-cleanup')
   expect(verifyRuns).toContain('src/tools/ci-run-timings.ts price')
-  expect(verifyRuns).toContain('wait "${apt_pid}"')
+  expect(verifyRuns).toContain('wait "${native_pid}"')
   expect(verifyRuns).toContain('wait "${check_pid}"')
   expect(verifyRuns).toContain('wait "${cli_pid}"')
   expect(verifyRuns).toContain('wait "${docker_pid}"')
   expect(verifyRuns).toContain('ci-run-timings-contracts.test.ts')
-  expect(verifyRuns.indexOf('wait "${apt_pid}"')).toBeLessThan(verifyRuns.indexOf('bun --no-env-file t --price'))
+  expect(verifyRuns.indexOf('wait "${native_pid}"')).toBeLessThan(verifyRuns.indexOf('bun --no-env-file t --price'))
   for (const contract of [
     'args-selection.test.ts',
     'budget-preflight.test.ts',
@@ -213,7 +217,7 @@ test('Docker publication is blocked by exact-version no-cost verification and pa
 
   // Builds retain separate outputs and checks; shared actions receive architecture as data.
   expect(jobs['publish-manifest']?.needs).toEqual([
-    'verify', 'package-hygiene', 'build-amd64', 'build-arm64',
+    'verify', 'managed-macos', 'package-hygiene', 'build-amd64', 'build-arm64',
     'smoke-amd64', 'smoke-arm64', 'audit-amd64', 'audit-arm64'
   ])
   expect(Object.keys(jobs).some(name => name.startsWith('compiled-experiment'))).toBe(false)
@@ -299,9 +303,10 @@ test('release promotion waits for every immutable-candidate acceptance shard', a
 
 test('source production remains default and standalone native runtime paths remain available', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
-  expect(dockerfile.match(/^FROM .+ AS (\S+)$/gm)?.map(line => line.split(' ').at(-1))).toEqual(['youtube-js', 'deps', 'alignment-deps', 'runtime', 'alignment', 'production'])
+  expect(dockerfile.match(/^FROM .+ AS (\S+)$/gm)?.map(line => line.split(' ').at(-1))).toEqual(['youtube-js', 'deps', 'alignment-deps', 'native-tools', 'runtime', 'alignment', 'production'])
   expect(dockerfile.trimEnd()).toEndWith('FROM runtime AS production')
-  expect(dockerfile).toContain('ENTRYPOINT ["bun", "--no-env-file", "/app/src/cli/create-cli.ts"]')
+  expect(dockerfile).toContain('ENTRYPOINT ["/usr/local/bin/bun", "--no-env-file", "/app/src/tools/docker-runtime-entry-bundle.js"]')
+  expect(dockerfile).toContain('build src/cli/create-cli.ts --target=bun --format=esm --outfile=src/cli/bundled-cli.js')
   const runtimePaths = await readFile(resolve(repositoryRoot, 'src/utils/runtime-paths.ts'), 'utf8')
   const projectRoot = await readFile(resolve(repositoryRoot, 'src/utils/project-root.ts'), 'utf8')
   expect(runtimePaths).toContain('Bun.isStandaloneExecutable')
