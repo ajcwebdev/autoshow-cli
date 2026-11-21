@@ -2,6 +2,7 @@ import { chmod, copyFile, lstat, mkdir, readFile, rm, writeFile } from 'node:fs/
 import { dirname, join, resolve } from 'node:path'
 import manifest from '../../package.json'
 import { SOURCE_ROOT } from '../utils/project-root'
+import { InternalError, ValidationError } from '../utils/error-handler'
 
 const models = 'src/cli/commands/setup-and-utilities/models'
 const worker = 'src/cli/commands/stt/workflows/timing/stt-onnx-worker.ts'
@@ -23,14 +24,14 @@ const buildPackage = async (destination: string): Promise<void> => {
         define: { __AUTOSHOW_INSTALLED_CLI__: 'true' },
         ...(filename === 'autoshow.js' ? { banner: '#!/usr/bin/env bun' } : {}),
       })
-      if (!result.success || result.outputs.length !== 1) throw new Error(`Unable to bundle ${entrypoint}: ${result.logs.join('\n')}`)
+      if (!result.success || result.outputs.length !== 1) throw InternalError(`Unable to bundle ${entrypoint}: ${result.logs.join('\n')}`, { stage: 'build:package' })
       await Bun.write(join(destination, filename), result.outputs[0]!)
     }
     await chmod(join(destination, 'autoshow.js'), 0o755)
 
     const copy = async (from: string, to = from): Promise<void> => {
       const source = join(SOURCE_ROOT, from)
-      if (!(await lstat(source)).isFile()) throw new Error(`Expected regular package input: ${from}`)
+      if (!(await lstat(source)).isFile()) throw ValidationError(`Expected regular package input: ${from}`, { stage: 'build:package' })
       await mkdir(dirname(join(destination, to)), { recursive: true })
       await copyFile(source, join(destination, to))
       files.push(to)
@@ -44,7 +45,7 @@ const buildPackage = async (destination: string): Promise<void> => {
       'src/cli/commands/visuals/comic/comic-prompts/prompts.json',
     ]) {
       const paths = [...new Bun.Glob(group).scanSync({ cwd: SOURCE_ROOT })].sort()
-      if (!paths.length) throw new Error(`Missing package input: ${group}`)
+      if (!paths.length) throw ValidationError(`Missing package input: ${group}`, { stage: 'build:package' })
       for (const path of paths) await copy(path)
     }
     for (const tool of ['defuddle', 'stt-alignment']) {

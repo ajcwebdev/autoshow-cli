@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "assemblyai-3-7-spoken-numbers",
+  "label": "stt-number-format=spoken",
+  "baseline": {
+    "service": "assemblyai",
+    "model": "assemblyai-stt-3-7"
+  },
+  "flags": [
+    "--provider",
+    "assemblyai=assemblyai-stt-3-7",
+    "--diarization",
+    "--stt-number-format",
+    "spoken"
+  ]
+}

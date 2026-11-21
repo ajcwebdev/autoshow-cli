@@ -48,14 +48,16 @@ describe('STT combined report sample collection', () => {
         providerKey: 'whisper/base', provider: 'whisper', model: 'base', group: 'local', runsCovered: 2,
         meanQualityScore: 70, meanSpeakerAwareWER: 0.3, meanTextOnlyWER: expect.closeTo(0.3, 10),
         meanProcessingTimeMs: 4000, aggregateRealtimeFactor: 5, meanCostCents: 1.5, totalCostCents: 3,
-        supportsDiarization: true, diarizationSupport: 'native', perRun: { 'run-a': 80, 'run-b': 60 }
+        supportsDiarization: true, diarizationSupport: 'native', perRun: { 'run-a': 80, 'run-b': 60 },
+        meanLegacyQualityScore: null, meanLegacySpeakerAwareWER: null, meanWordAttributionAccuracy: null, meanSpeakerCountAbsoluteError: null, errorAttributionTotals: null
       }])
       const cloud = [...result.groupedProviders.thirdPartyServiceDiarization, ...result.groupedProviders.thirdPartyServiceNonDiarization]
       expect(cloud).toEqual([{
         providerKey: 'cloud/large', provider: 'cloud/large', model: '', group: expect.any(String), runsCovered: 2,
         meanQualityScore: 90, meanSpeakerAwareWER: null, meanTextOnlyWER: null,
         meanProcessingTimeMs: 1000, aggregateRealtimeFactor: null, meanCostCents: 4, totalCostCents: 4,
-        supportsDiarization: null, diarizationSupport: null, perRun: { 'run-a': 90, 'run-b': null }
+        supportsDiarization: null, diarizationSupport: null, perRun: { 'run-a': 90, 'run-b': null },
+        meanLegacyQualityScore: null, meanLegacySpeakerAwareWER: null, meanWordAttributionAccuracy: null, meanSpeakerCountAbsoluteError: null, errorAttributionTotals: null
       }])
     })
   })

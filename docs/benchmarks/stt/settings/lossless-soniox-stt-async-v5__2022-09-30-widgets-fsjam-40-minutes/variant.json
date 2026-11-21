@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "lossless-soniox-stt-async-v5",
+  "label": "stt-audio-profile=lossless",
+  "baseline": {
+    "service": "soniox",
+    "model": "stt-async-v5"
+  },
+  "flags": [
+    "--provider",
+    "soniox=stt-async-v5",
+    "--diarization",
+    "--stt-audio-profile",
+    "lossless"
+  ]
+}

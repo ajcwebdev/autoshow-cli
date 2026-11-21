@@ -18,6 +18,9 @@ const PAYLOAD_STDOUT_FILES = [
   // installed dependencies and the shared logging runtime are available.
   'src/tools/project-runtime-dependencies.ts',
   'src/tools/tts-controls-benchmark.ts',
+  'src/tools/stt-settings-benchmark.ts',
+  // The package builder prints its usage and one completion line as a standalone maintenance command.
+  'src/tools/build-cli-package.ts',
   'src/tools/compact-tts-benchmarks.ts',
   'src/cli/commands/setup-and-utilities/setup/network-check.ts',
   'src/cli/native/dispatcher.ts',

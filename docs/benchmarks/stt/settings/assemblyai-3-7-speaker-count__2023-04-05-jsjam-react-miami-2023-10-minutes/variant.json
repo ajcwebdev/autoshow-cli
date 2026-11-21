@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "assemblyai-3-7-speaker-count",
+  "label": "speaker-count=6",
+  "baseline": {
+    "service": "assemblyai",
+    "model": "assemblyai-stt-3-7"
+  },
+  "flags": [
+    "--provider",
+    "assemblyai=assemblyai-stt-3-7",
+    "--diarization",
+    "--speaker-count",
+    "6"
+  ]
+}

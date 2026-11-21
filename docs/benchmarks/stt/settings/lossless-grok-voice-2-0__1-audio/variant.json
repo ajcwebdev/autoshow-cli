@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "lossless-grok-voice-2-0",
+  "label": "stt-audio-profile=lossless",
+  "baseline": {
+    "service": "grok",
+    "model": "grok-voice-transcribe-2.0"
+  },
+  "flags": [
+    "--provider",
+    "grok=grok-voice-transcribe-2.0",
+    "--diarization",
+    "--stt-audio-profile",
+    "lossless"
+  ]
+}

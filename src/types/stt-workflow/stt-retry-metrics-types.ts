@@ -3,6 +3,8 @@ import type { AsyncSttLifecycleHooks, DiarizationOptions } from '~/types'
 export type SttSegmentRunOptions = {
   diarizationOptions?: DiarizationOptions | undefined
   nativeSubtitles?: boolean | undefined
+  sttFillerWords?: boolean | undefined
+  sttNumberFormat?: 'written' | 'spoken' | undefined
   model: string
   segmentOffsetMinutes: number
   segmentNumber?: number | undefined

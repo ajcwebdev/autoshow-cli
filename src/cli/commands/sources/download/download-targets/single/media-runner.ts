@@ -28,6 +28,8 @@ export const buildProcessingOptions = (
     youtubeCaptions: runtimeOptions.youtubeCaptions,
     scrapecreatorsLang: runtimeOptions.scrapecreatorsLang,
     grokSttVerbatim: runtimeOptions.grokSttVerbatim,
+    sttFillerWordsByProvider: runtimeOptions.sttFillerWordsByProvider,
+    sttNumberFormatByProvider: runtimeOptions.sttNumberFormatByProvider,
     deepinfraSttResponseFormat: runtimeOptions.deepinfraSttResponseFormat,
     captionExportFlags: runtimeOptions.captionExportFlags,
     sttAudioProfile: runtimeOptions.sttAudioProfile,

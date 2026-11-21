@@ -104,7 +104,7 @@ const assertCaptionCommandFlags = (ctx: CliCommandContext): void => {
 }
 
 const assertSavedResultCaptionFlags = (ctx: CliCommandContext): void => {
-  const incompatible = ['audio', 'transcript-text', 'font', 'keep-tmp', 'native-subtitles', 'diarization', 'stt-audio-profile', 'stt-response-format', 'stt-verbatim', 'stt-language'].filter(flag => ctx.rawParsed.explicitFlags.has(flag))
+  const incompatible = ['audio', 'transcript-text', 'font', 'keep-tmp', 'native-subtitles', 'diarization', 'stt-audio-profile', 'stt-response-format', 'stt-verbatim', 'stt-filler-words', 'stt-number-format', 'stt-language'].filter(flag => ctx.rawParsed.explicitFlags.has(flag))
   if (incompatible.length) throw UsageError('These options do not apply to saved-result caption export: ' + incompatible.map(flag => '--' + flag).join(', '))
 }
 

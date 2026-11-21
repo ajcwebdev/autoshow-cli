@@ -54,6 +54,8 @@ const resumeTranscriptionOptionNames = [
   'native-subtitles',
   'stt-response-format',
   'stt-verbatim',
+  'stt-filler-words',
+  'stt-number-format',
   'stt-language',
   'split'
 ] as const

@@ -97,7 +97,8 @@ export function supportedDashboardProviderKeys(
     case "url": routes = extractionRoutes("url", registry); break;
     case "stt-local": routes = extractionRoutes("stt", registry).filter(route => route.local); break;
     case "stt-with-speakers":
-    case "stt-without-speakers": routes = extractionRoutes("stt", registry).filter(route => !route.local); break;
+    case "stt-without-speakers":
+    case "stt-settings": routes = extractionRoutes("stt", registry).filter(route => !route.local); break;
     default: return [];
   }
   const routeModels = new Map<string, Set<string>>();
@@ -116,8 +117,10 @@ export function supportedDashboardProviderKeys(
   const supported = new Set<string>();
   for (const group of model.groups) {
     for (const row of group.providers) {
-      if (routeModels.get(row.providerKey)?.has(row.model)
-        || (group.key === "local" && localModels.get(row.providerKey)?.has(row.model))) {
+      // STT settings variants are keyed service/model[setting=value,...] (settings tab: service/model[variant-id]); support follows the base route.
+      const routeKey = row.providerKey.replace(/\[[^\]]*\]$/, "");
+      if (routeModels.get(routeKey)?.has(row.model)
+        || (group.key === "local" && localModels.get(routeKey)?.has(row.model))) {
         supported.add(row.providerKey);
       }
     }

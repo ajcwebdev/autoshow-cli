@@ -6,7 +6,8 @@ import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, form
 import type { AsyncSttLifecycleMetrics, HostedAsyncSttRunOptions, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { AssemblyAiTranscriptResponseSchema } from '~/types'
 import { ASSEMBLYAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { InternalError, ValidationError } from '~/utils/error-handler'
+import { InternalError, UsageError, ValidationError } from '~/utils/error-handler'
+import * as l from '~/utils/app-logger/app-logger'
 import { resolveCredential } from '~/utils/validate/env-utils'
 import * as v from 'valibot'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../../stt-shared/stt-stage-request'
@@ -17,17 +18,74 @@ const MAX_POLL_INTERVAL_MS = 10000
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
 
+// AssemblyAI-STT-3.7 keeps disfluencies by default, and AssemblyAI's 3.7 launch note says Universal-3.5 Pro used
+// different formatting defaults. Pin both explicitly so 3.7 output keeps the clean, formatted shape the CLI has
+// always produced. Universal-3.5 Pro requests stay byte-identical to their pre-3.7 shape.
+// https://www.assemblyai.com/docs/pre-recorded-audio/assemblyai-stt-3-7-migration-guide.md
+// --stt-filler-words maps to disfluencies (true keeps fillers, repetitions and false starts) and --stt-number-format to
+// format_text (written=true, spoken=false); both override the pinned 3.7 defaults and are refused for other models.
+const ASSEMBLYAI_EXPLICIT_FORMATTING_MODELS: ReadonlySet<string> = new Set(['assemblyai-stt-3-7'])
+
+export type AssemblyAiTranscriptStyle = {
+  fillerWords?: boolean | undefined
+  numberFormat?: 'written' | 'spoken' | undefined
+}
+
+const assertAssemblyAiTranscriptStyle = (model: string, style: AssemblyAiTranscriptStyle): void => {
+  if (ASSEMBLYAI_EXPLICIT_FORMATTING_MODELS.has(model)) return
+  const flags = [
+    ...(style.fillerWords !== undefined ? ['--stt-filler-words'] : []),
+    ...(style.numberFormat !== undefined ? ['--stt-number-format'] : [])
+  ]
+  if (flags.length > 0) throw UsageError(`${flags.join(' and ')} ${flags.length > 1 ? 'do' : 'does'} not apply to assemblyai/${model}; supported models: ${[...ASSEMBLYAI_EXPLICIT_FORMATTING_MODELS].join(', ')}.`)
+}
+
 export const buildAssemblyAiTranscriptRequest = (
   audioUrl: string,
   model: string,
   speakerCount?: number | undefined,
-  diarize = true
-): Record<string, unknown> => ({
-  audio_url: audioUrl,
-  speech_models: [model],
-  speaker_labels: diarize,
-  ...(!diarize || speakerCount === undefined ? {} : { speakers_expected: speakerCount })
-})
+  diarize = true,
+  style: AssemblyAiTranscriptStyle = {}
+): Record<string, unknown> => {
+  assertAssemblyAiTranscriptStyle(model, style)
+  return {
+    audio_url: audioUrl,
+    speech_models: [model],
+    speaker_labels: diarize,
+    ...(!diarize || speakerCount === undefined ? {} : { speakers_expected: speakerCount }),
+    ...(ASSEMBLYAI_EXPLICIT_FORMATTING_MODELS.has(model)
+      ? { disfluencies: style.fillerWords ?? false, format_text: style.numberFormat === undefined ? true : style.numberFormat === 'written' }
+      : {})
+  }
+}
+
+// AssemblyAI documents metadata.warnings as objects with a message, but the field is informational, so tolerate
+// strings, null messages, a bare string or object, and unrelated shapes without ever failing the paid transcript.
+const extractAssemblyAiWarningMessages = (metadata: unknown): string[] => {
+  if (metadata === null || typeof metadata !== 'object') return []
+  const warnings = (metadata as { warnings?: unknown }).warnings
+  const entries = Array.isArray(warnings) ? warnings : warnings === undefined || warnings === null ? [] : [warnings]
+  return entries.flatMap((warning) => {
+    const message = typeof warning === 'string' ? warning
+      : warning !== null && typeof warning === 'object' ? (warning as { message?: unknown }).message
+        : undefined
+    return typeof message === 'string' && message.trim().length > 0 ? [message.trim()] : []
+  })
+}
+
+export const describeAssemblyAiResponseWarnings = (
+  transcript: v.InferOutput<typeof AssemblyAiTranscriptResponseSchema>,
+  requestedModel: string,
+  diarize: boolean
+): string[] => [
+  ...(transcript.speech_model_used && transcript.speech_model_used !== requestedModel
+    ? [`AssemblyAI transcribed with ${transcript.speech_model_used} instead of the requested ${requestedModel}`]
+    : []),
+  ...(diarize && !transcript.utterances?.length && transcript.words?.length
+    ? ['AssemblyAI returned no speaker utterances although diarization was requested']
+    : []),
+  ...extractAssemblyAiWarningMessages(transcript.metadata).map((message) => `AssemblyAI warning: ${message}`)
+]
 
 const formatSpeaker = (speaker: string | null | undefined): string | undefined => {
   if (speaker == null || speaker.length === 0) return undefined
@@ -74,7 +132,8 @@ const createAssemblyAiTranscript = async (
   modelName: string,
   speakerCount: number | undefined,
   metrics: AsyncSttLifecycleMetrics,
-  diarize = true
+  diarize = true,
+  style: AssemblyAiTranscriptStyle = {}
 ): Promise<string> => {
   const createResult = await sttStageRequest({
     operationName: 'assemblyai-create-transcript',
@@ -93,7 +152,7 @@ const createAssemblyAiTranscript = async (
         'authorization': apiKey,
         'content-type': 'application/json'
       },
-      body: JSON.stringify(buildAssemblyAiTranscriptRequest(audioUrl, modelName, speakerCount, diarize)),
+      body: JSON.stringify(buildAssemblyAiTranscriptRequest(audioUrl, modelName, speakerCount, diarize, style)),
       signal: signal ?? null
     })
   })
@@ -147,6 +206,8 @@ export const runAssemblyAiTranscribe = async (
     runMode,
     lifecycle
   } = options
+  const style: AssemblyAiTranscriptStyle = { fillerWords: options.sttFillerWords, numberFormat: options.sttNumberFormat }
+  assertAssemblyAiTranscriptStyle(modelName, style)
   const apiKey = resolveCredential('assemblyai', 'require', { stage: 'stt:assemblyai', description: 'AssemblyAI transcription' })
 
   if (diarizationOptions?.speakerCount !== undefined) {
@@ -192,7 +253,8 @@ export const runAssemblyAiTranscribe = async (
           modelName,
           diarizationOptions?.speakerCount,
           metrics,
-          diarizationOptions?.enabled
+          diarizationOptions?.enabled,
+          style
         )
       }
     },
@@ -250,6 +312,9 @@ export const runAssemblyAiTranscribe = async (
       )
 
       await Bun.write(`${outputBase}.txt`, formatTranscriptText(finalSegments))
+      for (const warning of describeAssemblyAiResponseWarnings(transcript, modelName, diarizationOptions?.enabled !== false)) {
+        l.warn(warning, { category: 'pipeline' })
+      }
 
       return {
         result: {
@@ -260,6 +325,7 @@ export const runAssemblyAiTranscribe = async (
         metadata: {
           transcriptionService: 'assemblyai',
           transcriptionModel: modelName,
+          ...(transcript.speech_model_used ? { providerModelUsed: transcript.speech_model_used } : {}),
           processingTime,
           tokenCount: countTokens(finalText),
           runtime,

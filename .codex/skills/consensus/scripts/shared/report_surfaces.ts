@@ -381,11 +381,12 @@ function qualityEvidence(category: ConsensusCategory, provider: ProviderSummary)
     };
   }
   if (category === "stt" && metrics.speakerAwareWER !== null) {
+    const neutral = provider.source.legacySpeakerAwareWER !== undefined;
     return {
       kind: "lower-is-better",
-      metric: "speaker-aware WER",
+      metric: neutral ? "neutral speaker-aware WER" : "speaker-aware WER",
       value: metrics.speakerAwareWER,
-      label: `${formatPercent(metrics.speakerAwareWER)} speaker-aware WER`,
+      label: `${formatPercent(metrics.speakerAwareWER)} ${neutral ? "neutral " : ""}speaker-aware WER`,
       tieBreakers: [metrics.textOnlyWER ?? Number.POSITIVE_INFINITY],
     };
   }
@@ -949,8 +950,32 @@ function textProviderDetail(provider: ProviderSummary): Record<string, unknown> 
   };
 }
 
+const STT_SCORING_DETAIL_FIELDS = [
+  "settingsLabel", "legacyScore", "legacySpeakerAwareWER", "legacyTextOnlyWER", "legacySpeakerAwareBreakdown",
+  "legacyTextOnlyBreakdown", "errorAttribution", "speakerMetrics",
+] as const;
+
+// Scoring-version-2 STT fields pass through only when the source row has them, so older rows keep their shape.
+function sttScoringDetail(provider: ProviderSummary): Record<string, unknown> {
+  return Object.fromEntries(STT_SCORING_DETAIL_FIELDS
+    .filter((key) => provider.source[key] !== undefined)
+    .map((key) => [key, provider.source[key]]));
+}
+
+function sttLegacyMetrics(provider: ProviderSummary): Record<string, number> {
+  const legacy: Record<string, number> = {};
+  for (const key of ["legacyScore", "legacySpeakerAwareWER", "legacyTextOnlyWER"] as const) {
+    const value = asNumber(provider.source[key]);
+    if (value !== null) legacy[key] = value;
+  }
+  return legacy;
+}
+
 function categoryProviderDetail(category: ConsensusCategory, provider: ProviderSummary): Record<string, unknown> {
-  if (category === "ocr" || category === "stt") {
+  if (category === "stt") {
+    return { ...measuredTextProviderDetail(provider), ...sttScoringDetail(provider) };
+  }
+  if (category === "ocr") {
     return measuredTextProviderDetail(provider);
   }
   if (category === "text") {
@@ -979,7 +1004,9 @@ function providerDetail(category: ConsensusCategory, provider: ProviderSummary):
     qualityMetric: provider.quality?.metric ?? null,
     qualityValue: provider.quality?.value ?? null,
     qualityLabel: provider.quality?.label ?? null,
-    metrics: providerDetailMetrics(category, provider.metrics),
+    metrics: category === "stt"
+      ? { ...providerDetailMetrics(category, provider.metrics), ...sttLegacyMetrics(provider) }
+      : providerDetailMetrics(category, provider.metrics),
     supportsDiarization: provider.source.supportsDiarization ?? null,
     diarizationSupport: provider.source.diarizationSupport ?? null,
     qualityWarnings: provider.source.qualityWarnings ?? [],
@@ -1039,6 +1066,9 @@ function buildMeasuredJsonReport(
     ...(sourceReport.consensusCharCount ? { consensusCharCount: sourceReport.consensusCharCount } : {}),
     ...(sourceReport.consensusWordCount ? { consensusWordCount: sourceReport.consensusWordCount } : {}),
     ...(sourceReport.referenceTranscriptPath ? { referenceTranscriptPath: sourceReport.referenceTranscriptPath } : {}),
+    ...(category === "stt" && sourceReport.referenceSource ? { referenceSource: sourceReport.referenceSource } : {}),
+    ...(category === "stt" && sourceReport.scoringVersion !== undefined ? { scoringVersion: sourceReport.scoringVersion } : {}),
+    ...(category === "stt" && sourceReport.scoringMethod ? { scoringMethod: sourceReport.scoringMethod } : {}),
     normalization: sourceReport.normalization ?? null,
     duplicateGroups: sourceReport.duplicateGroups ?? [],
     providerCount: providers.length,
@@ -1265,6 +1295,48 @@ function sttErrorBreakdownTable(providers: ProviderSummary[], key: "textOnlyBrea
   ].join("\n");
 }
 
+function sttAttributionTable(providers: ProviderSummary[]): string {
+  return [
+    "| Provider | Strict Edits | Disfluency | Orthographic | Number/Format | Neutral Edits | Speaker Attribution | Residual Number/Format | Other Lexical |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ...providers.map((provider) => {
+      const attribution = isRecord(provider.source.errorAttribution) ? provider.source.errorAttribution : null;
+      const forgiven = attribution && isRecord(attribution.forgivenByView) ? attribution.forgivenByView : null;
+      const remaining = attribution && isRecord(attribution.remaining) ? attribution.remaining : null;
+      return markdownRow([
+        providerMarkdownCode(provider),
+        breakdownNumber(attribution, "strictEdits"),
+        breakdownNumber(forgiven, "disfluency"),
+        breakdownNumber(forgiven, "orthographic"),
+        breakdownNumber(forgiven, "numberFormat"),
+        breakdownNumber(attribution, "neutralEdits"),
+        breakdownNumber(remaining, "speakerAttribution"),
+        breakdownNumber(remaining, "numberFormat"),
+        breakdownNumber(remaining, "otherLexical"),
+      ]);
+    }),
+  ].join("\n");
+}
+
+function sttSpeakerMetricsTable(providers: ProviderSummary[]): string {
+  return [
+    "| Provider | Ref. Speakers | Provider Speakers | Count Error | Word Attribution Accuracy | Legacy Score / 100 | Legacy Speaker-aware WER |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ...providers.map((provider) => {
+      const speaker = isRecord(provider.source.speakerMetrics) ? provider.source.speakerMetrics : null;
+      return markdownRow([
+        providerMarkdownCode(provider),
+        breakdownNumber(speaker, "referenceSpeakerCount"),
+        breakdownNumber(speaker, "providerSpeakerCount"),
+        breakdownNumber(speaker, "speakerCountAbsoluteError"),
+        formatPercent(speaker ? asNumber(speaker.wordAttributionAccuracy) : null),
+        formatNullableScore(asNumber(provider.source.legacyScore)),
+        formatPercent(asNumber(provider.source.legacySpeakerAwareWER)),
+      ]);
+    }),
+  ].join("\n");
+}
+
 function qualityFlagsTable(providers: ProviderSummary[]): string {
   const rows = providers
     .map((provider) => {
@@ -1448,6 +1520,11 @@ function buildMarkdownReport(
   }
 
   if (category === "stt") {
+    const scoringMethod = isRecord(sourceReport.scoringMethod) ? sourceReport.scoringMethod : null;
+    const scoringLines = scoringMethod && Array.isArray(scoringMethod.description)
+      ? scoringMethod.description.filter((line): line is string => typeof line === "string").map((line) => `- ${line}`)
+      : [];
+    const referenceSource = isRecord(sourceReport.referenceSource) ? sourceReport.referenceSource : null;
     return [
       "# Consensus Transcript Comparison Report",
       "",
@@ -1456,10 +1533,14 @@ function buildMarkdownReport(
       `- Run directory: \`${runDir}\``,
       `- Total providers: ${providers.length} (${localProviders.length} local, ${serviceProviders.length} third-party service)`,
       "- Local, third-party non-diarization, and third-party diarization providers are ranked separately for price, speed, and quality score.",
-      "- Quality score uses speaker-aware WER-derived transcript accuracy, with text-only WER retained as supporting evidence.",
+      scoringMethod
+        ? `- Quality score uses neutral speaker-aware WER-derived transcript accuracy (scoring version ${String(sourceReport.scoringVersion ?? "n/a")}: \`${String(scoringMethod.scoreFormula ?? sourceReport.scoreFormula)}\`), with text-only WER and the legacy score retained as supporting evidence.`
+        : "- Quality score uses speaker-aware WER-derived transcript accuracy, with text-only WER retained as supporting evidence.",
+      ...(referenceSource ? [`- Reference transcript: \`${String(referenceSource.path)}\` via \`reference-source.json\` (SHA-256 \`${String(referenceSource.sha256)}\`).`] : []),
       "",
       "## Method",
       "",
+      ...scoringLines,
       "- Price rankings use zero monetary cost for local providers and reported monetary cost for third-party services; missing service price stays in the ranking at the end.",
       "- Speed rankings use processing time when present; missing timing stays in the ranking at the end.",
       "- Quality Score rankings sort by the existing speaker-aware WER-derived provider score from highest to lowest.",
@@ -1479,6 +1560,16 @@ function buildMarkdownReport(
       "",
       sttErrorBreakdownTable(providers, "textOnlyBreakdown"),
       "",
+      ...(scoringMethod ? [
+        "## Error Attribution (Speaker-aware)",
+        "",
+        sttAttributionTable(providers),
+        "",
+        "## Speaker Metrics",
+        "",
+        sttSpeakerMetricsTable(providers),
+        "",
+      ] : []),
       "## Quality Flags",
       "",
       qualityFlagsTable(providers),

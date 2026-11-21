@@ -159,7 +159,7 @@ describe('combined-report metric ranking contracts', () => {
     expect(DASHBOARD_SOURCES.map(tab => [tab.key, tab.directory])).toEqual([
       ['ocr', 'text/ocr'], ['stt-local', 'stt/local'],
       ['stt-with-speakers', 'stt/with-speakers'], ['stt-without-speakers', 'stt/without-speakers'],
-      ['url', 'text/url'], ['tts', 'tts'], ['write', 'text/write'],
+      ['stt-settings', 'stt/settings'], ['url', 'text/url'], ['tts', 'tts'], ['write', 'text/write'],
       ['image', 'image'], ['video', 'video'], ['music', 'music']
     ])
     for (const tab of DASHBOARD_SOURCES) {
@@ -169,9 +169,9 @@ describe('combined-report metric ranking contracts', () => {
 
   for (const [directory, schemaVersion, groups] of [
     ['ocr', 3, ['local', 'thirdPartyService']],
-    ['stt-with-speakers', 4, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization']],
-    ['stt-without-speakers', 4, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization']],
-    ['stt-local', 4, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization']],
+    ['stt-with-speakers', 5, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization']],
+    ['stt-without-speakers', 5, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization']],
+    ['stt-local', 5, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization']],
     ['url', 2, ['local', 'service']]
   ] as const) {
     test(`generated ${directory} artifacts rank cost, speed, and quality per group`, () => {
@@ -426,7 +426,10 @@ describe('committed benchmark dashboard', () => {
 
     expect(data.schemaVersion).toBe(1)
     expect(data.title).toBe('AutoShow Benchmark Dashboard')
-    expect(data.tabs.map((tab) => tab.key)).toEqual([...DASHBOARD_TABS.map(([key]) => key), 'tts', 'write', 'image', 'video', 'music'])
+    // The optional STT settings tab follows the STT tabs only when its generated settings report exists.
+    const settingsTab = existsSync(join(benchmarksRoot, 'stt', 'settings', 'settings-comparison-report.json')) ? ['stt-settings'] : []
+    const combinedKeys = DASHBOARD_TABS.map(([key]) => key)
+    expect(data.tabs.map((tab) => tab.key)).toEqual([...combinedKeys.slice(0, 4), ...settingsTab, ...combinedKeys.slice(4), 'tts', 'write', 'image', 'video', 'music'])
     expect(raw).not.toContain('/Users/')
     expect(raw).not.toContain('Quality-cost terciles')
     expect(raw).not.toContain('quality-cost-terciles-v1')

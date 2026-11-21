@@ -5,15 +5,20 @@ import { DEEPINFRA_STT_RESPONSE_FORMATS, DEFAULT_DEEPINFRA_STT_RESPONSE_FORMAT }
 
 const NO_OPTIONS = {} as const
 
+// AssemblyAI documents disfluencies and format_text for AssemblyAI-STT-3.7; it does not document disfluencies for
+// Universal-3.5 Pro, whose request body stays byte-identical, so both controls are scoped to the 3.7 model.
+// https://www.assemblyai.com/docs/pre-recorded-audio/assemblyai-stt-3-7-migration-guide.md
+const ASSEMBLYAI_TRANSCRIPT_STYLE_CONTROL = { models: ['assemblyai-stt-3-7'] } as const
+
 const STT_ENGINE_CAPABILITIES = {
   deepinfra: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: { responseFormat: { allowedValues: DEEPINFRA_STT_RESPONSE_FORMATS, defaultValue: DEFAULT_DEEPINFRA_STT_RESPONSE_FORMAT } } },
   deepgram: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
   soniox: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
   speechmatics: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
   rev: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
-  grok: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: { verbatim: true } },
+  grok: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: { verbatim: true, fillerWords: {}, numberFormat: {} } },
   mistral: { diarizationByDefault: true, supportsSpeakerCountHint: false, options: NO_OPTIONS },
-  assemblyai: { diarizationByDefault: true, supportsSpeakerCountHint: true, options: NO_OPTIONS },
+  assemblyai: { diarizationByDefault: true, supportsSpeakerCountHint: true, options: { fillerWords: ASSEMBLYAI_TRANSCRIPT_STYLE_CONTROL, numberFormat: ASSEMBLYAI_TRANSCRIPT_STYLE_CONTROL } },
   gladia: { diarizationByDefault: true, supportsSpeakerCountHint: true, options: NO_OPTIONS },
   happyscribe: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS },
   supadata: { diarizationByDefault: false, supportsSpeakerCountHint: false, options: NO_OPTIONS },
@@ -30,7 +35,17 @@ export type SttEngineOptionCapabilities = Readonly<{
   languageHint?: Readonly<{ defaultValue?: string }>
   verbatim?: boolean
   responseFormat?: Readonly<{ allowedValues: readonly string[], defaultValue?: string }>
+  /** Keep (true) or remove (false) filler words; `models` limits support to the listed models. */
+  fillerWords?: SttModelScopedControl
+  /** Written (formatted digits) or spoken (words) numbers; `models` limits support to the listed models. */
+  numberFormat?: SttModelScopedControl
 }>
+
+/** A control the engine supports for every model, or only for `models` when that list is present. */
+export type SttModelScopedControl = Readonly<{ models?: readonly string[] }>
+
+export const STT_NUMBER_FORMATS = ['written', 'spoken'] as const
+export type SttNumberFormat = typeof STT_NUMBER_FORMATS[number]
 
 export const STT_ENGINE_OPTION_CAPABILITIES: Record<TranscribeEngine, SttEngineOptionCapabilities> =
   Object.fromEntries(Object.entries(STT_ENGINE_CAPABILITIES).map(([engine, capabilities]) =>
@@ -130,4 +145,26 @@ export const collectSttProviderSpecs = (
   }
 
   return specs
+}
+
+const MODEL_SCOPED_CONTROL_FLAGS = { fillerWords: 'stt-filler-words', numberFormat: 'stt-number-format' } as const
+
+/** Models that support a model-scoped control, or undefined when every model of the engine supports it. */
+export const sttModelScopedControlModels = (
+  engine: TranscribeEngine,
+  control: keyof typeof MODEL_SCOPED_CONTROL_FLAGS
+): readonly string[] | undefined => STT_ENGINE_OPTION_CAPABILITIES[engine][control]?.models
+
+// Runs while targets are built, which precedes pricing, credential lookup and dispatch.
+export const assertSttModelScopedControl = (
+  engine: TranscribeEngine,
+  model: string,
+  control: keyof typeof MODEL_SCOPED_CONTROL_FLAGS
+): void => {
+  const flag = MODEL_SCOPED_CONTROL_FLAGS[control]
+  const capability = STT_ENGINE_OPTION_CAPABILITIES[engine][control]
+  if (!capability) throw UsageError(`--${flag} does not apply to ${STT_ENGINE_PROVIDER_NAME[engine] ?? engine} STT.`)
+  if (capability.models && !capability.models.includes(model)) {
+    throw UsageError(`--${flag} does not apply to ${STT_ENGINE_PROVIDER_NAME[engine] ?? engine}/${model}; supported models: ${capability.models.join(', ')}.`)
+  }
 }

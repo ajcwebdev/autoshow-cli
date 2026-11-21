@@ -14,6 +14,18 @@ import { buildPromptFile, buildProviderModelLabel } from '../stt-prompt'
 import { resolveRecordedSttStep2 } from './recorded-step2'
 import { UsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
+import { toLocalSourceRef } from '~/utils/project-root'
+
+// A local source is recorded as a project-relative path inside the checkout and as a file:// URL outside it, so
+// the same file can appear in either spelling (older manifests, or a run moved under the checkout).
+const normalizeSourceRef = (value: unknown): unknown => {
+  if (typeof value !== 'string' || !value.startsWith('file://')) return value
+  try {
+    return toLocalSourceRef(Bun.fileURLToPath(value))
+  } catch {
+    return value
+  }
+}
 
 export const mergeCompletedSttProviderMetadata = (
   persistedMetadata: Record<string, unknown> | undefined,
@@ -59,7 +71,7 @@ export const completeSingleProviderStt = async ({
     const previousRecord = await readSinglePipelineItemRecord(outputDir, { command: 'extract', extractRoute: 'media' })
     const previousStep1 = isRecord(previousRecord?.['step1']) ? previousRecord['step1'] : undefined
     const previousLocal = retainedProvider.settings?.local
-    if (previousStep1?.['url'] !== prepared.step1Metadata.url
+    if (normalizeSourceRef(previousStep1?.['url']) !== normalizeSourceRef(prepared.step1Metadata.url)
       || previousStep1?.['audioFileSize'] !== prepared.step1Metadata.audioFileSize
       || (typeof previousStep1?.['durationSeconds'] === 'number' && previousStep1['durationSeconds'] !== prepared.step1Metadata.durationSeconds)
       || (typeof retainedProvider.metadata['sourceAudioSha256'] === 'string' && retainedProvider.metadata['sourceAudioSha256'] !== sourceAudioSha256)

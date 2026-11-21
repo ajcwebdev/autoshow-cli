@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "lossless-gemini-3-5-transcribe",
+  "label": "stt-audio-profile=lossless",
+  "baseline": {
+    "service": "gemini-stt",
+    "model": "gemini-3.5-transcribe"
+  },
+  "flags": [
+    "--provider",
+    "gemini=gemini-3.5-transcribe",
+    "--diarization",
+    "--stt-audio-profile",
+    "lossless"
+  ]
+}

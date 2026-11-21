@@ -147,7 +147,14 @@ export const AssemblyAiTranscriptResponseSchema = v.looseObject({
   text: v.optional(v.nullable(v.string()), undefined),
   utterances: v.optional(v.nullable(v.array(AssemblyAiUtteranceSchema)), undefined),
   words: v.optional(v.nullable(v.array(AssemblyAiWordSchema)), undefined),
-  error: v.optional(v.nullable(v.string()), undefined)
+  error: v.optional(v.nullable(v.string()), undefined),
+  // The model AssemblyAI actually ran, which can differ from the requested one after fallback or retirement routing.
+  speech_model_used: v.optional(v.nullable(v.string()), undefined),
+  disfluencies: v.optional(v.nullable(v.boolean()), undefined),
+  format_text: v.optional(v.nullable(v.boolean()), undefined),
+  // Informational only: accepted in any shape so an odd metadata or warnings payload never fails an already-paid
+  // completed transcript. The adapter extracts string warning messages defensively.
+  metadata: v.optional(v.unknown(), undefined)
 })
 
 const DeepgramWordSchema = v.looseObject({

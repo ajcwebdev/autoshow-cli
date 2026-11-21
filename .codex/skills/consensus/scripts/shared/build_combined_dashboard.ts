@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { buildOcrCombinedReport } from "../ocr/build_combined_report";
 import { buildSttCombinedReport } from "../stt/build_combined_report";
+import { buildSttSettingsDashboard, SETTINGS_REPORT_JSON } from "../stt/build_settings_report";
 import { buildUrlCombinedReport } from "../url/build_combined_report";
 import { buildTtsDashboard } from "../tts/build_tts_dashboard";
 import { buildTextDashboard } from "../text/build_text_dashboard";
@@ -20,13 +21,15 @@ import {
   type DashboardAssetNames,
 } from "./combined_report_html";
 
-interface DashboardTabSource {
+export interface DashboardTabSource {
   key: string;
   directory: string;
   label: string;
   /** True when the tab is built from a generated `combined-comparison-report.json` rather than retained runs. */
   combinedReport: boolean;
   build: (rootDir: string, generatedAt: string) => { dashboardModel: CombinedDashboardModel };
+  /** Optional tabs render only when this returns true for the tab root; required tabs always render. */
+  available?: (rootDir: string) => boolean;
 }
 
 export const DASHBOARD_TABS: DashboardTabSource[] = [
@@ -34,6 +37,14 @@ export const DASHBOARD_TABS: DashboardTabSource[] = [
   { key: "stt-local", directory: "stt/local", label: "STT local", combinedReport: true, build: buildSttCombinedReport },
   { key: "stt-with-speakers", directory: "stt/with-speakers", label: "STT with speakers", combinedReport: true, build: buildSttCombinedReport },
   { key: "stt-without-speakers", directory: "stt/without-speakers", label: "STT without speakers", combinedReport: true, build: buildSttCombinedReport },
+  {
+    key: "stt-settings",
+    directory: "stt/settings",
+    label: "STT settings",
+    combinedReport: false,
+    build: buildSttSettingsDashboard,
+    available: rootDir => existsSync(join(rootDir, SETTINGS_REPORT_JSON)),
+  },
   { key: "url", directory: "text/url", label: "URL", combinedReport: true, build: buildUrlCombinedReport },
   { key: "tts", directory: "tts", label: "TTS", combinedReport: false, build: buildTtsDashboard },
   { key: "write", directory: "text/write", label: "Write", combinedReport: false, build: buildTextDashboard },
@@ -80,18 +91,20 @@ export function buildCombinedDashboard(
   benchmarksRootRaw: string,
   generatedAt = new Date().toISOString(),
   assets: DashboardAssetNames = DEFAULT_DASHBOARD_ASSETS,
+  sources: readonly DashboardTabSource[] = DASHBOARD_TABS,
 ): BenchmarkDashboardBundle {
   const benchmarksRoot = resolve(benchmarksRootRaw);
-  const tabs: BenchmarkDashboardTab[] = DASHBOARD_TABS.map((tab) => {
+  const tabs: BenchmarkDashboardTab[] = sources.flatMap((tab) => {
     const tabRoot = join(benchmarksRoot, tab.directory);
+    if (tab.available && !tab.available(tabRoot)) return [];
     const { dashboardModel } = tab.build(tabRoot, generatedAt);
-    return {
+    return [{
       key: tab.key,
       label: tab.label,
       rootLabel: `docs/benchmarks/${tab.directory}`,
       model: dashboardModel,
       supportedModel: buildSupportedDashboardModel(dashboardModel, supportedDashboardProviderKeys(tab.key, dashboardModel)),
-    };
+    }];
   });
 
   return renderBenchmarkDashboard({

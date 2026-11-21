@@ -58,6 +58,10 @@ export type SttTarget = ProviderIdentityBase<TranscribeEngine> & {
   /** Read-only compatibility for retained Supadata targets; excluded from new selection and dispatch. */
   supadataChunkSize?: number | undefined
   grokSttVerbatim?: boolean | undefined
+  /** Provider-general filler-word control: true keeps fillers, repetitions and false starts; false removes them. */
+  sttFillerWords?: boolean | undefined
+  /** Provider-general number control: written formats digits/currency, spoken keeps numbers as words. */
+  sttNumberFormat?: 'written' | 'spoken' | undefined
   nativeResponseFormat?: 'srt' | 'vtt' | undefined
   nativeSubtitles?: boolean | undefined
   local: boolean
@@ -126,7 +130,7 @@ export type SttCompletionContextBase = {
 }
 
 
-export type SttRequestedProvider = Pick<SttTarget, 'service' | 'model' | 'local' | 'diarizationOptions' | 'nativeSubtitles' | 'nativeResponseFormat' | 'grokSttVerbatim' | 'supadataChunkSize'> & { settings?: import('~/types').ProviderSettingsRecord | undefined }
+export type SttRequestedProvider = Pick<SttTarget, 'service' | 'model' | 'local' | 'diarizationOptions' | 'nativeSubtitles' | 'nativeResponseFormat' | 'grokSttVerbatim' | 'sttFillerWords' | 'sttNumberFormat' | 'supadataChunkSize'> & { settings?: import('~/types').ProviderSettingsRecord | undefined }
 
 export type SttRecordedProviderError = ProviderErrorSummaryFields & {
   skipped?: boolean | undefined

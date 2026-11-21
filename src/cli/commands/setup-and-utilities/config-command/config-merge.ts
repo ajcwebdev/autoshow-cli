@@ -244,6 +244,8 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'stt-audio-profile': ['defaults', 'extract', 'stt', 'audioProfile'],
   'stt-response-format':   ['defaults', 'extract', 'stt', 'responseFormat'],
   'stt-verbatim':          ['defaults', 'extract', 'stt', 'verbatim'],
+  'stt-filler-words':      ['defaults', 'extract', 'stt', 'fillerWords'],
+  'stt-number-format':     ['defaults', 'extract', 'stt', 'numberFormat'],
   'speaker-count':     ['defaults', 'extract', 'stt', 'speakerCount'],
   'split':             ['defaults', 'extract', 'stt', 'split'],
   'stt-provider-concurrency': ['defaults', 'extract', 'stt', 'providerConcurrency'],

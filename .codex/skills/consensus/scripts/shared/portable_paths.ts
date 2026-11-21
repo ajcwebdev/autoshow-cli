@@ -1,5 +1,5 @@
 import { writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 
 const SCRIPT_REPO_ROOT = resolve(import.meta.dir, "../../../../..");
 
@@ -25,4 +25,15 @@ export function toPortableText(text: string): string {
 
 export function writePortableFileSync(path: string, content: string): void {
   writeFileSync(path, toPortableText(content));
+}
+
+/** The checkout root that repo-relative paths in tracked artifacts resolve against. */
+export const REPOSITORY_ROOT = SCRIPT_REPO_ROOT;
+
+// Resolves a repository-relative path recorded in a tracked artifact; absolute paths are rejected because they are not portable.
+export function resolveRepoRelativePath(path: string): string {
+  if (isAbsolute(path) || /^[a-z]+:\/\//i.test(path)) {
+    throw new Error(`Expected a repository-relative path, got ${JSON.stringify(path)}`);
+  }
+  return resolve(SCRIPT_REPO_ROOT, path);
 }

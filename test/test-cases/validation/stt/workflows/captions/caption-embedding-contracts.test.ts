@@ -1,7 +1,8 @@
 import { test, expect } from 'bun:test'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
+import { PROJECT_ROOT } from '~/utils/project-root'
 import { embedCaptionTracks, preflightCaptionEmbedding, probeCaptionMedia } from '~/cli/commands/stt/workflows/captions/embed-caption-tracks'
 import { prepareSttMedia } from '~/cli/commands/stt/stt-media-acquisition'
 import { decodedAudioHash } from '~/cli/commands/stt/workflows/captions/verify-caption-media'
@@ -23,6 +24,8 @@ test('lossless preparation preserves distinct stereo float samples and records t
       expect(await decodedAudioHash(prepared.outputArtifacts.sourceMediaPath)).toBe(await decodedAudioHash(source))
       const timeline = await Bun.file(join(dir, 'prepared', 'source-timeline.json')).json()
       expect(timeline).toMatchObject({ sampleFormat: 'float32', channels: 2, sampleRate: 48000, decodedSamplesMatch: true, audioToVideoOffsetSeconds: 0.04 })
+      expect(timeline.source).toBe(relative(PROJECT_ROOT, source).replace(/\\/g, '/'))
+      expect(await Bun.file(join(dir, 'prepared', 'source-timeline.json')).text()).not.toContain(PROJECT_ROOT)
       expect(prepared.durationSeconds).toBeCloseTo(1, 3)
     } finally { await prepared.cleanup?.() }
   } finally { await rm(dir, { recursive: true, force: true }) }

@@ -112,14 +112,21 @@ const SttModelSchema = v.strictObject({
   costPerHourCents: v.number(),
   billing: v.optional(SttBillingSchema, undefined),
   estimation: v.optional(SttEstimationSchema, undefined),
-  limits: v.optional(SttLimitsSchema, undefined)
+  limits: v.optional(SttLimitsSchema, undefined),
+  lifecycle: v.optional(ModelLifecycleSchema, undefined)
 })
 
-const SttServiceSchema = v.object({
-  description: v.string(),
-  type: v.picklist(['local', 'api']),
-  models: v.record(v.string(), SttModelSchema)
-})
+const SttServiceSchema = v.pipe(
+  v.object({
+    description: v.string(),
+    type: v.picklist(['local', 'api']),
+    models: v.record(v.string(), SttModelSchema)
+  }),
+  v.check(
+    (service) => hasValidLifecycleReferences(service),
+    'Model lifecycle replacements must name another concrete selector in the same STT service.'
+  )
+)
 
 export const ExtractLimitsSchema = v.object({
   contextTokens: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),

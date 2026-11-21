@@ -9,6 +9,7 @@ import { readSinglePipelineItemRecord } from '../../command-shared/pipeline-mani
 import { parseStoredTranscriptionResult } from '../stt-utils/stt-result-artifacts'
 import { UsageError } from '~/utils/error-handler'
 import { createProviderSettingsRecord } from '../../command-shared/pipeline-manifest/provider-settings-record'
+import { sttModelScopedControlModels } from '../stt-cli'
 import {
   buildRequestedProviderList,
   collectMissingProviderTargets,
@@ -108,6 +109,7 @@ export const parseStoredStep2Metadata = (value: unknown): Step2Metadata | undefi
     transcriptionService: value['transcriptionService'] as Step2Metadata['transcriptionService'],
     ...(isRecord(value['diarizationOptions']) ? { diarizationOptions: value['diarizationOptions'] as Step2Metadata['diarizationOptions'] } : {}),
     transcriptionModel: value['transcriptionModel'],
+    ...(typeof value['providerModelUsed'] === 'string' && value['providerModelUsed'].trim() ? { providerModelUsed: value['providerModelUsed'] } : {}),
     processingTime: value['processingTime'],
     tokenCount: value['tokenCount'],
     ...(value['captionKind'] === 'manual' || value['captionKind'] === 'auto'
@@ -134,6 +136,59 @@ export type SttSettingsRuntime = {
   happyscribeOrganizationId?: string | undefined
 }
 
+type SttTranscriptStyleTarget = Pick<SttTarget, 'service' | 'model' | 'grokSttVerbatim' | 'sttFillerWords' | 'sttNumberFormat'>
+export type SttTranscriptStyle = { fillerWords?: boolean | undefined, numberFormat?: 'written' | 'spoken' | undefined }
+
+// What each model actually sends for the transcript-style controls; undefined means the parameter is not sent.
+// Mirrors the request builders: AssemblyAI-STT-3.7 pins disfluencies=false and format_text=true when unset
+// (run-assemblyai-stt.ts); Grok always sends format (true unless --stt-verbatim) and sends filler_words only
+// when set, with --stt-verbatim meaning filler_words=true plus format=false (run-grok-stt.ts).
+export const resolveEffectiveSttTranscriptStyle = (target: SttTranscriptStyleTarget): SttTranscriptStyle => {
+  if (target.service === 'assemblyai' && sttModelScopedControlModels('assemblyai', 'fillerWords')?.includes(target.model)) {
+    return { fillerWords: target.sttFillerWords ?? false, numberFormat: target.sttNumberFormat ?? 'written' }
+  }
+  if (target.service === 'grok') {
+    return {
+      fillerWords: target.sttFillerWords ?? (target.grokSttVerbatim ? true : undefined),
+      numberFormat: target.sttNumberFormat ?? (target.grokSttVerbatim ? 'spoken' : 'written')
+    }
+  }
+  return { fillerWords: target.sttFillerWords, numberFormat: target.sttNumberFormat }
+}
+
+// One spelling per effective request, used wherever stored and current targets are compared (resume checks,
+// split-segment checkpoint fingerprints). Values equal to the model's unset request are omitted and Grok's
+// verbatim pair is spelled as grokSttVerbatim, so identities recorded before the explicit controls existed match.
+export const canonicalSttTranscriptStyle = (target: SttTranscriptStyleTarget): Pick<SttTarget, 'grokSttVerbatim' | 'sttFillerWords' | 'sttNumberFormat'> => {
+  const effective = resolveEffectiveSttTranscriptStyle(target)
+  if (target.service === 'grok' && effective.fillerWords === true && effective.numberFormat === 'spoken') {
+    return { grokSttVerbatim: true }
+  }
+  const unset = resolveEffectiveSttTranscriptStyle({ service: target.service, model: target.model })
+  return {
+    ...(effective.fillerWords !== unset.fillerWords ? { sttFillerWords: effective.fillerWords } : {}),
+    ...(effective.numberFormat !== unset.numberFormat ? { sttNumberFormat: effective.numberFormat } : {})
+  }
+}
+
+const sameSttTranscriptStyle = (left: SttTranscriptStyleTarget, right: SttTranscriptStyleTarget): boolean => {
+  const a = canonicalSttTranscriptStyle(left)
+  const b = canonicalSttTranscriptStyle(right)
+  return a.grokSttVerbatim === b.grokSttVerbatim && a.sttFillerWords === b.sttFillerWords && a.sttNumberFormat === b.sttNumberFormat
+}
+
+// Values a model sends for controls the user left unset. Kept apart from request.fillerWords/numberFormat, which
+// record explicit choices only, so reports that label non-default settings do not label default runs.
+const effectiveSttTranscriptStyleDefaults = (target: SttTranscriptStyleTarget): SttTranscriptStyle | undefined => {
+  if (target.grokSttVerbatim) return undefined
+  const unset = resolveEffectiveSttTranscriptStyle({ service: target.service, model: target.model })
+  const defaults = {
+    ...(target.sttFillerWords === undefined && unset.fillerWords !== undefined ? { fillerWords: unset.fillerWords } : {}),
+    ...(target.sttNumberFormat === undefined && unset.numberFormat !== undefined ? { numberFormat: unset.numberFormat } : {})
+  }
+  return Object.keys(defaults).length > 0 ? defaults : undefined
+}
+
 // Language and organization flags reach only the providers that consume them at call time; record them only for those providers.
 export const buildSttProviderSettings = (target: SttTarget, runtime: SttSettingsRuntime = {}): ProviderSettingsRecord =>
   createProviderSettingsRecord({
@@ -145,6 +200,9 @@ export const buildSttProviderSettings = (target: SttTarget, runtime: SttSettings
       ...(target.service === 'scrapecreators' ? { language: runtime.scrapecreatorsLang } : {}),
       ...(target.service === 'happyscribe' ? { organizationId: runtime.happyscribeOrganizationId } : {}),
       verbatim: target.grokSttVerbatim,
+      ...(target.sttFillerWords !== undefined ? { fillerWords: target.sttFillerWords } : {}),
+      ...(target.sttNumberFormat !== undefined ? { numberFormat: target.sttNumberFormat } : {}),
+      effectiveDefaults: effectiveSttTranscriptStyleDefaults(target),
       chunkSize: target.supadataChunkSize,
       responseFormat: target.nativeResponseFormat,
       nativeSubtitles: target.nativeSubtitles,
@@ -163,6 +221,8 @@ export const toRequestedProvider = (target: SttTarget, runtime?: SttSettingsRunt
   model: target.model,
   local: target.local,
   ...(target.grokSttVerbatim ? { grokSttVerbatim: true } : {}),
+  ...(target.sttFillerWords !== undefined ? { sttFillerWords: target.sttFillerWords } : {}),
+  ...(target.sttNumberFormat !== undefined ? { sttNumberFormat: target.sttNumberFormat } : {}),
   ...(target.supadataChunkSize !== undefined ? { supadataChunkSize: target.supadataChunkSize } : {}),
   ...(target.nativeResponseFormat ? { nativeResponseFormat: target.nativeResponseFormat } : {}),
   ...(target.nativeSubtitles ? { nativeSubtitles: true } : {}),
@@ -171,6 +231,26 @@ export const toRequestedProvider = (target: SttTarget, runtime?: SttSettingsRunt
 })
 
 const withoutSettings = ({ settings: _settings, ...provider }: SttRequestedProvider): SttRequestedProvider => provider
+
+// A resumed pass rewrites requestedProviders; targets it keeps (stored successes it did not dispatch) retain
+// their stored entry, including the settings recorded when they actually ran.
+export const toRequestedProvidersPreservingStored = (
+  targets: readonly SttTarget[],
+  runtime: SttSettingsRuntime | undefined,
+  storedRecord: Record<string, unknown> | undefined,
+  keptKeys: ReadonlySet<string>
+): SttRequestedProvider[] => {
+  const stored = keptKeys.size > 0 && Array.isArray(storedRecord?.['requestedProviders'])
+    ? storedRecord['requestedProviders'].filter(isRecord)
+    : []
+  return targets.map((target) => {
+    const key = getSttTargetKey(target)
+    const previous = keptKeys.has(key)
+      ? stored.find((entry) => `${String(entry['service'])}:${String(entry['model'])}` === key)
+      : undefined
+    return previous ? previous as SttRequestedProvider : toRequestedProvider(target, runtime)
+  })
+}
 
 export const toRecordedProviderError = (
   failure: Pick<SttProviderFailureSummary, 'message' | 'skipped' | 'stage' | 'status' | 'retryAfterMs' | 'errorFile' | 'rawResponseFile'>
@@ -194,6 +274,8 @@ const parseStoredRequestedTarget = (value: unknown): SttTarget | undefined => {
     model: value['model'],
     local: value['local'] === true,
     ...(value['grokSttVerbatim'] === true ? { grokSttVerbatim: true } : {}),
+    ...(typeof value['sttFillerWords'] === 'boolean' ? { sttFillerWords: value['sttFillerWords'] } : {}),
+    ...(value['sttNumberFormat'] === 'written' || value['sttNumberFormat'] === 'spoken' ? { sttNumberFormat: value['sttNumberFormat'] } : {}),
     ...(typeof value['supadataChunkSize'] === 'number' ? { supadataChunkSize: value['supadataChunkSize'] } : {}),
     ...(value['nativeResponseFormat'] === 'srt' || value['nativeResponseFormat'] === 'vtt' ? { nativeResponseFormat: value['nativeResponseFormat'] } : {}),
     ...(value['nativeSubtitles'] === true ? { nativeSubtitles: true } : {}),
@@ -323,8 +405,8 @@ export const readExistingSttRun = async (
   const storedTargets = parseStoredRequestedTargets(raw)
   for (const target of requestedTargets) {
     const previous = storedTargets.find(item => getSttTargetKey(item) === getSttTargetKey(target))
-    if (previous && (previous.diarizationOptions?.enabled !== target.diarizationOptions?.enabled || previous.diarizationOptions?.speakerCount !== target.diarizationOptions?.speakerCount || previous.nativeResponseFormat !== target.nativeResponseFormat || previous.grokSttVerbatim !== target.grokSttVerbatim || previous.supadataChunkSize !== target.supadataChunkSize)) {
-      throw UsageError('Cannot resume ' + target.service + '/' + target.model + ' with changed diarization or response-format settings. Resume with the saved settings or use a new output directory.')
+    if (previous && (previous.diarizationOptions?.enabled !== target.diarizationOptions?.enabled || previous.diarizationOptions?.speakerCount !== target.diarizationOptions?.speakerCount || previous.nativeResponseFormat !== target.nativeResponseFormat || !sameSttTranscriptStyle(previous, target) || previous.supadataChunkSize !== target.supadataChunkSize)) {
+      throw UsageError('Cannot resume ' + target.service + '/' + target.model + ' with changed diarization, response-format, filler-word or number-format settings. Resume with the saved settings or use a new output directory.')
     }
   }
   const storedProviderStates = parseStoredProviderStateMap(raw)
@@ -371,13 +453,21 @@ export const buildProviderStates = <
   requestedTargets: SttTarget[],
   successes: Array<SuccessLike | undefined>,
   failuresByIndex: Map<number, FailureLike>,
-  existingStates: Map<string, SttProviderState>
+  existingStates: Map<string, SttProviderState>,
+  // Stored succeeded states that this pass did not dispatch. They are kept as stored (raw metadata such as
+  // hostedConcurrency, and a result only if it was inline), never re-embedded from a result.json sidecar.
+  preservedStates: ReadonlyMap<string, SttProviderState> = new Map()
 ): SttProviderState[] =>
   requestedTargets.map((target, index) => {
     const key = getSttTargetKey(target)
     const existing = existingStates.get(key)
     const failure = failuresByIndex.get(index)
     const success = successes[index]
+    const preserved = preservedStates.get(key)
+
+    if (success && preserved && !failure) {
+      return { ...preserved }
+    }
 
     if (success) {
       return {

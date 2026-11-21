@@ -9,7 +9,7 @@ import { splitAudioFile } from '../stt-utils/audio-splitter'
 import { formatTranscriptText } from '../stt-utils/stt-utils'
 import { mergeTranscriptionEvidence } from '../stt-utils/stt-evidence'
 import { parseStoredTranscriptionResult, writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
-import { parseStoredStep2Metadata } from '../stt-batch/stt-run-state'
+import { canonicalSttTranscriptStyle, parseStoredStep2Metadata } from '../stt-batch/stt-run-state'
 import {
   DEFAULT_SPLIT_SEGMENT_DURATION_MINUTES,
   resolveEffectiveSplitSegmentDurationMinutes,
@@ -40,6 +40,7 @@ export const buildSplitSegmentFingerprint = async (
   segment: Pick<AudioSegmentDescriptor, 'path' | 'startSeconds' | 'durationSeconds'>
 ): Promise<string> => {
   const audioSha256 = new Bun.CryptoHasher('sha256').update(await Bun.file(segment.path).arrayBuffer()).digest('hex')
+  const style = canonicalSttTranscriptStyle(target)
   const identity = {
     version: SPLIT_SEGMENT_CHECKPOINT_VERSION,
     service: target.service,
@@ -47,7 +48,11 @@ export const buildSplitSegmentFingerprint = async (
     diarizationOptions: target.diarizationOptions ?? null,
     nativeSubtitles: target.nativeSubtitles ?? null,
     nativeResponseFormat: target.nativeResponseFormat ?? null,
-    grokSttVerbatim: target.grokSttVerbatim ?? null,
+    // Canonical effective style: an explicit flag equal to the model's unset request (or Grok's verbatim pair)
+    // fingerprints like the unset/--stt-verbatim request, so checkpoints written before these controls still match.
+    grokSttVerbatim: style.grokSttVerbatim ?? null,
+    ...(style.sttFillerWords !== undefined ? { sttFillerWords: style.sttFillerWords } : {}),
+    ...(style.sttNumberFormat !== undefined ? { sttNumberFormat: style.sttNumberFormat } : {}),
     supadataChunkSize: target.supadataChunkSize ?? null,
     startSeconds: segment.startSeconds,
     durationSeconds: segment.durationSeconds,
@@ -183,12 +188,15 @@ const mergeSplitTranscriptionChunks = (
       })()
     : undefined
 
+  const providerModelsUsed = [...new Set(segmentResults.flatMap(segment => segment.metadata.providerModelUsed ?? []))]
+
   return {
     result: combinedResult,
     metadata: {
       transcriptionService: segmentResults[0]!.metadata.transcriptionService,
       ...(segmentResults[0]!.metadata.diarizationOptions ? { diarizationOptions: segmentResults[0]!.metadata.diarizationOptions } : {}),
       transcriptionModel: segmentResults[0]!.metadata.transcriptionModel,
+      ...(providerModelsUsed.length > 0 ? { providerModelUsed: providerModelsUsed.join(',') } : {}),
       processingTime: totalProcessingTime,
       tokenCount: totalTokenCount,
       ...(mergedTimings ? { timings: mergedTimings } : {}),

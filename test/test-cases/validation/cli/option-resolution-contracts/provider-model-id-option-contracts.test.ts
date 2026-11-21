@@ -87,7 +87,7 @@ describe('option resolution contracts', () => {
       expect(geminiDefault).toBe('gemini-3.8-flash')
       expect(grokDefault).toBe('grok-4.7')
       expect(deepgramDefault).toBeDefined()
-      expect(assemblyaiDefault).toBe('universal-3-5-pro')
+      expect(assemblyaiDefault).toBe('assemblyai-stt-3-7')
       expect(gladiaDefault).toBe('solaria-3')
       expect(geminiSttDefault).toBe('gemini-3.5-transcribe')
       expect(sonioxDefault).toBe('stt-async-v5')

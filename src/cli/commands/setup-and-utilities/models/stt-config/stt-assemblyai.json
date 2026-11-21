@@ -3,13 +3,13 @@
     "description": "AssemblyAI cloud speech-to-text",
     "type": "api",
     "models": {
-      "universal-3-5-pro": {
-        "description": "Universal-3.5 Pro \u2014 flagship multilingual transcription with diarization",
+      "assemblyai-stt-3-7": {
+        "description": "AssemblyAI-STT-3.7 — 32-language pre-recorded transcription with the new diarization model",
         "pricingSourceUrl": "https://www.assemblyai.com/pricing",
-        "pricingCheckedAt": "2026-09-07",
+        "pricingCheckedAt": "2026-11-20",
         "pricingCurrency": "USD",
         "pricingTier": "AssemblyAI pay-as-you-go transcription pricing",
-        "pricingNotes": "Universal-3.5 Pro pre-recorded transcription is $0.21/hour plus $0.02/hour for speaker diarization. The default inclusive rate is $0.23/hour; disabling diarization subtracts the add-on. Free allowances, discounts, taxes and credits are excluded. Timing estimates remain provisional.",
+        "pricingNotes": "AssemblyAI-STT-3.7 pre-recorded transcription is $0.21/hour plus $0.02/hour for speaker diarization, pro-rated per second with no minimum; failed transcripts are not charged. The default inclusive rate is $0.23/hour; disabling diarization subtracts the add-on. Keyterms and contextual prompting ($0.05/hour each) are not sent. Free allowances, discounts, taxes and credits are excluded. Timing estimates are borrowed from Universal-3.5 Pro and remain provisional.",
         "costPerHourCents": 23,
         "limits": {
           "effectiveBytes": 2362232013,
@@ -24,6 +24,38 @@
         },
         "billing": {
           "diarizationCostPerHourCents": 2
+        }
+      },
+      "universal-3-5-pro": {
+        "description": "Universal-3.5 Pro — deprecated flagship multilingual transcription with diarization",
+        "pricingSourceUrl": "https://www.assemblyai.com/pricing",
+        "pricingCheckedAt": "2026-09-07",
+        "pricingCurrency": "USD",
+        "pricingTier": "AssemblyAI pay-as-you-go transcription pricing",
+        "pricingNotes": "Universal-3.5 Pro pre-recorded transcription is $0.21/hour plus $0.02/hour for speaker diarization. The default inclusive rate is $0.23/hour; disabling diarization subtracts the add-on. The pricing page no longer lists this deprecated model as of 2026-11-20; AssemblyAI states the 3.7 price is unchanged from it. Free allowances, discounts, taxes and credits are excluded. Timing estimates remain provisional.",
+        "costPerHourCents": 23,
+        "limits": {
+          "effectiveBytes": 2362232013,
+          "directUploadBytes": 2362232013,
+          "remoteUrlBytes": 5368709120,
+          "durationSeconds": 36000,
+          "notes": "AssemblyAI allows larger remote URLs than upload API submissions. The current CLI uploads first, so effectiveBytes tracks the smaller upload cap."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 188
+        },
+        "billing": {
+          "diarizationCostPerHourCents": 2
+        },
+        "lifecycle": {
+          "status": "deprecated",
+          "replacementModel": "assemblyai-stt-3-7",
+          "defaultEligible": false,
+          "allExpansionEligible": false,
+          "sourceUrl": "https://www.assemblyai.com/docs/getting-started/model-versions-and-deprecations.md",
+          "checkedAt": "2026-11-20",
+          "notes": "Deprecated by AssemblyAI on 2026-11-17 with retirement to be announced (at least 90 days' notice); requests naming it run on Universal-3.5 Pro until retirement, then route to assemblyai-stt-3-7. It stays selectable by explicit name because episode publishing pins it."
         }
       }
     }

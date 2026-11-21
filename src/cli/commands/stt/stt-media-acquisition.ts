@@ -13,6 +13,7 @@ import { ensureDirectory } from '~/utils/cli-utils'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { hasRuntimeTool } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
+import { toLocalSourceRef } from '~/utils/project-root'
 import { getAudioDuration } from './stt-utils/audio-splitter'
 import { decodedAudioHash } from './workflows/captions/verify-caption-media'
 import { sourceDownloadSignal, writeHttpPayloadToFile } from '~/utils/http-payload'
@@ -117,7 +118,7 @@ const stageSourceMediaArtifact = async (
       const [sourceHash, preparedHash] = await Promise.all([decodedAudioHash(sourcePath), decodedAudioHash(stagedPath)])
       if (sourceHash !== preparedHash) throw InfraError('Lossless audio preparation changed decoded samples; no transcription was submitted.', { stage: 'stt:media-acquisition' })
       await writeFileExact(join(workspaceDir, 'source-timeline.json'), JSON.stringify({
-        schemaVersion: 1, source: source.filePath ? resolve(source.filePath) : source.url,
+        schemaVersion: 1, source: source.filePath ? toLocalSourceRef(source.filePath) : source.url,
         profile, sampleFormat: 'float32', channels: probe.audioStream.channels, sampleRate: probe.audioStream.sampleRate,
         audioToVideoOffsetSeconds: probe.audioStream.startTimeSeconds ?? 0,
         mapping: 'video time = provider audio time + audioToVideoOffsetSeconds; apply once at caption export',

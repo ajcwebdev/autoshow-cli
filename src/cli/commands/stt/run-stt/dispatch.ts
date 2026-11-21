@@ -20,6 +20,8 @@ const minimalOptions = (context: SttDispatchContext) => ({
   nativeSubtitles: context.target.nativeSubtitles,
   nativeResponseFormat: context.target.nativeResponseFormat,
   grokSttVerbatim: context.target.grokSttVerbatim,
+  sttFillerWords: context.target.sttFillerWords,
+  sttNumberFormat: context.target.sttNumberFormat,
   model: context.target.model,
   segmentOffsetMinutes: context.segmentOffsetMinutes,
   segmentNumber: context.segmentNumber,

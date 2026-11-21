@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "grok-voice-2-0-verbatim",
+  "label": "stt-verbatim=true",
+  "baseline": {
+    "service": "grok",
+    "model": "grok-voice-transcribe-2.0"
+  },
+  "flags": [
+    "--provider",
+    "grok=grok-voice-transcribe-2.0",
+    "--diarization",
+    "--stt-verbatim",
+    "true"
+  ]
+}

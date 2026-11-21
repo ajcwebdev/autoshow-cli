@@ -7,8 +7,7 @@ import { getResumeHandler } from '~/cli/commands/setup-and-utilities/resume/resu
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import type { ResumeTarget, Step6VideoMetadata } from '~/types'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
-import { installMockFetch } from '../../../test-utils/rest-contract-helpers'
-import { withTempDir } from '../../../test-utils/temp-dirs'
+import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 const videoResume = getResumeHandler('video')!
 const retired = { service: 'gemini', model: 'gemini-omni-1.1-flash' }
@@ -25,9 +24,10 @@ const completedVideo: Step6VideoMetadata = {
 const resumeTarget = (dir: string): ResumeTarget => ({ kind: 'video', scope: 'single', dir, manifestPath: join(dir, PIPELINE_MANIFEST_FILE) })
 
 describe('video resume after the Omni 1.1 retirement', () => {
+  const temporary = setupContractSuiteLifecycle({ envKeys: [], tempPrefix: 'autoshow-video-retired-omni-resume-' })
   test('a completed 1.1 run stays readable at its historical rate, and an unfinished 1.1 target cannot resume under the old name', async () => {
     const calls = installMockFetch(() => { throw new Error('Unexpected dispatch') })
-    await withTempDir('autoshow-video-retired-omni-resume-', async (dir) => {
+    await temporary.withDir(async (dir) => {
       const completeDir = join(dir, 'complete'), incompleteDir = join(dir, 'incomplete')
       await Promise.all([mkdir(completeDir, { recursive: true }), mkdir(incompleteDir, { recursive: true })])
       await writeSingleManifestFixture(completeDir, 'video', {

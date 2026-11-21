@@ -7,7 +7,7 @@ import { type ConsensusCategory, rewriteComparisonReports } from "./shared/repor
 import { runSyncCommand } from "../../../../src/utils/sync-subprocess.ts";
 import { DASHBOARD_TAB_DIRS, dashboardRootForCategory, hasAllDashboardTabs } from "./shared/build_combined_dashboard";
 
-type CommandName = "build-packet" | "build-report" | "compact-results" | "compact-archive" | "build-combined-report";
+type CommandName = "build-packet" | "build-report" | "compact-results" | "compact-archive" | "build-combined-report" | "build-settings-report";
 
 interface CategoryConfig {
   packetScript: string;
@@ -92,12 +92,13 @@ function rootHelp(): string {
     "  bun scripts/run.ts <category> compact-archive <root_dir>",
     "  bun scripts/run.ts stt compact-results <run_dir>",
     "  bun scripts/run.ts stt build-combined-report <root_dir>",
+    "  bun scripts/run.ts stt build-settings-report <settings_root> [--baseline-root <dir>]",
     "  bun scripts/run.ts ocr build-combined-report <root_dir>",
     "  bun scripts/run.ts url build-combined-report <root_dir>",
     "  bun scripts/run.ts build-combined-dashboard [benchmarks_root] [--out <path>]",
     "",
     `Categories: ${CATEGORIES.join(", ")}`,
-    "Commands: build-packet, build-report, compact-archive, compact-results (stt only), build-combined-report (stt, ocr, url), build-combined-dashboard",
+    "Commands: build-packet, build-report, compact-archive, compact-results (stt only), build-combined-report (stt, ocr, url), build-settings-report (stt only), build-combined-dashboard",
     "",
     "Examples:",
     "  bun scripts/run.ts ocr build-packet ./runs/document --out /tmp/ocr-packet.json",
@@ -122,6 +123,7 @@ function categoryHelp(category: ConsensusCategory): string {
     `  bun scripts/run.ts ${category} build-report <run_dir> [--input-text <path>] [--roundtrip-dir <path>]`,
     `  bun scripts/run.ts ${category} compact-archive <root_dir>`,
     ...(category === "stt" ? [`  bun scripts/run.ts ${category} compact-results <run_dir>`] : []),
+    ...(category === "stt" ? [`  bun scripts/run.ts ${category} build-settings-report <settings_root> [--baseline-root <dir>]`] : []),
     ...(category === "ocr" || category === "stt" || category === "url" ? [`  bun scripts/run.ts ${category} build-combined-report <root_dir>`] : []),
     "",
     inputTextNote,
@@ -130,6 +132,16 @@ function categoryHelp(category: ConsensusCategory): string {
 }
 
 const DASHBOARD_SCRIPT = "shared/build_combined_dashboard.ts";
+const SETTINGS_REPORT_SCRIPT = "stt/build_settings_report.ts";
+
+function rebuildDashboardIfComplete(categoryRoot: string): void {
+  const benchmarksRoot = dashboardRootForCategory(categoryRoot);
+  if (hasAllDashboardTabs(benchmarksRoot)) {
+    runScript(DASHBOARD_SCRIPT, [benchmarksRoot]);
+  } else {
+    console.log(`Skipped the combined dashboard: ${benchmarksRoot} does not hold all of ${DASHBOARD_TAB_DIRS.join(", ")}.`);
+  }
+}
 
 function parseArgs(argv: string[]): ParsedArgs {
   if (argv.length === 0 || argv.includes("--help") || argv.includes("-h")) {
@@ -147,7 +159,8 @@ function parseArgs(argv: string[]): ParsedArgs {
     commandRaw !== "build-report" &&
     commandRaw !== "compact-results" &&
     commandRaw !== "compact-archive" &&
-    commandRaw !== "build-combined-report"
+    commandRaw !== "build-combined-report" &&
+    commandRaw !== "build-settings-report"
   ) {
     throw new Error(`Unknown command: ${commandRaw}\n\n${categoryHelp(categoryRaw as ConsensusCategory)}`);
   }
@@ -310,17 +323,22 @@ function main(): number {
     return 0;
   }
 
+  if (parsed.command === "build-settings-report") {
+    if (parsed.category !== "stt") {
+      throw new Error(`build-settings-report is only supported for stt`);
+    }
+    const baselineRoot = flagString(parsed.flags, "--baseline-root");
+    runScript(SETTINGS_REPORT_SCRIPT, [parsed.runDir, ...(baselineRoot ? ["--baseline-root", resolve(baselineRoot)] : [])]);
+    rebuildDashboardIfComplete(parsed.runDir);
+    return 0;
+  }
+
   if (parsed.command === "build-combined-report") {
     if (!config.combinedReportScript) {
       throw new Error(`build-combined-report is not supported for ${parsed.category}`);
     }
     runScript(config.combinedReportScript, [parsed.runDir]);
-    const benchmarksRoot = dashboardRootForCategory(parsed.runDir);
-    if (hasAllDashboardTabs(benchmarksRoot)) {
-      runScript(DASHBOARD_SCRIPT, [benchmarksRoot]);
-    } else {
-      console.log(`Skipped the combined dashboard: ${benchmarksRoot} does not hold all of ${DASHBOARD_TAB_DIRS.join(", ")}.`);
-    }
+    rebuildDashboardIfComplete(parsed.runDir);
     return 0;
   }
 

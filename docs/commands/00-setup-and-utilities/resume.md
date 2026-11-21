@@ -118,6 +118,12 @@ Resume sends retained `prompt.md` and avoids overwrites with provider/numeric fi
 
 ## Extract And TTS Options
 
+STT resume keeps the canonical records of every stored target it does not dispatch: provider entries (metadata such as `hostedConcurrency`, recorded settings, and results that live only in `result.json` sidecars stay there), cost and timing steps (including retired models; totals are re-summed with the new steps), and `resolvedStep2` selection origins. `prompt.md` is rewritten only when a newly run transcript outranks its stored source (speaker labels, diarization, and speaker-count hints).
+
+When at least one stored success is kept and the stored `step1.audioFileName` (inside the run or a relative path such as `../../sources/x.mp3`) still exists with the recorded `audioFileSize`, `step1` is reused unchanged: new providers are staged from that stored audio without re-downloading a URL or YouTube source or copying media into the run, and their costs use the stored `durationSeconds`. The lossless audio profile still stages from the original source. If the stored audio is missing or its size differs, resume acquires `step1.url` as a fresh run would: URL and YouTube sources download again and may differ from the original, the media is copied into the run, and `step1` is re-derived.
+
+`--stt-filler-words`, `--stt-number-format`, and `--stt-verbatim` are compared by the request each model actually sends. For AssemblyAI-STT-3.7, explicit `false` and `written` equal an unset run; for Grok, `--stt-verbatim true` equals `--stt-filler-words true --stt-number-format spoken`. Any other difference fails before dispatch.
+
 OCR `--ocr-provider-mode` defaults to the stored mode; an explicit mismatch fails. TTS rejects `--tts-book` and restores compatible chunking, mastering, export, and pronunciation settings. Canonical pre-mastering runs retain legacy chunk plans/delivery when no override is explicit. Voice, casting, synthesis, and output-plan changes must remain compatible or fail before dispatch. Preserve cached audio and inspect `--price` before ambiguous redispatch.
 
 ## Gemini remote TTS jobs

@@ -45,6 +45,8 @@ const removedOcr = [
   ...routePairs('deepinfra', ['removed/deepinfra-ocr-model']),
 ]
 const removedStt = [
+  // Deprecated but still selectable by explicit name, so excluded from the default dashboard filter.
+  ...routePairs('assemblyai', ['universal-3-5-pro']),
   ...routePairs('happyscribe', ['auto']),
   ...routePairs('rev', ['machine']),
   ...routePairs('supadata', ['auto']),
@@ -52,7 +54,7 @@ const removedStt = [
   ...routePairs('cloudflare', ['@cf/deepgram/nova-3']),
 ]
 const diarizedStt = [
-  ...routePairs('assemblyai', ['universal-3-5-pro']), ...routePairs('deepgram', ['nova-3']),
+  ...routePairs('assemblyai', ['assemblyai-stt-3-7']), ...routePairs('deepgram', ['nova-3']),
   ...routePairs('gemini-stt', ['gemini-3.5-transcribe']), ...routePairs('gladia', ['solaria-3']),
   ...routePairs('grok', ['grok-voice-transcribe-2.0']), ...routePairs('mistral', ['voxtral-mini-2602']),
   ...routePairs('soniox', ['stt-async-v5']), ...routePairs('speechmatics', ['melia-1']),
@@ -121,6 +123,18 @@ describe('benchmark dashboard live CLI availability snapshot', () => {
     expect(supportedDashboardProviderKeys('ocr', dashboard([['tesseract', 'tesseract']]))).toEqual([])
     expect(supportedDashboardProviderKeys('stt-local', dashboard([['whisperfile', 'tiny'], ['whisperfile/fake', 'fake']], 'local'))).toEqual(['whisperfile'])
     expect(supportedDashboardProviderKeys('tts', dashboard([['tesseract', 'tesseract']], 'local'))).toEqual([])
+  })
+
+  test('keeps STT settings-variant rows whose base route and model are supported', () => {
+    const model = dashboard([
+      ['assemblyai/assemblyai-stt-3-7[fillerWords=true]', 'assemblyai-stt-3-7'],
+      ['assemblyai/assemblyai-stt-3-7[audioProfile=lossless,speakerCount=2]', 'assemblyai-stt-3-7'],
+      ['assemblyai/retired-model[fillerWords=true]', 'retired-model'],
+    ])
+    expect(supportedDashboardProviderKeys('stt-with-speakers', model)).toEqual([
+      'assemblyai/assemblyai-stt-3-7[audioProfile=lossless,speakerCount=2]',
+      'assemblyai/assemblyai-stt-3-7[fillerWords=true]',
+    ])
   })
 
   test('matches complete slash-bearing identities and fails closed for mismatched models and unknown tabs', () => {

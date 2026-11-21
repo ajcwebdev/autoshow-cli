@@ -76,20 +76,20 @@ export const writeOpenAIImageResponseData = async (
       if (item?.b64_json) {
         // Accept standard or URL-safe alphabets, optional padding and whitespace. Reject non-base64 characters.
         const bytes = Uint8Array.fromBase64(item.b64_json, { alphabet: /[-_]/.test(item.b64_json) ? 'base64url' : 'base64' })
-        if (!bytes.length) throw new Error('empty base64 image')
+        if (!bytes.length) throw ValidationError('empty base64 image', { stage: 'image:output' })
         path = outputPathForIndex(stagingDir, mimeToExtension(item.mime_type, fallbackExt), index).outputPath
         await Bun.write(path, bytes)
       } else if (item?.url) {
         path = await downloadImageUrl(item.url, stagingDir, index, fallbackExt)
       } else {
-        throw new Error('missing image payload')
+        throw ValidationError('missing image payload', { stage: 'image:output' })
       }
       const file = Bun.file(path)
       const image = new Bun.Image(file)
       const metadata = await image.metadata()
       const format = metadata.format === 'jpeg' ? 'jpg' : metadata.format
       if (!metadata.width || !metadata.height || !['png', 'jpg', 'webp'].includes(format) || extname(path) !== `.${format}`) {
-        throw new Error('image encoding does not match the output format')
+        throw ValidationError('image encoding does not match the output format', { stage: 'image:output' })
       }
       // Bun can recover pixels from a PNG missing its IEND or carrying a damaged chunk checksum.
       if (format === 'png') readPngChunks(await file.bytes())

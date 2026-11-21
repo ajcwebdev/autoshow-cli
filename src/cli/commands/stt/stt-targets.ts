@@ -2,7 +2,7 @@ import { UsageError } from '~/utils/error-handler'
 import type { Step2ProviderSelectionFilter, SttSource, SttTarget, SttTargetBuildOptions } from '~/types'
 import { SUPPORTED_SCRAPECREATORS_STT_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { collectStep2ProviderSelections } from '../command-shared/extract-routing/provider-registry'
-import { collectSttProviderSpecs, resolveDiarizationOptions } from './stt-cli'
+import { assertSttModelScopedControl, collectSttProviderSpecs, resolveDiarizationOptions, STT_ENGINE_PROVIDER_NAME } from './stt-cli'
 import { isScrapeCreatorsSupportedSourceUrl } from '~/cli/commands/text/url/url-services/scrapecreators/scrapecreators'
 import { DEEPINFRA_STT_RESPONSE_FORMATS, type DeepinfraSttResponseFormat } from './stt-response-format-contract'
 
@@ -41,12 +41,19 @@ const buildSttTarget = (
   const model = selectedModel ?? service
   const responseFormat = options.deepinfraSttResponseFormat
   if (responseFormat !== undefined && !DEEPINFRA_STT_RESPONSE_FORMATS.includes(responseFormat as DeepinfraSttResponseFormat)) throw UsageError('--stt-response-format for deepinfra must be verbose_json, srt, or vtt.')
+  const providerName = STT_ENGINE_PROVIDER_NAME[service]
+  const fillerWords = providerName === undefined ? undefined : options.sttFillerWordsByProvider?.[providerName]
+  const numberFormat = providerName === undefined ? undefined : options.sttNumberFormatByProvider?.[providerName]
+  if (fillerWords !== undefined) assertSttModelScopedControl(service, model, 'fillerWords')
+  if (numberFormat !== undefined) assertSttModelScopedControl(service, model, 'numberFormat')
 
   return {
     service,
     model,
     local: LOCAL_STT_SERVICES.has(service),
     ...(service === 'grok' && options.grokSttVerbatim ? { grokSttVerbatim: true } : {}),
+    ...(fillerWords !== undefined ? { sttFillerWords: fillerWords } : {}),
+    ...(numberFormat !== undefined ? { sttNumberFormat: numberFormat } : {}),
     ...(service === 'deepinfra' && (responseFormat === 'srt' || responseFormat === 'vtt') ? { nativeResponseFormat: responseFormat } : {}),
     ...(options.nativeSubtitles ? { nativeSubtitles: true } : {}),
     ...(LOCAL_STT_SERVICES.has(service)

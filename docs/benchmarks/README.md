@@ -5,6 +5,7 @@ Retained runs, references, and generated reports live here. [ADR-015](../adr/ADR
 ## Layout and dashboard
 
 - `text/ocr`, `stt/local`, `stt/with-speakers`, `stt/without-speakers`, and `text/url` contain combined JSON/Markdown reports over their retained runs.
+- `stt/settings` holds non-default-settings STT runs. `stt build-settings-report` compares each run with its default-settings `with-speakers` baseline in `settings-comparison-report.{json,md}`, and the dashboard shows an optional **STT settings** tab once that report exists. See [its README](stt/settings/README.md#reports).
 - `tts` has narration and separate emotion/delivery and speed/pause suites, with [storage and assessment guidance](tts/README.md). Each control suite independently selects its newest dated directory; its first-run date and shared spending remain pinned in the controls ledger.
 - `text/write` contains the [five-prompt comparison](text/write/benchmark-report.md), pinned plans, receipts, outputs, and reruns. Image, music, and video retain dated hand-authored comparisons beside their runs, and their dashboard tabs aggregate the per-run consensus reports directly.
 - `combined-comparison-dashboard.{html,json,css,js}` are generated together. Serve them over HTTP with JavaScript enabled; `file://` cannot fetch the sibling JSON. There is no CLI `benchmark` command.
@@ -45,6 +46,10 @@ Fresh pricing uses the current inventory, independently of the historical saved 
 ## October 2026 video refresh
 
 [Video comparisons](video/2026-05-21_combined-provider-comparison-report.md) retain Grok/Gemini generation measurements. Gemini Omni 1.2 Flash was added to both prompts on 2026-11-19; retired Omni 1.1 results remain as history and are hidden by the dashboard's CLI-supported filter. Evaluations based only on packet metadata make no visual-quality claim. [TTS notes](tts/README.md) distinguish computed costs, provider-reported usage, delivery formats, and assessment limits.
+
+## November 2026 AssemblyAI-STT-3.7 addition
+
+On 2026-11-20 AssemblyAI-STT-3.7 was added to the four [with-speakers](stt/with-speakers/combined-comparison-report.md) runs through additive resume (62.96¢ recorded). Its rows use the CLI defaults, `disfluencies: false` and `format_text: true`. Only the new provider entries and their totals were added to each manifest; earlier provider records, sources and costs are unchanged. The consensus references predate 3.7 and keep some repetitions and false starts that 3.7 removes, so part of its lower WER-derived score is deletion of words the reference retains rather than misrecognition. AssemblyAI also rolled its new diarization model out to Universal-3.5 Pro around 2026-11-18, after that row was recorded in August; the deprecated Universal-3.5 Pro is hidden by the dashboard's CLI-supported filter.
 
 ## October 2026 STT refresh
 
