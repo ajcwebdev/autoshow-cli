@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { mkdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
@@ -40,7 +41,7 @@ const resolveMagick = (): string => {
     const result = runSyncCommand(command, ['-version'], { env: childEnv(), stdio: 'ignore' })
     if (result.exitCode === 0) return command
   }
-  throw InfraError('Comic identity-card composition requires managed ImageMagick. Run bun autoshow setup --step rendering.', { stage: 'comic:identity-card' })
+  throw InfraError(`Comic identity-card composition requires managed ImageMagick. Run ${CLI_INVOCATION} setup --step rendering.`, { stage: 'comic:identity-card' })
 }
 
 const getSources = (runDirectory: string, character: CharacterReferenceManifest['characters'][number]) => {

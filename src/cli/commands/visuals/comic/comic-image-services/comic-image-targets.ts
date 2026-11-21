@@ -1,7 +1,7 @@
 import { assertRequiredImageModel } from '~/utils/required-image-model'
 import { rm } from 'node:fs/promises'
 import { createRuntimeTempDirectory } from '~/utils/runtime-state'
-import { extname } from 'node:path'
+import { dirname, extname } from 'node:path'
 import { collectImageTargets } from '~/cli/commands/visuals/image/image-generation-targets/image-target-collect'
 import { resolveImageService, SERVICE_TO_IMAGE_MODELS_FIELD } from '../comic-utils/image-service'
 import { validateImageSizeForModels } from '../comic-utils/image-size'
@@ -96,7 +96,7 @@ export const createImage = async (
 
   const scratchDir = await createRuntimeTempDirectory('comic-image-')
   try {
-    const { imagePaths, metadata } = await target.run(normalizedPrompt, scratchDir, options)
+    const { imagePaths, metadata } = await target.run(normalizedPrompt, scratchDir, options, dirname(scratchDir))
     const primaryPath = imagePaths[0]
     if (!primaryPath) {
       throw InfraError(`Image target for "${model}" produced no image`, { stage: 'comic:image' })

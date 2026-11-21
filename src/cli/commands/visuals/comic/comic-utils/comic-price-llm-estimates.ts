@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import type { DraftScenesCommandOptions, LogMetadata, StructureScriptsCommandOptions } from '~/types'
 import { formatCost } from '../comic-image-services/image-costs'
@@ -113,7 +114,7 @@ export const estimateSceneDraftPrice = async (options: DraftScenesCommandOptions
   const draftPromptPath = getDraftPromptPath(sceneSlug)
 
   if (!existsSync(draftPromptPath)) {
-    priceNotice('Comic - Price Estimate: draft-scenes --only scene: no draft prompt file found. Run "bun autoshow comic draft-scenes --only prompt" first.', {
+    priceNotice(`Comic - Price Estimate: draft-scenes --only scene: no draft prompt file found. Run "${CLI_INVOCATION} comic draft-scenes --only prompt" first.`, {
       stage: 'draft-scenes:scene',
       model,
       draftPromptPath
@@ -179,7 +180,7 @@ export const estimateBlockingPlanPrice = async (options: DraftScenesCommandOptio
   }
   const structuredScriptPath = getStructuredScriptPath(sceneSlug)
   if (!existsSync(structuredScriptPath)) {
-    priceNotice('Comic - Price Estimate: draft-scenes --only blocking: no structured script found. Run "bun autoshow comic draft-scenes --only structure" first.', {
+    priceNotice(`Comic - Price Estimate: draft-scenes --only blocking: no structured script found. Run "${CLI_INVOCATION} comic draft-scenes --only structure" first.`, {
       stage: 'draft-scenes:blocking',
       model,
       structuredScriptPath

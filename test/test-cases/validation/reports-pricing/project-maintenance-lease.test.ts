@@ -230,7 +230,7 @@ test('dispatcher blocks mutating handlers during maintenance and singleton rejec
   expect(await new Response(blocked.stdout).text()).not.toContain('HANDLER')
   expect(await new Response(blocked.stderr).text()).toContain('maintenance lease is active')
   await exclusion.release()
-  const singleton = child(root, dispatchFixtureCode('image', false), { AUTOSHOW_REQUIRED_IMAGE_MODEL: 'gpt-image-2.5-sunburst' })
+  const singleton = child(root, dispatchFixtureCode('image', false), { AUTOSHOW_REQUIRED_IMAGE_MODEL: 'gpt-image-2.6-sunburst' })
   expect(await singleton.exited).not.toBe(0)
   expect(await new Response(singleton.stderr).text()).toContain('exactly --provider')
   expect(await readdir(root)).toEqual(['AGENTS.md'])

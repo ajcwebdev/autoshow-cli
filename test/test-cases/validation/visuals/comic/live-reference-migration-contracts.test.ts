@@ -57,7 +57,7 @@ const fixture = async () => {
   const specification = 'Fixed straight loading rail and a round hatch.'
   await writeFile(join(locations, 'cargo-bay--reference.png'), 'current-canonical-location')
   await writeFile(join(locations, 'locations-reference.json'), JSON.stringify({ schemaVersion: 1, styleImage: '../characters/hero.png', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }))
-  await writeFile(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: hash(specification), views: [{ view: 'establishing', generationId: 'canonical-location', image: 'cargo-bay--reference.png', imageSha256: hash('current-canonical-location'), model: 'gpt-image-2.5-sunburst', createdAt: '2026-10-26T00:00:00Z' }] }] }))
+  await writeFile(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: hash(specification), views: [{ view: 'establishing', generationId: 'canonical-location', image: 'cargo-bay--reference.png', imageSha256: hash('current-canonical-location'), model: 'gpt-image-2.6-sunburst', createdAt: '2026-10-26T00:00:00Z' }] }] }))
   await mkdir(join(root, 'input', 'designs'), { recursive: true })
   await writeFile(join(root, 'input', 'designs', 'marker.png'), 'current-canonical-design')
   return { root, ...await addWorkspace(root, '01-first') }

@@ -24,6 +24,8 @@ import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comi
 import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import type { GenerateImagesCommandOptions, PanelBundleData, PipelineProviderState } from '~/types'
 import { getFfmpegBinary, PROJECT_ROOT, toPosixPath } from '~/utils/runtime-paths'
+import { estimateRevisionEvaluationPrice } from '~/cli/commands/visuals/comic/comic-utils/revision-evaluation-price'
+import { captureLogEvents } from '../../../../test-utils/console-capture'
 import { withLocalTestDir } from '../../../../test-utils/temp-dirs'
 import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
 import { createLiveLocationFixture } from '../../../../test-utils/live-location-reference-fixture'
@@ -87,7 +89,7 @@ const createFixture = async (root: string, importance: RevisionPlan['entries'][n
   const plan: RevisionPlan = { ...unsigned, planFingerprint: computeRevisionPlanFingerprint(unsigned) }
   const planPath = join(root, 'revision-plan.json')
   await Bun.write(planPath, `${JSON.stringify(plan, null, 2)}\n`)
-  const options: GenerateImagesCommandOptions = { sceneSlug, scriptPath, revisionPlan: projectPath(planPath), panels: [1], panelsPerImage: 1, imageModels: ['gpt-image-2.5-flare'], qa: true, qaModel: 'gpt-6.1-sol', maxRepairs: 0, comparisonPasses: 2, promote: 'clear-winners', target: 'images', size: '1536x1024', quality: 'high', concurrency: 1 }
+  const options: GenerateImagesCommandOptions = { sceneSlug, scriptPath, revisionPlan: projectPath(planPath), panels: [1], panelsPerImage: 1, imageModels: ['gpt-image-2.6-flare'], qa: true, qaModel: 'gpt-6.1-sol', maxRepairs: 0, comparisonPasses: 2, promote: 'clear-winners', target: 'images', size: '1536x1024', quality: 'high', concurrency: 1 }
   return { options, plan, runDirectory, canonicalPath, planPath, originalBytes }
 }
 
@@ -152,7 +154,7 @@ describe('revision evaluation contracts', () => {
     }))
   }
 
-  for (const mismatch of ['missing-slot-identity', 'wrong-slot-model', 'wrong-evidence-provider', 'missing-evidence-model', 'orphaned-evidence', 'malformed-raw', 'drifted-slot-judgment'] as const) {
+  for (const mismatch of ['missing-slot-identity', 'wrong-slot-model', 'missing-image-slot-identity', 'wrong-image-slot-model', 'wrong-published-image-slot-model', 'wrong-evidence-provider', 'missing-evidence-model', 'orphaned-evidence', 'malformed-raw', 'drifted-slot-judgment'] as const) {
     test(`rejects ${mismatch} on resume before dispatch or promotion and preserves bytes`, async () => await withLocalTestDir('revision-identity', async root => {
       const fixture = await createFixture(root)
       let calls = 0
@@ -163,10 +165,14 @@ describe('revision evaluation contracts', () => {
         measureSimilarity: async () => ({ ssim: 1, normalizedRmse: 0 }), recordManifest: async () => undefined,
       })
       const directory = join(result.evidenceDirectory, 'panel-01')
-      const path = join(directory, mismatch.includes('slot') || mismatch === 'orphaned-evidence' ? 'panel-ledger.json' : 'comparison-pass-1.json')
+      const path = mismatch === 'wrong-published-image-slot-model' ? join(result.evidenceDirectory, 'revision-evaluation.json')
+        : join(directory, mismatch.includes('slot') || mismatch === 'orphaned-evidence' ? 'panel-ledger.json' : 'comparison-pass-1.json')
       const saved = JSON.parse(await Bun.file(path).text())
       if (mismatch === 'missing-slot-identity') delete saved.comparisonSlots[0].provider
       if (mismatch === 'wrong-slot-model') saved.comparisonSlots[0].model = 'incompatible-evaluator'
+      if (mismatch === 'missing-image-slot-identity') delete saved.imageSlot.provider
+      if (mismatch === 'wrong-image-slot-model') saved.imageSlot.model = 'gpt-image-2.5-flare'
+      if (mismatch === 'wrong-published-image-slot-model') saved.panels[0].imageSlot.model = 'gpt-image-2.5-flare'
       if (mismatch === 'wrong-evidence-provider') saved.provider = 'incompatible-provider'
       if (mismatch === 'missing-evidence-model') delete saved.model
       if (mismatch === 'orphaned-evidence') saved.comparisonSlots = []
@@ -249,7 +255,7 @@ describe('revision evaluation contracts', () => {
     let comparisonCalls = 0
     const comparisonOrders: string[][] = []
     const first = await runRevisionEvaluation(fixture.options, {
-      requestImage: async input => { imageCalls += 1; expect(input.referenceImages[0]).toBe(fixture.canonicalPath); return { mode: 'edit', result: { imageBase64: candidateBytes.toString('base64') }, usage: { imageInputUnits: 1290, textInputUnits: 35, outputUnits: 6240 } } },
+      requestImage: async input => { imageCalls += 1; expect(input.model).toBe('gpt-image-2.6-flare'); expect(input.referenceImages[0]).toBe(fixture.canonicalPath); return { mode: 'edit', result: { imageBase64: candidateBytes.toString('base64') }, usage: { imageInputUnits: 1290, textInputUnits: 35, outputUnits: 6240 } } },
       writeImage: async path => { await Bun.write(path, candidateBytes) },
       requestComparison: async input => { comparisonCalls += 1; comparisonOrders.push(input.imagePaths.slice(0, 2)); return { text: JSON.stringify(comparison(comparisonCalls === 2)), inputTokens: 10, outputTokens: 5 } },
       measureSimilarity: async () => ({ ssim: 0.8, normalizedRmse: 0.1 }),
@@ -262,6 +268,7 @@ describe('revision evaluation contracts', () => {
     expect(comparisonOrders[1]?.[0]).toEndWith('candidate.png')
     expect(comparisonOrders[1]?.[1]).toEndWith('original.png')
     expect(first.promotedPanels).toEqual([1])
+    expect(first.ledgers[0]?.imageSlot).toMatchObject({ provider: 'openai', model: 'gpt-image-2.6-flare' })
     expect(first.stats.totalInputImageTokens).toBe(1290)
     expect(first.stats.totalInputTextTokens).toBe(35)
     expect(first.stats.totalOutputImageTokens).toBe(6240)
@@ -285,6 +292,47 @@ describe('revision evaluation contracts', () => {
     expect(after.imageCalls).toBe(0)
     expect(after.comparisonCalls).toBe(0)
   }))
+
+  for (const complete of [true, false]) {
+    test(`${complete ? 'reads the completed' : 'rejects the partial'} GPT Image 2.5 revision without writes, dispatch or publication`, async () => await withLocalTestDir('revision-retired-image', async root => {
+      const fixture = await createFixture(root)
+      let comparisons = 0
+      const first = await runRevisionEvaluation(fixture.options, {
+        requestImage: async () => ({ mode: 'edit', result: { imageBase64: 'Y2FuZGlkYXRl' } }),
+        writeImage: async path => { await Bun.write(path, 'candidate') },
+        requestComparison: async () => ({ text: JSON.stringify(comparison(++comparisons === 2)), inputTokens: 2, outputTokens: 1 }),
+        measureSimilarity: async () => ({ ssim: 0.8, normalizedRmse: 0.1 }), recordManifest: recordPublishedManifest,
+      })
+      const directory = join(first.evidenceDirectory, 'panel-01')
+      const panelPath = join(directory, 'panel-ledger.json')
+      const runPath = join(first.evidenceDirectory, 'revision-evaluation.json')
+      const panel = await Bun.file(panelPath).json()
+      const summary = await Bun.file(runPath).json()
+      delete panel.imageSlot.provider
+      delete panel.imageSlot.model
+      if (!complete) panel.imageSlot.status = 'ambiguous'
+      summary.imageModel = 'gpt-image-2.5-flare'
+      summary.panels = [panel]
+      await Bun.write(panelPath, JSON.stringify(panel))
+      await Bun.write(runPath, JSON.stringify(summary))
+      const paths = [panelPath, runPath, fixture.canonicalPath, ...['original.png', 'candidate.png', 'comparison-pass-1.json', 'comparison-pass-2.json'].map(name => join(directory, name))]
+      const before = await Promise.all(paths.map(sha256File))
+      let calls = 0
+      const unexpected = async (): Promise<never> => { calls++; throw new Error('unexpected dispatch or publication') }
+      const dependencies = { requestImage: unexpected, requestComparison: unexpected, recordManifest: unexpected }
+      if (complete) {
+        const { events } = await captureLogEvents(() => estimateRevisionEvaluationPrice(fixture.options))
+        expect(events.some(event => event.metadata?.['imageModel'] === 'gpt-image-2.5-flare' && event.metadata?.['imageCalls'] === 0 && event.metadata?.['comparisonCalls'] === 0)).toBe(true)
+        const reused = await runRevisionEvaluation(fixture.options, dependencies)
+        expect(reused).toMatchObject({ imageModel: 'gpt-image-2.5-flare', promotedPanels: [1], stats: first.stats })
+      } else {
+        await expect(loadRevisionPriceInventory(fixture.options)).rejects.toThrow('new experiment ID')
+        await expect(runRevisionEvaluation(fixture.options, dependencies)).rejects.toThrow('new experiment ID')
+      }
+      expect(calls).toBe(0)
+      expect(await Promise.all(paths.map(sha256File))).toEqual(before)
+    }))
+  }
 
   for (const failAfterPublication of [false, true]) {
     test(`preserves completed revision evidence when publication fails ${failAfterPublication ? 'after promotion and rolls back' : 'before promotion'}`, async () => await withLocalTestDir('revision-publication-failure', async root => {
@@ -379,12 +427,48 @@ describe('revision evaluation contracts', () => {
     const loaded = await loadRevisionEvaluationPlan(fixture.options)
     const panelDirectory = join(loaded.evidenceDirectory, 'panel-01')
     await mkdir(panelDirectory, { recursive: true })
-    await Bun.write(join(panelDirectory, 'panel-ledger.json'), `${JSON.stringify({ schemaVersion: 1, planFingerprint: fixture.plan.planFingerprint, panelNumber: 1, originalSha256: fixture.plan.entries[0]!.original.sha256, imageSlot: { status: 'in-flight', attempts: 1, startedAt: '2026-08-30T00:00:00.000Z' }, comparisonSlots: [] }, null, 2)}\n`)
+    await Bun.write(join(panelDirectory, 'panel-ledger.json'), `${JSON.stringify({ schemaVersion: 1, planFingerprint: fixture.plan.planFingerprint, panelNumber: 1, originalSha256: fixture.plan.entries[0]!.original.sha256, imageSlot: { provider: 'openai', model: 'gpt-image-2.6-flare', status: 'in-flight', attempts: 1, startedAt: '2026-08-30T00:00:00.000Z' }, comparisonSlots: [] }, null, 2)}\n`)
     let imageCalls = 0
     const result = await runRevisionEvaluation(fixture.options, { requestImage: async () => { imageCalls += 1; throw new Error('must not dispatch') }, requestComparison: async () => { throw new Error('must not compare') }, recordManifest: recordPublishedManifest })
     expect(imageCalls).toBe(0)
     expect(result.ledgers[0]?.imageSlot?.status).toBe('ambiguous')
     expect(result.ledgers[0]?.decision).toBe('incomplete')
+  }))
+
+  test('preflights every panel in an interrupted legacy experiment before buying any new images', async () => await withLocalTestDir('revision-legacy-interruption', async root => {
+    const fixture = await createFixture(root)
+    const original = fixture.plan.entries[0]!
+    const second = structuredClone(original)
+    second.panelNumber = 2
+    second.contract.path = original.contract.path.replace('panel-01', 'panel-02')
+    second.original.path = original.original.path.replace('panel-01', 'panel-02')
+    await mkdir(dirname(second.contract.path), { recursive: true })
+    await Bun.write(second.contract.path, Bun.file(original.contract.path))
+    await Bun.write(second.original.path, Bun.file(original.original.path))
+    const { planFingerprint: _previousFingerprint, ...unsigned } = fixture.plan
+    unsigned.entries.push(second)
+    const plan = { ...unsigned, planFingerprint: computeRevisionPlanFingerprint(unsigned) }
+    await Bun.write(fixture.planPath, JSON.stringify(plan))
+    fixture.options.panels = [1, 2]
+    const loaded = await loadRevisionEvaluationPlan(fixture.options)
+    const secondDirectory = join(loaded.evidenceDirectory, 'panel-02')
+    await mkdir(secondDirectory, { recursive: true })
+    const ledgerPath = join(secondDirectory, 'panel-ledger.json')
+    await Bun.write(ledgerPath, JSON.stringify({ schemaVersion: 1, planFingerprint: plan.planFingerprint, panelNumber: 2, originalSha256: second.original.sha256, imageSlot: { status: 'in-flight', attempts: 1, startedAt: '2026-10-01' }, comparisonSlots: [] }))
+    const before = await sha256File(ledgerPath)
+    let calls = 0
+    const unexpected = async (): Promise<never> => { calls++; throw new Error('unexpected dispatch') }
+    await expect(estimateRevisionEvaluationPrice(fixture.options)).rejects.toThrow('new experiment ID')
+    await expect(runRevisionEvaluation(fixture.options, { requestImage: unexpected, requestComparison: unexpected, recordManifest: unexpected })).rejects.toThrow('new experiment ID')
+    expect(calls).toBe(0)
+    expect(await Bun.file(join(loaded.evidenceDirectory, 'panel-01', 'panel-ledger.json')).exists()).toBe(false)
+    unsigned.experimentId = 'new-model-revision'
+    await Bun.write(fixture.planPath, JSON.stringify({ ...unsigned, planFingerprint: computeRevisionPlanFingerprint(unsigned) }))
+    const fresh = await loadRevisionPriceInventory(fixture.options)
+    expect(fresh.loaded.imageModel).toBe('gpt-image-2.6-flare')
+    expect(fresh.loaded.evidenceDirectory).not.toBe(loaded.evidenceDirectory)
+    expect(fresh.imageCalls).toBe(2)
+    expect(await sha256File(ledgerPath)).toBe(before)
   }))
 
   test('normalizes different source dimensions before descriptive SSIM and RMSE measurement', async () => await withLocalTestDir('revision-similarity', async root => {
@@ -418,10 +502,10 @@ describe('revision evaluation contracts', () => {
     await Bun.write(join(sceneRunDir, 'panels/panel-01.png'), tinyPng)
     const panelSha256 = sha256Bytes(tinyPng)
     await writeInitialComicStructureManifest({ sceneRunDir, createdAt: '2026-08-30T00:00:00.000Z', sourceIdentity, structuredScript: structuredRef })
-    const targetKey = canonicalTargetKey('comic-image', 'gemini', 'gemini-3.1-flash-lite-image', 'hosted-api')
-    const imageProvider: PipelineProviderState = { service: 'gemini', model: 'gemini-3.1-flash-lite-image', local: false, operation: 'comic-image', targetKey, transport: 'hosted-api', artifactDir: '.', status: 'succeeded', attempts: 1, options: {}, metadata: {}, result: {} }
+    const targetKey = canonicalTargetKey('comic-image', 'gemini', 'gemini-nano-banana-2.1', 'hosted-api')
+    const imageProvider: PipelineProviderState = { service: 'gemini', model: 'gemini-nano-banana-2.1', local: false, operation: 'comic-image', targetKey, transport: 'hosted-api', artifactDir: '.', status: 'succeeded', attempts: 1, options: {}, metadata: {}, result: {} }
     await updateComicImageManifest({ sceneRunDir, sourceIdentity, providers: [imageProvider], artifactRefs: [{ path: 'panels/panel-01.png', sha256: panelSha256 }] })
-    const evaluation = { schemaVersion: 1 as const, experimentId: 'revision-contract-test', planFingerprint: 'b'.repeat(64), evidenceDirectory: 'revision-evaluations/revision-contract-test-bbbbbbbbbbbbbbbb', imageProvider: { service: 'openai', model: 'gpt-image-2.5-flare', attempts: 1, completed: 0, ambiguous: 1 }, comparisonProvider: { service: 'openai', model: 'gpt-6.1-sol', attempts: 0, completed: 0, invalid: 0 }, promotedPanels: [], retainedOriginalPanels: [1], actualCostUsd: 0 }
+    const evaluation = { schemaVersion: 1 as const, experimentId: 'revision-contract-test', planFingerprint: 'b'.repeat(64), evidenceDirectory: 'revision-evaluations/revision-contract-test-bbbbbbbbbbbbbbbb', imageProvider: { service: 'openai', model: 'gpt-image-2.6-flare', attempts: 1, completed: 0, ambiguous: 1 }, comparisonProvider: { service: 'openai', model: 'gpt-6.1-sol', attempts: 0, completed: 0, invalid: 0 }, promotedPanels: [], retainedOriginalPanels: [1], actualCostUsd: 0 }
     await recordComicImageRevision({ sceneRunDir, evaluation, artifactRefs: [{ path: 'panels/panel-01.png', sha256: panelSha256 }] })
     const recorded = await recordComicImageRevision({ sceneRunDir, evaluation: { ...evaluation, retainedOriginalPanels: [1, 2] }, artifactRefs: [{ path: 'panels/panel-01.png', sha256: panelSha256 }] })
     expect(recorded.items[0]?.providers).toEqual([imageProvider])

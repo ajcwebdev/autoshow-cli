@@ -35,7 +35,7 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
       service: 'grok',
       model,
       requestSettings: { ...request, count: resolved.imageCount, resolution: resolved.resolution, quality: resolved.quality },
-      run: async (prompt, outputDir) => await runGrokImageGen(prompt, outputDir, request)
+      run: async (prompt, outputDir, _opts, recoveryDir) => await runGrokImageGen(prompt, outputDir, request, recoveryDir)
     }]
   })
 }

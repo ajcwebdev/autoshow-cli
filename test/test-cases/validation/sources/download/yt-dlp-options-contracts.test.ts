@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { dirname } from 'node:path'
-import { buildYtDlpDownloadArgs, buildYtDlpListArgs, buildYtDlpMetadataArgs, buildYtDlpSubtitleDownloadArgs } from '~/cli/commands/command-shared/shared-yt-dlp-options'
+import { buildYtDlpDownloadArgs, buildYtDlpFailureMessage, buildYtDlpListArgs, buildYtDlpMetadataArgs, buildYtDlpSubtitleDownloadArgs } from '~/cli/commands/command-shared/shared-yt-dlp-options'
 import { getDenoBinary, getFfmpegBinary } from '~/utils/runtime-paths'
 import { getRuntimeCachePath } from '~/utils/runtime-state'
 
@@ -16,6 +16,14 @@ const indexesOf = (args: string[], value: string): number[] =>
   args.flatMap((arg, index) => arg === value ? [index] : [])
 
 describe('yt-dlp option contracts', () => {
+  test('bot-check errors point source users to the checkout cookie guide and setup command', () => {
+    for (const message of ["Sign in to confirm you're not a bot", 'Sign in to confirm you’re not a bot']) {
+      const failure = buildYtDlpFailureMessage('download', message)
+      expect(failure).toContain('docs/commands/00-setup-and-utilities/cookies.md')
+      expect(failure).toContain('bun autoshow setup --cookies-from-browser chrome')
+    }
+  })
+
   test('all generated downloader operations select managed helpers/cache and disable ambient configuration/plugins', async () => {
     const url = 'https://example.test/watch?v=managed-tools'
     const operations = await Promise.all([

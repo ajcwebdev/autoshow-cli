@@ -43,9 +43,9 @@ const cache = async (request: PageQaRequest): Promise<PageQaEntry> => {
 
 const existingPanelInput = (request: PageQaRequest, judge: GenerateWithQaRepairInput['judge']): GenerateWithQaRepairInput => ({
   kind: 'panel', itemNumber: request.pageNumber, outputPath: request.pagePath, canonicalExists: true, outputExists: true, force: false,
-  model: 'gpt-image-2.5-flare', promptForVariation: 'Draw the reviewed panel.', referenceImages: [...request.identityCards, ...request.locationSheets, ...request.designSheets!],
+  model: 'gpt-image-2.6-flare', promptForVariation: 'Draw the reviewed panel.', referenceImages: [...request.identityCards, ...request.locationSheets, ...request.designSheets!],
   bundleData: request.panelData, resolvedReferences: { primaryCharacterRefs: request.identityCards, secondaryRefs: request.locationSheets, designReferences: request.designSheets!.map(path => ({ ...request.designReferences![0]!, path })), characterReferences: request.characterReferences, locationReferences: request.locationReferences, rosterCharacterReferences: request.rosterCards },
-  sceneSlug: 'current-canon', options: { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', runId: 'reuse-test', force: false, concurrency: 1 },
+  sceneSlug: 'current-canon', options: { models: ['gpt-image-2.6-flare'], size: '1536x1024', quality: 'high', runId: 'reuse-test', force: false, concurrency: 1 },
   requestImage: async () => { throw new Error('A passing existing panel needs no image generation.') },
   writeImage: async () => { throw new Error('A passing existing panel must remain unchanged.') },
   judge,

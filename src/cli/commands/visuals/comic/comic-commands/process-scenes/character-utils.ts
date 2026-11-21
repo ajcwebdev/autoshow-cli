@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
@@ -126,7 +127,7 @@ export const requireCurrentCharacterSketchSync = (
   const registration = readRegisteredCharacterSketch(key, character, charactersRoot)
   if (!registration) {
     throw InfraError(
-      `Character "${key}" has no registered outline sheet. Run: bun autoshow comic reference-sketch --character ${key}`,
+      `Character "${key}" has no registered outline sheet. Run: ${CLI_INVOCATION} comic reference-sketch --character ${key}`,
       { stage: 'comic:character-sketch' }
     )
   }

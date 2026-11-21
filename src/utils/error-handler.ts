@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { sanitizeArtifactMetadata, sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { AppErrorKind, ErrorChainEntry, NonUsageAppErrorOptions, RetryClass, UsageErrorOptions } from '~/types'
 import { isRecord } from '~/utils/value-helpers'
@@ -158,7 +159,7 @@ export const usageMessage = (error: unknown): string => {
   if (isUsageError(error)) {
     return error.usageMessage
   }
-  return 'Invalid command usage. Run: bun autoshow --help'
+  return `Invalid command usage. Run: ${CLI_INVOCATION} --help`
 }
 
 export const collectErrorChain = (error: unknown): ErrorChainEntry[] => {

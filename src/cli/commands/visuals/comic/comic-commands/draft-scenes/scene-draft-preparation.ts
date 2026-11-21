@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import type { GenerateSceneJsonOptions, SceneDraftRequest, SceneDraftResponse, ScenePanelCountContract } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 import { sha256Bytes } from '~/utils/value-helpers'
@@ -57,7 +58,7 @@ export const prepareSceneDraft = async (sceneSlug: string, options: GenerateScen
   if (blockingPlan) {
     const structuredScriptSha256 = sha256Bytes(new Uint8Array(await Bun.file(structuredScriptPath).arrayBuffer()))
     if (blockingPlan.plan.structuredScriptSha256 !== structuredScriptSha256) {
-      throw ValidationError(`Blocking plan at ${blockingPlan.planPath} was drafted against a different structured script; run "bun autoshow comic draft-scenes <script-path> --only blocking --rebind" first.`, { stage: STAGE })
+      throw ValidationError(`Blocking plan at ${blockingPlan.planPath} was drafted against a different structured script; run "${CLI_INVOCATION} comic draft-scenes <script-path> --only blocking --rebind" first.`, { stage: STAGE })
     }
   }
   const planStructuredScript = blockingPlan ? await parseJsonFile(structuredScriptPath, StructuredScriptDataSchema) : undefined

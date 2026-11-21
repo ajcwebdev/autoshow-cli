@@ -67,12 +67,12 @@ describe('resume target-aware provider selectors', () => {
 
     const image = normalizeResumeSelectorFlagsForTarget(
       target('image'),
-      { provider: ['openai=gpt-image-2.5-flare'] },
+      { provider: ['openai=gpt-image-2.6-flare'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'openai=gpt-image-2.5-flare']
+      ['resume', 'out', '--provider', 'openai=gpt-image-2.6-flare']
     )
-    expect(image.flags['openai-image']).toBe('gpt-image-2.5-flare')
-    expect(buildOpts(image.flags, image.explicitFlags, image.flagOccurrences).openaiImageModels).toEqual(['gpt-image-2.5-flare'])
+    expect(image.flags['openai-image']).toBe('gpt-image-2.6-flare')
+    expect(buildOpts(image.flags, image.explicitFlags, image.flagOccurrences).openaiImageModels).toEqual(['gpt-image-2.6-flare'])
 
     const grokVideo = normalizeResumeSelectorFlagsForTarget(
       target('video'),
@@ -195,9 +195,9 @@ describe('resume target-aware provider selectors', () => {
   test('rejects providers that do not apply to the resolved target', () => {
     expect(() => normalizeResumeSelectorFlagsForTarget(
       target('video'),
-      { provider: ['openai=gpt-image-2.5-flare'] },
+      { provider: ['openai=gpt-image-2.6-flare'] },
       new Set(['provider']),
-      ['resume', 'out', '--provider', 'openai=gpt-image-2.5-flare']
+      ['resume', 'out', '--provider', 'openai=gpt-image-2.6-flare']
     )).toThrow('Unknown provider "openai" for --provider')
   })
 })

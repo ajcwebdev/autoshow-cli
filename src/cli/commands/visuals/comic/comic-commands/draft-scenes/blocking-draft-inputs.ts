@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import * as v from 'valibot'
 import type { BlockingDrafterCharacterInput, BlockingDrafterLocationInput, BlockingLocationSpecification, BlockingPlanCallEstimate, BlockingPlanInputs, StructuredScriptData } from '~/types'
@@ -35,7 +36,7 @@ export const estimateBlockingPlanCalls = (structuredScript: StructuredScriptData
 
 export const loadBlockingPlanInputs = async (sceneSlug: string, options: { locationPlans?: BlockingPlanInputs['locationPlans']; requireEstablishingImages?: boolean | undefined } = {}): Promise<BlockingPlanInputs> => {
   const structuredScriptPath = getStructuredScriptPath(sceneSlug)
-  if (!existsSync(structuredScriptPath)) throw ValidationError(`Structured script not found at ${structuredScriptPath}. Run "bun autoshow comic draft-scenes <script-path> --only structure" first.`, { stage: STAGE })
+  if (!existsSync(structuredScriptPath)) throw ValidationError(`Structured script not found at ${structuredScriptPath}. Run "${CLI_INVOCATION} comic draft-scenes <script-path> --only structure" first.`, { stage: STAGE })
   const structuredScript = await parseJsonFile(structuredScriptPath, StructuredScriptDataSchema)
   const structuredScriptSha256 = sha256Bytes(new Uint8Array(await Bun.file(structuredScriptPath).arrayBuffer()))
   const catalog = loadCharacterCatalog()

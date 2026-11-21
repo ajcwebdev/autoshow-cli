@@ -8,36 +8,42 @@ This evaluation uses measurable evidence only. No video was watched or listening
 
 Scope
 
-- Providers: 3 service providers, 0 local providers.
-- All three MP4 files are present; file sizes match the recorded metadata.
+- Providers: 4 service providers, 0 local providers.
+- All four MP4 files are present; file sizes match the recorded metadata.
 - Gemini Omni was added on 2026-10-23 with one provider-selected-length request.
 - Grok Video 1.5 Lite was added on 2026-10-29 with one explicit 8-second/480p request; the exact returned model identity matches the request.
-- SHA-256 checks confirm both earlier provider videos are unchanged.
+- Gemini Omni 1.2 was added on 2026-11-19 by additive resume with one provider-selected-length request at the stored 720p and 16:9 settings, completing in one attempt. Omni 1.1 was retired from the CLI the same day; its result is retained as history and repriced at its historical registry rate.
+- SHA-256 checks confirm all three earlier provider videos are unchanged after the Omni 1.2 addition.
 
 Recorded durations
 
 - grok/grok-imagine-video-1.5: 8 generated seconds (recorded).
 - grok/grok-imagine-video-1.5-lite: 8 generated seconds; local container probe 8.041667 seconds, H.264/AAC at 848x480. Full local video decoding passed.
 - gemini/gemini-omni-1.1-flash: no recorded duration; retained local container measurement 10.005 seconds.
+- gemini/gemini-omni-1.2-flash: no recorded duration; local container probe 10.026667 seconds, H.264 1280x720 at 24 fps with AAC 48 kHz stereo. Full local video decoding passed.
 
 Recorded processing time, fastest to slowest
 
 1. grok/grok-imagine-video-1.5-lite: 22460 ms
 2. grok/grok-imagine-video-1.5: 32747 ms
 3. gemini/gemini-omni-1.1-flash: 33278 ms
+4. gemini/gemini-omni-1.2-flash: 39696 ms
 
 Recorded cost, lowest to highest
 
 1. grok/grok-imagine-video-1.5-lite: 16 cents (provider usage).
 2. grok/grok-imagine-video-1.5: 64 cents (provider usage).
-3. gemini/gemini-omni-1.1-flash: 100 cents (registry rate; provider returned no usage).
+3. gemini/gemini-omni-1.2-flash: 69.504 cents (registry rate; provider returned no usage).
+4. gemini/gemini-omni-1.1-flash: 100 cents (registry rate; provider returned no usage).
 
 Recorded artifact file sizes, smallest to largest
 
 1. grok/grok-imagine-video-1.5: 1565638 bytes
 2. grok/grok-imagine-video-1.5-lite: 2190970 bytes
 3. gemini/gemini-omni-1.1-flash: 3056647 bytes
+4. gemini/gemini-omni-1.2-flash: 4112961 bytes
 
 Lite SHA-256: aa98f2bc9421ade4dcf9f03091258c735e09e9dd2bbf91d7d0911a675712512b
+Omni 1.2 SHA-256: a04a56d03b1cf813794fd821d8a7974eb94386e28eb113c4cb9ce3040826b1fe
 Provider-reported usage receipts are not reconciled invoice charges.
 No packet warnings were reported.

@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { copyFileExact } from '~/utils/bun-file-io'
 import { rename, rm } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
@@ -169,7 +170,7 @@ const verifyYtDlpVersion = async (): Promise<void> => {
     if (result.exitCode !== 0) {
       throw InfraError('yt-dlp is not working properly', {
         stage: 'download:audio',
-        hints: ["Run 'bun autoshow setup' to install yt-dlp and other dependencies"]
+        hints: [`Run '${CLI_INVOCATION} setup' to install yt-dlp and other dependencies`]
       })
     }
 

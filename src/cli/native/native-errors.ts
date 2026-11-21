@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import type { NativeCliUsageErrorCode } from '~/types'
 import { AppUsageError } from '~/utils/error-handler'
 
@@ -22,7 +23,7 @@ export class NativeNoSuchCommandError extends NativeCliUsageError {
     super(
       'no-such-command',
       removedLogFormat ? `Unexpected flag: ${commandName}` : `Unknown command "${commandName}"`,
-      removedLogFormat ? undefined : `Unknown command "${commandName}". Run: bun autoshow help`,
+      removedLogFormat ? undefined : `Unknown command "${commandName}". Run: ${CLI_INVOCATION} help`,
       removedLogFormat ? ['Use default text output or pass --json for the versioned machine protocol.'] : undefined
     )
     this.name = 'NativeNoSuchCommandError'
@@ -32,7 +33,7 @@ export class NativeNoSuchCommandError extends NativeCliUsageError {
 
 export class NativeInvalidParametersError extends NativeCliUsageError {
   constructor(message: string) {
-    super('invalid-parameters', message, `${message}. Run: bun autoshow help <command>`)
+    super('invalid-parameters', message, `${message}. Run: ${CLI_INVOCATION} help <command>`)
     this.name = 'NativeInvalidParametersError'
   }
 }
@@ -66,7 +67,7 @@ export class NativeMissingFlagValueError extends NativeCliUsageError {
     super(
       'missing-required-value',
       `Missing value for --${flagName}`,
-      `Missing value for --${flagName}. Run: bun autoshow help <command>`
+      `Missing value for --${flagName}. Run: ${CLI_INVOCATION} help <command>`
     )
     this.name = 'NativeMissingFlagValueError'
     this.flagName = flagName

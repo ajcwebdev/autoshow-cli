@@ -1,12 +1,18 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { access } from 'node:fs/promises'
 import { constants as fsConstants } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { YtDlpAuthMode, YtDlpListOptions } from '~/types'
 import { getDenoBinary, getFfmpegBinary } from '~/utils/runtime-paths'
+import { IS_INSTALLED_CLI, SOURCE_ROOT } from '~/utils/project-root'
 import { getRuntimeCachePath } from '~/utils/runtime-state'
 
-const YOUTUBE_BOT_CHECK_PATTERN = /Sign in to confirm you(?:’|’)re not a bot/i
+const COOKIE_GUIDE = 'docs/commands/00-setup-and-utilities/cookies.md'
+export const youtubeCookieGuide = IS_INSTALLED_CLI ? resolve(SOURCE_ROOT, COOKIE_GUIDE) : COOKIE_GUIDE
+export const cookieSetupCommand = `${CLI_INVOCATION} setup`
+
+const YOUTUBE_BOT_CHECK_PATTERN = /Sign in to confirm you[’']re not a bot/i
 const warnedUnreadableCookiePaths = new Set<string>()
 
 let configuredCookies: string | undefined
@@ -53,7 +59,7 @@ export const inspectYtDlpAuthState = async (
       cookieArgs: cookiesReadable ? ['--cookies', cookiesPath] : [],
       ...(cookiesReadable
         ? {}
-        : { warning: `--cookies path is unreadable: ${resolvedCookiesPath}. Fix the path or run bun autoshow setup --cookies <file>.` })
+        : { warning: `--cookies path is unreadable: ${resolvedCookiesPath}. Fix the path or run ${cookieSetupCommand} --cookies <file>.` })
     }
   }
 
@@ -195,6 +201,6 @@ export const buildYtDlpFailureMessage = (
 
   return [
     `yt-dlp ${operation} failed. ${cleanDetails}`,
-    'Hint: YouTube blocked the anonymous request. See docs/commands/00-setup-and-utilities/cookies.md, or run bun autoshow setup --cookies-from-browser chrome or bun autoshow setup --cookies /absolute/path/to/cookies.txt.'
+    `Hint: YouTube blocked the anonymous request. See ${youtubeCookieGuide}, or run ${cookieSetupCommand} --cookies-from-browser chrome or ${cookieSetupCommand} --cookies /absolute/path/to/cookies.txt.`
   ].join('\n')
 }

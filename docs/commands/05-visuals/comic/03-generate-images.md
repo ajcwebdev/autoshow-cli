@@ -6,7 +6,7 @@ Generate review sketches and final images from reviewed scene JSON, current regi
 
 - `--target images|sketches|both`: default `images`; `both` replaces separate sketch/image invocations.
 - `--panels all|range|list`: default `all`; mixed lists such as `1-4,9` work for final images. Sketch selections must be contiguous; overlong ranges clamp.
-- `--provider provider[=model]`: repeatable, default `openai=gpt-image-2.5-flare`. `--size` defaults to `1536x1024`, quality to `high`; [model capabilities](../image/overview.md) govern other values.
+- `--provider provider[=model]`: repeatable, default `openai=gpt-image-2.6-flare`. `--size` defaults to `1536x1024`, quality to `high`; [model capabilities](../image/overview.md) govern other values.
 - `--panels-per-image N`: final default 1, sketch default 6. Grouped output uses `pages/`; `--grid CxR` locally composes individual finals and requires size `1536x1024` and one panel per image.
 - `--variation canonical|animation-polish|cinematic-depth`: comma-separated final-image variants; default canonical.
 - `--qa`/`--no-qa`: final QA defaults on, with `--qa-provider openai=gpt-6.1-sol`. Judges must be supported OpenAI/Gemini vision models. `--max-repairs` defaults to 2 for generation, 0 for audit/revision.
@@ -20,9 +20,9 @@ Generate review sketches and final images from reviewed scene JSON, current regi
 After completing local panel prompts, choose the accepted generation mode:
 
 ```bash
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target both --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 1,3 --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --grid 2x2 --panels-per-image 1 --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target both --provider openai=gpt-image-2.6-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --panels 1,3 --provider openai=gpt-image-2.6-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --grid 2x2 --panels-per-image 1 --provider openai=gpt-image-2.6-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 Runs write `panels/<run-id>/`, `pages/<run-id>/`, or `sketches/<run-id>/`; multiple models add a model directory, and variants add `<variation>/<model>/`. These candidates are not canonical slideshow panels. Inspect them and follow the [local publication step](./00-comic-overview.md#4-build-panel-prompts-generate-images-and-review). QA publication still requires human review.
@@ -65,11 +65,11 @@ Each possible individual repair reserves an image edit/regeneration, candidate Q
 
 A [validated revision plan](../../../../src/cli/commands/visuals/comic/comic-commands/generate-images/revision-plan-validation.ts) freezes panel selections, issues/importance, corrections, and hashes of source, prior QA, original images, reviewed contracts, and references. Another scene's or stale plan fails.
 
-Revision requires final individual images, `openai=gpt-image-2.5-flare`, judge `openai=gpt-6.1-sol`, and zero normal repairs; omitted values are inferred. Explicit `--promote clear-winners` authorizes promotion. Force, audit, disabled QA, sketches, grids, grouping, variants, and multiple models are rejected.
+Revision requires final individual images, `openai=gpt-image-2.6-flare`, judge `openai=gpt-6.1-sol`, and zero normal repairs; omitted values are inferred. Explicit `--promote clear-winners` authorizes promotion. Force, audit, disabled QA, sketches, grids, grouping, variants, and multiple models are rejected.
 
 Each pending panel gets at most one edit and two order-swapped comparisons. Promotion requires meaningful importance, agreement that the issue materially improved, and no major regression/preservation damage; otherwise retain original bytes. Failed, malformed, interrupted, or ambiguous requests are not automatically repurchased.
 
-Evidence remains under `revision-evaluations/<experiment-id>-<fingerprint-prefix>/`. Compatible completed evidence is reused; price mode validates hashes and prices only outstanding edits/comparisons without writes.
+Evidence remains under `revision-evaluations/<experiment-id>-<fingerprint-prefix>/`. Each new edit records its provider and model before dispatch. Price mode validates the saved evidence and estimates outstanding edits and comparisons. A fully verifiable, completed GPT Image 2.5 experiment reopens read-only under its original model with zero new calls. For an unfinished experiment on a retired model, or one whose image model cannot be verified, preserve the existing directory and use a new experiment ID and plan fingerprint for further edits.
 
 ### Blooper ledger
 

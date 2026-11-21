@@ -1,6 +1,10 @@
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { existsSync } from 'node:fs'
 
+// Defined by the checkout-independent package build for its CLI and worker.
+declare const __AUTOSHOW_INSTALLED_CLI__: boolean
+export const IS_INSTALLED_CLI = typeof __AUTOSHOW_INSTALLED_CLI__ !== 'undefined' && __AUTOSHOW_INSTALLED_CLI__
+
 const projectRootOverride = process.env['AUTOSHOW_PROJECT_ROOT']?.trim()
 // Source bundles can live below output/ or runtime/. Locate their checkout assets
 // independently of the mutable project root used by an isolated invocation.
@@ -13,15 +17,12 @@ const findSourceRoot = (start: string): string | undefined => {
     candidate = parent
   }
 }
-export const SOURCE_ROOT = findSourceRoot(import.meta.dir)
+export const SOURCE_ROOT = IS_INSTALLED_CLI ? import.meta.dir : findSourceRoot(import.meta.dir)
   ?? (projectRootOverride ? findSourceRoot(projectRootOverride) : undefined)
   ?? findSourceRoot(process.cwd())
   ?? resolve(import.meta.dir, '../..')
-export const PROJECT_ROOT = projectRootOverride
-  ? resolve(projectRootOverride)
-  : Bun.isStandaloneExecutable
-    ? dirname(process.execPath)
-    : SOURCE_ROOT
+const defaultProjectRoot = Bun.isStandaloneExecutable ? dirname(process.execPath) : SOURCE_ROOT
+export const PROJECT_ROOT = resolve(projectRootOverride || (IS_INSTALLED_CLI ? process.cwd() : defaultProjectRoot))
 
 const toPosix = (value: string): string => value.replace(/\\/g, '/')
 

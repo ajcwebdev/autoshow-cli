@@ -96,7 +96,7 @@ export const completeImageSlot = async (input: { loaded: LoadedRevisionPlan; ent
   }
   if (ledger.imageSlot) return
   const now = dependencies.now ?? (() => new Date().toISOString())
-  const imageSlot: NonNullable<PanelLedger['imageSlot']> = { status: 'in-flight', attempts: 1, startedAt: now() }
+  const imageSlot: NonNullable<PanelLedger['imageSlot']> = { provider: 'openai', model: REVISION_IMAGE_MODEL, status: 'in-flight', attempts: 1, startedAt: now() }
   ledger.imageSlot = imageSlot
   await atomicWriteJson(ledgerPath, ledger)
   try {

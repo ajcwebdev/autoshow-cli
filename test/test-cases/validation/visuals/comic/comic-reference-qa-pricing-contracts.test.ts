@@ -30,7 +30,7 @@ describe('current-reference QA pricing', () => {
   for (const grouped of [true, false]) test(`${grouped ? 'page' : 'panel'} pricing includes fresh QA and repairs for an existing image after canon changes, without writes`, async () => {
     const sceneSlug = `qa-price-${crypto.randomUUID()}`
     const { runDirectory } = await createSceneFixture(sceneSlug)
-    const options = { models: ['gpt-image-2.5-flare'], size: '1536x1024' as const, quality: 'high' as const, force: false, runId: 'pricing-proof', concurrency: 1, panels: grouped ? [1, 2] : [1], panelsPerImage: grouped ? 2 : 1, qa: true, qaModel: 'gpt-6.1-sol', maxRepairs: 1 }
+    const options = { models: ['gpt-image-2.6-flare'], size: '1536x1024' as const, quality: 'high' as const, force: false, runId: 'pricing-proof', concurrency: 1, panels: grouped ? [1, 2] : [1], panelsPerImage: grouped ? 2 : 1, qa: true, qaModel: 'gpt-6.1-sol', maxRepairs: 1 }
     let judgedRequest: PageQaRequest | undefined
     const dependencies = {
       requestImage: async () => ({ mode: 'generate' as const, result: { imageBase64: tinyPng.toString('base64') } }),

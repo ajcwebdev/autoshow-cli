@@ -2,7 +2,7 @@ import { realpath } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { DoctorToolProvenance, RuntimeToolId } from '~/types'
 import { assertRuntimeContainedPath, calibreToolDir, ffmpegToolDir, getRuntimeToolManagedPath, lameToolDir, leptonicaToolDir, mupdfToolDir, qpdfToolDir, RUNTIME_DIR, RUNTIME_TOOLS_DIR, tesseractToolDir, ytDlpManagedBinaryPath } from '~/utils/runtime-paths'
-import { SOURCE_ROOT } from '~/utils/project-root'
+import { IS_INSTALLED_CLI, SOURCE_ROOT } from '~/utils/project-root'
 import { validateProjectRuntimeDependencies } from '~/tools/project-runtime-dependencies'
 import { defuddleRuntimeDir, validateManagedDefuddleRuntime } from '~/cli/commands/text/url/url-local/defuddle/defuddle-cli'
 import { MANAGED_BUILD_TOOL_SOURCES, managedBuildToolPrefix, readManagedBuildToolReadiness } from './setup-download/managed-build-tools'
@@ -142,6 +142,7 @@ export const createDoctorToolProvenance = (options: { platform?: NodeJS.Platform
     return result.ok ? { healthy: true, detail: result.detail } : { healthy: false, reason: result.detail }
   })
   const project = (): Promise<DoctorToolProvenance> => once('project-dependencies', async () => {
+    if (IS_INSTALLED_CLI) return { healthy: true, detail: 'Application dependencies are bundled into the installed CLI.' }
     if (Bun.isStandaloneExecutable) return { healthy: true, detail: 'Source dependency graph is bundled into the standalone executable.' }
     await validateProjectRuntimeDependencies({ projectRoot: options.sourceRoot ?? SOURCE_ROOT })
     return { healthy: true, detail: 'Source dependency alias, frozen manifests, complete runtime graph, and installation receipts verified.' }

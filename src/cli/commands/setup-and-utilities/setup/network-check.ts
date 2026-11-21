@@ -1,4 +1,5 @@
 import { childEnv } from '~/utils/child-env'
+import { IS_INSTALLED_CLI } from '~/utils/project-root'
 import { DEFAULT_NETWORK_FIXTURE_DELAY_SECONDS, DEFAULT_NETWORK_FIXTURE_PORT, DEFAULT_NETWORK_PROBE_CLIENT, NETWORK_PROBE_CLIENTS, type NetworkProbeClient } from '~/cli/flags/setup-network-contract'
 import { existsSync } from 'node:fs'
 import { UsageError, InfraError } from '~/utils/error-handler'
@@ -65,14 +66,14 @@ async function performNetworkProbe(url: URL, client: unknown, timeoutMs: number)
 }
 
 export const buildNetworkProbeChildEnv = (timeoutMs: number): Record<string, string> => childEnv({
-  allow: ['AUTOSHOW_DISABLE_HTTP_KEEPALIVE', HTTP_PAYLOAD_MAX_BYTES_ENV],
+  allow: ['AUTOSHOW_PROJECT_ROOT', 'AUTOSHOW_DISABLE_HTTP_KEEPALIVE', HTTP_PAYLOAD_MAX_BYTES_ENV],
   set: { AUTOSHOW_SETUP_NO_ORPHANS_CHILD: '1', AUTOSHOW_NETWORK_CHECK_CHILD_TIMEOUT_MS: String(timeoutMs) }
 })
 
 export async function probeNetworkFixture(url: URL, client: unknown, timeoutMs: number): Promise<Awaited<ReturnType<typeof performNetworkProbe>>> {
   const start = performance.now()
   const sourceEntrypoint = new URL('../../../create-cli.ts', import.meta.url).pathname
-  const entrypoint = existsSync(sourceEntrypoint) ? sourceEntrypoint : Bun.main
+  const entrypoint = !IS_INSTALLED_CLI && existsSync(sourceEntrypoint) ? sourceEntrypoint : Bun.main
   return await new Promise(resolve => {
     let result: Awaited<ReturnType<typeof performNetworkProbe>> | undefined
     const child = Bun.spawn([

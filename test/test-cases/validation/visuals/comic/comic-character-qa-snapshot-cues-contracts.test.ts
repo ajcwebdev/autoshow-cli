@@ -43,10 +43,10 @@ describe('comic QA uses latest canonical character descriptions and distinction 
   test('applies live redesign cues to individual and grouped resolution without rebuilding bundles', async () => {
     const fixture = await prepareReferences(oldCue)
     await fixture.updateLiveCues()
-    const individual = resolveReferenceImages(fixture.panelDirectory, [], fixture.bundle, 'gpt-image-2.5-sunburst')
+    const individual = resolveReferenceImages(fixture.panelDirectory, [], fixture.bundle, 'gpt-image-2.6-sunburst')
     const grouped = resolveGroupedReferenceImages([
       { panelDirectory: fixture.panelDirectory, panelEntries: [], bundleData: fixture.bundle },
-    ], 'gpt-image-2.5-sunburst')
+    ], 'gpt-image-2.6-sunburst')
     for (const references of [individual, grouped]) {
       const prompt = buildComicPageQaPrompt(fixture.bundle, references.characterReferences)
       expect(prompt).toContain(`hero versus sidekick: ${newCue}`)
@@ -63,7 +63,7 @@ describe('comic QA uses latest canonical character descriptions and distinction 
     await writeFile(fixture.manifestPath, '{malformed obsolete manifest')
     await fixture.updateLiveCues()
     expect(loadAndVerifyCharacterReferenceSnapshot(fixture.runDirectory, undefined, ['hero', 'sidekick']).characters[0]?.distinguishFrom?.[0]?.cue).toBe(newCue)
-    const references = resolveReferenceImages(fixture.panelDirectory, [], fixture.bundle, 'gpt-image-2.5-sunburst')
+    const references = resolveReferenceImages(fixture.panelDirectory, [], fixture.bundle, 'gpt-image-2.6-sunburst')
     expect(buildComicPageQaPrompt(fixture.bundle, references.characterReferences)).toContain(newCue)
   })
 
@@ -71,7 +71,7 @@ describe('comic QA uses latest canonical character descriptions and distinction 
     const fixture = await prepareReferences()
     expect(fixture.manifest.characters.every(character => character.distinguishFrom?.length === 0)).toBe(true)
     await fixture.updateLiveCues()
-    const references = resolveReferenceImages(fixture.panelDirectory, [], fixture.bundle, 'gpt-image-2.5-sunburst')
+    const references = resolveReferenceImages(fixture.panelDirectory, [], fixture.bundle, 'gpt-image-2.6-sunburst')
     expect(buildComicPageQaPrompt(fixture.bundle, references.characterReferences)).toContain(newCue)
   })
 
@@ -84,7 +84,7 @@ describe('comic QA uses latest canonical character descriptions and distinction 
     await withCharacterCatalog(async () => {
       value.characters[0].wardrobe = { colorTokens: ['soot-black'], never: ['bomber jacket'], deviationStates: [{ state: 'ceremonial', description: 'White robe for the reviewed ceremony.' }] }
       await writeFile(path, JSON.stringify(value))
-      const refs = resolveReferenceImages(fixture.panelDirectory, [], fixture.bundle, 'gpt-image-2.5-sunburst')
+      const refs = resolveReferenceImages(fixture.panelDirectory, [], fixture.bundle, 'gpt-image-2.6-sunburst')
       for (const prompt of [buildComicPagePrompt(fixture.bundle, refs.characterReferences), buildComicPageQaPrompt(fixture.bundle, refs.characterReferences)]) {
         expect(prompt).toContain('"colorTokens":["soot-black"]')
         expect(prompt).toContain('"never":["bomber jacket"]')
@@ -102,6 +102,6 @@ describe('comic QA uses latest canonical character descriptions and distinction 
     const invalid = JSON.parse(await Bun.file(path).text())
     invalid.characters[0].distinguishFrom[0].cue = 123
     await writeFile(path, JSON.stringify(invalid))
-    expect(() => resolveReferenceImages(fixture.panelDirectory, [], fixture.bundle, 'gpt-image-2.5-sunburst')).toThrow(/Invalid character catalog/)
+    expect(() => resolveReferenceImages(fixture.panelDirectory, [], fixture.bundle, 'gpt-image-2.6-sunburst')).toThrow(/Invalid character catalog/)
   })
 })

@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { dirname, relative } from 'node:path'
@@ -189,7 +190,7 @@ export const reviewNotesCommand = async (
     if (!existsSync(notesPath)) throw InfraError(`Review notes file not found: ${notesPath}`, { stage: STAGE })
     const sceneJsonPath = getSceneJsonPath(options.sceneSlug)
     if (!existsSync(sceneJsonPath)) {
-      throw InfraError(`Scene JSON not found at ${sceneJsonPath}. Run "bun autoshow comic draft-scenes <script-path>" first.`, { stage: STAGE })
+      throw InfraError(`Scene JSON not found at ${sceneJsonPath}. Run "${CLI_INVOCATION} comic draft-scenes <script-path>" first.`, { stage: STAGE })
     }
     const scene = v.parse(ScenePromptDataSchema, JSON.parse(await Bun.file(sceneJsonPath).text()))
     const structuredScript = await parseJsonFile(getStructuredScriptPath(options.sceneSlug), StructuredScriptDataSchema)

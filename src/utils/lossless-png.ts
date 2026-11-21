@@ -17,8 +17,8 @@ const assertSupportedChunkType = (type: string): void => {
   if (type === 'acTL' || type === 'fcTL' || type === 'fdAT') throw new AppValidationError('Animated PNG lossless normalization is unsupported')
   if (type[0] === type[0]!.toUpperCase() && !['IHDR', 'PLTE', 'IDAT', 'IEND'].includes(type)) throw new AppValidationError('Unsupported critical PNG chunk')
 }
-const chunks = (bytes: Uint8Array): Chunk[] => {
-  if (!equal(bytes.subarray(0, 8), signature)) throw new AppValidationError('Lossless PNG normalization requires valid PNG bytes')
+export const readPngChunks = (bytes: Uint8Array, validateType?: (type: string) => void): Chunk[] => {
+  if (!equal(bytes.subarray(0, 8), signature)) throw new AppValidationError('Invalid PNG signature')
   const result: Chunk[] = []
   let offset = 8, ended = false
   while (offset + 12 <= bytes.length) {
@@ -26,7 +26,7 @@ const chunks = (bytes: Uint8Array): Chunk[] => {
     if (offset + length + 12 > bytes.length) throw new AppValidationError('Truncated PNG chunk')
     const type = Buffer.from(bytes.subarray(offset + 4, offset + 8)).toString('ascii')
     if (!/^[A-Za-z]{4}$/.test(type) || Bun.hash.crc32(bytes.subarray(offset + 4, offset + length + 8)) !== view.getUint32(length + 8)) throw new AppValidationError('Invalid PNG chunk checksum/type')
-    assertSupportedChunkType(type)
+    validateType?.(type)
     result.push({ type, data: bytes.subarray(offset + 8, offset + length + 8) })
     offset += length + 12
     if (type === 'IEND') { ended = true; break }
@@ -108,7 +108,7 @@ const expandToRgba8 = (samples: Uint8Array, geometry: ScanlineGeometry, model: P
 
 /** Exact RGBA8 samples, row-major, with no color transform or premultiplication. Unsupported PNG encodings fail closed. */
 export const decodePngRgba8 = (bytes: Uint8Array) => {
-  const records = chunks(bytes), geometry = readPngHeader(records[0]!.data)
+  const records = readPngChunks(bytes, assertSupportedChunkType), geometry = readPngHeader(records[0]!.data)
   const samples = unfilterScanlines(inflateScanlines(records, geometry), geometry)
   const pixels = expandToRgba8(samples, geometry, readPngColorModel(records, geometry.color))
   const { width, height } = geometry
@@ -187,7 +187,7 @@ export const losslesslyCompressPng = async (original: Uint8Array) => {
   headerView.setUint32(0, width); headerView.setUint32(4, height); header[8] = 8; header[9] = color
   // Preserve color/physical interpretation; channel-specific bKGD and incidental
   // timestamps/text are not part of the image's RGBA samples.
-  const preserved = chunks(original).filter(c => ['cHRM', 'gAMA', 'iCCP', 'sRGB', 'pHYs'].includes(c.type)).map(c => pngChunk(c.type, c.data))
+  const preserved = readPngChunks(original, assertSupportedChunkType).filter(c => ['cHRM', 'gAMA', 'iCCP', 'sRGB', 'pHYs'].includes(c.type)).map(c => pngChunk(c.type, c.data))
   const bytes = Buffer.concat([signature, pngChunk('IHDR', header), ...preserved,
     pngChunk('IDAT', deflateSync(filtered, { level: 9, strategy: constants.Z_FILTERED })), pngChunk('IEND', new Uint8Array())])
   const verified = decodePngRgba8(bytes)

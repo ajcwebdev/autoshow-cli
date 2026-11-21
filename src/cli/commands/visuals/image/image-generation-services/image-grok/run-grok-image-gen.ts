@@ -23,7 +23,8 @@ export const runGrokImageGen = async (
     aspectRatio?: string | undefined
     imageSize?: string | undefined
     imageQuality?: string | undefined
-  }
+  },
+  recoveryDir = outputDir
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   const resolved = resolveGrokImageOptions(options.model, {
     imageSize: options.imageSize,
@@ -76,7 +77,7 @@ export const runGrokImageGen = async (
           ...(quality ? { quality } : {})
         }, { errorMessagePrefix: 'Grok image generation failed' })
 
-      const imagePaths = await writeOpenAIImageResponseData(result, context.outputDir, 'jpg')
+      const imagePaths = await writeOpenAIImageResponseData(result, context.outputDir, 'jpg', { model: options.model, recoveryDir })
       if (imagePaths.length === 0) {
         throw InfraError('No image data in Grok response', { stage: 'image:grok' })
       }

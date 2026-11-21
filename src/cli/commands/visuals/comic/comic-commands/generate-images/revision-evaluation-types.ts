@@ -81,7 +81,7 @@ export type PanelLedger = {
   planFingerprint: string
   panelNumber: number
   originalSha256: string
-  imageSlot?: { status: SlotStatus; attempts: number; startedAt: string; completedAt?: string; error?: string; estimatedCostUsd?: number; usage?: { imageInputUnits: number; textInputUnits: number; outputUnits: number } }
+  imageSlot?: { provider?: string; model?: string; status: SlotStatus; attempts: number; startedAt: string; completedAt?: string; error?: string; estimatedCostUsd?: number; usage?: { imageInputUnits: number; textInputUnits: number; outputUnits: number } }
   candidateSha256?: string
   comparisonSlots: Array<{ provider: string; model: string; pass: 1 | 2; status: SlotStatus; attempts: number; startedAt: string; completedAt?: string; error?: string; usage?: { inputTokens: number; outputTokens: number; costUsd: number }; normalized?: RevisionComparisonNormalized }>
   similarity?: SimilarityMeasurements
@@ -101,6 +101,7 @@ export type RevisionEvaluationDependencies = {
 }
 
 export type RevisionEvaluationResult = {
+  imageModel: string
   evidenceDirectory: string
   planFingerprint: string
   ledgers: PanelLedger[]
@@ -108,9 +109,9 @@ export type RevisionEvaluationResult = {
   promotedPanels: number[]
 }
 
-export type LoadedRevisionEntry = RevisionPlanEntry & { originalPath: string; contractPath: string; bundleData: PanelBundleData; referencesResolved: ResolvedReferenceImages }
+export type LoadedRevisionEntry = RevisionPlanEntry & { originalPath: string; contractPath: string; bundleData: PanelBundleData; referencesResolved: ResolvedReferenceImages; existingLedger?: PanelLedger }
 
-export type LoadedRevisionPlan = { plan: RevisionPlan; planPath: string; entries: LoadedRevisionEntry[]; evidenceDirectory: string }
+export type LoadedRevisionPlan = { plan: RevisionPlan; planPath: string; entries: LoadedRevisionEntry[]; evidenceDirectory: string; imageModel: string; completedArchive?: PanelLedger[] }
 
 export type RevisionPriceInventory = {
   loaded: LoadedRevisionPlan

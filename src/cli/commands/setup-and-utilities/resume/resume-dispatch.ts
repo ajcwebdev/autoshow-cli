@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { resumeGeminiRemoteBatch } from '../../audio/tts/tts-services/tts-gemini/gemini-tts-batch-workflow'
 import { compactCompletedTtsRun } from '../../audio/tts/compact-tts-run'
 import { partialCompletionError } from '~/cli/commands/command-shared/provider-batch-state'
@@ -242,12 +243,12 @@ export const dispatchResume = async (
   flagOccurrences: readonly CliFlagOccurrence[] = []
 ): Promise<void> => {
   if (doubleDash.length > 0) {
-    throw UsageError(`Unexpected positional outputs after "--" for "resume": ${doubleDash.join(' ')}. Run: bun autoshow help resume`)
+    throw UsageError(`Unexpected positional outputs after "--" for "resume": ${doubleDash.join(' ')}. Run: ${CLI_INVOCATION} help resume`)
   }
 
   const outputDirs = normalizeOutputDirInputs(outputDirInput)
   if (outputDirs.length === 0) {
-    throw UsageError('Missing required output directory. Usage: bun autoshow resume <outputDirs...> [flags]')
+    throw UsageError(`Missing required output directory. Usage: ${CLI_INVOCATION} resume <outputDirs...> [flags]`)
   }
 
   const failures: Array<{ outputDir: string, message: string, error?: Record<string, unknown> }> = []

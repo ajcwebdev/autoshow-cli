@@ -57,17 +57,18 @@ describe('--max-model-cents', () => {
       'a test image',
       '--all-providers',
       '--max-model-cents',
-      '2',
+      '3.5',
       '--price', '--json'
     ])
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
+    // Default plans: Nano Banana 2.1 at 1K (3.36 cents), Grok at 1K low (4 cents), GPT Image 2.6 at 1024x1024 medium (4.347 cents).
     expect(result.exitCode).toBe(0)
-    expect(output).toContain('Excluded 3 provider/model targets')
-    expect(output).toContain('generated-image-openai-gpt-image-2.5-flare.png')
-    expect(output).toContain('generated-image-openai-gpt-image-2.5-sunburst.png')
-    expect(output).not.toContain('generated-image-gemini-gemini-3.1-flash-lite-image')
-    expect(output).not.toContain('generated-image-gemini-gemini-nano-banana-2.1')
+    expect(output).toContain('Excluded 3 provider/model targets over 3.500¢: openai/gpt-image-2.6-flare (4.347¢), openai/gpt-image-2.6-sunburst (4.347¢), grok/grok-imagine-image-2.0 (4.000¢)')
+    // Only Nano Banana 2.1 remains, so its single artifact carries no provider/model suffix.
+    expect(output).toContain('generated-image.png')
+    expect(output).not.toContain('generated-image-openai-gpt-image-2.6-flare')
+    expect(output).not.toContain('generated-image-openai-gpt-image-2.6-sunburst')
     expect(output).not.toContain('generated-image-grok-grok-imagine-image-2.0')
   })
 
@@ -78,16 +79,17 @@ describe('--max-model-cents', () => {
       'a test video',
       '--all-providers',
       '--max-model-cents',
-      '80',
+      '65',
       '--price', '--json'
     ])
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`)
 
+    // Default budgets: Omni 1.2 10 seconds at 720p (69.504 cents); Grok 1.5 8 seconds at 480p (64 cents).
     expect(result.exitCode).toBe(0)
-    expect(output).toContain('Excluded 1 provider/model target over 80.000¢: gemini/gemini-omni-1.1-flash')
+    expect(output).toContain('Excluded 1 provider/model target over 65.000¢: gemini/gemini-omni-1.2-flash')
     expect(output).toContain('generated-video-grok-grok-imagine-video-1.5.mp4')
     expect(output).toContain('generated-video-grok-grok-imagine-video-1.5-lite.mp4')
-    expect(output).not.toContain('generated-video-gemini-gemini-omni-1.1-flash.mp4')
+    expect(output).not.toContain('generated-video-gemini-gemini-omni-1.2-flash.mp4')
   })
 
   test('filters music targets and expected artifacts in price mode', async () => {

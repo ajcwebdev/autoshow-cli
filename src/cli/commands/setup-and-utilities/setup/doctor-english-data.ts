@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { join } from 'node:path'
 import type { DoctorToolProvenance } from '~/types'
 import { RUNTIME_DIR, resolveTessdataPrefix, toProjectDisplayPath } from '~/utils/runtime-paths'
@@ -31,7 +32,7 @@ export const validateReadOnlyEnglishData = async (prefix: string | undefined, op
       const actual = await englishDataHash(managedFile)
       if (actual !== native.sha256 && actual !== packaged?.sha256) return { healthy: false, reason: `Managed Tesseract English data at ${toProjectDisplayPath(managedFile)} does not match a trusted English model checksum.` }
     } else {
-      if (!packaged) return { healthy: false, reason: 'Packaged Tesseract English data is unavailable; run bun autoshow setup --step ocr.' }
+      if (!packaged) return { healthy: false, reason: `Packaged Tesseract English data is unavailable; run ${CLI_INVOCATION} setup --step ocr.` }
       if (!pathIsPhysicallyWithinRoot(runtimeRoot, packaged.path)) return { healthy: false, reason: 'Packaged Tesseract English data resolves outside runtime.' }
       const packagedDirectory = packaged.path.slice(0, -'/eng.traineddata'.length)
       if (resolveTessdataPrefix(packagedDirectory) !== packagedDirectory || await englishDataHash(packaged.path) !== packaged.sha256) return { healthy: false, reason: 'Packaged Tesseract English data does not match its managed package receipt.' }

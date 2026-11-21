@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -67,7 +68,7 @@ const loadSceneBlocking = async (input: {
   const planSha256 = await hashFile(planPath)
   const structuredScriptSha256 = await hashFile(getStructuredScriptPath(input.sceneSlug))
   if (plan.structuredScriptSha256 !== structuredScriptSha256) {
-    throw ValidationError(`Blocking plan at ${planPath} was drafted against a different structured script; run "bun autoshow comic draft-scenes <script-path> --only blocking --rebind" first.`, { stage: STAGE })
+    throw ValidationError(`Blocking plan at ${planPath} was drafted against a different structured script; run "${CLI_INVOCATION} comic draft-scenes <script-path> --only blocking --rebind" first.`, { stage: STAGE })
   }
   const bindingsPath = getBlockingBindingsPathForWorkspace(input.workspaceDirectory)
   let bindings: BlockingBindings | undefined

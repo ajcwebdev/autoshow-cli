@@ -1,4 +1,7 @@
 import { describe, expect, test } from 'bun:test'
+import { collectVideoTargets } from '~/cli/commands/visuals/video/video-targets'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
+import { redDotPng } from '../../../../../test-utils/media-fixtures'
 import {
   inlineVideo,
   installMockFetch,
@@ -11,7 +14,7 @@ import {
 const omniVideoResponse = (overrides?: Record<string, unknown>) => jsonResponse({
   id: 'v1_omni-test',
   status: 'completed',
-  model: 'gemini-omni-1.1-flash',
+  model: 'gemini-omni-1.2-flash',
   object: 'interaction',
   steps: [{
     type: 'model_output',
@@ -25,6 +28,36 @@ const omniVideoResponse = (overrides?: Record<string, unknown>) => jsonResponse(
 })
 
 describe('video provider REST contracts', () => {
+  test('Omni 1.2 sends six reference images and rejects a seventh before dispatch', async () => {
+    // https://aistudio.google.com/docs/omni#subject-reference
+    process.env['GEMINI_API_KEY'] = 'gemini-key'
+    const calls = installMockFetch(() => omniVideoResponse())
+    const data = Buffer.from(redDotPng).toString('base64')
+    const reference = `data:image/png;base64,${data}`
+    const collect = (count: number) => collectVideoTargets(buildOptsFromFlags({
+      'gemini-video': 'gemini-omni-1.2-flash',
+      mode: 'reference-to-video',
+      'reference-image': Array<string>(count).fill(reference)
+    }))
+
+    expect(() => collect(7)).toThrow('--reference-image supports at most 6 images')
+    expect(calls).toHaveLength(0)
+    const [target] = collect(6)
+    if (!target) throw new Error('Expected a Gemini video target')
+    await withTempDir(async dir => {
+      await expect(runGeminiVideoGen('Animate the subject', dir, {
+        model: 'gemini-omni-1.2-flash', mode: 'reference-to-video', referenceImages: Array<string>(7).fill(reference)
+      })).rejects.toThrow('--reference-image supports at most 6 images')
+      expect(calls).toHaveLength(0)
+      await target.run('Animate the subject', dir)
+    })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.bodyJson).toMatchObject({
+      model: 'gemini-omni-1.2-flash',
+      input: [...Array(6).fill({ type: 'image', data, mime_type: 'image/png' }), { type: 'text' }]
+    })
+  })
+
   test('Gemini Omni sends Interactions payloads for image and interpolation modes', async () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
     const calls = installMockFetch((call) => {
@@ -38,12 +71,12 @@ describe('video provider REST contracts', () => {
       const { imagePath, lastFramePath } = await writeMediaFixtures(dir)
 
       await runGeminiVideoGen('animate image', dir, {
-        model: 'gemini-omni-1.1-flash',
+        model: 'gemini-omni-1.2-flash',
         mode: 'image-to-video',
         inputImage: imagePath
       })
       await runGeminiVideoGen('transition', dir, {
-        model: 'gemini-omni-1.1-flash',
+        model: 'gemini-omni-1.2-flash',
         mode: 'interpolate',
         inputImage: imagePath,
         lastFrameImage: lastFramePath
@@ -54,7 +87,7 @@ describe('video provider REST contracts', () => {
     const imageBase64 = Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')
     expect(postBodies).toHaveLength(2)
     expect(postBodies[0]).toMatchObject({
-      model: 'gemini-omni-1.1-flash',
+      model: 'gemini-omni-1.2-flash',
       store: true,
       background: false,
       stream: false,
@@ -93,7 +126,7 @@ describe('video provider REST contracts', () => {
 
     await withTempDir(async (dir) => {
       await runGeminiVideoGen('Make the violin invisible.', dir, {
-        model: 'gemini-omni-1.1-flash',
+        model: 'gemini-omni-1.2-flash',
         mode: 'edit',
         previousInteractionId: 'v1_previous',
         durationSeconds: 8,
@@ -103,7 +136,7 @@ describe('video provider REST contracts', () => {
     })
 
     expect(calls[0]?.bodyJson).toMatchObject({
-      model: 'gemini-omni-1.1-flash',
+      model: 'gemini-omni-1.2-flash',
       previous_interaction_id: 'v1_previous',
       input: 'Make the violin invisible.',
       response_format: {

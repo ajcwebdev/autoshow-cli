@@ -110,7 +110,7 @@ describe('Gemini REST contracts', () => {
     })
 
     await withTempDir(async (dir) => {
-      await expect(runGeminiImageGen('a lighthouse', dir, { model: 'gemini-3.1-flash-lite-image' }))
+      await expect(runGeminiImageGen('a lighthouse', dir, { model: 'gemini-nano-banana-2.1' }))
         .rejects.toThrow()
     })
 

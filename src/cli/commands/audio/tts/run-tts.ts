@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import type { PipelineProviderState, SanitizedProviderError, Step4Metadata, TtsExecutionReadinessObservation, TtsOptions, TtsRunSourceContext, TtsTarget, WorkingTtsMetadata, WorkingTtsResult } from '~/types'
 import { buildPureCurrentTtsRenderPlan } from './script-to-audio/attempt-planning'
 import { sanitizeModelName, runTargets } from '~/cli/commands/command-shared/target-runner'
@@ -55,7 +56,7 @@ const describeFailedTtsRecovery = async (options: {
     const redispatchFlag = '--allow-ambiguous-redispatch'
     const manifest = await readManifest(options.rootDir)
     const resumeHint = manifest?.scope === 'batch'
-      ? `Run bun autoshow resume ${options.rootDir} ${redispatchFlag}`
+      ? `Run ${CLI_INVOCATION} resume ${options.rootDir} ${redispatchFlag}`
       : `Rerun the same command with ${redispatchFlag}`
     return `${checkpoint} ${blockedSlotCount} unresolved ${blockedSlotCount === 1 ? 'slot has' : 'slots have'} ambiguous provider admission. ${resumeHint} to reconcile those slots, reuse retained audio, and resume without deleting the output directory; authorized slots may be purchased again.`
   } catch {

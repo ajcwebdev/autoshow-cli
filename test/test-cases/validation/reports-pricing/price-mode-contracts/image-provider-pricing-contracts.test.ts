@@ -4,7 +4,7 @@ import { estimateImageCosts } from '~/cli/commands/visuals/image/image-utils/ima
 
 const openaiStep5 = (imageSize: string, imageQuality: string, imageWidth: number, imageHeight: number) => ({
   imageService: 'openai' as const,
-  imageModel: 'gpt-image-2.5-flare',
+  imageModel: 'gpt-image-2.6-flare',
   processingTime: 10_000,
   imageFileNames: ['generated-image.png'],
   imageCount: 1,
@@ -44,23 +44,24 @@ describe('price mode contracts', () => {
 
   test('OpenAI actual fallback cost preserves image options', () => {
       const lowSquare = computeActualCosts({ step5: openaiStep5('1024x1024', 'low', 1024, 1024) })
-      const lowSquareEstimate = estimateImageCosts({ openaiImageModels: ['gpt-image-2.5-flare'], imageSize: '1024x1024', imageQuality: 'low' })[0]?.costPerImageCents
+      const lowSquareEstimate = estimateImageCosts({ openaiImageModels: ['gpt-image-2.6-flare'], imageSize: '1024x1024', imageQuality: 'low' })[0]?.costPerImageCents
 
       expect(lowSquare.steps[0]).toMatchObject({
         step: 'image',
         provider: 'openai',
-        model: 'gpt-image-2.5-flare',
-        cost: 0.588
+        model: 'gpt-image-2.6-flare',
+        // GPT Image 2.6 low: 196 calculator grid tokens x 4.2 = 823 output tokens at $30 per 1M.
+        cost: 2.469
       })
       expect(lowSquare.steps[0]?.cost).toBe(lowSquareEstimate)
 
       const highPortrait = computeActualCosts({ step5: openaiStep5('1024x1536', 'high', 1024, 1536) })
-      const highPortraitEstimate = estimateImageCosts({ openaiImageModels: ['gpt-image-2.5-flare'], imageSize: '1024x1536', imageQuality: 'high' })[0]?.costPerImageCents
+      const highPortraitEstimate = estimateImageCosts({ openaiImageModels: ['gpt-image-2.6-flare'], imageSize: '1024x1536', imageQuality: 'high' })[0]?.costPerImageCents
 
       expect(highPortrait.steps[0]).toMatchObject({
         step: 'image',
         provider: 'openai',
-        model: 'gpt-image-2.5-flare',
+        model: 'gpt-image-2.6-flare',
         cost: 4.116
       })
       expect(highPortrait.steps[0]?.cost).toBe(highPortraitEstimate)

@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { createRequire } from 'node:module'
 import { isAbsolute, join, relative } from 'node:path'
 import { realpath } from 'node:fs/promises'
@@ -31,7 +32,7 @@ export const loadAlignmentRuntime = async (projectRoot = PROJECT_ROOT): Promise<
     process.env['ORT_DISABLE_TELEMETRY'] = '1'
     return require('onnxruntime-node') as OnnxRuntime
   } catch (cause) {
-    throw UsageError(`Local ONNX alignment runtime is unavailable. Run bun autoshow setup --step alignment. ${cause instanceof Error ? cause.message : String(cause)}`)
+    throw UsageError(`Local ONNX alignment runtime is unavailable. Run ${CLI_INVOCATION} setup --step alignment. ${cause instanceof Error ? cause.message : String(cause)}`)
   }
 }
 

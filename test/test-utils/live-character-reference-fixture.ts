@@ -24,7 +24,7 @@ export const createLiveCharacterFixture = async (
   await writeFile(join(charactersRoot, 'characters-reference.json'), JSON.stringify({ schemaVersion: 3, characters, groupAliases: [] }))
   await writeFile(join(charactersRoot, 'character-sketches.json'), JSON.stringify({
     schemaVersion: 1,
-    sketches: characters.map(character => ({ characterKey: character.key, generationId: `canonical-${character.key}`, origin: 'generated', sourceImage: character.image, outlineSheet: character.outlineSheet, sourceSha256: sha256, sheetSha256: sha256, model: 'gpt-image-2.5-sunburst', createdAt: '2026-10-26T00:00:00.000Z' })),
+    sketches: characters.map(character => ({ characterKey: character.key, generationId: `canonical-${character.key}`, origin: 'generated', sourceImage: character.image, outlineSheet: character.outlineSheet, sourceSha256: sha256, sheetSha256: sha256, model: 'gpt-image-2.6-sunburst', createdAt: '2026-10-26T00:00:00.000Z' })),
   }))
   configureCharactersRoot(charactersRoot)
   return { charactersRoot, catalog: loadCharacterCatalog(charactersRoot) }

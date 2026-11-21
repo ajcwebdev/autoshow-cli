@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { rm } from 'node:fs/promises'
 import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { basename, join } from 'node:path'
@@ -26,8 +27,8 @@ export const resolveEbookConvertCommand = (
     if (resolved) return resolved.path
     throw InfraError(
       `Calibre is required to convert normalizable ebook files (${CONVERTIBLE_EBOOK_FORMAT_LABEL}) to EPUB. ` +
-      'Install it with: bun autoshow setup --step calibre',
-      { stage: 'download:document', hints: ["Run 'bun autoshow setup --step calibre' to install Calibre"] }
+      `Install it with: ${CLI_INVOCATION} setup --step calibre`,
+      { stage: 'download:document', hints: [`Run '${CLI_INVOCATION} setup --step calibre' to install Calibre`] }
     )
   }
   const requested = resolveCalibreBin('ebook-convert')
@@ -35,8 +36,8 @@ export const resolveEbookConvertCommand = (
   if (!ebookConvert) {
     throw InfraError(
       `Calibre is required to convert normalizable ebook files (${CONVERTIBLE_EBOOK_FORMAT_LABEL}) to EPUB. ` +
-      'Install it with: bun autoshow setup',
-      { stage: 'download:document', hints: ["Run 'bun autoshow setup' to install yt-dlp and other dependencies"] }
+      `Install it with: ${CLI_INVOCATION} setup`,
+      { stage: 'download:document', hints: [`Run '${CLI_INVOCATION} setup' to install yt-dlp and other dependencies`] }
     )
   }
 

@@ -7,19 +7,19 @@ import { collectMusicTargets } from '~/cli/commands/audio/music/music-targets'
 describe('provider selection contracts', () => {
   test('Image and video flags select targets and participate in all-provider shortcuts', () => {
     const explicitOpts = buildOptsFromFlags({
-      'openai-image': ['gpt-image-2.5-sunburst'],
+      'openai-image': ['gpt-image-2.6-sunburst'],
       'grok-video': ['grok-imagine-video-1.5'],
-      'gemini-video': ['gemini-omni-1.1-flash']
+      'gemini-video': ['gemini-omni-1.2-flash']
     })
 
-    expect(explicitOpts.openaiImageModels).toEqual(['gpt-image-2.5-sunburst'])
+    expect(explicitOpts.openaiImageModels).toEqual(['gpt-image-2.6-sunburst'])
     expect(explicitOpts.grokVideoModels).toEqual(['grok-imagine-video-1.5'])
-    expect(explicitOpts.geminiVideoModels).toEqual(['gemini-omni-1.1-flash'])
+    expect(explicitOpts.geminiVideoModels).toEqual(['gemini-omni-1.2-flash'])
     expect(collectImageTargets(explicitOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'openai:gpt-image-2.5-sunburst'
+      'openai:gpt-image-2.6-sunburst'
     ])
     expect(collectVideoTargets(explicitOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'gemini:gemini-omni-1.1-flash',
+      'gemini:gemini-omni-1.2-flash',
       'grok:grok-imagine-video-1.5'
     ])
 
@@ -29,29 +29,27 @@ describe('provider selection contracts', () => {
     })
 
     expect(allOpts.geminiVideoModels).toEqual([
-      'gemini-omni-1.1-flash'
+      'gemini-omni-1.2-flash'
     ])
     expect(allOpts.geminiImageModels).toEqual([
-      'gemini-3.1-flash-lite-image',
       'gemini-nano-banana-2.1'
     ])
     expect(allOpts.openaiImageModels).toEqual([
-      'gpt-image-2.5-flare',
-      'gpt-image-2.5-sunburst'
+      'gpt-image-2.6-flare',
+      'gpt-image-2.6-sunburst'
     ])
     expect(allOpts.grokVideoModels).toEqual([
       'grok-imagine-video-1.5',
       'grok-imagine-video-1.5-lite'
     ])
     expect(collectImageTargets(allOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'gemini:gemini-3.1-flash-lite-image',
       'gemini:gemini-nano-banana-2.1',
-      'openai:gpt-image-2.5-flare',
-      'openai:gpt-image-2.5-sunburst',
+      'openai:gpt-image-2.6-flare',
+      'openai:gpt-image-2.6-sunburst',
       'grok:grok-imagine-image-2.0'
     ])
     expect(collectVideoTargets(allOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'gemini:gemini-omni-1.1-flash',
+      'gemini:gemini-omni-1.2-flash',
       'grok:grok-imagine-video-1.5',
       'grok:grok-imagine-video-1.5-lite'
     ])
@@ -61,7 +59,7 @@ describe('provider selection contracts', () => {
     for (const flag of ['fal-image', 'fal-video'] as const) {
       expect(() => buildOptsFromFlags({ [flag]: ['alibaba/qwen-image-3'] })).toThrow(`Provider selections ${flag} are no longer supported`)
     }
-    expect(() => buildOptsFromFlags({ 'openai-image': ['gpt-image-2'] })).toThrow('Allowed values: gpt-image-2.5-flare, gpt-image-2.5-sunburst')
+    expect(() => buildOptsFromFlags({ 'openai-image': ['gpt-image-2'] })).toThrow('Allowed values: gpt-image-2.6-flare, gpt-image-2.6-sunburst')
   })
 
   test('Gemini music flag selects targets and participates in all-music shortcut', () => {

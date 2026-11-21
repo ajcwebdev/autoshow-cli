@@ -19,11 +19,11 @@ describe('registry rate source contracts', () => {
       grokImageModels: ['grok-imagine-image-2.0'], imageSize: '2K', imageQuality: 'medium'
     } as never)[0]?.costPerImageCents).toBe(grokImageRate as number)
 
-    const geminiImage = registry.image['gemini']?.models['gemini-3.1-flash-lite-image']
+    const geminiImage = registry.image['gemini']?.models['gemini-nano-banana-2.1']
     const geminiRate = geminiImage?.costPerImageBySizeCents?.['1K']
     expect(geminiRate).toBeDefined()
     expect(estimateImageCosts({
-      geminiImageModels: ['gemini-3.1-flash-lite-image'], imageSize: '1K'
+      geminiImageModels: ['gemini-nano-banana-2.1'], imageSize: '1K'
     } as never)[0]?.costPerImageCents).toBe(geminiRate as number)
 
     const grokVideo = registry.video['grok']?.models['grok-imagine-video-1.5']
@@ -35,11 +35,11 @@ describe('registry rate source contracts', () => {
       grokVideoModels: ['grok-imagine-video-1.5'], videoResolution: '1080p', videoDuration: 5
     } as never)[0]?.costPerSecond).toBe((base as number) * (multiplier as number))
 
-    const geminiVideo = registry.video['gemini']?.models['gemini-omni-1.1-flash']
+    const geminiVideo = registry.video['gemini']?.models['gemini-omni-1.2-flash']
     const geminiPerSecond = geminiVideo?.costPerSecondByResolutionCents?.['720p']
     expect(geminiPerSecond).toBeDefined()
     expect(estimateVideoCosts({
-      geminiVideoModels: ['gemini-omni-1.1-flash'], videoResolution: '720p', videoDuration: 5
+      geminiVideoModels: ['gemini-omni-1.2-flash'], videoResolution: '720p', videoDuration: 5
     } as never)[0]?.costPerSecond).toBe(geminiPerSecond as number)
   })
 

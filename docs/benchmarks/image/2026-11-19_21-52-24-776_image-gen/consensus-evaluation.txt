@@ -1,0 +1,45 @@
+Image consensus evaluation
+
+Run directory: docs/benchmarks/image/2026-11-19_21-52-24-776_image-gen
+Category: image
+Evidence source: canonical manifest, consensus packet, local full-frame decoding and SHA-256 hashes.
+
+This evaluation uses measurable evidence only. No image was viewed or visually assessed. Visual quality, prompt adherence, text legibility and human preference remain unmeasured; file size, dimensions, cost and speed are not quality proxies.
+
+Scope
+
+- Prompt: technical pipeline infographic. It reuses the prompt of the removed 2026-05-21 image benchmark of the same subject.
+- Command: bun autoshow image "<prompt>" --all-providers with CLI defaults (manifest created 2026-11-20T03:53:03.840Z) and no size or quality flags.
+- Providers: 4 service providers, 0 local providers; every currently implemented image model after the 2026-11-19 catalog change.
+- Every provider completed in one attempt and its single image artifact is present; local full-frame decoding passed for all 4 files.
+- Packet warnings: none.
+
+Recorded output
+
+- gemini/gemini-nano-banana-2.1: jpeg, 1376x768 (1.057 MP), 478455 bytes; request size 1K.
+- openai/gpt-image-2.6-flare: png, 1024x1536 (1.573 MP), 1337667 bytes; request size auto, quality auto.
+- openai/gpt-image-2.6-sunburst: png, 1230x1278 (1.572 MP), 1383108 bytes; request size auto, quality auto.
+- grok/grok-imagine-image-2.0: jpeg, 720x1280 (0.922 MP), 208231 bytes; request size 1k, quality low.
+
+Recorded processing time, fastest to slowest
+
+1. grok/grok-imagine-image-2.0: 10978 ms
+2. gemini/gemini-nano-banana-2.1: 13001 ms
+3. openai/gpt-image-2.6-flare: 14779 ms
+4. openai/gpt-image-2.6-sunburst: 33847 ms
+
+Recorded cost, lowest to highest
+
+1. gemini/gemini-nano-banana-2.1: 3.36 cents (registry rate; no provider usage recorded); preflight estimate 3.36 cents.
+2. grok/grok-imagine-image-2.0: 4 cents (provider usage); preflight estimate 4 cents.
+3. openai/gpt-image-2.6-sunburst: 5.9875 cents (provider usage; 143 text input and 1972 image output tokens); preflight estimate 4.347 cents.
+4. openai/gpt-image-2.6-flare: 7.4485 cents (provider usage; 143 text input and 2459 image output tokens); preflight estimate 4.347 cents.
+
+Run total: 20.796 cents recorded against a 16.054 cents preflight estimate. OpenAI auto selected its own dimensions and quality, so recorded output tokens differ from the 1,449-token 1024x1024 medium planning assumption. Provider-reported usage is not a reconciled invoice.
+
+Artifact SHA-256
+
+- generated-image-gemini-gemini-nano-banana-2.1.jpg: 2a6000d26bf13ee5028edf8941bddd218b666fcde495adc3446d416e58b680f7
+- generated-image-openai-gpt-image-2.6-flare.png: faabd377ab8d48d8f2ba55f981d372136ba6eb118782bd128ed9096076391fe3
+- generated-image-openai-gpt-image-2.6-sunburst.png: fbe2c5c38f2c0593593402ff813cab4daf8c250528afa3cd01a3a0159df75c4e
+- generated-image-grok-grok-imagine-image-2.0.jpg: d9ce648b4e4a9deb4a74857dcfcde4566abafa75dafd24f76bb51f22e65b4926

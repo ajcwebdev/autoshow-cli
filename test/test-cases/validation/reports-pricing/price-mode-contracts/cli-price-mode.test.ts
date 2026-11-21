@@ -29,12 +29,12 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'image',
-    args: ['image', 'a sunset over a lake', '--provider', 'openai=gpt-image-2.5-flare', '--price', '--json'],
+    args: ['image', 'a sunset over a lake', '--provider', 'openai=gpt-image-2.6-flare', '--price', '--json'],
     expected: 'generated-image'
   },
   {
     label: 'video',
-    args: ['video', 'a sunset over a lake', '--provider', 'gemini=gemini-omni-1.1-flash', '--price', '--json'],
+    args: ['video', 'a sunset over a lake', '--provider', 'gemini=gemini-omni-1.2-flash', '--price', '--json'],
     expected: 'video'
   },
   {

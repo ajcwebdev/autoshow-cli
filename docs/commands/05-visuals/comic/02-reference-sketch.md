@@ -4,7 +4,7 @@ Generate a three-view character sheet, or one registered location view. The [Har
 
 ## Options
 
-Choose exactly one `--character <key>` or `--location <key>` and one image `--provider provider[=model]` (default `openai=gpt-image-2.5-flare`). Character defaults are `1024x1536`, medium quality; location defaults are `1536x1024`, high quality. Size/quality support follows the [image model](../image/overview.md).
+Choose exactly one `--character <key>` or `--location <key>` and one image `--provider provider[=model]` (default `openai=gpt-image-2.6-flare`). Character defaults are `1024x1536`, medium quality; location defaults are `1536x1024`, high quality. Size/quality support follows the [image model](../image/overview.md).
 
 `--revise --notes <text>` requires an existing registered asset; it never falls back to fresh generation. `--view establishing|reverse|side`, `--llm-provider`, `--qa`/`--no-qa`, `--qa-provider`, and `--max-repairs` apply only to locations. Defaults: establishing view, text/QA `gpt-6.1-sol`, QA enabled, two repairs. Shared request concurrency defaults to 7 and hosted mode to `ramp`.
 
@@ -18,14 +18,14 @@ ROOT=runtime/examples/harborlight-comic-references
 CAST="$ROOT/characters"
 RUN="$ROOT/run"
 CONFIG="$ROOT/empty-config.json"
-bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --view reverse --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --character papa-bear --provider openai=gpt-image-2.6-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --view reverse --provider openai=gpt-image-2.6-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 Estimate the accepted calls with QA/retries before removing `--price`. A registered location view is reused at zero provider cost; replacing it requires revision:
 
 ```bash
-bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --revise --notes "Preserve the fire ring, bench, north path, and two pine trees; keep the campsite empty" --provider openai=gpt-image-2.5-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic reference-sketch --location harborlight-camp --revise --notes "Preserve the fire ring, bench, north path, and two pine trees; keep the campsite empty" --provider openai=gpt-image-2.6-flare --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 Inspect replacements before use, then restore the main walkthrough's variables.

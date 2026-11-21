@@ -19,7 +19,7 @@ describe('config image and TTS default contracts', () => {
   test('explicit all-provider shortcuts suppress saved provider selections while retaining shared controls', () => {
     const config = { defaults: {
       tts: { elevenlabsTts: ['eleven_v3'], speed: '1.2' },
-      image: { openaiImage: ['gpt-image-2.5-flare'], count: 2 },
+      image: { openaiImage: ['gpt-image-2.6-flare'], count: 2 },
       video: { grokVideo: ['grok-imagine-video-1.5'], duration: 8 },
       music: { geminiMusic: ['lyria-3.5'], duration: 20 }
     } } as Parameters<typeof mergeConfigIntoRawFlags>[1]
@@ -38,9 +38,9 @@ describe('config image and TTS default contracts', () => {
 
   test('buildConfigPatchFromFlags saves hosted image defaults', () => {
     expectConfigPatchRoundTrip({
-      'openai-image': ['gpt-image-2.5-sunburst'],
+      'openai-image': ['gpt-image-2.6-sunburst'],
     }, 'image', {
-      openaiImage: ['gpt-image-2.5-sunburst'],
+      openaiImage: ['gpt-image-2.6-sunburst'],
     }, { merge: false })
   })
 

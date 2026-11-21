@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import type { GenerateSketchesCommandOptions, ImageGenerationQuality, ImageGenerationSize, SceneSketchCount } from '~/types'
@@ -45,7 +46,7 @@ export const estimateGenerateSketchesPrice = async (
   const panelPromptsDir = getPanelPromptsDirectory(sceneSlug)
 
   if (!existsSync(panelPromptsDir)) {
-    priceNotice('No stable panel prompt bundles found. Run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" first.', {
+    priceNotice(`No stable panel prompt bundles found. Run "${CLI_INVOCATION} comic draft-scenes <script-path> --only panel-prompts" first.`, {
       scene: sceneSlug,
       panelPromptsDir
     })

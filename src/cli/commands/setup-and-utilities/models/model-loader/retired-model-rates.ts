@@ -199,7 +199,25 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
     'recraft:recraftv4_1_pro': { costPerImageCents: 25 },
     'recraft:recraftv4_1_utility_pro': { costPerImageCents: 25 },
     'reve:latest': { costPerImageCents: 0.13333333333333333 },
-    'reve:reve-create@20250915': { costPerImageCents: 0.13333333333333333 }
+    'reve:reve-create@20250915': { costPerImageCents: 0.13333333333333333 },
+    // Retired 2026-11-19 by user decision; GPT Image 2.5 token rates keep the calculator pricing finished runs.
+    'gemini:gemini-3.1-flash-lite-image': { costPerImageCents: 3.36, costPerImageBySizeCents: { '1K': 3.36 } },
+    'openai:gpt-image-2.5-flare': {
+      costPerImageCents: 1.317,
+      textInputCostPer1MCents: 500,
+      cachedTextInputCostPer1MCents: 125,
+      imageInputCostPer1MCents: 800,
+      cachedImageInputCostPer1MCents: 200,
+      imageOutputCostPer1MCents: 3000
+    },
+    'openai:gpt-image-2.5-sunburst': {
+      costPerImageCents: 1.317,
+      textInputCostPer1MCents: 500,
+      cachedTextInputCostPer1MCents: 125,
+      imageInputCostPer1MCents: 800,
+      cachedImageInputCostPer1MCents: 200,
+      imageOutputCostPer1MCents: 3000
+    }
   },
   music: {
     'elevenlabs:music_v1': { costPerMinuteCents: 15 },
@@ -242,6 +260,11 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
       resolutionMultiplier720p: 1.4,
       inputImageCostCents: 0.2,
       inputVideoCostPerSecondCents: 1
+    },
+    // Retired 2026-11-19 ahead of Google's 2026-12-03 route to gemini-omni-1.2-flash; the flat rate prices finished runs.
+    'gemini:gemini-omni-1.1-flash': {
+      baseCostPerSecondCents: 10,
+      costPerSecondByResolutionCents: { '360p': 10, '720p': 10, '1080p': 10, '4k': 10 }
     }
   }
 }
@@ -275,8 +298,11 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
   image: {
     'grok:grok-imagine-image': 'grok-imagine-image-2.0',
     'grok:grok-imagine-image-quality': 'grok-imagine-image-2.0',
-    'gemini:gemini-3.1-flash-image': 'gemini-3.1-flash-lite-image',
-    'gemini:gemini-3-pro-image': 'gemini-3.1-flash-lite-image'
+    'gemini:gemini-3.1-flash-image': 'gemini-nano-banana-2.1',
+    'gemini:gemini-3-pro-image': 'gemini-nano-banana-2.1',
+    'gemini:gemini-3.1-flash-lite-image': 'gemini-nano-banana-2.1',
+    'openai:gpt-image-2.5-flare': 'gpt-image-2.6-flare',
+    'openai:gpt-image-2.5-sunburst': 'gpt-image-2.6-sunburst'
   },
   music: {
     'elevenlabs:music_v1': 'music_v2',
@@ -285,9 +311,10 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
   },
   video: {
     'grok:grok-imagine-video': 'grok-imagine-video-1.5',
-    'gemini:veo-3.1-generate-preview': 'gemini-omni-1.1-flash',
-    'gemini:veo-3.1-fast-generate-preview': 'gemini-omni-1.1-flash',
-    'gemini:veo-3.1-lite-generate-preview': 'gemini-omni-1.1-flash'
+    'gemini:veo-3.1-generate-preview': 'gemini-omni-1.2-flash',
+    'gemini:veo-3.1-fast-generate-preview': 'gemini-omni-1.2-flash',
+    'gemini:veo-3.1-lite-generate-preview': 'gemini-omni-1.2-flash',
+    'gemini:gemini-omni-1.1-flash': 'gemini-omni-1.2-flash'
   }
 }
 

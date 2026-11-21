@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import { basename } from 'node:path'
 import type { BlockingLocationPlansRecord, BlockingRebindResult, StructuredScriptData } from '~/types'
@@ -37,9 +38,9 @@ export const readPreviousStructuredScriptSegments = async (sceneSlug: string): P
 export const rebindBlockingPlan = async (sceneSlug: string, options: { locationPlans?: BlockingLocationPlansRecord | undefined } = {}): Promise<RebindBlockingPlanResult> => {
   try {
     const planPath = getBlockingPlanPath(sceneSlug)
-    if (!existsSync(planPath)) throw ValidationError(`Blocking plan not found at ${planPath}. Run "bun autoshow comic draft-scenes <script-path> --only blocking" first.`, { stage: STAGE })
+    if (!existsSync(planPath)) throw ValidationError(`Blocking plan not found at ${planPath}. Run "${CLI_INVOCATION} comic draft-scenes <script-path> --only blocking" first.`, { stage: STAGE })
     const structuredScriptPath = getStructuredScriptPath(sceneSlug)
-    if (!existsSync(structuredScriptPath)) throw ValidationError(`Structured script not found at ${structuredScriptPath}. Run "bun autoshow comic draft-scenes <script-path> --only structure" first.`, { stage: STAGE })
+    if (!existsSync(structuredScriptPath)) throw ValidationError(`Structured script not found at ${structuredScriptPath}. Run "${CLI_INVOCATION} comic draft-scenes <script-path> --only structure" first.`, { stage: STAGE })
     const plan = await parseJsonFile(planPath, BlockingPlanSchema)
     const inputs = await loadBlockingPlanInputs(sceneSlug, { locationPlans: options.locationPlans, requireEstablishingImages: false })
     const structuredScriptSha256 = sha256Bytes(new Uint8Array(await Bun.file(structuredScriptPath).arrayBuffer()))

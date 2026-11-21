@@ -1,12 +1,27 @@
 import { getModelRegistry } from "../../../../../src/cli/commands/setup-and-utilities/models/model-loader/registry";
 import { SUPPORTED_MODEL_SOURCES } from "../../../../../src/cli/commands/setup-and-utilities/models/supported-model-sources";
 import { getStep2ProviderEntries } from "../../../../../src/cli/commands/command-shared/extract-routing/provider-registry";
-import { STANDALONE_TTS_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from "../../../../../src/cli/flags/service-selector-normalization/provider-targets";
+import {
+  STANDALONE_IMAGE_PROVIDER_TARGETS,
+  STANDALONE_MUSIC_PROVIDER_TARGETS,
+  STANDALONE_TTS_PROVIDER_TARGETS,
+  STANDALONE_VIDEO_PROVIDER_TARGETS,
+  WRITE_LLM_PROVIDER_TARGETS,
+} from "../../../../../src/cli/flags/service-selector-normalization/provider-targets";
 import { HOSTED_OCR_ADAPTERS } from "../../../../../src/cli/commands/text/ocr/hosted-ocr-adapters";
 import { URL_ARTICLE_PROVIDER_ADAPTERS } from "../../../../../src/cli/commands/text/url/url-provider-registry";
 import type { CombinedDashboardModel } from "./combined_report_html";
 
-type SupportCategory = "llm" | "tts" | "stt" | "extract";
+type SupportCategory = "llm" | "tts" | "stt" | "extract" | "image" | "video" | "music";
+type GenerationStep = "llm" | "tts" | "image" | "video" | "music";
+
+const GENERATION_PROVIDER_TARGETS: Readonly<Record<GenerationStep, Readonly<Record<string, string>>>> = {
+  llm: WRITE_LLM_PROVIDER_TARGETS,
+  tts: STANDALONE_TTS_PROVIDER_TARGETS,
+  image: STANDALONE_IMAGE_PROVIDER_TARGETS,
+  video: STANDALONE_VIDEO_PROVIDER_TARGETS,
+  music: STANDALONE_MUSIC_PROVIDER_TARGETS,
+};
 
 /** Only the live registry is accepted here; historical tariff accessors also return retired models. */
 export type DashboardModelSupportRegistry = Readonly<Record<SupportCategory, Readonly<Record<string, {
@@ -31,8 +46,8 @@ function isActiveModel(registry: DashboardModelSupportRegistry, step: SupportCat
   return lifecycle !== null && typeof lifecycle === "object" && "status" in lifecycle && lifecycle.status === "active";
 }
 
-function generationRoutes(step: "llm" | "tts", registry: DashboardModelSupportRegistry): SupportedRoute[] {
-  const providers = step === "llm" ? WRITE_LLM_PROVIDER_TARGETS : STANDALONE_TTS_PROVIDER_TARGETS;
+function generationRoutes(step: GenerationStep, registry: DashboardModelSupportRegistry): SupportedRoute[] {
+  const providers = GENERATION_PROVIDER_TARGETS[step];
   return SUPPORTED_MODEL_SOURCES.flatMap(source => {
     if (source.step !== step || !Object.hasOwn(providers, source.service)) return [];
     return source.models.filter(model => isActiveModel(registry, step, source.service, model))
@@ -75,6 +90,9 @@ export function supportedDashboardProviderKeys(
   switch (tabKey) {
     case "write": routes = generationRoutes("llm", registry); break;
     case "tts": routes = generationRoutes("tts", registry); break;
+    case "image": routes = generationRoutes("image", registry); break;
+    case "video": routes = generationRoutes("video", registry); break;
+    case "music": routes = generationRoutes("music", registry); break;
     case "ocr": routes = extractionRoutes("ocr", registry); break;
     case "url": routes = extractionRoutes("url", registry); break;
     case "stt-local": routes = extractionRoutes("stt", registry).filter(route => route.local); break;

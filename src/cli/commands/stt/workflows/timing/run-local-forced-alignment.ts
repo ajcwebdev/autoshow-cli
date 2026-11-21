@@ -5,6 +5,8 @@ import { mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type { TranscriptionEvidenceWord } from '~/types'
 import { getBunBinary, getFfmpegBinary, PROJECT_ROOT } from '~/utils/runtime-paths'
+import { IS_INSTALLED_CLI, SOURCE_ROOT } from '~/utils/project-root'
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { validateManagedJsRuntime } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-js-runtime'
 import { UsageError, ValidationError } from '~/utils/error-handler'
 import { captionTextKey, captionTimestampSeconds } from '../captions/caption-word-coverage'
@@ -42,11 +44,13 @@ export const runLocalForcedAlignment = async (audioInput: string, transcriptInpu
   const ordered = segments.toSorted((a, b) => a.begin - b.begin)
   if (ordered.some((segment, index) => index > 0 && segment.begin < ordered[index - 1]!.finish)) throw ValidationError('Forced alignment cannot resolve overlapping speech on one channel. Separate channels or provide non-overlapping reviewed spans.')
   const localModel = await readAlignmentModel(model)
-  const worker = join(PROJECT_ROOT, 'src/cli/commands/stt/workflows/timing/stt-onnx-worker.js')
-  const workerBun = Bun.isStandaloneExecutable ? getBunBinary() : undefined
-  if (Bun.isStandaloneExecutable) {
-    if (!(await validateManagedJsRuntime('bun')).ok) throw UsageError('Managed Bun provenance or executable integrity is invalid. Run bun autoshow setup --step toolchain.')
-    if (!await Bun.file(workerBun!).exists() || !await Bun.file(worker).exists()) throw UsageError('Compiled alignment requires the managed Bun runtime and bundled src/cli/commands/stt/workflows/timing/stt-onnx-worker.js. Run bun autoshow setup --step alignment; see the STT timing guide for compiled packaging.')
+  const worker = IS_INSTALLED_CLI
+    ? join(SOURCE_ROOT, 'stt-onnx-worker.js')
+    : join(PROJECT_ROOT, 'src/cli/commands/stt/workflows/timing/stt-onnx-worker.js')
+  const workerBun = IS_INSTALLED_CLI || Bun.isStandaloneExecutable ? getBunBinary() : undefined
+  if (workerBun) {
+    if (!(await validateManagedJsRuntime('bun')).ok) throw UsageError(`Managed Bun provenance or executable integrity is invalid. Run ${CLI_INVOCATION} setup --step toolchain.`)
+    if (!await Bun.file(workerBun).exists() || !await Bun.file(worker).exists()) throw UsageError(`Alignment requires managed Bun and the packaged stt-onnx-worker.js. Verify the application installation and run ${CLI_INVOCATION} setup --step alignment.`)
   } else await loadAlignmentRuntime()
   const work = join(output, 'alignment-work')
   for (const path of [work, join(output, 'result.json'), join(output, 'alignment.json')]) if (await statPath(path).catch(() => undefined)) throw ValidationError(`Alignment output already exists at ${path}; choose a new --output-dir.`)

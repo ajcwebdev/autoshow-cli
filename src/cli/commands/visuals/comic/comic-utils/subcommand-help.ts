@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { QA_ONLY_MODE_NOTES } from './comic-qa-only-contract'
 import { REFERENCE_LOCATION_OPTIONS_NOTE } from '~/cli/flags/reference-option-contract'
 import {
@@ -73,7 +74,7 @@ export const draftTreatmentCommandDefinition = defineCliCommand({
       'Makes one structured LLM call plus one validator retry, then writes input/scripts/<episode>-script/<scene>-<slug>.md so the NN-SC shorthand works for every later stage.',
       'Narration is written under NARRATION labels; quoted lines from --speaker characters become their dialogue and every other quote is folded into narration.',
       'New characters and locations are merged into the catalogs without touching existing keys. The style seed PNG named by --style-seed must already exist under the characters root.',
-      `Continue with bun autoshow comic ${DRAFT_SCENES_COMMAND} <episode>-<scene> --only structure, reference-sketch for every new key, then --only scene --panel-count <n>.`,
+      `Continue with ${CLI_INVOCATION} comic ${DRAFT_SCENES_COMMAND} <episode>-<scene> --only structure, reference-sketch for every new key, then --only scene --panel-count <n>.`,
       ARTIFACT_NOTE
     ]
   }
@@ -95,7 +96,7 @@ export const draftScenesCommandDefinition = defineCliCommand({
     notes: [
       'Stages run in order: structure, prompt, blocking, scene, panel-prompts. --only runs a single stage; --no-blocking skips the blocking stage in a full run and drafts the scene plan-free.',
       'The blocking stage binds to a reviewed metadata/scene.json automatically (writing metadata/blocking-bindings.json); --blocking-plan imports a plan and --rebind remaps citations, neither calling a provider.',
-      `Panel prompt bundles produced here are consumed by bun autoshow comic ${GENERATE_IMAGES_COMMAND}.`,
+      `Panel prompt bundles produced here are consumed by ${CLI_INVOCATION} comic ${GENERATE_IMAGES_COMMAND}.`,
       ARTIFACT_NOTE
     ]
   }
@@ -118,7 +119,7 @@ export const generateImagesCommandDefinition = defineCliCommand({
     ],
     notes: [
       'Reviewed scene and panel prompt bundles are required; --force only regenerates image outputs.',
-      `To rebuild panel prompts explicitly, run: bun autoshow comic ${DRAFT_SCENES_COMMAND} <script-path> --only panel-prompts`,
+      `To rebuild panel prompts explicitly, run: ${CLI_INVOCATION} comic ${DRAFT_SCENES_COMMAND} <script-path> --only panel-prompts`,
       'QA-only mode reads canonical individual panels and writes a separate audit report without generation, repairs, promotion, or image-manifest changes.',
       'QA options (--qa, --qa-provider, --max-repairs) only apply when --target is images or both.',
       'Revision mode uses exactly two order-swapped comparison judgments and requires explicit --promote clear-winners authorization. Only clear winners are promoted; candidates without that result remain separate.',

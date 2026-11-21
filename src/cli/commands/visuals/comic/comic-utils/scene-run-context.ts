@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createUniqueDirectoryName, sanitizeTitleSlug } from '~/cli/commands/sources/download/download-audio/metadata-utils'
@@ -42,7 +43,7 @@ export const beginSceneRun = (sceneSlug: string, options: BeginSceneRunOptions =
     if (!latest) {
       throw ValidationError(
         `No existing comic run found for "${sceneSlug}" under ${outputRoot}/. ` +
-        'Run "bun autoshow comic draft-scenes <script-path>" first, or pass --output-dir.',
+        `Run "${CLI_INVOCATION} comic draft-scenes <script-path>" first, or pass --output-dir.`,
         { stage: 'comic:scene-run' }
       )
     }

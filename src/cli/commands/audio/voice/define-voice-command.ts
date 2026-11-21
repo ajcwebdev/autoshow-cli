@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import type { CliCommandDefinition } from '~/types'
 import { DEFAULT_PROVIDER_VOICE_CATALOG_SOURCE, PROVIDER_VOICE_CATALOG_SOURCES } from '~/types'
 import { defineCliCommand } from '~/cli/native/native-types'
@@ -168,7 +169,7 @@ export const voiceCommand = defineCliCommand({
       ['bun autoshow voice audition --help', 'Audition a registration before approving it'],
     ],
     notes: [
-      'Each subcommand has its own flags: bun autoshow voice <subcommand> --help',
+      `Each subcommand has its own flags: ${CLI_INVOCATION} voice <subcommand> --help`,
       'Voice import and local registration management support all active TTS providers. Remote capabilities are checked per subcommand from the typed voice capability registry.',
       'OpenAI cloning is deferred. tts, write, resume, and synthesis price never create voices.'
     ]

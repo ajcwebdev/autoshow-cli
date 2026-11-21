@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
@@ -173,7 +174,7 @@ export const requireCurrentLocationReferenceSync = (rawLocation: string, options
   const entry = resolveLocationCatalogEntry(rawLocation, catalog)
   const manifest = readLocationSketchManifestSync()
   const registration = manifest.sketches.find(item => item.locationKey === entry.key)
-  if (!registration) throw ValidationError(`Location "${entry.key}" has no registered establishing reference. Run: bun autoshow comic reference-sketch --location ${entry.key}`, { stage: 'comic:location-reference' })
+  if (!registration) throw ValidationError(`Location "${entry.key}" has no registered establishing reference. Run: ${CLI_INVOCATION} comic reference-sketch --location ${entry.key}`, { stage: 'comic:location-reference' })
   if (options.requireCurrentSpecification !== false && registration.specificationSha256 !== specificationHash(entry.specification)) throw ValidationError(`Registered location reference for "${entry.key}" is stale`, { stage: 'comic:location-reference' })
   const views = []
   for (const view of registration.views) {

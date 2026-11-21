@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { resolve } from 'node:path'
 import { isLikelyUrl } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-classifier'
 import { classifyTopLevelTarget, isLikelyInputListFile } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-collection'
@@ -21,7 +22,7 @@ import { configureModelCostFilter } from '~/cli/commands/pricing-orchestration/m
 import { normalizeWriteProviderAlias } from '~/cli/flags/write-provider-alias'
 
 export const WRITE_NON_TEXT_INPUT_MESSAGE =
-  'write only accepts local .md or .txt files or directories of those files. Run bun autoshow extract <input> first, then bun autoshow write on the extracted text.'
+  `write only accepts local .md or .txt files or directories of those files. Run ${CLI_INVOCATION} extract <input> first, then ${CLI_INVOCATION} write on the extracted text.`
 
 export const expectedWriteArtifactFiles = (opts: Pick<WriteRuntimeOptions, 'renderedText' | 'renderedOutDir'>): string[] => {
   const files = ['text.json', 'show-note.md']
@@ -40,7 +41,7 @@ const resolveWriteInputFiles = async (target: string): Promise<string[]> => {
 
   const topLevel = await classifyTopLevelTarget(target)
   if (!topLevel.exists) {
-    throw UsageError(`Input does not exist: ${target}. Run: bun autoshow help write`)
+    throw UsageError(`Input does not exist: ${target}. Run: ${CLI_INVOCATION} help write`)
   }
 
   if (topLevel.isDirectory) {

@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { withProcessLock } from '~/utils/process-lock'
 import { rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -118,7 +119,7 @@ export const runDefuddleCliCapture = async (
   const managedSuffix = '/node_modules/defuddle/dist/cli.js'
   const managedPackage = binaryPath.endsWith(managedSuffix)
   if (managedPackage && !await hasFrozenInstall(binaryPath.slice(0, -managedSuffix.length))) throw InfraError('Managed Defuddle package provenance or payload integrity is invalid', { stage: 'extract:defuddle' })
-  if (managedPackage && !(await validateManagedJsRuntime('bun')).ok) throw InfraError('Managed Bun provenance or executable integrity is invalid; run bun autoshow setup --step toolchain', { stage: 'extract:defuddle' })
+  if (managedPackage && !(await validateManagedJsRuntime('bun')).ok) throw InfraError(`Managed Bun provenance or executable integrity is invalid; run ${CLI_INVOCATION} setup --step toolchain`, { stage: 'extract:defuddle' })
   return await runCapture(managedPackage ? getBunBinary() : binaryPath,
     managedPackage ? ['--no-env-file', binaryPath, ...args] : args, options)
 }
@@ -149,7 +150,7 @@ const verifyDefuddleCli = async (binaryPath: string): Promise<{ ok: boolean, det
 const isPinnedDefuddleCli = (verified: { ok: boolean, detail: string }): boolean =>
   verified.ok && verified.detail.trim() === DEFUDDLE_CLI_VERSION
 
-const DEFUDDLE_SETUP_NEXT_STEP = 'bun autoshow setup --step defuddle'
+const DEFUDDLE_SETUP_NEXT_STEP = `${CLI_INVOCATION} setup --step defuddle`
 
 export const validateManagedDefuddleRuntime = async (): Promise<{ ok: boolean, detail: string }> => {
   try {
@@ -166,7 +167,7 @@ export const readDefuddleCliReadiness = async (): Promise<DoctorCheck> => {
     return {
       label: 'defuddle',
       status: 'MISSING',
-      detail: 'not found (run bun autoshow setup --step defuddle or pass --bin-dir)',
+      detail: `not found (run ${CLI_INVOCATION} setup --step defuddle or pass --bin-dir)`,
       severity: 'warn',
       nextStep: DEFUDDLE_SETUP_NEXT_STEP
     }

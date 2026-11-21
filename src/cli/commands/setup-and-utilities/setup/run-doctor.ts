@@ -1,12 +1,13 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { verifyWhisperfileArtifact } from '~/cli/commands/stt/local/whisperfile/whisperfile-integrity'
 import { WHISPERFILE_ARTIFACTS } from '~/cli/commands/stt/local/whisperfile/whisperfile-artifacts'
 import { readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { resolveYtDlpBinaryInfo } from '~/cli/commands/command-shared/shared-yt-dlp-binary'
-import { inspectYtDlpAuthState } from '~/cli/commands/command-shared/shared-yt-dlp-options'
+import { cookieSetupCommand, inspectYtDlpAuthState, youtubeCookieGuide } from '~/cli/commands/command-shared/shared-yt-dlp-options'
 import { defuddleRuntimeDir } from '~/cli/commands/text/url/url-local/defuddle/defuddle-cli'
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config-command/config-loader'
-import type { AutoshowConfig, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, DoctorToolProvenance, ManagedArtifactToolId, RunResult, RuntimeToolId } from '~/types'
+import type { AutoshowConfig, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, DoctorToolProvenance, ManagedArtifactToolId, RunResult, RuntimeToolId, SetupStepId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { getHostedProviderConfiguredPaths, getMissingConfiguredHostedProviderCredentials, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
 import { whisperfileBinaryPath, whisperfileDir } from './run-complete-setup'
@@ -37,6 +38,8 @@ import { canSandboxDoctorProcesses, runReadOnlyDoctorProcess } from './doctor-re
 import { RUNTIME_FONT_CACHE_DIR } from '~/utils/runtime-state'
 import { validateReadOnlyEnglishData } from './doctor-english-data'
 import { supportsImageMagickTiffRead } from './rendering-readiness'
+
+const setupStepCommand = (step: SetupStepId): string => `${CLI_INVOCATION} setup --step ${step}`
 
 const listNames = async (path: string): Promise<string[]> => {
   try {
@@ -100,7 +103,7 @@ const createDoctorProbes = (overrides: Partial<DoctorProbes> = {}): DoctorProbes
     const result = await provenance.validateDefuddleRuntime()
     return result.healthy
       ? { label: 'defuddle', status: 'OK', detail: result.detail, severity: 'info' }
-      : { label: 'defuddle', status: await pathExists(defuddleRuntimeDir) ? 'WARN' : 'MISSING', detail: result.reason, severity: 'warn', nextStep: 'bun autoshow setup --step defuddle' }
+      : { label: 'defuddle', status: await pathExists(defuddleRuntimeDir) ? 'WARN' : 'MISSING', detail: result.reason, severity: 'warn', nextStep: setupStepCommand('defuddle') }
   },
   resolveConfigPath,
   loadConfig: async path => await loadConfig(path, { allowLegacyFallback: true }),
@@ -217,30 +220,30 @@ const checkTesseractEnglishData = async (probes: DoctorProbes): Promise<DoctorCh
   if (!resolved) {
     return check('MISSING', 'Tesseract eng data', 'tesseract not found', {
       severity: 'warn',
-      nextStep: 'bun autoshow setup --step ocr'
+      nextStep: setupStepCommand('ocr')
     })
   }
 
   const provenance = await probes.validateRuntimeTool('tesseract', resolved.path)
-  if (!provenance.healthy) return check('WARN', 'Tesseract eng data', `Managed OCR provenance is invalid: ${provenance.reason}`, { nextStep: 'bun autoshow setup --step ocr' })
+  if (!provenance.healthy) return check('WARN', 'Tesseract eng data', `Managed OCR provenance is invalid: ${provenance.reason}`, { nextStep: setupStepCommand('ocr') })
 
   if (probes.platform === 'darwin' && resolved.source === 'managed' && !await probes.pathExists(englishTrainedDataPath)) {
     return check('MISSING', 'Tesseract eng data', `${englishTrainedDataPath} not found`, {
       severity: 'warn',
-      nextStep: 'bun autoshow setup --step ocr'
+      nextStep: setupStepCommand('ocr')
     })
   }
 
   if (probes.platform === 'darwin' && resolved.source === 'managed' && !await probes.pathExists(tessdataHocrConfigPath)) {
     return check('MISSING', 'Tesseract eng data', `${tessdataHocrConfigPath} not found`, {
       severity: 'warn',
-      nextStep: 'bun autoshow setup --step ocr'
+      nextStep: setupStepCommand('ocr')
     })
   }
   try {
     const prefix = probes.resolveTessdataPrefix()
     const data = await probes.validateTesseractData(prefix)
-    if (!data.healthy) return check('WARN', 'Tesseract eng data', data.reason, { nextStep: 'bun autoshow setup --step ocr' })
+    if (!data.healthy) return check('WARN', 'Tesseract eng data', data.reason, { nextStep: setupStepCommand('ocr') })
     if (!probes.executeReadOnlyTools) return check('OK', 'Tesseract eng data', data.detail)
     const result = await inspectTesseractEnglishData(async args => await probes.run(resolved.path, args, {
       env: { TESSDATA_PREFIX: prefix }
@@ -249,12 +252,12 @@ const checkTesseractEnglishData = async (probes: DoctorProbes): Promise<DoctorCh
       ? check('OK', 'Tesseract eng data', `eng initialized (${resolved.source}, TESSDATA_PREFIX=${prefix ?? 'Tesseract packaged default'})`)
       : check(result.status === 'missing' ? 'MISSING' : 'WARN', 'Tesseract eng data', result.detail, {
         severity: 'warn',
-        nextStep: 'bun autoshow setup --step ocr'
+        nextStep: setupStepCommand('ocr')
       })
   } catch (error) {
     return check('WARN', 'Tesseract eng data', error instanceof Error ? error.message : String(error), {
       severity: 'warn',
-      nextStep: 'bun autoshow setup --step ocr'
+      nextStep: setupStepCommand('ocr')
     })
   }
 }
@@ -267,12 +270,12 @@ const checkMusicRenderer = async (probes: DoctorProbes): Promise<DoctorCheck> =>
   if (!ffmpeg) {
     return check('MISSING', 'music lyric-video renderer', 'ffmpeg not found', {
       severity: 'warn',
-      nextStep: 'bun autoshow setup --step rendering'
+      nextStep: setupStepCommand('rendering')
     })
   }
 
   const provenance = await probes.validateRuntimeTool('ffmpeg', ffmpeg.path)
-  if (!provenance.healthy) return check('WARN', 'music lyric-video renderer', `Managed media provenance is invalid: ${provenance.reason}`, { nextStep: 'bun autoshow setup --step rendering' })
+  if (!provenance.healthy) return check('WARN', 'music lyric-video renderer', `Managed media provenance is invalid: ${provenance.reason}`, { nextStep: setupStepCommand('rendering') })
   if (!probes.executeReadOnlyTools) return check('OK', 'music lyric-video renderer', `${provenance.detail}; rendering capabilities are checked during mutating setup.`)
 
   const filters = await probes.run(ffmpeg.path, ['-hide_banner', '-filters'])
@@ -287,7 +290,7 @@ const checkMusicRenderer = async (probes: DoctorProbes): Promise<DoctorCheck> =>
       probes.validateRuntimeTool('pango-view', pango.path),
       probes.validateRuntimeTool(convert.path.endsWith('/convert') ? 'convert' : 'magick', convert.path)
     ])
-    if (!pangoProvenance.healthy || !imageProvenance.healthy) return check('WARN', 'music lyric-video renderer', `Managed fallback provenance is invalid: ${!pangoProvenance.healthy ? pangoProvenance.reason : !imageProvenance.healthy ? imageProvenance.reason : ''}`, { nextStep: 'bun autoshow setup --step rendering' })
+    if (!pangoProvenance.healthy || !imageProvenance.healthy) return check('WARN', 'music lyric-video renderer', `Managed fallback provenance is invalid: ${!pangoProvenance.healthy ? pangoProvenance.reason : !imageProvenance.healthy ? imageProvenance.reason : ''}`, { nextStep: setupStepCommand('rendering') })
     const [pangoVersion, imageVersion] = await Promise.all([
       probes.run(pango.path, ['--version']), probes.run(convert.path, ['-version'])
     ])
@@ -302,7 +305,7 @@ const checkMusicRenderer = async (probes: DoctorProbes): Promise<DoctorCheck> =>
       : `could not inspect ffmpeg filters and fallback requires pango-view plus ImageMagick convert: ${formatRunIssue(filters)}`,
     {
       severity: 'warn',
-      nextStep: 'bun autoshow setup --step rendering'
+      nextStep: setupStepCommand('rendering')
     }
   )
 }
@@ -316,38 +319,38 @@ const checkBunRuntime = (runtimeVersion: string): DoctorCheck =>
 
 const checkImageMagickReadiness = async (probes: DoctorProbes): Promise<DoctorCheck> => {
   const imageMagick = await resolveDoctorRuntimeTool(probes, 'magick') ?? await resolveDoctorRuntimeTool(probes, 'convert')
-  if (!imageMagick) return check('MISSING', 'ImageMagick sheets and TIFF', 'Managed ImageMagick is missing', { severity: 'warn', nextStep: 'bun autoshow setup --step rendering' })
+  if (!imageMagick) return check('MISSING', 'ImageMagick sheets and TIFF', 'Managed ImageMagick is missing', { severity: 'warn', nextStep: setupStepCommand('rendering') })
   const provenance = await probes.validateRuntimeTool(imageMagick.path.endsWith('/convert') ? 'convert' : 'magick', imageMagick.path)
-  if (!provenance.healthy) return check('WARN', 'ImageMagick sheets and TIFF', `Managed image provenance is invalid: ${provenance.reason}`, { nextStep: 'bun autoshow setup --step rendering' })
+  if (!provenance.healthy) return check('WARN', 'ImageMagick sheets and TIFF', `Managed image provenance is invalid: ${provenance.reason}`, { nextStep: setupStepCommand('rendering') })
   if (!probes.executeReadOnlyTools) return check('OK', 'ImageMagick sheets and TIFF', `${provenance.detail}; image codec capabilities are checked during mutating setup.`)
   const formats = await probes.run(imageMagick.path, ['-list', 'format'])
   return formats.exitCode === 0 && supportsImageMagickTiffRead(formats.stdout)
     ? check('OK', 'ImageMagick sheets and TIFF', `${imageMagick.path} (${imageMagick.source}), TIFF reading available`)
-    : check('WARN', 'ImageMagick sheets and TIFF', 'Managed ImageMagick does not report TIFF reading support', { nextStep: 'bun autoshow setup --step rendering' })
+    : check('WARN', 'ImageMagick sheets and TIFF', 'Managed ImageMagick does not report TIFF reading support', { nextStep: setupStepCommand('rendering') })
 }
 
 const checkManagedFonts = async (probes: DoctorProbes): Promise<DoctorCheck> => {
   const fontconfig = await resolveDoctorRuntimeTool(probes, 'fc-match')
-  if (!fontconfig) return check('MISSING', 'Managed rendering fonts', 'Managed Fontconfig is missing', { severity: 'warn', nextStep: 'bun autoshow setup --step rendering' })
+  if (!fontconfig) return check('MISSING', 'Managed rendering fonts', 'Managed Fontconfig is missing', { severity: 'warn', nextStep: setupStepCommand('rendering') })
   const provenance = await probes.validateRuntimeTool('fc-match', fontconfig.path)
-  if (!provenance.healthy) return check('WARN', 'Managed rendering fonts', `Managed font provenance is invalid: ${provenance.reason}`, { nextStep: 'bun autoshow setup --step rendering' })
+  if (!provenance.healthy) return check('WARN', 'Managed rendering fonts', `Managed font provenance is invalid: ${provenance.reason}`, { nextStep: setupStepCommand('rendering') })
   const configuration = await probes.validateRenderingConfiguration()
-  if (!configuration.healthy) return check('WARN', 'Managed rendering fonts', `Managed rendering resources are invalid: ${configuration.reason}`, { nextStep: 'bun autoshow setup --step rendering' })
+  if (!configuration.healthy) return check('WARN', 'Managed rendering fonts', `Managed rendering resources are invalid: ${configuration.reason}`, { nextStep: setupStepCommand('rendering') })
   if (!probes.executeReadOnlyTools) return check('OK', 'Managed rendering fonts', `${configuration.detail}; font matching is checked during mutating setup.`)
-  if (!await probes.directoryHasFiles(RUNTIME_FONT_CACHE_DIR)) return check('WARN', 'Managed rendering fonts', 'Managed font cache is absent; font matching was not executed because diagnostics cannot populate caches.', { nextStep: 'bun autoshow setup --step rendering' })
+  if (!await probes.directoryHasFiles(RUNTIME_FONT_CACHE_DIR)) return check('WARN', 'Managed rendering fonts', 'Managed font cache is absent; font matching was not executed because diagnostics cannot populate caches.', { nextStep: setupStepCommand('rendering') })
   const font = await probes.run(fontconfig.path, ['-f', '%{family}', 'DejaVu Sans'])
   return font.exitCode === 0 && font.stdout.includes('DejaVu Sans')
     ? check('OK', 'Managed rendering fonts', `${fontconfig.path} (${fontconfig.source}), DejaVu Sans available`)
-    : check('WARN', 'Managed rendering fonts', 'Managed DejaVu Sans is unavailable', { nextStep: 'bun autoshow setup --step rendering' })
+    : check('WARN', 'Managed rendering fonts', 'Managed DejaVu Sans is unavailable', { nextStep: setupStepCommand('rendering') })
 }
 
 const collectSystemBuildToolChecks = async (probes: DoctorProbes): Promise<DoctorSection> => ({
   title: 'Managed tools and rendering',
   checks: [
     checkBunRuntime(probes.bunVersion),
-    ...(probes.platform === 'darwin' ? [await checkRuntimeToolVersion(probes, 'Managed CMake', 'cmake', ['--version'], { nextStep: 'bun autoshow setup --step toolchain' })] : []),
-    await checkRuntimeToolVersion(probes, 'Managed Bun worker', 'bun', ['--version'], { nextStep: 'bun autoshow setup --step toolchain' }),
-    await checkRuntimeToolVersion(probes, 'Downloader JavaScript runtime', 'deno', ['--version'], { nextStep: 'bun autoshow setup --step toolchain' }),
+    ...(probes.platform === 'darwin' ? [await checkRuntimeToolVersion(probes, 'Managed CMake', 'cmake', ['--version'], { nextStep: setupStepCommand('toolchain') })] : []),
+    await checkRuntimeToolVersion(probes, 'Managed Bun worker', 'bun', ['--version'], { nextStep: setupStepCommand('toolchain') }),
+    await checkRuntimeToolVersion(probes, 'Downloader JavaScript runtime', 'deno', ['--version'], { nextStep: setupStepCommand('toolchain') }),
     await checkMusicRenderer(probes),
     await checkImageMagickReadiness(probes),
     await checkManagedFonts(probes)
@@ -383,38 +386,38 @@ const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<Doctor
         ? check('OK', 'Source project dependencies', project.detail)
         : check('WARN', 'Source project dependencies', project.reason, { nextStep: 'bun install --frozen-lockfile' }),
       await checkRuntimeToolVersion(probes, 'yt-dlp', 'yt-dlp', ['--version'], {
-        nextStep: 'bun autoshow setup --step yt-dlp'
+        nextStep: setupStepCommand('yt-dlp')
       }),
       await checkRuntimeToolVersion(probes, 'ffmpeg', 'ffmpeg', ['-version'], {
-        nextStep: 'bun autoshow setup --step yt-dlp'
+        nextStep: setupStepCommand('yt-dlp')
       }),
       await checkRuntimeToolVersion(probes, 'ffprobe', 'ffprobe', ['-version'], {
-        nextStep: 'bun autoshow setup --step yt-dlp'
+        nextStep: setupStepCommand('yt-dlp')
       }),
       await checkRuntimeToolVersion(probes, 'mutool', 'mutool', ['-v'], {
-        nextStep: 'bun autoshow setup --step calibre',
+        nextStep: setupStepCommand('calibre'),
         okExitCodes: [0, 1],
         managedArtifactTool: 'mupdf'
       }),
       await checkRuntimeToolVersion(probes, 'ebook-convert', 'ebook-convert', ['--version'], {
-        nextStep: 'bun autoshow setup --step calibre'
+        nextStep: setupStepCommand('calibre')
       }),
       await checkRuntimeToolVersion(probes, 'tesseract', 'tesseract', ['--version'], {
-        nextStep: 'bun autoshow setup --step ocr'
+        nextStep: setupStepCommand('ocr')
       }),
       await checkTesseractEnglishData(probes),
       await checkRuntimeToolVersion(probes, 'qpdf', 'qpdf', ['--version'], {
-        nextStep: 'bun autoshow setup --step calibre',
+        nextStep: setupStepCommand('calibre'),
         managedArtifactTool: 'qpdf'
       }),
       defuddle.status === 'OK' || defuddle.nextStep
         ? defuddle
-        : { ...defuddle, nextStep: 'bun autoshow setup --step defuddle' },
+        : { ...defuddle, nextStep: setupStepCommand('defuddle') },
       alignment.healthy
         ? check('OK', 'Local alignment runtime', alignment.detail)
-        : check('WARN', 'Local alignment runtime', alignment.reason, { nextStep: 'bun autoshow setup --step alignment' }),
+        : check('WARN', 'Local alignment runtime', alignment.reason, { nextStep: setupStepCommand('alignment') }),
       await checkWhisperfileBinary(probes, 'whisperfile tiny', whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL), {
-        nextStep: 'bun autoshow setup --step whisperfile'
+        nextStep: setupStepCommand('whisperfile')
       })
     ]
   }
@@ -450,7 +453,7 @@ const collectLocalModelAssetChecks = async (probes: DoctorProbes): Promise<Docto
       probes,
       `default whisperfile model ${DEFAULT_WHISPERFILE_MODEL}`,
       whisperfileBinaryPath(DEFAULT_WHISPERFILE_MODEL),
-      'bun autoshow setup --step whisperfile'
+      setupStepCommand('whisperfile')
     ),
     await collectInstalledWhisperfileModelsCheck(probes)
   ]
@@ -527,17 +530,17 @@ const collectYoutubeCookieChecks = async (probes: DoctorProbes): Promise<DoctorC
       ? check('OK', 'YouTube cookies file', cookieDetail)
       : check('MISSING', 'YouTube cookies file', cookieDetail, {
         severity: 'warn',
-        nextStep: 'docs/commands/00-setup-and-utilities/cookies.md'
+        nextStep: youtubeCookieGuide
       }))
   } else if (youtubeStatus.configuredMode === 'cookies-from-browser') {
-    checks.push(check('OK', 'YouTube cookies source', 'browser import via bun autoshow setup --cookies-from-browser'))
+    checks.push(check('OK', 'YouTube cookies source', `browser import via ${cookieSetupCommand} --cookies-from-browser`))
   } else {
-    checks.push(check('INFO', 'YouTube cookies source', 'not configured — bun autoshow setup --cookies-from-browser chrome'))
+    checks.push(check('INFO', 'YouTube cookies source', `not configured — ${cookieSetupCommand} --cookies-from-browser chrome`))
   }
 
   if (youtubeStatus.warning) {
     checks.push(check('WARN', 'YouTube cookies warning', youtubeStatus.warning, {
-      nextStep: 'docs/commands/00-setup-and-utilities/cookies.md'
+      nextStep: youtubeCookieGuide
     }))
   }
 

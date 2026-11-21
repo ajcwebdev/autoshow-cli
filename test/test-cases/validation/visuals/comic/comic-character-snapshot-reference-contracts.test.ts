@@ -110,8 +110,8 @@ describe('comic live canonical character references', () => {
   })
 
   test('registry capabilities never trim required references and trim optional continuity deterministically', () => {
-    expect(() => trimOptionalContinuityReferences('gpt-image-2.5-flare', Array.from({ length: 17 }, (_, index) => `required-${index}`), [])).toThrow(/requires 17/)
-    const result = trimOptionalContinuityReferences('gpt-image-2.5-flare', ['sheet', 'source'], Array.from({ length: 20 }, (_, index) => `continuity-${index}`))
+    expect(() => trimOptionalContinuityReferences('gpt-image-2.6-flare', Array.from({ length: 17 }, (_, index) => `required-${index}`), [])).toThrow(/requires 17/)
+    const result = trimOptionalContinuityReferences('gpt-image-2.6-flare', ['sheet', 'source'], Array.from({ length: 20 }, (_, index) => `continuity-${index}`))
     expect(result.references.slice(0, 2)).toEqual(['sheet', 'source'])
     expect(result.references).toHaveLength(16)
     expect(result.trimmed).toHaveLength(6)

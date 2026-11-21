@@ -18,8 +18,8 @@ describe('price mode contracts', () => {
           estimatedOutputTokens: 400,
           totalCost: 1
         },
-        { step: 'image', provider: 'openai', model: 'gpt-image-2.5-flare', imageCount: 2, totalCost: 1 },
-        { step: 'video', provider: 'gemini', model: 'gemini-omni-1.1-flash', durationSeconds: 4, totalCost: 1 },
+        { step: 'image', provider: 'openai', model: 'gpt-image-2.6-flare', imageCount: 2, totalCost: 1 },
+        { step: 'video', provider: 'gemini', model: 'gemini-omni-1.2-flash', durationSeconds: 4, totalCost: 1 },
         { step: 'music', provider: 'gemini', model: 'lyria-3.5', durationSeconds: 120, lyricsSource: 'generated', totalCost: 1 }
       ]
 
@@ -31,7 +31,7 @@ describe('price mode contracts', () => {
   test('video timing estimates use normalized provider defaults when duration is omitted', () => {
       const timing = computeEstimatedProcessingTimes({
         videoTargets: [
-          { service: 'gemini', model: 'gemini-omni-1.1-flash' },
+          { service: 'gemini', model: 'gemini-omni-1.2-flash' },
           { service: 'grok', model: 'grok-imagine-video-1.5' }
         ]
       })
@@ -44,9 +44,9 @@ describe('price mode contracts', () => {
       }))).toEqual([
         {
           provider: 'gemini',
-          model: 'gemini-omni-1.1-flash',
+          model: 'gemini-omni-1.2-flash',
           inputValue: 10,
-          msPerUnit: getVideoEstimation('gemini', 'gemini-omni-1.1-flash').msPerSecond
+          msPerUnit: getVideoEstimation('gemini', 'gemini-omni-1.2-flash').msPerSecond
         },
         {
           provider: 'grok',

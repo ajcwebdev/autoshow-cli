@@ -35,7 +35,7 @@ const UNKNOWN_FLAGS: Array<{ argv: string[], flag: string }> = [
   { argv: ['extract', 'https://example.com/article', '--url-backend', 'firecrawl'], flag: '--url-backend' },
   { argv: ['extract', 'https://example.com/article', '--url-provider', 'spider'], flag: '--url-provider' },
   { argv: ['resume', 'output/x', '--url-provider', 'supadata'], flag: '--url-provider' },
-  { argv: ['image', 'a sunset', '--openai', 'gpt-image-2.5-flare'], flag: '--openai' },
+  { argv: ['image', 'a sunset', '--openai', 'gpt-image-2.6-flare'], flag: '--openai' },
   { argv: ['video', 'a sunset', '--gemini-video', 'veo-3.1-lite-generate-preview'], flag: '--gemini-video' },
   { argv: ['music', 'ambient', '--elevenlabs', 'music_v2'], flag: '--elevenlabs' },
   { argv: ['extract', 'input.pdf', '--glm-ocr', 'x'], flag: '--glm-ocr' },

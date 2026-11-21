@@ -1,7 +1,8 @@
 import { copyFileExact } from '~/utils/bun-file-io'
+import { publishMediaResumeFile } from '~/cli/commands/command-shared/media-resume-artifacts'
 
 import { join } from 'node:path'
-import type { MusicGenOptions, MusicTarget, Step7MusicMetadata } from '~/types'
+import type { MediaResumeArtifacts, MusicGenOptions, MusicTarget, Step7MusicMetadata } from '~/types'
 import { runMediaFileTargets } from '~/cli/commands/command-shared/media-file-target-runner'
 import { UsageError } from '~/utils/error-handler'
 import {
@@ -13,8 +14,9 @@ export const runMusicTargets = async (
   targets: MusicTarget[],
   prompt: string,
   outputDir: string,
-  options?: Pick<MusicGenOptions, 'musicProviderConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'>,
+  options?: Pick<MusicGenOptions, 'musicProviderConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'> & { mediaResume?: MediaResumeArtifacts | undefined },
 ): Promise<{ musicPaths: string[], metadata: Step7MusicMetadata[] }> => {
+  const promoteSidecar = options?.mediaResume ? publishMediaResumeFile : copyFileExact
   const result = await runMediaFileTargets<MusicTarget, Step7MusicMetadata, string>({
     targets,
     prompt,
@@ -22,7 +24,8 @@ export const runMusicTargets = async (
     options: {
       providerConcurrency: options?.musicProviderConcurrency,
       resourceGate: options?.generationResourceGate,
-      hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator
+      hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator,
+      mediaResume: options?.mediaResume
     },
     descriptor: {
       stepLabel: 'music',
@@ -35,13 +38,13 @@ export const runMusicTargets = async (
         const promoted = { ...metadata }
         if (metadata.generatedTextFileName) {
           promoted.generatedTextFileName = `${stem}.txt`
-          await copyFileExact(join(workspaceDir, metadata.generatedTextFileName), join(outputDir, promoted.generatedTextFileName))
+          await promoteSidecar(join(workspaceDir, metadata.generatedTextFileName), join(outputDir, promoted.generatedTextFileName))
         }
         if (metadata.additionalAudioFileNames) {
           promoted.additionalAudioFileNames = []
           for (const [index, name] of metadata.additionalAudioFileNames.entries()) {
             const finalName = `${stem}-part-${index + 2}.mp3`
-            await copyFileExact(join(workspaceDir, name), join(outputDir, finalName))
+            await promoteSidecar(join(workspaceDir, name), join(outputDir, finalName))
             promoted.additionalAudioFileNames.push(finalName)
           }
         }

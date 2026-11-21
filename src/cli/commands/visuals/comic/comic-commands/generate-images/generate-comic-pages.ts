@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import type { DirectoryEntry } from '~/types'
 import { mkdir, readdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -283,7 +284,7 @@ export const generateComicPages = async (
   if (pendingReferenceFailures.size > 0) {
     throw InfraError(
       `Missing reference image file(s): ${Array.from(pendingReferenceFailures).sort().join(', ')}. ` +
-      'Re-run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" to restage panel prompt bundles.',
+      `Re-run "${CLI_INVOCATION} comic draft-scenes <script-path> --only panel-prompts" to restage panel prompt bundles.`,
       { stage: 'comic:pages' }
     )
   }

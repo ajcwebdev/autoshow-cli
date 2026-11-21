@@ -1,8 +1,9 @@
 import { existsSync } from 'node:fs'
-import type { AudioProbeResult, GeminiInlineMedia, GeminiVideoImageMedia, GrokUrlMedia, VideoMediaKind, VideoMediaSpec } from '~/types'
+import type { AudioProbeResult, GeminiInlineMedia, GeminiVideoImageMedia, GeminiVideoModel, GrokUrlMedia, VideoMediaKind, VideoMediaSpec } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { createMediaReferenceEngine } from '~/utils/media-reference-engine'
 import { getFfprobeBinary, hasRuntimeTool } from '~/utils/runtime-paths'
+import { GEMINI_MAX_REFERENCE_IMAGES } from './video-normalization'
 
 const MIME_BY_EXTENSION: Readonly<Record<string, string>> = {
   '.jpg': 'image/jpeg',
@@ -99,6 +100,9 @@ export const validateVideoMediaReferences = (
     unsupportedMimeError: value => `Unsupported ${options.flagName} value "${value}" for ${options.provider}/${options.model}. Expected ${expected} ${options.kind} files, URLs, or data URLs.`
   })
 }
+
+export const validateGeminiVideoReferenceImages = (inputs: readonly string[] | undefined, model: GeminiVideoModel): void =>
+  validateVideoMediaReferences(inputs, { flagName: '--reference-image', provider: 'gemini', model, kind: 'image', maxInputs: GEMINI_MAX_REFERENCE_IMAGES })
 
 export const videoMediaReferenceToGeminiInlineData = async (
   value: string,

@@ -1,3 +1,4 @@
+import { WEB_REQUEST_USER_AGENT } from '~/utils/web-request-user-agent'
 import { extname } from 'node:path'
 import type { DetectResult, InputFamily, UrlInputKind, UrlRuntimeOptions } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
@@ -28,7 +29,6 @@ const DOCUMENT_MIME_HINTS = [
 ] as const
 const HTML_MIME_HINTS = ['text/html', 'application/xhtml+xml'] as const
 const PROBE_TIMEOUT_MS = 5000
-const URL_PROBE_USER_AGENT = 'Mozilla/5.0 (compatible; autoshow-cli/0.1; +https://github.com/ajcwebdev/autoshow-cli)'
 const RAW_X_SPACE_ID_PATTERN = /^[A-Za-z0-9]{1,13}$/
 
 export const isLikelyUrl = (input: string): boolean => {
@@ -161,7 +161,7 @@ const probeUrlHeaders = async (url: string): Promise<Headers | null> => {
   return await probeHeaders(url, {
     method: 'GET',
     headers: {
-      'User-Agent': URL_PROBE_USER_AGENT,
+      'User-Agent': WEB_REQUEST_USER_AGENT,
       'Accept': 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8'
     }
   })

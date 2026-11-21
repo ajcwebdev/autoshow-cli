@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { rm } from 'node:fs/promises'
 import { createRuntimeTempDirectory } from "~/utils/runtime-state"
 import { downloadAudio } from '~/cli/commands/sources/download/download-audio/dl-audio'
@@ -95,7 +96,7 @@ export const resolveSttInputDurationSeconds = async (
   if (!isLikelyUrl(input)) {
     const exists = await fileExists(input)
     if (!exists) {
-      throw UsageError(`Input does not exist: ${input}. Run: bun autoshow help extract`)
+      throw UsageError(`Input does not exist: ${input}. Run: ${CLI_INVOCATION} help extract`)
     }
     if (isDocumentLikePath(input)) {
       throw UsageError(`--price requires media input (audio/video). Got document/image input: ${input}`)

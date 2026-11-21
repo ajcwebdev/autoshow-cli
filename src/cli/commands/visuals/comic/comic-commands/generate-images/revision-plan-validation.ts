@@ -10,7 +10,7 @@ import { validateReferenceImageCount } from '../../comic-utils/reference-capabil
 import { getPanelComicImagePath } from '../../comic-utils/scene-utils'
 import { DEFECT_CATEGORY_VALUES, IMPORTANCE_VALUES, REVISION_COMPARISON_PASSES, REVISION_IMAGE_MODEL } from './revision-evaluation-config'
 import type { LoadedRevisionEntry, LoadedRevisionPlan, RevisionBoundFile, RevisionPlan, RevisionPriceInventory } from './revision-evaluation-types'
-import { ledgerPathFor, panelDirectoryName, readLedger, sha256File } from './revision-evidence-files'
+import { ledgerPathFor, panelDirectoryName, readLedger, readPublishedRevision, sha256File } from './revision-evidence-files'
 
 const HASH_PATTERN = /^[a-f0-9]{64}$/
 
@@ -105,15 +105,18 @@ export const loadRevisionEvaluationPlan = async (options: GenerateImagesCommandO
   if (resolve(scriptPath) !== resolve(WORKSPACE_ROOT, options.scriptPath)) throw ValidationError(`Revision plan script ${plan.script.path} does not match command script ${toPosixPath(relative(WORKSPACE_ROOT, resolve(WORKSPACE_ROOT, options.scriptPath)))}.`, { stage: 'comic:revision-evaluation' })
   await assertBoundFile(plan.priorQa, 'Revision plan prior QA')
   const evidenceDirectory = join(getSceneOutputDirectory(options.sceneSlug), 'revision-evaluations', `${plan.experimentId}-${plan.planFingerprint.slice(0, 16)}`)
+  const published = await readPublishedRevision(evidenceDirectory, plan)
+  const imageModel = published?.imageModel ?? REVISION_IMAGE_MODEL
   const panelPromptsDirectory = getPanelPromptsDirectory(options.sceneSlug)
   const entries: LoadedRevisionEntry[] = []
-  for (const entry of plan.entries) {
+  for (const [index, entry] of plan.entries.entries()) {
     const originalPath = validateBoundPath(entry.original.path, `Panel ${entry.panelNumber} original`)
     const canonicalPath = resolve(getPanelComicImagePath(options.sceneSlug, entry.panelNumber))
     if (resolve(originalPath) !== canonicalPath) throw ValidationError(`Panel ${entry.panelNumber} original path is not the canonical panel path.`, { stage: 'comic:revision-evaluation' })
-    const existingLedger = await readLedger(ledgerPathFor(evidenceDirectory, entry.panelNumber))
+    const existingLedger = await readLedger(ledgerPathFor(evidenceDirectory, entry.panelNumber), plan, entry, imageModel, published?.panels[index])
     const originalActual = await sha256File(originalPath)
     const resumedPromotion = existingLedger?.promoted === true && existingLedger.candidateSha256 === originalActual
+    if (imageModel !== REVISION_IMAGE_MODEL && existingLedger?.canonicalSha256After !== originalActual) throw ValidationError(`Panel ${entry.panelNumber} canonical hash no longer matches the published ${imageModel} revision. Preserve the evidence and use a separate revision experiment.`, { stage: 'comic:revision-evaluation' })
     if (originalActual !== entry.original.sha256 && !resumedPromotion) throw ValidationError(`Panel ${entry.panelNumber} original hash drift: expected ${entry.original.sha256}, received ${originalActual}`, { stage: 'comic:revision-evaluation' })
     const panelDirectory = join(panelPromptsDirectory, panelDirectoryName(entry.panelNumber))
     const panelEntries = await readdir(panelDirectory, { withFileTypes: true })
@@ -126,9 +129,9 @@ export const loadRevisionEvaluationPlan = async (options: GenerateImagesCommandO
     if (entry.references.length !== actualReferencePaths.length || entry.references.some((reference, index) => reference.path !== actualReferencePaths[index])) throw ValidationError(`Panel ${entry.panelNumber} reference list/order drifted from the immutable reviewed bundle.`, { stage: 'comic:revision-evaluation' })
     for (const [index, reference] of entry.references.entries()) await assertBoundFile(reference, `Panel ${entry.panelNumber} reference ${index + 1}`)
     validateReferenceImageCount(REVISION_IMAGE_MODEL, referencesResolved.all.length + 1, `Revision edit for panel ${entry.panelNumber}`)
-    entries.push({ ...entry, originalPath, contractPath, bundleData, referencesResolved })
+    entries.push({ ...entry, originalPath, contractPath, bundleData, referencesResolved, ...(existingLedger ? { existingLedger } : {}) })
   }
-  return { plan, planPath, entries, evidenceDirectory }
+  return { plan, planPath, entries, evidenceDirectory, imageModel, ...(published && imageModel !== REVISION_IMAGE_MODEL ? { completedArchive: published.panels } : {}) }
 }
 
 export const loadRevisionPriceInventory = async (options: GenerateImagesCommandOptions): Promise<RevisionPriceInventory> => {
@@ -139,7 +142,7 @@ export const loadRevisionPriceInventory = async (options: GenerateImagesCommandO
   let terminalImageSlots = 0
   let reusedComparisonSlots = 0
   for (const entry of loaded.entries) {
-    const ledger = await readLedger(ledgerPathFor(loaded.evidenceDirectory, entry.panelNumber))
+    const ledger = entry.existingLedger
     if (!ledger?.imageSlot) {
       imageCalls += 1
       comparisonCalls += REVISION_COMPARISON_PASSES

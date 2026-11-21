@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import type { ComicPriceModelRow, FinalImageEstimateResult, FinalImageInputEstimate, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePricingEstimate, LogMetadata } from '~/types'
 import { estimateImageOutputCost, formatCost } from '../comic-image-services/image-costs'
 import { getImagePromptVariationLabel } from '../comic-commands/generate-images/prompt-variations'
@@ -372,7 +373,7 @@ export const printFinalImageEstimate = (result: FinalImageEstimateResult): void 
   if (result.status !== 'ready') {
     priceNotice(
       result.status === 'missing-prompts'
-        ? 'No stable panel prompt bundles found. Run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" first.'
+        ? `No stable panel prompt bundles found. Run "${CLI_INVOCATION} comic draft-scenes <script-path> --only panel-prompts" first.`
         : 'No panel prompt bundles found.',
       { status: result.status, scene: result.request.sceneSlug }
     )

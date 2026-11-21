@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { SETUP_FOCUSED_MODE_FLAGS, SETUP_NETWORK_DEPENDENT_FLAGS, SETUP_MODE_NOTES } from '~/cli/flags/setup-mode-contract'
 import { runNetworkCheck } from './network-check'
 import { defineCliCommand } from '~/cli/native/native-types'
@@ -120,7 +121,7 @@ export const setupCommand = defineCliCommand({
   }
 
   if (ctx.calledAs === 'config') {
-    if (ctx.flags['dry-run']) throw UsageError('--dry-run previews setup installation; use bun autoshow setup --dry-run')
+    if (ctx.flags['dry-run']) throw UsageError(`--dry-run previews setup installation; use ${CLI_INVOCATION} setup --dry-run`)
     const resolvedPath = await resolveConfigPath(configPathOverride)
     l.write('info', `No changes to write. Config path: ${resolvedPath}`, { category: 'command', metadata: { configPath: resolvedPath } })
     l.write('info', 'Use --show to print current config or --reset to clear it.', { category: 'command' })
@@ -186,9 +187,9 @@ export const setupCommand = defineCliCommand({
   })
 
   if (!healthy) {
-    throw InfraError('Setup finished with missing local tools or models. See the Setup Summary above, then run: bun autoshow setup --doctor', {
+    throw InfraError(`Setup finished with missing local tools or models. See the Setup Summary above, then run: ${CLI_INVOCATION} setup --doctor`, {
       stage: 'setup:run',
-      hints: ['Run `bun autoshow setup --doctor` for per-check detail']
+      hints: [`Run \`${CLI_INVOCATION} setup --doctor\` for per-check detail`]
     })
   }
 

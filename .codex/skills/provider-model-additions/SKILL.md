@@ -1,94 +1,84 @@
 ---
 name: provider-model-additions
-description: Research, refresh, or reorganize autoshow-cli provider and model addition reports using the current runtime inventory and official release, availability, and pricing sources. Supports any individual report, any selected subset, or the complete six-report set covering text/OCR/URL, STT, image, video, music, and TTS. This skill produces research documentation; it does not implement model or provider changes.
+description: Research, refresh, or reformat autoshow-cli provider and model addition reports using the current runtime inventory and official release, availability, and pricing sources. Supports any individual report, any selected subset, or the complete six-report set covering text/OCR/URL, STT, image, video, music, and TTS. Produces compact, decision-ready research documentation; it does not implement model or provider changes.
 ---
 
 # Provider Model Additions
 
-Create evidence-backed recommendations for relevant models and API capabilities on existing AutoShow providers. Distinguish model additions from service changes, accounting defects, and deliberate restoration of retired siblings. This is a documentation workflow; do not change runtime models, registries, defaults, or providers as part of the research.
-
-## Workflow
-
-1. Read the repository `AGENTS.md` and identify the requested reports, workflows, existing finding owners, and whether the request is new research, a refresh, or consolidation. Record the current repository snapshot and the exact prompt path/SHA-256 used for this run. Use one research cutoff for sources actually refreshed; finalize it after research ends.
-2. Read [the repository source map](references/repository-source-map.md) before inventorying models. Follow the relevant runtime paths and executing adapters for the requested workflows; derive counts and implementation status from this checkout.
-3. Research official sources using the evidence rules below. For supplied link collections or uncertain availability/pricing, read [evidence review](references/evidence-review.md). Reconcile existing findings with the current inventory before assigning recommendation status.
-4. Read [the report structure](references/report-structure.md) before writing or updating reports. Preserve stable finding IDs and historical evidence, and use the six output groups below.
-5. Validate coverage, links, statuses, formatting, and the repository snapshot using Validation Requirements below. Report the resulting paths, material evidence gaps, and checks actually run.
-
-Every report supports independent creation and refresh: **text/OCR/URL (00), STT (01), image (02), video (03), music (04), and TTS (05)**. Accept selection by report name, number, or path, including any combination. The text/OCR/URL report covers three workflows; the other individual reports each cover one. An explicitly narrower workflow request stays within its owning report and labels omitted workflows as outside scope.
-
-For a scoped run, generate or refresh only the requested reports. Inventory those workflows completely, while checking repository-wide provider names for integration candidates. Each individual report owns its scoped reconciliation and current verification results, including when report 00 is run alone. Missing sibling reports are not prerequisites: state their absence without creating placeholders or broken links. Preserve unrequested reports and their research dates; update an affected existing cross-reference only when needed, without implying that its inventory or sources were rechecked.
-
-When the user explicitly requests only a bounded local handoff or read-only assessment, return that requested artifact instead of creating formal reports or running write-producing checks. Keep exact identities, evidence limits and carried decisions, and record which report-level research or checks were outside that scope.
+Produce compact, evidence-backed reports that tell the user which models to add to existing AutoShow providers, in what order, what must be decided first, and what evidence blocks the rest. Keep model additions distinct from service changes, accounting defects and deliberate restoration of retired siblings. This is documentation only: do not change runtime models, registries, defaults or providers.
 
 ## Deliverables
 
-Use these six report groups and output paths. Generate the complete set only when the user requests it or gives no narrower scope; otherwise produce the selected report or subset, using one research cutoff for that run:
+Six independently refreshable reports under `docs/reports/provider-model-additions/`, selectable by name, number, path or any combination:
 
-- **Text, OCR, and URL:** Writing/text generation, document extraction, and web-page extraction. Output: `docs/reports/provider-model-additions/00-provider-model-additions-text-ocr-url-YYYY-MM-DD.md`.
-- **STT:** Speech-to-text and transcript/caption retrieval. Output: `docs/reports/provider-model-additions/01-provider-model-additions-stt-YYYY-MM-DD.md`.
-- **Image:** Image generation. Output: `docs/reports/provider-model-additions/02-provider-model-additions-image-YYYY-MM-DD.md`.
-- **Video:** Video generation. Output: `docs/reports/provider-model-additions/03-provider-model-additions-video-YYYY-MM-DD.md`.
-- **Music:** Music generation. Output: `docs/reports/provider-model-additions/04-provider-model-additions-music-YYYY-MM-DD.md`.
-- **TTS:** Text-to-speech narration. Output: `docs/reports/provider-model-additions/05-provider-model-additions-tts-YYYY-MM-DD.md`.
+| Report | Workflows                                     | Output file                                        |
+| ------ | --------------------------------------------- | -------------------------------------------------- |
+| 00     | `write`, `ocr`, `url`                         | `00-provider-model-additions-text-ocr-url-DATE.md` |
+| 01     | `stt`, including transcript/caption retrieval | `01-provider-model-additions-stt-DATE.md`          |
+| 02     | `image`                                       | `02-provider-model-additions-image-DATE.md`        |
+| 03     | `video`                                       | `03-provider-model-additions-video-DATE.md`        |
+| 04     | `music`                                       | `04-provider-model-additions-music-DATE.md`        |
+| 05     | `tts`                                         | `05-provider-model-additions-tts-DATE.md`          |
 
-Each report must stand alone for its workflows and link to sibling reports that exist, distinguishing refreshed reports from historical context. Put each current workflow/service/model tuple in exactly one inventory. A provider or model may appear in multiple reports for distinct workflows; label cross-workflow omissions and host alternatives explicitly. Keep original evidence, if needed, in an adjacent `.evidence.zip` archive with a checksum manifest, following `AGENTS.md`; do not create extra summary reports or loose JSON/CSV inventories.
+Generate the full set only when asked or when no narrower scope is given. A scoped run refreshes only the requested reports, inventories their workflows completely, owns its own reconciliation and checks, and leaves unrequested reports and their dates untouched; missing siblings are stated, not created. Keep supporting evidence in one adjacent `.evidence.zip`; create no summary reports or loose JSON/CSV inventories. When the user asks only for a local handoff or read-only assessment, return that instead of formal reports.
 
-## Research Requirements
+## Workflow
 
-- Inventory every configured tuple in the requested workflows, including hidden entries, selector-free services and executing local backends. Record workflow, registry key, CLI selector, registry ID and wire model value separately. Count Tesseract with an explicit no-upstream-model marker even though it has no registry record; URL services and caption retrieval can carry internal IDs without a selectable upstream model. Do not count aliases, retired rates/types/stubs, empty directories, or one backend reached through several commands as additional tuples.
-- Resolve bare-provider and omitted-provider defaults through read-only execution of the actual local resolver. Record the complete candidate when selection also chooses mode, duration or resolution. Config descriptions and cost/timing constants are not executable defaults.
-- Freeze the scoped current inventory and prior decisions before screening repository-wide existing providers for relevant missing workflows. Record each lead as recommended, unresolved with a named missing fact, excluded by a recorded decision, or irrelevant. Credentials and marketing categories do not establish dispatch support.
-- Browse official catalogs, exact host/operation pages, API schemas, dated release/lifecycle notices and billing terms together. Inspect access and retirement banners even when examples remain. For conflicting claims, record source language, page-update date, retrieval date and exact operation; a preferred locale or upstream release is not automatically authoritative for another host. Follow [evidence review](references/evidence-review.md) for bounded conflict resolution and pricing traces.
-- Distinguish complete-file HTTP, async batch, streaming transport and realtime conversation within the same product. Preserve modes and reference inputs already supported by executing adapters. A missing adapter for an existing workflow can be an integration finding; a newly proposed product outside current workflows needs a scope decision.
-- Reconcile candidate eligibility with ADR-010: concrete stable host IDs, generally available lifecycle, and usage without mandatory recurring fees or recurring minimum spending. Publicly callable previews remain research candidates, with unresolved registry eligibility where they conflict with that policy; an existing preview is not a general exception. Keep access, grandfathered-account eligibility, tariff, add-ons and unknown cost separate.
-- Read the Excluded integrations section of ADR-010 before recommending anything. Its dated tables record excluded providers and excluded models on retained providers (for example, Cloudflare `@cf/deepgram/nova-3` and Together's WebSocket-only Nemotron streaming models). Check exact host, generation, operation and model identity: neither a surviving catalog entry nor a new generation automatically reopens an excluded route. Reconsideration needs new primary evidence addressing the recorded reason and a user decision.
-- For STT episode publishing, retain `--provider assemblyai=universal-3-5-pro --diarization` from `AGENTS.md`; a newer research candidate does not change that policy. For TTS, inspect serializers, native dialogue and voice provisioning before proposing missing capabilities, and keep spoken text, inline delivery tags and request-level instructions distinct.
-- Preserve reference and media privacy. Do not copy source-book titles, author names, excerpts or source filenames from benchmark evidence into research reports or synthetic fixtures. Follow the repository's benchmark exemption and pre-commit audit at their actual scope; use generic fixture content outside it.
-- Keep public research dates, repository implementation dates, local verification and live benchmarking separate. Reorganization does not refresh sources, and mocks or decoded artifacts do not establish spoken correctness, perceptual quality, provider availability or invoice cost.
+1. Read `AGENTS.md`. Identify the requested reports, whether this is new research, a refresh or a reformat, and the existing finding owners. Record the repository snapshot and the prompt path and SHA-256.
+2. Read [the repository source map](references/repository-source-map.md) and inventory the executing tuples from this checkout.
+3. Research official sources under the rules below, reading [evidence review](references/evidence-review.md) for supplied collections or uncertain availability or pricing. Reconcile prior findings with the current inventory before assigning statuses.
+4. Write the reports to [the report structure](references/report-structure.md), with actionable findings inheriting [the standard implementation contract](references/implementation-contract.md).
+5. Validate (see Validation) and reply with the report paths, material evidence gaps and the checks actually run.
 
-## Shared Conventions
+## Research rules
 
-Use the exact report headings and order in [the report structure reference](references/report-structure.md). Retain every shared section, stating explicitly when it has no scoped findings. Use unwrapped Markdown prose and align every table to its current cell widths.
+- **Inventory.** Count every configured workflow/service/model tuple in scope, including hidden entries, selector-free services and executing local backends; record workflow, registry key, CLI selector, registry ID and wire ID where they differ. Count Tesseract with no upstream model; classify URL services in the shared `extract` registry as URL and caption retrieval as STT. Aliases, retired rates, stubs, empty directories and one backend reached through several commands add no tuples.
+- **Defaults.** Resolve bare-provider and omitted-provider defaults by executing the local resolver read-only, recording the complete candidate when selection also picks mode, duration or resolution. Config descriptions and cost constants are not defaults.
+- **Leads.** After freezing the inventory, screen repository-wide providers for the scoped workflows they do not dispatch. Record each lead as recommended, unresolved with a named missing fact, excluded by a recorded decision, or irrelevant. Credentials and marketing categories do not establish dispatch support.
+- **Sources.** Use official catalogs, exact host and operation pages, API schemas, dated release and lifecycle notices and billing terms together. Keep complete-file, async, streaming and realtime operations distinct, and preserve modes and reference inputs the executing adapters already support.
+- **Eligibility.** Apply ADR-010. Eligible routes use concrete stable host IDs, are generally available, and require neither a recurring fee nor a recurring minimum spend. Metered billing and one-time prepaid credits qualify. Record any prepaid minimum and credit expiry. Publicly callable previews stay candidates with unresolved eligibility. Consult ADR-010's Excluded integrations tables first. Reopening an excluded route requires new evidence addressing the recorded reason and a user decision.
+- **Workflow policy.** STT episode publishing stays on `--provider assemblyai=universal-3-5-pro --diarization` regardless of newer candidates. For TTS, inspect serializers, native dialogue and voice provisioning before proposing capabilities, and keep spoken text, inline delivery tags and request-level instructions distinct.
+- **Privacy.** Never copy source-book titles, authors, excerpts or filenames from benchmark evidence into reports or fixtures.
+- **Dates.** Keep public research dates, repository implementation dates, local verification and live benchmarking separate. Reformatting refreshes no sources, and mocks or decoded artifacts establish neither spoken correctness, perceptual quality, availability nor invoice cost.
 
-Keep tables to the supplied two or three columns and short cells. Use compact candidate labels and reference links in indexes. Put long IDs, source paths, URLs, pricing qualifications, constraints, and reasoning in labeled lists or prose. Do not add columns to accommodate detail.
+## Classification
 
-Use these primary finding categories for current tuples only:
+Primary categories, for current tuples only:
 
-- **Addition recommended**
-- **Latest relevant model already present**
-- **No verified newer model found**
-- **No selectable model**
-- **Evidence unresolved**
+- **Addition recommended:** an eligible newer or sibling model on the same host should be added.
+- **Latest relevant model already present:** the newest relevant model is registered; name the capability or pending retirement decision that keeps any older tuple.
+- **No verified newer model found:** the host was checked and nothing newer was verified.
+- **No selectable model:** the service has no selectable upstream release; an internal operation ID is not a model.
+- **Evidence unresolved:** a named missing fact prevents a conclusion.
 
-Use the following implementation classifications. They are code-review assessments, not live compatibility results:
+Implementation classes are code-review assessments, not live results: **C** configuration (request and response path compatible; registry, schema, pricing and fixtures change), **A** adapter change (new request, response, capability or accounting behavior in an existing workflow), **I** integration (an existing provider gains dispatch for a workflow it does not serve).
 
-- **C — configuration:** The current request/response path appears compatible; registry, schema, metadata, pricing, and fixtures need updates.
-- **A — adapter changes:** An existing workflow needs new request, response, capability, or accounting behavior.
-- **I — integration:** An existing provider needs dispatch and an adapter for a workflow it does not currently support.
+Priorities:
 
-Give recommendations unique, stable IDs across the report set, continuing existing sequences from their actual owning reports or archives. Missing historical owners are evidence gaps, not permission to reuse IDs or restore absent reports. Detailed findings own recommendation evidence and implementation assessments. Prioritized additions owns only pending model/workflow additions. Put identity, accounting, lifecycle and policy-decision actions in actionable follow-up with an action type, owner and urgency; an urgent retirement need not have an eligible replacement. Implementation follow-up owns completed-change history. Reconcile code changes before assigning status, and preserve earlier IDs and decisions as dated history.
+- **P1:** a clear successor or update of a currently implemented model on the same provider and workflow, meaning a newer version of the same family or tier, or the provider's named replacement, including every lifecycle-driven replacement. A successor ranks lower only for a reason stated in its Status line: eligibility or availability is unverified (Blocked), a recorded policy or exclusion decision must be reopened first (P3), or it drops a capability current runs depend on with no workaround (P2 or P3). Higher cost alone is not a reason when the current model can stay the default.
+- **P2:** any other verified addition (a sibling tier, an alternative or a new capability) with clear benefit and complete pricing.
+- **P3:** optional, or needing a scope or policy decision first, such as a new workflow integration, reopening a removal or exclusion, or a tier with no predecessor.
+- **Blocked:** an evidence or policy prerequisite, named in the finding.
+- **Urgent (actions only):** a dated deprecation, closure, shutdown or default change that is in effect or due before the next refresh, whether or not a successor exists.
 
-Use the full implementation template for new actionable additions/integrations. Keep unchanged current families, carried decisions, identity maintenance and bounded evidence gaps compact, with disposition, exact scope/IDs, dated evidence, prior owner and re-entry condition. Expand changed facts and their consequences; shared evidence has one owner. Count future candidates separately from current tuples and queue length. A service-only internal ID is not an upstream model release; a separate tariff defect does not change its primary category. Qualify retained older models by the capability or unresolved retirement decision that keeps them relevant.
+Actions that a P1 addition depends on, such as its retirement or coexistence decision, share its priority.
 
-For a full-set run, the text/OCR/URL report owns the combined inventory reconciliation and shared repository verification results. For a scoped run, a requested report owns that run's checks and scoped totals; other reports refreshed in the same run link there. Do not create or refresh report 00 solely to hold verification, or present an older shared result as current. Claim a combined eight-workflow total only when its complete inventory was reconciled.
+## Ownership and IDs
 
-## Validation Requirements
+- Finding IDs are unique and stable across the set (`TEXT-`, `OCR-`, `URL-`, `STT-`, `IMAGE-`, `VIDEO-`, `MUSIC-`, `TTS-` plus three digits). Continue each sequence from its highest existing ID in the owning report or archive; never reuse an ID, and treat a missing historical owner as an evidence gap.
+- Findings own evidence and work. Prioritized additions holds only pending model or workflow additions. Actions holds identity, accounting, lifecycle and policy actions plus completed changes. Shared evidence has one owner and is linked elsewhere.
+- Future candidates, queue length and current-tuple category counts are separate numbers. A separate tariff or entitlement issue does not change a tuple's category.
+- In a full-set run, report 00 owns the combined reconciliation and the shared repository checks; in a scoped run, one requested report owns them and the others link there. Claim a combined total only when every workflow was reconciled.
 
-- Reconcile the requested inventories against their runtime scope without duplicate tuples; a full-set run must cover all eight workflows. Check registry-to-workflow mappings, service keys, exact IDs, local/service-only entries, category totals, and the applicable reconciliation owner. In particular, separate OCR from URL entries in the shared `extract` registry and assign transcript/caption retrieval to STT.
-- Verify that every recommendation has a detailed finding, current status is consistent across report sections, and completed changes appear in history rather than the pending queue.
-- Directly validate every requested report: exact twelve provider-research headings/order, local/sibling links and fragments, stable IDs, one row per expected runtime tuple, category sums, table alignment, whitespace, final newline and portable paths. Check source rows and actual executing local exceptions, not only a prose total. Verify archive checksums, original bytes and source-index coverage. Repository checks skip ignored `docs/reports/`; their success is not document acceptance or research completeness.
-- Run `bun --no-env-file src/tools/report-validator.ts <report.md> --profile provider-research`, supplying `--checksums <archive.zip>` when applicable. For generic action reports use the default/`generic` profile instead. The checker accepts explicit ignored paths and bounded diagnostics; it complements runtime reconciliation and independent content review rather than proving research completeness.
-- Run the repository's default verification pass once for the shared snapshot: `bun run check` and `bun t --price --no-cleanup`. The first runs structure, source-name, type and maintained documentation-example checks. Confirm price-only behavior in `test/test-runner/runner.ts`, `price-execution.ts` and `price-commands/`: mapped price commands execute with `--price`, without provider dispatch or the full suite. Price mode preserves prior output by default; `--no-cleanup` makes that intent explicit. Diagnose missing local prerequisites without silently changing setup. Neither command validates research claims, proposed-model compatibility or billed cost. Record actual outcomes under the selected owner and label price totals as estimates.
-- Fix failures encountered during verification according to `AGENTS.md`, preserving intended behavior and meaningful assertions, then rerun the affected checks. If behavior changes, also run targeted local, no-cost behavioral tests. Markdown-only edits need the document checks above and the default verification pass; do not add implementation-mirroring tests.
-- Do not execute paid provider calls, live benchmarks, or full test/E2E suites for this research task. Full-suite execution requires explicit user authorization; any later billable follow-up must also satisfy the repository's Paid Provider Execution Rules. Preserve previous results as dated evidence and retain cached audio and interrupted output directories.
-- Inspect edited files to confirm documentation-only scope and correct report placement. Stay on `staging`; never create or switch branches. Leave staging and committing to the user unless explicitly requested.
+## Validation
 
-## Consolidating an Existing Report (if applicable)
+- Run `bun --no-env-file src/tools/report-validator.ts <reports> --profile provider-research --checksums <archive.zip>` and fix every diagnostic. It checks structure, links, IDs, inventory sums, tables, whitespace and portable paths; also confirm inventory rows against the runtime and that every queued or tabled item has an owning finding with a consistent status.
+- Run `bun run check` and `bun t --price --no-cleanup` once per snapshot (price-only: mapped commands run with `--price`, without provider dispatch or the full suite). Record outcomes in the owning report and label price totals as hypothetical. Neither validates research claims or billed cost; `docs/reports/` is ignored, so repository checks never prove document acceptance.
+- Fix failures under `AGENTS.md`, preserving intended behavior, and rerun the affected checks. Markdown-only edits need the document checks and the default pass.
+- Never run paid provider calls, live benchmarks or full test suites for this research. Stay on `staging`, never create or switch branches, and leave staging and committing to the user.
 
-Use this procedure only when splitting or replacing an existing report:
+## Refreshing, reformatting or consolidating existing reports
 
-1. Map the requested existing findings to their owning workflow reports, preserving IDs, citations, prior decisions and dated evidence. Locate current handoffs and archived owners instead of assuming a former monolithic report still exists; an absent historical owner remains an explicit evidence gap.
-2. Update references and verify that every recommendation, relevant watchlist item, unresolved issue, and citation survived the split.
-3. Confirm that current inventories and statuses reflect the repository snapshot without implying that historical external evidence was revalidated.
-4. Replace or shorten a superseded report only after its receiving reports and references are complete; archive the original bytes with checksums first. Preserve unrequested material and its owning report. A scoped refresh does not require creating all six reports or changing other reports' dates.
+- Preserve finding IDs, titles and prior decisions; record superseded statuses as dated history in the owning finding.
+- Before shortening, splitting or replacing a report, archive its original bytes in the adjacent evidence archive with updated checksums and source index, then confirm every recommendation, watchlist item, unresolved issue and decisive citation survived.
+- A reformat keeps the research run's cutoff, snapshot and prompt SHA-256 and records the reformat in Evidence and validation; it never implies sources were rechecked. Do not change ADR status because a report was reorganized.

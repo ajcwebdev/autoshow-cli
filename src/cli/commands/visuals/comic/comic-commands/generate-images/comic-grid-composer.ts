@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { exec } from '~/utils/cli-utils'
@@ -20,7 +21,7 @@ const DEFAULT_GRID_CELL_SIZE = parseGridPanelSize()
 const resolveImageMagickCommand = (): string => {
   if (hasRuntimeTool('magick') || hasRuntimeTool('convert')) return getImageMagickBinary()
   throw InfraError(
-    'Comic grid composition requires managed ImageMagick. Run bun autoshow setup --step rendering.',
+    `Comic grid composition requires managed ImageMagick. Run ${CLI_INVOCATION} setup --step rendering.`,
     { stage: 'comic:grid-compose' }
   )
 }

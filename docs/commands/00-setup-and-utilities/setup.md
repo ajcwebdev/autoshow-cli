@@ -82,7 +82,7 @@ bun autoshow setup --llm openai=gpt-6-luna
 bun autoshow setup --stt whisperfile=small.en
 bun autoshow setup --ocr tesseract --ocr-language eng --ocr-dpi 300
 bun autoshow setup --tts elevenlabs=eleven_v3 --tts-speaker Host=voice_host --tts-speaker Guest=voice_guest --step-concurrency tts-chunk=3
-bun autoshow setup --image openai=gpt-image-2.5-flare
+bun autoshow setup --image openai=gpt-image-2.6-flare
 bun autoshow setup --batch-limit 20 --batch-order oldest --batch-concurrency 2
 bun autoshow setup --concurrency-mode immediate
 bun autoshow setup --prompt shortSummary --prompt longChapters
@@ -126,7 +126,7 @@ Model fields are arrays. This representative sample uses the strict current sche
       "ttsSpeakers": ["Host=voice_host", "Guest=voice_guest"]
     },
     "image": {
-      "openaiImage": ["gpt-image-2.5-flare"],
+      "openaiImage": ["gpt-image-2.6-flare"],
       "size": "1024x1024",
       "count": 2
     },

@@ -1,3 +1,4 @@
+import { WEB_REQUEST_USER_AGENT } from '~/utils/web-request-user-agent'
 import { basename, resolve as pathResolve } from 'node:path'
 import { statPath as stat } from '~/utils/bun-file-io'
 import * as l from '~/utils/app-logger/app-logger'
@@ -16,7 +17,6 @@ export const DEFAULT_URL_REQUEST_TIMEOUT_MS = 60000
 export const DEFAULT_URL_REQUEST_ATTEMPTS = 3
 
 const MIN_MEANINGFUL_MARKDOWN_CHARS = 50
-const ARTICLE_FETCH_USER_AGENT = 'Mozilla/5.0 (compatible; autoshow-cli/0.1; +https://github.com/ajcwebdev/autoshow-cli)'
 
 export { isRecord }
 
@@ -221,7 +221,7 @@ export const fetchRemoteHtml = async (
     await fetch(source, {
       signal,
       headers: {
-        'User-Agent': ARTICLE_FETCH_USER_AGENT,
+        'User-Agent': WEB_REQUEST_USER_AGENT,
         'Accept': 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8'
       }
     })

@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { InfraError } from '~/utils/error-handler'
 
 export const verifyWhisperfileArtifact = async (path: string, expected: { sha256: string; size: number }): Promise<void> => {
@@ -7,5 +8,5 @@ export const verifyWhisperfileArtifact = async (path: string, expected: { sha256
     for await (const bytes of file.stream()) hash.update(bytes)
     if (hash.digest('hex') === expected.sha256) return
   }
-  throw InfraError(`Whisperfile integrity check failed: ${path}. Cache preserved; run bun autoshow setup --step whisperfile to repair the managed artifact.`, { stage: 'setup:whisperfile' })
+  throw InfraError(`Whisperfile integrity check failed: ${path}. Cache preserved; run ${CLI_INVOCATION} setup --step whisperfile to repair the managed artifact.`, { stage: 'setup:whisperfile' })
 }

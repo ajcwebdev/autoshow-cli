@@ -4,7 +4,7 @@ import { comicLog, formatCompactCost, formatDuration } from '../../comic-utils/c
 import { generateSketchesCommand } from '../generate-sketches/generate-sketches-command'
 import { panelSelectionToSketchRange } from './comic-page-utils'
 import { runQaOnlyPanelAudit } from './qa-only-panel-audit'
-import { runRevisionEvaluation } from './revision-evaluation'
+import { REVISION_IMAGE_MODEL, runRevisionEvaluation } from './revision-evaluation'
 
 import type { PreparedComicImageRun } from './comic-image-run-preparation'
 import { mergeImageStats } from './comic-image-run-statistics'
@@ -29,9 +29,15 @@ export const runComicImageAuditMode = async (options: GenerateImagesCommandOptio
 }
 
 export const runComicImageRevisionMode = async (options: GenerateImagesCommandOptions, dependencies: GenerateImagesWorkflowDependencies, { totals, startedAt, sceneRunDir }: PreparedComicImageRun): Promise<void> => {
-  const runRevision = dependencies.runRevisionEvaluation ?? (async revisionOptions => (await runRevisionEvaluation(revisionOptions)).stats)
-  const revisionStats = await runRevision(options)
-  mergeImageStats(totals, revisionStats)
+  const revision = dependencies.runRevisionEvaluation
+    ? { stats: await dependencies.runRevisionEvaluation(options), imageModel: REVISION_IMAGE_MODEL, evidenceDirectory: sceneRunDir }
+    : await runRevisionEvaluation(options)
+  if (revision.stats && revision.imageModel !== REVISION_IMAGE_MODEL) {
+    comicLog.summary([`reused=${revision.stats.imagesGenerated}`, `recordedImageModel=${revision.imageModel}`, 'imageCalls=0', 'comparisonCalls=0'])
+    comicLog.outputDirectory(revision.evidenceDirectory)
+    return
+  }
+  mergeImageStats(totals, revision.stats)
   comicLog.summary([
     `generated=${totals.imagesGenerated}`,
     `skipped=${totals.imagesSkipped}`,

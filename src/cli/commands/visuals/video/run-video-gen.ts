@@ -1,4 +1,4 @@
-import type { Step6VideoMetadata, VideoGenOptions, VideoTarget } from '~/types'
+import type { MediaResumeArtifacts, Step6VideoMetadata, VideoGenOptions, VideoTarget } from '~/types'
 import { runMediaFileTargets } from '~/cli/commands/command-shared/media-file-target-runner'
 import { UsageError } from '~/utils/error-handler'
 import {
@@ -10,7 +10,7 @@ export const runVideoTargets = async (
   targets: VideoTarget[],
   prompt: string | undefined,
   outputDir: string,
-  options?: Pick<VideoGenOptions, 'videoProviderConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'>,
+  options?: Pick<VideoGenOptions, 'videoProviderConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'> & { mediaResume?: MediaResumeArtifacts | undefined },
 ): Promise<{ videoPaths: string[], metadata: Step6VideoMetadata[] }> => {
   const result = await runMediaFileTargets<VideoTarget, Step6VideoMetadata, string | undefined>({
     targets,
@@ -19,7 +19,8 @@ export const runVideoTargets = async (
     options: {
       providerConcurrency: options?.videoProviderConcurrency,
       resourceGate: options?.generationResourceGate,
-      hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator
+      hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator,
+      mediaResume: options?.mediaResume
     },
     descriptor: {
       stepLabel: 'video',

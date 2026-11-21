@@ -6,6 +6,7 @@ import type { AutoshowConfig } from '~/types'
 import { resolveRuntimeBudgetMaxCents } from '~/utils/runtime-spending-budget'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathIsWithinRoot, resolveRuntimePhysicalPath } from '~/utils/runtime-containment'
+import { IS_INSTALLED_CLI, PROJECT_ROOT } from '~/utils/project-root'
 
 const asRecord = (value: unknown): Record<string, unknown> | undefined =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -102,6 +103,7 @@ const findProjectRoot = async (startDir: string): Promise<string> => {
 
 export const resolveConfigPath = async (configPathOverride?: string): Promise<string> => {
   if (configPathOverride) return configPathOverride
+  if (IS_INSTALLED_CLI) return assertDefaultConfigPath(join(PROJECT_ROOT, 'runtime/autoshow.json'))
   const projectRootOverride = process.env['AUTOSHOW_PROJECT_ROOT']?.trim()
   const root = projectRootOverride ? resolve(projectRootOverride) : await findProjectRoot(process.cwd())
   return assertDefaultConfigPath(join(root, 'runtime/autoshow.json'))

@@ -289,7 +289,7 @@ test('no-cost service CLI rejections are imported as data and require disabled n
   const cases = dockerScenarios()
   const rejections = rejectionScenarios(containerFixture)
   expect(rejections.map(item => item.id)).toStrictEqual([
-    'reject-mistral-tts', 'reject-tts-reference', 'reject-unknown-bfl', 'reject-gemini-lite-size',
+    'reject-mistral-tts', 'reject-tts-reference', 'reject-unknown-bfl', 'reject-gemini-image-size',
     'reject-openai-image-count', 'reject-grok-image-format', 'reject-gemini-video-duration', 'reject-music-provider'
   ])
   for (const rejection of rejections) {

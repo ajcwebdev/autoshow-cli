@@ -71,6 +71,22 @@ const activeTts = [
   ...routePairs('inworld', ['realtime-tts-2']),
 ]
 
+// Generation-media routes come from the image, video and music registries; retired IDs keep only historical rates.
+const activeImage = [
+  ...routePairs('gemini', ['gemini-nano-banana-2.1']),
+  ...routePairs('openai', ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst']),
+  ...routePairs('grok', ['grok-imagine-image-2.0']),
+]
+const retiredImage = [
+  ...routePairs('gemini', ['gemini-3.1-flash-lite-image', 'gemini-3.1-flash-image-preview']),
+  ...routePairs('openai', ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst', 'gpt-image-2']),
+  ...routePairs('grok', ['grok-imagine-image']), ...routePairs('recraft', ['recraftv4_1']),
+]
+const activeVideo = [...routePairs('gemini', ['gemini-omni-1.2-flash']), ...routePairs('grok', ['grok-imagine-video-1.5', 'grok-imagine-video-1.5-lite'])]
+const retiredVideo = [...routePairs('gemini', ['gemini-omni-1.1-flash', 'veo-3.1-generate-preview']), ...routePairs('grok', ['grok-imagine-video']), ...routePairs('minimax', ['MiniMax-Hailuo-2.3'])]
+const activeMusic = [...routePairs('elevenlabs', ['music_v2', 'music_v2_5']), ...routePairs('minimax', ['music-3.0']), ...routePairs('gemini', ['lyria-3.5'])]
+const retiredMusic = [...routePairs('elevenlabs', ['music_v1']), ...routePairs('minimax', ['music-2.6']), ...routePairs('gemini', ['lyria-3-clip-preview'])]
+
 describe('benchmark dashboard live CLI availability snapshot', () => {
   const mappings = [
     { tab: 'write', active: activeWrite, retired: removedWrite },
@@ -80,6 +96,9 @@ describe('benchmark dashboard live CLI availability snapshot', () => {
     { tab: 'stt-without-speakers', active: nonDiarizedStt, retired: [...removedStt, ...localStt] },
     { tab: 'url', active: ['defuddle', 'spider', 'zyte'].map(value => [value, value] as [string, string]), retired: ['firecrawl', 'glm-reader', 'supadata'].map(value => [value, value] as [string, string]) },
     { tab: 'tts', active: activeTts, retired: [...routePairs('mistral', ['voxtral-tts']), ...routePairs('openai', ['tts-1', 'tts-1-hd'])] },
+    { tab: 'image', active: activeImage, retired: [...retiredImage, ...activeVideo] },
+    { tab: 'video', active: activeVideo, retired: [...retiredVideo, ...activeImage] },
+    { tab: 'music', active: activeMusic, retired: [...retiredMusic, ...activeTts] },
   ]
 
   for (const { tab, active, retired } of mappings) {

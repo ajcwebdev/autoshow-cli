@@ -110,7 +110,7 @@ describe('retired model successor contracts', () => {
         } else {
           expect(record.error.message).toContain(`Unknown provider "${entry.provider}"`)
           expect(record.error.message).toContain('gemini|openai|grok')
-          expect(record.error.message).not.toContain('gpt-image-2.5-flare')
+          expect(record.error.message).not.toContain('gpt-image-2.6-flare')
           expect(getRetiredModelReplacement('image', entry.provider, entry.model)).toBeUndefined()
         }
         expect(JSON.parse(await readFile(audit, 'utf8'))).toEqual({ calls: 0 })

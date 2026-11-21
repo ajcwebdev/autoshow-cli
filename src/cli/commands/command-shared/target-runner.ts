@@ -5,6 +5,7 @@ import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
 import { runProviderTargetScheduler } from './provider-target-scheduler'
+import { checkMediaResumeDestinations, createMediaResumeWorkspace, publishMediaResumeFile, retainIncompleteMediaWorkspace } from './media-resume-artifacts'
 
 
 export const sanitizeModelName = (model: string): string =>
@@ -42,7 +43,7 @@ export const runTargets = async <TTarget extends ProviderIdentity, TResult>(
   opts: RunTargetsOptions<TTarget, TResult>
 ): Promise<TResult[]> => {
   const { targets, outputDir, stepLabel, noProviderMessage } = opts
-  const singleTarget = targets.length === 1
+  const singleTarget = targets.length === 1 && !opts.mediaResume?.useProviderNames
   const scheduled = await runProviderTargetScheduler<TTarget, TResult>({
     entries: targets.map((target, index) => ({
       index,
@@ -60,11 +61,13 @@ export const runTargets = async <TTarget extends ProviderIdentity, TResult>(
     getHostedWorkId: (index, target) => `${stepLabel}:${outputDir}:${target.service}:${target.model}:${index}`,
     getPool: opts.getTargetPool ?? (() => 'hosted'),
     runTarget: async (_index, target) => {
-      const usesWorkspace = !singleTarget || opts.useWorkspaceForSingleTarget === true
+      const usesWorkspace = !singleTarget || opts.mediaResume !== undefined || opts.useWorkspaceForSingleTarget === true
       const workspaceDir = usesWorkspace ? opts.getWorkspaceDir(outputDir, target) : outputDir
       let completed = false
 
-      if (usesWorkspace) {
+      if (opts.mediaResume) {
+        await createMediaResumeWorkspace(workspaceDir)
+      } else if (usesWorkspace) {
         await mkdir(workspaceDir, { recursive: true })
       }
 
@@ -77,7 +80,9 @@ export const runTargets = async <TTarget extends ProviderIdentity, TResult>(
         await opts.onTargetFailure?.(target, error, workspaceDir)
         throw error
       } finally {
-        if (usesWorkspace && (completed || opts.preserveWorkspaceOnFailure !== true)) {
+        if (opts.mediaResume && !completed) {
+          await retainIncompleteMediaWorkspace(workspaceDir)
+        } else if (usesWorkspace && (completed || opts.preserveWorkspaceOnFailure !== true)) {
           await rm(workspaceDir, { recursive: true, force: true })
         }
       }
@@ -129,9 +134,18 @@ export const runMediaArtifactTargets = async <TTarget extends ProviderIdentity, 
     getTargetPriority: opts.getTargetPriority,
     hostedConcurrencyCoordinator: opts.hostedConcurrencyCoordinator,
     hostedWorkClass: opts.hostedWorkClass,
-    runTarget: opts.runTarget,
+    mediaResume: opts.mediaResume,
+    runTarget: async (target, workspaceDir) => {
+      if (opts.mediaResume) {
+        // Only the stem matters here. The adapter determines the actual extension and number of outputs.
+        const bareName = opts.getArtifactFileNames(target, ['artifact.png'], true)[0]!
+        const providerName = opts.getArtifactFileNames(target, ['artifact.png'], false)[0]!
+        await checkMediaResumeDestinations(opts.outputDir, bareName, providerName, opts.mediaResume.recordedFileNames, opts.stepLabel === 'image' ? target.model : undefined)
+      }
+      return await opts.runTarget(target, workspaceDir)
+    },
     finalizeTarget: async (target, result, singleTarget) => {
-      if (singleTarget && opts.finalizeSingleTarget !== true) {
+      if (singleTarget && !opts.mediaResume && opts.finalizeSingleTarget !== true) {
         return result
       }
 
@@ -142,9 +156,9 @@ export const runMediaArtifactTargets = async <TTarget extends ProviderIdentity, 
         const finalFileName = finalFileNames[index]
         if (!finalFileName) continue
 
-        // A single target already writes into the output directory, so only fan-out runs need renaming.
-        const finalPath = singleTarget ? filePath : `${opts.outputDir}/${finalFileName}`
-        if (!singleTarget) await rename(filePath, finalPath)
+        const finalPath = singleTarget && !opts.mediaResume ? filePath : `${opts.outputDir}/${finalFileName}`
+        if (opts.mediaResume) await publishMediaResumeFile(filePath, finalPath)
+        else if (!singleTarget) await rename(filePath, finalPath)
         finalPaths.push(finalPath)
       }
 
@@ -170,6 +184,7 @@ export const runSingleFileTargets = async <TTarget extends ProviderIdentity, TMe
     stepLabel: opts.stepLabel,
     noProviderMessage: opts.noProviderMessage,
     workspacePrefix: opts.workspacePrefix,
+    mediaResume: opts.mediaResume,
     concurrency: opts.concurrency,
     resourceGate: opts.resourceGate,
     getResourceGate: opts.getResourceGate,

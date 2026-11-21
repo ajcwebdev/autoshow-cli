@@ -21,6 +21,7 @@ import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import {
   resolveVideoMediaFileForUpload,
   tryResolveLocalVideoDurationSeconds,
+  validateGeminiVideoReferenceImages,
   videoMediaReferenceToGeminiInteractionPart
 } from '../../video-utils/video-media-inputs'
 import { isObjectLike } from '~/utils/value-helpers'
@@ -154,6 +155,7 @@ export const runGeminiVideoGen = async (
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   const mode = options.mode ?? 'text'
+  validateGeminiVideoReferenceImages(options.referenceImages, options.model)
 
   return await runVideoGeneration({
     service: 'gemini',

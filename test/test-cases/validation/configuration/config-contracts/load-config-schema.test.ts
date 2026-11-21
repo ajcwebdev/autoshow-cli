@@ -50,11 +50,11 @@ describe('config load schema contracts', () => {
           chunkConcurrency: 3
         },
         image: {
-          openaiImage: ['gpt-image-2.5-flare'],
+          openaiImage: ['gpt-image-2.6-flare'],
           format: 'jpeg'
         },
         video: {
-          geminiVideo: ['gemini-omni-1.1-flash'],
+          geminiVideo: ['gemini-omni-1.2-flash'],
           referenceVideos: ['input/examples/video/reference.mp4'],
           duration: 5
         }

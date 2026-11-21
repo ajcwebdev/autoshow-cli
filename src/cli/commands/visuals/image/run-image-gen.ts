@@ -1,5 +1,5 @@
 import { assertRequiredImageModel } from '~/utils/required-image-model'
-import type { ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
+import type { MediaResumeArtifacts, ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
 import { runMediaArtifactFileTargets } from '~/cli/commands/command-shared/media-file-target-runner'
 import { UsageError } from '~/utils/error-handler'
 import {
@@ -11,7 +11,7 @@ export const runImageTargets = async (
   targets: ImageTarget[],
   prompt: string,
   outputDir: string,
-  options: ImageGenOptions
+  options: ImageGenOptions & { mediaResume?: MediaResumeArtifacts | undefined }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata[] }> => {
   for (const target of targets) assertRequiredImageModel(target.model, target.service)
   const result = await runMediaArtifactFileTargets<ImageTarget, Step5Metadata, string>({
@@ -21,7 +21,8 @@ export const runImageTargets = async (
     options: {
       providerConcurrency: options.imageProviderConcurrency,
       resourceGate: options.generationResourceGate,
-      hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator
+      hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
+      mediaResume: options.mediaResume
     },
     descriptor: {
       stepLabel: 'image',
@@ -32,7 +33,7 @@ export const runImageTargets = async (
       finalizeSingleTarget: true,
       artifactFailureStage: 'image:run',
       runTarget: async (target, targetPrompt, workspaceDir) =>
-        await target.run(targetPrompt, workspaceDir, options).then(({ imagePaths, metadata }) => ({ filePaths: imagePaths, metadata })),
+        await target.run(targetPrompt, workspaceDir, options, outputDir).then(({ imagePaths, metadata }) => ({ filePaths: imagePaths, metadata })),
       getArtifactFileNames: getImageArtifactFileNames,
       finalizeMetadata: (metadata, finalFileNames, finalPaths) => ({
         ...metadata,

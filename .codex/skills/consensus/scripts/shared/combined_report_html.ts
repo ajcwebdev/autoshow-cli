@@ -46,6 +46,7 @@ export interface DashboardRunInventoryCell {
   href?: string;
   /** Explicit run-relative artifact links; ordinary source URLs remain HTTP(S)-only. */
   artifactHref?: string;
+  artifactLinks?: Array<{ display: string; artifactHref: string }>;
 }
 
 export interface DashboardRunInventoryColumn {

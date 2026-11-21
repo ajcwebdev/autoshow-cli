@@ -253,10 +253,10 @@ describe('resume all-shortcut additive selection', () => {
         {
           kind: 'image' as const,
           metadataKey: 'image',
-          requestedProvider: { service: 'gemini', model: 'gemini-3.1-flash-lite-image' },
+          requestedProvider: { service: 'gemini', model: 'gemini-nano-banana-2.1' },
           metadata: {
             imageService: 'gemini',
-            imageModel: 'gemini-3.1-flash-lite-image',
+            imageModel: 'gemini-nano-banana-2.1',
             processingTime: 1,
             imageFileNames: ['generated-image.png'],
             imageCount: 1,
@@ -270,10 +270,10 @@ describe('resume all-shortcut additive selection', () => {
         {
           kind: 'video' as const,
           metadataKey: 'video',
-          requestedProvider: { service: 'gemini', model: 'gemini-omni-1.1-flash' },
+          requestedProvider: { service: 'gemini', model: 'gemini-omni-1.2-flash' },
           metadata: {
             videoGenService: 'gemini',
-            videoGenModel: 'gemini-omni-1.1-flash',
+            videoGenModel: 'gemini-omni-1.2-flash',
             processingTime: 1,
             videoFileName: 'generated-video.mp4',
             videoFileSize: 1,

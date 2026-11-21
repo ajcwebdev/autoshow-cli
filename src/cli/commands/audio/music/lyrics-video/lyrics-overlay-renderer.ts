@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { writeFileExact } from '~/utils/bun-file-io'
 
 import { join } from 'node:path'
@@ -117,7 +118,7 @@ export const renderPangoLayer = async (
   }
 
   if (!hasRuntimeTool('pango-view')) {
-    throw InfraError('Lyrics rendering fallback requires managed pango-view. Run bun autoshow setup --step rendering.', { stage: 'music:lyrics-video' })
+    throw InfraError(`Lyrics rendering fallback requires managed pango-view. Run ${CLI_INVOCATION} setup --step rendering.`, { stage: 'music:lyrics-video' })
   }
 
   const weight = options.bold ? ' weight="bold"' : ''
@@ -165,7 +166,7 @@ export const renderOverlayCard = async (options: {
 }): Promise<void> => {
   const convert = resolveConvertCommand()
   if (!convert) {
-    throw InfraError('Lyrics rendering requires managed FFmpeg with ASS support or the managed text-overlay tools. Run bun autoshow setup --step rendering.', { stage: 'music:lyrics-video' })
+    throw InfraError(`Lyrics rendering requires managed FFmpeg with ASS support or the managed text-overlay tools. Run ${CLI_INVOCATION} setup --step rendering.`, { stage: 'music:lyrics-video' })
   }
 
   const layout = options.layout ?? DEFAULT_OVERLAY_TEXT_LAYOUT

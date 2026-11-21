@@ -1,11 +1,13 @@
 {
   "name": "autoshow-bun-cli",
+  "private": true,
   "version": "0.1.0",
   "packageManager": "bun@1.4.2",
   "type": "module",
   "author": "Anthony Campolo",
   "license": "MIT",
   "scripts": {
+    "build:package": "bun --no-env-file src/tools/build-cli-package.ts",
     "repo": "env -i BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file src/tools/repo-snapshot.ts",
     "audit:ocr-tokens": "env -i BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file src/tools/audit-ocr-token-shapes.ts",
     "analyze:complexity": "env -i BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 PATH=\"$PATH\" HOME=\"$HOME\" bun --no-env-file src/tools/analyze-typescript-complexity.ts --scope src --scope test",

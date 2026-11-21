@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { accessSync, constants, existsSync, lstatSync, statSync } from 'node:fs'
 import { basename, extname, isAbsolute, join, posix, relative, resolve } from 'node:path'
 import type { ResolvedRuntimeTool, ResolveRuntimeToolOptions, RuntimeToolId } from '~/types'
@@ -126,7 +127,7 @@ export const assertRuntimeContainedPath = (path: string, readRealpath?: (path: s
   if (!pathIsPhysicallyWithinRoot(RUNTIME_DIR, resolved, readRealpath)) {
     throw ValidationError('Managed tool paths must resolve inside the project runtime directory.', {
       stage: 'runtime:toolchain',
-      hints: ['Run bun autoshow setup to install managed tools inside runtime/.']
+      hints: [`Run ${CLI_INVOCATION} setup to install managed tools inside runtime/.`]
     })
   }
   return resolved

@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { detectPlatform } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import * as l from '~/utils/app-logger/app-logger'
 import { hasRuntimeTool, resolveRuntimeToolInfo } from '~/utils/runtime-paths'
@@ -26,7 +27,7 @@ const hasHealthyCalibreCliTools = async (): Promise<boolean> => {
 export const calibreBin = (tool: string): string => {
   if (tool !== 'ebook-convert') throw InfraError(`Unsupported managed Calibre tool: ${tool}`, { stage: 'setup:calibre' })
   const resolved = resolveRuntimeToolInfo('ebook-convert')
-  if (!resolved) throw InfraError('Managed ebook-convert is unavailable; run bun autoshow setup --step calibre', { stage: 'setup:calibre' })
+  if (!resolved) throw InfraError(`Managed ebook-convert is unavailable; run ${CLI_INVOCATION} setup --step calibre`, { stage: 'setup:calibre' })
   return resolved.path
 }
 

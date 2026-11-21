@@ -58,8 +58,8 @@ The supplied references need no hosted replacement. Optional variants use [refer
 
 ```bash
 bun --no-env-file autoshow comic draft-scenes "$SCRIPT" --only panel-prompts --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target sketches --provider openai=gpt-image-2.5-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --provider openai=gpt-image-2.5-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target sketches --provider openai=gpt-image-2.6-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic generate-images "$SCRIPT" --target images --provider openai=gpt-image-2.6-flare --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
 ```
 
 Both image commands are hosted. Inspect `panels/<image-run-id>/panel-NN.png`; downstream review, audit, revision, and slideshow read canonical `panels/panel-NN.png` instead. Publish only the completed single-model individual-panel run you reviewed:
@@ -98,7 +98,7 @@ Preserve interrupted runs and paid audio. [`resume <run-directory> --price`](../
 
 ## Supported Models
 
-Images use OpenAI, Gemini, or Grok; the default is `gpt-image-2.5-flare`. Text defaults to `gpt-6.1-sol`; blocking/QA require supported OpenAI/Gemini vision models. Audio defaults to the cheapest hosted TTS target. Current catalogs: [image](../image/overview.md), [write](../../03-write/overview.md), [TTS](../../04-audio/tts/overview.md).
+Images use OpenAI, Gemini, or Grok; the default is `gpt-image-2.6-flare`. Text defaults to `gpt-6.1-sol`; blocking/QA require supported OpenAI/Gemini vision models. Audio defaults to the cheapest hosted TTS target. Current catalogs: [image](../image/overview.md), [write](../../03-write/overview.md), [TTS](../../04-audio/tts/overview.md).
 
 ## Command Docs
 

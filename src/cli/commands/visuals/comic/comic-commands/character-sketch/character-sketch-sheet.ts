@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import type { CharacterSketchSheetSelection, CharacterSketchSheetSource, CharacterSketchSheetSourceMetadata, CharacterSketchView } from '~/types'
 import { exec } from '~/utils/cli-utils'
@@ -37,7 +38,7 @@ export const selectCharacterSketchSheetSources = (
 const resolveImageMagickCommand = (): string => {
   if (hasRuntimeTool('magick') || hasRuntimeTool('convert')) return getImageMagickBinary()
   throw InfraError(
-    'Character sketch sheet composition requires managed ImageMagick. Run bun autoshow setup --step rendering.',
+    `Character sketch sheet composition requires managed ImageMagick. Run ${CLI_INVOCATION} setup --step rendering.`,
     { stage: 'comic:character-sketch-sheet' }
   )
 }

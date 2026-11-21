@@ -103,7 +103,7 @@ const imageInputs = async (f: Awaited<ReturnType<typeof fixture>>) => {
   }
 }
 
-for (const models of [['gemini-3.1-flash-lite-image']] as const) {
+for (const models of [['gemini-nano-banana-2.1']] as const) {
   test(`image recovery binds the original output directory and reuses completed panels with ${models.length} models`, async () => {
     const f = await fixture()
     await imageInputs(f)
@@ -171,7 +171,7 @@ for (const panelsPerImage of [1, 2]) {
     const f = await fixture()
     await imageInputs(f)
     delete process.env['AUTOSHOW_REQUIRED_IMAGE_MODEL']
-    const options: GenerateImagesCommandOptions = { scriptPath: f.scriptPath, sceneSlug: f.structured.sourceIdentity.scriptSlug, target: 'images', imageModels: ['gemini-3.1-flash-lite-image'], panelsPerImage, qa: true, maxRepairs: 0, recoveryRunId: 'retained' }
+    const options: GenerateImagesCommandOptions = { scriptPath: f.scriptPath, sceneSlug: f.structured.sourceIdentity.scriptSlug, target: 'images', imageModels: ['gemini-nano-banana-2.1'], panelsPerImage, qa: true, maxRepairs: 0, recoveryRunId: 'retained' }
     await recordComicRecoveryIntent({ rootDir: f.run, sourceIdentity: f.structured.sourceIdentity, stage: 'image', flags: comicImageRecoveryFlags(options), inputs: await captureComicImageRecoveryInputs(f.run), imageRunId: options.recoveryRunId, planHash: comicImageRecoveryHash(options) })
     const files = panelsPerImage === 1 ? ['panels/retained/panel-01.png', 'panels/retained/panel-02.png'] : ['pages/retained/page-01-panels-01-02.png']
     for (const file of files) {

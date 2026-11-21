@@ -190,8 +190,16 @@ describe('historical model rate contracts', () => {
     expect(getRetiredModelReplacement('image', 'grok', 'grok-imagine-image-quality')).toBe('grok-imagine-image-2.0')
     expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1')).toBeUndefined()
     expect(getRetiredModelReplacement('image', 'recraft', 'recraftv4_1_pro')).toBeUndefined()
-    expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3.1-flash-image')).toBe('gemini-3.1-flash-lite-image')
-    expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3-pro-image')).toBe('gemini-3.1-flash-lite-image')
+    expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3.1-flash-image')).toBe('gemini-nano-banana-2.1')
+    expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3-pro-image')).toBe('gemini-nano-banana-2.1')
+    // Retired 2026-11-19: Lite and the GPT Image 2.5 pair keep their last published rates for finished runs.
+    expect(getImageCost('gemini', 'gemini-3.1-flash-lite-image')).toBe(3.36)
+    expect(getRetiredModelReplacement('image', 'gemini', 'gemini-3.1-flash-lite-image')).toBe('gemini-nano-banana-2.1')
+    for (const [model, replacement] of [['gpt-image-2.5-flare', 'gpt-image-2.6-flare'], ['gpt-image-2.5-sunburst', 'gpt-image-2.6-sunburst']] as const) {
+      expect(getModelRegistry().image['openai']?.models[model], model).toBeUndefined()
+      expect(getImageCost('openai', model)).toBe(1.317)
+      expect(getRetiredModelReplacement('image', 'openai', model)).toBe(replacement)
+    }
   })
 
   test('retired STT selectors retain exact rates and same-service replacements', () => {

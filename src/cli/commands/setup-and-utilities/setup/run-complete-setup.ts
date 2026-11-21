@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { requireRenderingPrerequisites } from './rendering-readiness'
 import { readdir } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
@@ -52,6 +53,7 @@ import { ensureRuntimeDirectory, ensureRuntimeStateDirectories } from '~/utils/r
 import { ensureManagedLinuxRendering, ensureManagedLinuxToolchain } from './setup-download/managed-linux-tools'
 import { migrateLegacyRuntimeState } from '~/utils/runtime-state-migration'
 import { ensureProjectRuntimeDependencies } from '~/tools/project-runtime-dependencies'
+import { IS_INSTALLED_CLI } from '~/utils/project-root'
 
 const RUNTIME = RUNTIME_DIR
 
@@ -335,14 +337,14 @@ const logSetupSummary = async (
 
   l.write(healthy ? 'info' : 'warn', `Setup ${healthy ? 'ready' : 'incomplete'} in ${formatSetupElapsed(Date.now() - startedAtMs)}; ${providerSummary.configured}/${providerSummary.total} hosted providers configured`, {
     category: 'command',
-    metadata: { elapsedMs: Date.now() - startedAtMs, runtimeBytes, runtimeDir: RUNTIME_DIR, missingTools, missingModels, hostedProviders: providerSummary, next: 'bun autoshow setup --doctor' }
+    metadata: { elapsedMs: Date.now() - startedAtMs, runtimeBytes, runtimeDir: RUNTIME_DIR, missingTools, missingModels, hostedProviders: providerSummary, next: `${CLI_INVOCATION} setup --doctor` }
   })
 
   return healthy
 }
 
 const runSetupToolchain = async (options: SetupRunOptions): Promise<void> => {
-  if (!Bun.isStandaloneExecutable) await ensureProjectRuntimeDependencies()
+  if (!IS_INSTALLED_CLI && !Bun.isStandaloneExecutable) await ensureProjectRuntimeDependencies()
   await runConcurrentSetupTasks([
     { label: 'managed build tools', run: async () => {
       if (detectPlatform() === 'linux') await ensureManagedLinuxToolchain(options)
@@ -409,7 +411,7 @@ const runFullSetup = async (options: SetupRunOptions = {}, overrides: Partial<Se
     logSetupStepTimings()
     healthy = await operations.summarize(startedAtMs, providerSummary)
 
-    l.write('info', 'You can now run: bun autoshow extract "https://www.youtube.com/watch?v=u1-WHqATSQU"', { category: 'command' })
+    l.write('info', `You can now run: ${CLI_INVOCATION} extract "https://www.youtube.com/watch?v=u1-WHqATSQU"`, { category: 'command' })
     return healthy
   } finally {
     try {

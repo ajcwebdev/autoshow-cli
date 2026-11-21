@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { batchFlags, booleanAllProvidersFlag, modelCostFilterFlag, priceFlag, sharedConcurrencyFlags, stepConcurrencyFlag } from './shared-flags'
 import { boolFlag, formatProviderList, formatRange, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { GEMINI_TTS_MODES, GEMINI_TTS_DEFAULT_MODE, GEMINI_TTS_BATCH_WAIT_RANGE, GEMINI_TTS_BATCH_WAIT_DEFAULT_SECONDS } from './gemini-tts-contract'
@@ -14,7 +15,7 @@ export const ttsFlags = {
 
 export const genericTtsOptionFlags = {
   'allow-ambiguous-redispatch': boolFlag('Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio'),
-  'tts-voice': strListFlag('Generic TTS voice selector. Use value with one selected provider, or provider=value with multiple providers. See bun autoshow tts --help-topic provider:<name> for available voices and defaults.'),
+  'tts-voice': strListFlag(`Generic TTS voice selector. Use value with one selected provider, or provider=value with multiple providers. See ${CLI_INVOCATION} tts --help-topic provider:<name> for available voices and defaults.`),
   'tts-speed': strListFlag(genericTtsOptionDescription('tts-speed', 'Generic TTS speed')),
   'tts-language': strListFlag(genericTtsOptionDescription('tts-language', 'Generic TTS language')),
   'tts-text-normalization': strListFlag(genericTtsOptionDescription('tts-text-normalization', 'Generic TTS text normalization')),

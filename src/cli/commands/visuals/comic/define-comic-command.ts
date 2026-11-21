@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { COMIC_SUBCOMMAND_DEFINITIONS, generateAudioCommandDefinition } from './comic-utils/subcommand-help'
 
@@ -20,7 +21,7 @@ export const comicCommand = defineCliCommand({
       ['bun autoshow comic generate-images --help', 'Show the flags for one subcommand']
     ],
     notes: [
-      'Each subcommand has its own flags: bun autoshow comic <subcommand> --help',
+      `Each subcommand has its own flags: ${CLI_INVOCATION} comic <subcommand> --help`,
       'Use voice for character voice registrations. Deprecated aliases reference-voice, review-sheet, and review-notes remain callable for one compatibility release; use their --help for replacements.',
       'Comic artifacts are read from input and written under output.'
     ]

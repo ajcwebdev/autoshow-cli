@@ -3,7 +3,7 @@ import { validateGeminiVideoModel } from '~/cli/commands/setup-and-utilities/mod
 import { runGeminiVideoGen } from './run-gemini-video-gen'
 import { isSupportedOrSkippedForAllVideo } from '../../video-utils/video-mode-validation'
 import { normalizeGeminiAspectRatio, normalizeGeminiDuration, normalizeGeminiResolution } from '../../video-utils/video-normalization'
-import { validateVideoMediaReferences } from '../../video-utils/video-media-inputs'
+import { validateGeminiVideoReferenceImages, validateVideoMediaReferences } from '../../video-utils/video-media-inputs'
 
 const OMNI_MODES: readonly VideoMode[] = [
   'text',
@@ -32,9 +32,7 @@ export const collectGeminiVideoTargets = (options: VideoGenOptions, mode: VideoM
     if (options.videoLastFrame) {
       validateVideoMediaReferences([options.videoLastFrame], { flagName: '--last-frame', provider: 'gemini', model, kind: 'image' })
     }
-    if (options.videoReferenceImages) {
-      validateVideoMediaReferences(options.videoReferenceImages, { flagName: '--reference-image', provider: 'gemini', model, kind: 'image' })
-    }
+    validateGeminiVideoReferenceImages(options.videoReferenceImages, model)
     if (options.videoReferenceVideos) {
       validateVideoMediaReferences(options.videoReferenceVideos, { flagName: '--reference-video', provider: 'gemini', model, kind: 'video', maxInputs: 3 })
     }

@@ -12,6 +12,8 @@ bun autoshow resume <outputDirs...> [flags]
 
 - Supports extract STT/OCR/article, write, TTS, image, video, music, and single-scene comic manifests. X Spaces cannot resume.
 - Standalone/extract runs preserve successes, retry eligible missing/failed targets, and permit additive selections. Write runs only explicitly selected providers; no selection is a no-op.
+- Image, video, and music resumes take turns updating a run. If an interrupted request left a file that the manifest cannot identify, execution stops before dispatching that target again. Inspect the path in the error and preserve the files. Move them aside only if you intend to purchase another attempt.
+- Video retries use each target's saved resolution for both pricing and generation. An explicit `--resolution` overrides it. New targets and older records without a resolution use the normal command settings.
 - Parent extract batches recover their children. Multiple directories run sequentially with the same flags; failures are collected without stopping later directories.
 - `--price` plans the same remaining/additive work without provider calls or writes. Execution updates the existing run; incomplete/failed backfills exit 2. A successful no-op can leave unselected targets incomplete, so inspect manifest status.
 - Split STT reuses completed `split-attempts/` segments only when source audio, model, segment, and options match.

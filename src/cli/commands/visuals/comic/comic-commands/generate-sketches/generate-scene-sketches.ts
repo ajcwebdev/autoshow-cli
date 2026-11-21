@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import type { DirectoryEntry } from '~/types'
 import { mkdir, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -268,7 +269,7 @@ const assertPrimaryCharacterReferencesStaged = (resolvedReferences: { missingPri
     throw InfraError(
       `Missing character reference images in ${chunkLabel}: ` +
       `${resolvedReferences.missingPrimaryCharacterRefs.join(', ')}. ` +
-      `Re-run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" ` +
+      `Re-run "${CLI_INVOCATION} comic draft-scenes <script-path> --only panel-prompts" ` +
       `after generating any missing character sketches.`,
       { stage: 'comic:generate-sketches' }
     )
@@ -279,7 +280,7 @@ const assertReferenceImageFilesPresent = (missingReferences: readonly string[], 
   if (missingReferences.length > 0) {
     throw InfraError(
       `Missing reference image file(s) for ${chunkLabel}: ${missingReferences.join(', ')}. ` +
-      'Re-run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" to restage panel prompt bundles.',
+      `Re-run "${CLI_INVOCATION} comic draft-scenes <script-path> --only panel-prompts" to restage panel prompt bundles.`,
       { stage: 'comic:generate-sketches' }
     )
   }

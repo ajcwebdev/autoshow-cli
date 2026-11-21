@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -80,7 +81,7 @@ export const prepareComicImageRun = async (options: GenerateImagesCommandOptions
 
   if (!(await checkScenesExist(sceneSlug)) || !(await checkPromptsExist(sceneSlug))) {
     throw InfraError(
-      `Reviewed schemaVersion 4 scene and panel bundles are required. Run "bun autoshow comic draft-scenes ${options.scriptPath}" explicitly; generate-images never drafts or upgrades artifacts.`,
+      `Reviewed schemaVersion 4 scene and panel bundles are required. Run "${CLI_INVOCATION} comic draft-scenes ${options.scriptPath}" explicitly; generate-images never drafts or upgrades artifacts.`,
       { stage: 'comic:generate-images' },
     )
   }
@@ -89,7 +90,7 @@ export const prepareComicImageRun = async (options: GenerateImagesCommandOptions
       v.parse(ScenePromptDataSchema, JSON.parse(await Bun.file(getSceneJsonPath(sceneSlug)).text()))
     } catch (error) {
       throw InfraError(
-        `Reviewed schemaVersion 4 scene JSON is required. Run "bun autoshow comic draft-scenes ${options.scriptPath}" explicitly; older scenes cannot enter controlled image generation.`,
+        `Reviewed schemaVersion 4 scene JSON is required. Run "${CLI_INVOCATION} comic draft-scenes ${options.scriptPath}" explicitly; older scenes cannot enter controlled image generation.`,
         { stage: 'comic:generate-images', cause: error instanceof Error ? error : undefined },
       )
     }

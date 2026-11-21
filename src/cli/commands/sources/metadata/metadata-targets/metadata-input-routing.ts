@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { commandSupportsInputFamily, isExtractCommand } from '~/cli/commands/command-shared/process-command-kinds'
 import { resolveOcrStep2ExecutionFromFormat, resolveSttStep2Execution } from '~/cli/commands/command-shared/extract-routing/resolved-step2'
 import type { InputFamily, OcrSelectionOptions, ProcessCommand, ResolvedInputRouting, SttSelectionOptions, UrlRuntimeOptions } from '~/types'
@@ -15,7 +16,7 @@ export const describeUnsupportedInputForCommand = (
   }
 
   if (command === 'write') {
-    return 'write only accepts local .md or .txt files or directories of those files. Run bun autoshow extract <input> first, then bun autoshow write on the extracted text'
+    return `write only accepts local .md or .txt files or directories of those files. Run ${CLI_INVOCATION} extract <input> first, then ${CLI_INVOCATION} write on the extracted text`
   }
 
   return 'unsupported input'

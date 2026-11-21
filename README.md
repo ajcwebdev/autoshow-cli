@@ -71,8 +71,8 @@ Hosted examples; append `--price` to preview costs before execution:
 
 ```bash
 bun autoshow tts input/examples/tts/01-tts-short.md --provider openai=gpt-4o-mini-tts-2025-12-15
-bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2.5-flare --size 1024x1024
-bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=gemini-omni-1.1-flash
+bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2.6-flare --size 1024x1024
+bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=gemini-omni-1.2-flash
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental
 ```
 
@@ -83,7 +83,7 @@ Save defaults in `runtime/autoshow.json`; explicit runtime flags override them:
 ```bash
 bun autoshow setup --show
 bun autoshow setup --llm openai=gpt-6.1-sol --batch-limit 20 --max-cents 50
-bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2.5-flare --size 1024x1024 --price
+bun autoshow image "a studio photo of a red enamel camping mug" --provider openai=gpt-image-2.6-flare --size 1024x1024 --price
 ```
 
 `--price` estimates without running the job or making paid calls. The saved `--max-cents` limit blocks over-budget estimates; `--allow-over-budget` overrides it for one run. Actual charges may differ. See [configuration and budgets](./docs/commands/00-setup-and-utilities/setup.md#setting-defaults-and-configuration).

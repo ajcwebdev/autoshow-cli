@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { DirectoryEntry, GeneratePanelImagesOptions, GenerateWithQaRepairInput, ImagePromptVariation, PanelRenderContext } from '~/types'
@@ -44,7 +45,7 @@ export const preparePanelPrompt = async (panelEntry: DirectoryEntry, sceneDirect
     throw InfraError(
       `Missing character reference images in ${panelEntry.name}: ` +
       `${primaryCharacterReferenceState.missingPrimaryCharacterRefs.join(', ')}. ` +
-      `Re-run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" ` +
+      `Re-run "${CLI_INVOCATION} comic draft-scenes <script-path> --only panel-prompts" ` +
       `after generating any missing character sketches.`,
       { stage: 'comic:generate-images' }
     )
