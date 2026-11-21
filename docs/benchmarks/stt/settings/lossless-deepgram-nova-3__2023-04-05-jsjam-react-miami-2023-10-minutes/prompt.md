@@ -1,0 +1,162 @@
+---
+title: "2023-04-05-jsjam-react-miami-2023-10-minutes"
+slug: "2023-04-05-jsjam-react-miami-2023-10-minutes"
+duration: "10:00"
+channel: "Local"
+url: "docs/benchmarks/stt/sources/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3"
+---
+
+This is a transcript with timestamps. Do not include advertisements in the summaries or descriptions. Do not actually write the transcript.
+
+- Write a one-sentence description of the transcript.
+  - The one-sentence description shouldn't exceed 180 characters (roughly 30 words).
+
+- Write a one-paragraph summary.
+  - The one-paragraph summary should be approximately 600-1200 characters (roughly 100-200 words).
+
+- Create chapter titles and descriptions based on the topics discussed throughout.
+  - Include only starting timestamps in exact HH:MM:SS format, always using two digits each for hours, minutes, and seconds.
+  - Chapters should each cover approximately 3-6 minutes of content.
+  - Write a two-paragraph description (75+ words) for each chapter.
+  - Ensure chapters cover the entire content, clearly noting the last timestamp (HH:MM:SS), indicating total duration.
+  - Descriptions should flow naturally from the content, avoiding formulaic language.
+
+Example JSON output:
+
+{
+  "shortSummary": {
+    "episodeDescription": "A concise one-sentence description of the transcript in 180 characters or fewer."
+  },
+  "longSummary": {
+    "episodeSummary": "A single-paragraph summary of the transcript that explains the central topic, the main arguments or developments, the evidence or examples used to support them, and the broader takeaway for the audience. It should read as one cohesive paragraph rather than a list, staying informative without becoming exhaustive. The summary should mention the most important themes, clarify what changed or was learned over the course of the discussion, and note any conclusions, recommendations, or implications that would help someone understand the full conversation without reading the entire transcript. It should also preserve the flow of the discussion so the reader can follow how the ideas developed from beginning to end."
+  },
+  "longChapters": {
+    "chapters": [
+      {
+        "timestamp": "00:00:00",
+        "title": "Introduction and Overview",
+        "description": "Introduces the episode's central themes, outlines the main questions guiding the discussion, and explains why the topic matters in practical terms. The chapter gives the audience enough context to follow the conversation, surfaces the core tension or opportunity, and establishes the language that will be revisited in later sections.\n\nIt also signals how the discussion will unfold, connecting the opening ideas to the examples, methods, or case studies that follow. By the end of the chapter, the listener understands the scope of the conversation and the stakes behind the next set of arguments."
+      },
+      {
+        "timestamp": "00:04:30",
+        "title": "Core Ideas and Implications",
+        "description": "Introduces the episode's central themes, outlines the main questions guiding the discussion, and explains why the topic matters in practical terms. The chapter gives the audience enough context to follow the conversation, surfaces the core tension or opportunity, and establishes the language that will be revisited in later sections.\n\nIt also signals how the discussion will unfold, connecting the opening ideas to the examples, methods, or case studies that follow. By the end of the chapter, the listener understands the scope of the conversation and the stakes behind the next set of arguments."
+      }
+    ]
+  }
+}
+
+Transcript:
+[00:00:01] [speaker-0] Alright. Sorry about the Twitter space kerfuffle.
+[00:00:04] [speaker-0] Got got the thing working,
+[00:00:07] [speaker-0] Well done, Scott.
+[00:00:09] [speaker-0] I know exactly what was happening. It's happened to me before.
+[00:00:13] [speaker-0] Sometimes when you start a space, it will show us starting on your phone while having not actually
+[00:00:20] [speaker-0] being started before other people can see it and join it. But if you wait, like, one to two minutes,
+[00:00:27] [speaker-0] somehow it just works it out, and then all of a sudden goes live. So
+[00:00:31] [speaker-0] patience was a virtue in that in that respect. So for any other Twitter space hosts out there,
+[00:00:37] [speaker-0] these are the fun things we get to learn as we do this process.
+[00:00:42] [speaker-1] Yeah. Thank you
+[00:00:44] [speaker-1] to the audience for for rejoining back and and for Scott for soldiering on and and Anthony for
+[00:00:50] [speaker-1] for the lesson.
+[00:00:52] [speaker-1] I'm reminded of that, like, old demotivators poster, which was, like, the Titanic, and it was like, maybe your your role is to be a lesson for others.
+[00:01:01] [speaker-1] But,
+[00:01:02] [speaker-1] but welcome back, everyone.
+[00:01:04] [speaker-1] Do we know if Scott's gonna join in separately,
+[00:01:07] [speaker-1] Anthony?
+[00:01:09] [speaker-0] Let's let's go ahead and just start announcing things, introducing ourselves. We'll let him work work out what he's gonna do. Great. So hi, everyone. Welcome again to JavaScript Jam Live.
+[00:01:20] [speaker-1] JavaScript Jam Live is an open mic.
+[00:01:24] [speaker-1] We like to say for anything JavaScript
+[00:01:27] [speaker-1] and web development related
+[00:01:29] [speaker-1] is on topic. We love audience participation. We've got something very special for you this week and in the upcoming weeks in collaboration with React Miami.
+[00:01:39] [speaker-1] I am Isha Nand. I'm VP of product at Edgeo,
+[00:01:43] [speaker-1] Edge deployment platform, and I'm joined by
+[00:01:47] [speaker-1] Anthony and Scott. I'll let them introduce themselves and talk about what we're doing with, React Miami.
+[00:01:54] [speaker-0] Hello. My name is Anthony Campolo. I am a developer advocate at Edgio,
+[00:01:59] [speaker-0] and we're going to be joined today by Dev Agarwal, who is also partnering with React Miami to help put together some sweet events and activities and content
+[00:02:11] [speaker-0] for you. And we are bringing him up right now. And then, Scott, if you are able to speak, go ahead and introduce yourself.
+[00:02:18] [speaker-0] I got Michelle here.
+[00:02:20] [speaker-2] Yo.
+[00:02:22] [speaker-2] What up, everybody?
+[00:02:24] [speaker-2] So,
+[00:02:25] [speaker-2] hopefully, you can hear me. Yes.
+[00:02:28] [speaker-2] Alright. Great. Wow.
+[00:02:30] [speaker-2] Well, that was fun earlier. I tell you what, you know,
+[00:02:33] [speaker-2] it doesn't matter if you know quite a bit about tech or not. There's always something to make you look like a fool. So here we are. Everything's good. Everything's working now.
+[00:02:42] [speaker-2] So, anyway, so great. So glad to be here.
+[00:02:46] [speaker-2] React to Miami.
+[00:02:47] [speaker-2] I don't I don't know why I said weak there, but, you know, in a hustle to get this up. That's what I put. But, really, it's react to Miami
+[00:02:54] [speaker-2] month, which I'm renaming right now.
+[00:02:57] [speaker-2] And,
+[00:02:58] [speaker-2] I'm super excited because, you know,
+[00:03:00] [speaker-2] as Anthony was sitting out there, we're gonna be talking with Dev today and, about React Miami and many other things.
+[00:03:06] [speaker-2] And, also, you know, we're we're, you know, doing our little collab with React Miami as well, and we're just so excited for that.
+[00:03:16] [speaker-2] Moving forward, we're gonna be having, you know, more speakers from React Miami speaking here
+[00:03:21] [speaker-2] about just topics that make sense with them. And, you know, we're keeping this traditional, like, JavaScript jam
+[00:03:26] [speaker-2] vibe that we have, rolling through all that process. So nothing's gonna change
+[00:03:31] [speaker-2] as far as, like, what you guys are typically are to hearing and and, you know, as as far as, like, having speakers here and all that, it's gonna be a great time. So,
+[00:03:38] [speaker-2] really, there's just more value actually from,
+[00:03:41] [speaker-2] us being involved with React Miami, more value for you guys,
+[00:03:45] [speaker-2] and and some extra goodies that we're gonna talk about here a little bit later, which, really excited for. So,
+[00:03:51] [speaker-2] thank you so much. So glad to be here.
+[00:03:54] [speaker-2] Just remember, if you're a beginner or or an advanced user, whether you've been, you know, doing this a little bit or doing this for a very long time as far as a web developer goes,
+[00:04:02] [speaker-2] We wanna hear from everybody. It doesn't matter whether you're a beginner or advanced, like I said. And so,
+[00:04:08] [speaker-2] you know, don't don't be afraid to to request to come up and ask questions or
+[00:04:12] [speaker-2] comments or make facts, opinions, whatever it is, we wanna hear from you. In fact, actually, that also helps to increase the value here for everybody listening in because when you guys get involved,
+[00:04:22] [speaker-2] typically, there's some really great conversations that happen. So we'd love to hear from as many people as as possibly wanna come up. So... Alright. With that being said, I am Scott Steinmage, and I am a technical community manager
+[00:04:36] [speaker-2] at Edgeo.
+[00:04:37] [speaker-2] And I'm ready to rock this today. Let's get this rolling.
+[00:04:41] [speaker-2] Thank you so much. Appreciate y'all.
+[00:04:46] [speaker-0] Awesome. We should have, Dev introduce himself. And then after that, Michelle, you can introduce yourself. And you're one of the organizers of React Miami, so thank you for joining us.
+[00:04:59] [speaker-3] How's it going, everybody? Thank you very much for having me up here. Thank you everyone for showing up and showing interest.
+[00:05:06] [speaker-3] My name is Dev or you can call me Dave.
+[00:05:09] [speaker-3] Both work fine.
+[00:05:11] [speaker-3] And, yeah, it's great to be here. This year, I am also a media partner for React Miami along with along with these two great individuals, Anthony and Scott.
+[00:05:21] [speaker-3] And, yeah, I'm very excited to show you guys what we have in store for next week or talk about it a little today.
+[00:05:34] [speaker-3] Michelle, you wanna go?
+[00:05:40] [speaker-0] If you're not currently
+[00:05:42] [speaker-4] at your mic or something, Dan, it looks like you hopped up as well. I don't think Dan's gonna be at React Miami. I I wish. There's... I'm having a... There's a company off-site for that week. Otherwise, it would have gone. But, yeah, I don't think I deserve to introduce myself because I'm not a media partner at Miami.
+[00:06:01] [speaker-0] Okay. Well, cool. Oh, it looks like Will showed up anyway. That's so funny.
+[00:06:10] [speaker-0] Cool. So I guess we can let... Dev,
+[00:06:14] [speaker-0] do you wanna kind of talk about your game show idea? I thought it was pretty interesting.
+[00:06:21] [speaker-3] Sure. Yeah. So I have managed to rope these two people into hosting a game show with me.
+[00:06:27] [speaker-3] This is happening next week. We are calling it Miami Jam,
+[00:06:32] [speaker-3] and I'm very excited for this. But looks like Michelle is back up here as a speaker, so
+[00:06:39] [speaker-3] I think we would like to hear her... Hear from her first.
+[00:06:42] [speaker-5] Hi. Sorry, guys. Like, the connection was, like, on the fritz, and then the microphone button wasn't working in the Twitter space. So now it seems like everything's working.
+[00:06:52] [speaker-2] Oh, we understand. But...
+[00:06:54] [speaker-5] Yeah. So...
+[00:06:56] [speaker-3] That's the norm of using Twitter spaces every day. Yeah.
+[00:07:02] [speaker-5] Miami, and I'm just kind of crashing the party today, but I'm super excited to have Dav and
+[00:07:10] [speaker-5] Anthony and Scott all as
+[00:07:13] [speaker-5] media partners for React Miami this year. And I'm also listening in, just interested to see what we're gonna do because we kind of like
+[00:07:22] [speaker-5] just them the green light to do whatever they like. So
+[00:07:28] [speaker-0] Yes. We'll see whether you end up regretting it.
+[00:07:31] [speaker-0] But I think that will have some some cool stuff in store. So we'll probably get back to your description depth.
+[00:07:41] [speaker-3] Sure. Yeah. So the idea of Miami Jam is
+[00:07:45] [speaker-3] to kind of stray away from, like, a typical interview or panel style
+[00:07:51] [speaker-3] show where we just bring on a few speakers and ask them questions.
+[00:07:55] [speaker-3] Instead, the,
+[00:07:56] [speaker-3] this show, Miami Jam, which we are hosting,
+[00:07:59] [speaker-3] is going to be a little more like a game show where instead of just straight up asking questions about their topics or, their motivations,
+[00:08:08] [speaker-3] we are going to ask trivia style questions.
+[00:08:12] [speaker-3] These can be React related questions or anything about, weird quirks in JavaScript or TypeScript or anything adjacent to React.
+[00:08:20] [speaker-3] These could be guessing what library is being used, or this could be a question about some some other speaker's topic, which
+[00:08:28] [speaker-3] the quest... The person that the question is directed to has to answer.
+[00:08:33] [speaker-3] And then, we will use these opportunities to,
+[00:08:37] [speaker-3] kinda segue into more detailed, more in-depth discussions on
+[00:08:41] [speaker-3] what their topics are. So we still get to, we still have to,
+[00:08:46] [speaker-3] or we still get to,
+[00:08:48] [speaker-3] get a lot of insight from these speakers about what their topic is, what their motivation is behind giving the certain talk, or, what their experience has been like,
+[00:08:58] [speaker-3] in the... In this industry,
+[00:09:00] [speaker-3] and,
+[00:09:01] [speaker-3] what kind of things that they have worked on
+[00:09:04] [speaker-3] that's bringing them to, like, to React Miami to give this talk.
+[00:09:08] [speaker-3] It's just structured in a style that's more like a game show so that it's more fun and it's more interactive. It's more collaborative.
+[00:09:15] [speaker-3] We are trying to get the speakers to,
+[00:09:18] [speaker-3] share share experiences with each other as well, and we are trying to get the audience involved. By the way, I'm sorry if my phone notification
+[00:09:27] [speaker-3] is interrupting me.
+[00:09:30] [speaker-3] Put that on silent.
+[00:09:31] [speaker-3] Yeah. So, yeah, that's the point. Trying to make it collaborative, trying to make it engaging.
+[00:09:36] [speaker-3] We're also going to have some stuff for the audience. So if you are in the audience there in the show, you will you will also get to engage with the speakers. You... Like, obviously, you will get to ask your questions, but you might also get to engage in other ways. For example, if we ask a question or if you ask them a question, you can decide how many points they get for answering that question.
+[00:09:57] [speaker-3] And, if the question is about

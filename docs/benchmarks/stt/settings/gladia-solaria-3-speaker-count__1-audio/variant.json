@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "gladia-solaria-3-speaker-count",
+  "label": "speaker-count=2",
+  "baseline": {
+    "service": "gladia",
+    "model": "solaria-3"
+  },
+  "flags": [
+    "--provider",
+    "gladia=solaria-3",
+    "--diarization",
+    "--speaker-count",
+    "2"
+  ]
+}

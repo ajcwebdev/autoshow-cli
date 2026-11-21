@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "source": "docs/benchmarks/stt/with-speakers/1-audio/1-audio.mp3",
+  "profile": "lossless",
+  "sampleFormat": "float32",
+  "channels": 1,
+  "sampleRate": 44100,
+  "audioToVideoOffsetSeconds": 0.025057,
+  "mapping": "video time = provider audio time + audioToVideoOffsetSeconds; apply once at caption export",
+  "decodedPcmSha256": "SHA256=7c064df75fa5239d32fce7d29e3280d7d8edefdd3bbb04227d3fe738400d13f5",
+  "decodedSamplesMatch": true
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "lossless-deepgram-nova-3",
+  "label": "stt-audio-profile=lossless",
+  "baseline": {
+    "service": "deepgram",
+    "model": "nova-3"
+  },
+  "flags": [
+    "--provider",
+    "deepgram=nova-3",
+    "--diarization",
+    "--stt-audio-profile",
+    "lossless"
+  ]
+}
