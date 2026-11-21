@@ -9,7 +9,7 @@ export const sttRegistry: PriceSelectionEntry[] = [
     command('transcribe-whisperfile-split', 'transcribe-whisperfile-split', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'whisperfile=tiny', '--split', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization/assemblyai-current-models.test.ts', [
-    command('transcribe-assemblyai-stt-3-7', 'transcribe-assemblyai-stt-3-7', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'assemblyai=assemblyai-stt-3-7', '--price']),
+    command('transcribe-assemblyai-assemblyai-stt-3-7', 'transcribe-assemblyai-assemblyai-stt-3-7', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'assemblyai=assemblyai-stt-3-7', '--price']),
     command('transcribe-assemblyai-universal-3-5-pro', 'transcribe-assemblyai-universal-3-5-pro', ['src/cli/create-cli.ts', 'extract', 'input/examples/audio/1-audio.mp3', '--provider', 'assemblyai=universal-3-5-pro', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/stt/diarization/gladia-current-models.test.ts', [
