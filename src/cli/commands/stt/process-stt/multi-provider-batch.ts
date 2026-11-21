@@ -1,10 +1,11 @@
 import { exportSttCaptions } from '../workflows/captions/run-caption-export'
 import { mkdir } from 'node:fs/promises'
+import { pathExists } from '~/utils/filesystem'
 import { join } from 'node:path'
 import type { ExistingSttRun, ProviderFailure, SttBatchWorkerContext, SttMultiProviderBatchContext, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
 import { readSinglePipelineItemRecord, writePipelineItemRecords } from '../../command-shared/pipeline-manifest'
 import { runCoordinatedSttTargetPool } from '../batch'
-import { getSttProviderArtifactDir, readExistingSttRun, toRequestedProvider } from '../stt-batch/stt-run-state'
+import { getSttProviderArtifactDir, readExistingSttRun, toRequestedProvider, toRequestedProvidersPreservingStored } from '../stt-batch/stt-run-state'
 import { createPromptRefreshController, selectPrimaryPromptProvider } from '../stt-prompt'
 import { prioritizeCloudSttTargetIndices, resolveEffectiveSttProviderConcurrency, logEffectiveProviderConcurrency } from '../stt-provider-pool'
 import { getSttTargetKey } from '../stt-targets'
@@ -42,12 +43,28 @@ export const runMultiProviderSttBatch = async ({
     extractRoute: 'media'
   })
   const targetsToRun = new Set(targetsToRunKeys)
+  // Stored successes this pass does not dispatch keep their canonical records: provider state, requested
+  // settings, cost and timing steps, selection origin and (unless a new provider outranks it) prompt.md.
+  const preservedStates = new Map<string, SttProviderState>()
+  requestedTargets.forEach((target, index) => {
+    const key = getSttTargetKey(target)
+    const state = existingRun.providerStates.get(key)
+    if (!targetsToRun.has(key) && successes[index] && state?.status === 'succeeded') {
+      preservedStates.set(key, state)
+    }
+  })
+  // Every stored target this pass does not dispatch keeps its requested entry and cost/timing steps.
+  const historicalKeys: ReadonlySet<string> = runOptions.outputDir
+    ? new Set(requestedTargets.map(getSttTargetKey).filter((key) => !targetsToRun.has(key)))
+    : new Set<string>()
   await writePipelineItemRecords(outputDir, 'extract', 'single', [{
     ...(existingItemRecord ?? {}),
     step1: prepared.step1Metadata,
     completionStatus: 'incomplete',
-    requestedProviders: requestedTargets.map((target) => toRequestedProvider(target, options)),
+    requestedProviders: toRequestedProvidersPreservingStored(requestedTargets, options, existingItemRecord, historicalKeys),
     providerStates: requestedTargets.map((target) => {
+      const preserved = preservedStates.get(getSttTargetKey(target))
+      if (preserved) return { ...preserved }
       const existing = providerStateMap.get(getSttTargetKey(target))
       return {
         service: target.service,
@@ -74,7 +91,8 @@ export const runMultiProviderSttBatch = async ({
     preparedMedia: prepared,
     options,
     coordinatedAcrossBatch,
-    successes
+    successes,
+    seedFromExistingSuccesses: preservedStates.size > 0 && await pathExists(join(outputDir, 'prompt.md'))
   })
 
   const workerContext: SttBatchWorkerContext = {
@@ -117,7 +135,7 @@ export const runMultiProviderSttBatch = async ({
     await runSttRecoveryPasses(workerContext)
   }
 
-  const derived = computeSttBatchDerivedState({ requestedTargets, successes, failuresByIndex, providerStateMap })
+  const derived = computeSttBatchDerivedState({ requestedTargets, successes, failuresByIndex, providerStateMap, preservedStates })
 
   promptRefresh.queue()
   await promptRefresh.flush()
@@ -133,7 +151,9 @@ export const runMultiProviderSttBatch = async ({
     providerConcurrency,
     coordinatedAcrossBatch,
     batchCoordinator,
-    derived
+    derived,
+    existingItemRecord,
+    historicalKeys
   })
 
   const captionFiles = await exportSttCaptions(outputDir, options.captionExportFlags, derived.successfulProviders.map(entry => entry.relativeDir ?? '.'))

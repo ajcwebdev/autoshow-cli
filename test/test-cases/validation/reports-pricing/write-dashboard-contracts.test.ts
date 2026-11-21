@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { buildTextDashboard, collectWriteDashboardSamples, WRITE_BENCHMARK_CASES } from '../../../../.codex/skills/consensus/scripts/text/build_text_dashboard'
 import { renderTabPanel } from '../../../../.codex/skills/consensus/scripts/shared/dashboard_client.js'
 import { archiveWriteBenchmarkEvidence, buildWriteBenchmarkMarkdown } from '~/tools/write-benchmark-report'
+import { openZipArchive, readZipEntryData } from '~/utils/zip-central-directory'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 
 const writeJson = (path: string, value: unknown) => writeFileSync(path, JSON.stringify(value))
@@ -162,10 +163,11 @@ describe('Write dashboard cost and wall-clock comparisons', () => {
       await archiveWriteBenchmarkEvidence(root)
       const archive = join(root, '2026-10-18-write.evidence.zip')
       const readEntry = async (name: string) => {
-        const child = Bun.spawn(['unzip', '-p', archive, name], { stdout: 'pipe', stderr: 'pipe' })
-        const output = await new Response(child.stdout).text()
-        expect(await child.exited).toBe(0)
-        return output
+        const options = { stage: 'test:write-evidence' }
+        const zip = await openZipArchive(archive, options)
+        const entry = zip.entries.get(name)
+        expect(entry).toBeDefined()
+        return readZipEntryData(zip.buffer, entry!, options).toString('utf8')
       }
       const checksums = await readEntry('SHA256SUMS')
       expect(checksums).toContain(`${createHash('sha256').update(originalRaw).digest('hex')}  ${WRITE_BENCHMARK_CASES[0].directory}/raw-response-fixture-cheap-attempt-1.json`)

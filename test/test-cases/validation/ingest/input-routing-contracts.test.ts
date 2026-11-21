@@ -3,6 +3,7 @@ import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { resolveSingleTargetRouteDecision } from '~/cli/commands/sources/download/download-targets/single/single-target-routing'
 import { resolveXSpaceDownloadTarget } from '~/cli/commands/sources/download/download-targets/single/x-space-runner'
+import { fetchRemoteHtml } from '~/cli/commands/text/url/url-utils'
 import { classifyInputFamily, classifyUrlInput } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-classifier'
 import { isLikelyInputListFile } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-collection'
 import { resolveInputRoutingForCommand } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-routing'
@@ -73,6 +74,24 @@ describe('input classification contracts', () => {
       '1DXxyRYNejbKM',
       { downloadPassthrough: true }
     )).toEqual({ command: 'download', action: 'x-space' })
+  })
+
+  test('article fetch and metadata fallback send the public project contact to the requested host', async () => {
+    const contacts: (string | null)[] = []
+    const server = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch(request) {
+      if (request.method === 'HEAD' || request.headers.has('range')) return new Response(null, { status: 405 })
+      contacts.push(request.headers.get('user-agent'))
+      return new Response('<article>Sample</article>', { headers: { 'content-type': 'text/html' } })
+    } })
+    try {
+      const url = new URL('/article', server.url).href
+      expect(await classifyUrlInput(url)).toBe('url_html_article')
+      expect((await fetchRemoteHtml(url)).html).toBe('<article>Sample</article>')
+      expect(contacts).toHaveLength(2)
+      for (const contact of contacts) expect(contact).toContain('+https://github.com/autoshow/autoshow-cli)')
+    } finally {
+      await server.stop(true)
+    }
   })
 
   test('media URLs are classified as media input', async () => {

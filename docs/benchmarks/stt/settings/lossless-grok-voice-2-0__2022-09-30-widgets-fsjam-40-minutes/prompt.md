@@ -1,0 +1,373 @@
+---
+title: "2022-09-30-widgets-fsjam-40-minutes"
+slug: "2022-09-30-widgets-fsjam-40-minutes"
+duration: "40:23"
+channel: "Local"
+url: "docs/benchmarks/stt/sources/2022-09-30-widgets-fsjam-40-minutes.mp3"
+---
+
+This is a transcript with timestamps. Do not include advertisements in the summaries or descriptions. Do not actually write the transcript.
+
+- Write a one-sentence description of the transcript.
+  - The one-sentence description shouldn't exceed 180 characters (roughly 30 words).
+
+- Write a one-paragraph summary.
+  - The one-paragraph summary should be approximately 600-1200 characters (roughly 100-200 words).
+
+- Create chapter titles and descriptions based on the topics discussed throughout.
+  - Include only starting timestamps in exact HH:MM:SS format, always using two digits each for hours, minutes, and seconds.
+  - Chapters should each cover approximately 3-6 minutes of content.
+  - Write a two-paragraph description (75+ words) for each chapter.
+  - Ensure chapters cover the entire content, clearly noting the last timestamp (HH:MM:SS), indicating total duration.
+  - Descriptions should flow naturally from the content, avoiding formulaic language.
+
+Example JSON output:
+
+{
+  "shortSummary": {
+    "episodeDescription": "A concise one-sentence description of the transcript in 180 characters or fewer."
+  },
+  "longSummary": {
+    "episodeSummary": "A single-paragraph summary of the transcript that explains the central topic, the main arguments or developments, the evidence or examples used to support them, and the broader takeaway for the audience. It should read as one cohesive paragraph rather than a list, staying informative without becoming exhaustive. The summary should mention the most important themes, clarify what changed or was learned over the course of the discussion, and note any conclusions, recommendations, or implications that would help someone understand the full conversation without reading the entire transcript. It should also preserve the flow of the discussion so the reader can follow how the ideas developed from beginning to end."
+  },
+  "longChapters": {
+    "chapters": [
+      {
+        "timestamp": "00:00:00",
+        "title": "Introduction and Overview",
+        "description": "Introduces the episode's central themes, outlines the main questions guiding the discussion, and explains why the topic matters in practical terms. The chapter gives the audience enough context to follow the conversation, surfaces the core tension or opportunity, and establishes the language that will be revisited in later sections.\n\nIt also signals how the discussion will unfold, connecting the opening ideas to the examples, methods, or case studies that follow. By the end of the chapter, the listener understands the scope of the conversation and the stakes behind the next set of arguments."
+      },
+      {
+        "timestamp": "00:04:30",
+        "title": "Core Ideas and Implications",
+        "description": "Introduces the episode's central themes, outlines the main questions guiding the discussion, and explains why the topic matters in practical terms. The chapter gives the audience enough context to follow the conversation, surfaces the core tension or opportunity, and establishes the language that will be revisited in later sections.\n\nIt also signals how the discussion will unfold, connecting the opening ideas to the examples, methods, or case studies that follow. By the end of the chapter, the listener understands the scope of the conversation and the stakes behind the next set of arguments."
+      }
+    ]
+  }
+}
+
+Transcript:
+[00:00:10] [speaker-0] Today's going to be slightly a bit of a different episode. I've been, you could say, noodling away on a lot of things in the background on Everfund.
+[00:00:18] [speaker-0] One of these subject areas that always comes up that I'm always interested to try and share more about is scripts.
+[00:00:24] [speaker-0] When you build a website, you know, if it's a standard blog or even a SaaS app, you're probably going to be installing loads of script by a marketing department, if you have one, or
+[00:00:34] [speaker-0] just by your customers. Maybe that's Google Analytics, Favum, or maybe something more interactive like Intercom. I've been building a script out at Everfund, and it has been one hell of a journey.
+[00:00:44] [speaker-0] And this is something that I wanted to explore in an episode with Anthony, and just really talk over the biggest pitfalls that I've found, the biggest, like, head scratches.
+[00:00:53] [speaker-0] Why do we do it this way? How do you even make a script for your company? It's kind of this black magic that I think nobody's really described.
+[00:01:00] [speaker-0] A best way of doing, and we've all just kind of made it up along the way, and it all just works because obviously it's JavaScript, but I think it's a really interesting subject area
+[00:01:09] [speaker-0] that I wanted to sit down with you and explore.
+[00:01:11] [speaker-1] Yeah, this is something I definitely don't know much about. I've never had to write a third-party script or really integrate a third-party script too much.
+[00:01:20] [speaker-1] I've definitely done things with like my dev blog or my hash node blog that would be stuff like that, but they kind of give you the ability to just like plug and play things.
+[00:01:30] [speaker-1] I have something that can like track Reads and then I get like micropayments or something and I get like $3 a year for my blog posts or something.
+[00:01:38] [speaker-1] So I know that there's a lot of these things and they're basically black boxes to me.
+[00:01:42] [speaker-0] And the thing is, this is actually what makes it more interesting. The way they kind of can be hosted means that they technically don't have to be open source.
+[00:01:50] [speaker-0] They can keep all the source code, obviously how they make the scripts, behind their private repositories and then only give you a bundled version.
+[00:01:59] [speaker-0] I've actually seen that with a few and others, like for example, version controlling is another one. There's so many questions here.
+[00:02:06] [speaker-0] So I think the best place to start is how do you make a script? How do you make a script that can run on the internet?
+[00:02:15] [speaker-0] So outside of your own domain, outside your own website, and it runs some JavaScript on someone else's website.
+[00:02:21] [speaker-0] The first step to do that is you got to work out what you want to write. If you want to write TypeScript or JavaScript, you can bundle further libraries into it, like...spelt and
+[00:02:33] [speaker-0] even react if you want to make a really quite heavy script. But if you want something really light, you tend to be using just plain JavaScript.
+[00:02:41] [speaker-0] And this is actually really interesting because I found it actually really hard to actually just use plain vanilla JavaScript to build this script because you're so used to abstracted libraries on how to build
+[00:02:54] [speaker-0] these things that when you actually have to use the core JavaScript, it really is empowering at the same time.
+[00:03:00] [speaker-0] So the biggest thing is you have to start somewhere. And some people have open source scripts. I have mine open source, so you can always look at the source code to this episode to
+[00:03:11] [speaker-0] what I have built. And it first starts with a micro bundler, i.e. a bundler. And that needs to output whatever that JavaScript is.
+[00:03:20] [speaker-0] So say it's just, we're going to go really simple, and all it is is a function that says, hello world.
+[00:03:26] [speaker-0] You've tested it, and it runs. So then you need to bundle it. How the internet actually works is, as you know, JavaScript can be bundled.
+[00:03:32] [speaker-0] into multiple different variants from common JS to ESM to AMD. But the biggest one, and this is how weird the internet is, is UMD.
+[00:03:43] [speaker-0] And this has caused so many problems. So, Anthony, do you know what UMD is?
+[00:03:48] [speaker-1] I've heard of UMD and I've heard of all of these module things cuz I've listened to like podcasts, like read blog posts about the history of it.
+[00:03:56] [speaker-1] There's actually a really good one by Tyler McGinnis that we'll link to in the show notes. But I know that the main thing is that you had a module definition for Node, which was
+[00:04:04] [speaker-1] common JS. And so that's the one that most people were using cuz so many people were writing Node, and it was just extremely common to have that kind of syntax.
+[00:04:12] [speaker-1] So everything that could work on npm could work everywhere else. But then you also had things that were meant to work in the browser, which I believe was originally AMD, which was asynchronous module
+[00:04:22] [speaker-1] definition. And then that eventually kind of morphed into ESM, which is ECMAScript. And I've heard of UMD, but I thought that ECMAScript is what the browsers were supposed to be implementing.
+[00:04:32] [speaker-1] And this UMD repo that will also link to that you sent me, no one's even done anything with this since 2017.
+[00:04:38] [speaker-1] So I don't really understand how UMD is the standard that's being used.
+[00:04:42] [speaker-0] It's really weird because you'll build your script, if you're using something like TSDX is what we originally built with, it would spit out two versions, your CommonJS and your ASAM.
+[00:04:52] [speaker-0] And you're like, that's it done. We're done here. We have the script. And then you actually try to load it into a website using one of these interesting loader functions where you like basicallyHave
+[00:05:02] [speaker-0] the script on a URL and the JavaScript is basically to inject the script onto the page, asynchronously load it, and then call it to initialize it, what these load scripts are.
+[00:05:14] [speaker-0] Every one of them tend to look the same. If you did that with a CommonJS module, it would just error and say, I don't know what to do.
+[00:05:20] [speaker-0] This isn't working. This reference isn't there. That's why you have to actually bundle down to UMD currently.
+[00:05:27] [speaker-1] Also, what would happen if you just did regular ECMAScript, ECMAScript modules? Where would it error there?
+[00:05:32] [speaker-0] CommonJS, that's ESM, right?
+[00:05:36] [speaker-1] No, so CommonJS is the require one. It's one that you do const, declare a variable, and then you do require, and then you require the dependency.
+[00:05:44] [speaker-1] Whereas ESM, you do import, use the import keyword, and then from, and then whatever you want to import from.
+[00:05:51] [speaker-1] So I would be curious what would happen if you just tried to just write it like you would, like React, when you're just like importing stuff like that.
+[00:05:58] [speaker-1] That is ECMAScript modules. So what happens if you try and do that?
+[00:06:01] [speaker-0] Well, I think the simplest answer is that I don't really know because I don't think I can compile to ECMAScript.
+[00:06:07] [speaker-1] We don't need to compile to ECMAScript because the browser just, it's built into the browser.
+[00:06:11] [speaker-0] It's built into the browser, yeah. So maybe my big problem here was that I was using TypeScript first, is that you've obviously got to bundle out TypeScript, i.e.
+[00:06:21] [speaker-0] compile down. This is actually quite an interesting question because this is the thing, ECMAScript, I didn't actually try.
+[00:06:27] [speaker-0] All my headaches and all my problems all came off of bundling Extra modules into the code. UMD obviously works for all browsers, but it is also not deprecated, but we're now leaning more to
+[00:06:43] [speaker-0] ESM modules. What you tend to find with a tool like MicroBundler is that when it bundles the code, it will bundle it to UMD, CommonJS, and ESM.
+[00:06:55] [speaker-0] They're the three that it bundles down to, and I don't know why it doesn't bundle down to ECMAScript.
+[00:07:00] [speaker-1] No, ESM is ECMAScript. ESM is ECMAScript modules.
+[00:07:04] [speaker-0] So it is. So that should work on everyday browsers, and it does. It does. But this is actually a really interesting question as well, is support.
+[00:07:13] [speaker-0] We did a can I use on ESM modules, and it says to me 93% of the users of the internet can use ESM.
+[00:07:22] [speaker-1] Because IE11 doesn't support it, and then Opera Mini doesn't support it, and that's pretty much it.
+[00:07:30] [speaker-0] And then obviously earlier versions Of Chrome. We're now on Chrome 100 and Chrome 60 was the last one that didn't.
+[00:07:36] [speaker-0] So this is also another big question when it comes down to business is when is it okay to deprecate the older version?
+[00:07:44] [speaker-0] Because we have a bundled version of ESM and UMD and the UMD version is actually bigger in terms of script size because it's using older JavaScript terms.
+[00:07:54] [speaker-0] When is the right time to define that you're going to only use ESM? Because this is a script that you need to work every time.
+[00:08:04] [speaker-0] 100% of the time you need to work, you need to load your function or your business can't work.
+[00:08:08] [speaker-0] Imagine if Intcom only worked on ESM. Well, that's 92% of the websites. Is 8% of websites it not loading on okay?
+[00:08:17] [speaker-0] And that's a really good question.
+[00:08:19] [speaker-1] Well, it depends. Would you have the ability to show a message saying this requires Chrome to work?
+[00:08:24] [speaker-0] No, I think it would just error and be like, I can't even compile this JavaScript in the browser.
+[00:08:29] [speaker-1] Couldn't you do a polyfill though?
+[00:08:31] [speaker-0] probably. The problem Polyfills is that you also have to bundle that with a script. Oh no, unless you bundle that outside the script,
+[00:08:37] [speaker-1] Yeah, the polyfills add bloat for sure.
+[00:08:39] [speaker-0] Yeah, this is actually a super interesting thing as we're debating all this. When you search how to build a widget, there's hardly any articles out there.
+[00:08:47] [speaker-0] Compiling it down, like this was actually really interesting was that when I used micro bundler and said output UMD files, it couldn't even do it.
+[00:08:57] [speaker-0] It would give you a file that wasn't valid. So then I had to use rollup to specifically makeUMD files.
+[00:09:03] [speaker-0] I have micro bundler creating the bundle for CommonJS and ESM, and then I have rollup creating the bundle for UMD.
+[00:09:12] [speaker-0] Why is this really important? In the world of Everfund, we make a WordPress plugin, and that's scary.
+[00:09:19] [speaker-0] No, I'm joking. But we need this plugin to work on every website. And this was actually also a massive problem, was actually getting it working on WordPress, because WordPress did some funky things with
+[00:09:29] [speaker-0] it as well about hosting. So we Went with the UMD option. We also chose the option to have it open source, so the source code is open.
+[00:09:38] [speaker-0] And then we also hosted it on NPM. So what you tend to see in the industry is that some people will host the script privately, say on an S3 bucket, that's cached.
+[00:09:50] [speaker-0] You see that with Cani, Intercom, and then you have the other route that is basically using a CDN, an NPM CDN.
+[00:09:58] [speaker-0] And have you ever used one of these NPM CDNs?
+[00:10:01] [speaker-1] Yeah, just a couple times, like on package. There's actually, there's an ECMAScript one, in particular ESM.sh, I think.
+[00:10:08] [speaker-1] They're good for like really simple demos if you want to do something like a code sandbox and you want to pull something without having a build step.
+[00:10:15] [speaker-0] Yeah, and this is actually really weird because I feel like we're in between like multiple ways of doing JavaScript.
+[00:10:21] [speaker-0] I, you could just NPM install, or you could just load the script in the browser. What is the better way?
+[00:10:29] [speaker-0] This actually a really interesting one because as somebody building The script, you could do either for Everfun.
+[00:10:34] [speaker-0] You could install it as an NPM package and import it, or you could just run it from the cloud using the UMD file.
+[00:10:42] [speaker-0] And actually, you'd be better to import it into your JavaScript bundle because it would be smaller because it's using the common JS bundle, not the UMD bundle.
+[00:10:52] [speaker-1] So what's stopping you from just taking all of the code and just like literally copy pasting it into the script tag on your website?
+[00:10:58] [speaker-0] That's an interesting one. What's stopping you? I don't think there is anything stopping you because if it's in UMD, it should technically all run because it's in a format it should work.
+[00:11:07] [speaker-0] But you'll then have a really big script that you've got then share to people and be like, hey, install this 200 line, 300 line script into your website.
+[00:11:15] [speaker-0] It's fine. And that's actually the hardest point. What we're doing with all this is trying to create the best developer experience.
+[00:11:22] [speaker-0] I want to plug and play. I want to get a chat widget onto my website. What is, in your eyes, the most easiest way to get it onto the website?
+[00:11:30] [speaker-0] Is that NPM installing it? Your React packet into your React website and then doing a, like a JSX component, is that loading it with a hook, is that importing it through HTML and a
+[00:11:43] [speaker-0] script tag. This is a really weird thing because there's so many ways to get the same functionality.
+[00:11:48] [speaker-0] The next really big thing about it all that I think is actually quite confusing is, why do we do it this way?
+[00:11:54] [speaker-0] So what I mean by that is, we spoke about the problems. I want to be like a verbal tutorial at the same time.
+[00:12:00] [speaker-0] You know what I mean? Of like, how do you do all these things?
+[00:12:04] [speaker-1] Sure, if you really want to.
+[00:12:05] [speaker-0] I want to give like a compelling episode that talks about this area of like darkness that I've actually like struggled with, but how do you actually make it compelling?
+[00:12:14] [speaker-0] You know what I mean?
+[00:12:15] [speaker-1] Oh, I'm already compelled.
+[00:12:16] [speaker-0] You're compelled. Okay, okay. This is actually something worth saying. So, this is actually a really interesting moment to also talk about is that you've made your script now.
+[00:12:25] [speaker-0] How do you demonstrate that? Are you just going to give your customers a HTML version? So saying, install it from the Go, that's one way.
+[00:12:34] [speaker-0] And then how about installing into React? React is also totally different in every way that it works with everything.
+[00:12:41] [speaker-0] And what we've found with Everfun is that we've created two SDKs. We've created a JavaScript SDK that is core JS, and then we've created a React SDK that hooks into React.
+[00:12:52] [speaker-0] We speak so much about the differences in frameworks, about a virtual DOM. Yep, React does everything differently, so we have to use the virtual DOM.
+[00:13:01] [speaker-0] And what we actually find is the common JS library, the JavaScript SDK, is only about, I think, 2,000 kilobytes.
+[00:13:09] [speaker-0] The React version is like 4, 5, 6 megabytes, I think. So much, much bigger. Off the top of my head, I'm terrible with numbers, as we all know.
+[00:13:18] [speaker-0] But this is actually where I've been talking about in the past about learning experiences with other frameworks.
+[00:13:24] [speaker-0] How do you then get your script into another framework? So say, Vue or Svelte, it's actually quite easy, and it's Surprisingly simple.
+[00:13:34] [speaker-1] Yeah, because they just have script tags and they pretty much just function like HTML pages would, unlike React.
+[00:13:40] [speaker-0] Exactly, you just install it and then you bind it to a function and it's done. This was actually kind of crazy and it's speaking about the web as a whole, as in like when
+[00:13:49] [speaker-0] you're building something for your customers, so it's not an experience that you control, let's say like a dashboard, but something to go on their website.
+[00:13:58] [speaker-0] You've got to kind of like mold everything that won't get overridden, i.e. encapsulated, i.e. CSS, functions, variables.
+[00:14:07] [speaker-0] You then need to make sure that it can be imported into frameworks of choice in the best way possible.
+[00:14:14] [speaker-0] You also then need to make sure you have like a UMD version that could be imported into things like WordPress websites, websites that don't use a lot of JavaScript.
+[00:14:23] [speaker-0] And all this starts to look like a really big puzzle on how do you actually do it.
+[00:14:28] [speaker-0] The first step, how we did it in Everfund is we wrote a class. With the new, so new class, what it has is every single option that we wanted to run inside of it,
+[00:14:39] [speaker-0] such as watching a ID click. So for a button, say if you put an ID of like open popup, we'd watch that ID.
+[00:14:48] [speaker-0] When it gets clicked, we would then hijack that click and run all of our custom functionality. That was necessarily quite easy, but actually the hard part, that actually took longer, was working out the
+[00:14:58] [speaker-0] CSS solution. Before I speak about CSS solution, if you were to inject, say, some code onto another website, how would you think about doing it?
+[00:15:07] [speaker-0] Are you going to run, say, a form? We'll make it easy, a form. How would you inject a form onto a website?
+[00:15:15] [speaker-1] Use Netlify forms.
+[00:15:16] [speaker-0] So you're going to use Netlify forms. So you're going to load an iframe, and this is actually really interesting.
+[00:15:21] [speaker-0] What is the better strategy? Do you build the form out of HTML on the webpage? So you're actually building into the DOM, or do you iframe?
+[00:15:32] [speaker-0] Tarsian at UserVitals has done the opposite to me, I believe. So in my web app, we use iframes, it loads our Next.js website, but Tarsian's UserVitals, I believe, builds the actual content into the
+[00:15:49] [speaker-0] web page. So you have multiple more complexes.
+[00:15:52] [speaker-1] Until Portals comes out.
+[00:15:54] [speaker-0] Until Portals. This is also the savior of everything. Portals, whenever that will be.
+[00:15:59] [speaker-1] And check out episode nine for more on Portals.
+[00:16:02] [speaker-0] The biggest problem to this is communication to your server. So say if you're going to send an API call, it could be cause blocked if you use the method built into the website's DOM,
+[00:16:14] [speaker-0] because you were then sending a web call from that URL, if that makes sense. But if it's an iframe, it doesn't get cause blocked because it's working inside that website.
+[00:16:25] [speaker-0] So what's the pros and cons to each? When it's an iframe, you tend to have a lot less of a JavaScript bundle.
+[00:16:32] [speaker-0] i.e. what you're building, because really what you're then building in your script is a way to put an iframe on the page, open it, and let the website inside render.
+[00:16:42] [speaker-0] And that's actually, you know, good enough for most use cases, and it was in EverFun's donation widget.
+[00:16:47] [speaker-0] So what do you gain and what do you lose? What you gain is that you control the website.
+[00:16:54] [speaker-0] Every time the website changes, you don't have to push a new version of the script publicly. You just update the website because you know the loader doesn't change.
+[00:17:02] [speaker-0] But then if a user wants to customize, say, CSS on how that form was going to look, then it's going to be impossible because you can't edit CSS inside an iframe.
+[00:17:15] [speaker-0] That's when you would then have to put CSS, like a CSS import, into your website that could then allow them to inject their own CSS.
+[00:17:24] [speaker-0] So you see that there's, it's not an easy picture no matter what you pick, and providing a really good experience is really, really Hard.
+[00:17:33] [speaker-1] So why is there not a startup trying to fix this problem?
+[00:17:37] [speaker-0] Interesting. Why is there not a startup? Because it's kind of like half web standards, I think, but also do we all know the correct abstraction?
+[00:17:45] [speaker-0] Is there a correct abstraction? We also kind of maybe seen this in other people's work as well.
+[00:17:51] [speaker-0] We recently had a person on from Quick yesterday, and he was saying that he is building a language that can compile to any language, i.e.
+[00:18:00] [speaker-0] to web and all these other things, depending on the framework. There's all these aspects out there as like multiple deployment targets, but actually doing it.
+[00:18:10] [speaker-0] Maybe a SaaS startup is too much, and it's actually we should just have a really good starter that's really highly starred on GitHub that everybody just uses.
+[00:18:20] [speaker-1] Sounds like something you can do after all this stuff you've done.
+[00:18:23] [speaker-0] Potentially, yes. Everfund's donation widget is not actually done. Our SDK. We're actually just starting our SDK. Our SDK today is just Opening our donation widget in an iframe.
+[00:18:34] [speaker-0] But what we're moving to right now and what we're building on is extending that into a headless donation system.
+[00:18:40] [speaker-0] So that then will allow anybody to completely build their own UI on top of all of our functionality.
+[00:18:47] [speaker-0] And then what we've turned our SDK into is this script that, one, loads the script, two, initializes classes that will then be allow you to create and take donations for charities in a headless
+[00:18:59] [speaker-0] way. And what that involves is extending the classes functions to then do rest calls as well. Not too hard.
+[00:19:08] [speaker-0] The big thing about all this is that their very core functions, i.e., you know, I might do a rest call on an API click or load an iframe, but the way web standards is,
+[00:19:18] [speaker-0] it all can get really muddy really fast because there's so many ways of doing anything, if that makes sense.
+[00:19:25] [speaker-0] Like, what's the right way? What's the right way to create a script? This is a really good question.
+[00:19:30] [speaker-0] Where would I say start? I would be I I'd say probably go look at Everfun's JavaScript SDK because we actually open source it.
+[00:19:38] [speaker-0] So you could bundle it yourself. And then second, we've made loads of examples that has it bundled in.
+[00:19:43] [speaker-0] So you can actually try it and then build one for yourself off of it. That's what I'd say would be a great first step is because I've gone through a lot of headaches getting
+[00:19:52] [speaker-0] that to this point that it actually bundles and works on every single browser, every single web platform.
+[00:19:59] [speaker-0] We had problems where our donation widget just would not work on WordPress. The code would be there, the script tag would be in the page, and it just wouldn't work.
+[00:20:09] [speaker-0] And we was like, is this a JavaScript problem? Is this a WordPress problem? You know, you're looking at the code.
+[00:20:14] [speaker-0] And what made it weirder is that it worked on some WordPress websites, but not others. And you're like, why is it doing that?
+[00:20:21] [speaker-1] Because there's different versions of WordPress and some people let their WordPress sit forever and never update it.
+[00:20:27] [speaker-1] And other people are like, well, I need to update it because it has nine vulnerabilities in it now.
+[00:20:30] [speaker-1] And that's why you're going to have a Huge spread of different types of WordPress sites.
+[00:20:35] [speaker-0] Yeah, this was the latest version of WordPress. So almost identical websites. The solution to this was actually not to call a JavaScript CDN, but to host the script inside the WordPress instant.
+[00:20:50] [speaker-0] It almost was like the WordPress instant was blocking the script communicating with the web. It was really weird edge case that we managed to solve by bundling the script inside of the WordPress tag.
+[00:21:02] [speaker-0] Really, you could say this was a real 20, 25 minute ramble. There's also other subjects that I did want to talk about in this episode for sure.
+[00:21:10] [speaker-0] Where do you go and how do you start and what to do? Because I think so far the evolution of FS Jam has been we've been speaking to so many frameworks, advocates, and we
+[00:21:25] [speaker-0] love doing all them things, but me and Anthony also love to chat to each other and just talk about technology.
+[00:21:31] [speaker-0] I feel like we need Another deep dive without a guest to talk about the blockchain again. Now that you work at a Web3 company, just really try to explain it, really try and make
+[00:21:41] [speaker-0] it easy. Not necessarily every episode is going to now just be me and Anthony, but I think it'd be great once in a while to try and start exploring other subjects and let other
+[00:21:51] [speaker-0] people maybe learn from these subjects. You know, if there's a subject you want us to talk about, potentially ask us.
+[00:21:56] [speaker-0] Another good subject, I think, to talk about, this can be just ourselves or it could be someone else with us, is documentation.
+[00:22:03] [speaker-0] You've wrote a lot of documentation, but how do you write good documentation?
+[00:22:07] [speaker-1] Oh god, yeah. That's a huge one.
+[00:22:09] [speaker-0] Exactly. Say you're a SaaS product, you wrote your SDK that we've just been speaking about, and now you need to document it.
+[00:22:16] [speaker-0] How do you document it well? We've had Docasaurus on, we've had Tanner Lindsay on. These two people build really good documentation separately.
+[00:22:26] [speaker-0] Docasaurus builds the website, Tanner Lindsay built his own. But actually, how do you write really good documentation?
+[00:22:32] [speaker-0] And actually, how do you get people to understand it? That's one thing I want to sit down and really ask you one day.
+[00:22:38] [speaker-1] I agree. And it's something that there's no docs specification, but there is a, a docs system, Vivio, I think it is.
+[00:22:45] [speaker-1] They break it down to tutorials, explanation, reference, and how-tos. And I remember I came up with kind of my slightly different namings for this, because I think that tutorials and how-tos sounds like the
+[00:22:58] [speaker-1] same thing to people, so it's, that's a little confusing. The main thing is that like you'll have a reference would just be like an API reference.
+[00:23:04] [speaker-1] So you have like every single method you can call and then everything that it takes and it's just like pure information.
+[00:23:09] [speaker-1] And then you have explanation would be like this, what we're doing here in a podcast, like explaining something just kind of in like prose or normal language, maybe with or without some code examples.
+[00:23:20] [speaker-1] And then a how-to guide would be how to do something specific. So like for Redwood, this would be like how you connect Redwood to a file storage or how do you make a third
+[00:23:30] [speaker-1] party API call. And then Tutorial is something that is meant to teach you something as you go throughout the process.
+[00:23:38] [speaker-1] So it's like the Redwood tutorial. At the end, you don't really have like a quote unquote production app that really does anything that fancy, but it gets you to understand the entire framework along
+[00:23:48] [speaker-1] the way. So I think that's a pretty good way to separate the different types of documentation you can write, and then you want to make sure those categories are then easily represented on your
+[00:24:00] [speaker-1] actual doc site, so people can then can navigate and know how to find things.
+[00:24:04] [speaker-0] Yeah, documentation is, as you just said, it's this really, really big thing. And at Everfund, we tried DocuSaurus, we tried rolling our own solution, but now we're actually using Readme.
+[00:24:15] [speaker-0] Have you heard of Readme? Readme.io.
+[00:24:18] [speaker-1] I've heard of it. I know there's like, there's GitBook also, there's, there's a lot of these. I have not used Readme myself, but I think it's one that if I saw it, I would
+[00:24:26] [speaker-1] recognize like the look, because I read so much documentation.
+[00:24:29] [speaker-0] Yes, well, we're, we're using it with Everfund. This is actually something that I think is Super, super important.
+[00:24:33] [speaker-0] It's like, with that, we're building a open REST API for Everfund as well. So that's built into the documentation.
+[00:24:40] [speaker-0] And finding a documentation platform that makes the REST API documentation look as good as the actual rest of the documentation is something by itself.
+[00:24:51] [speaker-0] I think the real top level of documentation is Stripe. We could all want to be like Stripe, but they obviously spend a lot of money being like that.
+[00:24:58] [speaker-0] There's so many subject areas that we always want to talk about. And getting around to them is a really big question.
+[00:25:06] [speaker-0] Something that we have coming up, we're both going to Utah for Remix Conference. How are you feeling about that, Anthony?
+[00:25:13] [speaker-1] Oh, I'm stoked. Yeah, there's going to be a lot of people there that I know. Michael Chan, Ishan, both which have been on the show.
+[00:25:21] [speaker-1] And then Austin Krim, who works at Prisma. We'll be hanging out with him for a bit. Some other people as well.
+[00:25:27] [speaker-1] Yeah, so I'm looking forward to it. I am not going to be speaking. I won't be Be like really doing much quote unquote like work stuff.
+[00:25:35] [speaker-1] It won't be really like a work conference for me. So yeah, I think it'll be fun. And then my girlfriend's going to be there as well.
+[00:25:41] [speaker-1] So Jen will get to meet a lot of my friends, which will be cool. We'll get to meet her.
+[00:25:45] [speaker-0] That'd be very cool. My partner is very jealous that I'm going to the United States. I'm sadly taking my business partner instead of my actual partner, but she's going away to a five-star resort
+[00:25:56] [speaker-0] in Greece instead. So I'm sure she's not missing out that much. And something else that I quickly wanted to talk about on air is how we feel about the podcast, where it's going, and
+[00:26:09] [speaker-0] also how we feel about always having guests on. I've not broached this conversation with you before having this conversation, but I think it's actually quite cool to have it very open, very, you know,
+[00:26:20] [speaker-0] have your thoughts in the air.
+[00:26:22] [speaker-1] Yeah, I mean, I enjoy these episodes. I was saying the last time we did this that I wish we did these more often.
+[00:26:27] [speaker-1] So yeah, I can see us doing this maybe like once every other month or something like that, and then get a good Because the main thing is just like, there's so many guests that
+[00:26:35] [speaker-1] we would like to have on, so we always want to like keep space for them. And then I think the listeners will get value from our conversations, but they'll also get a lot of
+[00:26:43] [speaker-1] value from being exposed to new projects and new people and their ideas. Because if you've been listening to us for a while, you probably will know our opinions about a lot of things at
+[00:26:53] [speaker-1] this point. But there is still stuff that I think that we could probably talk about that we haven't really dove into too much.
+[00:26:59] [speaker-1] But yeah, and then I think something else that you probably were getting to here is that we're considering sponsors for the first time.
+[00:27:05] [speaker-1] And so it's likely that we'll be bringing on some different companies and having just a short little ad read in the beginning of the show that you're welcome to skip if you want.
+[00:27:14] [speaker-1] But it's going to really make this a lot more sustainable for us because it's something that we've been both doing as a labor of love, really.
+[00:27:22] [speaker-1] Myself especially, putting quite a few hours each week on it to make it happen. So that is something that I have hesitated to do.
+[00:27:30] [speaker-1] But I think as long as there are companies that I feel confident promoting, then I think I won't feel too bad about it, and then listeners can skip it if they want.
+[00:27:39] [speaker-1] It's very easy to fast forward commercials in podcasts. So yeah, if people have any ideas of who we should sponsor or anything like that, feel free to shoot us a message on Twitter and
+[00:27:49] [speaker-1] let us know. Those will likely be coming in the next couple weeks or a month.
+[00:27:53] [speaker-0] Yeah, and this is something that I wanted to ask. What's your opinion on having products frameworks on the podcast that you could openly endorse?
+[00:28:04] [speaker-0] Are the episodes we have where one of us is so far deep in the area almost alienating, if that makes sense?
+[00:28:13] [speaker-0] So what I mean is, let's take an area, something that we're both really, really knowledgeable at, and say Redwood.
+[00:28:19] [speaker-0] So if you listen to our episodes about Redwood, we say it's the best thing ever. You're never going to have a problem, and you know, you should go out today, and you should build
+[00:28:26] [speaker-0] in Redwood.
+[00:28:26] [speaker-1] No, we don't say that. I specifically don't say that because I'm a responsible advocate, and I would never say that.
+[00:28:31] [speaker-0] Responsible Advocacy, that's more what I'm trying to get at is when it comes to sponsorships, when it comes to people who are coming onto the podcast, developer advocacy is a lot of the people
+[00:28:43] [speaker-0] we get on. And yes, they are trying to get you to understand their product, understand what they're doing, and also give some value.
+[00:28:51] [speaker-0] So as a developer advocate yourself, we kind of sit on both ends. I'm a founder of a company, you're a developer advocate.
+[00:28:57] [speaker-0] How do you feel about almost having these episodes being, you know, pitches? All these guest episodes, are they pitches in your eyes, or are they you want to learn something without necessarily buying the
+[00:29:10] [speaker-0] product?
+[00:29:10] [speaker-1] So if you're doing DevRel correctly, you are always educating first, and then the awareness is downstream of the education.
+[00:29:18] [speaker-1] So that's why the types of advocates that I bring onto the show, they are always going to be associated with a framework or a product or something that they are there to talk about.
+[00:29:28] [speaker-1] That's the whole point. We have an episode about a subject, usually not about a person. But If they actually are trying to lift up the developer community and not just shill their thing, then
+[00:29:39] [speaker-1] the episode will still be valuable. So for me, I haven't had much problems with this because I have had a pretty good handle on who are the advocates out there and who could we
+[00:29:49] [speaker-1] invite on, because many of the people we've had on the show, I've listened to them do like 10 podcasts before, you know.
+[00:29:54] [speaker-1] So I had a pretty good idea of who I would feel comfortable bringing on, and most of the products, you know, were things that I'd already used or at least tried or felt pretty
+[00:30:03] [speaker-1] confident about. I think I've had a fairly good track record on that for the most part, and I feel good about the sum total of both guests here and stuff I've written about.
+[00:30:14] [speaker-1] The only thing I can think of that I really regret having ever promoted and like actually deleted my blog post by it because like I don't want anyone to like read this and find
+[00:30:23] [speaker-1] this is Quoveri. I will officially renounce Quoveri because their platform is completely broken. They have no support, and then they basically put you in a position where you have like a hundred dollar This
+[00:30:32] [speaker-1] building, I have no idea what to do. It's a nightmare. Do not ever use it.
+[00:30:36] [speaker-0] And that's the thing of, as we just spoke about making the podcast more sustainable, when it comes to advertisements, should every word come out of our mouth be believed to get a podcast advertisement
+[00:30:49] [speaker-0] on? Should we have used the product? Should we know the product? Or is it okay to just recommend the product from a podcast?
+[00:30:56] [speaker-0] These are bigger questions than I think just our podcast and many podcast hosts have these kind of questions.
+[00:31:02] [speaker-0] But what's your thoughts on that? I, somebody comes along, you've never heard of their tech company. Well, you've heard of it, but you've never used it yourself.
+[00:31:10] [speaker-0] And they're like, we'll give you some money. You go give us your listeners. How does that feel to you?
+[00:31:16] [speaker-1] Yeah, and this is something that comes up significantly more in the blockchain Web3 world, because there's so much money floating around.
+[00:31:21] [speaker-1] People want to get their stuff out there so much. So the question of trust is huge here.
+[00:31:26] [speaker-1] And how do you know whether to trust someone? How do you signal trust? And for me, because Already, going back to last thing, I said I already knew the ecosystem really well, so I
+[00:31:35] [speaker-1] already had a good handle on who to trust. But then if anyone ever came to us who we'd never heard of, usually I would just, you know, talk to them for a little bit,
+[00:31:43] [speaker-1] and then I would check out their product. If they had other material, I would check that out.
+[00:31:47] [speaker-1] And usually I would get a sense just from kind of chatting with people, whether they knew what they were talking about and if they were going to be a good guest.
+[00:31:53] [speaker-1] Like Jake Genovin is a good example here. Like I'd never heard of Jake's product. It was, you know, the feature flag one.
+[00:31:59] [speaker-1] And he just kind of messaged me out of the blue on the jam stack Slack, rest in peace.
+[00:32:04] [speaker-1] And he was just like saying, yeah, I really like the podcast. He was like talking to me about it, and he was talking about his past and how he did all this like SSR
+[00:32:10] [speaker-1] stuff for this, you know, like Australian news company. And very quickly, I was like, all right, this dude like knows what he's talking about.
+[00:32:15] [speaker-1] This guy is a very, very experienced engineer. So yeah, you just got to like take enough time to actually like vet someone and just like do a gut check on someone.
+[00:32:24] [speaker-1] If you are already experienced and you know what to look for and you know the telltale signs, that shouldn't take you too long.
+[00:32:31] [speaker-1] But you got to do at least Some kind of baseline level of vetting before you just like let anyone come on your podcast.
+[00:32:37] [speaker-1] And then that's partly what our job is to make sure we don't just bring anyone on to the podcast, let them say anything to you because we think that having our listeners value our
+[00:32:45] [speaker-1] opinion, what we choose to bring to the podcast is really important.
+[00:32:48] [speaker-0] And that's why we're having this conversation on air. It's not only our opinions, it's also your opinion as the listener.
+[00:32:54] [speaker-0] What do you think about this? What do you think about the future? Me and Anthony both want to make FS Jam as sustainable as possible.
+[00:33:00] [speaker-0] One of my favorite podcasts ever, Hello Internet, had the kind of opinion of, it's up to the co-hosts.
+[00:33:06] [speaker-0] You choose to listen or you don't. You don't have a choice. If they want to quit podcasting and never do another episode, that's it.
+[00:33:13] [speaker-0] And it is a relationship. Who do I have a relationship with when I think about FS Jam?
+[00:33:18] [speaker-0] Do I have a relationship with Anthony or do I have a relationship with me, Anthony, and also the listeners?
+[00:33:24] [speaker-0] Are they part of the relationship? Do they matter? And the answer is, to me, the more we go on and the more people that I speak to say, I know About the podcast, I've
+[00:33:33] [speaker-0] listened to the podcast. It's building that relationship with people and it's kind of about, you know, you could say it's weird about celebritism, about having one side of relationships.
+[00:33:43] [speaker-1] That's called a parasocial relationship. This is a great term.
+[00:33:46] [speaker-0] Yeah, a parasocial relationship. But as I was saying, it's like, I want to make the podcast as sustainable as possible.
+[00:33:54] [speaker-0] Something I'm interested in is that when we go to Utah, I've actually ordered me and Anthony FS Jam t-shirts.
+[00:34:00] [speaker-0] Is this something the listeners are interested in? Would you want us to spit out a Teespring shop so you could buy an FS Jam t-shirt to support the podcast?
+[00:34:08] [speaker-0] Advertisements, we're going to start looking at sponsorships as a way to make FS Jam more sustainable. And the biggest part of it is obviously Anthony.
+[00:34:18] [speaker-0] Anthony has edited every single podcast from day one. And I'm forever grateful of that. And I fully should expect Anthony and your time to be not necessarily paid, but
+[00:34:31] [speaker-1] to be
+[00:34:31] [speaker-0] respected. Compensated, yes. Because that makes everything more sustainable in this world. When you're doing something for free, it's a lot harder to prioritize it.
+[00:34:40] [speaker-0] And I think that is very, very important. But before we close this out, what's been your favorite episode in the last few months?
+[00:34:48] [speaker-0] What's been your highlight since we've last done one of these episodes?
+[00:34:51] [speaker-1] That's a good question. I liked the hydrogen episode. That was a really interesting one because I didn't know anything about it and I had never used it, but I knew that if Shopify was
+[00:35:02] [speaker-1] putting together some sort of open source project, it'd probably be pretty legit. And then Josh is someone who like really had a lot of fantastic open source experience and he had a lot of
+[00:35:11] [speaker-1] great stuff to say. And then it wraps into like the server component stuff, which we've been talking about since the show almost started.
+[00:35:17] [speaker-1] So there's a lot of interesting kind of long-term trends that were represented by that episode. And just the fact that no one has done a podcast about hydrogen yet.
+[00:35:26] [speaker-1] That's one of the things that when I started this podcast, I really wanted to do is I wanted to get people on to talk about Subjects that hadn't even been talked about yet on
+[00:35:34] [speaker-1] a podcast. This is the same thing with Marco. So I think that having the ability now and having a platform to bring someone on, like being able to see the projects that are coming
+[00:35:42] [speaker-1] up and be like, hey, this is something that's going to be important and consequential and people need to know about.
+[00:35:47] [speaker-1] I could just reach out to that person and say, hey, come on my podcast. And it's pretty much a guaranteed yes at this point because we have like such an established lineup of guests
+[00:35:54] [speaker-1] that we have. Pretty much everyone can go look at it like, oh yeah, these guys look pretty legit.
+[00:35:57] [speaker-1] Like, well, they had Ken C. Dodds on, so it obviously is a real podcast. And yeah, I would say I like the flight control episode.as well, because that also feeds into a lot of
+[00:36:05] [speaker-1] the things you've been talking about, about deployments and how do you actually get a full Stack Jamstack application online.
+[00:36:11] [speaker-1] I think those are probably my two best recent favorites.
+[00:36:15] [speaker-0] I really like seeing the journey of Brandon and the core contributors of Blitz. This has actually been really interesting.
+[00:36:23] [speaker-0] You could say that our roots of the podcast was Redwood JS and Blitz. They're these two brand new things, but we've seen Redwood double down and excel at what they've been doing.
+[00:36:32] [speaker-0] And we've seen Blitz evolve and move into this new standard. We've seen Simon get hired by Netlify.
+[00:36:39] [speaker-0] We've seen Brandon start his own company and be in Y Combinator. This is like super exciting. It's amazing to see how everybody's growing.
+[00:36:47] [speaker-0] One of the latest episodes we've done that I actually think wow every time is Auta and Ken C.
+[00:36:55] [speaker-0] Dodds. Ken C. Dodds, he's an inspiration to us all in terms of learn and teaching React and JavaScript.
+[00:37:01] [speaker-0] And obviously Remix.That was the conversation that persuaded me to go to Remix Conference. And then second to that is Auta.
+[00:37:08] [speaker-0] Auta's worked on the TypeScript team for so long, very, very knowledgeable, and he's really is a great resource and always willing to help people as well.
+[00:37:19] [speaker-0] So they were two of my highlight episodes from the last few we've done. Anything else you want to talk about before we close this one out?
+[00:37:26] [speaker-0] Of this massive ramble episode, it's kind of like a toy box of just fun things that we wanted to speak about.
+[00:37:33] [speaker-1] Yeah, as most of the episodes that we, we do together usually end up turning into. no, nothing else from me, just that, we appreciate all the listeners who continue to listen to us.
+[00:37:43] [speaker-1] I know that there's a decent chunk of people that I hang out with on like discords who like to listen to this.
+[00:37:48] [speaker-1] So that's really great. And I'm always wishing that I could put more time into this and really get it on a better cadence.
+[00:37:55] [speaker-1] But it's been tough, especially as I've been like transitioning into my new job. But hopefully we can get ourselves to a point where we're at least like consistently putting out an episode every week.
+[00:38:04] [speaker-1] Cause as I say, I've dropped the ball in quite a few weeks over these last couple of months.
+[00:38:07] [speaker-1] But we're also creating content for the long run. Like these are episodes that I think are just as valuable to listen to like two years after the fact.
+[00:38:15] [speaker-1] Cause even if the tech changes, the concepts stay the same. And the progression of how these things go is important as well.
+[00:38:22] [speaker-1] I think that even if you're listening to a podcast about a technology that is not being used anymore, it can be useful to listen to because it can give you a better context.
+[00:38:32] [speaker-1] Why are things the way they are now today? And that is really the goal for me with doing stuff like this is creating a kind of historical record for people who are going to
+[00:38:43] [speaker-1] be coming to web development for the first time years from now and are trying to figure out what the heck is going on, what any of this stuff is, and why they need to
+[00:38:49] [speaker-1] know about UMD and AMD and CJS and ESM and what any of that crap means. So yeah, feel free to just, you know, hit us up on the Twitters, FSJAM org if you ever
+[00:39:00] [speaker-1] want to get in touch with us or suggest a topic or ask if you can speak on the podcast.
+[00:39:05] [speaker-1] We're always open. As you were saying, you know, we'll kind of check you out and make sure you're legit, but we're really open to anyone being on here and talking about what they're doing
+[00:39:12] [speaker-1] if you're working on something interesting.
+[00:39:14] [speaker-0] The final thing I can say, I can't believe we've got Mishko on and we didn't even speak about Angular once.
+[00:39:20] [speaker-1] Yeah, I kind of wanted to, but it was like quick is such an interesting dense topic that I didn't want to kind of detract from it too much.
+[00:39:26] [speaker-1] But yeah, like he's a legend and he's someone who has done very consequential work on JavaScript that is Affected, you know, all of us.
+[00:39:33] [speaker-1] So yeah, that was awesome. It was really, really cool to have Mishka on. Thank you to Ryan for making that connection for us.
+[00:39:40] [speaker-0] Yeah, that's it for now until we speak again.
+[00:39:43] [speaker-1] Bye.
+[00:39:43] [speaker-0] Bye.
+[00:40:05] [speaker-2] I'm
+[00:40:16] [speaker-0] sure you can edit that into something decent.
+[00:40:21] [speaker-1] Oh yeah.

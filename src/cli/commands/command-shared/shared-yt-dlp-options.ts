@@ -1,10 +1,18 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { access } from 'node:fs/promises'
 import { constants as fsConstants } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { YtDlpAuthMode, YtDlpListOptions } from '~/types'
+import { getDenoBinary, getFfmpegBinary } from '~/utils/runtime-paths'
+import { IS_INSTALLED_CLI, SOURCE_ROOT } from '~/utils/project-root'
+import { getRuntimeCachePath } from '~/utils/runtime-state'
 
-const YOUTUBE_BOT_CHECK_PATTERN = /Sign in to confirm you(?:’|’)re not a bot/i
+const COOKIE_GUIDE = 'docs/commands/00-setup-and-utilities/cookies.md'
+export const youtubeCookieGuide = IS_INSTALLED_CLI ? resolve(SOURCE_ROOT, COOKIE_GUIDE) : COOKIE_GUIDE
+export const cookieSetupCommand = `${CLI_INVOCATION} setup`
+
+const YOUTUBE_BOT_CHECK_PATTERN = /Sign in to confirm you[’']re not a bot/i
 const warnedUnreadableCookiePaths = new Set<string>()
 
 let configuredCookies: string | undefined
@@ -51,7 +59,7 @@ export const inspectYtDlpAuthState = async (
       cookieArgs: cookiesReadable ? ['--cookies', cookiesPath] : [],
       ...(cookiesReadable
         ? {}
-        : { warning: `--cookies path is unreadable: ${resolvedCookiesPath}. Fix the path or run bun autoshow setup --cookies <file>.` })
+        : { warning: `--cookies path is unreadable: ${resolvedCookiesPath}. Fix the path or run ${cookieSetupCommand} --cookies <file>.` })
     }
   }
 
@@ -72,7 +80,17 @@ export const inspectYtDlpAuthState = async (
 
 const buildSharedYtDlpArgs = async (): Promise<string[]> => {
   const authState = await inspectYtDlpAuthState()
-  const args: string[] = []
+  // Native syntax: https://github.com/yt-dlp/yt-dlp/blob/2026.08.19/README.md#general-options
+  // Explicit locations keep extractor helpers and postprocessors in runtime/.
+  const args: string[] = [
+    '--ignore-config',
+    '--no-plugin-dirs',
+    '--no-remote-components',
+    '--cache-dir', getRuntimeCachePath('yt-dlp'),
+    '--no-js-runtimes',
+    '--js-runtimes', `deno:${getDenoBinary()}`,
+    '--ffmpeg-location', dirname(getFfmpegBinary())
+  ]
 
   if (authState.warning) {
     const warningKey = authState.resolvedCookiesPath ?? authState.cookiesPath ?? authState.warning
@@ -183,6 +201,6 @@ export const buildYtDlpFailureMessage = (
 
   return [
     `yt-dlp ${operation} failed. ${cleanDetails}`,
-    'Hint: YouTube blocked the anonymous request. See docs/commands/00-setup-and-utilities/cookies.md, or run bun autoshow setup --cookies-from-browser chrome or bun autoshow setup --cookies /absolute/path/to/cookies.txt.'
+    `Hint: YouTube blocked the anonymous request. See ${youtubeCookieGuide}, or run ${cookieSetupCommand} --cookies-from-browser chrome or ${cookieSetupCommand} --cookies /absolute/path/to/cookies.txt.`
   ].join('\n')
 }

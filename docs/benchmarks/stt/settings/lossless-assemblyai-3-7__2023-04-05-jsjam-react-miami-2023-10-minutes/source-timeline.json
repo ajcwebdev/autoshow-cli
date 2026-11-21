@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "source": "docs/benchmarks/stt/sources/2023-04-05-jsjam-react-miami-2023-10-minutes.mp3",
+  "profile": "lossless",
+  "sampleFormat": "float32",
+  "channels": 1,
+  "sampleRate": 48000,
+  "audioToVideoOffsetSeconds": 0.023021,
+  "mapping": "video time = provider audio time + audioToVideoOffsetSeconds; apply once at caption export",
+  "decodedPcmSha256": "SHA256=ead9d948c2d5e91aa102ad15811cbf40040721ae97bac293af0c4c64ecddbb2d",
+  "decodedSamplesMatch": true
+}

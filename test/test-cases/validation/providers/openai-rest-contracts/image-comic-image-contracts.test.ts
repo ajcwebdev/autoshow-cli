@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { runGrokImageGen } from '~/cli/commands/visuals/image/image-generation-services/image-grok/run-grok-image-gen'
 import { runOpenAIImageGen } from '~/cli/commands/visuals/image/image-generation-services/image-openai/run-openai-image-gen'
 import { createImage } from '~/cli/commands/visuals/comic/comic-image-services/comic-image-targets'
+import { redDotPng } from '../../../../test-utils/media-fixtures'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, withTempDir } from './shared'
 
 installOpenAIRestContractHooks()
@@ -11,14 +12,14 @@ installOpenAIRestContractHooks()
 describe('OpenAI REST image contracts', () => {
   test('OpenAI image generation decodes b64_json output and preserves image options', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
-    const imageBytes = new Uint8Array([9, 8, 7])
+    const imageBytes = await new Bun.Image(redDotPng).webp().bytes()
     const calls = installFetch(() => jsonResponse({
       data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }]
     }))
 
     await withTempDir(async (dir) => {
       const result = await runOpenAIImageGen('A test image', dir, {
-        model: 'gpt-image-2.5-flare',
+        model: 'gpt-image-2.6-flare',
         size: '1024x1024',
         quality: 'high',
         outputFormat: 'webp',
@@ -26,10 +27,10 @@ describe('OpenAI REST image contracts', () => {
       })
 
       expect(result.imagePaths).toHaveLength(1)
-      expect(new Uint8Array(await Bun.file(result.imagePaths[0]!).arrayBuffer())).toEqual(imageBytes)
+      expect(await Bun.file(result.imagePaths[0]!).bytes()).toEqual(new Uint8Array(imageBytes))
       expect(result.metadata).toMatchObject({
         imageService: 'openai',
-        imageModel: 'gpt-image-2.5-flare',
+        imageModel: 'gpt-image-2.6-flare',
         imageFileNames: ['generated-image.webp'],
         imageSize: '1024x1024',
         imageQuality: 'high',
@@ -38,7 +39,7 @@ describe('OpenAI REST image contracts', () => {
     })
 
     expect(calls[0]?.bodyJson).toMatchObject({
-      model: 'gpt-image-2.5-flare',
+      model: 'gpt-image-2.6-flare',
       prompt: 'A test image',
       n: 1,
       size: '1024x1024',
@@ -51,19 +52,19 @@ describe('OpenAI REST image contracts', () => {
 
   test('OpenAI image generation writes multiple returned images', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
-    const firstImage = new Uint8Array([1, 2, 3])
-    const secondImage = new Uint8Array([4, 5, 6])
+    const firstImage = redDotPng
+    const secondImage = await new Bun.Image(redDotPng).resize(2, 2).png().bytes()
     const calls = installFetch(() => jsonResponse({
       data: [
         { b64_json: Buffer.from(firstImage).toString('base64'), revised_prompt: 'A refined prompt' },
         { b64_json: Buffer.from(secondImage).toString('base64') }
       ],
-      model: 'gpt-image-2.5-flare-actual'
+      model: 'gpt-image-2.6-flare-actual'
     }))
 
     await withTempDir(async (dir) => {
       const result = await runOpenAIImageGen('A test image', dir, {
-        model: 'gpt-image-2.5-flare',
+        model: 'gpt-image-2.6-flare',
         count: 2,
         outputFormat: 'png'
       })
@@ -71,11 +72,11 @@ describe('OpenAI REST image contracts', () => {
       expect(result.imagePaths.map((imagePath) => imagePath.endsWith('.png'))).toEqual([true, true])
       expect(result.metadata).toMatchObject({
         imageService: 'openai',
-        imageModel: 'gpt-image-2.5-flare',
+        imageModel: 'gpt-image-2.6-flare',
         imageCount: 2,
         imageFileNames: ['generated-image.png', 'generated-image-2.png'],
         revisedPrompt: 'A refined prompt',
-        providerReturnedModel: 'gpt-image-2.5-flare-actual',
+        providerReturnedModel: 'gpt-image-2.6-flare-actual',
         requestMode: 'generation'
       })
     })
@@ -87,7 +88,7 @@ describe('OpenAI REST image contracts', () => {
 
   test('OpenAI image edit routes through multipart edits endpoint', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
-    const imageBytes = new Uint8Array([7, 7, 7])
+    const imageBytes = await new Bun.Image(redDotPng).webp().bytes()
     const calls = installFetch(() => jsonResponse({
       data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }]
     }))
@@ -97,7 +98,7 @@ describe('OpenAI REST image contracts', () => {
       await writeFile(refPath, new Uint8Array([1, 2, 3]))
 
       const result = await runOpenAIImageGen('Edit this image', dir, {
-        model: 'gpt-image-2.5-flare',
+        model: 'gpt-image-2.6-flare',
         mode: 'edit',
         inputs: [refPath],
         count: 1,
@@ -113,7 +114,7 @@ describe('OpenAI REST image contracts', () => {
       url: 'https://api.openai.com/v1/images/edits',
       method: 'POST'
     })
-    expect(calls[0]?.form?.get('model')).toBe('gpt-image-2.5-flare')
+    expect(calls[0]?.form?.get('model')).toBe('gpt-image-2.6-flare')
     expect(calls[0]?.form?.get('prompt')).toBe('Edit this image')
     expect(calls[0]?.form?.get('moderation')).toBe('low')
     expect(calls[0]?.form?.get('output_compression')).toBe('75')
@@ -122,7 +123,7 @@ describe('OpenAI REST image contracts', () => {
 
   test('OpenAI image edit with multiple references uses the image[] array field', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
-    const imageBytes = new Uint8Array([5, 5, 5])
+    const imageBytes = redDotPng
     const calls = installFetch(() => jsonResponse({
       data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }]
     }))
@@ -134,7 +135,7 @@ describe('OpenAI REST image contracts', () => {
       await writeFile(secondRef, new Uint8Array([4, 5, 6]))
 
       await runOpenAIImageGen('Keep character design consistent.', dir, {
-        model: 'gpt-image-2.5-flare',
+        model: 'gpt-image-2.6-flare',
         mode: 'edit',
         inputs: [firstRef, secondRef],
         count: 1
@@ -149,7 +150,7 @@ describe('OpenAI REST image contracts', () => {
 
   test('OpenAI image edit captures returned usage as unit metadata', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
-    const imageBytes = new Uint8Array([3, 3, 3])
+    const imageBytes = redDotPng
     installFetch(() => jsonResponse({
       data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }],
       usage: {
@@ -165,7 +166,7 @@ describe('OpenAI REST image contracts', () => {
       await writeFile(refPath, new Uint8Array([1, 2, 3]))
 
       const result = await runOpenAIImageGen('Edit with usage', dir, {
-        model: 'gpt-image-2.5-flare',
+        model: 'gpt-image-2.6-flare',
         mode: 'edit',
         inputs: [refPath]
       })
@@ -183,14 +184,14 @@ describe('OpenAI REST image contracts', () => {
 
   test('OpenAI image generation ignores missing or malformed usage fields', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
-    const imageBytes = new Uint8Array([2, 2, 2])
+    const imageBytes = redDotPng
     installFetch(() => jsonResponse({
       data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }],
       usage: { input_tokens: 'many', output_tokens: 512, input_tokens_details: null }
     }))
 
     await withTempDir(async (dir) => {
-      const result = await runOpenAIImageGen('A test image', dir, { model: 'gpt-image-2.5-flare' })
+      const result = await runOpenAIImageGen('A test image', dir, { model: 'gpt-image-2.6-flare' })
       expect(result.metadata.outputUnits).toBe(512)
       expect('imageInputUnits' in result.metadata).toBe(false)
       expect('textInputUnits' in result.metadata).toBe(false)
@@ -201,7 +202,7 @@ describe('OpenAI REST image contracts', () => {
 
   test('comic createImage attaches the OpenAI edit usage to the generated image response', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
-    const imageBytes = new Uint8Array([4, 4, 4])
+    const imageBytes = redDotPng
     const referenceBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
     const calls = installFetch(() => jsonResponse({
       data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }],
@@ -217,7 +218,7 @@ describe('OpenAI REST image contracts', () => {
       const refPath = join(dir, 'reference.png')
       await writeFile(refPath, referenceBytes)
 
-      const response = await createImage('Edit with usage', [refPath], 'gpt-image-2.5-flare', '1536x1024', 'high')
+      const response = await createImage('Edit with usage', [refPath], 'gpt-image-2.6-flare', '1536x1024', 'high')
 
       expect(response.mode).toBe('edit')
       expect(response.result.imageBase64).toBe(Buffer.from(imageBytes).toString('base64'))
@@ -233,16 +234,16 @@ describe('OpenAI REST image contracts', () => {
 
     expect(calls).toHaveLength(1)
     expect(calls[0]?.url).toContain('/images/edits')
-    expect(calls[0]?.form?.get('model')).toBe('gpt-image-2.5-flare')
+    expect(calls[0]?.form?.get('model')).toBe('gpt-image-2.6-flare')
   })
 
   test('comic createImage omits usage when the provider returns none', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-key'
-    const imageBytes = new Uint8Array([5, 5, 5])
+    const imageBytes = redDotPng
     installFetch(() => jsonResponse({ data: [{ b64_json: Buffer.from(imageBytes).toString('base64') }] }))
 
     await withTempDir(async () => {
-      const response = await createImage('Generate without usage', [], 'gpt-image-2.5-flare', '1536x1024', 'high')
+      const response = await createImage('Generate without usage', [], 'gpt-image-2.6-flare', '1536x1024', 'high')
       expect(response.mode).toBe('generate')
       expect('usage' in response).toBe(false)
     })
@@ -250,7 +251,7 @@ describe('OpenAI REST image contracts', () => {
 
   test('Grok image generation captures provider usage cost and returned model metadata', async () => {
     process.env['XAI_API_KEY'] = 'xai-key'
-    const imageBytes = new Uint8Array([9, 9, 9])
+    const imageBytes = await new Bun.Image(redDotPng).jpeg().bytes()
     const calls = installFetch(() => jsonResponse({
       data: [{
         b64_json: Buffer.from(imageBytes).toString('base64'),

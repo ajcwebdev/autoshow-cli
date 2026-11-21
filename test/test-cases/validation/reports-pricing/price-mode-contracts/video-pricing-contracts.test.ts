@@ -42,6 +42,55 @@ describe('price mode contracts', () => {
           }),
           71
         ],
+        // Finished 1.1 runs keep the retired flat rate; 1.2 uses its published per-resolution rate.
+        [
+          buildVideoMetadata({
+            videoGenService: 'gemini',
+            videoGenModel: 'gemini-omni-1.1-flash',
+            videoDuration: 5,
+            videoResolution: '360p'
+          }),
+          50
+        ],
+        [
+          buildVideoMetadata({
+            videoGenService: 'gemini',
+            videoGenModel: 'gemini-omni-1.2-flash',
+            videoDuration: 5,
+            videoResolution: '1080p'
+          }),
+          52.128
+        ],
+        // Provider-selected Omni lengths reprice at the documented 10-second budget used while each model was
+        // active, so retiring 1.1 keeps its recorded $1.00 per benchmark clip instead of halving it.
+        [
+          buildVideoMetadata({
+            videoGenService: 'gemini',
+            videoGenModel: 'gemini-omni-1.1-flash',
+            videoDuration: undefined,
+            videoResolution: '720p'
+          }),
+          100
+        ],
+        [
+          buildVideoMetadata({
+            videoGenService: 'gemini',
+            videoGenModel: 'gemini-omni-1.2-flash',
+            videoDuration: undefined,
+            videoResolution: '720p'
+          }),
+          69.504
+        ],
+        // Older retired providers keep their legacy 5-second budget when no duration was recorded.
+        [
+          buildVideoMetadata({
+            videoGenService: 'grok',
+            videoGenModel: 'grok-imagine-video',
+            videoDuration: undefined,
+            videoResolution: '720p'
+          }),
+          35
+        ],
       ] as const
 
       for (const [metadata, expectedCost] of cases) {
@@ -67,13 +116,21 @@ describe('price mode contracts', () => {
       expect(cost({ grokVideoModels: ['grok-imagine-video-1.5'], videoDuration: 5, videoResolution: '480p', grokInputImageCount: 1 })).toBe('41.00¢')
       expect(cost({ grokVideoModels: ['grok-imagine-video-1.5'], videoDuration: 5, videoResolution: '1080p', grokInputImageCount: 1 })).toBe('$1.26')
 
-      expect(cost({ geminiVideoModels: ['gemini-omni-1.1-flash'], videoDuration: 4, videoResolution: '720p' })).toBe('40.00¢')
-      expect(cost({ geminiVideoModels: ['gemini-omni-1.1-flash'], videoDuration: 4, videoResolution: '1080p' })).toBe('40.00¢')
-      expect(cost({ geminiVideoModels: ['gemini-omni-1.1-flash'], videoResolution: '720p' })).toBe('$1.00')
+      // Omni 1.2: $12.00 per 1M video tokens at 1,931, 5,792, 8,688 and 17,376 tokens per second.
+      expect(cost({ geminiVideoModels: ['gemini-omni-1.2-flash'], videoDuration: 3, videoResolution: '360p' })).toBe('6.95¢')
+      expect(cost({ geminiVideoModels: ['gemini-omni-1.2-flash'], videoDuration: 4, videoResolution: '720p' })).toBe('27.80¢')
+      expect(cost({ geminiVideoModels: ['gemini-omni-1.2-flash'], videoDuration: 4, videoResolution: '1080p' })).toBe('41.70¢')
+      expect(cost({ geminiVideoModels: ['gemini-omni-1.2-flash'], videoDuration: 5, videoResolution: '4k' })).toBe('$1.04')
+      expect(cost({ geminiVideoModels: ['gemini-omni-1.2-flash'], videoResolution: '720p' })).toBe('69.50¢')
+    })
+
+  test('video estimates reject the retired Omni 1.1 before pricing and name its successor', () => {
+      expect(() => estimateVideoCosts({ geminiVideoModels: ['gemini-omni-1.1-flash'], videoDuration: 3 }))
+        .toThrow('Model "gemini-omni-1.1-flash" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.2-flash" instead.')
     })
 
   test('cheapest default text-to-video selection is Grok Imagine Video 1.5 Lite', () => {
-      // Lite: 2 cents/second at its 8-second default; full: 64 cents; Omni: 100 cents.
+      // Lite: 2 cents/second at its 8-second default; full: 64 cents; Omni 1.2: 69.5 cents at 10 seconds, 720p.
       expect(selectCheapestDefaultTextVideoSelection()).toMatchObject({
         provider: 'grok',
         model: 'grok-imagine-video-1.5-lite',
@@ -87,8 +144,8 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('grok')).toBe('grok-4.7')
       expect(resolveCheapestModelForFlag('glm')).toBeUndefined()
       expect(resolveCheapestModelForFlag('kimi')).toBeUndefined()
-      expect(resolveCheapestModelForFlag('openai-image')).toBe('gpt-image-2.5-flare')
-      expect(resolveCheapestModelForFlag('gemini-image')).toBe('gemini-3.1-flash-lite-image')
+      expect(resolveCheapestModelForFlag('openai-image')).toBe('gpt-image-2.6-flare')
+      expect(resolveCheapestModelForFlag('gemini-image')).toBe('gemini-nano-banana-2.1')
       expect(resolveCheapestModelForFlag('bfl-image')).toBeUndefined()
       expect(resolveCheapestModelForFlag('recraft-image')).toBeUndefined()
       expect(resolveCheapestModelForFlag('rev-stt')).toBeUndefined()
@@ -111,11 +168,16 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-haiku-5-5')
       expect(resolveCheapestModelForFlag('deepinfra-ocr')).toBeUndefined()
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBeUndefined()
-      expect(resolveCheapestModelForFlag('gemini-video')).toBe('gemini-omni-1.1-flash')
+      expect(resolveCheapestModelForFlag('gemini-video')).toBe('gemini-omni-1.2-flash')
       expect(resolveCheapestModelForFlag('glm-video')).toBeUndefined()
-      expect(selectCheapestVideoSelection('gemini')).toMatchObject({
+      // Bare gemini moved from 1.1 (3 seconds at 360p, 30 cents) to 1.2 at its 360p rate.
+      const geminiDefault = selectCheapestVideoSelection('gemini')
+      expect(geminiDefault).toMatchObject({
         provider: 'gemini',
-        model: 'gemini-omni-1.1-flash'
+        model: 'gemini-omni-1.2-flash',
+        duration: 3,
+        resolution: '360p'
       })
+      expect(geminiDefault.totalCost).toBeCloseTo(6.9516)
     })
 })

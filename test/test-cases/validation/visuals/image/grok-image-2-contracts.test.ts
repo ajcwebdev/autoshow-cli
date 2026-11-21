@@ -7,11 +7,12 @@ import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-option
 import { collectImageTargets } from '~/cli/commands/visuals/image/image-generation-targets'
 import { runGrokImageGen } from '~/cli/commands/visuals/image/image-generation-services/image-grok/run-grok-image-gen'
 import { estimateImageCosts } from '~/cli/commands/visuals/image/image-utils/image-pricing'
+import { redDotPng } from '../../../../test-utils/media-fixtures'
 import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 
 const model = 'grok-imagine-image-2.0' as const
 const reference = 'https://fixtures.example/reference.png'
-const bytes = new Uint8Array([1, 2, 3, 4])
+const bytes = await new Bun.Image(redDotPng).jpeg().bytes()
 const tempDirs = setupContractSuiteLifecycle({
   envKeys: ['XAI_API_KEY'], tempPrefix: 'autoshow-grok-image-2-',
   beforeEachExtra: () => { process.env['XAI_API_KEY'] = 'synthetic-key' }
@@ -88,7 +89,7 @@ describe('Grok Imagine Image 2.0 contracts', () => {
         providerCostCents: 4, providerCostSource: 'provider_usage', providerModeration: true,
         revisedPrompt: 'Synthetic revised prompt'
       })
-      expect(new Uint8Array(await Bun.file(result.imagePaths[0]!).arrayBuffer())).toEqual(bytes)
+      expect(await Bun.file(result.imagePaths[0]!).bytes()).toEqual(new Uint8Array(bytes))
     })
     expect(calls).toHaveLength(1)
     expect(calls[0]?.url).toBe('https://api.x.ai/v1/images/generations')
@@ -151,7 +152,7 @@ describe('Grok Imagine Image 2.0 contracts', () => {
       expect(() => estimateImageCosts({ grokImageModels: [model], ...invalid })).toThrow()
     }
     expect(() => collectImageTargets({ grokImageModels: [model], imageAspectRatio: '99:1' })).toThrow('--aspect-ratio')
-    expect(() => collectImageTargets({ grokImageModels: [model], imageMask: 'mask.png' })).toThrow('--mask')
+    expect(() => collectImageTargets({ grokImageModels: [model], imageInputs: [reference], imageMask: 'mask.png' })).toThrow('--mask is not supported by Grok')
     await tempDirs.withDir(async dir => {
       await expect(runGrokImageGen('Synthetic scene', dir, { model, mode: 'edit' })).rejects.toThrow('requires --input')
       await expect(runGrokImageGen('Synthetic scene', dir, { model, mode: 'generation', inputs: [reference] })).rejects.toThrow('cannot include')

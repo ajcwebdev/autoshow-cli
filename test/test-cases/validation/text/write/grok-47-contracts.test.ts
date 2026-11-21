@@ -47,8 +47,8 @@ describe('Grok 4.7 documented Chat Completions and OCR contracts', () => {
     expect(buildOptsFromFlags({ 'grok-ocr': model }).grokOcrModels).toEqual([model])
     expect(buildOptsFromFlags({ 'all-llm': true }).grokModels).toContain(model)
     expect(buildOptsFromFlags({ 'all-ocr': true }).grokOcrModels).toContain(model)
-    expect(() => buildOptsFromFlags({ 'grok-ocr': 'grok-4.5' })).toThrow('Allowed values: grok-4.7')
-    expect(() => buildOptsFromFlags({ grok: 'grok-4.5' })).toThrow('Invalid model "grok-4.5" for --llm grok[=model]. Allowed values: grok-4.7')
+    expect(() => buildOptsFromFlags({ 'grok-ocr': 'grok-4.5' })).toThrow('Model "grok-4.5" is retired for --provider/--ocr grok[=model]. Use "grok-4.7" instead.')
+    expect(() => buildOptsFromFlags({ grok: 'grok-4.5' })).toThrow('Model "grok-4.5" is retired for --llm grok[=model]. Use "grok-4.7" instead.')
     expect(() => buildOptsFromFlags({ 'grok-ocr': 'grok-4.3' })).toThrow('Allowed values: grok-4.7')
   })
 

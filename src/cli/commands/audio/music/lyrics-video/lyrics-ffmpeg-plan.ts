@@ -80,6 +80,7 @@ export const buildLyricsVideoFfmpegArgs = (options: {
   includeEq: boolean
   overlay: LyricsVideoOverlaySource
   imageRelativePath?: string | undefined
+  fontsDirectory?: string | undefined
 }): string[] => {
   const imageInput = options.imageRelativePath
     ? ['-noautorotate', '-loop', '1', '-i', options.imageRelativePath]
@@ -104,8 +105,12 @@ export const buildLyricsVideoFfmpegArgs = (options: {
         ',vignette=PI/7',
         '[bg]'
       ].join('')
+  // Filter options are parsed separately from argv. Quoting protects spaces and
+  // separators in the checkout path without invoking a shell.
+  const escapedFontsDirectory = options.fontsDirectory?.replace(/\\/g, '\\\\').replace(/'/g, "'\\''").replace(/:/g, '\\:')
+  const assFontOption = escapedFontsDirectory ? `:fontsdir='${escapedFontsDirectory}'` : ''
   const overlayFilter = options.overlay.kind === 'ass'
-    ? `[bg]ass=filename=${options.overlay.path}[v]`
+    ? `[bg]ass=filename=${options.overlay.path}${assFontOption}[v]`
     : '[bg][1:v]overlay=format=auto[v]'
   const audioInputIndex = options.imageRelativePath
     ? options.overlay.kind === 'frames' ? 2 : 1

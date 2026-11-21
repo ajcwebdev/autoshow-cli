@@ -1,16 +1,22 @@
 import { expect, test } from 'bun:test'
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { chmod, cp, lstat, mkdir, mkdtemp, readFile, readlink, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { inspectInstalledDependencies } from '~/tools/docker-installed-dependencies'
+import { ensureProjectRuntimeDependencies } from '~/tools/project-runtime-dependencies'
 
 const repositoryRoot = resolve(import.meta.dir, '../../../..')
 const fixtureName = '@fixture/offline-module'
 const fixtureVersion = '1.2.3'
-const fixtureDirectory = (root: string): string => join(root, 'node_modules', fixtureName)
+const fixtureDirectory = (root: string): string => join(root, 'runtime/tools/project-dependencies/node_modules', fixtureName)
 const withRoot = async (run: (root: string) => Promise<void>): Promise<void> => {
   const root = await mkdtemp(join(tmpdir(), 'autoshow-installed-dependencies-'))
-  try { await run(root) } finally { await rm(root, { recursive: true, force: true }) }
+  try {
+    await mkdir(join(root, 'runtime/tools/project-dependencies/node_modules'), { recursive: true })
+    await symlink('runtime/tools/project-dependencies/node_modules', join(root, 'node_modules'))
+    await writeFile(join(root, 'bunfig.toml'), await readFile(join(repositoryRoot, 'bunfig.toml')))
+    await run(root)
+  } finally { await rm(root, { recursive: true, force: true }) }
 }
 const writeJson = async (path: string, value: unknown): Promise<void> => { await writeFile(path, JSON.stringify(value)) }
 const writeFixtureGraph = async (root: string): Promise<void> => {
@@ -19,15 +25,24 @@ const writeFixtureGraph = async (root: string): Promise<void> => {
   await writeJson(join(root, 'bun.lock'), { packages: { [fixtureName]: [`${fixtureName}@${fixtureVersion}`] } })
   await writeJson(join(fixtureDirectory(root), 'package.json'), { name: fixtureName, version: fixtureVersion, type: 'module', main: './index.js' })
   await writeFile(join(fixtureDirectory(root), 'index.js'), 'export const ready = true;\n')
+  await ensureProjectRuntimeDependencies({ projectRoot: root, production: true, refresh: true })
 }
-const snapshotFixtureArtifacts = (root: string): Promise<Array<string | null>> => Promise.all([
-  join(root, 'package.json'), join(root, 'bun.lock'), join(fixtureDirectory(root), 'package.json'), join(fixtureDirectory(root), 'index.js')
-].map(async path => {
-  try { return await readFile(path, 'utf8') } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
-    throw error
-  }
-}))
+const snapshotFixtureArtifacts = async (root: string): Promise<Array<string | null>> => {
+  const files = await Promise.all([
+    join(root, 'package.json'), join(root, 'bun.lock'), join(root, 'bunfig.toml'), join(fixtureDirectory(root), 'package.json'), join(fixtureDirectory(root), 'index.js'), join(root, 'runtime/tools/project-dependencies/project-dependencies.json')
+  ].map(async path => {
+    try {
+      const metadata = await lstat(path)
+      return JSON.stringify({ content: await readFile(path, 'utf8'), mode: metadata.mode & 0o777, uid: metadata.uid, gid: metadata.gid })
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
+      throw error
+    }
+  }))
+  const alias = await lstat(join(root, 'node_modules'))
+  return [...files, JSON.stringify({ kind: alias.isSymbolicLink() ? 'symlink' : 'directory', mode: alias.mode & 0o777, uid: alias.uid,
+    target: alias.isSymbolicLink() ? await readlink(join(root, 'node_modules')) : undefined })]
+}
 
 test('installed-image inventory imports the actual production graph and preserves the shipped manifests', async () => withRoot(async root => {
   const manifestText = await readFile(join(repositoryRoot, 'package.json'), 'utf8')
@@ -36,7 +51,7 @@ test('installed-image inventory imports the actual production graph and preserve
   await writeFile(join(root, 'package.json'), manifestText)
   await writeFile(join(root, 'bun.lock'), lockText)
   for (const name of Object.keys(manifest.dependencies)) {
-    const destination = join(root, 'node_modules', name)
+    const destination = join(root, 'runtime/tools/project-dependencies/node_modules', name)
     await mkdir(resolve(destination, '..'), { recursive: true })
     await cp(join(repositoryRoot, 'node_modules', name), destination, {
       recursive: true,
@@ -44,6 +59,7 @@ test('installed-image inventory imports the actual production graph and preserve
       filter: source => basename(source) !== '.DS_Store'
     })
   }
+  await ensureProjectRuntimeDependencies({ projectRoot: root, production: true, refresh: true })
   expect(await inspectInstalledDependencies(root)).toEqual(Object.entries(manifest.dependencies).map(([name, version]) => ({ name, version })))
   const valibot = await import(join(root, 'node_modules/valibot')) as typeof import('valibot')
   const converter = await import(join(root, 'node_modules/@valibot/to-json-schema')) as typeof import('@valibot/to-json-schema')
@@ -59,26 +75,58 @@ test('installed-image inventory accepts an independently constructed importable 
   expect(await inspectInstalledDependencies(root)).toEqual([{ name: fixtureName, version: fixtureVersion }])
 }))
 
-const rejectedArtifacts: Array<{ name: string, corrupt: (root: string) => Promise<void>, message: string | RegExp }> = [
+test('the installed-image verifier can load before a fresh runtime has a project package graph', async () => withRoot(async root => {
+  await rm(join(root, 'node_modules'))
+  await rm(join(root, 'runtime'), { recursive: true })
+  await cp(join(repositoryRoot, 'src'), join(root, 'src'), { recursive: true, filter: source => basename(source) !== '.DS_Store' })
+  await writeFile(join(root, 'tsconfig.json'), await readFile(join(repositoryRoot, 'tsconfig.json')))
+  await writeFile(join(root, 'package.json'), '{"type":"module"}\n')
+  const before = (await readdir(root)).sort()
+  const child = Bun.spawn([process.execPath, '--no-env-file', '-e', 'const verifier = await import("./src/tools/docker-installed-dependencies.ts"); if (typeof verifier.inspectInstalledDependencies !== "function") throw new Error("Verifier export missing"); console.log("Verifier loaded before activation");'], {
+    cwd: root, env: { PATH: process.env['PATH'], HOME: process.env['HOME'] }, stdout: 'pipe', stderr: 'pipe'
+  })
+  const [exitCode, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()])
+  expect(exitCode, stderr).toBe(0)
+  expect(stdout).toBe('Verifier loaded before activation\n')
+  expect((await readdir(root)).sort()).toEqual(before)
+}))
+
+test('installed-image inventory rejects changed package bytes before evaluating their code', async () => withRoot(async root => {
+  await writeFixtureGraph(root)
+  const marker = join(root, 'changed-package-executed')
+  await writeFile(join(fixtureDirectory(root), 'index.js'), `await Bun.write(${JSON.stringify(marker)}, "executed"); export const ready = true;\n`)
+  const before = await snapshotFixtureArtifacts(root)
+  await expect(inspectInstalledDependencies(root)).rejects.toThrow(/differ from their receipt/)
+  expect(await Bun.file(marker).exists()).toBe(false)
+  expect(await snapshotFixtureArtifacts(root)).toEqual(before)
+}))
+
+const rejectedArtifacts: Array<{ name: string, corrupt: (root: string) => Promise<void>, message: string | RegExp, reseal?: boolean }> = [
   { name: 'missing root manifest', corrupt: root => rm(join(root, 'package.json')), message: /ENOENT/ },
   { name: 'malformed root manifest', corrupt: root => writeFile(join(root, 'package.json'), '{invalid'), message: /JSON|Expected|Unexpected|parse/i },
   { name: 'missing frozen lock', corrupt: root => rm(join(root, 'bun.lock')), message: /ENOENT/ },
   { name: 'malformed frozen lock', corrupt: root => writeFile(join(root, 'bun.lock'), '{invalid'), message: /JSON|Expected|Unexpected|parse/i },
+  { name: 'absolute root dependency alias', corrupt: async root => { await rm(join(root, 'node_modules')); await symlink(join(root, 'runtime/tools/project-dependencies/node_modules'), join(root, 'node_modules')) }, message: /relative managed runtime alias/ },
+  { name: 'root dependency alias replaced with a directory', corrupt: async root => { await rm(join(root, 'node_modules')); await mkdir(join(root, 'node_modules')) }, message: /relative managed runtime alias/ },
+  { name: 'missing managed graph receipt', corrupt: root => rm(join(root, 'runtime/tools/project-dependencies/project-dependencies.json')), message: /receipt is missing or invalid/ },
+  { name: 'malformed managed graph receipt', corrupt: root => writeFile(join(root, 'runtime/tools/project-dependencies/project-dependencies.json'), '{invalid'), message: /receipt is missing or invalid/ },
+  { name: 'changed package permissions', corrupt: root => chmod(join(fixtureDirectory(root), 'index.js'), 0o755), message: /differ from their receipt/ },
   { name: 'dependency absent from frozen lock', corrupt: root => writeJson(join(root, 'bun.lock'), { packages: {} }), message: /does not match the frozen graph/ },
   { name: 'different frozen dependency version', corrupt: root => writeJson(join(root, 'bun.lock'), { packages: { [fixtureName]: [`${fixtureName}@9.9.9`] } }), message: /does not match the frozen graph/ },
   { name: 'missing installed package', corrupt: root => rm(fixtureDirectory(root), { recursive: true }), message: /ENOENT/ },
   { name: 'malformed installed manifest', corrupt: root => writeFile(join(fixtureDirectory(root), 'package.json'), '{invalid'), message: /JSON|Expected|Unexpected|parse/i },
   { name: 'different installed package identity', corrupt: root => writeJson(join(fixtureDirectory(root), 'package.json'), { name: 'different-package', version: fixtureVersion }), message: /does not match the frozen graph/ },
   { name: 'different installed package version', corrupt: root => writeJson(join(fixtureDirectory(root), 'package.json'), { name: fixtureName, version: '9.9.9' }), message: /does not match the frozen graph/ },
-  { name: 'missing module artifact', corrupt: root => rm(join(fixtureDirectory(root), 'index.js')), message: /Cannot find|ModuleNotFound|resolve/i },
-  { name: 'module artifact that fails evaluation', corrupt: root => writeFile(join(fixtureDirectory(root), 'index.js'), 'throw new Error("installed module evaluation failed");\n'), message: 'installed module evaluation failed' },
-  { name: 'module artifact with no exports', corrupt: root => writeFile(join(fixtureDirectory(root), 'index.js'), 'export {};\n'), message: /Empty production import/ }
+  { name: 'missing module artifact', corrupt: root => rm(join(fixtureDirectory(root), 'index.js')), message: /differ from their receipt/ },
+  { name: 'intact module artifact that fails evaluation', corrupt: root => writeFile(join(fixtureDirectory(root), 'index.js'), 'throw new Error("installed module evaluation failed");\n'), message: 'installed module evaluation failed', reseal: true },
+  { name: 'intact module artifact with no exports', corrupt: root => writeFile(join(fixtureDirectory(root), 'index.js'), 'export {};\n'), message: /Empty production import/, reseal: true }
 ]
 
 for (const artifact of rejectedArtifacts) {
   test(`installed-image inventory rejects ${artifact.name} without repairing it`, async () => withRoot(async root => {
     await writeFixtureGraph(root)
     await artifact.corrupt(root)
+    if (artifact.reseal) await ensureProjectRuntimeDependencies({ projectRoot: root, production: true, refresh: true })
     const before = await snapshotFixtureArtifacts(root)
     await expect(inspectInstalledDependencies(root)).rejects.toThrow(artifact.message)
     expect(await snapshotFixtureArtifacts(root)).toEqual(before)

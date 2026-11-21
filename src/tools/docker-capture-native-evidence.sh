@@ -26,7 +26,9 @@ jq -e --arg arch "${arch}" --arg revision "${revision}" '
 image_id="$(jq -er '.[0].Id' "${evidence_dir}/image-identity.json")"
 run=(docker run --rm --platform "linux/${arch}" --network none)
 "${run[@]}" --entrypoint dpkg-query "${image_id}" -W '-f=${Package}\t${Version}\t${Architecture}\n' > "${evidence_dir}/debian-packages.tsv"
-"${run[@]}" --entrypoint tar "${image_id}" -czf - /usr/share/doc > "${evidence_dir}/native-notices.tar.gz"
+"${run[@]}" --entrypoint tar "${image_id}" -czf - /usr/share/doc /opt/autoshow-runtime/tools/linux-root/usr/share/doc > "${evidence_dir}/native-notices.tar.gz"
+"${run[@]}" --entrypoint cat "${image_id}" /opt/autoshow-runtime/tools/linux-root/.autoshow-linux-toolchain.json > "${evidence_dir}/managed-linux-toolchain.json"
+"${run[@]}" --entrypoint cat "${image_id}" /opt/autoshow-runtime/.autoshow-docker-runtime.json > "${evidence_dir}/runtime-payload-manifest.json"
 "${run[@]}" --entrypoint sh "${image_id}" -ec 'ffmpeg -hide_banner -filters; convert -list format; fc-match "DejaVu Sans"' > "${evidence_dir}/rendering-capabilities.txt"
 "${run[@]}" --entrypoint bun "${image_id}" --no-env-file -e 'import {readDependencyMetadata} from "./src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts"; console.log(JSON.stringify(await readDependencyMetadata(), null, 2))' > "${evidence_dir}/native-source-pins.json"
 # Read policy bytes from the captured image, rather than assuming the checkout matches it.
@@ -35,6 +37,8 @@ run=(docker run --rm --platform "linux/${arch}" --network none)
 awk -F '\t' 'NF != 3 || $1 == "" || $2 == "" || $3 == "" { invalid = 1 } END { exit invalid || NR == 0 }' "${evidence_dir}/debian-packages.tsv"
 tar -tzf "${evidence_dir}/native-notices.tar.gz" >/dev/null
 jq -e 'type == "object" and length > 0' "${evidence_dir}/native-source-pins.json" >/dev/null
+jq -e '.schemaVersion == 2 and (.packages | length > 0) and (.payload | length > 0)' "${evidence_dir}/managed-linux-toolchain.json" >/dev/null
+jq -e '.schemaVersion == 1 and (.entries | length > 0) and (.exports | length > 0)' "${evidence_dir}/runtime-payload-manifest.json" >/dev/null
 for file in rendering-capabilities.txt native-distribution-policy.ts model-artifact-pins.ts; do test -s "${evidence_dir}/${file}"; done
 jq --arg image "${image}" '.[0] | {schemaVersion:1, image:{requestedReference:$image,id:.Id,platform:(.Os+"/"+.Architecture),revision:.Config.Labels["org.opencontainers.image.revision"]},network:"none"}' "${evidence_dir}/image-identity.json" > "${evidence_dir}/native-evidence.json"
-(cd "${evidence_dir}" && sha256sum image-identity.json debian-packages.tsv native-notices.tar.gz rendering-capabilities.txt native-source-pins.json native-distribution-policy.ts model-artifact-pins.ts native-evidence.json > SHA256SUMS)
+(cd "${evidence_dir}" && sha256sum image-identity.json debian-packages.tsv native-notices.tar.gz managed-linux-toolchain.json runtime-payload-manifest.json rendering-capabilities.txt native-source-pins.json native-distribution-policy.ts model-artifact-pins.ts native-evidence.json > SHA256SUMS)

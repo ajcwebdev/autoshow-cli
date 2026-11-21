@@ -189,8 +189,9 @@ const renderSubcommands = (command: CliCommandHelpDefinition): string[] => {
   ]
 }
 
-const renderExamples = (command: CliCommandHelpDefinition): string[] => {
-  const examples = command.help?.examples ?? []
+const renderExamples = (command: CliCommandHelpDefinition, scriptName: string): string[] => {
+  const examples = (command.help?.examples ?? []).map(([example, description]) =>
+    [example.replace(/\bbun autoshow\b/g, scriptName), description] as const)
   if (examples.length === 0) {
     return []
   }
@@ -315,7 +316,7 @@ export const renderCommandHelp = (
   if (topic && options.topic !== 'globals') retainHelpGlobals(globals)
   lines.push('Global Flags', ...renderFlagRows(orderGlobalFlags(globals), '  ', width), '')
 
-  const examples = renderExamples(topic ? withTopicExamples(command, options) : command)
+  const examples = renderExamples(topic ? withTopicExamples(command, options) : command, root.scriptName)
   if (examples.length > 0) {
     lines.push(...examples)
   }

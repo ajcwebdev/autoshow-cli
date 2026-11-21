@@ -84,23 +84,33 @@ test('English data inspection stops before initialization when language listing 
 
 const runtimeProbe = String.raw`
 import { existsSync } from 'node:fs'
+import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import { configureBinDir, resolveTessdataPrefix } from './src/utils/runtime-paths'
+import { resolveRuntimeToolInfo } from './src/utils/runtime-paths'
 import { ocrImage } from './src/cli/commands/text/ocr/ocr-utils/tesseract-utils'
 import { ensureTesseractEnglishData } from './src/cli/commands/text/ocr/ocr-local/tesseract-setup'
 import { collectDoctorReport } from './src/cli/commands/setup-and-utilities/setup/run-doctor'
-import { runCapture } from './src/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { validateReadOnlyEnglishData } from './src/cli/commands/setup-and-utilities/setup/doctor-english-data'
 import { SUPPORTED_BUN_VERSION } from './src/utils/bun-version'
 const root = process.env.AUTOSHOW_PROJECT_ROOT
-const binary = join(root, 'bin/tesseract')
-configureBinDir(join(root, 'bin'))
+const binary = join(root, 'runtime/bin/tesseract')
+const receipt = JSON.parse(await readFile(join(root, 'runtime/state/tesseract-fixture.json'), 'utf8'))
+let doctorDispatches = 0
 const report = await collectDoctorReport({
   bunVersion: SUPPORTED_BUN_VERSION, platform: 'linux', env: {},
   which: () => undefined, pathExists: async path => existsSync(path),
   listDirectory: async () => [], directoryHasFiles: async () => false,
-  run: async (command, args, options) => command === binary
-    ? await runCapture(command, args, { ...options, allowFailure: true })
-    : { exitCode: 0, stdout: 'ok', stderr: '' },
+  executeReadOnlyTools: false,
+  validateRuntimeTool: async (tool, path) => {
+    const sha256 = new Bun.CryptoHasher('sha256').update(await readFile(path)).digest('hex')
+    return tool === 'tesseract' && path === binary && sha256 === receipt.sha256 && ((await stat(path)).mode & 0o777) === receipt.mode
+      ? { healthy: true, detail: 'Synthetic engine identity and executable mode verified against the fixture receipt' }
+      : { healthy: false, reason: 'Synthetic engine differs from its fixture receipt' }
+  },
+  validateTesseractData: async prefix => await validateReadOnlyEnglishData(prefix, { platform: 'linux' }),
+  validateAlignmentRuntime: async () => ({ healthy: false, reason: 'No alignment runtime in this OCR fixture' }),
+  validateProjectDependencies: async () => ({ healthy: false, reason: 'No project graph in this OCR fixture' }),
+  run: async () => { doctorDispatches += 1; throw new Error('Read-only doctor must not launch the synthetic engine') },
   resolveYtDlpBinaryInfo: () => undefined,
   readDefuddleCliReadiness: async () => ({ status: 'MISSING', label: 'defuddle', detail: 'fixture', severity: 'warn' }),
   resolveConfigPath: async () => join(root, 'config/autoshow.json'), loadConfig: async () => ({}),
@@ -111,16 +121,16 @@ const doctor = report.sections.flatMap(section => section.checks).find(check => 
 const capture = async run => { try { return { result: await run() } } catch (error) { return { error: error.message } } }
 const setup = await capture(ensureTesseractEnglishData)
 const ocr = await capture(async () => await ocrImage('fixture.png', 'eng', 'text'))
-process.stdout.write('TESSERACT_RESULT='+JSON.stringify({ doctor, setup, ocr })+'\n')
+process.stdout.write('TESSERACT_RESULT='+JSON.stringify({ doctor, doctorDispatches, toolPath: resolveRuntimeToolInfo('tesseract')?.path, setup, ocr })+'\n')
 `
 
 interface Dispatch { args: string[]; prefix: string | null }
-interface ProbeResult { doctor: { status: string; detail: string }; setup: { error?: string }; ocr: { result?: { text: string }; error?: string } }
+interface ProbeResult { doctor: { status: string; detail: string }; doctorDispatches: number; toolPath: string; setup: { error?: string }; ocr: { result?: { text: string }; error?: string } }
 
 const runRuntimeProbe = async (root: string): Promise<{ result: ProbeResult; dispatch: Dispatch[] }> => {
-  await mkdir(join(root, 'bin'), { recursive: true })
+  await mkdir(join(root, 'runtime/bin'), { recursive: true })
   const log = join(root, 'dispatch.jsonl')
-  const binary = join(root, 'bin/tesseract')
+  const binary = join(root, 'runtime/bin/tesseract')
   await writeFile(binary, '#!'+process.execPath+'\n'+`
 import { appendFileSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -134,11 +144,27 @@ if (prefix && readFileSync(join(prefix, 'eng.traineddata'), 'utf8').includes('co
 console.log(args.includes('--print-parameters') ? 'tesseract parameter fixture' : 'synthetic dispatch output')
 `)
   await chmod(binary, 0o755)
+  await mkdir(join(root, 'runtime/state'), { recursive: true })
+  await writeFile(join(root, 'runtime/state/tesseract-fixture.json'), JSON.stringify({
+    sha256: new Bun.CryptoHasher('sha256').update(await readFile(binary)).digest('hex'), mode: 0o755
+  }))
+  // Only the engine is synthetic: the doctor uses the real read-only package-data selector.
+  const packagedRoot = join(root, 'runtime/tools/linux-root')
+  const relativeDataPath = 'usr/share/tesseract-ocr/5/tessdata/eng.traineddata'
+  await mkdir(join(packagedRoot, relativeDataPath, '..'), { recursive: true })
+  const packagedData = 'readable model fixture'
+  await writeFile(join(packagedRoot, relativeDataPath), packagedData)
+  await chmod(join(packagedRoot, relativeDataPath), 0o644)
+  await writeFile(join(packagedRoot, '.autoshow-linux-toolchain.json'), JSON.stringify({
+    schemaVersion: 2, recipeRevision: 'linux-runtime-v3', architecture: process.arch,
+    distribution: 'debian-packages', requestedPackages: ['tesseract-ocr-eng'], packages: [],
+    payload: [{ path: relativeDataPath, mode: 0o644, kind: 'file', sha256: new Bun.CryptoHasher('sha256').update(packagedData).digest('hex') }]
+  }))
   const child = Bun.spawn([process.execPath, '--no-env-file', '-e', runtimeProbe], {
     cwd: resolve(import.meta.dir, '../../../..'),
     env: {
       PATH: process.env['PATH'] ?? '', HOME: root, NO_COLOR: '1',
-      AUTOSHOW_PROJECT_ROOT: root, TESSDATA_PREFIX: '/deliberately/unrelated/tessdata'
+      AUTOSHOW_PROJECT_ROOT: root, TESSDATA_PREFIX: '/deliberately/unrelated/tessdata', BUN_RUNTIME_TRANSPILER_CACHE_PATH: '0'
     },
     stdout: 'pipe', stderr: 'pipe', stdin: 'ignore', signal: AbortSignal.timeout(30_000)
   })
@@ -148,12 +174,12 @@ console.log(args.includes('--print-parameters') ? 'tesseract parameter fixture' 
   expect(resultLine, stdout).toBeDefined()
   return {
     result: JSON.parse(resultLine!.slice('TESSERACT_RESULT='.length)) as ProbeResult,
-    dispatch: (await readFile(log, 'utf8')).trim().split('\n').map(line => JSON.parse(line) as Dispatch)
+    dispatch: await Bun.file(log).exists() ? (await readFile(log, 'utf8')).trim().split('\n').map(line => JSON.parse(line) as Dispatch) : []
   }
 }
 
 for (const managed of ['absent', 'empty-directory', 'readable', 'corrupt', 'directory', 'unreadable'] as const) {
-  test(`doctor, setup, and OCR share actual child environment for ${managed} managed data`, async () => {
+  test(`read-only doctor agrees with setup/OCR child environments for ${managed} managed data`, async () => {
     await withTempDir('tesseract-environment-', async root => {
       const data = join(root, 'runtime/tools/tessdata')
       const english = join(data, 'eng.traineddata')
@@ -164,21 +190,29 @@ for (const managed of ['absent', 'empty-directory', 'readable', 'corrupt', 'dire
       if (managed === 'directory') await mkdir(english)
       if (managed === 'unreadable') await chmod(english, 0)
       const { result, dispatch } = await runRuntimeProbe(root)
+      expect(result.doctorDispatches).toBe(0)
+      expect(result.toolPath).toBe(join(root, 'runtime/bin/tesseract'))
       const calls = dispatch.filter(call => !call.args.includes('--version'))
       if (managed === 'directory' || managed === 'unreadable') {
         expect(result.doctor.status).toBe('WARN')
         expect(result.setup.error).toContain('Managed Tesseract English data')
         expect(result.ocr.error).toContain('Managed Tesseract English data')
+        expect(result.setup.error).toContain(managed === 'unreadable' ? 'is not readable' : 'is not a regular file')
+        expect(result.ocr.error).toContain(managed === 'unreadable' ? 'is not readable' : 'is not a regular file')
         expect(calls).toEqual([])
         return
       }
       const expectedPrefix = managed === 'absent' || managed === 'empty-directory' ? null : data
-      expect(calls).toHaveLength(5)
+      expect(calls).toHaveLength(3)
+      expect(calls.map(call => call.args)).toEqual([
+        ['--list-langs'], ['--print-parameters', '-l', 'eng', '--oem', '1'],
+        ['fixture.png', 'stdout', '-l', 'eng', '--oem', '1', '--psm', '3']
+      ])
       expect(calls.every(call => call.prefix === expectedPrefix)).toBe(true)
-      expect(calls.filter(call => call.args.includes('--print-parameters'))).toHaveLength(2)
+      expect(calls.filter(call => call.args.includes('--print-parameters'))).toHaveLength(1)
       if (managed === 'corrupt') {
         expect(result.doctor.status).toBe('WARN')
-        expect(result.doctor.detail).toContain('could not initialize English language data')
+        expect(result.doctor.detail).toContain('does not match a trusted English model checksum')
         expect(result.setup.error).toContain('corrupt model fixture')
         expect(result.ocr.error).toContain('corrupt model fixture')
       } else {

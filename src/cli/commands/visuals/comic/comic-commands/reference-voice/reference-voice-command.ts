@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import type { CliCommandDefinition } from '~/types'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { VOICE_SUBCOMMAND_DEFINITIONS, voiceActionName } from '../../../../audio/voice/define-voice-command'
@@ -40,7 +41,7 @@ export const referenceVoiceCommandDefinition = defineCliCommand({
       ['bun autoshow comic reference-voice approve vr_123 --actor-id editor', 'Approve and promote the audition locally']
     ],
     notes: [
-      'Deprecated: use bun autoshow voice <action>. This alias is retained for one compatibility release and will be removed in a later announced breaking CLI release.',
+      `Deprecated: use ${CLI_INVOCATION} voice <action>. This alias is retained for one compatibility release and will be removed in a later announced breaking CLI release.`,
       'Bare comic reference-voice still runs voice list. Flags, consent rules, and results are unchanged.',
     ]
   }

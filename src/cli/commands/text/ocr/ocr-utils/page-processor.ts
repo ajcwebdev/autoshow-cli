@@ -1,6 +1,6 @@
 import { join } from 'node:path'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import type { ExtractionOptions, InternalPage, OcrFn, OcrFnProvider, PageResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { extractPageText, renderPageToImage } from '~/cli/commands/sources/download/document/mutool-utils'
@@ -170,7 +170,7 @@ export const processPages = async (
   options: ExtractionOptions,
   ocrFnProvider?: OcrFnProvider
 ): Promise<PageResult[]> => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-ocr-')
   try {
     const cores = logicalCpuCount()
     const renderConcurrency = options.renderConcurrency ?? Math.min(cores, 4)

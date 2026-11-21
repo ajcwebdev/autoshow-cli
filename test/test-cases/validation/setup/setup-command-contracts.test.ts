@@ -73,12 +73,13 @@ describe('setup command contracts', () => {
     const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio.ts').text()
 
     expect(source).toContain('ytDlpManagedBinaryPath')
-    expect(source).toContain('makeExecutable(ytDlpManagedBinaryPath)')
+    expect(source).toContain('ensureRuntimeDirectory(dirname(ytDlpManagedBinaryPath))')
+    expect(source).toContain('makeExecutable(assertManagedRuntimePath(ytDlpManagedBinaryPath))')
     expect(source).not.toContain("runInherit('sudo', ['mv'")
     expect(source).not.toContain("runInherit('sudo', ['chmod'")
   })
 
-  test('source setup no longer invokes Homebrew', async () => {
+  test('source setup dispatches through managed installers for all local tool groups', async () => {
     const sourceFiles = [
       'src/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio.ts',
       'src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/document.ts',
@@ -87,8 +88,6 @@ describe('setup command contracts', () => {
     ]
     const source = (await Promise.all(sourceFiles.map(async (path) => await Bun.file(path).text()))).join('\n')
 
-    expect(source).not.toContain("runInherit('brew'")
-    expect(source).not.toContain('brew install')
     expect(source).toContain('installManagedFfmpegMacos')
     expect(source).toContain('installManagedYtDlpMacos')
     expect(source).toContain('installManagedMupdfMacos')
@@ -97,7 +96,7 @@ describe('setup command contracts', () => {
     expect(source).toContain('installManagedQpdfMacos')
   })
 
-  test('cold all and calibre resets explicitly clear every managed qpdf artifact', async () => {
+  test('all and calibre replacement inventories include every managed qpdf artifact', async () => {
     const expected = [qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir]
     const [allPaths, calibrePaths] = await Promise.all([
       getForceRedownloadPaths('all'),
@@ -123,9 +122,9 @@ describe('setup command contracts', () => {
   test('full setup installs only tiny and music setup selects small.en', async () => {
     const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/run-complete-setup.ts').text()
     expect(source).toContain("const defaultMusicWhisperfileModel = 'small.en'")
-    expect(source).toContain('await setupWhisperfile(DEFAULT_WHISPERFILE_MODEL)')
-    expect(source).toContain('await setupWhisperfile(defaultMusicWhisperfileModel)')
-    expect(source).toContain("{ label: 'OCR', run: setupTesseractOcr }")
+    expect(source).toContain('await operations.whisperfile(DEFAULT_WHISPERFILE_MODEL, options)')
+    expect(source).toContain('await setupWhisperfile(defaultMusicWhisperfileModel, options)')
+    expect(source).toContain('await setupTesseractOcr(options)')
     const all = await getForceRedownloadPaths('all')
     expect(all.filter(path => path.endsWith('.llamafile')).map(path => path.split('/').at(-1))).toEqual(['whisper-tiny.llamafile'])
     expect(await getForceRedownloadPaths('transcription')).toEqual(await getForceRedownloadPaths('whisperfile'))
@@ -133,7 +132,7 @@ describe('setup command contracts', () => {
   })
 
   test('macOS owned tool resolution prefers overrides then managed runtime without PATH fallback', () => {
-    const pathBinary = '/opt/homebrew/bin/yt-dlp'
+    const pathBinary = '/external/tools/yt-dlp'
     const managed = resolveRuntimeToolInfo('yt-dlp', {
       platform: 'darwin',
       exists: (path) => path === ytDlpManagedBinaryPath,
@@ -143,11 +142,12 @@ describe('setup command contracts', () => {
 
     const override = resolveRuntimeToolInfo('ffmpeg', {
       platform: 'darwin',
-      overrideBinDir: '/custom/bin',
-      exists: (path) => path === '/custom/bin/ffmpeg',
-      which: () => '/opt/homebrew/bin/ffmpeg'
+      overrideBinDir: `${process.cwd()}/runtime/test-overrides`,
+      exists: (path) => path === `${process.cwd()}/runtime/test-overrides/ffmpeg`,
+      realpath: (path) => path,
+      which: () => '/external/tools/ffmpeg'
     })
-    expect(override).toEqual({ id: 'ffmpeg', path: '/custom/bin/ffmpeg', source: 'override' })
+    expect(override).toEqual({ id: 'ffmpeg', path: `${process.cwd()}/runtime/test-overrides/ffmpeg`, source: 'override' })
 
     const absent = resolveRuntimeToolInfo('yt-dlp', {
       platform: 'darwin',
@@ -188,9 +188,9 @@ describe('setup command contracts', () => {
     const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre.ts').text()
     const setupSource = source.slice(source.indexOf('export const setupCalibreDocumentTools'))
 
-    expect(setupSource).toContain('await setupDocumentTools({ printCompletion: false })')
+    expect(setupSource).toContain('await setupDocumentTools({ ...options, printCompletion: false })')
     expect(setupSource).not.toContain('runSettledSetupTasks')
-    expect(setupSource.indexOf('await setupDocumentTools(')).toBeLessThan(setupSource.indexOf('await setupCalibreTools()'))
+    expect(setupSource.indexOf('await setupDocumentTools(')).toBeLessThan(setupSource.indexOf('await setupCalibreTools(options)'))
     expect(setupSource).not.toContain('setupAcsm')
     expect(setupSource).not.toContain('ACSM')
   })

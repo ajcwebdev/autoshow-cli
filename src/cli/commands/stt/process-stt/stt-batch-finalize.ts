@@ -1,12 +1,13 @@
 import { basename } from 'node:path'
-import type { AggregatedPriceEstimate, EffectiveSttProviderConcurrency, PreparedSttMedia, ProviderFailure, StepTimingCost, SttBatchCoordinator, SttBatchCostTiming, SttBatchDerivedState, SttExtractionOptions, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
+import type { AggregatedPriceEstimate, EffectiveSttProviderConcurrency, Step2ProviderSelectionOrigin, PreparedSttMedia, ProviderFailure, StepTimingCost, SttBatchCoordinator, SttBatchCostTiming, SttBatchDerivedState, SttExtractionOptions, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
+import { isRecord } from '~/utils/rest-client'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { logManifestLocation } from '~/cli/commands/command-shared/write-manifest-log/write-manifest-log'
 import { describeSttBatchProviderSlotLimits, SttPartialCompletionError } from '../batch'
 import { writePipelineItemRecords } from '../../command-shared/pipeline-manifest'
-import { buildMetadataErrorEntries, buildMissingProviders, buildProviderStates, resolveCompletionStatus, summarizeSttProviderStates, toRequestedProvider } from '../stt-batch/stt-run-state'
+import { buildMetadataErrorEntries, buildMissingProviders, buildProviderStates, resolveCompletionStatus, summarizeSttProviderStates, toRequestedProvidersPreservingStored } from '../stt-batch/stt-run-state'
 import { filterEstimatedSttCosts, resolveSttEstimatedCosts } from '../stt-costs'
 import { logSttProviderFailures, logSttProviderSkips, logSttRunStatus } from '../stt-logging'
 import { buildProviderModelLabel, buildTimingProviderModelLabel } from '../stt-prompt'
@@ -19,16 +20,18 @@ export const computeSttBatchDerivedState = ({
   requestedTargets,
   successes,
   failuresByIndex,
-  providerStateMap
+  providerStateMap,
+  preservedStates
 }: {
   requestedTargets: SttTarget[]
   successes: Array<SttProviderSuccess | undefined>
   failuresByIndex: Map<number, ProviderFailure>
   providerStateMap: Map<string, SttProviderState>
+  preservedStates?: ReadonlyMap<string, SttProviderState> | undefined
 }): SttBatchDerivedState => {
   const successfulProviders = successes.filter((entry): entry is SttProviderSuccess => entry !== undefined)
   const failures = [...failuresByIndex.values()].sort((left, right) => left.index - right.index)
-  const providerStates = buildProviderStates(requestedTargets, successes, failuresByIndex, providerStateMap)
+  const providerStates = buildProviderStates(requestedTargets, successes, failuresByIndex, providerStateMap, preservedStates)
   const completionStatus = resolveCompletionStatus(providerStates)
   const providerStateSummary = summarizeSttProviderStates(providerStates)
   const applicableTargets = requestedTargets.filter((_, index) => providerStates[index]?.status !== 'skipped')
@@ -52,6 +55,54 @@ export const computeSttBatchDerivedState = ({
   }
 }
 
+type StepSection = { steps?: unknown, [key: string]: unknown }
+
+const stepKey = (step: Record<string, unknown>): string =>
+  `${String(step['provider'] ?? step['service'])}:${String(step['model'])}`
+
+const nested = (record: Record<string, unknown> | undefined, ...path: string[]): unknown =>
+  path.reduce<unknown>((value, key) => isRecord(value) ? value[key] : undefined, record)
+
+// Targets a resume pass did not dispatch keep their recorded steps (including steps for retired models,
+// which a fresh estimate could no longer reproduce); only dispatched targets get fresh steps, and the total
+// is re-summed so it covers both.
+const keepHistoricalSteps = <T extends StepSection>(
+  fresh: T,
+  stored: unknown,
+  historicalKeys: ReadonlySet<string>,
+  totalField: 'totalCost' | 'totalProcessingTimeMs',
+  valueField: 'cost' | 'processingTimeMs'
+): T => {
+  if (historicalKeys.size === 0 || !isRecord(stored) || !Array.isArray(stored['steps']) || !Array.isArray(fresh.steps)) {
+    return fresh
+  }
+  const storedSteps = stored['steps'].filter(isRecord)
+  const steps = (fresh.steps as unknown[]).map((step) => {
+    if (!isRecord(step) || step['step'] !== 'stt' || !historicalKeys.has(stepKey(step))) return step
+    return storedSteps.find((candidate) => candidate['step'] === 'stt' && stepKey(candidate) === stepKey(step)) ?? step
+  })
+  const total = steps.reduce<number>((sum, step) => sum + (isRecord(step) && typeof step[valueField] === 'number' ? step[valueField] : 0), 0)
+  return { ...fresh, steps, [totalField]: total }
+}
+
+// A provider's recorded selection origin is part of its identity; resume flags must not erase it.
+const mergeStoredResolvedStep2 = (
+  fresh: ReturnType<typeof resolveRecordedSttStep2>,
+  stored: unknown
+): ReturnType<typeof resolveRecordedSttStep2> => {
+  const storedProviders = isRecord(stored) && Array.isArray(stored['providers']) ? stored['providers'].filter(isRecord) : []
+  if (storedProviders.length === 0 || fresh.route !== 'stt') return fresh
+  return {
+    ...fresh,
+    providers: fresh.providers.map((provider) => {
+      const previous = storedProviders.find((entry) => entry['service'] === provider.service && entry['model'] === provider.model)
+      return previous && typeof previous['origin'] === 'string' && provider.origin === undefined
+        ? { ...provider, origin: previous['origin'] as Step2ProviderSelectionOrigin }
+        : provider
+    })
+  }
+}
+
 export const finalizeSttBatchCostTiming = async ({
   outputDir,
   requestedTargets,
@@ -62,7 +113,9 @@ export const finalizeSttBatchCostTiming = async ({
   providerConcurrency,
   coordinatedAcrossBatch,
   batchCoordinator,
-  derived
+  derived,
+  existingItemRecord,
+  historicalKeys = new Set<string>()
 }: {
   outputDir: string
   requestedTargets: SttTarget[]
@@ -74,16 +127,20 @@ export const finalizeSttBatchCostTiming = async ({
   coordinatedAcrossBatch: boolean
   batchCoordinator: SttBatchCoordinator | undefined
   derived: SttBatchDerivedState
+  existingItemRecord?: Record<string, unknown> | undefined
+  historicalKeys?: ReadonlySet<string> | undefined
 }): Promise<SttBatchCostTiming> => {
   const { successfulProviders, applicableTargets, providerStates, completionStatus, missingProviders, metadataErrors } = derived
+  const keep = <T extends StepSection>(fresh: T, path: string[], totalField: 'totalCost' | 'totalProcessingTimeMs', valueField: 'cost' | 'processingTimeMs'): T =>
+    keepHistoricalSteps(fresh, nested(existingItemRecord, ...path), historicalKeys, totalField, valueField)
 
-  const estimated = filterEstimatedSttCosts(resolveSttEstimatedCosts(preflightEstimate, applicableTargets, prepared.durationSeconds, prepared.step1Metadata.url))
-  const observedEstimate = filterEstimatedSttCosts(resolveSttEstimatedCosts(undefined, applicableTargets, prepared.durationSeconds, prepared.step1Metadata.url))
-  const actual = computeActualCosts({
+  const estimated = keep(filterEstimatedSttCosts(resolveSttEstimatedCosts(preflightEstimate, applicableTargets, prepared.durationSeconds, prepared.step1Metadata.url)), ['cost', 'estimated'], 'totalCost', 'cost')
+  const observedEstimate = keep(filterEstimatedSttCosts(resolveSttEstimatedCosts(undefined, applicableTargets, prepared.durationSeconds, prepared.step1Metadata.url)), ['cost', 'observedEstimate'], 'totalCost', 'cost')
+  const actual = keep(computeActualCosts({
     step1: prepared.step1Metadata,
     step2: successfulProviders.map((entry) => entry.metadata),
     audioDurationSeconds: prepared.durationSeconds
-  })
+  }), ['cost', 'actual'], 'totalCost', 'cost')
   const cost = {
     estimated,
     observedEstimate,
@@ -93,14 +150,14 @@ export const finalizeSttBatchCostTiming = async ({
       actualTotalCost: actual.totalCost
     }
   }
-  const estimatedTiming = computeEstimatedProcessingTimes({
+  const estimatedTiming = keep(computeEstimatedProcessingTimes({
     sttTargets: applicableTargets.map((entry) => ({ service: entry.service, model: entry.model })),
     audioDurationSeconds: prepared.durationSeconds
-  })
-  const actualTiming = computeActualProcessingTimes({
+  }), ['timing', 'estimated'], 'totalProcessingTimeMs', 'processingTimeMs')
+  const actualTiming = keep(computeActualProcessingTimes({
     audioDurationSeconds: prepared.durationSeconds,
     step2: successfulProviders.map((entry) => entry.metadata)
-  })
+  }), ['timing', 'actual'], 'totalProcessingTimeMs', 'processingTimeMs')
   const schedulerSnapshot = batchCoordinator?.getSchedulerSnapshot()
   const timing = {
     estimated: estimatedTiming,
@@ -130,9 +187,9 @@ export const finalizeSttBatchCostTiming = async ({
   const metadataJson = JSON.stringify({
     step1: prepared.step1Metadata,
     step2: successfulProviders.map((entry) => entry.metadata),
-    resolvedStep2: resolveRecordedSttStep2(requestedTargets, options),
+    resolvedStep2: mergeStoredResolvedStep2(resolveRecordedSttStep2(requestedTargets, options), nested(existingItemRecord, 'resolvedStep2')),
     completionStatus,
-    requestedProviders: requestedTargets.map((target) => toRequestedProvider(target, options)),
+    requestedProviders: toRequestedProvidersPreservingStored(requestedTargets, options, existingItemRecord, historicalKeys),
     providerStates,
     missingProviders,
     cost,

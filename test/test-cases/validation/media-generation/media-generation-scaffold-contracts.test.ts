@@ -173,7 +173,7 @@ describe('media generation scaffold contracts', () => {
     try {
       const result = await withCredential('gemini', async () => await runImageGeneration({
         service: 'gemini',
-        model: 'gemini-3.1-flash-lite-image',
+        model: 'gemini-nano-banana-2.1',
         outputDir,
         prepare: () => ({}),
         execute: async (context) => ({
@@ -187,7 +187,7 @@ describe('media generation scaffold contracts', () => {
 
       expect(result.imagePaths.map(path => basename(path))).toEqual(['generated-image.png', 'generated-image-2.png'])
       expect(result.metadata.imageService).toBe('gemini')
-      expect(result.metadata.imageModel).toBe('gemini-3.1-flash-lite-image')
+      expect(result.metadata.imageModel).toBe('gemini-nano-banana-2.1')
       expect(result.metadata.imageCount).toBe(2)
       expect(result.metadata.imageFileNames).toEqual(['generated-image.png', 'generated-image-2.png'])
       expect(result.metadata.imageFileSize).toBe(11)

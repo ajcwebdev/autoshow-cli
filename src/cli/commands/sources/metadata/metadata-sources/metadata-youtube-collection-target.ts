@@ -1,6 +1,5 @@
 import * as v from 'valibot'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { getRuntimeCachePath } from '~/utils/runtime-state'
 import * as l from '~/utils/app-logger/app-logger'
 import { exec } from '~/utils/cli-utils'
 import { readJsonCacheMap, writeJsonCacheEntry } from '~/utils/file-fingerprint-cache'
@@ -31,7 +30,7 @@ const isYoutubeUrl = (s: string): boolean => {
   }
 }
 
-const COLLECTION_CACHE_FILE = join(tmpdir(), 'autoshow-yt-collection-cache.json')
+const COLLECTION_CACHE_FILE = getRuntimeCachePath('autoshow-yt-collection-cache.json')
 const COLLECTION_CACHE_LOCK = 'yt-collection-cache'
 const YoutubeCollectionItemsSchema = v.array(v.pipe(v.string(), v.check(isYoutubeUrl)))
 

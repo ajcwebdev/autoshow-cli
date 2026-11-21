@@ -44,6 +44,7 @@ export const SUPPORTED_MISTRAL_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_ASSEMBLYAI_STT_MODELS = [
+  'assemblyai-stt-3-7',
   'universal-3-5-pro'
 ] as const satisfies readonly string[]
 

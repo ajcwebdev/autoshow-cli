@@ -1,5 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { join } from 'node:path'
 import { CONVERTIBLE_EBOOK_EXTENSIONS } from '~/cli/commands/sources/metadata/formats/metadata-convertible-ebooks'
 import { InfraError } from '~/utils/error-handler'
@@ -106,7 +106,7 @@ export const downloadDocumentUrlToTempFile = async (
     throw InfraError(`Failed to download document URL: ${url} (${response.status})`, { stage: 'download:document', status: response.status })
   }
 
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-doc-url-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-doc-url-')
   const ext = extensionFromUrl(
     url,
     response.headers.get('content-type'),

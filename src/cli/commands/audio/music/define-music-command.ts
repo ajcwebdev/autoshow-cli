@@ -65,7 +65,7 @@ const runHostedMusicGeneration = async (
     { allProvidersTarget: 'all-music' }
   )
   const configPath = await resolveConfigPath(typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined)
-  const config = await loadConfig(configPath)
+  const config = await loadConfig(configPath, { allowLegacyFallback: typeof flags['config-path'] !== 'string' })
   providerNormalized.flags = mergeConfigIntoRawFlags(providerNormalized.flags, config, providerNormalized.explicitFlags, 'music')
   const musicOpts: StandaloneMusicCommandOptions = buildOptsFromFlags(providerNormalized.flags, {}, providerNormalized.explicitFlags, { flagOccurrences: providerNormalized.flagOccurrences, scope: 'music' })
   const musicDuration = musicOpts.musicDuration

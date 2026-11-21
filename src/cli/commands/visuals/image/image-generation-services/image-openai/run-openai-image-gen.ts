@@ -1,9 +1,9 @@
 import type { OpenAIImageModel, Step5Metadata } from '~/types'
-import { ValidationError } from '~/utils/error-handler'
+import { UsageError, ValidationError } from '~/utils/error-handler'
 import { runImageGeneration } from '~/cli/commands/command-shared/media-generation/image-generation-scaffold'
 import { OPENAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { createOpenAIImage, createOpenAIImageEdit } from '~/utils/openai/openai-client'
-import { appendImageReferenceToForm } from '../../image-utils/image-inputs'
+import { appendOpenAIEditInputs, validateOpenAIImageMask } from '../../image-utils/image-inputs'
 import { computeOpenAIImageUsageCostCents } from '../../image-utils/openai-image-pricing'
 import { OPENAI_IMAGE_COUNT_RANGE, OPENAI_IMAGE_REQUEST_DEFAULTS, validateOpenAIImageOptions } from './openai-image-options'
 import { validateImageCount } from '../../image-utils/image-target-validation'
@@ -58,11 +58,14 @@ export const runOpenAIImageGen = async (
     outputFormat?: string | undefined
     background?: string | undefined
     compression?: number | undefined
-  }
+  },
+  recoveryDir = outputDir
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   validateOpenAIImageOptions(options.model, { imageSize: options.size, imageQuality: options.quality, imageFormat: options.outputFormat, imageBackground: options.background, imageCompression: options.compression })
   const count = validateImageCount('OpenAI', options.model, options.count, ...OPENAI_IMAGE_COUNT_RANGE)
-  const mode = options.mode ?? 'generation'
+  validateOpenAIImageMask(options.mask, options.inputs, options.model)
+  const mode = options.mode ?? (options.inputs?.length ? 'edit' : 'generation')
+  if (mode === 'generation' && options.mask !== undefined) throw UsageError('--mask requires an image edit.')
   const ext = options.outputFormat === 'jpeg' ? 'jpg' : (options.outputFormat ?? OPENAI_IMAGE_REQUEST_DEFAULTS.outputFormat)
 
   return await runImageGeneration({
@@ -87,14 +90,7 @@ export const runOpenAIImageGen = async (
             if (typeof options.compression === 'number') {
               form.append('output_compression', String(options.compression))
             }
-            const inputs = options.inputs ?? []
-            const imageFieldName = inputs.length > 1 ? 'image[]' : 'image'
-            for (const input of inputs) {
-              await appendImageReferenceToForm(form, imageFieldName, input)
-            }
-            if (options.mask) {
-              await appendImageReferenceToForm(form, 'mask', options.mask)
-            }
+            await appendOpenAIEditInputs(form, options.inputs ?? [], options.mask)
             return await createOpenAIImageEdit(config, form)
           })()
         : await createOpenAIImage(config, {
@@ -109,7 +105,7 @@ export const runOpenAIImageGen = async (
             ...(typeof options.compression === 'number' ? { output_compression: options.compression } : {})
           })
 
-      const imagePaths = await writeOpenAIImageResponseData(result, context.outputDir, ext)
+      const imagePaths = await writeOpenAIImageResponseData(result, context.outputDir, ext, { model: options.model, recoveryDir, expectedCount: count })
       if (imagePaths.length === 0) {
         throw ValidationError('No image data in OpenAI response', { stage: 'image:openai' })
       }

@@ -78,6 +78,8 @@ export type Step2Metadata = {
   diarizationOptions?: DiarizationOptions | undefined
   transcriptionService: 'whisperfile' | 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'openai-stt' | 'cloudflare' | 'youtube-captions'
   transcriptionModel: string
+  /** Model the provider reports it actually ran, when it differs or may differ from the requested model. */
+  providerModelUsed?: string | undefined
   processingTime: number
   tokenCount: number
   captionKind?: 'manual' | 'auto' | undefined

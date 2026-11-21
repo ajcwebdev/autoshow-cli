@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { colorizeHelpFlagGroups } from '~/cli/help-colors'
 import type { CliRootDefinition } from '~/types'
@@ -11,7 +12,7 @@ const CLI_VERSION = packageJson.version as string
 const HELP_COMMAND_GROUP_DEFINITIONS: [string, string][] = HELP_COMMAND_GROUPS.map(([key, label]) => [key, label])
 
 export const createNativeRootDefinition = (): CliRootDefinition => ({
-  scriptName: 'bun autoshow',
+  scriptName: CLI_INVOCATION,
   description: 'Extract and write content, manage voices, generate speech, images, video, and music, and build comic workflows',
   version: CLI_VERSION,
   globalFlags: GLOBAL_FLAG_DEFINITIONS,

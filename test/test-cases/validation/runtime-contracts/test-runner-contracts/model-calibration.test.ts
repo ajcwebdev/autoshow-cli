@@ -90,7 +90,7 @@ describe('test-runner contracts', () => {
           description: 'OpenAI image generation',
           type: 'api',
           models: {
-            'gpt-image-2.5-flare': {
+            'gpt-image-2.6-flare': {
               description: 'GPT Image 2',
               costPerImageCents: 8,
               estimation: {
@@ -112,7 +112,7 @@ describe('test-runner contracts', () => {
               steps: [{
                 step: 'image',
                 provider: 'openai',
-                model: 'gpt-image-2.5-flare',
+                model: 'gpt-image-2.6-flare',
                 cost: 2,
                 costMultiplier: 1
               }]
@@ -121,7 +121,7 @@ describe('test-runner contracts', () => {
               steps: [{
                 step: 'image',
                 provider: 'openai',
-                model: 'gpt-image-2.5-flare',
+                model: 'gpt-image-2.6-flare',
                 cost: 2,
                 inputMetric: 'images',
                 inputValue: 1
@@ -133,7 +133,7 @@ describe('test-runner contracts', () => {
               steps: [{
                 step: 'image',
                 provider: 'openai',
-                model: 'gpt-image-2.5-flare',
+                model: 'gpt-image-2.6-flare',
                 processingTimeMs: 3000,
                 msPerUnit: 1800,
                 timingScope: 'wall',

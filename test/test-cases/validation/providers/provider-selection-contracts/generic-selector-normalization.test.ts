@@ -18,10 +18,10 @@ describe('provider selection contracts', () => {
       provider: ['openai=gpt-4o-mini-tts-2025-12-15', 'elevenlabs=eleven_v3']
     }, new Set(['provider']), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, { allProvidersTarget: 'all-tts' })
     const imageNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['openai=gpt-image-2.5-flare', 'grok=grok-imagine-image-2.0', 'gemini=gemini-3.1-flash-lite-image']
+      provider: ['openai=gpt-image-2.6-flare', 'grok=grok-imagine-image-2.0', 'gemini=gemini-nano-banana-2.1']
     }, new Set(['provider']), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, { allProvidersTarget: 'all-image' })
     const videoNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['gemini=gemini-omni-1.1-flash', 'grok=grok-imagine-video-1.5']
+      provider: ['gemini=gemini-omni-1.2-flash', 'grok=grok-imagine-video-1.5']
     }, new Set(['provider']), 'provider', STANDALONE_VIDEO_PROVIDER_TARGETS, { allProvidersTarget: 'all-video' })
     const musicNormalized = normalizeGenericProviderSelectorFlags({
       provider: ['minimax=music-3.0', 'gemini=lyria-3.5']
@@ -45,12 +45,12 @@ describe('provider selection contracts', () => {
     expect(ttsOpts.openaiTtsModels).toEqual(['gpt-4o-mini-tts-2025-12-15'])
     expect(ttsOpts.elevenlabsTtsModels).toEqual(['eleven_v3'])
     expect(collectImageTargets(imageOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'gemini:gemini-3.1-flash-lite-image',
-      'openai:gpt-image-2.5-flare',
+      'gemini:gemini-nano-banana-2.1',
+      'openai:gpt-image-2.6-flare',
       'grok:grok-imagine-image-2.0'
     ])
     expect(collectVideoTargets(videoOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'gemini:gemini-omni-1.1-flash',
+      'gemini:gemini-omni-1.2-flash',
       'grok:grok-imagine-video-1.5'
     ])
     expect(collectMusicTargets(musicOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
@@ -61,7 +61,7 @@ describe('provider selection contracts', () => {
 
     const imageArgNormalized = normalizeGenericProviderSelectorFlags(
       {
-        provider: ['openai=gpt-image-2.5-flare', 'gemini=gemini-3.1-flash-lite-image', 'grok=grok-imagine-image-2.0']
+        provider: ['openai=gpt-image-2.6-flare', 'gemini=gemini-nano-banana-2.1', 'grok=grok-imagine-image-2.0']
       },
       new Set(['provider']),
       'provider',
@@ -69,8 +69,8 @@ describe('provider selection contracts', () => {
       { allProvidersTarget: 'all-image' }
     )
     expect(imageArgNormalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
-      { name: 'openai-image', value: 'gpt-image-2.5-flare' },
-      { name: 'gemini-image', value: 'gemini-3.1-flash-lite-image' },
+      { name: 'openai-image', value: 'gpt-image-2.6-flare' },
+      { name: 'gemini-image', value: 'gemini-nano-banana-2.1' },
       { name: 'grok-image', value: 'grok-imagine-image-2.0' }
     ])
 

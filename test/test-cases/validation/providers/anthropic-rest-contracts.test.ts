@@ -34,9 +34,9 @@ const structuredOpts: StructuredRequestOptions = {
 describe('Anthropic REST contracts', () => {
   test('Opus 5.5 resolves with documented pricing while removed Fable write models reject locally', () => {
     expect(buildOptsFromFlags({ anthropic: 'claude-opus-5-5' }).anthropicModels).toEqual(['claude-opus-5-5'])
-    for (const model of ['claude-fable-5', 'claude-fable-5-1']) {
-      expect(() => buildOptsFromFlags({ anthropic: model })).toThrow(`Invalid model "${model}" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2`)
-    }
+    // claude-fable-5 carries a same-service replacement; claude-fable-5-1 was removed without one.
+    expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5' })).toThrow('Model "claude-fable-5" is retired for --llm anthropic[=model]. Use "claude-fable-5-2" instead.')
+    expect(() => buildOptsFromFlags({ anthropic: 'claude-fable-5-1' })).toThrow('Invalid model "claude-fable-5-1" for --llm anthropic[=model]. Allowed values: claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2')
     expect(getModelRegistry().llm['anthropic']?.models['claude-fable-5-1']).toBeUndefined()
     expect(getModelRegistry().llm['anthropic']?.models['claude-opus-5-5']).toMatchObject({
       inputCostPer1MCents: 400,

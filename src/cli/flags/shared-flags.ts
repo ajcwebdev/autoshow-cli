@@ -85,7 +85,9 @@ export const batchFlags = {
 export const transcriptionFlags = {
   'youtube-captions': boolFlag('Prefer English YouTube captions before STT when available; falls back to the normal STT provider path'),
   'stt-language': genericSttOptionFlag('stt-language', 'Preferred transcript language (ISO 639-1); used when a native transcript is available'),
-  'stt-verbatim': genericSttOptionFlag('stt-verbatim', 'Retain filler words and disable numeric/currency formatting for verbatim captions'),
+  'stt-verbatim': genericSttOptionFlag('stt-verbatim', 'Retain filler words and disable numeric/currency formatting for verbatim captions (Grok shorthand for --stt-filler-words true plus --stt-number-format spoken; for AssemblyAI use those two flags instead)'),
+  'stt-filler-words': genericSttOptionFlag('stt-filler-words', 'Keep (true) or remove (false) filler words, repetitions and false starts (unset: provider default, fillers removed)'),
+  'stt-number-format': genericSttOptionFlag('stt-number-format', 'Transcribe numbers as written digits/currency (written) or as spoken words (spoken) (unset: written)'),
   'stt-response-format': genericSttOptionFlag('stt-response-format', 'Transcription response format; verbose_json retains words, and the text formats use one inference and retain cue timing only'),
   'stt-audio-profile': strFlag('Audio preparation: default (provider compression) or lossless (verified float32 WAV, original channels/rate); default: default'),
   'native-subtitles': boolFlag('Also save native subtitles where available, reusing the current inference/job; exports may consume provider quota'),

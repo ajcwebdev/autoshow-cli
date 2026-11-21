@@ -18,16 +18,17 @@ export const generateSketchesCommand = async (
   options: GenerateSketchesCommandOptions
 ): Promise<ImageRunStats> => {
   const generationOptions: GenerateSceneSketchesOptions = {
-    models: options.imageModels ?? [DEFAULT_IMAGE_MODEL],
+    model: options.imageModel ?? DEFAULT_IMAGE_MODEL,
     size: options.size ?? DEFAULT_IMAGE_SIZE,
     quality: options.quality ?? DEFAULT_SKETCH_QUALITY,
     force: options.force ?? false,
     runId: options.runId ?? createComicRunId(),
     concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY,
+    checkpointPurchase: options.checkpointPurchase,
     panelsPerImage: options.panelsPerImage ?? DEFAULT_SKETCH_PANELS_PER_IMAGE,
     ...(options.sketchPanels !== undefined ? { sketchPanels: options.sketchPanels } : {}),
   }
-  validateImageSizeForModels(generationOptions.size, generationOptions.models)
+  validateImageSizeForModels(generationOptions.size, [generationOptions.model])
 
   try {
     await mkdir(getSketchesDirectory(options.sceneSlug), { recursive: true })

@@ -1,6 +1,6 @@
 import { mkdir, readdir } from 'node:fs/promises'
 import { InfraError } from '~/utils/error-handler'
-import type { GenerateComicGridPagesDependencies, GenerateComicGridPagesOptions, ImagePromptVariation } from '~/types'
+import type { GenerateComicGridPagesDependencies, GenerateComicGridPagesOptions } from '~/types'
 import { createImageRunStats } from '../../comic-image-services/image-costs'
 import { comicLog } from '../../comic-utils/comic-logger'
 import { getPanelNumberFromName, resolveScenePanelDirectories } from '../../comic-utils/panel-prompt-utils'
@@ -8,7 +8,7 @@ import { getPagesDirectory, getPanelPromptsDirectory } from '../../comic-utils/p
 import { getPageComicImagePath, getPanelComicImagePath } from '../../comic-utils/scene-utils'
 import { composeComicGridPage } from './comic-grid-composer'
 import { chunkComicGridPanels, getComicGridCapacity, selectComicPanels } from './comic-page-utils'
-import { getImagePromptVariationLabel } from './prompt-variations'
+import { recordRunPageCandidate } from './comic-run-candidates'
 import { runWithConcurrency } from '~/utils/run-with-concurrency'
 
 const formatGridSpec = (grid: GenerateComicGridPagesOptions['grid']): string => {
@@ -36,6 +36,7 @@ const assertPanelImagesExist = async (
   }
 }
 
+/** Compose local grid pages from this run's individual panel candidates. Local composition makes no provider calls. */
 export const generateComicGridPages = async (
   sceneSlug: string,
   options: GenerateComicGridPagesOptions,
@@ -43,9 +44,6 @@ export const generateComicGridPages = async (
 ) => {
   const composeGridPage = dependencies.composeGridPage ?? composeComicGridPage
   const stats = createImageRunStats()
-  const useModelSpecificFilenames = options.models.length > 1
-  const variations: ImagePromptVariation[] = options.variations ?? ['canonical']
-  const useVariationOutputPaths = options.variations !== undefined
   const capacity = getComicGridCapacity(options.grid)
   const gridLabel = formatGridSpec(options.grid)
   const sceneDirectory = getPanelPromptsDirectory(sceneSlug)
@@ -70,63 +68,52 @@ export const generateComicGridPages = async (
     `groups=${gridChunks.length}`,
   ])
 
-  const gridTasks = gridChunks.flatMap(gridChunk =>
-    variations.flatMap(variation =>
-      options.models.map(model => async () => {
-        const outputPath = getPageComicImagePath(
-          sceneSlug,
-          gridChunk.pageNumber,
-          gridChunk.panelNumbers,
-          useVariationOutputPaths ? model : useModelSpecificFilenames ? model : undefined,
-          useVariationOutputPaths ? variation : undefined,
-          options.runId
-        )
+  const gridTasks = gridChunks.map(gridChunk => async () => {
+    const outputPath = getPageComicImagePath(sceneSlug, gridChunk.pageNumber, gridChunk.panelNumbers, { runId: options.runId })
+    const details = [
+      `id=page-${String(gridChunk.pageNumber).padStart(2, '0')}`,
+      `panels=${gridChunk.panelNumbers.join('-')}`,
+      `grid=${gridLabel}`,
+      `model=${options.model}`,
+    ]
 
-        if (!options.force && await Bun.file(outputPath).exists()) {
-          stats.imagesSkipped++
-          comicLog.output('skipped', 'grid-page', [
-            `id=page-${String(gridChunk.pageNumber).padStart(2, '0')}`,
-            `panels=${gridChunk.panelNumbers.join('-')}`,
-            `grid=${gridLabel}`,
-            `model=${model}`,
-            useVariationOutputPaths ? `variation=${getImagePromptVariationLabel(variation)}` : undefined,
-            'refs=existing',
-            `path=${outputPath}`,
-          ])
-          return
-        }
+    if (!options.force && await Bun.file(outputPath).exists()) {
+      stats.imagesSkipped++
+      comicLog.output('skipped', 'grid-page', [...details, 'refs=existing', `path=${outputPath}`])
+    } else {
+      const sourcePaths = await Promise.all(gridChunk.panelNumbers.map(async panelNumber => {
+        // A panel skipped because its slot was already selected is composed from that selection.
+        const runPath = getPanelComicImagePath(sceneSlug, panelNumber, { runId: options.runId })
+        const selectedPath = getPanelComicImagePath(sceneSlug, panelNumber)
+        return !await Bun.file(runPath).exists() && await Bun.file(selectedPath).exists() ? selectedPath : runPath
+      }))
 
-        const sourcePaths = gridChunk.panelNumbers.map(panelNumber => {
-          return getPanelComicImagePath(
-            sceneSlug,
-            panelNumber,
-            useVariationOutputPaths ? model : useModelSpecificFilenames ? model : undefined,
-            useVariationOutputPaths ? variation : undefined,
-            options.runId
-          )
-        })
-
-        await assertPanelImagesExist(sceneSlug, gridChunk.pageNumber, sourcePaths)
-        await composeGridPage({
-          sources: sourcePaths,
-          outputPath,
-          grid: options.grid,
-        })
-
-        stats.imagesGenerated++
-        comicLog.output('combined', 'grid-page', [
-          `id=page-${String(gridChunk.pageNumber).padStart(2, '0')}`,
-          `panels=${gridChunk.panelNumbers.join('-')}`,
-          `grid=${gridLabel}`,
-          `model=${model}`,
-          useVariationOutputPaths ? `variation=${getImagePromptVariationLabel(variation)}` : undefined,
-          `cells=${sourcePaths.length}/${capacity}`,
-          'cost=local/no-cost',
-          `path=${outputPath}`,
-        ])
+      await assertPanelImagesExist(sceneSlug, gridChunk.pageNumber, sourcePaths)
+      await composeGridPage({
+        sources: sourcePaths,
+        outputPath,
+        grid: options.grid,
       })
-    )
-  )
+
+      stats.imagesGenerated++
+      comicLog.output('combined', 'grid-page', [
+        ...details,
+        `cells=${sourcePaths.length}/${capacity}`,
+        'cost=local/no-cost',
+        `path=${outputPath}`,
+      ])
+    }
+
+    await recordRunPageCandidate({
+      sceneSlug,
+      runId: options.runId,
+      model: options.model,
+      pageNumber: gridChunk.pageNumber,
+      panelNumbers: gridChunk.panelNumbers,
+      outputPath,
+      kind: 'local-grid',
+    })
+  })
 
   await runWithConcurrency(options.concurrency, gridTasks)
 

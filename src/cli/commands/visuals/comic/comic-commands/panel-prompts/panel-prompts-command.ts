@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { err } from '../../comic-utils/comic-logger'
@@ -17,7 +18,7 @@ export const panelPromptsCommand = async (options: PanelPromptsCommandOptions): 
     if (!existsSync(sceneJsonPath)) {
       throw InfraError(
         `Scene JSON not found at ${sceneJsonPath}. ` +
-        `Run "bun autoshow comic draft-scenes <script-path>" first.`,
+        `Run "${CLI_INVOCATION} comic draft-scenes <script-path>" first.`,
         { stage: 'comic:panel-prompts' }
       )
     }
@@ -30,7 +31,6 @@ export const panelPromptsCommand = async (options: PanelPromptsCommandOptions): 
       sceneJsonPath,
       outputDir,
       concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY,
-      blocking: options.blocking,
     })
   } catch (error) {
     err('Scene processing failed:', error instanceof Error ? error.message : String(error))

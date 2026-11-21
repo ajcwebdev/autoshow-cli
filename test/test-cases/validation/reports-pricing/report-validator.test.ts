@@ -25,13 +25,15 @@ const fixture = async () => {
 }
 const providerReport = () => {
   const body: Partial<Record<typeof PROVIDER_REPORT_HEADINGS[number], string>> = {
-    'Prioritized additions': aligned(['Ref', 'Priority', 'Candidate'], [['[TEXT-001](#text-001-model)', 'P1', 'Model']]),
-    'Provider coverage': aligned(['Provider', 'Workflows', 'Entries'], [['host', 'write', '1']]),
-    'Current-model inventory and findings': `### write\n\n#### host\n\n${aligned(['Current ID', 'Finding', 'Ref'], [['model-a', 'Current', '[TEXT-001](#text-001-model)']])}`,
-    'Detailed findings': '### TEXT-001 Model\n\nScoped finding.',
-    'Coverage reconciliation and actionable addition checklist': aligned(['Category', 'Count'], [['Current', '1'], ['Total scoped tuples', '1']])
+    'Prioritized additions': aligned(['Ref', 'Priority', 'Class', 'Candidate'], [['[TEXT-001](#text-001-model)', 'P1', 'C', 'Model']]),
+    'Inventory': [
+      aligned(['Provider', 'Workflows', 'Entries'], [['host', 'write', '1']]),
+      aligned(['Category', 'Count'], [['Current', '1'], ['Total scoped tuples', '1']]),
+      `### write\n\n#### host\n\n${aligned(['Current ID', 'Finding', 'Ref'], [['model-a', 'Current', '[TEXT-001](#text-001-model)']])}`
+    ].join('\n\n'),
+    'Findings': '### TEXT-001 Model\n\nScoped finding.'
   }
-  return '# Text Provider and Model Additions\n\n- **Research cutoff:** 2026-10-26 UTC\n- **Repository status date:** 2026-10-26 staging\n- **Workflow scope:** write\n- **Related reports:** None requested.\n\n'
+  return '# Text Provider and Model Additions\n\n- **Research cutoff:** 2026-10-26 UTC\n- **Repository snapshot:** staging at 0000000\n- **Execution prompt:** Supplied task text.\n- **Workflow scope:** write\n- **Related reports:** None requested.\n\n'
     + PROVIDER_REPORT_HEADINGS.map(heading => `## ${heading}\n\n${body[heading] ?? 'Scoped context.'}`).join('\n\n') + '\n'
 }
 const codes = (result: Awaited<ReturnType<typeof validateReports>>) => result.diagnostics.map(item => item.code)
@@ -197,8 +199,11 @@ describe('provider-research contracts apply only to selected research reports', 
   })
 
   for (const [name, transform, code] of [
-    ['missing heading', (text: string) => text.replace('## Provider coverage', '## Missing coverage'), 'PROVIDER_HEADINGS'],
+    ['missing heading', (text: string) => text.replace('## Watchlist and unresolved evidence', '## Watchlist'), 'PROVIDER_HEADINGS'],
+    ['retired twelve-section heading', (text: string) => text.replace('## Summary', '## Executive summary'), 'PROVIDER_HEADINGS'],
     ['missing metadata', (text: string) => text.replace('- **Research cutoff:** 2026-10-26 UTC\n', ''), 'PROVIDER_METADATA'],
+    ['missing execution prompt', (text: string) => text.replace('- **Execution prompt:** Supplied task text.\n', ''), 'PROVIDER_METADATA'],
+    ['counts outside the inventory section', (text: string) => text.replace('## Inventory\n\n', '## Inventory\n\nScoped context.\n\n## Findings\n\n').replace('## Findings\n\n### TEXT-001', '### TEXT-001'), 'COVERAGE_COUNTS'],
     ['bad category total', (text: string) => text.replace('| Current             | 1     |', '| Current             | 2     |'), 'COVERAGE_COUNTS'],
     ['bad provider count', (text: string) => text.replace('| host     | write     | 1       |', '| host     | write     | 2       |'), 'PROVIDER_COUNTS'],
     ['unstable ID', (text: string) => text.replaceAll('TEXT-001', 'TEXT-01'), 'UNSTABLE_FINDING_ID'],
@@ -222,7 +227,7 @@ describe('provider-research contracts apply only to selected research reports', 
     expect(codes(result)).toContain('COVERAGE_COUNTS')
   })
 
-  test('matches the documented twelve-heading contract and detects repeated tuples after another service subsection', async () => {
+  test('matches the documented seven-heading contract and detects repeated tuples after another service subsection', async () => {
     const documented = await Bun.file('.codex/skills/provider-model-additions/references/report-structure.md').text()
     expect([...documented.matchAll(/^## (.+)$/gm)].map(match => match[1])).toEqual([...PROVIDER_REPORT_HEADINGS])
     const f = await fixture(), row = ['model-a', 'Current', '[TEXT-001](#text-001-model)']

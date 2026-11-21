@@ -168,6 +168,8 @@ export const runGrokStt = async (
   options: {
     diarizationOptions?: { enabled?: boolean | undefined } | undefined
     grokSttVerbatim?: boolean | undefined
+    sttFillerWords?: boolean | undefined
+    sttNumberFormat?: 'written' | 'spoken' | undefined
     model: string
     segmentOffsetMinutes: number
     segmentNumber?: number | undefined
@@ -206,8 +208,12 @@ export const runGrokStt = async (
     doFetch: async (signal) => {
       const form = new FormData()
       form.append('model', model)
-      form.append('format', String(!options.grokSttVerbatim))
-      if (options.grokSttVerbatim) form.append('filler_words', 'true')
+      // --stt-verbatim is shorthand for filler_words=true with format=false; explicit controls must agree with it
+      // (enforced at option resolution) and otherwise override the defaults (format=true, filler_words omitted).
+      const fillerWords = options.sttFillerWords ?? (options.grokSttVerbatim ? true : undefined)
+      const format = options.sttNumberFormat === undefined ? !options.grokSttVerbatim : options.sttNumberFormat === 'written'
+      form.append('format', String(format))
+      if (fillerWords !== undefined) form.append('filler_words', String(fillerWords))
       form.append('language', 'en')
       form.append('diarize', String(options.diarizationOptions?.enabled ?? true))
       form.append('file', Bun.file(audioPath))

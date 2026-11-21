@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from 'bun:test'
-import { chmod, mkdir, readFile, readdir, realpath, symlink, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { acquireProjectMaintenanceLease, acquireProjectWriterLease, resolveProjectMaintenanceRoots, withProjectWriterLease } from '~/utils/project-maintenance-lease'
 import { commandRequiresProjectWriterLease } from '~/cli/native/dispatcher'
@@ -8,6 +8,16 @@ import { createTempDirTracker } from '../../../test-utils/temp-dirs'
 
 const temporary = createTempDirTracker('autoshow-workspace-leases-')
 afterAll(async () => await temporary.cleanup())
+// The regular test temp root is inside the checkout and inherits its workspace markers.
+const markerlessDirectories: string[] = []
+afterAll(async () => {
+  await Promise.all(markerlessDirectories.map(dir => rm(dir, { recursive: true, force: true })))
+})
+const markerlessDirectory = async (): Promise<string> => {
+  const dir = await mkdtemp('/tmp/autoshow-markerless-')
+  markerlessDirectories.push(dir)
+  return await realpath(dir)
+}
 const fixture = async (): Promise<string> => {
   const root = await temporary.make()
   await writeFile(join(root, 'AGENTS.md'), '# Fixture workspace\n')
@@ -152,7 +162,7 @@ test('workspace roots include cwd and external output/characters/resume ancestor
 })
 
 test('explicit output destinations replace markerless cwd fallback and retain real source workspace exclusion', async () => {
-  const cwd = await realpath(await temporary.make()), destination = await realpath(await temporary.make()), source = await fixture()
+  const cwd = await markerlessDirectory(), destination = await markerlessDirectory(), source = await fixture()
   await writeFile(join(source, 'recording.txt'), 'authored source')
   for (const key of ['output-root', 'output-dir']) {
     const roots = await resolveProjectMaintenanceRoots(cwd, { [key]: join(destination, 'new/nested-run') }, { input: join(source, 'recording.txt') })
@@ -167,7 +177,7 @@ test('explicit output destinations replace markerless cwd fallback and retain re
 })
 
 test('dispatcher writes to explicit output from read-only markerless cwd and input directories', async () => {
-  const cwd = await realpath(await temporary.make()), input = await realpath(await temporary.make()), destination = await realpath(await temporary.make())
+  const cwd = await markerlessDirectory(), input = await markerlessDirectory(), destination = await markerlessDirectory()
   const inputPath = join(input, 'fixture.txt'), output = join(destination, 'new/nested-run')
   await writeFile(inputPath, 'authored local input')
   await chmod(inputPath, 0o444)
@@ -230,7 +240,7 @@ test('dispatcher blocks mutating handlers during maintenance and singleton rejec
   expect(await new Response(blocked.stdout).text()).not.toContain('HANDLER')
   expect(await new Response(blocked.stderr).text()).toContain('maintenance lease is active')
   await exclusion.release()
-  const singleton = child(root, dispatchFixtureCode('image', false), { AUTOSHOW_REQUIRED_IMAGE_MODEL: 'gpt-image-2.5-sunburst' })
+  const singleton = child(root, dispatchFixtureCode('image', false), { AUTOSHOW_REQUIRED_IMAGE_MODEL: 'gpt-image-2.6-sunburst' })
   expect(await singleton.exited).not.toBe(0)
   expect(await new Response(singleton.stderr).text()).toContain('exactly --provider')
   expect(await readdir(root)).toEqual(['AGENTS.md'])

@@ -13,5 +13,4 @@ export type ProcessSceneOptions = {
   sceneJsonPath: string
   outputDir: string
   concurrency: number
-  blocking?: boolean | undefined
 }

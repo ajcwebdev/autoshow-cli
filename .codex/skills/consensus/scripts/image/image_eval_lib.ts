@@ -72,7 +72,8 @@ export interface ImageProviderEvidence {
 
 export function loadImageManifestRecord(runDir: string): ImageManifestRecord {
   const metadata = loadCanonicalRunRecord(runDir, "image").metadata;
-  if (!Array.isArray(metadata.image) || metadata.image.length === 0) {
+  const images = metadata["image"];
+  if (!Array.isArray(images) || images.length === 0) {
     throw new Error("Canonical image manifest item metadata.image is missing or empty");
   }
   return { metadata: metadata as ImageManifestRecord["metadata"] };
@@ -206,7 +207,9 @@ export async function probeImage(imagePath: string): Promise<ImageProperties> {
   if (format === "png") {
     dimensions = readPngDimensions(headerBytes);
   } else if (format === "jpeg") {
-    dimensions = readJpegDimensions(headerBytes);
+    // Metadata segments such as APP11 content-provenance manifests can push the frame header past the first block.
+    dimensions = readJpegDimensions(headerBytes)
+      ?? (fileSize > headerBytes.length ? readJpegDimensions(new Uint8Array(await file.arrayBuffer())) : null);
   } else if (format === "webp") {
     dimensions = readWebpDimensions(headerBytes);
   }

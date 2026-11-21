@@ -211,18 +211,22 @@ function safeHttpHref(value) {
   }
 }
 
-function runInventoryCell(cell) {
-  if (cell === undefined || cell === null) {
-    return "";
-  }
-  const artifact = cell.artifactHref;
+function inventoryLink(display, artifact, externalHref) {
   const safeArtifact = typeof artifact === "string" && ARTIFACT_HREF_PATTERN.test(artifact)
     && !artifact.split("/").some((part) => part === ".." || part === ".") ? artifact : null;
-  const href = safeArtifact ?? safeHttpHref(cell.href);
+  const href = safeArtifact ?? safeHttpHref(externalHref);
   if (href === null) {
-    return esc(cell.display);
+    return esc(display);
   }
-  return `<a class="run-link" href="${esc(href)}" rel="noreferrer">${esc(cell.display)}</a>`;
+  return `<a class="run-link" href="${esc(href)}" rel="noreferrer">${esc(display)}</a>`;
+}
+
+function runInventoryCell(cell) {
+  if (cell === undefined || cell === null) return "";
+  if (cell.artifactLinks?.length) {
+    return cell.artifactLinks.map(link => inventoryLink(link.display, link.artifactHref)).join(", ");
+  }
+  return inventoryLink(cell.display, cell.artifactHref, cell.href);
 }
 
 function renderDashboardBody(model, idPrefix) {

@@ -103,4 +103,13 @@ describe('lyrics video render filters', () => {
       ...tail.slice(0, 2), '-map', '2:a', ...tail.slice(2)
     ])
   })
+
+  test('ASS filter selects the managed font directory when explicitly supplied', () => {
+    const args = buildLyricsVideoFfmpegArgs({
+      audioPath: 'audio.mp3', outputRelativePath: 'video.mp4', width: 640, height: 360, fps: 30,
+      encoderSettings: ['-c:v', 'test-encoder'], includeEq: false,
+      overlay: { kind: 'ass', path: 'captions.ass' }, fontsDirectory: '/checkout with spaces/runtime/fonts/dejavu'
+    })
+    expect(args[args.indexOf('-filter_complex') + 1]).toContain("ass=filename=captions.ass:fontsdir='/checkout with spaces/runtime/fonts/dejavu'[v]")
+  })
 })

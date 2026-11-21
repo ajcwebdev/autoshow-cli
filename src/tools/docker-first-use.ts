@@ -1,14 +1,16 @@
 /** Offline first-use probe: synthetic dependencies only, with the image's original HOME. */
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { childEnv } from '../utils/child-env'
 import { ValidationError } from '../utils/error-handler'
 import { writeCommandPayload } from '../utils/app-logger/result-emitter'
+import { getRuntimeCachePath, createRuntimeTempDirectory } from '../utils/runtime-state'
 
-export const inspectFirstUse = async (home = process.env['HOME']) => {
+export const inspectFirstUse = async (home = process.env['HOME'], options: { cacheDirectory?: string } = {}) => {
   if (!home) throw ValidationError('First-use verification requires HOME')
-  const directory = await mkdtemp(join(tmpdir(), 'autoshow-first-use-'))
+  const directory = await createRuntimeTempDirectory('autoshow-first-use-')
+  const cacheDirectory = options.cacheDirectory ?? getRuntimeCachePath('bun')
+  await mkdir(cacheDirectory, { recursive: true })
   try {
     const app = join(directory, 'app')
     const dependency = join(directory, 'dependency')
@@ -20,7 +22,7 @@ export const inspectFirstUse = async (home = process.env['HOME']) => {
     await writeFile(join(app, 'package.json'), manifest)
     const proc = Bun.spawn([process.execPath, '--no-env-file', 'install', '--ignore-scripts', '--no-save'], {
       cwd: app,
-      env: childEnv({ set: { HOME: home } }),
+      env: childEnv({ set: { HOME: home, BUN_INSTALL_CACHE_DIR: cacheDirectory } }),
       stdout: 'pipe',
       stderr: 'pipe'
     })
@@ -35,7 +37,7 @@ export const inspectFirstUse = async (home = process.env['HOME']) => {
     if (await readFile(join(app, 'package.json'), 'utf8') !== manifest) throw ValidationError('First-use probe modified its manifest')
     const installed = await import(join(app, 'node_modules/@autoshow/first-use/index.js')) as { ready?: boolean }
     if (installed.ready !== true) throw ValidationError('First-use local dependency did not import correctly')
-    return { status: 'passed', localPackageInstall: true, originalHome: true }
+    return { status: 'passed', localPackageInstall: true, originalHome: true, runtimeCache: true }
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

@@ -1,4 +1,7 @@
 import { describe, expect, test } from 'bun:test'
+import { mkdir, mkdtemp, rm, unlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
   collectDoctorNextSteps,
   collectDoctorReport,
@@ -17,11 +20,13 @@ import {
   WRITE_STT_PROVIDER_TARGETS,
   STANDALONE_VIDEO_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
+import { configureBinDir, getConfiguredBinDir, RUNTIME_DIR } from '~/utils/runtime-paths'
 import type { DoctorCheck, DoctorProbes, RunResult } from '~/types'
 import { AppUsageError } from '~/utils/error-handler'
 import { SUPPORTED_BUN_VERSION } from '~/utils/bun-version'
 import { requireDefined } from '../../../test-utils/value-assertions'
+import { createDoctorToolProvenance } from '~/cli/commands/setup-and-utilities/setup/doctor-tool-provenance'
+import { ensureProjectRuntimeDependencies, snapshotProjectDependencyGraph } from '~/tools/project-runtime-dependencies'
 
 const okRun = (stdout = ''): RunResult => ({ stdout, stderr: '', exitCode: 0 })
 
@@ -33,6 +38,13 @@ const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<Doctor
   pathExists: async () => true,
   listDirectory: async () => ['whisper-tiny.llamafile', 'whisper-small.en.llamafile'],
   directoryHasFiles: async () => true,
+  executeReadOnlyTools: true,
+  validateRuntimeTool: async () => ({ healthy: true, detail: 'synthetic managed receipt and complete payload verified' }),
+  validateRenderingConfiguration: async () => ({ healthy: true, detail: 'synthetic managed font/configuration receipt verified' }),
+  validateWhisperfile: async () => ({ healthy: true, detail: 'synthetic pinned Whisperfile artifact verified' }),
+  validateTesseractData: async () => ({ healthy: true, detail: 'synthetic trusted English data checksum verified' }),
+  validateAlignmentRuntime: async () => ({ healthy: true, detail: 'synthetic frozen alignment graph verified' }),
+  validateProjectDependencies: async () => ({ healthy: true, detail: 'synthetic source dependency alias and graph verified' }),
   resolveTessdataPrefix: () => '/fixture/tessdata',
   run: async (command: string, args: string[]) => {
     if (command.includes('tesseract') && args.includes('--list-langs')) {
@@ -41,6 +53,8 @@ const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<Doctor
     if (command.includes('ffmpeg') && args.includes('-filters')) {
       return okRun(' ... ass              V->V       Render ASS subtitles\n')
     }
+    if ((command.endsWith('/magick') || command.endsWith('/convert')) && args.includes('format')) return okRun('     TIFF* TIFF      rw+ Tagged Image File Format\n')
+    if (command.endsWith('/fc-match')) return okRun('DejaVu Sans')
     if (command.includes('mutool')) return okRun('mutool version 1.27.2\n')
     if (command.includes('qpdf')) return okRun('qpdf version 12.3.2\n')
     return okRun('ok')
@@ -78,6 +92,37 @@ const findDoctorCheck = (
 }
 
 describe('setup doctor contracts', () => {
+  test('doctor defers the self-extracting macOS downloader probe after verifying its pinned identity and rejects invalid identity before launch', async () => {
+    let downloaderLaunches = 0
+    const base = makeDoctorProbes()
+    const run = requireDefined(base.run, 'synthetic doctor runner')
+    const probes = makeDoctorProbes({ run: async (command, args) => {
+      if (command.endsWith('/yt-dlp')) downloaderLaunches += 1
+      return await run(command, args)
+    } })
+    const healthy = findDoctorCheck(await collectDoctorReport(probes), 'yt-dlp')
+    expect(healthy.status).toBe('OK')
+    expect(healthy.detail).toContain('synthetic managed receipt and complete payload verified')
+    expect(healthy.detail).toContain('executable probe deferred to mutating setup')
+    expect(downloaderLaunches).toBe(0)
+    const validate = requireDefined(probes.validateRuntimeTool, 'synthetic provenance validator')
+    const corrupt = findDoctorCheck(await collectDoctorReport({ ...probes, validateRuntimeTool: async (tool, path) =>
+      tool === 'yt-dlp' ? { healthy: false, reason: 'Pinned downloader executable SHA256 does not match its managed identity.' } : await validate(tool, path)
+    }), 'yt-dlp')
+    expect(corrupt.status).toBe('WARN')
+    expect(corrupt.detail).toContain('SHA256 does not match')
+    expect(downloaderLaunches).toBe(0)
+  })
+
+  test('doctor accepts the current ImageMagick TIFF format row without a redundant coder column', async () => {
+    const probes = makeDoctorProbes()
+    const run = requireDefined(probes.run, 'synthetic doctor runner')
+    const report = await collectDoctorReport({ ...probes, run: async (command, args) =>
+      command.endsWith('/magick') && args.includes('format') ? okRun(' TIFF* rw+ Tagged Image File Format\n') : await run(command, args)
+    })
+    expect(findDoctorCheck(report, 'ImageMagick sheets and TIFF').status).toBe('OK')
+  })
+
   test('doctor reports whether the running Bun version matches the repository pin', async () => {
     const supported = await collectDoctorReport(makeDoctorProbes())
     expect(findDoctorCheck(supported, 'Bun runtime')).toMatchObject({
@@ -132,7 +177,7 @@ describe('setup doctor contracts', () => {
     expect(report.nextSteps).toContain('bun autoshow setup --step yt-dlp')
     expect(report.nextSteps).toContain('bun autoshow setup --step calibre')
     expect(report.nextSteps.join('\n').toLowerCase()).not.toContain('acsm')
-    expect(report.nextSteps).toContain('bun autoshow setup')
+    expect(report.nextSteps).toContain('bun autoshow setup --step ocr')
   })
 
   test('doctor truthfully labels healthy managed MuPDF and qpdf source installs', async () => {
@@ -207,7 +252,8 @@ describe('setup doctor contracts', () => {
 
   test('doctor keeps --bin-dir precedence without claiming managed provenance', async () => {
     const previousBinDir = getConfiguredBinDir()
-    configureBinDir('/tmp/autoshow-doctor-override')
+    const overrideDir = `${RUNTIME_DIR}/doctor-test-overrides`
+    configureBinDir(overrideDir)
     let provenanceChecks = 0
     try {
       const report = await collectDoctorReport(makeDoctorProbes({
@@ -217,8 +263,8 @@ describe('setup doctor contracts', () => {
         }
       }))
 
-      expect(findDoctorCheck(report, 'mutool').detail).toContain('/tmp/autoshow-doctor-override/mutool (override)')
-      expect(findDoctorCheck(report, 'qpdf').detail).toContain('/tmp/autoshow-doctor-override/qpdf (override)')
+      expect(findDoctorCheck(report, 'mutool').detail).toContain(`${overrideDir}/mutool (override)`)
+      expect(findDoctorCheck(report, 'qpdf').detail).toContain(`${overrideDir}/qpdf (override)`)
       expect(provenanceChecks).toBe(0)
     } finally {
       configureBinDir(previousBinDir ?? '')
@@ -233,7 +279,7 @@ describe('setup doctor contracts', () => {
     const check = findDoctorCheck(report, 'Tesseract eng data')
     expect(check.status).toBe('MISSING')
     expect(check.detail).toContain('configs/hocr')
-    expect(check.nextStep).toBe('bun autoshow setup')
+    expect(check.nextStep).toBe('bun autoshow setup --step ocr')
   })
 
   test('doctor next steps preserve discovery order while deduplicating', () => {
@@ -303,7 +349,7 @@ describe('setup doctor contracts', () => {
 
   test('doctor accepts either ffmpeg ass support or fallback lyric-video renderer tools', async () => {
     const withAss = await collectDoctorReport(makeDoctorProbes({
-      which: (command) => command === 'pango-view' || command === 'convert' ? undefined : `/usr/bin/${command}`,
+      pathExists: async path => !path.endsWith('/pango-view') && !path.endsWith('/convert'),
       run: async (command, args) => {
         if (command.includes('tesseract') && args.includes('--list-langs')) return okRun('eng\n')
         if (command.includes('ffmpeg') && args.includes('-filters')) return okRun(' ... ass\n')
@@ -322,6 +368,68 @@ describe('setup doctor contracts', () => {
     }))
     expect(findDoctorCheck(withFallback, 'music lyric-video renderer').status).toBe('OK')
     expect(findDoctorCheck(withFallback, 'music lyric-video renderer').detail).toContain('fallback renderer')
+  })
+
+  test('doctor ignores external rendering tools when managed executables are missing on every platform', async () => {
+    for (const platform of ['darwin', 'linux'] as const) {
+      const report = await collectDoctorReport(makeDoctorProbes({
+        platform,
+        pathExists: async path => !['ffmpeg', 'magick', 'convert', 'pango-view', 'fc-match'].some(tool => path.endsWith(`/${tool}`)),
+        which: command => `/external/tools/${command}`
+      }))
+      expect(findDoctorCheck(report, 'music lyric-video renderer')).toMatchObject({ status: 'MISSING', nextStep: 'bun autoshow setup --step rendering' })
+      expect(findDoctorCheck(report, 'ImageMagick sheets and TIFF').status).toBe('MISSING')
+      expect(findDoctorCheck(report, 'Managed rendering fonts').status).toBe('MISSING')
+    }
+  })
+
+  test('doctor rejects unusable managed image codecs and fonts before claiming readiness', async () => {
+    const report = await collectDoctorReport(makeDoctorProbes({
+      run: async (command, args) => {
+        if (command.endsWith('/magick') && args.includes('format')) return okRun('PNG PNG rw+ Portable Network Graphics')
+        if (command.endsWith('/fc-match')) return okRun('Some unrelated font')
+        return okRun('ok')
+      }
+    }))
+    expect(findDoctorCheck(report, 'ImageMagick sheets and TIFF')).toMatchObject({ status: 'WARN', nextStep: 'bun autoshow setup --step rendering' })
+    expect(findDoctorCheck(report, 'Managed rendering fonts')).toMatchObject({ status: 'WARN', nextStep: 'bun autoshow setup --step rendering' })
+  })
+
+  test('doctor rejects invalid receipts for every managed tool family before executable dispatch', async () => {
+    const invalid = new Set(['cmake', 'bun', 'deno', 'ffmpeg', 'ffprobe', 'tesseract', 'ebook-convert', 'magick', 'convert', 'fc-match'])
+    const calls: string[] = []
+    const report = await collectDoctorReport(makeDoctorProbes({
+      validateRuntimeTool: async tool => invalid.has(tool)
+        ? { healthy: false, reason: `missing or corrupt ${tool} receipt` }
+        : { healthy: true, detail: 'synthetic verified receipt' },
+      run: async command => { calls.push(command); return okRun(command.includes('qpdf') ? 'qpdf version 12.3.2' : 'mutool version 1.27.2') }
+    }))
+    for (const label of ['Managed CMake', 'Managed Bun worker', 'Downloader JavaScript runtime', 'ffmpeg', 'ffprobe', 'tesseract', 'Tesseract eng data', 'ebook-convert', 'ImageMagick sheets and TIFF', 'Managed rendering fonts', 'music lyric-video renderer']) {
+      expect(findDoctorCheck(report, label).status).toBe('WARN')
+      expect(findDoctorCheck(report, label).detail).toContain('receipt')
+    }
+    expect(calls.some(command => [...invalid].some(tool => command.endsWith(`/${tool}`)))).toBe(false)
+    expect(calls.some(command => command === 'sh' || command.includes('whisper-'))).toBe(false)
+  })
+
+  test('doctor does not run font matching to populate an absent cache or launch Whisperfile help', async () => {
+    const calls: string[] = []
+    const report = await collectDoctorReport(makeDoctorProbes({
+      directoryHasFiles: async () => false,
+      run: async (command, args) => {
+        calls.push(`${command} ${args.join(' ')}`)
+        if (command.includes('tesseract') && args.includes('--list-langs')) return okRun('eng\n')
+        if (command.includes('ffmpeg') && args.includes('-filters')) return okRun(' ... ass\n')
+        if (command.includes('mutool')) return okRun('mutool version 1.27.2')
+        if (command.includes('qpdf')) return okRun('qpdf version 12.3.2')
+        if (command.endsWith('/magick')) return okRun(' TIFF* TIFF rw+ Tagged Image File Format')
+        return okRun('ok')
+      }
+    }))
+    expect(findDoctorCheck(report, 'Managed rendering fonts')).toMatchObject({ status: 'WARN', nextStep: 'bun autoshow setup --step rendering' })
+    expect(findDoctorCheck(report, 'Managed rendering fonts').detail).toContain('cache is absent')
+    expect(findDoctorCheck(report, 'whisperfile tiny').status).toBe('OK')
+    expect(calls.some(command => command.includes('fc-match') || command.includes('whisper-'))).toBe(false)
   })
 
   for (const [step, targets, prefix] of [
@@ -405,6 +513,36 @@ describe('setup doctor contracts', () => {
     expect(envVars).not.toContain('FAL_API_KEY')
   })
 })
+
+for (const failure of ['changed-payload', 'missing-alias', 'missing-receipt', 'migration.json', 'installation.json'] as const) {
+  test(`doctor diagnoses source project dependency ${failure} without changing or repairing its graph`, async () => {
+    const sourceRoot = await mkdtemp(join(tmpdir(), 'autoshow-doctor-project-'))
+    const dependencyRoot = join(sourceRoot, 'runtime/tools/project-dependencies')
+    try {
+      await writeFile(join(sourceRoot, 'package.json'), JSON.stringify({ name: 'fixture', dependencies: { sample: '1.2.3' } }))
+      await writeFile(join(sourceRoot, 'bun.lock'), '{ "fixture": "frozen" }\n')
+      await writeFile(join(sourceRoot, 'bunfig.toml'), '[install.cache]\ndir="runtime/cache/bun"\n')
+      await mkdir(join(sourceRoot, 'node_modules/sample'), { recursive: true })
+      await writeFile(join(sourceRoot, 'node_modules/sample/package.json'), JSON.stringify({ name: 'sample', version: '1.2.3' }))
+      await writeFile(join(sourceRoot, 'node_modules/sample/resource'), 'original dependency payload\n', { mode: 0o640 })
+      await ensureProjectRuntimeDependencies({ projectRoot: sourceRoot })
+      const probes = () => makeDoctorProbes({ validateProjectDependencies: createDoctorToolProvenance({ sourceRoot }).validateProjectDependencies })
+      const healthy = await runDoctor({ strict: true, probeOverrides: probes() })
+      expect(findDoctorCheck(healthy, 'Source project dependencies').status).toBe('OK')
+      if (failure === 'changed-payload') await writeFile(join(dependencyRoot, 'node_modules/sample/resource'), 'corrupt dependency payload\n')
+      else if (failure === 'missing-alias') await unlink(join(sourceRoot, 'node_modules'))
+      else if (failure === 'missing-receipt') await unlink(join(dependencyRoot, 'project-dependencies.json'))
+      else await writeFile(join(dependencyRoot, failure), '{"interrupted":"preserve"}\n', { mode: 0o600 })
+      const before = await snapshotProjectDependencyGraph(sourceRoot)
+      const report = await collectDoctorReport(probes())
+      const check = findDoctorCheck(report, 'Source project dependencies')
+      expect(check.status).toBe('WARN')
+      expect(check.detail).toMatch(/receipt|alias|unfinished dependency migration|unfinished frozen installation/)
+      await expect(runDoctor({ strict: true, probeOverrides: probes() })).rejects.toMatchObject({ exitCode: 2 })
+      expect(await snapshotProjectDependencyGraph(sourceRoot)).toEqual(before)
+    } finally { await rm(sourceRoot, { recursive: true, force: true }) }
+  })
+}
 
 
 test('strict doctor rejects invalid configuration, unreadable cookies and missing tools; advisory remains usable', async () => {

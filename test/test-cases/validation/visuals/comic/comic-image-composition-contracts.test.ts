@@ -4,6 +4,8 @@ import { join } from 'node:path'
 import { combineCharacterSketchSheet } from '~/cli/commands/visuals/comic/comic-commands/character-sketch/character-sketch-sheet'
 import { composeComicGridPage } from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-grid-composer'
 import { generateComicGridPages } from '~/cli/commands/visuals/comic/comic-commands/generate-images/generate-comic-grid-pages'
+import { beginSceneRun } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
+import { getPageComicImagePath } from '~/cli/commands/visuals/comic/comic-utils/scene-utils'
 import { CHARACTER_SKETCH_VIEWS } from '~/cli/commands/visuals/comic/comic-commands/process-scenes/character-utils'
 import { writeGeneratedImage } from '~/cli/commands/visuals/comic/comic-image-services/image-writer'
 import {
@@ -11,7 +13,10 @@ getPanelPromptsDirectory,
 getSceneOutputDirectory
 } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import { pngSignature,redDotPng } from '../../../../test-utils/media-fixtures'
-import { makeTempDir } from '../../../../test-utils/temp-dirs'
+import { seededPng } from '../../../../test-utils/seeded-png-fixture'
+import { makeTempDir, withTempDir } from '../../../../test-utils/temp-dirs'
+import { decodePngRgba8 } from '~/utils/lossless-png'
+import { hasRuntimeTool } from '~/utils/runtime-paths'
 
 const comicSourceRoot = 'src/cli/commands/visuals/comic'
 
@@ -63,8 +68,8 @@ describe('comic source coverage contracts', () => {
   })
 
   test('character sketch sheet composition uses ImageMagick without sharp', async () => {
-    if (!Bun.which('magick') && !Bun.which('convert')) {
-      throw new Error('ImageMagick magick or convert is required for sketch sheet composition coverage')
+    if (!hasRuntimeTool('magick') && !hasRuntimeTool('convert')) {
+      throw new Error('Managed ImageMagick is required for sketch sheet composition coverage; run bun autoshow setup --step rendering')
     }
 
     const dir = await makeTempDir('autoshow-comic-sketch-sheet-')
@@ -90,8 +95,8 @@ describe('comic source coverage contracts', () => {
   })
 
   test('comic grid composition uses ImageMagick and leaves partial cells blank', async () => {
-    if (!Bun.which('magick') && !Bun.which('convert')) {
-      throw new Error('ImageMagick magick or convert is required for comic grid composition coverage')
+    if (!hasRuntimeTool('magick') && !hasRuntimeTool('convert')) {
+      throw new Error('Managed ImageMagick is required for comic grid composition coverage; run bun autoshow setup --step rendering')
     }
 
     const dir = await makeTempDir('autoshow-comic-grid-page-')
@@ -130,7 +135,7 @@ describe('comic source coverage contracts', () => {
       await mkdir(join(getPanelPromptsDirectory(sceneSlug), 'panel-01'), { recursive: true })
 
       await expect(generateComicGridPages(sceneSlug, {
-        models: ['gpt-image-2.5-flare'],
+        model: 'gpt-image-2.6-flare',
         force: false,
         runId: 'test-run',
         concurrency: 1,
@@ -144,5 +149,60 @@ describe('comic source coverage contracts', () => {
     } finally {
       await rm(sceneRoot, { recursive: true, force: true })
     }
+  })
+
+  test('grid generation centers a reused portrait selection and square and wide run candidates in their cells', async () => {
+    await withTempDir('autoshow-comic-grid-fit-', async sceneRoot => {
+      const sceneSlug = 'grid-fit'
+      const runId = 'test-grid-fit'
+      beginSceneRun(sceneSlug, { outputDir: sceneRoot })
+      const prompts = getPanelPromptsDirectory(sceneSlug)
+      await mkdir(join(prompts, 'panel-01'), { recursive: true })
+      await mkdir(join(prompts, 'panel-02'), { recursive: true })
+      await mkdir(join(prompts, 'panel-03'), { recursive: true })
+      await mkdir(join(sceneRoot, 'panels', runId), { recursive: true })
+      const portrait = seededPng(1, 1024, 2048)
+      const square = seededPng(2, 512, 512)
+      const wide = seededPng(3, 2048, 1024)
+      const selectedPath = join(sceneRoot, 'panels', 'panel-01.png')
+      const candidatePath = join(sceneRoot, 'panels', runId, 'panel-02.png')
+      const widePath = join(sceneRoot, 'panels', runId, 'panel-03.png')
+      await writeFile(selectedPath, portrait)
+      await writeFile(candidatePath, square)
+      await writeFile(widePath, wide)
+
+      await generateComicGridPages(sceneSlug, {
+        model: 'gpt-image-2.6-flare', force: false, runId, concurrency: 1, panels: 'all', grid: { columns: 2, rows: 2 },
+      })
+      const pagePath = getPageComicImagePath(sceneSlug, 1, [1, 2, 3], { runId })
+      const page = decodePngRgba8(await new Bun.Image(Bun.file(pagePath)).png().bytes())
+      expect([page.width, page.height]).toEqual([3072, 2048])
+      const pixel = (x: number, y: number) => {
+        const offset = (y * page.width + x) * 4
+        return [...page.pixels.subarray(offset, offset + 4)]
+      }
+      const white = [255, 255, 255, 255]
+      const portraitColor = [...decodePngRgba8(seededPng(1)).pixels.subarray(0, 4)]
+      const squareColor = [...decodePngRgba8(seededPng(2)).pixels.subarray(0, 4)]
+      const wideColor = [...decodePngRgba8(seededPng(3)).pixels.subarray(0, 4)]
+      // The portrait occupies 512 centered columns; the square occupies 1024.
+      expect(pixel(511, 0)).toEqual(white)
+      expect(pixel(512, 0)).toEqual(portraitColor)
+      expect(pixel(1023, 1023)).toEqual(portraitColor)
+      expect(pixel(1024, 1023)).toEqual(white)
+      expect(pixel(1791, 0)).toEqual(white)
+      expect(pixel(1792, 0)).toEqual(squareColor)
+      expect(pixel(2815, 1023)).toEqual(squareColor)
+      expect(pixel(2816, 1023)).toEqual(white)
+      // The wide candidate occupies 768 rows in the third cell. The fourth cell stays empty.
+      expect(pixel(0, 1151)).toEqual(white)
+      expect(pixel(0, 1152)).toEqual(wideColor)
+      expect(pixel(1535, 1919)).toEqual(wideColor)
+      expect(pixel(1535, 1920)).toEqual(white)
+      expect(pixel(1536, 1500)).toEqual(white)
+      expect(await Bun.file(selectedPath).bytes()).toEqual(new Uint8Array(portrait))
+      expect(await Bun.file(candidatePath).bytes()).toEqual(new Uint8Array(square))
+      expect(await Bun.file(widePath).bytes()).toEqual(new Uint8Array(wide))
+    })
   })
 })

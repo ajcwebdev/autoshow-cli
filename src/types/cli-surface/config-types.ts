@@ -39,6 +39,8 @@ const ExtractSttDefaultsSchema = v.strictObject({
   // time from the STT engine capability table rather than restated here.
   responseFormat: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
   verbatim: v.optional(v.union([v.boolean(), v.string(), v.array(v.string())]), undefined),
+  fillerWords: v.optional(v.union([v.boolean(), v.string(), v.array(v.string())]), undefined),
+  numberFormat: v.optional(v.union([v.string(), v.array(v.string())]), undefined),
   speakerCount: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   split: v.optional(v.boolean(), undefined),
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),

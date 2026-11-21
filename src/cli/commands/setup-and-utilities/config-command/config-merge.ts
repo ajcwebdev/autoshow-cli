@@ -10,6 +10,7 @@ import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/mode
 import type { AutoshowConfig, CliFlagOccurrence, RepeatableModelFlag } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
+import { SETUP_FOCUSED_MODE_FLAGS, SETUP_NETWORK_DEPENDENT_FLAGS } from '~/cli/flags/setup-mode-contract'
 import {
   REPEATABLE_MODEL_FLAGS,
   collectRepeatableModelFlagOccurrences,
@@ -243,6 +244,8 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'stt-audio-profile': ['defaults', 'extract', 'stt', 'audioProfile'],
   'stt-response-format':   ['defaults', 'extract', 'stt', 'responseFormat'],
   'stt-verbatim':          ['defaults', 'extract', 'stt', 'verbatim'],
+  'stt-filler-words':      ['defaults', 'extract', 'stt', 'fillerWords'],
+  'stt-number-format':     ['defaults', 'extract', 'stt', 'numberFormat'],
   'speaker-count':     ['defaults', 'extract', 'stt', 'speakerCount'],
   'split':             ['defaults', 'extract', 'stt', 'split'],
   'stt-provider-concurrency': ['defaults', 'extract', 'stt', 'providerConcurrency'],
@@ -344,11 +347,21 @@ const SCOPED_FLAG_TO_CONFIG_PATHS: Partial<Record<ConfigInjectionScope, Record<s
 }
 
 export const RUNTIME_ONLY_FLAGS = new Set([
+  ...SETUP_FOCUSED_MODE_FLAGS,
+  ...SETUP_NETWORK_DEPENDENT_FLAGS,
+  'network-check',
   'price',
   'allow-over-budget',
-  'show',
-  'reset',
   'config-path',
+  'bin-dir',
+  'output-root',
+  'output-dir',
+  'json',
+  'result-file',
+  'log-level',
+  'verbose',
+  'quiet',
+  'color',
   'password',
 ])
 

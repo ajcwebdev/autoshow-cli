@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import { mkdir, readdir } from 'node:fs/promises'
 import { basename, dirname, join, relative } from 'node:path'
@@ -123,7 +124,7 @@ export const draftTreatmentCommand = async (options: DraftTreatmentCommandOption
   if (!existsSync(styleSeedPath)) {
     throw UsageError(`Style seed image not found at ${normalizeProjectPath(relative(process.cwd(), styleSeedPath))}; every bootstrapped character needs it as its generationReference.`, {
       hints: [
-        'Generate one with bun autoshow image "<style reference prompt>" --provider openai=gpt-image-2.5-sunburst --size 1536x1024 --format png --output-dir output/<run>, then copy generated-image.png to that path.',
+        `Generate one with ${CLI_INVOCATION} image "<style reference prompt>" --provider openai=gpt-image-2.6-sunburst --size 1536x1024 --format png --output-dir output/<run>, then copy generated-image.png to that path.`,
         'Or pass --style-seed <filename> naming an existing PNG under the characters root.',
       ],
     })

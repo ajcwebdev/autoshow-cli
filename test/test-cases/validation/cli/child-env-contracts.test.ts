@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
-import { childEnv, DEFAULT_CHILD_ENV_KEYS } from '~/utils/child-env'
+import { childEnv, DEFAULT_CHILD_ENV_KEYS, MANAGED_CHILD_PATH } from '~/utils/child-env'
+import { RUNTIME_CACHE_DIR, RUNTIME_TEMP_DIR } from '~/utils/runtime-state'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 
 const spawnedChildTmpdir = async (env: Record<string, string>): Promise<string> => {
@@ -22,7 +24,7 @@ const spawnedChildTmpdir = async (env: Record<string, string>): Promise<string> 
 }
 
 describe('child process environment isolation', () => {
-  test('temp-location variables pass through and follow set overrides and removals', () => {
+  test('managed defaults exclude external tools and temporary locations while explicit settings take precedence', () => {
     const source = {
       PATH: '/usr/bin',
       HOME: '/tmp/home',
@@ -31,12 +33,20 @@ describe('child process environment isolation', () => {
       TEMP: '/tmp/private-temp'
     }
 
-    expect(childEnv({ source })).toEqual(source)
-    expect(childEnv({ source, set: { TMPDIR: '/tmp/override' } })['TMPDIR']).toBe('/tmp/override')
+    const env = childEnv({ source })
+    expect(env['PATH']).toBe(MANAGED_CHILD_PATH)
+    expect(env['HOME']).toBe(source.HOME)
+    expect(env['TMPDIR']).toBe(RUNTIME_TEMP_DIR)
+    expect(env['TMP']).toBe(RUNTIME_TEMP_DIR)
+    expect(env['TEMP']).toBe(RUNTIME_TEMP_DIR)
+    expect(env['XDG_CACHE_HOME']).toBe(RUNTIME_CACHE_DIR)
+    const privateTemporaryDirectory = join(RUNTIME_TEMP_DIR, 'child-env-private')
+    expect(childEnv({ source, set: { TMPDIR: privateTemporaryDirectory } })['TMPDIR']).toBe(privateTemporaryDirectory)
     expect(childEnv({ source, set: { TMPDIR: undefined } })).not.toHaveProperty('TMPDIR')
   })
 
-  test('a spawned child resolves the parent temp directory by default, an override when set, and /tmp when removed', async () => {
+  test('a spawned child resolves its private runtime temp directory, explicit overrides, and platform fallback after explicit removal', async () => {
+    expect(tmpdir()).toStartWith(`${RUNTIME_TEMP_DIR}/`)
     expect(await spawnedChildTmpdir(childEnv())).toBe(tmpdir())
 
     await withTempDir('autoshow-child-tmpdir-', async (overrideDir) => {
@@ -63,11 +73,12 @@ describe('child process environment isolation', () => {
       set: { FORCE_COLOR: '1', HOME: undefined }
     })
 
-    expect(env).toEqual({
-      PATH: '/usr/bin',
+    expect(env).toMatchObject({
+      PATH: MANAGED_CHILD_PATH,
       TESSDATA_PREFIX: '/tmp/tessdata',
       FORCE_COLOR: '1'
     })
+    expect(env).not.toHaveProperty('HOME')
     expect(env['OPENAI_API_KEY']).toBeUndefined()
   })
 

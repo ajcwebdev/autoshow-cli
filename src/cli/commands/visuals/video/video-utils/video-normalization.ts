@@ -5,6 +5,7 @@ export const GEMINI_DURATION_SECONDS = [3, 4, 5, 6, 7, 8, 9, 10] as const
 export const GEMINI_DEFAULT_BILLED_DURATION_SECONDS = 10 as const satisfies GeminiDurationSeconds
 export const GEMINI_VIDEO_ASPECT_RATIOS = ['16:9', '9:16'] as const
 export const GEMINI_VIDEO_RESOLUTIONS = ['360p', '720p', '1080p', '4k'] as const
+export const GEMINI_MAX_REFERENCE_IMAGES = 6
 
 export const normalizeGeminiDuration = (
   duration: number | undefined,

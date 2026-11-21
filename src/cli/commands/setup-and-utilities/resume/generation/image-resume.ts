@@ -6,7 +6,7 @@ import { deriveGenerationResumeModelFields, deriveGenerationResumeProviderFlags,
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildImageEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/generation-estimates'
-import type { EstimateImageCostOptions, GenerationResumeConfig, ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
+import type { EstimateImageCostOptions, GenerationResumeConfig, GenerationResumeRunContext, ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
 
 export const imageResumeConfig = {
   kind: 'image' as const,
@@ -22,9 +22,16 @@ export const imageResumeConfig = {
     targets: ImageTarget[],
     input: string,
     outputDir: string,
-    opts: ImageGenOptions
+    opts: ImageGenOptions,
+    context: GenerationResumeRunContext<ImageTarget, Step5Metadata, ImageGenOptions>
   ) => {
-    const { metadata } = await runImageTargets(targets, input, outputDir, opts)
+    const { metadata } = await runImageTargets(targets, input, outputDir, {
+      ...opts,
+      mediaResume: {
+        recordedFileNames: context.existingEntries.flatMap(entry => entry.imageFileNames),
+        useProviderNames: context.existingEntries.length > 0
+      }
+    })
     return metadata
   },
   buildEstimates: (opts: EstimateImageCostOptions) => buildImageEstimates(opts),

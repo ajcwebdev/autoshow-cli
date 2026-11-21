@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "assemblyai-3-7-filler-words",
+  "label": "stt-filler-words=true",
+  "baseline": {
+    "service": "assemblyai",
+    "model": "assemblyai-stt-3-7"
+  },
+  "flags": [
+    "--provider",
+    "assemblyai=assemblyai-stt-3-7",
+    "--diarization",
+    "--stt-filler-words",
+    "true"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "source": "docs/benchmarks/stt/sources/2022-09-30-widgets-fsjam-40-minutes.mp3",
+  "profile": "lossless",
+  "sampleFormat": "float32",
+  "channels": 1,
+  "sampleRate": 44100,
+  "audioToVideoOffsetSeconds": 0.025057,
+  "mapping": "video time = provider audio time + audioToVideoOffsetSeconds; apply once at caption export",
+  "decodedPcmSha256": "SHA256=4a2b428e941534dceef3fa1ed98f14b66502fafb0bf8e687bc1921e5317a3f13",
+  "decodedSamplesMatch": true
+}

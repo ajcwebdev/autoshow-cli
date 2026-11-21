@@ -145,7 +145,7 @@ export const videoCommand = defineCliCommand({
     examples: [
       ['bun autoshow video input/ajc.png --provider grok=grok-imagine-video-1.5 --price', 'Estimate image-to-video for one explicit target'],
       ['bun autoshow video "a cinematic mountain sunrise"', 'Generate text-to-video with the cheapest default target'],
-      ['bun autoshow video "a cinematic mountain sunrise" --provider gemini=gemini-omni-1.1-flash', 'Generate video with Gemini Omni'],
+      ['bun autoshow video "a cinematic mountain sunrise" --provider gemini=gemini-omni-1.2-flash', 'Generate video with Gemini Omni'],
       ['bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video-1.5-lite', 'Generate video with Grok']
     ]
   }
@@ -167,7 +167,7 @@ export const videoCommand = defineCliCommand({
     { allProvidersTarget: 'all-video' }
   )
   const configPath = await resolveConfigPath(typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined)
-  const config = await loadConfig(configPath)
+  const config = await loadConfig(configPath, { allowLegacyFallback: typeof flags['config-path'] !== 'string' })
   providerNormalized.flags = mergeConfigIntoRawFlags(providerNormalized.flags, config, providerNormalized.explicitFlags, 'video')
   const resolvedInput = resolveVideoInput(input, providerNormalized.flags, providerNormalized.explicitFlags)
   applyDefaultVideoSelection(providerNormalized.flags, resolvedInput.kind)

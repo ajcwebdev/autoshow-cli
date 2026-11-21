@@ -16,7 +16,7 @@ export const writeManagedPrebuiltFixture = async (
     schemaVersion: 1, tool: 'qpdf', version: source.version, revision: 'r1', platform: 'darwin', architecture: 'arm64', macosDeploymentTarget: '15.0',
     sources: source.sources, buildFlags: source.buildFlags,
     producer: { repository: 'ajcwebdev/autoshow-cli', commit: 'a'.repeat(40), workflowName: 'fixture', workflowRunUrl: 'https://example.invalid/run', runnerLabel: 'macos-15', runnerImage: 'fixture', compilerVersion: 'fixture', sdkVersion: 'fixture', buildToolVersions: ['fixture'] },
-    payload: source.payload.map(file => ({ ...file, kind: 'executable' })),
+    payload: source.payload.filter(file => file.path === 'bin/qpdf').map(file => ({ path: file.path, sha256: file.sha256, kind: 'executable' })),
     trust: { signingIdentity: 'Synthetic signer', teamId: 'TESTTEAM01' },
     license: managedToolchainDistributionLicense('qpdf')
   }
@@ -42,7 +42,8 @@ export const writeManagedPrebuiltFixture = async (
     expectedSigningIdentity: 'Synthetic signer', expectedTeamId: 'TESTTEAM01'
   }
   const manifest: ManagedPrebuiltArtifactManifest = {
-    ...source, distribution: 'prebuilt', architecture: 'arm64', producer: payload.producer, payload: payload.payload,
+    schemaVersion: 1, tool: 'qpdf', version: source.version, platform: 'darwin', macosDeploymentTarget: source.macosDeploymentTarget,
+    sources: source.sources, buildFlags: source.buildFlags, distribution: 'prebuilt', architecture: 'arm64', producer: payload.producer, payload: payload.payload,
     packageFiles: await Promise.all([payloadPath, ...payload.payload.map(file => file.path), ...payload.license.noticePaths].map(async path => ({ path, sha256: sha256Bytes(await Bun.file(join(toolDir, path)).bytes()) }))),
     release: {
       revision: candidate.revision, url: candidate.url, archiveName: candidate.archiveName, archiveSha256: candidate.archiveSha256,

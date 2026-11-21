@@ -1,6 +1,5 @@
 import { isRecord } from '~/utils/rest-client'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { getRuntimeCachePath } from '~/utils/runtime-state'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { isTokenPricedOcrProvider } from '~/types'
 import type { ExtractionMetadata, HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageEstimate, HostedOcrTokenUsageProfile, HostedOcrTokenUsageProfileStore, PartialExtractionMetadata, PersistHostedOcrProfilesOptions, TokenPricedOcrProvider } from '~/types'
@@ -23,7 +22,7 @@ const DEFAULT_OCR_INPUT_TOKENS_PER_PAGE = 4000
 const DEFAULT_OCR_OUTPUT_TOKENS_PER_PAGE = 1000
 
 const resolveHostedOcrTokenUsageProfilePath = (): string =>
-  join(homedir(), '.cache', 'autoshow-cli', 'ocr-token-usage-profiles-v2.json')
+  getRuntimeCachePath('ocr-token-usage-profiles-v2.json')
 
 export const resolveHostedOcrTokenPageCountBand = (pageCount: number): string => {
   const pages = Number.isFinite(pageCount) ? Math.max(1, Math.floor(pageCount)) : 1

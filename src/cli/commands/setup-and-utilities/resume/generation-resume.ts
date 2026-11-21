@@ -1,4 +1,6 @@
 import { partialCompletionError } from '~/cli/commands/command-shared/provider-batch-state'
+import { join } from 'node:path'
+import { withProcessLock } from '~/utils/process-lock'
 import { createBatchedManifestUpdater, readManifest, updateManifest } from '~/cli/commands/command-shared/pipeline-manifest'
 import { logResumeItem, logResumeSummary } from './resume-logging'
 import { UsageError } from '~/utils/error-handler'
@@ -118,6 +120,24 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
   if (target.scope === 'batch' && config.kind === 'tts' && displayOptions.itemIndex === undefined) {
     return await resumeGenerationItems(target, config, opts, explicitFlags, displayOptions)
   }
+  const runItem = (snapshot?: PipelineManifest) => resumeGenerationItem(target, config, opts, explicitFlags, displayOptions, manifestUpdater, snapshot)
+  if (config.kind === 'image' || config.kind === 'video' || config.kind === 'music') {
+    // Another process may add a different model to the same item. Re-read the manifest under the lock and
+    // hold it through provider dispatch, publication, and reconciliation so both sets of metadata survive.
+    return await withProcessLock('media-resume', () => runItem(), { lockRoot: join(target.dir, '.locks') })
+  }
+  return await runItem(manifestSnapshot)
+}
+
+const resumeGenerationItem = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
+  target: ResumeTarget,
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  opts: TOptions,
+  explicitFlags: Set<string>,
+  displayOptions: ResumeDisplayOptions,
+  manifestUpdater: (update: (manifest: PipelineManifest) => PipelineManifest | Promise<PipelineManifest>) => Promise<PipelineManifest>,
+  manifestSnapshot?: PipelineManifest
+): Promise<ResumeResult> => {
   const itemIndex = displayOptions.itemIndex ?? 0
   const itemLabel = displayOptions.itemLabel ?? '1/1'
   const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true, itemIndex, manifestSnapshot)

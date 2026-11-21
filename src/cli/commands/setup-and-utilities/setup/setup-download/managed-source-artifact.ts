@@ -1,12 +1,12 @@
 import { readFileBytes } from '~/utils/bun-file-io'
 
-import { join } from 'node:path'
 import { readDependencyUrlAndSha256, readDependencyVersion } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { MUPDF_SOURCE_BUILD_FLAGS } from '~/cli/commands/setup-and-utilities/setup/setup-download/mupdf-source-build'
 import { LIBJPEG_TURBO_SOURCE_BUILD_FLAGS, QPDF_SOURCE_BUILD_FLAGS } from '~/cli/commands/setup-and-utilities/setup/setup-download/qpdf-source-build'
 import type {
   ManagedArtifactSource,
+  ManagedArtifactDependency,
   ManagedArtifactToolId,
   ManagedSourceArtifactManifest,
   ManagedSourceRecipe
@@ -14,7 +14,8 @@ import type {
 import { InfraError, InternalError, UsageError } from '~/utils/error-handler'
 import { mupdfToolDir, qpdfToolDir } from '~/utils/runtime-paths'
 import { sha256Bytes } from '~/utils/value-helpers'
-import { MANAGED_ARTIFACT_SCHEMA_VERSION, managedArtifactManifestPath } from './managed-artifact-schema'
+import { isIgnoredManagedArtifactPath, MANAGED_ARTIFACT_SCHEMA_VERSION, managedArtifactManifestPath, parseManagedSourceArtifactManifest } from './managed-artifact-schema'
+import { collectManagedSourcePayload } from './managed-artifact-payload'
 
 const SOURCE_RECIPES: Record<ManagedArtifactToolId, ManagedSourceRecipe> = {
   mupdf: {
@@ -89,37 +90,45 @@ export const readExpectedManagedArtifactSources = async (tool: ManagedArtifactTo
   }))
 
 export const createManagedSourceArtifactManifest = async (options: {
-  tool: ManagedArtifactToolId
+  tool: string
   toolDir: string
   deploymentTarget: string
   platform?: NodeJS.Platform
   architecture?: string
+  recipe?: ManagedSourceRecipe
+  version?: string
+  sources?: ManagedArtifactSource[]
+  dependencies?: ManagedArtifactDependency[]
+  recipeRevision?: string
 }): Promise<ManagedSourceArtifactManifest> => {
-  const recipe = SOURCE_RECIPES[options.tool]
+  const recipe = options.recipe ?? SOURCE_RECIPES[options.tool as ManagedArtifactToolId]
+  if (!recipe) throw InternalError(`Missing managed source recipe for ${options.tool}`, { stage: 'setup:managed-artifact', retryable: false })
   const platform = options.platform ?? process.platform
   if (platform !== 'darwin') {
     throw InfraError(`Managed source artifacts require darwin, received ${platform}`, { stage: 'setup:managed-artifact', retryable: false })
   }
-  const binaryPath = join(options.toolDir, recipe.binaryRelativePath)
-  return {
+  const payload = await collectManagedSourcePayload(options.toolDir)
+  for (const path of [recipe.binaryRelativePath, ...(recipe.requiredPaths ?? [])]) {
+    if (isIgnoredManagedArtifactPath(path)) continue
+    if (!payload.some(entry => entry.path === path)) throw InfraError(`Managed source payload is missing ${path}`, { stage: 'setup:managed-artifact', retryable: false })
+  }
+  return parseManagedSourceArtifactManifest({
     schemaVersion: MANAGED_ARTIFACT_SCHEMA_VERSION,
     tool: options.tool,
-    version: (await readDependencyVersion(options.tool)) ?? 'unknown',
+    version: options.version ?? (await readDependencyVersion(options.tool)) ?? 'unknown',
     distribution: 'source',
     platform,
     architecture: options.architecture ?? process.arch,
     macosDeploymentTarget: options.deploymentTarget,
-    sources: await readExpectedManagedArtifactSources(options.tool),
-    buildFlags: managedArtifactBuildFlags(options.tool),
-    payload: [{ path: recipe.binaryRelativePath, sha256: await sha256File(binaryPath) }]
-  }
+    sources: options.sources ?? await readExpectedManagedArtifactSources(options.tool as ManagedArtifactToolId),
+    buildFlags: [...recipe.buildFlags],
+    recipeRevision: options.recipeRevision ?? '1',
+    dependencies: options.dependencies?.map(dependency => ({ ...dependency })) ?? [],
+    payload
+  })
 }
 
-export const writeManagedSourceArtifactManifest = async (options: {
-  tool: ManagedArtifactToolId
-  toolDir: string
-  deploymentTarget: string
-}): Promise<ManagedSourceArtifactManifest> => {
+export const writeManagedSourceArtifactManifest = async (options: Parameters<typeof createManagedSourceArtifactManifest>[0]): Promise<ManagedSourceArtifactManifest> => {
   const manifest = await createManagedSourceArtifactManifest(options)
   await Bun.write(managedArtifactManifestPath(options.toolDir), `${JSON.stringify(manifest, null, 2)}\n`)
   return manifest

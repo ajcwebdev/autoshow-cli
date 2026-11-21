@@ -69,15 +69,16 @@ except Exception as error:
 
 export const EBOOK_CONVERSION_PROBE = `
 import { expect } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { createRuntimeTempDirectory } from '/app/src/utils/runtime-state.ts';
+import { getRuntimeToolCommand } from '/app/src/utils/runtime-paths.ts';
 import { prepareDocumentMetadata } from '/app/src/cli/commands/sources/download/document/dl-document.ts';
 import { runEpubBunInspect } from '/app/src/cli/commands/text/ocr/ebook/epub/run-epub-bun-inspect.ts';
 
 const integrityScript = ${JSON.stringify(EPUB_INTEGRITY_SCRIPT)};
 async function integrity(path) {
-  const child = Bun.spawn(['python3', '-c', integrityScript, path], { stdout: 'pipe', stderr: 'pipe' });
+  const child = Bun.spawn([getRuntimeToolCommand('python3'), '-c', integrityScript, path], { stdout: 'pipe', stderr: 'pipe' });
   const [exitCode, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
   return { exitCode, stdout, stderr };
 }
@@ -95,7 +96,7 @@ try {
     expect(inspected.text).toContain(chapter.title);
     expect(inspected.text).toContain(chapter.text);
   }
-  negatives = await mkdtemp(join(tmpdir(), 'autoshow-ebook-artifact-negative-'));
+  negatives = await createRuntimeTempDirectory('autoshow-ebook-artifact-negative-');
   const malformed = join(negatives, 'not-an-epub.epub');
   const truncated = join(negatives, 'truncated.epub');
   await Bun.write(malformed, 'A converter exit code alone does not establish artifact integrity.');

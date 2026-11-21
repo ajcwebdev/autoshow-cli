@@ -94,22 +94,37 @@ const RETIRED_FLAG_MODELS: Array<{ flag: string, model: string, message: string 
   {
     flag: 'openai-image',
     model: 'gpt-image-2',
-    message: 'Invalid model "gpt-image-2" for --provider/--image openai[=model]. Allowed values: gpt-image-2.5-flare, gpt-image-2.5-sunburst'
+    message: 'Invalid model "gpt-image-2" for --provider/--image openai[=model]. Allowed values: gpt-image-2.6-flare, gpt-image-2.6-sunburst'
   },
   {
     flag: 'gemini-video',
     model: 'veo-3.1-generate-preview',
-    message: 'Model "veo-3.1-generate-preview" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.1-flash" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "veo-3.1-generate-preview" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.2-flash" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'gemini-video',
     model: 'veo-3.1-fast-generate-preview',
-    message: 'Model "veo-3.1-fast-generate-preview" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.1-flash" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "veo-3.1-fast-generate-preview" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.2-flash" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'gemini-video',
     model: 'veo-3.1-lite-generate-preview',
-    message: 'Model "veo-3.1-lite-generate-preview" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.1-flash" instead. AutoShow will not silently substitute a different model identity.'
+    message: 'Model "veo-3.1-lite-generate-preview" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.2-flash" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'openai-image',
+    model: 'gpt-image-2.5-flare',
+    message: 'Model "gpt-image-2.5-flare" is retired for --provider/--image openai[=model]. Use "gpt-image-2.6-flare" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'gemini-image',
+    model: 'gemini-3.1-flash-lite-image',
+    message: 'Model "gemini-3.1-flash-lite-image" is retired for --provider/--image gemini[=model]. Use "gemini-nano-banana-2.1" instead. AutoShow will not silently substitute a different model identity.'
+  },
+  {
+    flag: 'gemini-video',
+    model: 'gemini-omni-1.1-flash',
+    message: 'Model "gemini-omni-1.1-flash" is retired for --provider/--video gemini[=model]. Use "gemini-omni-1.2-flash" instead. AutoShow will not silently substitute a different model identity.'
   },
   {
     flag: 'minimax-music',

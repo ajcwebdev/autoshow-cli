@@ -1,28 +1,22 @@
-import type { DirectoryEntry } from '~/types'
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { mkdir, readdir } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import type {
   ComicImageGenerationDependencies,
   ComicPageGroup,
   ComicPagePanelSource,
+  DirectoryEntry,
   GenerateComicPagesOptions,
-  GenerateWithQaRepairResult,
   ImageGenerationModel,
-  ImagePromptVariation,
-  PageQaEntry,
   PageRenderContext,
   PageRenderResult,
-  PageWorkItem,
   ResolvedReferenceImages,
 } from '~/types'
-import {
-  createImageRunStats,
-  recordImageRepairAccounting,
-} from '../../comic-image-services/image-costs'
+import { createImageRunStats } from '../../comic-image-services/image-costs'
 import { createImage } from '../../comic-image-services/comic-image-targets'
 import { writeGeneratedImage } from '../../comic-image-services/image-writer'
 import { InfraError, ValidationError } from '~/utils/error-handler'
-import { comicLog, err } from '../../comic-utils/comic-logger'
+import { comicLog, err, formatDuration } from '../../comic-utils/comic-logger'
 import {
   extractPanelBundleData,
   findMissingReferenceImageFiles,
@@ -33,22 +27,17 @@ import {
   resolveScenePanelDirectories,
 } from '../../comic-utils/panel-prompt-utils'
 import { getPagesDirectory, getPanelPromptsDirectory } from '../../comic-utils/project-paths'
-import { getPageComicImagePath, loadPromptsConfig } from '../../comic-utils/scene-utils'
+import { getPageComicImagePath } from '../../comic-utils/scene-utils'
+import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
 import {
   buildComicPagePrompt,
   buildComicPagePromptData,
   chunkComicPagePanels,
   selectComicPanels,
 } from './comic-page-utils'
-import {
-  applyImagePromptVariation,
-  getImagePromptVariationLabel,
-} from './prompt-variations'
-import { judgeComicPage } from './comic-page-qa'
-import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
-import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
-import { failedQaRepairEvidenceFromError, generateWithQaRepair } from './panel-qa-pipeline'
+import { generateComicBaseImage } from './comic-base-image-request'
 import { runComicImageWorkItems } from './comic-image-work-items'
+import { recordRunPageCandidate } from './comic-run-candidates'
 
 const readComicPagePanelSource = async (
   sceneDirectory: string,
@@ -82,10 +71,10 @@ const readComicPagePanelSource = async (
   }
 }
 
-const resolvePageReferences = async (
+const resolvePageReferences = (
   panels: ComicPagePanelSource[],
   model: ImageGenerationModel,
-): Promise<ResolvedReferenceImages> => {
+): ResolvedReferenceImages => {
   const resolved = resolveGroupedReferenceImages(panels, model)
   if (resolved.missingPrimaryCharacterRefs.length > 0) {
     throw InfraError(
@@ -99,46 +88,23 @@ const resolvePageReferences = async (
 }
 
 const renderSinglePage = async (
-  item: PageWorkItem,
+  pageChunk: ComicPageGroup,
   ctx: PageRenderContext
 ): Promise<PageRenderResult> => {
   const resultStats = createImageRunStats()
-  const qaEntries: Array<{ directory: string; entry: PageQaEntry }> = []
-  const { variation, model, pageChunk } = item
-  const { sceneSlug, options, useVariationOutputPaths, useModelSpecificFilenames, prompts, requestImage, writeImage, judgePage, qaEnabled, judgeModel, maxRepairs, nextHostedIndex } = ctx
-  const recordRepairResult = (repairResult: GenerateWithQaRepairResult, outputDirectory: string): void => {
-    recordImageRepairAccounting(resultStats, qaEntries, options, repairResult, outputDirectory)
-  }
-
-  const outputPath = getPageComicImagePath(
-    sceneSlug,
-    pageChunk.pageNumber,
-    pageChunk.panelNumbers,
-    useVariationOutputPaths ? model : useModelSpecificFilenames ? model : undefined,
-    useVariationOutputPaths ? variation : undefined,
-    options.runId
-  )
-  const canonicalExists = await Bun.file(outputPath).exists()
-  const outputExists = !options.force && canonicalExists
-
-  if (outputExists) {
-    comicLog.output('skipped', 'page', [
-      `id=page-${String(pageChunk.pageNumber).padStart(2, '0')}`,
-      `panels=${pageChunk.panelNumbers.join('-')}`,
-      `model=${model}`,
-      useVariationOutputPaths ? `variation=${getImagePromptVariationLabel(variation)}` : undefined,
-      'refs=existing',
-      `path=${outputPath}`,
-    ])
-  }
+  const { sceneSlug, options, requestImage, writeImage, nextHostedIndex } = ctx
+  const { model } = options
+  const outputPath = getPageComicImagePath(sceneSlug, pageChunk.pageNumber, pageChunk.panelNumbers, { runId: options.runId })
+  const pageDetails = [
+    `id=page-${String(pageChunk.pageNumber).padStart(2, '0')}`,
+    `panels=${pageChunk.panelNumbers.join('-')}`,
+    `model=${model}`,
+  ]
 
   try {
-    const resolvedReferences = await resolvePageReferences(pageChunk.panels, model)
+    const resolvedReferences = resolvePageReferences(pageChunk.panels, model)
     const pagePromptData = buildComicPagePromptData(pageChunk.panels.map(panel => panel.bundleData))
-    const normalizedPrompt = buildComicPagePrompt(pagePromptData, resolvedReferences.characterReferences ?? [], resolvedReferences.locationReferences ?? [], resolvedReferences.designReferences ?? [])
-    const promptForVariation = prompts
-      ? applyImagePromptVariation(normalizedPrompt, variation, prompts)
-      : normalizedPrompt
+    const prompt = buildComicPagePrompt(pagePromptData, resolvedReferences.characterReferences ?? [], resolvedReferences.locationReferences ?? [], resolvedReferences.designReferences ?? [])
     const referenceImages = resolvedReferences.all
     const missingReferences = await findMissingReferenceImageFiles(referenceImages)
     if (missingReferences.length > 0) {
@@ -149,62 +115,54 @@ const renderSinglePage = async (
       )
     }
 
-    const repairResult = await generateWithQaRepair({
+    const result = await generateComicBaseImage({
       kind: 'page',
       itemNumber: pageChunk.pageNumber,
       outputPath,
-      canonicalExists,
-      outputExists,
-      force: Boolean(options.force),
       model,
-      promptForVariation,
+      prompt,
       referenceImages,
-      bundleData: pagePromptData,
-      resolvedReferences,
       sceneSlug,
       options,
       requestImage,
       writeImage,
-      judge: judgePage,
-      qaEnabled,
-      judgeModel,
-      maxRepairs,
       nextHostedIndex,
+      stats: resultStats,
     })
 
-    recordRepairResult(repairResult, dirname(outputPath))
-
-    if (repairResult.status === 'skipped') {
+    if (result.status === 'skipped') {
       resultStats.imagesSkipped++
+      comicLog.output('skipped', 'page', [...pageDetails, 'refs=existing', `path=${outputPath}`])
     } else {
       comicLog.output('generated', 'page', [
-        `id=page-${String(pageChunk.pageNumber).padStart(2, '0')}`,
-        `panels=${pageChunk.panelNumbers.join('-')}`,
-        `model=${model}`,
+        ...pageDetails,
+        result.mode ? `mode=${result.mode}` : undefined,
         `refs=${referenceImages.length}`,
+        result.costLabel ? `cost=${result.costLabel}` : undefined,
+        `duration=${formatDuration(result.durationMs)}`,
+        result.preservedPriorPath ? `prior=${result.preservedPriorPath}` : undefined,
         `path=${outputPath}`,
       ])
     }
 
-    if (qaEnabled && repairResult.qaEntry) {
-      comicLog.line(outputExists ? 'page QA reused' : 'page QA judged', [
-        `page=${pageChunk.pageNumber}`,
-        `model=${judgeModel}`,
-        `hardFailure=${repairResult.qaEntry.hardFailure}`,
-        `path=${outputPath}`,
-      ])
-    }
+    await recordRunPageCandidate({
+      sceneSlug,
+      runId: options.runId,
+      model,
+      pageNumber: pageChunk.pageNumber,
+      panelNumbers: pageChunk.panelNumbers,
+      outputPath,
+      kind: 'provider-page',
+    })
   } catch (error) {
-    const failure = failedQaRepairEvidenceFromError(error)
-    if (failure) recordRepairResult(failure, failure.outputDirectory)
     err(
       `Failed to generate ${sceneSlug}/page-${String(pageChunk.pageNumber).padStart(2, '0')}:`,
       error instanceof Error ? error.message : String(error)
     )
-    return { stats: resultStats, qaEntries, error }
+    return { stats: resultStats, error }
   }
 
-  return { stats: resultStats, qaEntries }
+  return { stats: resultStats }
 }
 
 export const generateComicPages = async (
@@ -216,18 +174,9 @@ export const generateComicPages = async (
   const nextHostedIndex = () => hostedRequestIndex++
   const requestImage = dependencies.requestImage ?? (async input => await createImage(input.normalizedPrompt, input.referenceImages, input.model, input.size, input.quality))
   const writeImage = dependencies.writeImage ?? writeGeneratedImage
-  const judgePage = dependencies.judgePage ?? judgeComicPage
   const stats = createImageRunStats()
-  const useModelSpecificFilenames = options.models.length > 1
-  const variations: ImagePromptVariation[] = options.variations ?? ['canonical']
-  const useVariationOutputPaths = options.variations !== undefined
-  const qaEnabled = options.qa ?? true
-  const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
-  const maxRepairs = options.maxRepairs ?? 2
 
-  const prompts = useVariationOutputPaths ? await loadPromptsConfig() : undefined
   const sceneDirectory = getPanelPromptsDirectory(sceneSlug)
-
   const sceneEntries = await readdir(sceneDirectory, { withFileTypes: true })
   const panelDirectories = resolveScenePanelDirectories(sceneEntries, sceneDirectory, undefined)
   const panelSources = await Promise.all(
@@ -240,50 +189,30 @@ export const generateComicPages = async (
     sceneSlug,
   )
   const pageChunks = chunkComicPagePanels(selectedPanels, options.panelsPerImage)
-  const pagesDirectory = getPagesDirectory(sceneSlug)
 
-  await mkdir(pagesDirectory, { recursive: true })
+  await mkdir(getPagesDirectory(sceneSlug), { recursive: true })
   comicLog.line('page inputs', [
     `scene=${sceneSlug}`,
     `panels=${selectedPanels.map(panel => panel.panelNumber).join(',')}`,
     `groups=${pageChunks.length}`,
   ])
 
-  const pageStreams = variations.flatMap(variation =>
-    options.models.map(model => ({ variation, model }))
-  )
-
-  const resolvePageOutputPath = (
-    variation: ImagePromptVariation,
-    model: ImageGenerationModel,
-    pageChunk: ComicPageGroup
-  ) => getPageComicImagePath(
-    sceneSlug,
-    pageChunk.pageNumber,
-    pageChunk.panelNumbers,
-    useVariationOutputPaths ? model : useModelSpecificFilenames ? model : undefined,
-    useVariationOutputPaths ? variation : undefined,
-    options.runId
-  )
-
   const pendingReferenceFailures = new Set<string>()
-  for (const { variation, model } of pageStreams) {
-    for (const pageChunk of pageChunks) {
-      if (!options.force && await Bun.file(resolvePageOutputPath(variation, model, pageChunk)).exists()) {
-        continue
-      }
-
-      const preflightReferences = await resolvePageReferences(pageChunk.panels, model)
-      if (qaEnabled && maxRepairs > 0) validateReferenceImageCount(model, preflightReferences.all.length + 1, `QA edits for page ${pageChunk.pageNumber}`)
-      const missingReferences = await findMissingReferenceImageFiles(preflightReferences.all)
-      missingReferences.forEach(reference => pendingReferenceFailures.add(reference))
+  for (const pageChunk of pageChunks) {
+    if (!options.force && await Bun.file(getPageComicImagePath(sceneSlug, pageChunk.pageNumber, pageChunk.panelNumbers, { runId: options.runId })).exists()) {
+      continue
     }
+
+    const preflightReferences = resolvePageReferences(pageChunk.panels, options.model)
+    validateReferenceImageCount(options.model, preflightReferences.all.length, `Image references for page ${pageChunk.pageNumber}`)
+    const missingReferences = await findMissingReferenceImageFiles(preflightReferences.all)
+    missingReferences.forEach(reference => pendingReferenceFailures.add(reference))
   }
 
   if (pendingReferenceFailures.size > 0) {
     throw InfraError(
       `Missing reference image file(s): ${Array.from(pendingReferenceFailures).sort().join(', ')}. ` +
-      'Re-run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" to restage panel prompt bundles.',
+      `Re-run "${CLI_INVOCATION} comic draft-scenes <script-path> --only panel-prompts" to restage panel prompt bundles.`,
       { stage: 'comic:pages' }
     )
   }
@@ -291,32 +220,18 @@ export const generateComicPages = async (
   const renderContext: PageRenderContext = {
     sceneSlug,
     options,
-    useVariationOutputPaths,
-    useModelSpecificFilenames,
-    prompts,
     requestImage,
     writeImage,
-    judgePage,
-    qaEnabled,
-    judgeModel,
-    maxRepairs,
     nextHostedIndex,
   }
 
-  const workList: PageWorkItem[] = pageStreams.flatMap(({ variation, model }) =>
-    pageChunks.map(pageChunk => ({ variation, model, pageChunk }))
-  )
-
   return await runComicImageWorkItems({
     concurrency: options.concurrency,
-    items: workList,
-    render: async item => await renderSinglePage(item, renderContext),
+    items: pageChunks,
+    render: async pageChunk => await renderSinglePage(pageChunk, renderContext),
     stats,
-    qaEnabled,
-    qaHardFailure: {
-      message: count => `${count} comic page QA hard failure(s); generated artifacts and QA reports were preserved.`,
-      stage: 'comic:page-qa'
-    },
+    ...(options.stopOnProviderError === true ? { stopOnProviderError: true } : {}),
+    describeItem: pageChunk => `page-${String(pageChunk.pageNumber).padStart(2, '0')}`,
     itemFailure: { message: count => `${count} comic page generation task(s) failed`, stage: 'comic:pages' }
   })
 }

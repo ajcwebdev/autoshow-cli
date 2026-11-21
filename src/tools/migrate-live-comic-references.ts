@@ -123,7 +123,7 @@ const preparePlan = async (root: string): Promise<Plan> => {
       const characters = resolvePrimaryCharacterReferencesAcrossPanels(inputs, { composeDerived: false })
       const locations = resolveLocationReferencesAcrossPanels(inputs)
       const designs = resolveDesignReferencesAcrossPanels(inputs)
-      for (const path of [...characters.primaryCharacterRefs, ...(characters.rosterCharacterReferences ?? []).map(reference => reference.path), ...locations.flatMap(location => location.views.map(view => view.path)), ...designs.map(design => design.path)]) referencePaths.add(resolve(path))
+      for (const path of [...characters.primaryCharacterRefs, ...locations.flatMap(location => location.views.map(view => view.path)), ...designs.map(design => design.path)]) referencePaths.add(resolve(path))
     }
     plan.bundles.push(...bundles)
     const assets = join(workspace, 'assets')

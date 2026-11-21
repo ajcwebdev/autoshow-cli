@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import type { CliFlagsDefinition } from '~/types'
 import { UsageError } from '~/utils/error-handler'
 import { commandCreatesRunDirectory } from './run-directory-support'
@@ -53,7 +54,7 @@ export const unsupportedGlobalFlagError = (commandName: string, flagName: string
   if (flagName === 'characters-root') {
     return UsageError(
       `--characters-root is not supported by "${commandName}".`,
-      { hints: ['Use bun autoshow voice or bun autoshow comic.'] }
+      { hints: [`Use ${CLI_INVOCATION} voice or ${CLI_INVOCATION} comic.`] }
     )
   }
   if (flagName === 'allow-over-budget') {
@@ -68,5 +69,5 @@ export const unsupportedGlobalFlagError = (commandName: string, flagName: string
 export const unsupportedCookieFlagError = (commandName: string, flagName: string): Error =>
   UsageError(
     `--${flagName} is not supported by "${commandName}".`,
-    { hints: ['Use bun autoshow setup --cookies <file> or bun autoshow setup --cookies-from-browser <browser>.'] }
+    { hints: [`Use ${CLI_INVOCATION} setup --cookies <file> or ${CLI_INVOCATION} setup --cookies-from-browser <browser>.`] }
   )

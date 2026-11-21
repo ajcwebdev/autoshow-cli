@@ -45,7 +45,7 @@ describe('option resolution contracts', () => {
       expect(expansions['grok-stt']?.supported).toEqual(['grok-voice-transcribe-2.0'])
       expect(expansions['cloudflare-stt']?.supported).toEqual(['@cf/openai/whisper-large-v3-turbo', '@cf/openai/whisper', '@cf/openai/whisper-tiny-en'])
       expect(expansions['mistral-stt']?.shortcut).toBe('all-stt')
-      expect(expansions['assemblyai-stt']?.supported).toEqual(['universal-3-5-pro'])
+      expect(expansions['assemblyai-stt']?.supported).toEqual(['assemblyai-stt-3-7', 'universal-3-5-pro'])
       expect(expansions['gladia-stt']?.supported).toEqual(['solaria-3'])
       expect(expansions['gemini-stt']?.supported).toEqual(['gemini-3.5-transcribe'])
       expect(expansions['soniox-stt']?.supported).toEqual(['stt-async-v5'])

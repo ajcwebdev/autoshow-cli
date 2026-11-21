@@ -37,13 +37,39 @@ interface ReportProviderDetail {
     score?: number | null;
     speakerAwareWER?: number | null;
     textOnlyWER?: number | null;
+    legacyScore?: number | null;
+    legacySpeakerAwareWER?: number | null;
   };
+  errorAttribution?: {
+    strictEdits?: number;
+    neutralEdits?: number;
+    forgivenByView?: { disfluency?: number; orthographic?: number; numberFormat?: number };
+    remaining?: { speakerAttribution?: number; numberFormat?: number; otherLexical?: number };
+  };
+  speakerMetrics?: {
+    speakerCountAbsoluteError?: number | null;
+    wordAttributionAccuracy?: number | null;
+  };
+}
+
+/** Error-attribution edit counts summed over the runs that report them (scoring version 2+). */
+export interface ErrorAttributionTotals {
+  runs: number;
+  strictEdits: number;
+  forgivenDisfluency: number;
+  forgivenOrthographic: number;
+  forgivenNumberFormat: number;
+  neutralEdits: number;
+  speakerAttribution: number;
+  residualNumberFormat: number;
+  otherLexical: number;
 }
 
 interface SingleRunReport {
   runName?: string;
   runDir?: string;
   providerCount?: number;
+  scoringVersion?: number;
   providerGroups?: Record<string, { count?: number; providers?: ReportProviderDetail[] }>;
 }
 
@@ -61,6 +87,11 @@ interface ProviderSample {
   realtimeFactor: number | null;
   supportsDiarization: boolean | null;
   diarizationSupport: string | null;
+  legacyScore: number | null;
+  legacySpeakerAwareWER: number | null;
+  wordAttributionAccuracy: number | null;
+  speakerCountAbsoluteError: number | null;
+  errorAttribution: ReportProviderDetail["errorAttribution"] | null;
 }
 
 interface AggregatedProvider {
@@ -79,6 +110,11 @@ interface AggregatedProvider {
   supportsDiarization: boolean | null;
   diarizationSupport: string | null;
   perRun: Record<string, number | null>;
+  meanLegacyQualityScore: number | null;
+  meanLegacySpeakerAwareWER: number | null;
+  meanWordAttributionAccuracy: number | null;
+  meanSpeakerCountAbsoluteError: number | null;
+  errorAttributionTotals: ErrorAttributionTotals | null;
 }
 
 interface RankingEntry {
@@ -100,6 +136,10 @@ interface RankingEntry {
   totalCostCents: number | null;
   supportsDiarization: boolean | null;
   diarizationSupport: string | null;
+  meanLegacyQualityScore: number | null;
+  meanLegacySpeakerAwareWER: number | null;
+  meanWordAttributionAccuracy: number | null;
+  meanSpeakerCountAbsoluteError: number | null;
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -148,6 +188,31 @@ function providerSample(run: RunRef, detail: ReportProviderDetail): ProviderSamp
     realtimeFactor: detail.realtimeFactor ?? null,
     supportsDiarization: detail.supportsDiarization ?? null,
     diarizationSupport: detail.diarizationSupport ?? null,
+    legacyScore: detail.metrics?.legacyScore ?? null,
+    legacySpeakerAwareWER: detail.metrics?.legacySpeakerAwareWER ?? null,
+    wordAttributionAccuracy: detail.speakerMetrics?.wordAttributionAccuracy ?? null,
+    speakerCountAbsoluteError: detail.speakerMetrics?.speakerCountAbsoluteError ?? null,
+    errorAttribution: detail.errorAttribution ?? null,
+  };
+}
+
+function attributionTotals(samples: ProviderSample[]): ErrorAttributionTotals | null {
+  const present = samples.map((sample) => sample.errorAttribution).filter((value): value is NonNullable<typeof value> => Boolean(value));
+  if (present.length === 0) {
+    return null;
+  }
+  const total = (pick: (value: NonNullable<ProviderSample["errorAttribution"]>) => number | undefined) =>
+    present.reduce((acc, value) => acc + (pick(value) ?? 0), 0);
+  return {
+    runs: present.length,
+    strictEdits: total((value) => value.strictEdits),
+    forgivenDisfluency: total((value) => value.forgivenByView?.disfluency),
+    forgivenOrthographic: total((value) => value.forgivenByView?.orthographic),
+    forgivenNumberFormat: total((value) => value.forgivenByView?.numberFormat),
+    neutralEdits: total((value) => value.neutralEdits),
+    speakerAttribution: total((value) => value.remaining?.speakerAttribution),
+    residualNumberFormat: total((value) => value.remaining?.numberFormat),
+    otherLexical: total((value) => value.remaining?.otherLexical),
   };
 }
 
@@ -233,6 +298,11 @@ function aggregate(
       supportsDiarization: latest?.supportsDiarization ?? null,
       diarizationSupport: latest?.diarizationSupport ?? null,
       perRun,
+      meanLegacyQualityScore: mean(samples.map((sample) => sample.legacyScore)),
+      meanLegacySpeakerAwareWER: mean(samples.map((sample) => sample.legacySpeakerAwareWER)),
+      meanWordAttributionAccuracy: mean(samples.map((sample) => sample.wordAttributionAccuracy)),
+      meanSpeakerCountAbsoluteError: mean(samples.map((sample) => sample.speakerCountAbsoluteError)),
+      errorAttributionTotals: attributionTotals(samples),
     });
   }
   return aggregated;
@@ -296,6 +366,10 @@ function buildEntry(provider: AggregatedProvider, metric: MetricName, value: num
     totalCostCents: provider.totalCostCents,
     supportsDiarization: provider.supportsDiarization,
     diarizationSupport: provider.diarizationSupport,
+    meanLegacyQualityScore: provider.meanLegacyQualityScore,
+    meanLegacySpeakerAwareWER: provider.meanLegacySpeakerAwareWER,
+    meanWordAttributionAccuracy: provider.meanWordAttributionAccuracy,
+    meanSpeakerCountAbsoluteError: provider.meanSpeakerCountAbsoluteError,
   };
 }
 
@@ -345,14 +419,14 @@ function rankGroup(providers: AggregatedProvider[]): Record<MetricName, RankingE
 
 function metricTable(entries: RankingEntry[]): string {
   const header =
-    "| Rank | Provider | Value | Runs | Mean Score / 100 | Mean Speaker-aware WER | Mean Text-only WER | Diarization | Mean Speed | Throughput | Mean Cost |\n" +
-    "| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |";
+    "| Rank | Provider | Value | Runs | Mean Score / 100 | Mean Speaker-aware WER | Mean Text-only WER | Mean Legacy Score / 100 | Mean Legacy Speaker-aware WER | Diarization | Mean Speed | Throughput | Mean Cost |\n" +
+    "| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |";
   if (entries.length === 0) {
-    return `${header}\n| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |`;
+    return `${header}\n| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |`;
   }
   const rows = entries.map((entry) => {
     const diar = entry.supportsDiarization === null ? "n/a" : entry.diarizationSupport ?? (entry.supportsDiarization ? "supported" : "unsupported");
-    return `| ${entry.rank} | <code>${entry.provider}</code> | ${entry.label} | ${entry.runsCovered} | ${entry.meanQualityScore === null ? "n/a" : entry.meanQualityScore.toFixed(2)} | ${formatPercent(entry.meanSpeakerAwareWER)} | ${formatPercent(entry.meanTextOnlyWER)} | ${diar} | ${formatSpeed(entry.meanProcessingTimeMs)} | ${entry.aggregateRealtimeFactor === null ? "n/a" : `${entry.aggregateRealtimeFactor.toFixed(2)}×`} | ${formatPrice(entry.meanCostCents)} |`;
+    return `| ${entry.rank} | <code>${entry.provider}</code> | ${entry.label} | ${entry.runsCovered} | ${entry.meanQualityScore === null ? "n/a" : entry.meanQualityScore.toFixed(2)} | ${formatPercent(entry.meanSpeakerAwareWER)} | ${formatPercent(entry.meanTextOnlyWER)} | ${entry.meanLegacyQualityScore === null ? "n/a" : entry.meanLegacyQualityScore.toFixed(2)} | ${formatPercent(entry.meanLegacySpeakerAwareWER)} | ${diar} | ${formatSpeed(entry.meanProcessingTimeMs)} | ${entry.aggregateRealtimeFactor === null ? "n/a" : `${entry.aggregateRealtimeFactor.toFixed(2)}×`} | ${formatPrice(entry.meanCostCents)} |`;
   });
   return `${header}\n${rows.join("\n")}`;
 }
@@ -373,6 +447,35 @@ function perRunMatrix(providers: AggregatedProvider[], runs: RunRef[]): string {
     return `| <code>${provider.provider}</code> | ${meanCell} | ${cells.join(" | ")} |`;
   });
   return `${header}\n${divider}\n${rows.join("\n")}`;
+}
+
+function attributionTable(providers: AggregatedProvider[]): string {
+  const rows = [...providers]
+    .filter((provider) => provider.errorAttributionTotals !== null)
+    .sort((left, right) => (right.meanQualityScore ?? -1) - (left.meanQualityScore ?? -1) || left.providerKey.localeCompare(right.providerKey))
+    .map((provider) => {
+      const totals = provider.errorAttributionTotals!;
+      return `| <code>${provider.provider}</code> | ${totals.runs} | ${totals.strictEdits} | ${totals.forgivenDisfluency} | ${totals.forgivenOrthographic} | ${totals.forgivenNumberFormat} | ${totals.neutralEdits} | ${totals.speakerAttribution} | ${totals.residualNumberFormat} | ${totals.otherLexical} |`;
+    });
+  if (rows.length === 0) {
+    return "No error attribution is available (runs scored before scoring version 2).";
+  }
+  return [
+    "| Provider | Runs | Strict Edits | Disfluency | Orthographic | Number/Format | Neutral Edits | Speaker Attribution | Residual Number/Format | Other Lexical |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ...rows,
+  ].join("\n");
+}
+
+function speakerMetricsTable(providers: AggregatedProvider[]): string {
+  const rows = [...providers]
+    .filter((provider) => provider.meanWordAttributionAccuracy !== null || provider.meanSpeakerCountAbsoluteError !== null)
+    .sort((left, right) => (right.meanWordAttributionAccuracy ?? -1) - (left.meanWordAttributionAccuracy ?? -1) || left.providerKey.localeCompare(right.providerKey))
+    .map((provider) => `| <code>${provider.provider}</code> | ${formatPercent(provider.meanWordAttributionAccuracy)} | ${provider.meanSpeakerCountAbsoluteError === null ? "n/a" : provider.meanSpeakerCountAbsoluteError.toFixed(2)} |`);
+  if (rows.length === 0) {
+    return "No speaker metrics are available.";
+  }
+  return ["| Provider | Mean Word Attribution Accuracy | Mean Speaker Count Error |", "| --- | ---: | ---: |", ...rows].join("\n");
 }
 
 function diarizationLabel(provider: AggregatedProvider): string {
@@ -416,6 +519,8 @@ function buildDashboardGroup(
     evidence: [
       formatPercent(provider.meanSpeakerAwareWER),
       formatPercent(provider.meanTextOnlyWER),
+      provider.meanLegacyQualityScore === null ? "n/a" : provider.meanLegacyQualityScore.toFixed(2),
+      formatPercent(provider.meanWordAttributionAccuracy),
       diarizationLabel(provider),
     ],
     perRun: runs.map((run) => {
@@ -433,7 +538,7 @@ function buildDashboardGroup(
     label: GROUP_LABELS[group],
     metricColumns: { quality: "Quality /100", speed: "Mean time · throughput", cost: "Mean cost" },
     metricDirections: { quality: "higher", speed: "lower", cost: "lower" },
-    evidenceColumns: ["Mean SA-WER", "Mean text WER", "Diarization"],
+    evidenceColumns: ["Mean SA-WER", "Mean text WER", "Mean legacy score", "Speaker attribution", "Diarization"],
     providers: rows,
   };
 }
@@ -471,13 +576,18 @@ export function buildSttCombinedReport(rootDirRaw: string, generatedAt = new Dat
     thirdPartyServiceDiarization: rankGroup(groupedProviders.thirdPartyServiceDiarization),
   };
 
+  const scoringVersions = [...new Set(runs.map((run) => {
+    const report = JSON.parse(readFileSync(run.reportPath, "utf8")) as SingleRunReport;
+    return typeof report.scoringVersion === "number" ? report.scoringVersion : 1;
+  }))].sort((left, right) => left - right);
   const jsonReport = {
-    schemaVersion: 4,
+    schemaVersion: 5,
+    scoringVersions,
     kind: "stt-combined-comparison-report",
     category: "stt",
     rootDir,
     generatedAt,
-    metric: "speaker-aware WER-derived quality score, aggregated as the mean across runs",
+    metric: "neutral speaker-aware WER-derived quality score (per-run scoring version 2), aggregated as the mean across runs",
     runCount: runs.length,
     runs: runs.map((run) => ({ runName: run.runName, runDir: run.runDir, providerCount: run.providerCount })),
     providerCount: aggregated.length,
@@ -485,12 +595,15 @@ export function buildSttCombinedReport(rootDirRaw: string, generatedAt = new Dat
     rankingPolicy: {
       price: "mean per-run monetary cost ascending; local providers at zero; missing cost sorts last; ties break by quality descending then providerKey",
       speed: "mean processing time ascending; observed aggregate realtime throughput is retained as evidence; missing timing sorts last; ties break by providerKey",
-      qualityScore: "mean speaker-aware WER-derived score descending; missing score sorts last; ties break by providerKey",
+      qualityScore: "mean neutral speaker-aware WER-derived score descending; missing score sorts last; ties break by providerKey",
     },
     notes: [
       "Each provider is aggregated by providerKey across the runs it appears in; the mean is taken over present values only. Aggregate realtime throughput is total covered audio duration divided by total covered processing time.",
       "Groups follow the single-run STT contract: local, thirdPartyServiceNonDiarization, thirdPartyServiceDiarization.",
       "Each group ranks price, speed, and quality score independently. No weighted composite or model-tier ranking is emitted.",
+      "Scoring version 2 headline: per-run quality is max(0, 100 * (1 - neutralSpeakerAwareWER)) after disfluency-, orthographic-, and number-neutral normalization applied identically to reference and provider; the scoring-version-1 score is retained as the mean legacy score and legacy speaker-aware WER.",
+      "Providers run with non-default request settings are distinct rows keyed service/model[setting=value,...] and rank alongside default rows.",
+      ...(scoringVersions.length > 1 ? [`Runs mix scoring versions ${scoringVersions.join(", ")}; regenerate every per-run report before comparing quality.`] : []),
     ],
   };
 
@@ -513,7 +626,7 @@ export function buildSttCombinedReport(rootDirRaw: string, generatedAt = new Dat
   md.push("- Means are taken over present values only; a provider missing a value in some runs is averaged over the runs where it is present.");
   md.push("- Price rankings use mean per-run monetary cost ascending, local providers at zero, missing cost last.");
   md.push("- Speed rankings use mean processing time ascending, missing timing last.");
-  md.push("- Quality Score rankings use the mean speaker-aware WER-derived score descending.");
+  md.push("- Quality Score rankings use the mean neutral speaker-aware WER-derived score descending (scoring version 2); legacy (scoring version 1) means are retained as columns.");
   md.push("- Tied ranking values break deterministically: price ties by quality descending then provider key; speed and quality ties by provider key.");
   md.push("");
   md.push("## Metric Rankings");
@@ -536,7 +649,7 @@ export function buildSttCombinedReport(rootDirRaw: string, generatedAt = new Dat
   }
   md.push("## Per-Run Quality Score");
   md.push("");
-  md.push("Speaker-aware WER-derived quality score per provider in each run, sorted by mean.");
+  md.push("Neutral speaker-aware WER-derived quality score per provider in each run, sorted by mean.");
   md.push("");
   for (const group of GROUPS) {
     if (groupedProviders[group].length === 0) {
@@ -547,6 +660,18 @@ export function buildSttCombinedReport(rootDirRaw: string, generatedAt = new Dat
     md.push(perRunMatrix(groupedProviders[group], runs));
     md.push("");
   }
+  md.push("## Error Attribution");
+  md.push("");
+  md.push("Speaker-aware edit counts summed over runs: strict (legacy) edits, edits removed as each neutral view is enabled in order, the remaining headline edits, and their aligned-token classification.");
+  md.push("");
+  md.push(attributionTable(aggregated));
+  md.push("");
+  md.push("## Speaker Metrics");
+  md.push("");
+  md.push("Mean word attribution accuracy (matched words whose mapped provider speaker equals the reference speaker) and mean absolute speaker-count error, for diarizing providers.");
+  md.push("");
+  md.push(speakerMetricsTable(aggregated));
+  md.push("");
   md.push("## Notes");
   md.push("");
   for (const note of jsonReport.notes) {
@@ -572,7 +697,7 @@ export function buildSttCombinedReport(rootDirRaw: string, generatedAt = new Dat
     ),
     methodParagraphs: [
       "Providers are matched by `providerKey` and aggregated across the runs they appear in; means are taken over present values only.",
-      "Quality ranks the mean speaker-aware WER-derived score descending. Speed ranks mean processing time ascending. Cost ranks mean per-run monetary cost ascending with local providers at zero. Missing values sort last; ties break deterministically.",
+      "Quality ranks the mean neutral speaker-aware WER-derived score descending (scoring version 2; the legacy score is shown as evidence). Speed ranks mean processing time ascending. Cost ranks mean per-run monetary cost ascending with local providers at zero. Missing values sort last; ties break deterministically.",
     ],
     notes: jsonReport.notes,
   };

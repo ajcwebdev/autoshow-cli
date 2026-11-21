@@ -1,10 +1,11 @@
 import { hasErrorCode } from '~/utils/error-handler'
-import { rename, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { mkdir, rename, rm } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { withProcessLock } from '~/utils/process-lock'
 import { readTextFile, statPath as stat, writeFileExact } from '~/utils/bun-file-io'
 import type { FileFingerprint } from '~/types'
+import { RUNTIME_LOCK_DIR } from '~/utils/runtime-state'
+import { assertManagedRuntimePath, pathIsWithinRoot, RUNTIME_ROOT_PATH } from './runtime-containment'
 
 export const getFileFingerprint = async (filePath: string): Promise<FileFingerprint | undefined> => {
   try {
@@ -62,11 +63,19 @@ export const writeJsonCacheEntry = async <T>(options: {
   key: string
   value: T
 }): Promise<void> => {
-  const lockRoot = join(tmpdir(), 'autoshow-cache-locks')
+  const lockRoot = join(RUNTIME_LOCK_DIR, 'file-cache')
+  const validateCachePath = (): void => {
+    if (pathIsWithinRoot(RUNTIME_ROOT_PATH, options.cachePath)) assertManagedRuntimePath(options.cachePath)
+    assertManagedRuntimePath(lockRoot)
+  }
+  validateCachePath()
 
   await withProcessLock(options.lockName, async () => {
+    validateCachePath()
     const cache = await readJsonCacheMap<T>(options.cachePath)
     cache[options.key] = options.value
+    await mkdir(dirname(options.cachePath), { recursive: true })
+    validateCachePath()
 
     const tempPath = `${options.cachePath}.${process.pid}.${crypto.randomUUID()}.tmp`
     try {

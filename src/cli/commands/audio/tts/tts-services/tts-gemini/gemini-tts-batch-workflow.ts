@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { validateGeminiJobRun } from './gemini-job-validation'
 import { assertRuntimeBudgetEstimate } from '~/utils/runtime-spending-budget'
 import { withProcessLock } from '~/utils/process-lock'
@@ -61,7 +62,7 @@ export const assembleGeminiBatchOutputs = async (root: string, run: GeminiProvid
   const manifest = await readManifest(root)
   if (manifest) await writeManifest(root, { ...manifest, updatedAt: new Date().toISOString(), items: geminiBatchManifestItems(run, items.map(item => item.metadata)) })
 }
-const resumeCommand = (root: string) => `bun autoshow resume ${JSON.stringify(toProjectRelativePath(root))} --provider-job-action wait`
+const resumeCommand = (root: string) => `${CLI_INVOCATION} resume ${JSON.stringify(toProjectRelativePath(root))} --provider-job-action wait`
 const report = (root: string, run: GeminiProviderJobRun) => ({ outputDir: toProjectRelativePath(root), providerJobs: run.jobs.map(job => ({ jobId: job.jobId, state: job.state, model: job.model })), completedSlots: run.slots.filter(s => s.audioPath && !s.error).length, totalSlots: run.slots.length, failedSlots: run.slots.filter(s => s.error).map(s => ({ key: s.key, error: s.error })), outputs: run.outputs, resumeCommand: resumeCommand(root) })
 const withLocalInterrupt = async (operation: (signal: AbortSignal) => Promise<void>): Promise<void> => {
   const controller = new AbortController(), interrupt = () => controller.abort(new Error('Local waiting interrupted; remote jobs remain active.'))
@@ -115,7 +116,7 @@ export const executeGeminiRemoteBatch = async (plan: GeminiRemoteBatchPlan, opti
   const root = await createGenerationOutputDir(`${basename(plan.input)}-gemini-batch`)
   try {
     await withProcessLock('gemini-provider-jobs', () => withLocalInterrupt(async signal => {
-      if (await Bun.file(join(root, GEMINI_JOB_FILE)).exists()) throw UsageError(`Existing Gemini Batch run; use bun autoshow resume ${JSON.stringify(toProjectRelativePath(root))}.`)
+      if (await Bun.file(join(root, GEMINI_JOB_FILE)).exists()) throw UsageError(`Existing Gemini Batch run; use ${CLI_INVOCATION} resume ${JSON.stringify(toProjectRelativePath(root))}.`)
       await persistGeminiJobs(root, run)
       await writeManifest(root, geminiBatchManifest(run))
       await submitGeminiJobs(root, run, apiKey, signal)

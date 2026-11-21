@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "lossless-assemblyai-3-7",
+  "label": "stt-audio-profile=lossless",
+  "baseline": {
+    "service": "assemblyai",
+    "model": "assemblyai-stt-3-7"
+  },
+  "flags": [
+    "--provider",
+    "assemblyai=assemblyai-stt-3-7",
+    "--diarization",
+    "--stt-audio-profile",
+    "lossless"
+  ]
+}

@@ -19,12 +19,14 @@ export const registerComicAndVoiceHelpCases = (): void => {
       expect(subcommandSection).toContain(`  ${subcommand}`)
     }
     expect(comicSubcommands.sort()).toEqual(['draft-scenes', 'draft-treatment', 'generate-audio', 'generate-images', 'generate-slideshow', 'reference-sketch', 'review'])
-    expect(subcommandSection).toContain('Run panel prompt bundles to review sketches and/or final panel images')
+    expect(subcommandSection).toContain('Generate review sketches and/or final panel images from panel prompt bundles with one image model per run')
+    expect(subcommandSection).toContain('Prepare the structured script and draft prompt locally, draft the scene JSON, then build panel prompt bundles')
+    for (const retired of ['review-notes', 'review-sheet', 'blocking', 'staging directives']) expect(subcommandSection).not.toContain(retired)
     expect(result.stdout).toContain('bun autoshow comic <subcommand> --help')
     expect(getCommandFlagsSection(result.stdout)).toBe('')
   })
 
-  test.concurrent('comic generate-images help is scoped to its own page and QA flags', async () => {
+  test.concurrent('comic generate-images help is scoped to its own page with one model per run and automatic first selection', async () => {
     const result = await loadHelp(['comic', 'generate-images', '--help'])
 
     expect(result.exitCode).toBe(0)
@@ -34,14 +36,13 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(getFlagGroupSection(result.stdout, 'Panel Selection')).toContain('--panels')
     expect(getFlagGroupSection(result.stdout, 'Panel Selection')).toContain('--panels-per-image')
     expect(getFlagGroupSection(result.stdout, 'Panel Selection')).toContain('--grid')
-    expect(getFlagGroupSection(result.stdout, 'Image Options')).toContain('--variation')
-    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--qa, --no-qa')
-    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--max-repairs')
-    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--qa-only')
-    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--continuity-qa')
-    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--continuity-only')
-    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--labels')
-    expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--trusted-anchor-panel')
+    expect(getFlagGroupSection(result.stdout, 'Image Options')).toContain('--provider')
+    expect(getFlagGroupSection(result.stdout, 'Image Options')).not.toContain('--variation')
+    expect(result.stdout).not.toContain('Image QA')
+    expect(helpText(result.stdout)).toContain('Exactly one image provider[=model] per run')
+    expect(helpText(result.stdout)).toContain('Each run uses exactly one --provider provider[=model]; run a separate invocation for another model')
+    expect(helpText(result.stdout)).toContain('The first valid individual panel fills an empty slot at panels/panel-NN.png')
+    expect(helpText(result.stdout)).toContain('comic review --run <id> --use')
     expect(helpText(result.stdout)).toContain('final default: 1; sketch default: 6')
     expect(helpText(result.stdout)).toContain('bun autoshow comic draft-scenes <script-path> --only panel-prompts')
     expect(result.stdout).not.toContain('[--target prompts|images|sketches|both]')
@@ -49,6 +50,10 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(flagsSection).not.toContain('--only')
     expect(flagsSection).not.toContain('--character')
     expect(flagsSection).not.toContain('--location')
+    for (const retired of ['--qa', '--max-repairs', '--continuity', '--labels', '--trusted-anchor-panel', '--bloopers', '--revision-plan', '--comparison-passes', '--promote', '--variation', '--credit-preflight', '--blocking']) {
+      expect(flagsSection).not.toContain(retired)
+    }
+    expect(result.stdout).not.toMatch(/\n {2}comic-qa\b/)
   })
 
   test.concurrent('comic draft-scenes help is scoped to the drafting stages', async () => {
@@ -57,12 +62,12 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('$ bun autoshow comic draft-scenes <script-path> [flags]')
     expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--only')
-    expect(helpText(result.stdout)).toContain('structure|prompt|blocking|scene|panel-prompts')
-    expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--blocking, --no-blocking')
-    expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--blocking-plan')
-    expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--rebind')
+    expect(helpText(result.stdout)).toContain('Run one stage: prepare|scene|panel-prompts')
+    expect(helpText(result.stdout)).toContain('Stages run in order: prepare, scene, panel-prompts')
+    expect(helpText(result.stdout)).toContain('The former --only structure and --only prompt selectors are replaced by --only prepare')
     expect(getFlagGroupSection(result.stdout, 'Scene Drafting')).toContain('--panel-count')
     const flagsSection = getCommandFlagsSection(result.stdout)
+    for (const retired of ['--blocking', '--no-blocking', '--blocking-plan', '--rebind', '--reconcile-from-directives']) expect(flagsSection).not.toContain(retired)
     expect(flagsSection).not.toContain('--panels')
     expect(flagsSection).not.toContain('--target')
     expect(flagsSection).not.toContain('--character')
@@ -120,13 +125,16 @@ export const registerComicAndVoiceHelpCases = (): void => {
     expect(getCommandFlagsSection(reference.stdout)).not.toContain('--panels')
   })
 
-  test.concurrent('comic review help explains both local modes and their conflict', async () => {
+  test.concurrent('comic review help shows candidate preview with --run and explicit adoption with --use', async () => {
     const review = await loadHelp(['comic', 'review', '--help'])
     expect(review.exitCode).toBe(0)
     expect(review.stdout).toContain('$ bun autoshow comic review <script-path> [flags]')
-    expect(getFlagGroupSection(review.stdout, 'Comic Review')).toContain('--notes')
-    expect(getFlagGroupSection(review.stdout, 'Comic Review')).toContain('--export-doc')
-    expect(helpText(review.stdout)).toContain('cannot be combined with --export-doc')
+    const group = getFlagGroupSection(review.stdout, 'Comic Review')
+    for (const flag of ['--run', '--use', '--panels', '--export-doc']) expect(group).toContain(flag)
+    expect(group).not.toContain('--notes')
+    expect(helpText(review.stdout)).toContain('Previewing and exporting never change a selection')
+    expect(helpText(review.stdout)).toContain('comic review 02-01 --run <image-run-id> --use --panels 3')
+    expect(helpText(review.stdout)).not.toContain('staging directives')
     expect(getCommandFlagsSection(review.stdout)).not.toContain('--price')
     const viaHelp = await loadHelp(['comic', 'help', 'review'])
     expect(viaHelp.stdout).toBe(review.stdout)

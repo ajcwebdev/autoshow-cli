@@ -218,7 +218,7 @@ describe('adaptive provider group parser', () => {
       'image',
       'a prompt',
       '--provider',
-      'gemini=gemini-3.1-flash-lite-image'
+      'gemini=gemini-nano-banana-2.1'
     ])).toEqual(['image/gemini'])
 
     expect(extractAdaptiveProviderGroups([

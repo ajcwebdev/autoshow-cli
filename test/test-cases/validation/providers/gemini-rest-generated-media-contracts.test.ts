@@ -15,7 +15,7 @@ describe('Gemini REST contracts', () => {
     const calls = installFetch((call) => {
       if (call.url.endsWith('/interactions') && call.method === 'POST') {
         expect(call.bodyJson).toMatchObject({
-          model: 'gemini-omni-1.1-flash',
+          model: 'gemini-omni-1.2-flash',
           input: 'rain over city',
           response_format: {
             type: 'video',
@@ -49,7 +49,7 @@ describe('Gemini REST contracts', () => {
 
     await withTempDir(async (dir) => {
       const result = await runGeminiVideoGen('rain over city', dir, {
-        model: 'gemini-omni-1.1-flash',
+        model: 'gemini-omni-1.2-flash',
         durationSeconds: 4,
         resolution: '720p',
         aspectRatio: '16:9'

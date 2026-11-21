@@ -1,6 +1,7 @@
-import { mkdtemp, mkdir, rename, rm } from 'node:fs/promises'
+import { mkdir, rename, rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { existsSync } from 'node:fs'
-import { dirname, join, relative } from 'node:path'
+import { dirname, relative } from 'node:path'
 import type { CharacterSketchCommandDependencies, CharacterSketchCommandOptions, CharacterSketchView, ImageGenerationQuality, ImageGenerationSize } from '~/types'
 import { comicLog, err, formatCompactCost, formatDuration, withSuppressedPipelineLogs } from '../../comic-utils/comic-logger'
 import {
@@ -89,7 +90,7 @@ const runCharacterSketchCommand = async (
   const composeSheet = dependencies.composeSheet ?? combineCharacterSketchSheet
   const generationId = dependencies.createGenerationId?.() ?? createCharacterSketchGenerationId()
   await mkdir(catalog.root, { recursive: true })
-  const temporaryDirectory = await mkdtemp(join(catalog.root, '.character-sketch-tmp-'))
+  const temporaryDirectory = await createRuntimeTempDirectory('character-sketch-')
   const startTime = Date.now()
   comicLog.header('comic reference-sketch --character', [`character=${key}`, `generation=${generationId}`])
   comicLog.line('config', [`model=${model}`, `size=${size}`, `quality=${quality}`, options.revise ? 'revise=true' : undefined])

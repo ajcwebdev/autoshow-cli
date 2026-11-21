@@ -24,6 +24,15 @@ describe('stored STT step 2 metadata parsing contracts', () => {
     expect(Object.keys(parsed ?? {})).toEqual(['transcriptionService', 'transcriptionModel', 'processingTime', 'tokenCount'])
   })
 
+  test('keeps the provider-reported model used beside the requested model and still loads older records without it', () => {
+    const requested = { ...base, transcriptionService: 'assemblyai' as const, transcriptionModel: 'universal-3-5-pro' }
+    expect(parseStoredStep2Metadata({ ...requested, providerModelUsed: 'assemblyai-stt-3-7' })).toEqual({ ...requested, providerModelUsed: 'assemblyai-stt-3-7' })
+    expect(parseStoredStep2Metadata(requested)).toEqual(requested)
+    for (const invalid of ['', '  ', 3, null]) {
+      expect(parseStoredStep2Metadata({ ...requested, providerModelUsed: invalid })).toEqual(requested)
+    }
+  })
+
   test('rejects non-finite or negative required counters and empty model identifiers', () => {
     for (const counter of [NaN, Infinity, -Infinity, -1]) {
       expect(parseStoredStep2Metadata({ ...base, processingTime: counter })).toBeUndefined()

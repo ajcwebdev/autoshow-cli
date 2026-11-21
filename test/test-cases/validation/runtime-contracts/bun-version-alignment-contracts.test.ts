@@ -37,7 +37,7 @@ describe('Bun version alignment contracts', () => {
     const setupSteps = Object.entries(workflow.jobs ?? {}).flatMap(([job, config]) =>
       (config.steps ?? []).filter(step => step.uses?.startsWith('oven-sh/setup-bun@')).map(step => ({ job, step })))
     expect(setupSteps.map(({ job }) => job).sort()).toEqual([
-      'acceptance', 'package-hygiene', 'promote-latest', 'publish-manifest', 'verify',
+      'acceptance', 'managed-macos', 'package-hygiene', 'promote-latest', 'publish-manifest', 'verify',
     ])
     for (const { step } of setupSteps) expect(step.with?.['bun-version']).toBe(SUPPORTED_BUN_VERSION)
 

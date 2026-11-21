@@ -1,6 +1,5 @@
-import { mkdtemp } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { basename, join } from 'node:path'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
+import { basename } from 'node:path'
 import { statPath as stat } from '~/utils/bun-file-io'
 import type { DocumentMetadata, FallbackAuditState, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
@@ -93,7 +92,7 @@ export const createPdfPageFallbackSession = async (
   initialFallbackReason: InitialFallbackReason,
   initialFailure?: FallbackAuditState['initialFailure'] | undefined
 ): Promise<PdfPageFallbackSession> => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-pdf-pages-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-ocr-pdf-pages-')
   const sourceFile = basename(options.filePath)
   const session: PdfPageFallbackSession = {
     options,

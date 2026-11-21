@@ -5,7 +5,7 @@ import type { Step6VideoMetadata } from '~/types'
 import { PROJECT_ROOT } from '~/utils/project-root'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 
-const model = 'gemini-omni-1.1-flash'
+const model = 'gemini-omni-1.2-flash'
 
 type ReaderVideo = Pick<Step6VideoMetadata, 'videoGenService' | 'videoGenModel'> & { providerRequestId?: unknown }
 type ReaderItem = {

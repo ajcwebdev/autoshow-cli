@@ -1,5 +1,5 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { join } from 'node:path'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import type { DocumentMetadata, ExtractionOptions, OcrBatchRunContext, OcrPoolLedger, OcrTarget, ProcessDocumentOutput, RunOcrPagePoolOptions } from '~/types'
@@ -167,7 +167,7 @@ const classifyPooledPageFailure: (
 export const runOcrPooledBatch = async (ctx: PooledOcrContext): Promise<ProcessDocumentOutput> => {
   assertOcrPoolCompatible(ctx)
   const startedAtMs = Date.now()
-  const pageWorkspace = await mkdtemp(join(tmpdir(), 'autoshow-ocr-pool-'))
+  const pageWorkspace = await createRuntimeTempDirectory('autoshow-ocr-pool-')
   try {
     const pageInputs = await createPooledPageInputProvider(ctx, pageWorkspace)
     const resolvedStep2 = resolveRecordedOcrStep2(ctx.step1Metadata.format, ctx.effectiveOpts, ctx.documentSource, ctx.requestedTargets, ctx.preparedMarkdown)

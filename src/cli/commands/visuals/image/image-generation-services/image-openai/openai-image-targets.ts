@@ -11,9 +11,8 @@ import {
 } from '../../image-utils/image-target-validation'
 import {
   OPENAI_IMAGE_INPUT_MIME_TYPES,
-  OPENAI_IMAGE_MASK_MIME_TYPES,
   validateImageInputReferences,
-  validateImageMaskReference
+  validateOpenAIImageMask
 } from '../../image-utils/image-inputs'
 
 export const normalizeOpenAIImageExtension = (format: string | undefined): string => {
@@ -46,11 +45,7 @@ export const collectOpenAIImageTargets = (options: ImageGenOptions): ImageTarget
       model,
       allowedMimeTypes: OPENAI_IMAGE_INPUT_MIME_TYPES
     })
-    validateImageMaskReference(options.imageMask, {
-      provider: 'OpenAI',
-      model,
-      allowedMimeTypes: OPENAI_IMAGE_MASK_MIME_TYPES
-    })
+    validateOpenAIImageMask(options.imageMask, options.imageInputs, model)
 
     const request = {
       model,
@@ -76,7 +71,7 @@ export const collectOpenAIImageTargets = (options: ImageGenOptions): ImageTarget
         background: request.background ?? OPENAI_IMAGE_REQUEST_DEFAULTS.background,
         moderation: OPENAI_IMAGE_REQUEST_DEFAULTS.moderation
       },
-      run: async (prompt, outputDir) => await runOpenAIImageGen(prompt, outputDir, request)
+      run: async (prompt, outputDir, _opts, recoveryDir) => await runOpenAIImageGen(prompt, outputDir, request, recoveryDir)
     }]
   })
 }

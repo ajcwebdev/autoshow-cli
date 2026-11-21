@@ -41,9 +41,9 @@ const parseReferenceSketchArgs = (args: string[]) =>
 
 describe('option resolution contracts', () => {
   test('comic accepts Image 2.5 models, custom sizes, and extended quality', () => {
-    for (const model of ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst']) {
+    for (const model of ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst']) {
       const opts = parseGenerateImagesArgs(['script.md', '--provider', `openai=${model}`, '--size', '2048x1152', '--quality', 'xhigh'])
-      expect(opts).toMatchObject({ imageModels: [model], size: '2048x1152', quality: 'xhigh' })
+      expect(opts).toMatchObject({ imageModel: model, size: '2048x1152', quality: 'xhigh' })
       expect(parseReferenceSketchArgs(['--character', 'engineer', '--provider', `openai=${model}`, '--quality', 'max']).quality).toBe('max')
     }
   })
@@ -86,77 +86,35 @@ describe('option resolution contracts', () => {
     const chunks = chunkComicPagePanels(Array.from({ length: 29 }, (_, index) => ({ panelNumber: index + 1 })), DEFAULT_FINAL_PANELS_PER_IMAGE)
     expect(chunks).toHaveLength(29)
     expect(chunks.at(-1)?.panelNumbers).toEqual([29])
-    const qa = parseGenerateImagesArgs(['script.md', '--qa'])
-    expect(qa.qa).toBe(true)
-    expect(qa.qaModel).toBe('gpt-6.1-sol')
-    expect(parseGenerateImagesArgs(['script.md', '--qa-provider', 'openai=gpt-6.1-sol']).qaModel).toBe('gpt-6.1-sol')
-    expect(parseGenerateImagesArgs(['script.md', '--qa-provider', 'gemini=gemini-3.8-flash']).qaModel).toBe('gemini-3.8-flash')
   })
-  test('comic generate-images QA-only mode cannot enter image generation or repair combinations', () => {
-    const opts = parseGenerateImagesArgs(['script.md', '--qa-only', '--panels', '1-5', '--qa-provider', 'gemini=gemini-3.8-flash'])
-    expect(opts.qaOnly).toBe(true)
-    expect(opts.qa).toBe(true)
-    expect(opts.maxRepairs).toBe(0)
-    expect(opts.panelsPerImage).toBe(1)
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--no-qa'])).toThrow('--qa-only cannot be combined with --no-qa')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--max-repairs', '1'])).toThrow('--qa-only requires --max-repairs 0')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--force'])).toThrow('--qa-only cannot be combined with --force')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--provider', 'openai=gpt-image-2.5-flare'])).toThrow('--qa-only does not accept image-generation options')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--target', 'both'])).toThrow('--qa-only requires --target images')
+  test('comic generate-images resolves omitted, bare-provider, and explicit-model selectors to one image model', () => {
+    expect(parseGenerateImagesArgs(['script.md']).imageModel).toBeUndefined()
+    expect(parseGenerateImagesArgs(['script.md', '--provider', 'openai']).imageModel).toBe('gpt-image-2.6-flare')
+    expect(parseGenerateImagesArgs(['script.md', '--provider', 'gemini=gemini-nano-banana-2.1']).imageModel).toBe('gemini-nano-banana-2.1')
+    expect(parseGenerateImagesArgs(['script.md', '--provider=openai=gpt-image-2.6-sunburst']).imageModel).toBe('gpt-image-2.6-sunburst')
   })
-  test('comic generate-images continuity audit flags layer inside QA-only mode', () => {
-    const opts = parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--continuity-only', '--labels', 'qa/continuity-labels.json', '--trusted-anchor-panel', '3', '--max-repairs', '0'])
-    expect(opts.qaOnly).toBe(true)
-    expect(opts.continuityQa).toBe(true)
-    expect(opts.continuityOnly).toBe(true)
-    expect(opts.labels).toBe('qa/continuity-labels.json')
-    expect(opts.trustedAnchorPanel).toBe(3)
-    expect(opts.maxRepairs).toBe(0)
-    const beside = parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa'])
-    expect(beside.continuityQa).toBe(true)
-    expect(beside.continuityOnly).toBeUndefined()
-    expect(beside.labels).toBeUndefined()
-    expect(beside.trustedAnchorPanel).toBeUndefined()
-    expect(parseGenerateImagesArgs(['script.md', '--qa-only']).continuityQa).toBeUndefined()
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-only'])).toThrow('--continuity-only requires --continuity-qa')
-    expect(() => parseGenerateImagesArgs(['script.md', '--continuity-qa'])).toThrow('--continuity-qa requires --qa-only')
-    expect(() => parseGenerateImagesArgs(['script.md', '--continuity-qa', '--continuity-only'])).toThrow('--continuity-qa requires --qa-only')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--labels', 'qa/continuity-labels.json'])).toThrow('--labels requires --continuity-qa')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--trusted-anchor-panel', '2'])).toThrow('--trusted-anchor-panel requires --continuity-qa')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--trusted-anchor-panel', '0'])).toThrow('Invalid trusted anchor panel "0"')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--provider', 'openai=gpt-image-2.5-flare'])).toThrow('--qa-only does not accept image-generation options')
-  })
-  test('comic generate-images revision evaluation requires the exact bounded mode contract', () => {
-    const opts = parseGenerateImagesArgs(['script.md', '--revision-plan', 'output/plan.json', '--comparison-passes', '2', '--promote', 'clear-winners', '--max-repairs', '0'])
-    expect(opts.revisionPlan).toBe('output/plan.json')
-    expect(opts.imageModels).toEqual(['gpt-image-2.5-flare'])
-    expect(opts.qaModel).toBe('gpt-6.1-sol')
-    expect(opts.comparisonPasses).toBe(2)
-    expect(opts.promote).toBe('clear-winners')
-    expect(opts.maxRepairs).toBe(0)
-    expect(opts.panelsPerImage).toBe(1)
-    expect(() => parseGenerateImagesArgs(['script.md', '--revision-plan', 'plan.json', '--comparison-passes', '1', '--promote', 'clear-winners'])).toThrow('--revision-plan requires --comparison-passes 2')
-    expect(() => parseGenerateImagesArgs(['script.md', '--revision-plan', 'plan.json', '--comparison-passes', '2'])).toThrow('--revision-plan requires --promote clear-winners')
-    expect(() => parseGenerateImagesArgs(['script.md', '--revision-plan', 'plan.json', '--comparison-passes', '2', '--promote', 'clear-winners', '--force'])).toThrow('--revision-plan cannot be combined with --force')
-    expect(() => parseGenerateImagesArgs(['script.md', '--comparison-passes', '2'])).toThrow('require --revision-plan')
+  test('comic generate-images rejects repeated image selectors instead of deduplicating or keeping the last value', () => {
+    const single = 'accepts exactly one --provider'
+    expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=gpt-image-2.6-flare', '--provider', 'openai=gpt-image-2.6-flare'])).toThrow(single)
+    expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=gpt-image-2.6-flare', '--provider', 'openai=gpt-image-2.6-sunburst'])).toThrow(single)
+    expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai', '--provider', 'gemini'])).toThrow(single)
+    expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=gpt-image-2.6-flare,gemini=gemini-nano-banana-2.1'])).toThrow('accepts exactly one --provider provider[=model]')
   })
   test('comic generate-images args parse page image options', () => {
       const opts = parseGenerateImagesArgs([
         'input/scripts/02-script/01-co-work-smarter.md',
-        '--provider', 'openai=gpt-image-2.5-flare', '--provider', 'gemini=gemini-3.1-flash-lite-image',
+        '--provider', 'gemini=gemini-nano-banana-2.1',
         '--panels', '1-4,9',
         '--panels-per-image', String(DEFAULT_SKETCH_PANELS_PER_IMAGE),
-        '--variation', 'animation-polish,cinematic-depth',
         '--size', '1536x1024',
         '--quality', 'high',
         '--force'
       ])
 
       expect(opts.scriptPath).toBe('input/scripts/02-script/01-co-work-smarter.md')
-      expect(opts.imageModels).toEqual(['gpt-image-2.5-flare', 'gemini-3.1-flash-lite-image'])
+      expect(opts.imageModel).toBe('gemini-nano-banana-2.1')
       expect(opts.panels).toEqual([1, 2, 3, 4, 9])
       expect(opts.panelsPerImage).toBe(DEFAULT_SKETCH_PANELS_PER_IMAGE)
-      expect(opts.variations).toEqual(['animation-polish', 'cinematic-depth'])
       expect(opts.size).toBe('1536x1024')
       expect(opts.quality).toBe('high')
       expect(opts.force).toBe(true)
@@ -191,11 +149,6 @@ describe('option resolution contracts', () => {
       expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('Unexpected flag: --chunk')
       expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('Unexpected flag: --sketch-group-size')
       expect(() => parseGenerateImagesArgs(['script.md', '--sketch-panels', '1-4'])).toThrow('Unexpected flag: --sketch-panels')
-    })
-
-  test('comic generate-images variation args reject duplicates and unknown values', () => {
-      expect(() => parseGenerateImagesArgs(['script.md', '--variation', 'animation-polish,animation-polish'])).toThrow('Duplicate variation "animation-polish" is not allowed')
-      expect(() => parseGenerateImagesArgs(['script.md', '--variation', 'unknown'])).toThrow('Invalid variation "unknown"')
     })
 
   test('comic draft-scenes args parse llm model and panel prompt stage', () => {
@@ -238,7 +191,7 @@ describe('option resolution contracts', () => {
         '--target', 'images',
         '--panels', '1-6',
         '--panels-per-image', String(DEFAULT_SKETCH_PANELS_PER_IMAGE),
-        '--provider', 'openai=gpt-image-2.5-flare',
+        '--provider', 'openai=gpt-image-2.6-flare',
         '--size', '1536x1024',
         '--quality', 'high',
         '--force'
@@ -248,7 +201,7 @@ describe('option resolution contracts', () => {
       expect(opts.target).toBe('images')
       expect(opts.panels).toEqual([1, 2, 3, 4, 5, 6])
       expect(opts.panelsPerImage).toBe(DEFAULT_SKETCH_PANELS_PER_IMAGE)
-      expect(opts.imageModels).toEqual(['gpt-image-2.5-flare'])
+      expect(opts.imageModel).toBe('gpt-image-2.6-flare')
       expect(opts.size).toBe('1536x1024')
       expect(opts.quality).toBe('high')
       expect(opts.force).toBe(true)

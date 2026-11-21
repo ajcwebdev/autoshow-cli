@@ -1,6 +1,5 @@
 import { isRecord } from '~/utils/rest-client'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { getRuntimeCachePath } from '~/utils/runtime-state'
 import type { HostedOcrProfileDisqualificationReason, HostedOcrProfileEstimate, HostedOcrSchedulerTelemetry, HostedOcrThroughputProfile, HostedOcrThroughputProfileStore, OcrConcurrencyMode, PersistHostedOcrProfilesOptions } from '~/types'
 import { roundMetric } from '~/utils/value-helpers'
 import { createJsonProfileStore, selectBestScoredProfile } from '~/utils/json-profile-store'
@@ -12,7 +11,7 @@ const HOSTED_OCR_PROFILE_MAX_CAP_CEILING = 48
 const PROFILE_LOCK_NAME = 'ocr-throughput-profiles-v1'
 
 const resolveHostedOcrThroughputProfilePath = (): string =>
-  join(homedir(), '.cache', 'autoshow-cli', 'ocr-throughput-profiles-v1.json')
+  getRuntimeCachePath('ocr-throughput-profiles-v1.json')
 
 export const resolveHostedOcrPageCountBand = (pageCount: number): string => {
   const pages = Number.isFinite(pageCount) ? Math.max(1, Math.floor(pageCount)) : 1

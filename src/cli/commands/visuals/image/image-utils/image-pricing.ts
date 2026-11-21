@@ -7,8 +7,8 @@ import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAI
 import * as l from '~/utils/app-logger/app-logger'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
 import { requireRegistryRate } from '~/utils/pricing/registry-rate'
-import { isOpenAIImage25Model } from '~/cli/commands/setup-and-utilities/models/image-models'
-import { estimateOpenAIImage25Output } from './openai-image-pricing'
+import { usesOpenAIImageTokenCalculator } from '~/cli/commands/setup-and-utilities/models/image-models'
+import { estimateOpenAIGptImageOutput } from './openai-image-pricing'
 import { OPENAI_IMAGE_COUNT_RANGE, validateOpenAIImageOptions } from '../image-generation-services/image-openai/openai-image-options'
 import { validateImageCount } from './image-target-validation'
 
@@ -57,7 +57,7 @@ const estimateOpenAIImageCost = (
   model: string,
   options: Pick<EstimateImageCostOptions, 'imageSize' | 'imageQuality'>
 ): { costPerImageCents: number, note: string } => {
-  if (isOpenAIImage25Model(model)) return estimateOpenAIImage25Output(model, options)
+  if (usesOpenAIImageTokenCalculator(model)) return estimateOpenAIGptImageOutput(model, options)
   const meta = getImageModelMeta('openai', model)
   const sizeQualityCosts = meta?.costPerImageBySizeQualityCents
   const defaultCostCents = requireImageCost('openai', model, meta?.costPerImageCents, 'costPerImageCents')

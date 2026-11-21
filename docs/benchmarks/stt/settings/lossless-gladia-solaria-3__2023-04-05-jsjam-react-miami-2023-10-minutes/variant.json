@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "lossless-gladia-solaria-3",
+  "label": "stt-audio-profile=lossless",
+  "baseline": {
+    "service": "gladia",
+    "model": "solaria-3"
+  },
+  "flags": [
+    "--provider",
+    "gladia=solaria-3",
+    "--diarization",
+    "--stt-audio-profile",
+    "lossless"
+  ]
+}

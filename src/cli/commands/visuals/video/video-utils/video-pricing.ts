@@ -1,6 +1,7 @@
 import { validateGrokVideoRequest } from '../video-services/video-grok/grok-video-capabilities'
 import type { EstimateVideoCostOptions, GeminiVideoModel, GrokVideoModel, ProviderModelSelectionSpec, VideoCostEstimate, VideoMode, VideoProvider } from '~/types'
 import { validateGeminiVideoModel, validateGrokVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { SUPPORTED_GEMINI_VIDEO_MODELS } from '~/cli/commands/setup-and-utilities/models/video-models'
 import { getVideoModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { deriveGenerationPricingProviders, VIDEO_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import {
@@ -95,7 +96,7 @@ export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCost
   }
 
   if (estimates.length === 0) {
-    estimates.push(estimateGeminiModelCost('gemini-omni-1.1-flash', options.videoDuration, options.videoResolution, options.videoMode))
+    estimates.push(estimateGeminiModelCost(SUPPORTED_GEMINI_VIDEO_MODELS[0], options.videoDuration, options.videoResolution, options.videoMode))
   }
 
   return estimates

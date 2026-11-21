@@ -1,36 +1,33 @@
-import { runCapture, runInherit, detectPlatform } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { runCapture, detectPlatform } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import * as l from '~/utils/app-logger/app-logger'
-import { getTesseractBinary, resolveTessdataPrefix, tessdataDir, toProjectDisplayPath } from '~/utils/runtime-paths'
+import { getTesseractBinary, resolveRuntimeToolInfo, resolveTessdataPrefix, tessdataDir, toProjectDisplayPath } from '~/utils/runtime-paths'
 import { inspectTesseractEnglishData } from '~/utils/tesseract-language-data'
 import {
   ensureManagedTessdataSupportFiles,
-  installManagedTesseractMacos
+  installManagedTesseractMacos,
+  type ManagedMacosInstallOptions
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools'
+import { ensureManagedLinuxTool } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-linux-tools'
 import { isRuntimeToolHealthy } from '~/cli/commands/setup-and-utilities/setup/setup-download/tool-health'
 import { isCompactSetupMode } from '~/utils/setup-output-mode'
 import { InfraError, InternalError } from '~/utils/error-handler'
 
 const shouldPrintCompletion = (): boolean => !isCompactSetupMode()
 
-const installTesseract = async (): Promise<void> => {
-  if (await isRuntimeToolHealthy('tesseract', ['--version'])) {
-    if (detectPlatform() === 'darwin') {
-      await ensureManagedTessdataSupportFiles()
-    }
-    return
-  }
-
-  l.write('info', 'Installing Tesseract', { category: 'command' })
+const installTesseract = async (options: ManagedMacosInstallOptions): Promise<void> => {
   const platform = detectPlatform()
 
   if (platform === 'darwin') {
-    await installManagedTesseractMacos()
+    const selectedOverride = resolveRuntimeToolInfo('tesseract')?.source === 'override'
+    if (!options.forceRedownload && selectedOverride && await isRuntimeToolHealthy('tesseract', ['--version'])) return
+    l.write('info', 'Installing Tesseract', { category: 'command' })
+    await installManagedTesseractMacos(options)
     l.write('info', 'Tesseract installed', { category: 'command' })
     return
   }
 
   if (platform === 'linux') {
-    await runInherit('sudo', ['apt', 'install', '-y', 'tesseract-ocr'])
+    await ensureManagedLinuxTool('tesseract', options)
     l.write('info', 'Tesseract installed', { category: 'command' })
     return
   }
@@ -56,8 +53,8 @@ export const ensureTesseractEnglishData = async (): Promise<void> => {
   })
 }
 
-export const setupTesseractOcr = async (): Promise<void> => {
-  await installTesseract()
+export const setupTesseractOcr = async (options: ManagedMacosInstallOptions = {}): Promise<void> => {
+  await installTesseract(options)
   if (detectPlatform() === 'darwin') {
     await ensureManagedTessdataSupportFiles()
   }

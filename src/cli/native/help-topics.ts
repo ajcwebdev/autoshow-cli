@@ -67,7 +67,6 @@ export const getHelpTopics = (root: CliRootDefinition, command: CliCommandHelpDe
     articles: ['article-extraction'], review: ['transcript-review', 'comic-review'],
     images: ['image-options', 'image-inputs', 'image-provider-options', 'run-specific'],
     video: ['video-options', 'video-inputs', 'run-specific'],
-    audit: ['comic-qa'], revision: ['comic-image', 'comic-qa'],
   }
   for (const [name, groups] of Object.entries(routes)) {
     const present = groups.filter(group => flags.some(([, definition]) => definition.help?.['group'] === group))

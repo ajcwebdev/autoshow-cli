@@ -9,56 +9,25 @@ import {
   parseComicGridSpec,
   parsePanelSelector
 } from '../comic-commands/generate-images/comic-page-utils'
-import {
-  parseImagePromptVariations,
-} from '../comic-commands/generate-images/prompt-variations'
 
-import { assignSharedImageOptions, enabledFlag, isPositiveInteger, parseComicQaSelector, parseConcurrencyValue, parseMaxRepairs, readScriptPath, stringFlag } from './comic-argument-readers'
-import { COMIC_REVISION_PROMOTION_POLICIES, type ComicRevisionPromotionPolicy } from '~/cli/flags/comic-stage-contract'
+import { assignSharedImageRenderOptions, enabledFlag, isPositiveInteger, parseConcurrencyValue, readScriptPath, readSingleComicImageSelector, stringFlag } from './comic-argument-readers'
 
 const GENERATE_IMAGES_TARGET_VALUES = ['images', 'sketches', 'both'] as const
 const GENERATE_IMAGES_TARGET_OPTIONS = new Set<string>(GENERATE_IMAGES_TARGET_VALUES)
 
-export const coerceComicImageScalars = (parsed: ComicParsedArgs) => {
+export const coerceComicImageScalars = (parsed: ComicParsedArgs): ParsedGenerateBaseArgs => {
   const scriptPath = readScriptPath(parsed)
   const output: ParsedGenerateBaseArgs = { showHelp: false, scriptPath: scriptPath as string }
-  const qaModel = stringFlag(parsed, 'qa-provider')
-  const maxRepairs = stringFlag(parsed, 'max-repairs')
+  const imageModel = readSingleComicImageSelector(parsed, 'generate-images')
   const targetValue = stringFlag(parsed, 'target')
   const concurrency = stringFlag(parsed, 'provider-concurrency')
   const concurrencyMode = stringFlag(parsed, 'concurrency-mode')
   const panels = stringFlag(parsed, 'panels')
   const panelsPerImage = stringFlag(parsed, 'panels-per-image')
   const grid = stringFlag(parsed, 'grid')
-  const variation = stringFlag(parsed, 'variation')
-  const qaOnly = enabledFlag(parsed, 'qa-only') === true
-  const blockingHardKeys = stringFlag(parsed, 'blocking-hard-keys')
-  const blockingLayoutGuide = enabledFlag(parsed, 'blocking-layout-guide') === true
-  if (blockingLayoutGuide) output.blockingLayoutGuide = true
-  if (enabledFlag(parsed, 'bloopers') === true) output.bloopers = true
+  if (imageModel !== undefined) output.imageModel = imageModel
   if (enabledFlag(parsed, 'stop-on-provider-error') === true) output.stopOnProviderError = true
-  if (enabledFlag(parsed, 'credit-preflight') === true) output.creditPreflight = true
-  const continuityQa = enabledFlag(parsed, 'continuity-qa') === true
-  const continuityOnly = enabledFlag(parsed, 'continuity-only') === true
-  const labels = stringFlag(parsed, 'labels')
-  const trustedAnchorPanel = stringFlag(parsed, 'trusted-anchor-panel')
-  const revisionPlan = stringFlag(parsed, 'revision-plan')
-  const comparisonPasses = stringFlag(parsed, 'comparison-passes')
-  const promote = stringFlag(parsed, 'promote')
   if (enabledFlag(parsed, 'price') === true) output.price = true
-  const qa = enabledFlag(parsed, 'qa')
-  if (qa !== undefined) output.qa = qa
-  if (qaOnly) output.qaOnly = true
-  if (revisionPlan !== undefined) output.revisionPlan = revisionPlan
-  if (comparisonPasses !== undefined) output.comparisonPasses = parseMaxRepairs(comparisonPasses)
-  if (promote !== undefined) {
-    if (!COMIC_REVISION_PROMOTION_POLICIES.includes(promote as ComicRevisionPromotionPolicy)) throw UsageError(`Invalid revision promotion policy "${promote}". Expected ${COMIC_REVISION_PROMOTION_POLICIES.join(', ')}`)
-    output.promote = promote as ComicRevisionPromotionPolicy
-  }
-  // The vision-capability restriction is now structural: COMIC_QA_PROVIDER_TARGETS has only the two
-  // vision-capable providers, so the shared selector rejects anything else with a derived message.
-  if (qaModel !== undefined) output.qaModel = parseComicQaSelector(qaModel, 'qa-provider')
-  if (maxRepairs !== undefined) output.maxRepairs = parseMaxRepairs(maxRepairs)
   if (targetValue !== undefined) {
     if (!GENERATE_IMAGES_TARGET_OPTIONS.has(targetValue)) {
       throw UsageError(`Invalid target "${targetValue}". Expected one of: ${GENERATE_IMAGES_TARGET_VALUES.join(', ')}`)
@@ -75,9 +44,8 @@ export const coerceComicImageScalars = (parsed: ComicParsedArgs) => {
     output.panelsPerImage = Number(panelsPerImage)
   }
   if (grid !== undefined) output.grid = parseComicGridSpec(grid)
-  if (variation !== undefined) output.variations = parseImagePromptVariations(variation)
   if (enabledFlag(parsed, 'force') === true) output.force = true
-  assignSharedImageOptions(parsed, output)
+  assignSharedImageRenderOptions(parsed, output)
 
-  return { output, qaOnly, blockingHardKeys, blockingLayoutGuide, continuityQa, continuityOnly, labels, trustedAnchorPanel, revisionPlan, comparisonPasses, promote }
+  return output
 }

@@ -1,11 +1,8 @@
 import { boolFlag, formatProviderList, formatValueList, pickFlags, prefixFlagDescriptions, strFlag, strListFlag, withHelpGroup } from './flag-utils'
-import { COMIC_IMAGE_PROVIDER_TARGETS, COMIC_LLM_PROVIDER_TARGETS, COMIC_QA_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
+import { COMIC_IMAGE_PROVIDER_TARGETS, COMIC_LLM_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import { ttsCommandFlags } from './tts-flags'
 import { colorizeHelpDescription } from '~/cli/help-colors'
-import {
-  DEFAULT_LLM_MODEL,
-  DEFAULT_QA_MODEL
-} from '~/cli/commands/visuals/comic/comic-utils/cli-args'
+import { DEFAULT_LLM_MODEL } from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import {
   DEFAULT_TREATMENT_CATALOG_POLICY,
   DEFAULT_TREATMENT_PANEL_COUNT,
@@ -19,8 +16,6 @@ import {
   DEFAULT_IMAGE_MODEL,
   IMAGE_SIZE_HELP
 } from '~/cli/commands/visuals/comic/comic-utils/image-size'
-import { IMAGE_PROMPT_VARIATIONS } from '~/cli/commands/visuals/comic/comic-commands/generate-images/prompt-variations'
-import { BLOCKING_HARD_CANDIDATE_STATUSES } from '~/cli/commands/visuals/comic/schemas/blocking-plan-schemas'
 import {
   COMIC_GRID_PANEL_SIZE,
   DEFAULT_FINAL_PANELS_PER_IMAGE,
@@ -32,7 +27,7 @@ import { sharedConcurrencyFlags, stepConcurrencyFlag } from './shared-flags'
 import { REFERENCE_LOCATION_ONLY_FLAGS } from './reference-option-contract'
 import { COMIC_AUDIO_DELIVERY_POLICIES, COMIC_AUDIO_MODES, COMIC_AUDIO_PACING_PROFILES, COMIC_SOUNDSCAPE_TIMING_POLICIES, DEFAULT_COMIC_AUDIO_DELIVERY_POLICY, DEFAULT_COMIC_AUDIO_MODE, DEFAULT_COMIC_AUDIO_PACING_PROFILE, DEFAULT_COMIC_SOUNDSCAPE_TIMING_POLICY } from './comic-audio-contract'
 import { SFX_PROVIDER_FLAG_CHOICES } from '~/cli/commands/audio/tts/soundscape/sfx-provider-targets'
-import { COMIC_REVISION_PROMOTION_POLICIES, DRAFT_SCENES_ONLY_VALUES } from './comic-stage-contract'
+import { DRAFT_SCENES_ONLY_VALUES } from './comic-stage-contract'
 import { DEFAULT_IMAGE_QUALITY, DEFAULT_IMAGE_SIZE } from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-image-run-defaults'
 
 const comicPriceFlag = {
@@ -47,7 +42,7 @@ const comicConcurrencyFlag = pickFlags(sharedConcurrencyFlags, ['provider-concur
 // auxiliary role gets its own --<role>-provider, following the existing --sfx-provider precedent.
 const comicImageFlags = {
   provider: {
-    description: colorizeHelpDescription(`Image provider[=model]: ${formatProviderList(COMIC_IMAGE_PROVIDER_TARGETS)}; repeatable, and an omitted model selects that provider's cheapest registered model`),
+    description: colorizeHelpDescription(`Exactly one image provider[=model] per run: ${formatProviderList(COMIC_IMAGE_PROVIDER_TARGETS)}; an omitted model selects that provider's cheapest registered model`),
     type: [String] as [StringConstructor],
     default: [`openai=${DEFAULT_IMAGE_MODEL}`]
   },
@@ -55,45 +50,14 @@ const comicImageFlags = {
   quality: strFlag(colorizeHelpDescription(`Image quality: ${IMAGE_GENERATION_QUALITIES.join('|')}; supported values depend on the selected model`))
 } as const satisfies CliFlagsDefinition
 
-const comicQaFlags = {
-  qa: {
-    description: colorizeHelpDescription('Enable or disable final-image QA'),
-    type: Boolean,
-    negatable: true,
-    default: true
-  },
-  'qa-only': boolFlag(colorizeHelpDescription('Judge existing canonical individual panels without generating, repairing, or promoting images')),
-  'qa-provider': strFlag(colorizeHelpDescription(`Vision judge provider[=model]: ${formatProviderList(COMIC_QA_PROVIDER_TARGETS)} (vision-capable LLMs only); an omitted model selects that provider's cheapest registered model`), `openai=${DEFAULT_QA_MODEL}`),
-  'max-repairs': strFlag(colorizeHelpDescription('Non-negative integer repair limit after the initial image; stagnation may restart once or stop early'), '2')
-} as const satisfies CliFlagsDefinition
-
-const generateImagesBlooperFlags = {
-  bloopers: boolFlag(colorizeHelpDescription('Copy every non-promoted panel attempt into output/bloopers/ with a provenance sidecar for the blooper reel; opt-in and governed by the project policy for retaining failed attempts')),
-} as const satisfies CliFlagsDefinition
-
 const generateImagesUnattendedFlags = {
   'stop-on-provider-error': boolFlag(colorizeHelpDescription('Abort the remaining panels on the first provider error instead of continuing; already written attempts are preserved and the run exits non-zero')),
-  'credit-preflight': boolFlag(colorizeHelpDescription('Verify the provider credential and account credit with one zero-cost models request before any paid call; in --price mode it only reports that it would run')),
-} as const satisfies CliFlagsDefinition
-
-const generateImagesBlockingFlags = {
-  'blocking-hard-keys': strFlag(colorizeHelpDescription(`Blocking audit statuses promoted from advisory to hard QA failures as a comma list: ${BLOCKING_HARD_CANDIDATE_STATUSES.join('|')}; default empty leaves every blocking status advisory`)),
-  'blocking-layout-guide': boolFlag(colorizeHelpDescription('Attach the compiled screen-space marker guide to dense single-panel blocking requests; experimental and off by default')),
 } as const satisfies CliFlagsDefinition
 
 const draftScenesStageFlags = {
-  only: strFlag(colorizeHelpDescription(`Run one stage: ${formatValueList(DRAFT_SCENES_ONLY_VALUES)}; default: all stages`)),
-  blocking: {
-    description: colorizeHelpDescription('Enable or disable the blocking-plan stage in a full run; --no-blocking drafts the scene plan-free'),
-    type: Boolean,
-    negatable: true,
-    default: true
-  },
-  'blocking-plan': strFlag(colorizeHelpDescription('Import a hand-authored blocking plan JSON for the blocking stage instead of drafting one; makes no provider call')),
-  rebind: boolFlag(colorizeHelpDescription('Remap the existing blocking plan citations to the current structured script by segment content hash and report unresolved ones; requires --only blocking and makes no provider call')),
-  'reconcile-from-directives': boolFlag(colorizeHelpDescription('Apply the script\'s CAMERA, BREAK-180, COSTUME, and EXTRAS staging directives to the reviewed scene and blocking plan without an LLM call; panel splits and merges are rejected')),
+  only: strFlag(colorizeHelpDescription(`Run one stage: ${formatValueList(DRAFT_SCENES_ONLY_VALUES)}; prepare builds the structured script and draft prompt locally; default: all stages`)),
   'panel-count': strFlag(colorizeHelpDescription(`Require 1-${MAX_TREATMENT_PANEL_COUNT} panels from the scene stage, one per authored [Panel N] note in order, with one validator retry; default: no fixed count`)),
-  provider: strFlag(colorizeHelpDescription(`LLM provider[=model] for blocking-plan and scene drafting: ${formatProviderList(COMIC_LLM_PROVIDER_TARGETS)}; an omitted model selects that provider's cheapest registered model`), `openai=${DEFAULT_LLM_MODEL}`)
+  provider: strFlag(colorizeHelpDescription(`LLM provider[=model] for scene drafting: ${formatProviderList(COMIC_LLM_PROVIDER_TARGETS)}; an omitted model selects that provider's cheapest registered model; rejected with --only prepare`), `openai=${DEFAULT_LLM_MODEL}`)
 } as const satisfies CliFlagsDefinition
 
 export const draftScenesFlags = {
@@ -133,16 +97,6 @@ const generateImagesPanelFlags = {
   grid: strFlag(colorizeHelpDescription(`Compose individual final panels into local page grids as <columns>x<rows>; requires --panels-per-image 1 and --size ${COMIC_GRID_PANEL_SIZE}`))
 } as const satisfies CliFlagsDefinition
 
-const generateImagesVariationFlag = {
-  variation: strFlag(colorizeHelpDescription(`Final-image prompt variations as name[,name...]: ${IMAGE_PROMPT_VARIATIONS.join('|')}; default: canonical`))
-} as const satisfies CliFlagsDefinition
-
-const generateImagesRevisionFlags = {
-  'revision-plan': strFlag(colorizeHelpDescription('Schema-validated, hash-bound targeted panel revision plan')),
-  'comparison-passes': { ...strFlag(colorizeHelpDescription('Compatibility override for the fixed two order-swapped revision judgments; only 2 is supported')), help: { hidden: true } },
-  promote: strFlag(colorizeHelpDescription(`Revision promotion policy: ${formatValueList(COMIC_REVISION_PROMOTION_POLICIES)}; revision mode requires clear-winners`)),
-} as const satisfies CliFlagsDefinition
-
 const generateImagesForceFlag = {
   force: {
     description: colorizeHelpDescription('Regenerate and overwrite image outputs only'),
@@ -153,29 +107,13 @@ const generateImagesForceFlag = {
   }
 } as const satisfies CliFlagsDefinition
 
-const generateImagesContinuityFlags = {
-  'continuity-qa': boolFlag(colorizeHelpDescription('Run the audit-only continuity judge beside the page judge; requires --qa-only')),
-  'continuity-only': boolFlag(colorizeHelpDescription('Skip the page judge and run only the continuity judge; requires --continuity-qa')),
-  labels: strFlag(colorizeHelpDescription('Human continuity labels JSON in the qa/continuity-labels.json shape; adds per-key precision and recall to the continuity report and requires --continuity-qa')),
-  'trusted-anchor-panel': strFlag(colorizeHelpDescription('Panel number the continuity audit anchors on instead of the labels file value or panel 1; requires --continuity-qa')),
-} as const satisfies CliFlagsDefinition
-
 export const generateImagesFlags = {
   ...withHelpGroup(generateImagesPanelFlags, 'comic-panels'),
   ...withHelpGroup({ provider: comicImageFlags.provider }, 'comic-image'),
-  ...withHelpGroup(generateImagesVariationFlag, 'comic-image'),
-  ...withHelpGroup(generateImagesRevisionFlags, 'comic-image'),
   ...withHelpGroup({
     size: strFlag(colorizeHelpDescription(`Image size: ${IMAGE_SIZE_HELP}; default: ${DEFAULT_IMAGE_SIZE}`)),
     quality: strFlag(`${comicImageFlags.quality.description}; default: ${DEFAULT_IMAGE_QUALITY}`),
   }, 'comic-image'),
-  ...withHelpGroup({
-    ...comicQaFlags,
-    'max-repairs': strFlag(colorizeHelpDescription('Non-negative integer repair limit; default: 2 for generation, 0 for --qa-only or --revision-plan; stagnation may stop early')),
-  }, 'comic-qa'),
-  ...withHelpGroup(generateImagesBlockingFlags, 'comic-qa'),
-  ...withHelpGroup(generateImagesContinuityFlags, 'comic-qa'),
-  ...withHelpGroup(generateImagesBlooperFlags, 'comic-run'),
   ...withHelpGroup(generateImagesUnattendedFlags, 'comic-run'),
   ...withHelpGroup(generateImagesForceFlag, 'comic-run'),
   ...withHelpGroup(comicConcurrencyFlag, 'comic-run'),
@@ -228,25 +166,15 @@ export const comicGenerateSlideshowFlags = {
   ...withHelpGroup(comicPresentationPriceFlag, 'pricing'),
 } as const satisfies CliFlagsDefinition
 
-const comicReviewNotesInputFlags = {
-  notes: strFlag(colorizeHelpDescription('Markdown review-notes file whose ### Panel NN headings hold the notes for each reviewed panel'))
-} as const satisfies CliFlagsDefinition
-
-export const comicReviewNotesFlags = {
-  ...withHelpGroup(comicReviewNotesInputFlags, 'comic-review')
-} as const satisfies CliFlagsDefinition
-
-const comicReviewSheetInputFlags = {
+const comicReviewInputFlags = {
+  run: strFlag(colorizeHelpDescription('Image run ID whose individual panel candidates are shown beside the current selection; reported by comic generate-images')),
+  use: boolFlag(colorizeHelpDescription('Adopt the --run candidates as the selected panels; requires --run')),
+  panels: strFlag(colorizeHelpDescription('Panels to adopt with --use: all, 1-8, 1,3,7, or 1-4,9; default: all declared scene panels, and a subset run requires an explicit list')),
   'export-doc': boolFlag(colorizeHelpDescription('Also write metadata/review/export-doc.md with one "### Panel NN" heading and image line per panel for a shared document'))
 } as const satisfies CliFlagsDefinition
 
-export const comicReviewSheetFlags = {
-  ...withHelpGroup(comicReviewSheetInputFlags, 'comic-review')
-} as const satisfies CliFlagsDefinition
-
 export const comicReviewFlags = {
-  ...comicReviewNotesFlags,
-  ...comicReviewSheetFlags,
+  ...withHelpGroup(comicReviewInputFlags, 'comic-review')
 } as const satisfies CliFlagsDefinition
 
 const referenceSketchSheetFlags = {
@@ -272,7 +200,6 @@ export const referenceSketchFlags = prefixFlagDescriptions({
     size: strFlag(colorizeHelpDescription(`Image size: ${IMAGE_SIZE_HELP}; default: 1024x1536 for characters, 1536x1024 for locations`)),
     quality: strFlag(`${comicImageFlags.quality.description}; default: medium for characters, high for locations`),
   }, 'comic-image'),
-  ...withHelpGroup(pickFlags(comicQaFlags, ['qa', 'qa-provider', 'max-repairs']), 'comic-qa'),
   ...withHelpGroup(comicConcurrencyFlag, 'comic-run'),
   ...withHelpGroup(comicPriceFlag, 'pricing')
 } as const satisfies CliFlagsDefinition, REFERENCE_LOCATION_ONLY_FLAGS, 'Location only: ')

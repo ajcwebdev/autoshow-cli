@@ -205,6 +205,18 @@ describe('provider selection contracts', () => {
     ])
   })
 
+  test('deprecated AssemblyAI Universal-3.5 Pro stays explicitly selectable but leaves the bare default and --all-stt', () => {
+    const bare = buildOptsFromFlags({ 'assemblyai-stt': true })
+    const explicit = buildOptsFromFlags({ 'assemblyai-stt': ['universal-3-5-pro'] })
+    const allWithExplicit = buildOptsFromFlags({ 'all-stt': true, 'assemblyai-stt': ['universal-3-5-pro'] })
+    const assemblyaiModels = (opts: ReturnType<typeof buildOptsFromFlags>) =>
+      collectSttTargets(opts).filter((target) => target.service === 'assemblyai').map((target) => target.model)
+
+    expect(assemblyaiModels(bare)).toEqual(['assemblyai-stt-3-7'])
+    expect(assemblyaiModels(explicit)).toEqual(['universal-3-5-pro'])
+    expect(assemblyaiModels(allWithExplicit)).toEqual(['assemblyai-stt-3-7', 'universal-3-5-pro'])
+  })
+
   test('--all-stt registry expansion excludes local providers and leaves ScrapeCreators to source-aware YouTube expansion', () => {
     const opts = buildOptsFromFlags({ 'all-stt': true })
     const services = collectSttTargets(opts).map((target) => target.service)
@@ -220,7 +232,7 @@ describe('provider selection contracts', () => {
     expect(scrapeCreatorsTargets).toEqual([])
     expect(collectSttTargets(opts).filter((target) => target.service === 'deepgram').map((target) => target.model)).toEqual(['nova-3'])
     expect(collectSttTargets(opts).filter((target) => target.service === 'assemblyai').map((target) => target.model)).toEqual([
-      'universal-3-5-pro'
+      'assemblyai-stt-3-7'
     ])
     expect(collectSttTargets(opts).filter((target) => target.service === 'together').map((target) => target.model)).toEqual([
       'openai/whisper-large-v3',

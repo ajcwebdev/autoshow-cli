@@ -47,7 +47,7 @@ const prettyMimeList = (mimeTypes: readonly string[]): string =>
 export const isHttpUrl = imageReferenceEngine.isHttpUrl
 
 const unsupportedReferenceMessage = (
-  flagName: '--input' | '--mask',
+  flagName: '--input',
   value: string,
   provider: string,
   model: string,
@@ -72,32 +72,49 @@ export const validateImageInputReferences = (
   })
 }
 
-export const validateImageMaskReference = (
-  mask: string | undefined,
-  options: {
-    provider: string
-    model: string
-    allowedMimeTypes: readonly string[]
-  }
-): void => {
+export const validateOpenAIImageMask = (mask: string | undefined, inputs: readonly string[] | undefined, model: string): void => {
   if (mask === undefined) return
+  if (!inputs?.length) throw UsageError('--mask requires at least one --input reference image.')
   if (isHttpUrl(mask) || imageReferenceEngine.isDataUrl(mask)) {
-    throw UsageError(`--mask must be a local image file for ${options.provider}/${options.model}.`)
+    throw UsageError(`--mask must be a local image file for OpenAI/${model}.`)
   }
   imageReferenceEngine.validateReferences([mask], {
-    allowedMimeTypes: options.allowedMimeTypes,
-    missingFileError: value => `--mask file "${value}" does not exist for ${options.provider}/${options.model}.`,
-    unsupportedMimeError: value => unsupportedReferenceMessage('--mask', value, options.provider, options.model, options.allowedMimeTypes)
+    allowedMimeTypes: ['image/png'],
+    missingFileError: value => `--mask file "${value}" does not exist for OpenAI/${model}.`,
+    unsupportedMimeError: () => `--mask must be a local PNG file for OpenAI/${model}.`
   })
+  if (Bun.file(mask).size >= 4 * 1024 * 1024) throw UsageError('--mask must be smaller than 4 MB.')
 }
 
-export const appendImageReferenceToForm = async (
-  form: FormData,
-  fieldName: string,
-  value: string
-): Promise<void> => {
-  const { bytes, mimeType, fileName } = await imageReferenceEngine.resolveBytes(value)
-  form.append(fieldName, new Blob([bytes], { type: mimeType }), fileName)
+const pngHasAlpha = (bytes: Uint8Array): boolean => {
+  const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  if (buffer[25] === 4 || buffer[25] === 6) return true // Grayscale + alpha or RGBA in IHDR.
+  for (let offset = 8; offset + 12 <= buffer.length; offset += 12 + buffer.readUInt32BE(offset)) {
+    const type = buffer.toString('ascii', offset + 4, offset + 8)
+    if (type === 'tRNS') return true
+    if (type === 'IDAT') break
+  }
+  return false
+}
+
+export const appendOpenAIEditInputs = async (form: FormData, inputs: readonly string[], mask?: string): Promise<void> => {
+  const fieldName = inputs.length > 1 ? 'image[]' : 'image'
+  for (const [index, input] of inputs.entries()) {
+    const { bytes, mimeType, fileName } = await imageReferenceEngine.resolveBytes(input)
+    form.append(fieldName, new Blob([bytes], { type: mimeType }), fileName)
+    if (index === 0 && mask !== undefined) {
+      const { bytes: maskBytes, fileName: maskName } = await imageReferenceEngine.resolveBytes(mask)
+      const maskImage = new Bun.Image(maskBytes)
+      const [source, maskInfo] = await Promise.all([new Bun.Image(bytes).metadata(), maskImage.metadata()])
+        .catch(() => { throw UsageError('Masked edits require a readable first input image and PNG mask.') })
+      if (maskInfo.format !== 'png' || !pngHasAlpha(maskBytes)) throw UsageError('--mask must be a PNG with an alpha channel.')
+      if (maskInfo.width !== source.width || maskInfo.height !== source.height) {
+        throw UsageError(`--mask dimensions ${maskInfo.width}x${maskInfo.height} must match the first --input image (${source.width}x${source.height}).`)
+      }
+      await maskImage.resize(1, 1).png().bytes().catch(() => { throw UsageError('--mask must be a decodable PNG.') })
+      form.append('mask', new Blob([maskBytes], { type: 'image/png' }), maskName)
+    }
+  }
 }
 
 export const imageReferenceToDataUrl = async (value: string): Promise<string> =>
@@ -116,6 +133,5 @@ export const imageReferenceToInlineDataPart = async (value: string): Promise<Gem
 }
 
 export const OPENAI_IMAGE_INPUT_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
-export const OPENAI_IMAGE_MASK_MIME_TYPES = ['image/png'] as const
 export const GROK_IMAGE_INPUT_MIME_TYPES = ['image/png', 'image/jpeg'] as const
 export const GEMINI_IMAGE_INPUT_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif'] as const

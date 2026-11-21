@@ -5,8 +5,10 @@ import { basename, dirname, join } from 'node:path'
 import { readInputList } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-collection'
 import { childEnv } from '~/utils/child-env'
 import { readJsonCacheMap } from '~/utils/file-fingerprint-cache'
+import { RUNTIME_CACHE_DIR, RUNTIME_TEMP_DIR } from '~/utils/runtime-state'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 import { buildChildEnv } from '../../../../test-utils/test-command-options'
+import { runCommand } from '../../../../test-utils/test-helpers'
 
 const BATCH_LIST_CACHE_NAME = 'autoshow-batch-list-cache.json'
 
@@ -25,6 +27,8 @@ const runChild = async (args: string[], env: Record<string, string | undefined>)
 describe('test-runner contracts', () => {
   test('each test process runs inside a private temp root', () => {
     expect(basename(tmpdir())).toStartWith('autoshow-test-tmp-')
+    expect(tmpdir()).toStartWith(`${RUNTIME_TEMP_DIR}/`)
+    expect(RUNTIME_CACHE_DIR).toBe(join(tmpdir(), 'cache'))
   })
 
   test('batch-list cache entries from tests and their CLI children stay out of the enclosing temp cache', async () => {
@@ -42,8 +46,8 @@ describe('test-runner contracts', () => {
       ], buildChildEnv(undefined))
       expect(JSON.parse(childOutput)).toEqual(['https://example.com/child'])
 
-      const privateKeys = Object.keys(await readJsonCacheMap(join(tmpdir(), BATCH_LIST_CACHE_NAME)))
-      const enclosingKeys = Object.keys(await readJsonCacheMap(join(dirname(tmpdir()), BATCH_LIST_CACHE_NAME)))
+      const privateKeys = Object.keys(await readJsonCacheMap(join(RUNTIME_CACHE_DIR, BATCH_LIST_CACHE_NAME)))
+      const enclosingKeys = Object.keys(await readJsonCacheMap(join(dirname(tmpdir()), 'cache', BATCH_LIST_CACHE_NAME)))
       expect(privateKeys).toContain(inProcessList)
       expect(privateKeys).toContain(childList)
       expect(enclosingKeys).not.toContain(inProcessList)
@@ -58,5 +62,14 @@ describe('test-runner contracts', () => {
     expect(dirname(childRoot)).toBe(tmpdir())
     expect(basename(childRoot)).toStartWith('autoshow-test-tmp-')
     expect(existsSync(childRoot)).toBe(false)
+  })
+
+  test('CLI command subprocesses use the bootstrap executable without a global runtime on PATH', async () => {
+    const result = await runCommand(['-e', 'process.stdout.write(JSON.stringify({ executable: process.execPath, temp: require("node:os").tmpdir() }))'], {
+      env: { PATH: '/usr/bin:/bin' },
+      testName: 'bootstrap command with OS-only PATH'
+    })
+    expect(result.exitCode).toBe(0)
+    expect(JSON.parse(result.stdout)).toEqual({ executable: process.execPath, temp: tmpdir() })
   })
 })

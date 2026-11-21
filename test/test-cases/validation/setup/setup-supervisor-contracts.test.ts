@@ -1,7 +1,19 @@
 import { expect, test } from 'bun:test'
-import { buildSetupChildEnv } from '~/cli/create-cli'
+import { buildSetupChildEnv, shouldRelaunchSetupWithNoOrphans } from '~/cli/create-cli'
 import { buildHostedProviderConfigurationRows, buildSetupProviderPresence, SETUP_PROVIDER_PRESENCE_ENV, setupProviderSummaryEnvironment, summarizeHostedProviderRows } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import { withEnv } from '../../../test-utils/rest-contract-helpers'
+
+test('setup previews and diagnostics stay in the read-only invocation', () => {
+  for (const flags of [['--dry-run'], ['--dry-run=true'], ['--doctor'], ['--doctor', '--strict'], ['--show']]) {
+    expect(shouldRelaunchSetupWithNoOrphans(['setup', ...flags], {}, false)).toBe(false)
+  }
+  expect(shouldRelaunchSetupWithNoOrphans(['setup'], {}, false)).toBe(true)
+  expect(shouldRelaunchSetupWithNoOrphans(['setup', '--step', 'rendering'], {}, false)).toBe(true)
+  for (const flags of [['--dry-run=false'], ['--doctor=false'], ['--dry-run', '--dry-run=false']]) {
+    expect(shouldRelaunchSetupWithNoOrphans(['setup', ...flags], {}, false)).toBe(true)
+  }
+  expect(shouldRelaunchSetupWithNoOrphans(['setup', '--dry-run=false', '--dry-run'], {}, false)).toBe(false)
+})
 
 test('setup supervisor preserves normalized key presence without forwarding credentials to setup or tools', async () => {
   await withEnv({ OPENAI_API_KEY: 'opaque-supervisor-secret', GEMINI_API_KEY: '  ', ELEVENLABS_API_KEY: 'your_elevenlabs_api_key_here' }, async () => {

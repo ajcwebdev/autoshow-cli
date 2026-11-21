@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { detectDocumentFormat } from '~/cli/commands/sources/metadata/formats/metadata-detect-format'
 import {
   classifyExistingLocalInputFamily,
@@ -97,7 +98,7 @@ const throwRoutingFailure = (
 ): never => {
   switch (failure) {
     case 'missing':
-      throw UsageError(`Input does not exist: ${item}. Run: bun autoshow help ${command}`)
+      throw UsageError(`Input does not exist: ${item}. Run: ${CLI_INVOCATION} help ${command}`)
     case 'unrecognized-extract':
       return throwUnrecognizedExtractInput(item)
     case 'download-passthrough':

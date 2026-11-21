@@ -97,6 +97,12 @@ function supportedStats(model: CombinedDashboardModel): SummaryStat[] {
     counts.set("Local", String(providerCount(model.groups, "local")));
     counts.set("Non-diarization", String(providerCount(model.groups, "thirdPartyServiceNonDiarization")));
     counts.set("Diarization", String(providerCount(model.groups, "thirdPartyServiceDiarization")));
+  } else if (model.category === "stt-settings") {
+    counts.set("Variants", String(providerCount(model.groups)));
+    // Recording and scoring facts do not depend on which variants are visible.
+    for (const stat of model.summaryStats) {
+      if (stat.label === "Recordings" || stat.label === "Scoring version") counts.set(stat.label, stat.value);
+    }
   } else if (model.category === "url") {
     const rows = model.groups.flatMap(group => group.providers);
     const coverage = rows.map(row => /^(\d+)\/\d+$/.exec(row.coverage));

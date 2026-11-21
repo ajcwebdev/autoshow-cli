@@ -2,7 +2,6 @@ export type CharacterIdentityReference = {
   key: string
   name: string
   description: string
-  distinguishFrom?: Array<{ characterKey: string; cue: string }>
   referenceIndex: number
   path: string
 }

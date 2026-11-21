@@ -10,7 +10,7 @@ describe('option resolution contracts', () => {
     for (const args of [['--generate-audio'], ['--reference-audio', 'https://fixtures.example/reference.mp3']]) {
       expect(() => parseCommandInvocation(['video', 'a prompt', ...args], commandNamed('video'), GLOBAL_FLAG_DEFINITIONS)).toThrow(`Unexpected flag: ${args[0]}`)
     }
-    for (const [selector, model] of [['gemini-video', 'gemini-omni-1.1-flash'], ['grok-video', 'grok-imagine-video-1.5']] as const) {
+    for (const [selector, model] of [['gemini-video', 'gemini-omni-1.2-flash'], ['grok-video', 'grok-imagine-video-1.5']] as const) {
       expect(collectVideoTargets(buildOptsFromFlags({ [selector]: model }))).toHaveLength(1)
     }
     const image = 'https://fixtures.example/reference.png'
@@ -20,9 +20,10 @@ describe('option resolution contracts', () => {
   test('retired video selectors fail with replacement guidance', () => {
     for (const [provider, model, replacement] of [
       ['grok', 'grok-imagine-video', 'grok-imagine-video-1.5'],
-      ['gemini', 'veo-3.1-generate-preview', 'gemini-omni-1.1-flash'],
-      ['gemini', 'veo-3.1-fast-generate-preview', 'gemini-omni-1.1-flash'],
-      ['gemini', 'veo-3.1-lite-generate-preview', 'gemini-omni-1.1-flash']
+      ['gemini', 'veo-3.1-generate-preview', 'gemini-omni-1.2-flash'],
+      ['gemini', 'veo-3.1-fast-generate-preview', 'gemini-omni-1.2-flash'],
+      ['gemini', 'veo-3.1-lite-generate-preview', 'gemini-omni-1.2-flash'],
+      ['gemini', 'gemini-omni-1.1-flash', 'gemini-omni-1.2-flash']
     ] as const) {
       expect(() => buildOptsFromFlags({
         [`${provider}-video`]: model
@@ -34,16 +35,16 @@ describe('option resolution contracts', () => {
       const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
 
       expect(() => collectVideoTargets(buildOptsFromFlags({
-        'gemini-video': 'gemini-omni-1.1-flash',
+        'gemini-video': 'gemini-omni-1.2-flash',
         'input-image': imageDataUrl
       }))).toThrow('--input-image is not valid with --mode text')
 
       expect(collectVideoTargets(buildOptsFromFlags({
-        'gemini-video': 'gemini-omni-1.1-flash'
+        'gemini-video': 'gemini-omni-1.2-flash'
       })).map(target => target.service)).toEqual(['gemini'])
 
       expect(collectVideoTargets(buildOptsFromFlags({
-        'gemini-video': 'gemini-omni-1.1-flash',
+        'gemini-video': 'gemini-omni-1.2-flash',
         'mode': 'image-to-video',
         'input-image': imageDataUrl
       })).map(target => target.service)).toEqual(['gemini'])
@@ -55,7 +56,7 @@ describe('option resolution contracts', () => {
       }))).toThrow('--reference-image supports at most 5 images')
 
       expect(() => collectVideoTargets(buildOptsFromFlags({
-        'gemini-video': 'gemini-omni-1.1-flash',
+        'gemini-video': 'gemini-omni-1.2-flash',
         'mode': 'interpolate',
         'input-image': imageDataUrl
       }))).toThrow('--mode interpolate requires --last-frame')
@@ -75,7 +76,7 @@ describe('option resolution contracts', () => {
         'reference-image': imageDataUrl
       }))
       expect(allReferenceTargets.map(target => `${target.service}/${target.model}`)).toEqual([
-        'gemini/gemini-omni-1.1-flash',
+        'gemini/gemini-omni-1.2-flash',
         'grok/grok-imagine-video-1.5'
       ])
     })
@@ -85,30 +86,30 @@ describe('option resolution contracts', () => {
       const videoDataUrl = `data:video/mp4;base64,${Buffer.from([4, 5, 6]).toString('base64')}`
 
       expect(collectVideoTargets(buildOptsFromFlags({
-        'gemini-video': 'gemini-omni-1.1-flash',
+        'gemini-video': 'gemini-omni-1.2-flash',
         'resolution': '4k'
       })).map(target => `${target.service}/${target.model}`)).toEqual([
-        'gemini/gemini-omni-1.1-flash'
+        'gemini/gemini-omni-1.2-flash'
       ])
 
       expect(collectVideoTargets(buildOptsFromFlags({
-        'gemini-video': 'gemini-omni-1.1-flash',
+        'gemini-video': 'gemini-omni-1.2-flash',
         'mode': 'reference-to-video',
         'reference-image': imageDataUrl
       })).map(target => `${target.service}/${target.model}`)).toEqual([
-        'gemini/gemini-omni-1.1-flash'
+        'gemini/gemini-omni-1.2-flash'
       ])
 
       expect(collectVideoTargets(buildOptsFromFlags({
-        'gemini-video': 'gemini-omni-1.1-flash',
+        'gemini-video': 'gemini-omni-1.2-flash',
         'mode': 'extend',
         'input-video': videoDataUrl
       })).map(target => `${target.service}/${target.model}`)).toEqual([
-        'gemini/gemini-omni-1.1-flash'
+        'gemini/gemini-omni-1.2-flash'
       ])
 
       expect(() => collectVideoTargets(buildOptsFromFlags({
-        'gemini-video': 'gemini-omni-1.1-flash',
+        'gemini-video': 'gemini-omni-1.2-flash',
         'aspect-ratio': '1:1'
       }))).toThrow('Expected 16:9 or 9:16')
 
@@ -132,13 +133,13 @@ describe('option resolution contracts', () => {
         'input-image': imageDataUrl
       })).map(target => `${target.service}/${target.model}`)
 
-      expect(targets).toContain('gemini/gemini-omni-1.1-flash')
+      expect(targets).toContain('gemini/gemini-omni-1.2-flash')
       expect(targets).toContain('grok/grok-imagine-video-1.5')
       expect(targets).not.toContain('gemini/veo-3.1-fast-generate-preview')
     })
 
   test('video artifact names use the single-file name or a sanitized multi-target name', () => {
-      expect(getVideoArtifactFileName({ service: 'gemini', model: 'gemini-omni-1.1-flash' }, true)).toBe('generated-video.mp4')
-      expect(getVideoArtifactFileName({ service: 'gemini', model: 'gemini-omni-1.1-flash' }, false)).toBe('generated-video-gemini-gemini-omni-1.1-flash.mp4')
+      expect(getVideoArtifactFileName({ service: 'gemini', model: 'gemini-omni-1.2-flash' }, true)).toBe('generated-video.mp4')
+      expect(getVideoArtifactFileName({ service: 'gemini', model: 'gemini-omni-1.2-flash' }, false)).toBe('generated-video-gemini-gemini-omni-1.2-flash.mp4')
     })
 })

@@ -16,7 +16,6 @@ export type HostedConcurrencyWorkClass =
   | 'music'
   | 'comic-llm'
   | 'comic-image'
-  | 'comic-qa'
   | 'sound-effect'
   | (string & {})
 

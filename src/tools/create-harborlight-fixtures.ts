@@ -1,11 +1,14 @@
-/** Reproduce original Harborlight raster/PDF fixtures locally, without API calls or downloads. */
+/** Reproduce original Harborlight raster/PDF fixtures using managed local tools without API calls. */
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { PROJECT_ROOT } from '~/utils/project-root'
+import { getImageMagickBinary } from '~/utils/runtime-paths'
+import { RUNTIME_TEMP_DIR } from '~/utils/runtime-state'
+import { childEnv } from '~/utils/child-env'
 import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { ensureManagedFixtureBrowser } from './managed-fixture-browser'
 
 type PdfPage = { content: string, chapter?: string | undefined }
 
@@ -86,17 +89,6 @@ const createPdf = (markdown: string): Uint8Array => {
   return Buffer.from(output)
 }
 
-const findBrowser = (): string => {
-  const browser = [
-    process.env['AUTOSHOW_FIXTURE_BROWSER'],
-    Bun.which('chromium'), Bun.which('chromium-browser'), Bun.which('google-chrome'), Bun.which('microsoft-edge'),
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'
-  ].find((candidate): candidate is string => typeof candidate === 'string' && existsSync(candidate))
-  if (!browser) throw InfraError('A local Chromium/Chrome/Edge browser is required for SVG rasterization. Set AUTOSHOW_FIXTURE_BROWSER to its executable; no browser is downloaded.')
-  return browser
-}
-
 const renderSvg = (browser: string, temporary: string, source: string, target: string, mask = false): void => {
   const svg = readFileSync(sourcePath(source), 'utf8')
   const width = /\bwidth="(\d+)"/.exec(svg)?.[1]
@@ -109,20 +101,22 @@ const renderSvg = (browser: string, temporary: string, source: string, target: s
     '--no-default-browser-check', '--hide-scrollbars', '--force-device-scale-factor=1',
     `--user-data-dir=${join(temporary, 'browser-profile')}`,
     `--screenshot=${screenshot}`, `--window-size=${width},${height}`, Bun.pathToFileURL(sourcePath(source)).href
-  ], { stdio: 'pipe', timeout: 20_000 })
-  execFileSync('magick', [screenshot, ...(mask ? ['-colorspace', 'Gray', '-alpha', 'off', '-alpha', 'copy', '-colorspace', 'sRGB', '-define', 'png:color-type=6'] : []), '-strip', sourcePath(target)], { stdio: 'pipe' })
+  ], { stdio: 'pipe', timeout: 20_000, env: childEnv() })
+  execFileSync(getImageMagickBinary(), [screenshot, ...(mask ? ['-colorspace', 'Gray', '-alpha', 'off', '-alpha', 'copy', '-colorspace', 'sRGB', '-define', 'png:color-type=6'] : []), '-strip', sourcePath(target)], { stdio: 'pipe', timeout: 20_000, env: childEnv() })
 }
 
-export const createHarborlightFixtures = (): void => {
-  try { execFileSync('magick', ['-version'], { stdio: 'pipe' }) } catch { throw InfraError('ImageMagick 7 (magick) is required to reproduce the raster fixtures; install it separately. No model or asset downloads are performed.') }
-  const browser = findBrowser()
-  const temporary = mkdtempSync(join(tmpdir(), 'autoshow-harborlight-raster-'))
+export const createHarborlightFixtures = async (): Promise<void> => {
+  const imageMagick = getImageMagickBinary()
+  try { execFileSync(imageMagick, ['-version'], { stdio: 'pipe', timeout: 20_000, env: childEnv() }) } catch { throw InfraError('Managed ImageMagick 7 is required to reproduce the raster fixtures. Run bun autoshow setup --step rendering.', { stage: 'fixtures:rendering' }) }
+  const browser = await ensureManagedFixtureBrowser()
+  mkdirSync(RUNTIME_TEMP_DIR, { recursive: true })
+  const temporary = mkdtempSync(join(RUNTIME_TEMP_DIR, 'autoshow-harborlight-raster-'))
   try {
     renderSvg(browser, temporary, 'image/harborlight-mug.svg', 'image/harborlight-mug.png')
-    execFileSync('magick', [sourcePath('image/harborlight-mug.png'), '-background', '#f3ece0', '-alpha', 'remove', '-alpha', 'off', '-quality', '92', '-strip', sourcePath('image/harborlight-mug.jpg')], { stdio: 'pipe' })
+    execFileSync(imageMagick, [sourcePath('image/harborlight-mug.png'), '-background', '#f3ece0', '-alpha', 'remove', '-alpha', 'off', '-quality', '92', '-strip', sourcePath('image/harborlight-mug.jpg')], { stdio: 'pipe', timeout: 20_000, env: childEnv() })
     // White source pixels become protected alpha=255; black pixels become editable alpha=0.
     renderSvg(browser, temporary, 'image/harborlight-mug-mask.svg', 'image/harborlight-mug-mask.png', true)
-    const maskAlpha = execFileSync('magick', [sourcePath('image/harborlight-mug-mask.png'), '-format', '%[fx:p{370,500}.a] %[fx:p{480,535}.a] %[fx:p{20,20}.a] %[fx:p{840,515}.a] %[fx:p{735,515}.a]', 'info:'], { encoding: 'utf8' }).trim()
+    const maskAlpha = execFileSync(imageMagick, [sourcePath('image/harborlight-mug-mask.png'), '-format', '%[fx:p{370,500}.a] %[fx:p{480,535}.a] %[fx:p{20,20}.a] %[fx:p{840,515}.a] %[fx:p{735,515}.a]', 'info:'], { encoding: 'utf8', timeout: 20_000, env: childEnv() }).trim()
     if (maskAlpha !== '0 1 1 0 1') throw ValidationError(`Invalid edit-mask alpha: ${maskAlpha}; expected editable body/handle and protected badge/background/hole.`)
 
     for (const name of ['start', 'end', 'jacket', 'glasses']) renderSvg(browser, temporary, `video/harborlight-${name}.svg`, `video/harborlight-${name}.png`)
@@ -137,4 +131,4 @@ export const createHarborlightFixtures = (): void => {
   writeCommandPayload('Reproduced 8 raster images and 2 text-bearing PDFs from the original Harborlight SVG/Markdown sources under input/examples/.\n')
 }
 
-if (import.meta.main) createHarborlightFixtures()
+if (import.meta.main) await createHarborlightFixtures()

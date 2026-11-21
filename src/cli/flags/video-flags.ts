@@ -5,6 +5,7 @@ import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import {
   GEMINI_DURATION_SECONDS,
+  GEMINI_MAX_REFERENCE_IMAGES,
   GEMINI_VIDEO_ASPECT_RATIOS,
   GEMINI_VIDEO_RESOLUTIONS,
   GROK_VIDEO_ASPECT_RATIOS,
@@ -27,7 +28,7 @@ export const videoGenFlags = {
   ])}. Defaults: 480p (Grok), 720p (Gemini)`),
   'input-image': strFlag('Video input image path, URL, or data URL for image-to-video and interpolation first frame'),
   'last-frame': strFlag('Video last-frame image path, URL, or data URL for interpolation'),
-  'reference-image': strListFlag('Reference image path, URL, or data URL for reference-to-video; repeat up to 3 (Gemini), 5 (Grok)'),
+  'reference-image': strListFlag(`Reference image path, URL, or data URL for reference-to-video. Accepts up to ${GEMINI_MAX_REFERENCE_IMAGES} images for Gemini or 5 for Grok`),
   'input-video': strFlag('Source MP4 path, URL, or data URL for Gemini Omni edit/extend (uploaded sources must be 10 seconds or less); use --reference-video for reference-to-video'),
   'previous-interaction-id': strFlag('Gemini Omni previous interaction id from a prior run manifest providerRequestId; used with --mode edit or --mode extend instead of re-uploading the video'),
   'reference-video': strListFlag('Reference MP4 video path, URL, or data URL; repeat up to 3 (Gemini)')

@@ -25,18 +25,15 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
     if (options.imageCount !== undefined) {
       throw unsupportedFlagError('Gemini', model, ['--count'], 'Gemini native image generation returns one image per request; omit --count.')
     }
-    if (options.imageMask !== undefined) {
-      throw unsupportedFlagError('Gemini', model, ['--mask'], 'Gemini native image editing supports reference images via --input, not masks.')
-    }
     validateImageInputReferences(options.imageInputs, {
       provider: 'Gemini',
       model,
       allowedMimeTypes: GEMINI_IMAGE_INPUT_MIME_TYPES
     })
-    assertNoUnsupportedFlags(options, ['imageQuality', 'imageFormat', 'imageBackground', 'imageCompression'], {
+    assertNoUnsupportedFlags(options, ['imageQuality', 'imageFormat', 'imageBackground', 'imageCompression', 'imageMask'], {
       provider: 'Gemini',
       model,
-      hint: 'Supported Gemini image options are --aspect-ratio, --size (Lite: 1K; Nano Banana 2.1: 1K|2K|4K), --response-mode, and --input references.'
+      hint: 'Supported Gemini image options are --aspect-ratio, --size 1K|2K|4K, --response-mode, and --input references.'
     })
 
     const request = {

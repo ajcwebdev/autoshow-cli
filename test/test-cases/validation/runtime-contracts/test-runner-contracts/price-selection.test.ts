@@ -111,6 +111,19 @@ describe('test-runner contracts', () => {
       ])
     })
 
+  test('streaming fixture transport stays outside public-network estimate selection', () => {
+    const local = 'test/test-cases/e2e/local/sources/download/download-fixture-streaming.test.ts'
+    const live = 'test/test-cases/e2e/service/sources/download/download-input-types-streaming.test.ts'
+    expect(resolvePriceSelection([local, live], ['test/test-cases/e2e/local/sources/download/']).commands).toEqual([])
+    const selected = resolvePriceSelection([local, live], [live])
+    expect(selected.commands.map(command => command.key)).toEqual([
+      'transcribe-youtube-single',
+      'transcribe-twitch',
+      'transcribe-streaming-url-list-batch-1'
+    ])
+    expect(selected.commands.every(command => command.budgetSkippable === false && command.args.includes('--price'))).toBe(true)
+  })
+
   test('price mode with no path filters resolves all mapped tests', () => {
       const selected = resolvePriceSelection([], [])
       const keys = selected.commands.map((command) => command.key)

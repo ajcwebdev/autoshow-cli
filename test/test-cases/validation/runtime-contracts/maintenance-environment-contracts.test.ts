@@ -23,6 +23,7 @@ const runProbe = async (cwd: string, noEnvFile: boolean): Promise<Record<string,
     cwd,
     env: {
       PATH: process.env['PATH'] ?? '',
+      BUN_RUNTIME_TRANSPILER_CACHE_PATH: '0',
       AUTOSHOW_EXPORTED_PROBE: 'preserved'
     },
     stdout: 'pipe',
@@ -56,22 +57,25 @@ describe('maintenance environment contracts', () => {
     }
     const scripts = packageJson.scripts ?? {}
 
-    expect(scripts['check']).toBe('bun run --parallel check:structure check:names check:types check:docs')
-    expect(scripts['check:docs']).toBe('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file test test/test-cases/validation/cli/documentation-examples.test.ts')
-    expect(scripts['check:structure']).toContain('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
-    expect(scripts['check:names']).toContain('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
+    const isolatedBun = 'env -i BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 PATH="$PATH" HOME="$HOME" bun --no-env-file'
+    expect(scripts['check']).toBe('BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun run --parallel check:structure check:names check:types check:docs')
+    expect(scripts['check:docs']).toBe(`${isolatedBun} test test/test-cases/validation/cli/documentation-examples.test.ts`)
+    expect(scripts['check:structure']).toStartWith(isolatedBun)
+    expect(scripts['check:names']).toStartWith(isolatedBun)
     expect(scripts['check:types']).toContain('bun --no-env-file node_modules/@typescript/native-preview/bin/tsgo --noEmit')
     expect(scripts['check:types:tsc']).toContain('bun --no-env-file node_modules/typescript/bin/tsc --noEmit')
     expect(scripts['check:types']).not.toContain('bunx')
     expect(scripts['check:types:tsc']).not.toContain('bunx')
+    expect(scripts['check:types']).toStartWith(isolatedBun)
+    expect(scripts['check:types:tsc']).toStartWith(isolatedBun)
     for (const name of ['repo', 'audit:ocr-tokens', 'analyze:complexity', 't:local']) {
-      expect(scripts[name]).toStartWith('env -i PATH="$PATH" HOME="$HOME" bun --no-env-file')
+      expect(scripts[name]).toStartWith(isolatedBun)
     }
-    expect(scripts['t:provider']).toBe('AUTOSHOW_TEST_CREDENTIAL_MODE=live bun --no-env-file test/test-runner.ts')
+    expect(scripts['t:provider']).toBe('BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 AUTOSHOW_TEST_CREDENTIAL_MODE=live bun --no-env-file test/test-runner.ts')
     // `t` runs live by default, so it must see configured credentials: it neither
     // clears the environment nor suppresses .env. Worker and CLI-child isolation is
     // unchanged and still enforced by childEnv's allowlist.
-    expect(scripts['t']).toBe('AUTOSHOW_TEST_CREDENTIAL_MODE=live bun --no-orphans test/test-runner.ts')
+    expect(scripts['t']).toBe('BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 AUTOSHOW_TEST_CREDENTIAL_MODE=live bun --no-orphans test/test-runner.ts')
     expect(scripts['t:local']).toContain('--no-orphans')
   })
 
@@ -84,7 +88,8 @@ describe('maintenance environment contracts', () => {
     ])
 
     expect(dockerfile).toContain('RUN bun --no-env-file install --frozen-lockfile --production')
-    expect(dockerfile).toContain('ENTRYPOINT ["bun", "--no-env-file", "/app/src/cli/create-cli.ts"]')
+    expect(dockerfile).toContain('ENTRYPOINT ["/usr/local/bin/bun", "--no-env-file", "/app/src/tools/docker-runtime-entry-bundle.js"]')
+    expect(dockerfile).toContain('BUN_RUNTIME_TRANSPILER_CACHE_PATH=0')
     expect(docs).toContain("entrypoint intentionally disables Bun's automatic `.env` loading")
     expect(docs).toContain("Docker's `--env-file` option")
     expect(docs).toContain('Already-exported container environment variables remain supported')

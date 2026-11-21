@@ -2,6 +2,7 @@ import type { ModelRegistry } from '~/types'
 
 export type HostedModelMetadata = ModelRegistry['llm'][string]['models'][string]
   | ModelRegistry['extract'][string]['models'][string]
+  | ModelRegistry['stt'][string]['models'][string]
 
 export type ResolvedModelLifecycle = {
   status: 'active' | 'deprecated'

@@ -110,6 +110,32 @@ describe('comic character handling flat-reference contracts', () => {
     expect(() => loadCharacterCatalog(root)).toThrow(/invalid regular expression/)
   })
 
+  test('catalog accepts wardrobe fields', async () => {
+    const hero = { key: 'hero', name: 'Hero', aliases: ['HERO'], image: 'hero.webp', outlineSheet: 'hero.webp', description: 'Hero.' }
+    const sidekick = { key: 'sidekick', name: 'Sidekick', aliases: ['SIDEKICK'], image: 'sidekick.png', outlineSheet: 'sidekick.png', description: 'Sidekick.' }
+    const root = await makeCatalog({
+      characters: [
+        { ...hero, wardrobe: { colorTokens: ['jacket: red'], never: ['yellow jumpsuit'], deviationStates: [{ state: 'vacation', description: 'Hawaiian shirt.' }] } },
+        { ...sidekick, wardrobe: { colorTokens: ['hoodie: navy'] } },
+      ],
+      groupAliases: [],
+    })
+    const catalog = loadCharacterCatalog(root)
+    expect(catalog.get(catalog.requireKey('hero')).wardrobe?.colorTokens).toEqual(['jacket: red'])
+    expect(catalog.get(catalog.requireKey('hero')).wardrobe?.never).toEqual(['yellow jumpsuit'])
+    expect(catalog.get(catalog.requireKey('sidekick')).wardrobe?.colorTokens).toEqual(['hoodie: navy'])
+  })
+
+  test('catalog rejects blank wardrobe tokens and unknown keys', async () => {
+    const hero = (extra: Record<string, unknown> = {}) => ({ key: 'hero', name: 'Hero', aliases: ['HERO'], image: 'hero.webp', outlineSheet: 'hero.webp', description: 'Hero.', ...extra })
+    const sidekick = { key: 'sidekick', name: 'Sidekick', aliases: ['SIDEKICK'], image: 'sidekick.png', outlineSheet: 'sidekick.png', description: 'Sidekick.' }
+    const load = async (character: Record<string, unknown>) => loadCharacterCatalog(await makeCatalog({ characters: [character, sidekick], groupAliases: [] }))
+    await expect(load(hero({ wardrobe: { colorTokens: ['jacket: red', ' '] } }))).rejects.toThrow('Character "hero" wardrobe colorTokens[1] must not be blank')
+    await expect(load(hero({ wardrobe: { never: ['yellow'] } }))).rejects.toThrow(/colorTokens|Invalid key/)
+    await expect(load(hero({ wardrobe: { colorTokens: ['jacket: red'], extra: 1 } }))).rejects.toThrow(/Invalid key|unknown key/i)
+    await expect(load(hero({ unknownField: true }))).rejects.toThrow(/Invalid key|unknown key/i)
+  })
+
   test('generated model schemas use the OpenAI Structured Outputs subset', () => {
     const schemas = [
       buildStructuredScriptJsonSchema(['hero', 'sidekick']).schema,
@@ -130,6 +156,25 @@ describe('comic character handling flat-reference contracts', () => {
     schemas.forEach(visit)
 
     expect(buildSceneJsonSchema(['hero']).schema.properties.schemaVersion).toEqual({ type: 'integer', enum: [4] })
+  })
+
+  test('the plan-free scene JSON schema requires every property and round-trips model output through ScenePromptDataSchema', () => {
+    const schema = buildSceneJsonSchema(['hero']).schema
+    const panel = (schema.properties.panels as { items: { properties: Record<string, unknown>; required: string[] } }).items
+    expect(panel.required).toEqual(['number', 'description', 'shotPlan', 'characterKeys', 'speech', 'sourceSegmentIds', 'locationKey', 'designReferences'])
+    expect(Object.keys(panel.properties).sort()).toEqual([...panel.required].sort())
+    expect(panel.properties).not.toHaveProperty('blocking')
+    expect(schema.required).toEqual(['schemaVersion', 'title', 'location', 'panels'])
+    expect(Object.keys(schema.properties)).toEqual(schema.required)
+    expect(schema.properties).not.toHaveProperty('blockingPlanSha256')
+    const modelOutput = {
+      schemaVersion: 4, title: 'T', location: 'L',
+      panels: [{ number: 1, description: 'd', shotPlan: 's', characterKeys: ['hero'], speech: [{ speaker: { kind: 'character', characterKey: 'hero', offscreen: false }, line: 'Hi' }], sourceSegmentIds: ['beat-0001'], locationKey: 'cargo-bay', designReferences: [] }],
+    }
+    expect(Object.keys(modelOutput.panels[0]!).sort()).toEqual([...panel.required].sort())
+    const parsed = v.parse(ScenePromptDataSchema, modelOutput)
+    expect(parsed).toEqual(modelOutput as never)
+    expect(parsed.panels[0]).not.toHaveProperty('blocking')
   })
 
   test('unversioned structured, scene, and panel artifacts are rejected', () => {

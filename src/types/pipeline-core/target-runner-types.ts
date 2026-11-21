@@ -8,6 +8,11 @@ export type BuildSingleArtifactMapOptions<T> = {
   getFileName: (item: T) => string
 }
 
+export type MediaResumeArtifacts = {
+  recordedFileNames: readonly string[]
+  useProviderNames: boolean
+}
+
 type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = HostedConcurrencyRuntimeOptions & {
   targets: TTarget[]
   outputDir: string
@@ -19,6 +24,7 @@ type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = HostedConcurrency
   getTargetPool?: ((target: TTarget) => TargetPoolKind) | undefined
   getTargetPriority?: ((target: TTarget, index: number) => number | undefined) | undefined
   useWorkspaceForSingleTarget?: boolean | undefined
+  mediaResume?: MediaResumeArtifacts | undefined
   preserveWorkspaceOnFailure?: boolean | undefined
   hostedWorkClass?: HostedConcurrencyWorkClass | undefined
 }

@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { mkdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
@@ -6,6 +7,7 @@ import { getCharacterReferencesDirectory } from './project-paths'
 import type { CharacterIdentityReference, CharacterReferenceManifest, IdentityCardMetadata } from '~/types'
 import { childEnv } from '~/utils/child-env'
 import { runSyncCommand } from '~/utils/sync-subprocess'
+import { resolveRuntimeToolInfo } from '~/utils/runtime-paths'
 
 const hashFile = (path: string): string => new Bun.CryptoHasher('sha256').update(readFileSync(path)).digest('hex')
 const GLYPHS: Record<string, string[]> = {
@@ -33,11 +35,13 @@ const bitmapLabelDraw = (value: string): string => {
 }
 
 const resolveMagick = (): string => {
-  for (const command of ['magick', 'convert']) {
+  for (const tool of ['magick', 'convert'] as const) {
+    const command = resolveRuntimeToolInfo(tool)?.path
+    if (!command) continue
     const result = runSyncCommand(command, ['-version'], { env: childEnv(), stdio: 'ignore' })
     if (result.exitCode === 0) return command
   }
-  throw InfraError('Comic identity-card composition requires ImageMagick (`magick` or `convert`).', { stage: 'comic:identity-card' })
+  throw InfraError(`Comic identity-card composition requires managed ImageMagick. Run ${CLI_INVOCATION} setup --step rendering.`, { stage: 'comic:identity-card' })
 }
 
 const getSources = (runDirectory: string, character: CharacterReferenceManifest['characters'][number]) => {
@@ -116,23 +120,6 @@ const ensureCharacterIdentityCardSync = (
   return outputPath
 }
 
-export const resolveRosterCharacterReferences = (
-  runDirectory: string,
-  manifest: CharacterReferenceManifest,
-  panelCharacterKeys: readonly string[],
-): Array<{ key: string; name: string; path: string }> => {
-  const listed = new Set(panelCharacterKeys)
-  return manifest.characters
-    .filter(character => !listed.has(character.key))
-    .map(character => {
-      const { sheetPath } = getSources(runDirectory, character)
-      if (!existsSync(sheetPath)) {
-        throw ValidationError(`Snapshot ${manifest.snapshotId} roster card for "${character.key}" is missing its canonical reference image at ${sheetPath}`, { stage: 'comic:identity-card' })
-      }
-      return { key: character.key, name: character.name, path: sheetPath }
-    })
-}
-
 export const resolveCharacterIdentityReferences = (
   runDirectory: string,
   manifest: CharacterReferenceManifest,
@@ -155,7 +142,6 @@ export const resolveCharacterIdentityReferences = (
         : ensureCharacterIdentityCardSync(runDirectory, manifest, key)
     references.push({
       key, name: character.name, description: character.description, referenceIndex: references.length + 1, path,
-      ...(character.distinguishFrom !== undefined ? { distinguishFrom: character.distinguishFrom.map(cue => ({ ...cue })) } : {}),
     })
   }
   return references

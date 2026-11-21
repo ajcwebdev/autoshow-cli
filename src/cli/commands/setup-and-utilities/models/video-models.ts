@@ -2,7 +2,7 @@ import { createRetiringModelValidator } from '~/cli/commands/setup-and-utilities
 import type { GeminiVideoModel, GrokVideoModel } from '~/types'
 
 export const SUPPORTED_GEMINI_VIDEO_MODELS = [
-  'gemini-omni-1.1-flash'
+  'gemini-omni-1.2-flash'
 ] as const satisfies readonly string[]
 
 export const validateGeminiVideoModel = createRetiringModelValidator<GeminiVideoModel>('video', 'gemini', SUPPORTED_GEMINI_VIDEO_MODELS, 'gemini-video')

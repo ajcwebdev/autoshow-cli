@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "variantId": "assemblyai-3-5-pro-rerun-2026-11-20",
+  "label": "rerun=2026-11-20",
+  "baseline": {
+    "service": "assemblyai",
+    "model": "universal-3-5-pro"
+  },
+  "flags": [
+    "--provider",
+    "assemblyai=universal-3-5-pro",
+    "--diarization"
+  ]
+}

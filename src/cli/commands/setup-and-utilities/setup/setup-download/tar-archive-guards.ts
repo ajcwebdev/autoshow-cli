@@ -43,6 +43,19 @@ export const readTarNumber = (buffer: Uint8Array, start: number, end: number, la
   return parsed
 }
 
+export const readTarMtime = (buffer: Uint8Array, start: number, end: number): number => {
+  const field = buffer.subarray(start, end)
+  if (!((field[0] ?? 0) & 0x80)) return readTarNumber(buffer, start, end, 'entry mtime')
+  let value = BigInt((field[0] ?? 0) & 0x7f)
+  for (const byte of field.subarray(1)) value = (value << 8n) | BigInt(byte)
+  // GNU's first bit marks base-256; the remaining bits are signed two's complement.
+  if ((field[0] ?? 0) & 0x40) value -= 1n << BigInt(field.byteLength * 8 - 1)
+  if (value > 8_640_000_000_000n || value < -8_640_000_000_000n) {
+    throw archiveError('Tar entry mtime is outside the supported timestamp range.')
+  }
+  return Number(value)
+}
+
 export const assertHeaderChecksum = (header: Uint8Array): void => {
   const expected = readTarNumber(header, 148, 156, 'header checksum')
   let actual = 0

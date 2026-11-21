@@ -20,8 +20,21 @@ import {
 } from '~/utils/error-handler'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { attachAsyncSttErrorContext } from '~/cli/commands/stt/async-stt-polling'
+import { AppError as BootstrapAppError } from '~/utils/app-error'
 
 describe('app error contracts', () => {
+  test('the dependency-free bootstrap base preserves the public class identity and exit mappings', () => {
+    expect(BootstrapAppError).toBe(AppError)
+    for (const [kind, exitCode] of [['usage', 2], ['provider_http', 1], ['retry_exhausted', 1], ['validation', 1], ['infrastructure', 1], ['internal', 1]] as const) {
+      const cause = new Error('original failure')
+      const error = new BootstrapAppError('bootstrap failure', { kind, stage: 'bootstrap:fixture', cause, hints: ['repair fixture'], metadata: { component: 'fixture' } })
+      expect(isAppError(error)).toBe(true)
+      expect(normalizeExitCode(error)).toBe(exitCode)
+      expect(error.cause).toBe(cause)
+      expect(serializeResultError(error)).toMatchObject({ kind, stage: 'bootstrap:fixture', metadata: { component: 'fixture' } })
+    }
+  })
+
   test('normalizes stateful get-like header containers with their receiver intact', () => {
     class StatefulHeaders {
       private readonly values = new Map([['retry-after', '3'], ['x-request-id', 'request-1']])

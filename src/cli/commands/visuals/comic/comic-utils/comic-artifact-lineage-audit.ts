@@ -5,6 +5,7 @@ import type {
   CanonicalComicItemMetadata,
   ComicArtifactLineageAudit,
   ComicArtifactLineageError,
+  ComicPanelSelectionStore,
   CompactMix,
   CompactPresentation,
   CompactSfx,
@@ -38,6 +39,28 @@ const hashedIdentity = (value: Record<string, unknown>, field: string): boolean 
   const base = { ...value }
   delete base[field]
   return typeof identity === 'string' && identity === hashCanonicalTtsValue(base)
+}
+
+/** Verify recorded panel selections: each selected canonical panel and every preserved superseded selection must match its recorded hash. */
+const auditPanelSelections = async (sceneRunDir: string, selectedPanels: number[], verifier: LineageVerifier): Promise<void> => {
+  const storePath = 'metadata/panel-selections.json'
+  let store: ComicPanelSelectionStore
+  try {
+    store = JSON.parse((await readContainedArtifactFile(sceneRunDir, storePath)).bytes.toString('utf8')) as ComicPanelSelectionStore
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT') || isMissingArtifactError(error)) return
+    verifier.fail({ code: 'invalid-json', message: `Panel selection record is unreadable: ${storePath}`, path: storePath })
+    return
+  }
+  if (store.schemaVersion !== 1 || !Array.isArray(store.selections) || !Array.isArray(store.history)) {
+    verifier.fail({ code: 'invalid-json', message: `Panel selection record has an unsupported shape: ${storePath}`, path: storePath })
+    return
+  }
+  for (const selection of store.selections) {
+    selectedPanels.push(selection.panelNumber)
+    await verifier.verifyRef({ path: `panels/panel-${String(selection.panelNumber).padStart(2, '0')}.png`, sha256: selection.sha256 }, `Selected panel ${selection.panelNumber} from run ${selection.runId}`)
+  }
+  for (const entry of store.history) await verifier.verifyRef({ path: entry.preservedPath, sha256: entry.sha256 }, `Superseded panel ${entry.panelNumber} selection from run ${entry.runId}`)
 }
 
 const auditStageAndEnvelopeArtifacts = async (comic: CanonicalComicItemMetadata, verifier: LineageVerifier): Promise<void> => {
@@ -290,6 +313,7 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
   const selectedDialogueTargets: string[] = []
   const selectedSoundscapeTargets: string[] = []
   const presentationTargets: string[] = []
+  const selectedPanels: number[] = []
 
   const fail = (error: ComicArtifactLineageError): void => {
     errors.push(error)
@@ -354,6 +378,7 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
         verifiedRefCount: 0,
         selectedDialogueTargets,
         selectedSoundscapeTargets,
+        selectedPanels,
         presentationTargets,
         errors: [{ code: 'manifest-unreadable', message: 'Canonical comic item is missing its metadata.comic envelope.' }],
       }
@@ -364,6 +389,8 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
   const dialogueById = await auditDialogueArtifacts(comic.audio, sceneRunDir, selectedDialogueTargets, verifier)
   const soundscapeByTarget = await auditSoundscapeArtifacts(comic.audio, selectedSoundscapeTargets, dialogueById, verifier)
   await auditPresentationArtifacts(comic, presentationTargets, soundscapeByTarget, verifier)
+  await auditPanelSelections(sceneRunDir, selectedPanels, verifier)
+  selectedPanels.sort((left, right) => left - right)
 
   presentationTargets.sort((left, right) => left.localeCompare(right))
   selectedDialogueTargets.sort((left, right) => left.localeCompare(right))
@@ -375,6 +402,7 @@ export const auditComicSceneArtifactLineage = async (sceneRunDir: string): Promi
     selectedDialogueTargets,
     selectedSoundscapeTargets,
     presentationTargets,
+    selectedPanels,
     errors,
   }
 }

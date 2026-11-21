@@ -1,7 +1,7 @@
-import type { ComicLlmResponseUsage, DraftSceneRunStats, GenerateSceneJsonOptions, SceneDraftRetryReason } from '~/types'
+import type { ComicLlmResponseUsage, DraftSceneRunStats, GenerateSceneJsonOptions } from '~/types'
 import { comicLog, err } from '../../comic-utils/comic-logger'
 import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script-utils/llm-cost'
-import { buildSceneDraftRetryPrompt, describeSceneDraftRetryReason, validateSceneDraftCandidate } from './scene-draft-candidate-validation'
+import { buildSceneDraftRetryPrompt, validateSceneDraftCandidate } from './scene-draft-candidate-validation'
 import { prepareSceneDraft } from './scene-draft-preparation'
 import { publishSceneDraft } from './scene-draft-publication'
 
@@ -20,17 +20,15 @@ export const generateSceneJson = async (
 
   try {
     const prepared = await prepareSceneDraft(sceneSlug, options)
-    if (!prepared) return stats
     const { sceneJsonSchema, basePrompt, requestScene, maxAttempts } = prepared
 
     const usage: ComicLlmResponseUsage = { input_tokens: 0, output_tokens: 0, total_tokens: 0 }
     let reviewModel: string = options.model
     let requestDurationMs = 0
     let previousIssues: string[] = []
-    let previousReason: SceneDraftRetryReason = 'blocking'
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const prompt = previousIssues.length > 0 ? buildSceneDraftRetryPrompt(basePrompt, previousIssues, previousReason) : basePrompt
+      const prompt = previousIssues.length > 0 ? buildSceneDraftRetryPrompt(basePrompt, previousIssues) : basePrompt
       const requestStart = Date.now()
       const response = await requestScene({ prompt, schemaName: sceneJsonSchema.name, jsonSchema: sceneJsonSchema.schema, model: options.model, attempt, sceneSlug })
       const attemptDurationMs = Date.now() - requestStart
@@ -45,16 +43,15 @@ export const generateSceneJson = async (
       stats.totalCost += estimateLlmCostFromRegistry(options.model, response.inputTokens ?? 0, response.outputTokens ?? 0)
       stats.totalDurationMs += attemptDurationMs
 
-      const { validated, retryIssues, retryReason } = await validateSceneDraftCandidate(response.text, sceneSlug, attempt, prepared)
+      const { validated, retryIssues } = await validateSceneDraftCandidate(response.text, sceneSlug, attempt, prepared)
 
       if (retryIssues) {
         previousIssues = retryIssues
-        previousReason = retryReason ?? 'blocking'
-        comicLog.line(`Scene draft attempt ${attempt} ${describeSceneDraftRetryReason(previousReason)}; retrying once with ${retryIssues.length} issue${retryIssues.length === 1 ? '' : 's'} appended`)
+        comicLog.line(`Scene draft attempt ${attempt} missed the panel count contract; retrying once with ${retryIssues.length} issue${retryIssues.length === 1 ? '' : 's'} appended`)
         continue
       }
 
-      await publishSceneDraft(sceneSlug, validated, stats, reviewModel, usage, requestDurationMs, prepared.blockingPlan, attempt)
+      await publishSceneDraft(sceneSlug, validated, stats, reviewModel, usage, requestDurationMs, attempt)
       return stats
     }
   } catch (error) {
@@ -65,6 +62,6 @@ export const generateSceneJson = async (
   return stats
 }
 
-export { SCENE_DRAFT_MAX_ATTEMPTS_WITH_PLAN, SCENE_DRAFT_RETRY_HEADER } from './scene-draft-defaults'
+export { SCENE_DRAFT_MAX_ATTEMPTS_WITH_PANEL_COUNT, SCENE_DRAFT_RETRY_HEADER } from './scene-draft-defaults'
 
 export { buildSceneDraftRetryPrompt } from './scene-draft-candidate-validation'

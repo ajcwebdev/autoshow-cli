@@ -16,8 +16,6 @@ const IMAGE_PRODUCING_COMMANDS = ['image', 'comic generate-images', 'comic refer
 export const enforceImageCommandPolicy = (command: string, flags: Record<string, unknown>, occurrences: readonly CliFlagOccurrence[]): void => {
   const required = process.env['AUTOSHOW_REQUIRED_IMAGE_MODEL']
   if (!required) return
-  // Evaluated before the occurrence check: a QA-only run legitimately passes no --provider.
-  if (command === 'comic generate-images' && flags['qa-only'] === true) return
   if (!IMAGE_PRODUCING_COMMANDS.includes(command)) return
 
   const providers = occurrences.filter(flag => flag.name === 'provider')

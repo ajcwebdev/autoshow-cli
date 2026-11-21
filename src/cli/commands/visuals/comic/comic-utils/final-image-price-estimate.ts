@@ -7,9 +7,7 @@ import type {
   FinalImagePageInventory,
   FinalImagePanelInventory,
   FinalImagePricingEstimate,
-  FinalImageQaWork,
   GenerateImagesCommandOptions,
-  ImageGenerationModel,
   ImagePricingEstimate,
   PageModeEstimate,
   PanelModeEstimate,
@@ -20,14 +18,8 @@ import {
   DEFAULT_FINAL_PANELS_PER_IMAGE,
 } from '../comic-commands/generate-images/comic-page-utils'
 import { estimateImageOutputCost } from '../comic-image-services/image-costs'
-import { DEFAULT_QA_MODEL } from './cli-args'
 import { isGeminiImageModel, resolveImageService } from './image-service'
 import { DEFAULT_IMAGE_MODEL } from './image-size'
-import { estimateLlmCostFromRegistry } from './structured-script-utils/llm-cost'
-import { REVISION_ESTIMATED_INPUT_TOKENS_PER_COMPARISON, REVISION_ESTIMATED_OUTPUT_TOKENS_PER_COMPARISON } from '../comic-commands/generate-images/revision-evaluation'
-
-export const PAGE_QA_ESTIMATED_INPUT_TOKENS_PER_JUDGE = 8_000
-export const PAGE_QA_ESTIMATED_OUTPUT_TOKENS_PER_JUDGE = 1_400
 
 const selectFinalImageEstimateMode = (
   grid: ComicGridSpec | undefined,
@@ -45,23 +37,12 @@ export const normalizeFinalImageEstimateRequest = (
   const base: FinalImageEstimateRequestBase = {
     sceneSlug: options.sceneSlug,
     ...(options.recoveryRunId ? { runId: options.recoveryRunId } : {}),
-    models: options.imageModels ? [...options.imageModels] : [DEFAULT_IMAGE_MODEL],
+    model: options.imageModel ?? DEFAULT_IMAGE_MODEL,
     size: options.size ?? COMIC_GRID_PANEL_SIZE,
     quality: options.quality ?? 'high',
     force: options.force ?? false,
     selection: Array.isArray(options.panels) ? [...options.panels] : options.panels ?? 'all',
     selectionSpecified: options.panels !== undefined,
-    variations: options.variations ? [...options.variations] : ['canonical'],
-    variationsSpecified: options.variations !== undefined,
-    blockingLayoutGuide: options.blockingLayoutGuide === true,
-    ...(options.blockingHardKeys?.length ? { blockingHardKeys: options.blockingHardKeys } : {}),
-    qa: options.qa === false
-      ? { enabled: false }
-      : {
-          enabled: true,
-          judgeModel: options.qaModel ?? DEFAULT_QA_MODEL,
-          maxRepairs: options.maxRepairs ?? 2,
-        },
   }
 
   if (mode === 'page') return { ...base, mode, panelsPerImage }
@@ -69,51 +50,25 @@ export const normalizeFinalImageEstimateRequest = (
   return { ...base, mode: 'panel' }
 }
 
-export const estimatePageMode = (
-  request: Extract<FinalImageEstimateRequest, { mode: 'page' }>,
-  inventory: FinalImagePageInventory,
-): PageModeEstimate => {
-  const outputsByModel = request.models.map(model => ({
-    model,
-    outputs: inventory.pages.reduce((total, page) => (
-      total + page.outputs.filter(output => output.model === model && (request.force || !output.exists)).length
-    ), 0),
-  }))
-  const totalOutputs = outputsByModel.reduce((total, item) => total + item.outputs, 0)
-  const totalCandidates = inventory.pages.length * request.models.length * request.variations.length
-
-  return {
-    mode: 'page',
-    totalOutputs,
-    skipped: totalCandidates - totalOutputs,
-    outputsByModel,
-  }
+export const estimatePageMode = (inventory: FinalImagePageInventory): PageModeEstimate => {
+  const totalOutputs = inventory.pages.filter(page => page.pending).length
+  return { mode: 'page', totalOutputs, skipped: inventory.pages.length - totalOutputs }
 }
 
 export const estimatePanelMode = (
   request: Extract<FinalImageEstimateRequest, { mode: 'panel' | 'grid' }>,
   inventory: FinalImagePanelInventory,
 ): PanelModeEstimate => {
-  const skipped = request.force
-    ? 0
-    : inventory.panels.reduce((total, panel) => (
-        total + panel.variations.filter(variation => variation.allModelsExist).length
-      ), 0)
-  const totalOutputs = inventory.panels.length * request.variations.length - skipped
-  const gridSkipped = request.force
-    ? 0
-    : inventory.gridPages.reduce((total, page) => (
-        total + page.outputs.filter(output => output.exists).length
-      ), 0)
-  const gridCandidates = inventory.gridPages.length * request.models.length * request.variations.length
+  const totalOutputs = inventory.panels.filter(panel => panel.pending).length
+  const gridSkipped = request.force ? 0 : inventory.gridPages.filter(page => page.output.exists).length
 
   return {
     mode: request.mode,
     totalOutputs,
-    skipped,
+    skipped: inventory.panels.length - totalOutputs,
     grid: request.mode === 'grid'
       ? {
-          totalOutputs: gridCandidates - gridSkipped,
+          totalOutputs: inventory.gridPages.length - gridSkipped,
           skipped: gridSkipped,
           columns: request.grid.columns,
           rows: request.grid.rows,
@@ -123,83 +78,19 @@ export const estimatePanelMode = (
   }
 }
 
-export function estimateQaWork(
-  request: Extract<FinalImageEstimateRequest, { mode: 'page' }>,
-  estimate: PageModeEstimate,
-  inventory: FinalImagePageInventory,
-): FinalImageQaWork | null
-export function estimateQaWork(
-  request: Extract<FinalImageEstimateRequest, { mode: 'panel' | 'grid' }>,
-  estimate: PanelModeEstimate,
-  inventory: FinalImagePanelInventory,
-): FinalImageQaWork | null
-export function estimateQaWork(
-  request: FinalImageEstimateRequest,
-  estimate: FinalImageModeEstimate,
-  inventory: FinalImagePageInventory | FinalImagePanelInventory,
-): FinalImageQaWork | null {
-  if (!request.qa.enabled) return null
-
-  if (request.mode === 'page' && estimate.mode === 'page' && inventory.mode === 'page') {
-    const outputs = inventory.pages.flatMap(page => page.outputs)
-    const reusedReports = request.force ? 0 : outputs.filter(output => output.qaReportReusable).length
-    const initialJudgeCalls = outputs.length - reusedReports
-    if (initialJudgeCalls === 0) return null
-    return {
-      mode: 'page',
-      judgeModel: request.qa.judgeModel,
-      initialJudgeCalls,
-      reusedReports,
-      maximumAdditionalImageEdits: initialJudgeCalls * request.qa.maxRepairs,
-      maximumAdditionalJudgeCalls: initialJudgeCalls * request.qa.maxRepairs,
-      estimatedInputTokens: initialJudgeCalls * PAGE_QA_ESTIMATED_INPUT_TOKENS_PER_JUDGE,
-      estimatedOutputTokens: initialJudgeCalls * PAGE_QA_ESTIMATED_OUTPUT_TOKENS_PER_JUDGE,
-    }
-  }
-
-  const initialJudgeCalls = Math.max(estimate.totalOutputs, inventory.mode === 'page' ? estimate.totalOutputs : inventory.panels.reduce((total, panel) => total + panel.variations.reduce((sum, variation) => sum + (
-    request.force ? request.models.length : variation.pendingQaCount ?? (variation.qaReusable === undefined ? Number(!variation.allModelsExist) : Number(!variation.qaReusable))
-  ), 0), 0))
-  if (initialJudgeCalls === 0) return null
-  const maximumRepairQaCalls = initialJudgeCalls * request.qa.maxRepairs
-  const maximumComparisonJudgeCalls = maximumRepairQaCalls * 2
-  const maximumAdditionalJudgeCalls = maximumRepairQaCalls + maximumComparisonJudgeCalls
-  const maximumTotalJudgeCalls = initialJudgeCalls + maximumAdditionalJudgeCalls
-  return {
-    mode: 'panel',
-    judgeModel: request.qa.judgeModel,
-    initialJudgeCalls,
-    maximumAdditionalImageEdits: maximumRepairQaCalls,
-    maximumRepairQaCalls,
-    maximumComparisonJudgeCalls,
-    maximumAdditionalJudgeCalls,
-    maximumTotalJudgeCalls,
-    estimatedInputTokens: (initialJudgeCalls + maximumRepairQaCalls) * PAGE_QA_ESTIMATED_INPUT_TOKENS_PER_JUDGE + maximumComparisonJudgeCalls * REVISION_ESTIMATED_INPUT_TOKENS_PER_COMPARISON,
-    estimatedOutputTokens: (initialJudgeCalls + maximumRepairQaCalls) * PAGE_QA_ESTIMATED_OUTPUT_TOKENS_PER_JUDGE + maximumComparisonJudgeCalls * REVISION_ESTIMATED_OUTPUT_TOKENS_PER_COMPARISON,
-  }
-}
-
 const estimateImagePricing = (
   request: FinalImageEstimateRequest,
   outputLabel: string,
-  outputsForModel: (model: ImageGenerationModel) => number,
+  outputs: number,
 ): ImagePricingEstimate => {
-  const rows = request.models.map(model => {
-    const outputs = outputsForModel(model)
-    const pricePerImage = estimateImageOutputCost(model, request.quality, request.size)
-    return {
-      model,
-      modelLabel: `${model} (${isGeminiImageModel(model) ? 'ignored' : request.quality})`,
-      outputs,
-      pricePerImage,
-      subtotal: pricePerImage === null ? null : pricePerImage * outputs,
-    }
-  })
+  const pricePerImage = estimateImageOutputCost(request.model, request.quality, request.size)
   return {
     outputLabel,
-    rows,
-    knownTotal: rows.reduce((total, row) => total + (row.subtotal ?? 0), 0),
-    hasUnknown: rows.some(row => row.subtotal === null),
+    model: request.model,
+    modelLabel: `${request.model} (${isGeminiImageModel(request.model) ? 'ignored' : request.quality})`,
+    outputs,
+    pricePerImage,
+    subtotal: pricePerImage === null ? null : pricePerImage * outputs,
   }
 }
 
@@ -207,85 +98,27 @@ export const estimateFinalImageInputUnits = (
   request: FinalImageEstimateRequest,
   inventory: FinalImagePageInventory | FinalImagePanelInventory,
 ): FinalImageInputEstimate | null => {
-  const openaiModels = request.models.filter(model => resolveImageService(model) === 'openai')
-  const rateModel = openaiModels[0]
-  if (!rateModel) return null
-  const maxRepairs = request.qa.enabled ? request.qa.maxRepairs : 0
-  let initialCalls = 0
-  let initialReferenceInputs = 0
-  let maximumRepairCalls = 0
-  let maximumRepairReferenceInputs = 0
-  if (inventory.mode === 'page') {
-    for (const page of inventory.pages) {
-      const pending = page.outputs.filter(output => request.force || !output.exists)
-      const openaiPending = pending.filter(output => resolveImageService(output.model) === 'openai').length
-      initialCalls += openaiPending
-      initialReferenceInputs += openaiPending * page.referenceCount
-      const reusableReports = request.force ? 0 : page.outputs.filter(output => output.qaReportReusable).length
-      const repairs = (page.outputs.length - reusableReports) * maxRepairs
-      maximumRepairCalls += repairs
-      maximumRepairReferenceInputs += repairs * (page.referenceCount + 1)
-    }
-  } else {
-    for (const panel of inventory.panels) {
-      const outputs = request.force
-        ? panel.variations.length
-        : panel.variations.filter(variation => !variation.allModelsExist).length
-      const calls = outputs * openaiModels.length
-      initialCalls += calls
-      initialReferenceInputs += calls * panel.referenceCount
-      const pendingQa = panel.variations.reduce((total, variation) => total + (
-        request.force ? request.models.length : variation.pendingQaCount ?? (variation.qaReusable === undefined ? Number(!variation.allModelsExist) : Number(!variation.qaReusable))
-      ), 0)
-      const repairs = pendingQa * maxRepairs
-      maximumRepairCalls += repairs
-      maximumRepairReferenceInputs += repairs * (panel.referenceCount + 1)
-    }
-  }
+  if (resolveImageService(request.model) !== 'openai') return null
+  const pendingItems = inventory.mode === 'page'
+    ? inventory.pages.filter(page => page.pending)
+    : inventory.panels.filter(panel => panel.pending)
+  const referenceInputs = pendingItems.reduce((total, item) => total + item.referenceCount, 0)
   return {
-    ...estimateOpenAIImageInputUnits(rateModel, initialReferenceInputs + maximumRepairReferenceInputs),
-    models: openaiModels,
-    initialCalls,
-    initialReferenceInputs,
-    maximumRepairCalls,
-    maximumRepairReferenceInputs,
+    ...estimateOpenAIImageInputUnits(request.model, referenceInputs),
+    model: request.model,
+    calls: pendingItems.length,
   }
 }
 
 export const estimateFinalImagePricing = (
   request: FinalImageEstimateRequest,
   estimate: FinalImageModeEstimate,
-  qaWork: FinalImageQaWork | null,
-  inventory?: FinalImagePageInventory | FinalImagePanelInventory,
+  inventory: FinalImagePageInventory | FinalImagePanelInventory,
 ): FinalImagePricingEstimate => {
-  const primary = estimateImagePricing(
-    request,
-    estimate.mode === 'page' ? 'page' : 'panel',
-    model => estimate.mode === 'page'
-      ? estimate.outputsByModel.find(item => item.model === model)?.outputs ?? 0
-      : estimate.totalOutputs,
-  )
-  const repairOutputs = qaWork?.maximumAdditionalImageEdits ?? 0
-  const repair = repairOutputs > 0
-    ? estimateImagePricing(
-        request.models.length > 0 ? request : { ...request, models: [DEFAULT_IMAGE_MODEL] },
-        'maximum repair',
-        () => repairOutputs,
-      )
-    : null
-  const judgeCost = qaWork
-    ? estimateLlmCostFromRegistry(
-        qaWork.judgeModel,
-        qaWork.estimatedInputTokens,
-        qaWork.estimatedOutputTokens,
-      )
-    : null
-  const imageInput = inventory ? estimateFinalImageInputUnits(request, inventory) : null
-  const maximumModeledCost = qaWork?.mode === 'panel'
-    ? primary.hasUnknown || repair?.hasUnknown === true
-      ? null
-      : primary.knownTotal + (repair?.knownTotal ?? 0) + (judgeCost ?? 0) + ((imageInput?.costCents ?? 0) / 100)
-    : null
-
-  return { primary, repair, judgeCost, imageInput, maximumModeledCost }
+  const primary = estimateImagePricing(request, estimate.mode === 'page' ? 'page' : 'panel', estimate.totalOutputs)
+  const imageInput = estimateFinalImageInputUnits(request, inventory)
+  const estimatedTotal = primary.subtotal === null || (imageInput !== null && imageInput.costCents === null && imageInput.referenceInputs > 0)
+    ? null
+    : primary.subtotal + (imageInput?.costCents ?? 0) / 100
+  return { primary, imageInput, estimatedTotal }
 }

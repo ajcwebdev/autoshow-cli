@@ -12,6 +12,8 @@ export type ComicArtifactLineageAudit = {
   selectedDialogueTargets: string[]
   selectedSoundscapeTargets: string[]
   presentationTargets: string[]
+  /** Panels with a recorded selection in `metadata/panel-selections.json`; legacy canonical panels without a record are not listed. */
+  selectedPanels: number[]
   errors: ComicArtifactLineageError[]
 }
 

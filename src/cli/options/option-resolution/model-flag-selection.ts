@@ -55,6 +55,11 @@ const filterAllExpansionModels = (
     const service = flagName.slice(0, -'-ocr'.length)
     return filterModelNamesByLifecycle(supported, registry.extract[service]?.models, 'allExpansionEligible')
   }
+  if (flagName.endsWith('-stt')) {
+    // STT registry keys are either the flag itself (gemini-stt, openai-stt) or the bare provider (assemblyai).
+    const sttService = registry.stt[flagName] ?? registry.stt[flagName.slice(0, -'-stt'.length)]
+    return filterModelNamesByLifecycle(supported, sttService?.models, 'allExpansionEligible')
+  }
   return filterModelNamesByLifecycle(supported, registry.llm[flagName]?.models, 'allExpansionEligible')
 }
 

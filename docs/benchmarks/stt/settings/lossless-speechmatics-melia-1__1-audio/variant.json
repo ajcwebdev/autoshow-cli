@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "lossless-speechmatics-melia-1",
+  "label": "stt-audio-profile=lossless",
+  "baseline": {
+    "service": "speechmatics",
+    "model": "melia-1"
+  },
+  "flags": [
+    "--provider",
+    "speechmatics=melia-1",
+    "--diarization",
+    "--stt-audio-profile",
+    "lossless"
+  ]
+}

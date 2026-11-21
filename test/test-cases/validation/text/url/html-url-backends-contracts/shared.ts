@@ -1,4 +1,4 @@
-import { chmod, writeFile } from 'node:fs/promises'
+import { chmod, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { extractHtmlToMarkdown } from '~/cli/commands/text/url/url-local/defuddle/run-defuddle-url'
 import {
@@ -19,6 +19,7 @@ import type { HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleRunResult
 import { DEFAULT_URL_REQUEST_TIMEOUT_MS } from '~/cli/commands/text/url/url-utils'
 import { writeFakeDefuddleBinIn } from '../../../../../test-utils/fixtures/fake-defuddle-bin'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../../test-utils/rest-contract-helpers'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 
 const envKeys = [
   'SPIDER_API_KEY',
@@ -28,13 +29,14 @@ const envKeys = [
   'AUTOSHOW_FAKE_DEFUDDLE_STDERR'
 ] as const
 const originalBinDir = getConfiguredBinDir()
+const runtimeTemporaryDirectories: string[] = []
 const originalAdapterRuns = new Map<HtmlArticleBackend, UrlArticleProviderAdapter['run']>(
   URL_ARTICLE_BACKENDS.map((backend) => [backend, URL_ARTICLE_PROVIDER_ADAPTERS[backend].run])
 )
-const tempDirs = setupContractSuiteLifecycle({
+setupContractSuiteLifecycle({
   envKeys,
   tempPrefix: 'autoshow-url-backend-',
-  afterEachExtra: () => {
+  afterEachExtra: async () => {
     for (const backend of URL_ARTICLE_BACKENDS) {
       const originalRun = originalAdapterRuns.get(backend)
       if (originalRun) {
@@ -42,10 +44,15 @@ const tempDirs = setupContractSuiteLifecycle({
       }
     }
     configureBinDir(originalBinDir ?? '')
+    await Promise.all(runtimeTemporaryDirectories.splice(0).map(path => rm(path, { recursive: true, force: true })))
   }
 })
 
-export const makeTempDir = tempDirs.make
+export const makeTempDir = async (prefix: string): Promise<string> => {
+  const path = await createRuntimeTempDirectory(prefix)
+  runtimeTemporaryDirectories.push(path)
+  return path
+}
 
 export const longMarkdown = 'This article contains enough meaningful markdown content for the URL backend extraction contract to pass without reaching any hosted provider.'
 export const htmlDocument = `<!doctype html>
@@ -88,7 +95,7 @@ export const buildAbortError = (message: string): Error => {
 }
 
 export const writeFakeDefuddleBin = async (): Promise<{ bin: string, argsLog: string }> => {
-  const dir = await tempDirs.make('autoshow-fake-defuddle-')
+  const dir = await makeTempDir('autoshow-fake-defuddle-')
   const argsLog = join(dir, 'args.log')
 
   const bin = await writeFakeDefuddleBinIn(dir, [

@@ -14,6 +14,8 @@ export const MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME = '.autoshow-payload-manifes
 
 export const MANAGED_ARTIFACT_SCHEMA_VERSION = 1
 
+export const isIgnoredManagedArtifactPath = (path: string): boolean => path.replaceAll('\\', '/').split('/').includes('.DS_Store')
+
 const Sha256Schema = v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/))
 
 const MacosVersionSchema = v.pipe(v.string(), v.regex(/^\d+(?:\.\d+){1,2}$/))
@@ -40,6 +42,21 @@ const ArtifactSourceSchema = v.strictObject({
 const ArtifactPayloadFileSchema = v.strictObject({
   path: SafeRelativePathSchema,
   sha256: Sha256Schema
+})
+
+const SourcePayloadFileSchema = v.strictObject({
+  path: SafeRelativePathSchema,
+  sha256: Sha256Schema,
+  kind: v.optional(v.picklist(['file', 'directory', 'symlink'])),
+  mode: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(4095))),
+  size: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))),
+  target: v.optional(v.pipe(v.string(), v.minLength(1)))
+})
+
+const ArtifactDependencySchema = v.strictObject({
+  name: SafeFileNameSchema,
+  version: NonEmptyStringSchema,
+  manifestSha256: Sha256Schema
 })
 
 const PrebuiltPayloadFileSchema = v.strictObject({
@@ -76,7 +93,7 @@ const PrebuiltLicenseSchema = v.strictObject({
 
 const ManagedSourceArtifactManifestSchema = v.strictObject({
   schemaVersion: v.literal(MANAGED_ARTIFACT_SCHEMA_VERSION),
-  tool: v.picklist(['mupdf', 'qpdf']),
+  tool: SafeFileNameSchema,
   version: NonEmptyStringSchema,
   distribution: v.literal('source'),
   platform: v.literal('darwin'),
@@ -84,7 +101,9 @@ const ManagedSourceArtifactManifestSchema = v.strictObject({
   macosDeploymentTarget: MacosVersionSchema,
   sources: v.array(ArtifactSourceSchema),
   buildFlags: v.array(NonEmptyStringSchema),
-  payload: v.array(ArtifactPayloadFileSchema)
+  payload: v.array(SourcePayloadFileSchema),
+  recipeRevision: v.optional(NonEmptyStringSchema),
+  dependencies: v.optional(v.array(ArtifactDependencySchema))
 })
 
 const ManagedPrebuiltPayloadManifestSchema = v.strictObject({
@@ -181,7 +200,20 @@ export const managedPrebuiltPayloadManifestPath = (toolDir: string): string =>
   join(toolDir, MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME)
 
 const parseSchema = <T>(schema: v.BaseSchema<unknown, T, v.BaseIssue<unknown>>, value: unknown, label: string): T => {
-  const result = v.safeParse(schema, value)
+  let admitted = value
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>
+    const inventories: Record<string, unknown> = {}
+    for (const key of ['payload', 'packageFiles']) {
+      if (!Array.isArray(record[key])) continue
+      inventories[key] = record[key].filter((entry: unknown) => {
+        if (entry === null || typeof entry !== 'object' || !('path' in entry) || typeof entry.path !== 'string') return true
+        return !isIgnoredManagedArtifactPath(entry.path)
+      })
+    }
+    admitted = { ...record, ...inventories }
+  }
+  const result = v.safeParse(schema, admitted)
   if (!result.success) {
     throw ValidationError(`Invalid ${label}`, { stage: 'setup:managed-artifact', retryable: false })
   }

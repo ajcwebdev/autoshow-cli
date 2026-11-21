@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildSceneDraftRetryPrompt, describeSceneDraftRetryReason } from '~/cli/commands/visuals/comic/comic-commands/draft-scenes/scene-draft-candidate-validation'
+import { buildSceneDraftRetryPrompt } from '~/cli/commands/visuals/comic/comic-commands/draft-scenes/scene-draft-candidate-validation'
 import { SCENE_DRAFT_RETRY_HEADER } from '~/cli/commands/visuals/comic/comic-commands/draft-scenes/scene-draft-defaults'
 import { appendPanelCountSection, buildPanelCountContract, collectPanelNoteSegmentIds, PANEL_COUNT_SECTION_HEADING, validatePanelCount } from '~/cli/commands/visuals/comic/comic-commands/draft-scenes/scene-panel-count-contract'
 
@@ -39,16 +39,11 @@ describe('comic scene panel-count contracts', () => {
     expect(validatePanelCount({ panels: Array.from({ length: 9 }, (_, index) => panel(index + 1, [])) as never }, { panelCount: 10, panelNoteSegmentIds: [] })).toEqual(['Scene JSON has 9 panels; the panel count contract requires exactly 10'])
   })
 
-  test('the retry prompt keeps the blocking wording by default and adds panel-count guidance when asked', () => {
-    const blocking = buildSceneDraftRetryPrompt('base', ['issue one'])
-    expect(blocking).toContain(SCENE_DRAFT_RETRY_HEADER)
-    expect(blocking).toContain('contradicted the blocking plan geometry')
-    expect(blocking.endsWith('- issue one')).toBe(true)
-    const count = buildSceneDraftRetryPrompt('base', ['issue two'], 'panel-count')
-    expect(count).toContain('did not honour the panel count contract')
-    expect(count).not.toContain('contradicted the blocking plan geometry. Fix')
-    expect(buildSceneDraftRetryPrompt('base', ['x'], 'both')).toContain('contradicted the blocking plan geometry and did not honour the panel count contract')
-    expect(describeSceneDraftRetryReason('panel-count')).toBe('missed the panel count contract')
-    expect(describeSceneDraftRetryReason('blocking')).toBe('contradicts the blocking plan')
+  test('the retry prompt appends only panel-count guidance and the validator issues', () => {
+    const retry = buildSceneDraftRetryPrompt('base', ['issue one', 'issue two'])
+    expect(retry.startsWith('base\n\n' + SCENE_DRAFT_RETRY_HEADER + '\n')).toBe(true)
+    expect(retry).toContain('did not honour the panel count contract')
+    expect(retry).not.toMatch(/blocking|stage plan|camera setup/i)
+    expect(retry.endsWith('- issue one\n- issue two')).toBe(true)
   })
 })

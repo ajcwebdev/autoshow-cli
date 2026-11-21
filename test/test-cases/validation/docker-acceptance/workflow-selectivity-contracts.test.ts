@@ -221,9 +221,9 @@ test('alignment audits retain Linux and supported macOS ARM64 coverage with froz
   expect(bun?.with?.['bun-version']).toBe('1.4.2')
   const verification = alignment.steps?.find(step => step.name === 'Install and verify the frozen ONNX CPU graph')
   expect(verification?.if).toBeUndefined()
-  expect(verification?.run).toContain('bun --no-env-file install --cwd config/stt-alignment --frozen-lockfile --ignore-scripts')
+  expect(verification?.run).toContain('bun --no-env-file src/cli/create-cli.ts setup --step alignment')
   expect(verification?.run).toContain('bun --no-env-file test test/test-cases/validation/stt/workflows/timing/stt-onnx-alignment.test.ts')
-  expect(verification?.run).toContain('bun --no-env-file audit --cwd config/stt-alignment')
+  expect(verification?.run).toContain('bun --no-env-file audit --cwd runtime/tools/stt-alignment')
 })
 
 test('Docker publication skips contract tests, builds, and acceptance for changes that cannot affect them', async () => {

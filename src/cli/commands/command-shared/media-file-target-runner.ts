@@ -1,4 +1,4 @@
-import type { HostedConcurrencyCoordinator, MediaArtifactTargetDescriptor, MediaFileTargetDescriptor, ProviderIdentity, ResourceGate } from '~/types'
+import type { MediaResumeArtifacts, HostedConcurrencyCoordinator, MediaArtifactTargetDescriptor, MediaFileTargetDescriptor, ProviderIdentity, ResourceGate } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { runMediaArtifactTargets, runSingleFileTargets } from './target-runner'
 
@@ -7,6 +7,7 @@ type MediaRunOptions = {
   localConcurrency?: number | undefined
   resourceGate?: ResourceGate | undefined
   hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
+  mediaResume?: MediaResumeArtifacts | undefined
 } | undefined
 
 const resolveConcurrency = (options: MediaRunOptions) => ({
@@ -35,6 +36,7 @@ export const runMediaFileTargets = async <TTarget extends ProviderIdentity, TMet
     resourceGate: input.options?.resourceGate,
     hostedConcurrencyCoordinator: input.options?.hostedConcurrencyCoordinator,
     hostedWorkClass: input.descriptor.hostedWorkClass,
+    mediaResume: input.options?.mediaResume,
     runTarget: async (target, workspaceDir) => await input.descriptor.runTarget(target, input.prompt, workspaceDir),
     workspacePrefix: input.descriptor.workspacePrefix,
     getArtifactFileName: input.descriptor.getArtifactFileName,
@@ -64,6 +66,7 @@ export const runMediaArtifactFileTargets = async <TTarget extends ProviderIdenti
     resourceGate: input.options?.resourceGate,
     hostedConcurrencyCoordinator: input.options?.hostedConcurrencyCoordinator,
     hostedWorkClass: input.descriptor.hostedWorkClass,
+    mediaResume: input.options?.mediaResume,
     runTarget: async (target, workspaceDir) => await input.descriptor.runTarget(target, input.prompt, workspaceDir),
     workspacePrefix: input.descriptor.workspacePrefix,
     getArtifactFileNames: input.descriptor.getArtifactFileNames,

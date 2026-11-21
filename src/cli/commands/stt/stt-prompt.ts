@@ -101,18 +101,22 @@ export const createPromptRefreshController = ({
   preparedMedia,
   options,
   coordinatedAcrossBatch,
-  successes
+  successes,
+  seedFromExistingSuccesses = false
 }: {
   outputDir: string
   preparedMedia: PreparedSttMedia
   options: Pick<SttExtractionOptions, 'prompts' | 'promptMd'>
   coordinatedAcrossBatch: boolean
   successes: Array<SttProviderSuccess | undefined>
+  /** Treat the stored prompt.md as written from the current best stored success, so a resume rewrites it only for a better source. */
+  seedFromExistingSuccesses?: boolean | undefined
 }): SttPromptRefreshController => {
   let refreshChain = Promise.resolve()
   let refreshError: unknown
-  let lastPromptSourceKey: string | undefined
-  let lastPromptScore = -1
+  const seed = seedFromExistingSuccesses ? selectPrimaryPromptProvider(successes) : undefined
+  let lastPromptSourceKey: string | undefined = seed ? getSttTargetKey(seed.target) : undefined
+  let lastPromptScore = seed ? scorePromptSelectionCandidate(seed) : -1
 
   const queue = (): void => {
     refreshChain = refreshChain

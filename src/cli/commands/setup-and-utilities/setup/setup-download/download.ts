@@ -8,6 +8,8 @@ import { withSetupDownloadSlot } from './download-admission'
 import { hasErrorCode, InfraError } from '~/utils/error-handler'
 import { httpResponseError, httpResponseOptions } from '~/utils/rest-client'
 import { isRetryableStatus } from '~/utils/retries'
+import { assertManagedRuntimePath, pathIsWithinRoot, RUNTIME_ROOT_PATH } from '~/utils/runtime-containment'
+import { ensureRuntimeDirectory } from '~/utils/runtime-state'
 
 const DEFAULT_STALL_TIMEOUT_MS = 60_000
 const DEFAULT_TOTAL_TIMEOUT_MS = 15 * 60_000
@@ -51,6 +53,7 @@ const getFileSize = async (path: string): Promise<number | null> => {
 const normalizeSha256 = (value: string): string => value.replace(/^sha256:/i, '').trim().toLowerCase()
 
 const hashFile = async (path: string): Promise<string> => {
+  assertDownloadPath(path)
   const hash = new Bun.CryptoHasher('sha256')
   const reader = Bun.file(path).stream().getReader()
   for (;;) {
@@ -64,7 +67,23 @@ const hashFile = async (path: string): Promise<string> => {
 const partFilePath = (destination: string): string => `${destination}.part`
 const partMetadataPath = (destination: string): string => `${destination}.part.json`
 
+const assertDownloadPath = (path: string): void => {
+  if (pathIsWithinRoot(RUNTIME_ROOT_PATH, path)) assertManagedRuntimePath(path)
+}
+
+const assertDownloadDestination = (destination: string): void => {
+  for (const path of [destination, partFilePath(destination), partMetadataPath(destination)]) assertDownloadPath(path)
+}
+
+const ensureDownloadParent = async (path: string): Promise<void> => {
+  assertDownloadPath(path)
+  if (pathIsWithinRoot(RUNTIME_ROOT_PATH, path)) await ensureRuntimeDirectory(dirname(path))
+  else await mkdir(dirname(path), { recursive: true })
+  assertDownloadPath(path)
+}
+
 const discardPartialDownload = async (destination: string): Promise<void> => {
+  assertDownloadDestination(destination)
   await Promise.all([
     rm(partFilePath(destination), { force: true }),
     rm(partMetadataPath(destination), { force: true })
@@ -72,6 +91,7 @@ const discardPartialDownload = async (destination: string): Promise<void> => {
 }
 
 const readPartialDownloadMetadata = async (destination: string): Promise<PartialDownloadMetadata | undefined> => {
+  assertDownloadDestination(destination)
   try {
     const parsed = JSON.parse(await Bun.file(partMetadataPath(destination)).text()) as PartialDownloadMetadata
     return typeof parsed?.url === 'string' ? parsed : undefined
@@ -81,6 +101,7 @@ const readPartialDownloadMetadata = async (destination: string): Promise<Partial
 }
 
 const writePartialDownloadMetadata = async (destination: string, url: string): Promise<void> => {
+  assertDownloadDestination(destination)
   await Bun.write(partMetadataPath(destination), JSON.stringify({ url } satisfies PartialDownloadMetadata))
 }
 
@@ -143,6 +164,7 @@ const streamResponseToFile = async (
   append: boolean,
   onProgress: () => void
 ): Promise<number> => {
+  assertDownloadPath(path)
   const body = response.body
   if (!body) {
     throw InfraError(`Download response had no body: ${response.url || 'unknown url'}`, { stage: 'setup:download' })
@@ -167,6 +189,7 @@ const streamResponseToFile = async (
 }
 
 const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts): Promise<number> => {
+  assertDownloadDestination(req.destination)
   const resumeFrom = await resolveResumeOffset(req)
   const partPath = partFilePath(req.destination)
   const watchdog = createDownloadWatchdog(timeouts)
@@ -194,6 +217,7 @@ const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts)
 
     const resumed = resumeFrom > 0 && response.status === 206
     if (resumeFrom > 0 && !resumed) {
+      assertDownloadDestination(req.destination)
       await rm(partPath, { force: true })
     }
 
@@ -218,27 +242,34 @@ const extractDownloadedArchive = async (
   archivePath: string,
   req: DownloadRequest
 ): Promise<void> => {
-  await mkdir(req.destination, { recursive: true })
+  assertDownloadDestination(req.destination)
+  if (pathIsWithinRoot(RUNTIME_ROOT_PATH, req.destination)) await ensureRuntimeDirectory(req.destination)
+  else await mkdir(req.destination, { recursive: true })
   await extractTarGzFile(archivePath, {
     destination: req.destination,
     ...(req.stripComponents !== undefined ? { stripComponents: req.stripComponents } : {})
   })
 }
 
-export const downloadFile = async (req: DownloadRequest): Promise<void> => withProcessLock(`setup-download-${resolve(req.destination)}`, async () => downloadFileUnlocked(req))
+export const downloadFile = async (req: DownloadRequest): Promise<void> => {
+  assertDownloadDestination(req.destination)
+  await withProcessLock(`setup-download-${resolve(req.destination)}`, async () => downloadFileUnlocked(req))
+}
 
 const downloadFileUnlocked = async (req: DownloadRequest): Promise<void> => {
   const timeouts = resolveDownloadTimeouts(req)
   const mode = req.mode ?? 'file'
   const partPath = partFilePath(req.destination)
 
-  await mkdir(dirname(partPath), { recursive: true })
+  assertDownloadDestination(req.destination)
+  await ensureDownloadParent(partPath)
 
   const partialSize = await getFileSize(partPath)
   const completePartial = req.sha256 && partialSize !== null && await hashFile(partPath) === normalizeSha256(req.sha256)
   const bytes = completePartial ? partialSize! : await withSetupDownloadSlot(async () => await fetchToPartFile(req, timeouts))
 
   if (req.sha256) {
+    assertDownloadDestination(req.destination)
     const actual = await hashFile(partPath)
     const expected = normalizeSha256(req.sha256)
     if (actual !== expected) {
@@ -256,6 +287,7 @@ const downloadFileUnlocked = async (req: DownloadRequest): Promise<void> => {
   }
 
   if (mode === 'file') {
+    assertDownloadDestination(req.destination)
     await rm(req.destination, { recursive: true, force: true })
     await rename(partPath, req.destination)
     await rm(partMetadataPath(req.destination), { force: true })

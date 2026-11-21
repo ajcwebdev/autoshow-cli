@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "source": "docs/benchmarks/stt/sources/2023-03-15-jsjam-qwik-misko-hevery.mp3",
+  "profile": "lossless",
+  "sampleFormat": "float32",
+  "channels": 1,
+  "sampleRate": 48000,
+  "audioToVideoOffsetSeconds": 0.023021,
+  "mapping": "video time = provider audio time + audioToVideoOffsetSeconds; apply once at caption export",
+  "decodedPcmSha256": "SHA256=411fe87b4bd93751e166576fcf10f60fd5548a2cfcd942f76209f838e0db42bb",
+  "decodedSamplesMatch": true
+}

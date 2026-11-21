@@ -12,8 +12,8 @@ import { fakeProviderResumeConfig } from './resume-additive-provider-fixture'
 
 describe('additive resume provider selection', () => {
   test('shared resolver preserves stored order and appends new selected providers', () => {
-    const openai = { service: 'openai', model: 'gpt-image-2.5-flare' }
-    const gemini = { service: 'gemini', model: 'gemini-3.1-flash-lite-image' }
+    const openai = { service: 'openai', model: 'gpt-image-2.6-flare' }
+    const gemini = { service: 'gemini', model: 'gemini-nano-banana-2.1' }
     const runway = { service: 'runway', model: 'gen4.5' }
 
     const resolved = resolveAdditiveResumeProviderSelection({

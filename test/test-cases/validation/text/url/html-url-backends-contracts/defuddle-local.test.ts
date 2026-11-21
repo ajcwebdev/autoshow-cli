@@ -1,10 +1,14 @@
-import { expect, test } from 'bun:test'
-import { mkdir, rename, rm } from 'node:fs/promises'
+import { expect, spyOn, test } from 'bun:test'
+import { mkdir, symlink } from 'node:fs/promises'
+import { hostname } from 'node:os'
+import { relative } from 'node:path'
 import {
-  defuddleRuntimeDir,
-  ensureDefuddleCliSetup
+  ensureDefuddleCliSetup,
+  runDefuddleCliCapture,
+  setupDefuddleCli
 } from '~/cli/commands/text/url/url-local/defuddle/defuddle-cli'
-import { configureBinDir } from '~/utils/runtime-paths'
+import { configureBinDir, getBunBinary, IMMUTABLE_ASSET_ROOT, RUNTIME_DIR } from '~/utils/runtime-paths'
+import * as managedJsRuntime from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-js-runtime'
 import {
   chmod,
   extractHtmlToMarkdown,
@@ -69,30 +73,44 @@ test('defuddle URL backend extracts markdown from supplied HTML', async () => {
   expect(await Bun.file(parseArgs![1]!).exists()).toBe(false)
 })
 
+test('Defuddle rejects escaping executable links before dispatch', async () => {
+  const directory = await makeTempDir('autoshow-defuddle-escape-')
+  await symlink('/bin/sh', join(directory, 'defuddle'))
+  configureBinDir(directory)
+  const spawn = spyOn(Bun, 'spawn').mockImplementation(() => { throw new Error('Escaping executable was dispatched') })
+  try {
+    await expect(ensureDefuddleCliSetup()).rejects.toThrow('inside the project runtime')
+    expect(spawn).not.toHaveBeenCalled()
+  } finally { spawn.mockRestore() }
+})
+
+test('Defuddle checks managed package provenance before probing its executable', async () => {
+  const directory = await makeTempDir('autoshow-defuddle-unverified-')
+  const binary = join(directory, 'node_modules/defuddle/dist/cli.js')
+  await mkdir(join(directory, 'node_modules/defuddle/dist'), { recursive: true })
+  await Bun.write(binary, 'throw new Error("unverified package executed")\n')
+  const spawn = spyOn(Bun, 'spawn').mockImplementation(() => { throw new Error('Unverified package was dispatched') })
+  try {
+    await expect(runDefuddleCliCapture(binary, ['--version'])).rejects.toThrow()
+    expect(spawn).not.toHaveBeenCalled()
+  } finally { spawn.mockRestore() }
+})
+
 test('concurrent Defuddle setup callers share a single managed install', async () => {
+  const directory = join(await makeTempDir('autoshow-defuddle-concurrent-'), 'defuddle')
   const managedDefuddleBin = join(
-    defuddleRuntimeDir,
+    directory,
     'node_modules',
     'defuddle',
     'dist',
     'cli.js'
   )
-  const backupDir = `${defuddleRuntimeDir}.autoshow-test-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  const hadRuntimeDir = await pathExists(defuddleRuntimeDir)
   const originalSpawn = Bun.spawn
-  const fakeOverrideDir = await makeTempDir('autoshow-invalid-defuddle-')
-  const fakeOverrideBin = join(fakeOverrideDir, 'defuddle')
+  const ensureBun = spyOn(managedJsRuntime, 'ensureManagedBunRuntime').mockResolvedValue(undefined)
+  const validateBun = spyOn(managedJsRuntime, 'validateManagedJsRuntime').mockResolvedValue({ ok: true, detail: 'isolated runtime fixture' })
   let installCalls = 0
   let activeInstalls = 0
   let maxActiveInstalls = 0
-
-  await writeFile(fakeOverrideBin, '#!/usr/bin/env bun\nprocess.exit(1)\n')
-  await chmod(fakeOverrideBin, 0o755)
-  if (hadRuntimeDir) {
-    await rename(defuddleRuntimeDir, backupDir)
-  }
-  await rm(defuddleRuntimeDir, { recursive: true, force: true })
-  configureBinDir(fakeOverrideDir)
 
   ;(Bun as typeof Bun & { spawn: typeof Bun.spawn }).spawn = ((
     command: Parameters<typeof Bun.spawn>[0],
@@ -101,23 +119,21 @@ test('concurrent Defuddle setup callers share a single managed install', async (
     const commandArgs = [...command]
     const executable = commandArgs[0] ?? ''
     const args = commandArgs.slice(1)
-    if (executable === fakeOverrideBin && args[0] === '--version') {
-      return spawnResult('', 'invalid override defuddle', 1)
-    }
-    if (executable === process.execPath && args.includes('install')) {
+    if (executable === getBunBinary() && args.includes('install')) {
       expect(args).toEqual(['--no-env-file', 'install', '--frozen-lockfile', '--ignore-scripts'])
       installCalls += 1
       activeInstalls += 1
       maxActiveInstalls = Math.max(maxActiveInstalls, activeInstalls)
       const cwd = typeof options === 'object' && options !== null && 'cwd' in options
         ? String(options.cwd)
-        : defuddleRuntimeDir
+        : directory
       const exited = (async (): Promise<number> => {
         try {
           await Bun.sleep(25)
           await mkdir(join(cwd, 'node_modules', 'defuddle', 'dist'), { recursive: true })
-          await writeFile(managedDefuddleBin, '#!/usr/bin/env bun\n')
-          await chmod(managedDefuddleBin, 0o755)
+          const stagedBinary = join(cwd, 'node_modules', 'defuddle', 'dist', 'cli.js')
+          await writeFile(stagedBinary, '#!/usr/bin/env bun\n')
+          await chmod(stagedBinary, 0o755)
           return 0
         } finally {
           activeInstalls -= 1
@@ -125,28 +141,60 @@ test('concurrent Defuddle setup callers share a single managed install', async (
       })()
       return spawnResult('', '', exited)
     }
-    if (executable === process.execPath && args.includes(managedDefuddleBin) && args.includes('--version')) {
+    if (executable === getBunBinary() && args.some(arg => arg.endsWith('/node_modules/defuddle/dist/cli.js')) && args.includes('--version')) {
       return spawnResult('0.19.3\n', '', 0)
     }
     throw new Error(`Unexpected spawn: ${commandArgs.join(' ')}`)
   }) as typeof Bun.spawn
 
   try {
-    const results = await Promise.all(
-      Array.from({ length: 8 }, async () => await ensureDefuddleCliSetup())
+    await Promise.all(
+      Array.from({ length: 8 }, async () => await setupDefuddleCli({ directory }))
     )
-
-    expect(new Set(results)).toEqual(new Set([managedDefuddleBin]))
+    expect(await pathExists(managedDefuddleBin)).toBe(true)
     expect(installCalls).toBe(1)
     expect(maxActiveInstalls).toBe(1)
   } finally {
     ;(Bun as typeof Bun & { spawn: typeof Bun.spawn }).spawn = originalSpawn
-    configureBinDir('')
-    await rm(defuddleRuntimeDir, { recursive: true, force: true })
-    if (hadRuntimeDir) {
-      await rename(backupDir, defuddleRuntimeDir)
-    }
+    ensureBun.mockRestore()
+    validateBun.mockRestore()
   }
+})
+
+test('Defuddle setup recovers an interrupted activation before reusing the previous verified graph', async () => {
+  const parent = await makeTempDir('autoshow-defuddle-recovery-')
+  const destination = join(parent, 'defuddle'), id = crypto.randomUUID()
+  const backup = `${destination}.backup-${id}`, staging = join(parent, '.defuddle.staging-candidate')
+  const evidence = join(parent, `.defuddle.interrupted-${id}`), journal = join(parent, '.defuddle.transaction.json')
+  const previousBinary = join(backup, 'node_modules/defuddle/dist/cli.js')
+  await mkdir(join(backup, 'node_modules/defuddle/dist'), { recursive: true })
+  await Bun.write(previousBinary, 'console.log("previous verified graph")\n')
+  for (const name of ['package.json', 'bun.lock', 'bunfig.toml']) await Bun.write(join(backup, name), await Bun.file(join(IMMUTABLE_ASSET_ROOT, 'config/defuddle', name)).text())
+  await Bun.write(join(backup, '.frozen-install'), '0.19.3\n')
+  await managedJsRuntime.writeManagedPackageManifest(backup, 'defuddle@0.19.3')
+  await mkdir(destination)
+  await Bun.write(join(destination, 'candidate.txt'), 'preserve interrupted candidate\n')
+  await mkdir(staging)
+  await Bun.write(join(staging, 'stage.txt'), 'preserve staged evidence\n')
+  await Bun.write(journal, JSON.stringify({ schemaVersion: 1, id, phase: 'candidate-promoted', ownerPid: 2147483647, ownerHost: hostname(), hadPreviousInstall: true,
+    destination: relative(RUNTIME_DIR, destination), staging: relative(RUNTIME_DIR, staging), backup: relative(RUNTIME_DIR, backup), evidence: relative(RUNTIME_DIR, evidence) }))
+  const ensureBun = spyOn(managedJsRuntime, 'ensureManagedBunRuntime').mockRejectedValue(new Error('Warm recovery attempted provisioning'))
+  const validateBun = spyOn(managedJsRuntime, 'validateManagedJsRuntime').mockResolvedValue({ ok: true, detail: 'isolated runtime fixture' })
+  const spawn = spyOn(Bun, 'spawn').mockImplementation((command) => {
+    const args = Array.isArray(command) ? command : command.cmd
+    expect(args).toEqual([getBunBinary(), '--no-env-file', join(destination, 'node_modules/defuddle/dist/cli.js'), '--version'])
+    return spawnResult('0.19.3\n', '', 0)
+  })
+  try {
+    await setupDefuddleCli({ directory: destination })
+    expect(await Bun.file(join(destination, 'node_modules/defuddle/dist/cli.js')).text()).toBe('console.log("previous verified graph")\n')
+    expect(await managedJsRuntime.validateManagedPackageManifest(destination, 'defuddle@0.19.3')).toBe(true)
+    expect(await Bun.file(join(evidence, 'candidate.txt')).text()).toBe('preserve interrupted candidate\n')
+    expect(await Bun.file(join(staging, 'stage.txt')).text()).toBe('preserve staged evidence\n')
+    expect(await Bun.file(journal).exists()).toBe(false)
+    expect(ensureBun).not.toHaveBeenCalled()
+    expect(spawn).toHaveBeenCalledTimes(1)
+  } finally { spawn.mockRestore(); validateBun.mockRestore(); ensureBun.mockRestore() }
 })
 
 test('defuddle URL backend includes captured output for nonzero CLI failures', async () => {

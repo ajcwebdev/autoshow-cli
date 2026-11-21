@@ -1,6 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { UsageError } from '~/utils/error-handler'
@@ -84,7 +83,7 @@ export const resolveLlmCandidates = async (input: {
   if (!configuredModels || !Object.hasOwn(configuredModels, input.llmModel)) {
     throw UsageError(`Unsupported PDF chapter LLM model ${input.llmService}/${input.llmModel}. Select an active writing model explicitly.`)
   }
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-pdf-chapters-llm-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-pdf-chapters-llm-')
   try {
     const metadata: VideoMetadata = {
       title: input.title ?? 'Document',

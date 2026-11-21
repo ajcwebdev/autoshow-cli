@@ -4,6 +4,7 @@ docs/todo
 
 .DS_Store
 node_modules/
+/node_modules
 *.env
 *.log
 **/*/__pycache__
@@ -24,6 +25,11 @@ runtime/*
 # Small dashboard.evidence.zip archives remain eligible for Git.
 **/slots/audio.zip
 /docs/benchmarks/tts/**/slots/
+
+# These completed STT runs retain canonical provider results and transcripts.
+# Keep their paid split checkpoints and sliced audio available locally for resume.
+/docs/benchmarks/stt/settings/lossless-gemini-3-5-transcribe__2022-09-30-widgets-fsjam-40-minutes/split-attempts/
+/docs/benchmarks/stt/settings/lossless-gemini-3-5-transcribe__2023-03-15-jsjam-qwik-misko-hevery/split-attempts/
 
 input/*
 !input/examples/

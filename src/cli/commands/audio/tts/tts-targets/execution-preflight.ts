@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { boundedReadinessFetch } from '~/utils/readiness-request'
 import type { SanitizedProviderError, TtsExecutionReadinessObservation, TtsTarget } from '~/types'
 import { UsageError, extractErrorMetadata, ProviderError, ValidationError } from '~/utils/error-handler'
@@ -61,7 +62,7 @@ const blockedMediaRuntimeObservation = (
   error: {
     phase: 'readiness',
     code: 'local-media-runtime-not-ready',
-    message: `TTS requires working ffmpeg and ffprobe binaries before synthesis; unavailable: ${unavailableTools.join(', ')}. Run \`bun autoshow setup\`, then retry.`,
+    message: `TTS requires working ffmpeg and ffprobe binaries before synthesis; unavailable: ${unavailableTools.join(', ')}. Run \`${CLI_INVOCATION} setup\`, then retry.`,
     retryable: false,
     blockedReason: 'local-setup-required'
   }
@@ -168,7 +169,7 @@ const checkAdvancedVoiceReadiness = async (
     if (target.service === 'inworld') {
       const availableIds = await listInworldVoiceIdsForReadiness(apiKey, request)
       const missingVoiceIds = voiceIds.filter(voiceId => !availableIds.has(voiceId))
-      if (missingVoiceIds.length > 0) return advancedVoiceBlockedObservation(targetKey, 'inworld-voice-not-ready', `Approved Inworld voice ${missingVoiceIds.join(', ')} is missing or inaccessible for the configured account. Run \`bun autoshow voice list --provider inworld --source provider-library\` and update the casting profile before synthesis.`, false)
+      if (missingVoiceIds.length > 0) return advancedVoiceBlockedObservation(targetKey, 'inworld-voice-not-ready', `Approved Inworld voice ${missingVoiceIds.join(', ')} is missing or inaccessible for the configured account. Run \`${CLI_INVOCATION} voice list --provider inworld --source provider-library\` and update the casting profile before synthesis.`, false)
       return { targetKey, accountState: 'available', status: 'ready' }
     }
     throw ValidationError(`No voice-catalog readiness adapter for ${target.service}.`, { stage: 'tts:readiness', retryable: false })

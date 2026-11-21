@@ -39,6 +39,14 @@ export type ImageRunStats = {
   totalDurationMs: number
 }
 
+export type ComicImagePurchaseUsage = {
+  costUsd: number
+  durationMs: number
+  imageInputUnits: number
+  textInputUnits: number
+  imageOutputUnits: number
+}
+
 export type LlmModel = string
 
 export type ImageGenerationModel = string
@@ -58,29 +66,13 @@ export type ParsedGenerateBaseArgs = {
   panels?: ComicPanelSelection
   panelsPerImage?: number
   grid?: GenerateImagesCommandOptions['grid']
-  variations?: GenerateImagesCommandOptions['variations']
   target?: NonNullable<GenerateImagesCommandOptions['target']>
-  imageModels?: ParsedImageModel[]
+  imageModel?: ParsedImageModel
   size?: ParsedImageSize
   quality?: ParsedImageQuality
   force?: boolean
   concurrency?: number
-  qa?: boolean
-  qaOnly?: boolean
-  revisionPlan?: string
-  comparisonPasses?: number
-  promote?: 'clear-winners'
-  qaModel?: ParsedLlmModel
-  maxRepairs?: number
-  continuityQa?: boolean
-  continuityOnly?: boolean
-  labels?: string
-  trustedAnchorPanel?: number
-  blockingHardKeys?: NonNullable<GenerateImagesCommandOptions['blockingHardKeys']>
-  blockingLayoutGuide?: boolean
   stopOnProviderError?: boolean
-  creditPreflight?: boolean
-  bloopers?: boolean
   concurrencyMode?: import('~/types').HostedConcurrencyMode
 }
 
@@ -88,7 +80,7 @@ export type ParsedImageSize = NonNullable<GenerateImagesCommandOptions['size']>
 
 export type ParsedImageQuality = NonNullable<GenerateImagesCommandOptions['quality']>
 
-export type ParsedImageModel = NonNullable<GenerateImagesCommandOptions['imageModels']>[number]
+export type ParsedImageModel = NonNullable<GenerateImagesCommandOptions['imageModel']>
 
 export type ParsedLlmModel = NonNullable<DraftScenesCommandOptions['llmModel']>
 
@@ -100,10 +92,6 @@ export type ParsedDraftCommandArgs = {
   price?: boolean
   concurrency?: number
   concurrencyMode?: import('~/types').HostedConcurrencyMode
-  blocking?: boolean
-  blockingPlan?: string
-  rebind?: boolean
-  reconcileFromDirectives?: boolean
   panelCount?: number
 }
 
@@ -131,14 +119,9 @@ export type ResolvedReferenceImages = {
     referenceIndex: number
     path: string
   }>
-  rosterCharacterReferences?: Array<{
-    key: string
-    name: string
-    path: string
-  }>
 }
 
 export type PrimaryCharacterReferenceState = Pick<
   ResolvedReferenceImages,
-  'primaryCharacterRefs' | 'missingPrimaryCharacterRefs' | 'characterReferences' | 'rosterCharacterReferences'
+  'primaryCharacterRefs' | 'missingPrimaryCharacterRefs' | 'characterReferences'
 >

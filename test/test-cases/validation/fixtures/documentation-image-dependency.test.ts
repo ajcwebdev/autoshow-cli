@@ -44,12 +44,12 @@ globalThis.fetch = async (input, init) => {
   let bytes = source
   if (url === 'https://api.openai.com/v1/images/generations') {
     const body = JSON.parse(String(init?.body))
-    if (body.model !== 'gpt-image-2.5-flare' || body.n !== 1 || body.size !== '1024x1024' || body.quality !== 'medium' || body.output_format !== 'png') throw new Error('Generation controls differ from the documented command')
+    if (body.model !== 'gpt-image-2.6-flare' || body.n !== 1 || body.size !== '1024x1024' || body.quality !== 'medium' || body.output_format !== 'png') throw new Error('Generation controls differ from the documented command')
     record = { url, model: body.model }
   } else if (url === 'https://api.openai.com/v1/images/edits') {
     const form = init?.body
     if (!(form instanceof FormData)) throw new Error('Edit must use multipart data')
-    if (form.get('model') !== 'gpt-image-2.5-sunburst' || form.get('size') !== '1024x1024' || form.get('quality') !== 'xhigh' || form.get('output_format') !== 'webp' || form.get('output_compression') !== '80') throw new Error('Edit controls differ from the documented command')
+    if (form.get('model') !== 'gpt-image-2.6-sunburst' || form.get('size') !== '1024x1024' || form.get('quality') !== 'xhigh' || form.get('output_format') !== 'webp' || form.get('output_compression') !== '80') throw new Error('Edit controls differ from the documented command')
     const image = form.get('image')
     if (!(image instanceof File) || image.name !== 'generated-image.png') throw new Error('Edit did not consume the produced base filename')
     const supplied = new Uint8Array(await image.arrayBuffer())
@@ -72,13 +72,13 @@ globalThis.fetch = async (input, init) => {
     guardedEdit: async (input: string, output: string) => await capture([
       'sh', '-c', `set -e
 "$1" --no-env-file src/tools/verify-image-artifact.ts "$2" --size 1024x1024
-"$1" --no-env-file --preload "$3" src/cli/create-cli.ts image "Make only the mug paint matte black" --provider openai=gpt-image-2.5-sunburst --input "$2" --size 1024x1024 --quality xhigh --format webp --compression 80 --output-dir "$4" --config-path "$5" --json`,
+"$1" --no-env-file --preload "$3" src/cli/create-cli.ts image "Make only the mug paint matte black" --provider openai=gpt-image-2.6-sunburst --input "$2" --size 1024x1024 --quality xhigh --format webp --compression 80 --output-dir "$4" --config-path "$5" --json`,
       'documentation-image-guard', process.execPath, input, preload, output, config
     ], childEnv({ set: { HOME: directory, OPENAI_API_KEY: 'synthetic-documentation-contract-key' } }))
   }
 }
-const baseArgs = ['A teal camping mug with a cream badge', '--provider', 'openai=gpt-image-2.5-flare', '--count', '1', '--size', '1024x1024', '--quality', 'medium', '--format', 'png']
-const editArgs = ['Make only the mug paint matte black', '--provider', 'openai=gpt-image-2.5-sunburst', '--size', '1024x1024', '--quality', 'xhigh', '--format', 'webp', '--compression', '80']
+const baseArgs = ['A teal camping mug with a cream badge', '--provider', 'openai=gpt-image-2.6-flare', '--count', '1', '--size', '1024x1024', '--quality', 'medium', '--format', 'png']
+const editArgs = ['Make only the mug paint matte black', '--provider', 'openai=gpt-image-2.6-sunburst', '--size', '1024x1024', '--quality', 'xhigh', '--format', 'webp', '--compression', '80']
 
 test('mocked image CLI transport writes the documented base filename and consumes its decoded bytes for the dependent edit', async () => {
   const work = await workspace()
@@ -86,12 +86,12 @@ test('mocked image CLI transport writes the documented base filename and consume
   const first = await work.cli([...baseArgs, '--output-dir', base])
   expect(first).toMatchObject({ exitCode: 0 })
   expect(JSON.parse(first.stdout)).toMatchObject({ status: 'success' })
-  expect((await readManifest(base))?.items[0]).toMatchObject({ status: 'full', metadata: { image: [{ imageService: 'openai', imageModel: 'gpt-image-2.5-flare', imageFileNames: ['generated-image.png'], requestMode: 'generation' }] } })
+  expect((await readManifest(base))?.items[0]).toMatchObject({ status: 'full', metadata: { image: [{ imageService: 'openai', imageModel: 'gpt-image-2.6-flare', imageFileNames: ['generated-image.png'], requestMode: 'generation' }] } })
   expect(hash(await Bun.file(input).bytes())).toBe(hash(await Bun.file(SOURCE).bytes()))
   expect(await decode(input)).toMatchObject({ exitCode: 0 })
   const second = await work.guardedEdit(input, edit)
   expect(second).toMatchObject({ exitCode: 0 })
-  expect((await readManifest(edit))?.items[0]).toMatchObject({ status: 'full', metadata: { image: [{ imageModel: 'gpt-image-2.5-sunburst', imageFileNames: ['generated-image.webp'], imageFormat: 'webp', requestMode: 'edit' }] } })
+  expect((await readManifest(edit))?.items[0]).toMatchObject({ status: 'full', metadata: { image: [{ imageModel: 'gpt-image-2.6-sunburst', imageFileNames: ['generated-image.webp'], imageFormat: 'webp', requestMode: 'edit' }] } })
   const edited = join(edit, 'generated-image.webp')
   expect(hash(await Bun.file(edited).bytes())).toBe(hash(await Bun.file(work.webp).bytes()))
   expect(await decode(edited)).toMatchObject({ exitCode: 0 })
@@ -112,19 +112,17 @@ test('price-only image plans and a missing dependent base make no transport requ
   expect(await Bun.file(join(output, 'generated-image.webp')).exists()).toBe(false)
 }, 30_000)
 
-test('empty HTTP-success image data fails artifact completion and corrupt saved bytes stop the shell guard before editing', async () => {
+test('empty and corrupt HTTP-success image responses fail generation before a manifest or dependent edit', async () => {
   const empty = await workspace('empty'), emptyOutput = join(empty.directory, 'base')
   const absent = await empty.cli([...baseArgs, '--output-dir', emptyOutput])
   expect(absent.exitCode).not.toBe(0)
   expect(await Bun.file(join(emptyOutput, 'generated-image.png')).exists()).toBe(false)
   const corrupt = await workspace('corrupt'), corruptOutput = join(corrupt.directory, 'base')
   const received = await corrupt.cli([...baseArgs, '--output-dir', corruptOutput])
-  // The current transport stores provider bytes; the documented decoder gate supplies artifact validation.
-  expect(received).toMatchObject({ exitCode: 0 })
+  expect(received.exitCode).not.toBe(0)
+  expect(await Bun.file(join(corruptOutput, 'manifest.json')).exists()).toBe(false)
   const input = join(corruptOutput, 'generated-image.png')
-  const decoded = await decode(input)
-  expect(decoded.exitCode).not.toBe(0)
-  expect(decoded.stderr.length).toBeGreaterThan(0)
+  expect(await Bun.file(input).exists()).toBe(false)
   expect((await corrupt.guardedEdit(input, join(corrupt.directory, 'edit'))).exitCode).not.toBe(0)
   expect((await corrupt.calls()).map(call => call.url)).toEqual(['https://api.openai.com/v1/images/generations'])
   expect(await Bun.file(join(corrupt.directory, 'edit', 'manifest.json')).exists()).toBe(false)

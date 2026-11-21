@@ -1,9 +1,12 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { getCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { loadCharacterCatalog } from './character-reference-config'
 import { AppValidationError, InfraError, ValidationError } from '~/utils/error-handler'
 import { getSceneAssetsDirectory } from './project-paths'
+import * as appLog from '~/utils/app-logger/app-logger'
+import { toProjectRelativePath } from '~/utils/project-root'
 import type { CurrentLocationReference, LocationReferenceCatalog, LocationReferenceEntry, LocationReferenceSnapshotManifestV3, LocationReferenceSnapshotV3, LocationSketchManifest, LocationSketchRegistration, LocationSketchViewRegistration, LocationView, LocationViewLineage } from '~/types'
 
 export const LOCATION_VIEWS = ['establishing', 'reverse', 'side'] as const
@@ -16,11 +19,21 @@ export const LOCATION_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 const LOCATION_REFERENCE_FILENAME = 'locations-reference.json'
 const LOCATION_SKETCH_MANIFEST_FILENAME = 'location-sketches.json'
+const RETIRED_LOCATION_PLANS_FILENAME = 'location-plans.json'
 export const LOCATION_SNAPSHOTS_FILENAME = 'location-references.json'
 
 export const getLocationsRoot = (): string => join(dirname(getCharactersRoot()), 'locations')
 export const getLocationReferencePath = (locationsRoot: string = getLocationsRoot()): string => join(locationsRoot, LOCATION_REFERENCE_FILENAME)
 export const getLocationSketchManifestPath = (): string => join(getLocationsRoot(), LOCATION_SKETCH_MANIFEST_FILENAME)
+
+const warnedRetiredLocationPlans = new Set<string>()
+
+export const warnRetiredLocationPlans = (locationsRoot: string = getLocationsRoot()): void => {
+  const path = resolve(locationsRoot, RETIRED_LOCATION_PLANS_FILENAME)
+  if (warnedRetiredLocationPlans.has(path) || !existsSync(path)) return
+  warnedRetiredLocationPlans.add(path)
+  appLog.write('warn', `Location plans file ${toProjectRelativePath(path)} is no longer read; location references use only the catalog specification and registered views`, { category: 'command', metadata: { path: toProjectRelativePath(path) } })
+}
 
 export const resolveLocationAssetPath = (authoredPath: string, label: string, locationsRoot: string = getLocationsRoot()): string => {
   if (!authoredPath.trim() || isAbsolute(authoredPath)) throw ValidationError(`${label} must be a non-empty path relative to the locations root`, { stage: 'comic:location-reference' })
@@ -78,6 +91,7 @@ const parseCatalog = (value: unknown, path: string): LocationReferenceCatalog =>
 }
 
 export const readLocationReferenceCatalog = async (locationsRoot: string = getLocationsRoot()): Promise<LocationReferenceCatalog> => {
+  warnRetiredLocationPlans(locationsRoot)
   const path = getLocationReferencePath(locationsRoot)
   if (!(await Bun.file(path).exists())) return createEmptyLocationCatalog()
   try { return parseCatalog(JSON.parse(await Bun.file(path).text()), path) }
@@ -88,6 +102,7 @@ export const readLocationReferenceCatalog = async (locationsRoot: string = getLo
 }
 
 export const readLocationReferenceCatalogSync = (locationsRoot: string = getLocationsRoot()): LocationReferenceCatalog => {
+  warnRetiredLocationPlans(locationsRoot)
   const path = getLocationReferencePath(locationsRoot)
   if (!existsSync(path)) return createEmptyLocationCatalog()
   try { return parseCatalog(JSON.parse(readFileSync(path, 'utf8')), path) }
@@ -173,7 +188,7 @@ export const requireCurrentLocationReferenceSync = (rawLocation: string, options
   const entry = resolveLocationCatalogEntry(rawLocation, catalog)
   const manifest = readLocationSketchManifestSync()
   const registration = manifest.sketches.find(item => item.locationKey === entry.key)
-  if (!registration) throw ValidationError(`Location "${entry.key}" has no registered establishing reference. Run: bun autoshow comic reference-sketch --location ${entry.key}`, { stage: 'comic:location-reference' })
+  if (!registration) throw ValidationError(`Location "${entry.key}" has no registered establishing reference. Run: ${CLI_INVOCATION} comic reference-sketch --location ${entry.key}`, { stage: 'comic:location-reference' })
   if (options.requireCurrentSpecification !== false && registration.specificationSha256 !== specificationHash(entry.specification)) throw ValidationError(`Registered location reference for "${entry.key}" is stale`, { stage: 'comic:location-reference' })
   const views = []
   for (const view of registration.views) {

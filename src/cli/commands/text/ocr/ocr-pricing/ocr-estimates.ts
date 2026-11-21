@@ -1,7 +1,7 @@
 
-import { unlinkPath as unlink } from '~/utils/bun-file-io'
-import { tmpdir } from 'node:os'
-import { extname, join } from 'node:path'
+import { rm } from 'node:fs/promises'
+import { dirname, extname, join } from 'node:path'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { getDocumentInfo } from '~/cli/commands/sources/download/document/mutool-utils'
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { validateAnthropicOcrModel, validateGeminiOcrModel, validateGrokOcrModel, validateMistralOcrModel, validateOpenAIOcrModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
@@ -81,11 +81,17 @@ const tokenEstimateMetadata = (
 })
 
 const downloadToTemp = async (url: string): Promise<string> => {
-  const tempPath = join(tmpdir(), `autoshow-price-${crypto.randomUUID()}.pdf`)
-  const response = await fetch(url, { signal: sourceDownloadSignal() })
-  if (!response.ok) throw InfraError(`Failed to fetch ${url}: ${response.status}`, { stage: 'ocr:extract-pricing', status: response.status })
-  await writeHttpPayloadToFile(response, tempPath, { payloadClass: 'source', stage: 'ocr:extract-pricing' })
-  return tempPath
+  const tempDir = await createRuntimeTempDirectory('autoshow-price-')
+  const tempPath = join(tempDir, 'document.pdf')
+  try {
+    const response = await fetch(url, { signal: sourceDownloadSignal() })
+    if (!response.ok) throw InfraError(`Failed to fetch ${url}: ${response.status}`, { stage: 'ocr:extract-pricing', status: response.status })
+    await writeHttpPayloadToFile(response, tempPath, { payloadClass: 'source', stage: 'ocr:extract-pricing' })
+    return tempPath
+  } catch (error) {
+    await rm(tempDir, { recursive: true, force: true })
+    throw error
+  }
 }
 
 const formatPageCountError = (error: unknown): string =>
@@ -139,7 +145,7 @@ const resolveExtractInputPageCountUncached = async (input: string): Promise<numb
     )
   } finally {
     if (tempFile) {
-      await unlink(tempFile).catch(() => {})
+      await rm(dirname(tempFile), { recursive: true, force: true }).catch(() => {})
     }
   }
 }

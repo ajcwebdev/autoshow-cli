@@ -99,7 +99,19 @@ const selectCheapestSttModel = (service: string): string => {
     throw InternalError(`Missing STT service config: ${service}`, { stage: 'models:cheapest' })
   }
 
-  return selectCheapestRegistryModel(serviceConfig.models, sttHourlyCost)
+  const defaultEligibleModels = filterModelNamesByLifecycle(
+    Object.keys(serviceConfig.models),
+    serviceConfig.models,
+    'defaultEligible'
+  )
+  if (defaultEligibleModels.length === 0) {
+    throw InternalError(`No default-eligible STT models available for ${service}`, { stage: 'models:cheapest' })
+  }
+
+  return pickCheapestModel(defaultEligibleModels, (modelName) => {
+    const model = serviceConfig.models[modelName]
+    return model ? sttHourlyCost(model) : Number.POSITIVE_INFINITY
+  })
 }
 
 export const selectCheapestExtractModel = (service: 'mistral' | 'openai' | 'grok' | 'anthropic' | 'gemini'): string => {

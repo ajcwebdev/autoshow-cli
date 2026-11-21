@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "variantId": "lossless-mistral-voxtral-mini-2602",
+  "label": "stt-audio-profile=lossless",
+  "baseline": {
+    "service": "mistral",
+    "model": "voxtral-mini-2602"
+  },
+  "flags": [
+    "--provider",
+    "mistral=voxtral-mini-2602",
+    "--diarization",
+    "--stt-audio-profile",
+    "lossless"
+  ]
+}

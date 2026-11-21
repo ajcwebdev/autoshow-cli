@@ -368,7 +368,7 @@ describe('consensus compact-archive', () => {
         metadata: { image: { prompt: 'a cat' } },
         providers: [{
           service: 'openai',
-          model: 'gpt-image-2.5-flare',
+          model: 'gpt-image-2.6-flare',
           artifactDir: '.',
           status: 'succeeded',
           attempts: 1,

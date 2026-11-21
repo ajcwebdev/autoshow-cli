@@ -2,7 +2,7 @@
 
 Default verification is `bun run check`, `bun t --price`, and targeted local behavioral tests. Full-suite execution requires explicit authorization, including fixture mode. Paid batches follow [repository spending rules](../../AGENTS.md): known cumulative totals below $1 USD are authorized within the task; unknown totals or $1 and above need command/cost-specific approval. Include minimum billing, add-ons, and billable retries.
 
-`bun t` loads `.env` and forwards configured hosted credentials. `bun t:local <paths>` forwards none and skips live service tests, but fixture mode does not block network downloads or tool installation. Normal `bun autoshow` commands load `.env`.
+`bun t` loads `.env` and forwards configured hosted credentials. `bun t:local <paths>` forwards none and skips credential-backed live service tests, but fixture mode does not block network downloads or tool installation. Normal `bun autoshow` commands load `.env`.
 
 ## Local Quick Start
 
@@ -21,6 +21,8 @@ bun t:local test/test-cases/e2e/local/sources/download/download-input-types-loca
 ```
 
 Types and price preflight do not replace functional verification. Distinguish transport, decoded integrity, spoken/text correctness, and perceptual quality; mocks do not prove the latter two.
+
+Local streaming download acceptance uses a runtime-contained extractor transport fixture and loopback-served real media. It verifies CLI routing, metadata, byte preservation, decoded integrity, and invalid-artifact rejection. Real public YouTube/Twitch acceptance remains separately selectable under `e2e/service/sources/download/`; it uses the managed extractor and may fail when a site refuses anonymous access. See [download tests](01-sources/download/tests.md) for the explicit commands and coverage limits.
 
 ## Service Quick Start
 
@@ -79,6 +81,8 @@ Preserve interrupted TTS directories and temporary audio. Before `--allow-ambigu
 `bun run check:docs` parses concrete `bun autoshow`/`bun as` examples in `README.md`, `docs/docker.md`, and `docs/commands/`, including continuations. It checks commands, flags, and explicit provider/model selectors; it excludes templates/shell expressions and never executes handlers, reads example inputs, or calls providers.
 
 The verification job on PRs and pushes to `main` runs repository checks and price preflight, plus selected local contracts when the diff can affect them. Benchmark/report/todo/diagram-only changes and root Markdown other than README skip that contract step; unknown diff bases run it. This job supplies no provider credentials and runs neither the full suite nor provider-backed commands.
+
+Code changes also run managed macOS ARM64 acceptance. That job installs the application graph into runtime while leaving the native toolchain cold, limits executable discovery to operating-system paths and the explicit bootstrap Bun, and compares complete runtime snapshots around a dry-run. Snapshots preserve paths, content hashes, file/directory permissions and timestamps, ownership, and symlink relationships. It then performs cold setup, warm reuse through `BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun --no-env-file test/setup-acceptance/managed-offline-setup.ts`, and strict doctor checks. The warm harness blocks JavaScript network dispatch and denies networking in child-process sandboxes; Calibre uses its verified production sandbox profile so profiles are not nested. It runs the curated free e2e selection with no provider credentials. Source downloads and compilation require network access; the e2e selection includes public downloads and is not an offline suite. Native tool provisioning and the independent dependency jobs install their application tools under `runtime/`.
 
 For retained timings, use `bun src/tools/ci-run-timings.ts price <metrics.ndjson>` or `run <run-id>`; `--json-file` reads a saved run payload.
 

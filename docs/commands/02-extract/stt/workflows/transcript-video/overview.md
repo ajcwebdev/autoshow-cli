@@ -9,4 +9,4 @@ bun autoshow extract --transcript-video --audio input/audio.mp3 --transcript-res
 
 Output: `<stem>.mp4`, `.vtt`, `.srt`, and `manifest.json`. `--font` defaults to `DejaVu Sans`; `--keep-tmp` retains renderer working files.
 
-Rendering needs FFmpeg with `ass`, or the supported ImageMagick/Pango fallback and fonts. Managed macOS FFmpeg lacks `ass`, so install the fallback prerequisites from [setup](../../../../00-setup-and-utilities/setup.md). See the [STT guide](../../overview.md) for transcription.
+Rendering uses managed FFmpeg with `ass`, or the supported managed ImageMagick/Pango fallback and private fonts. Provision the complete rendering graph with `bun autoshow setup --step rendering`; see [setup](../../../../00-setup-and-utilities/setup.md) and the [STT guide](../../overview.md).

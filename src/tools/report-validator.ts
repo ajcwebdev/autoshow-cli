@@ -7,11 +7,9 @@ import { writeCommandPayload } from '~/utils/app-logger/result-emitter'
 import { findMachineSpecificPaths } from './repository-structure-check'
 
 export const PROVIDER_REPORT_HEADINGS = [
-  'Executive summary', 'Prioritized additions', 'Method, evidence, and implementation terminology',
-  'Repository source map', 'Provider coverage', 'Current-model inventory and findings', 'Detailed findings',
-  'Restricted and announced watchlist', 'Unresolved evidence, conflicting sources, and non-additions',
-  'Implementation follow-up', 'Coverage reconciliation and actionable addition checklist', 'Validation and research limitations'
+  'Summary', 'Prioritized additions', 'Inventory', 'Findings', 'Watchlist and unresolved evidence', 'Actions', 'Evidence and validation'
 ] as const
+const PROVIDER_REPORT_METADATA = ['Research cutoff', 'Repository snapshot', 'Execution prompt', 'Workflow scope', 'Related reports'] as const
 export type ReportProfile = 'auto' | 'generic' | 'provider-research'
 export interface ReportValidationOptions {
   paths?: readonly string[]
@@ -336,19 +334,19 @@ const coverageReconciles = (coverage: MarkdownTable, count: number): boolean => 
 }
 const validateProviderStructure = (document: MarkdownDocument, add: AddDiagnostic): number => {
   const headings = document.headings.filter(heading => heading.level === 2)
-  if (JSON.stringify(headings.map(heading => heading.text)) !== JSON.stringify(PROVIDER_REPORT_HEADINGS)) add(1, 'PROVIDER_HEADINGS', 'Use each of the twelve provider-research second-level headings exactly once, in the documented order.')
-  for (const name of ['Research cutoff', 'Repository status date', 'Workflow scope', 'Related reports']) {
+  if (JSON.stringify(headings.map(heading => heading.text)) !== JSON.stringify(PROVIDER_REPORT_HEADINGS)) add(1, 'PROVIDER_HEADINGS', `Use each of the ${PROVIDER_REPORT_HEADINGS.length} provider-research second-level headings exactly once, in the documented order: ${PROVIDER_REPORT_HEADINGS.join('; ')}.`)
+  for (const name of PROVIDER_REPORT_METADATA) {
     if (!document.visible.some(line => new RegExp(`^- \\*\\*${name}:\\*\\*\\s+\\S`).test(line))) add(1, 'PROVIDER_METADATA', `Add a nonempty ${name} metadata field.`)
   }
-  const inventory = document.tables.filter(table => table.section === 'Current-model inventory and findings' && table.headers.map(label).join('/') === 'current id/finding/ref')
+  const inventory = document.tables.filter(table => table.section === 'Inventory' && table.headers.map(label).join('/') === 'current id/finding/ref')
   if (!inventory.length) add(1, 'PROVIDER_INVENTORY', 'Add the Current ID / Finding / Ref inventory table, including when there are zero scoped tuples.')
   const count = countInventoryTuples(inventory, add)
   for (const heading of document.headings) {
     const id = /^([A-Z][A-Z0-9-]*-\d+)\b/.exec(heading.text)?.[1]
     if (id && !/^[A-Z][A-Z0-9]*(?:-[A-Z]+)*-\d{3}$/.test(id)) add(heading.line, 'UNSTABLE_FINDING_ID', `Use a stable three-digit provider finding ID instead of ${id}.`)
   }
-  const coverage = document.tables.find(table => table.section === 'Coverage reconciliation and actionable addition checklist' && table.headers.map(label).join('/') === 'category/count')
-  const provider = document.tables.find(table => table.section === 'Provider coverage' && table.headers.map(label).join('/') === 'provider/workflows/entries')
+  const coverage = document.tables.find(table => table.section === 'Inventory' && table.headers.map(label).join('/') === 'category/count')
+  const provider = document.tables.find(table => table.section === 'Inventory' && table.headers.map(label).join('/') === 'provider/workflows/entries')
   if (!coverage) add(1, 'COVERAGE_COUNTS', 'Add the Category / Count reconciliation table.')
   else if (!coverageReconciles(coverage, count)) add(coverage.line, 'COVERAGE_COUNTS', 'Category counts, Total scoped tuples and current inventory rows must reconcile exactly.')
   if (!provider) add(1, 'PROVIDER_COUNTS', 'Add the Provider / Workflows / Entries coverage table.')

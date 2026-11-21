@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir } from 'node:fs/promises'
+import { lstat, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
   createManagedSourceArtifactManifest,
@@ -83,7 +83,7 @@ describe('managed source artifact manifest', () => {
       version: '1.27.2',
       sources: [{ name: 'mupdf', version: '1.27.2' }],
       buildFlags: ['build=release', 'HAVE_X11=no', 'HAVE_GLUT=no', 'HAVE_OBJCOPY=no', 'HAVE_LIBCRYPTO=no'],
-      payload: [{ path: 'bin/mutool' }]
+      payload: [{ path: 'bin', kind: 'directory' }, { path: 'bin/mutool', kind: 'file' }]
     })
     expect(await validateManagedSourceArtifact('mupdf', {
       toolDir,
@@ -164,7 +164,7 @@ describe('managed tool atomic promotion', () => {
     })
 
     expect(await Bun.file(join(destinationDir, 'payload')).text()).toBe('new\n')
-    expect(await Bun.file(stagingDir).exists()).toBe(false)
+    await expect(lstat(stagingDir)).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
   test('preserves a healthy prior install when staging validation fails', async () => {
@@ -182,7 +182,8 @@ describe('managed tool atomic promotion', () => {
     })).rejects.toThrow('staging validation failed')
 
     expect(await Bun.file(join(destinationDir, 'payload')).text()).toBe('healthy prior\n')
-    expect(await Bun.file(stagingDir).exists()).toBe(false)
+    expect((await lstat(stagingDir)).isDirectory()).toBe(true)
+    expect(await Bun.file(join(stagingDir, 'payload')).text()).toBe('interrupted\n')
   })
 
   test('rolls back to the healthy prior install when activation fails after replacement', async () => {

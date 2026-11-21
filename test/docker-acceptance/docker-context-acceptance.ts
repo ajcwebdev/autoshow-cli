@@ -1,9 +1,9 @@
-import { lstat, mkdir, mkdtemp, readdir, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { lstat, mkdir, readdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { runDockerProcess } from '../../src/tools/docker-process'
 import type { ProcessRunner } from '../../src/tools/docker-process'
 import { requireCondition } from '../test-utils/require-condition'
+import { createRuntimeTempDirectory } from '../../src/utils/runtime-state'
 
 // Every context file is authored here. The checkout contributes only its ignore
 // rules; workspace inputs, runtime state, and dependency trees are never read.
@@ -70,7 +70,7 @@ export async function runDockerContextAcceptance(
   ignorePath = resolve(import.meta.dir, '../../.dockerignore')
 ): Promise<DockerContextGateResult> {
   const ignore = await Bun.file(ignorePath).bytes()
-  const directory = await mkdtemp(join(tmpdir(), 'autoshow-authored-docker-context-'))
+  const directory = await createRuntimeTempDirectory('autoshow-authored-docker-context-')
   try {
     const context = join(directory, 'context')
     const output = join(directory, 'export')

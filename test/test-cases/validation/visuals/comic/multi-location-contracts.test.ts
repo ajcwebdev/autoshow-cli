@@ -7,31 +7,14 @@ import { createLocationReferenceSnapshots, normalizeLocationKey, resolveLocation
 import { resolveLocationReferencesAcrossPanels, resolvePrimaryCharacterReferencesAcrossPanels } from '~/cli/commands/visuals/comic/comic-utils/panel-prompt-utils'
 import { validateSceneSourceSegmentCoverage } from '~/cli/commands/visuals/comic/comic-utils/source-coverage-utils'
 import { parseScriptMarkdownToStructuredData } from '~/cli/commands/visuals/comic/comic-utils/structured-script-utils/structured-script-parser'
-import type { CharacterCatalogService, CompiledPanelBlocking, LocationReferenceCatalog, LocationView, PanelPrimaryReferenceInput, ScenePromptData, StructuredScriptSourceSegment } from '~/types'
-import * as v from 'valibot'
-import { CompiledPanelBlockingSchema } from '~/cli/commands/visuals/comic/schemas/blocking-plan-schemas'
+import type { CharacterCatalogService, LocationReferenceCatalog, PanelPrimaryReferenceInput, ScenePromptData, StructuredScriptSourceSegment } from '~/types'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
 
 const roots: string[] = []
 const sha256 = (value: string | Buffer): string => new Bun.CryptoHasher('sha256').update(value).digest('hex')
 
-const compiledBlockingForView = (nearestView: LocationView): CompiledPanelBlocking => v.parse(CompiledPanelBlockingSchema, {
-  planSha256: sha256('blocking-plan'),
-  stageStateId: 'quarters-open',
-  cameraSetupId: `${nearestView}-camera`,
-  camera: { position: { x: 0, y: 0 }, heightM: 1.6, lens: 'normal', framing: 'medium', elevation: 'eye', overShoulderOf: null, headingDeg: nearestView === 'reverse' ? 180 : 0, nearestView },
-  axis: null,
-  ledger: [],
-  offFrameRoster: [],
-  croppedOnStage: [],
-  extrasInFrame: [],
-  dressingInFrame: '',
-  anchorsInFrame: [],
-  lines: { camera: `Camera "${nearestView}-camera".`, ledger: [], offFrame: '', wardrobe: '', extras: '', dressing: '', anchors: '' },
-})
-
-const viewPanelInput = (runDirectory: string, snapshotId: string, locationKey: string, nearestView?: LocationView): PanelPrimaryReferenceInput => ({
+const viewPanelInput = (runDirectory: string, snapshotId: string, locationKey: string): PanelPrimaryReferenceInput => ({
   panelDirectory: join(runDirectory, 'metadata', 'panel-prompts', 'panel-01'),
   entries: [],
   bundleData: {
@@ -50,7 +33,6 @@ const viewPanelInput = (runDirectory: string, snapshotId: string, locationKey: s
       locationKey,
       locationSnapshotId: snapshotId,
     }],
-    ...(nearestView ? { blocking: compiledBlockingForView(nearestView), planSha256: sha256('blocking-plan') } : {}),
   },
 })
 const emptyCharacterCatalog = {
@@ -216,7 +198,7 @@ describe('multi-location comic contracts', () => {
     expect(() => resolveLocationReferencesAcrossPanels(panels)).toThrow(/Registered location establishing image is missing/)
   })
 
-  test('describes canonical views without writing copies and selects the camera-matched current view', async () => {
+  test('describes canonical views without writing copies and selects the establishing view while listing every registered view', async () => {
     const root = await makeTempDir('autoshow-multi-view-location-')
     roots.push(root)
     const characters = join(root, 'input', 'characters')
@@ -254,14 +236,11 @@ describe('multi-location comic contracts', () => {
 
     const panel = viewPanelInput(run, snapshot.snapshotId, 'quarters')
     expect(resolveLocationReferencesAcrossPanels([panel]).map(reference => reference.view)).toEqual(['establishing'])
-    expect(resolveLocationReferencesAcrossPanels([panel], { cameraMatched: true }).map(reference => reference.view)).toEqual(['establishing'])
-    const reversePanel = viewPanelInput(run, snapshot.snapshotId, 'quarters', 'reverse')
-    const matched = resolveLocationReferencesAcrossPanels([reversePanel], { cameraMatched: true })[0]!
-    expect(matched.view).toBe('reverse')
-    expect(matched.path).toBe(join(locations, 'quarters--reference-reverse.png'))
-    expect(matched.views.map(view => view.view)).toEqual(['establishing', 'reverse'])
-    expect(resolveLocationReferencesAcrossPanels([reversePanel]).map(reference => reference.view)).toEqual(['establishing'])
-    expect(resolveLocationReferencesAcrossPanels([reversePanel, reversePanel], { cameraMatched: true }).map(reference => reference.view)).toEqual(['establishing'])
+    const resolved = resolveLocationReferencesAcrossPanels([panel, viewPanelInput(run, snapshot.snapshotId, 'quarters')])
+    expect(resolved).toHaveLength(1)
+    expect(resolved[0]!.path).toBe(join(locations, 'quarters--reference.png'))
+    expect(resolved[0]!.views.map(view => [view.view, view.path])).toEqual([['establishing', join(locations, 'quarters--reference.png')], ['reverse', join(locations, 'quarters--reference-reverse.png')]])
+    expect(existsSync(run)).toBe(false)
   })
 
   test('never uses a legacy snapshot as fallback for a missing current registration', async () => {
@@ -298,20 +277,17 @@ describe('multi-location comic contracts', () => {
     expect(() => resolveLocationReferencesAcrossPanels([viewPanelInput(run, snapshotId, 'quarters'), viewPanelInput(join(root, 'different-run'), snapshotId, 'quarters')])).toThrow(/Mixed run directories/)
   })
 
-  test('keeps cataloged off-frame characters as roster cards without requiring assets for generic blocking guests', async () => {
-    const root = await makeTempDir('autoshow-live-blocking-roster-')
+  test('resolves only the panel cast as character references, with no roster attachments for uncast catalog characters', async () => {
+    const root = await makeTempDir('autoshow-live-cast-references-')
     roots.push(root)
     await createLiveCharacterFixture(root, ['hero', 'rival'].map(key => ({ key, name: key, description: key, aliases: [], image: `${key}.png`, outlineSheet: `${key}.png` })))
     const run = join(root, 'run')
-    const input = viewPanelInput(run, 'obsolete-location', 'quarters', 'establishing')
+    const input = viewPanelInput(run, 'obsolete-location', 'quarters')
     input.bundleData.panels[0]!.characterKeys = ['hero']
-    input.bundleData.blocking!.offFrameRoster = [{ characterKey: 'rival', note: 'Outside the crop.' }, { characterKey: 'background-guard', note: 'A generic guest outside the crop.' }]
-    input.bundleData.blocking!.croppedOnStage = [{ characterKey: 'rival', reason: 'Outside the crop.' }]
-    input.bundleData.blocking!.extrasInFrame = [{ ensembleKey: 'anonymous-crowd', count: 3, variety: [], exclude: [], props: [] }]
     const references = resolvePrimaryCharacterReferencesAcrossPanels([input])
     expect(references.characterReferences?.map(reference => reference.key)).toEqual(['hero'])
     expect(references.primaryCharacterRefs).toEqual([join(root, 'input', 'characters', 'hero.png')])
-    expect(references.rosterCharacterReferences).toEqual([{ key: 'rival', name: 'rival', path: join(root, 'input', 'characters', 'rival.png') }])
+    expect(Object.keys(references).filter(key => /roster/i.test(key))).toEqual([])
     expect(existsSync(run)).toBe(false)
   })
 

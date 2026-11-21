@@ -1,4 +1,5 @@
-import { rename } from 'node:fs/promises'
+import { unlink } from 'node:fs/promises'
+import { publishMediaResumeFile } from '~/cli/commands/command-shared/media-resume-artifacts'
 import { getGenerationTargetKey } from '~/cli/commands/command-shared/generation-command-utils'
 import { buildUpdatedGenerationCostTiming } from '../generation-resume'
 import { collectMusicTargets, getMusicArtifactFileName } from '~/cli/commands/audio/music/music-targets'
@@ -7,7 +8,17 @@ import { deriveGenerationResumeModelFields, deriveGenerationResumeProviderFlags,
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildMusicEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/generation-estimates'
-import type { EstimateMusicCostOptions, GenerationResumeConfig, MusicGenOptions, MusicTarget, Step7MusicMetadata } from '~/types'
+import type { EstimateMusicCostOptions, GenerationResumeConfig, GenerationResumeRunContext, MusicGenOptions, MusicTarget, Step7MusicMetadata } from '~/types'
+
+const recordedMusicFiles = (entry: Step7MusicMetadata): string[] => {
+  const names = [entry.musicFileName]
+  // Single-target providers historically kept the original lyric/part files beside their qualified copies.
+  if (entry.generatedTextFileName) names.push(entry.generatedTextFileName, 'generated-music.txt')
+  for (const [index, name] of (entry.additionalAudioFileNames ?? []).entries()) {
+    names.push(name, `generated-music-part-${index + 2}.mp3`)
+  }
+  return names
+}
 
 export const finalizeMusicResumeArtifacts = async (
   metadata: Step7MusicMetadata[],
@@ -23,7 +34,9 @@ export const finalizeMusicResumeArtifacts = async (
     }
 
     const finalPath = `${outputDir}/${finalFileName}`
-    await rename(`${outputDir}/${entry.musicFileName}`, finalPath)
+    const sourcePath = `${outputDir}/${entry.musicFileName}`
+    await publishMediaResumeFile(sourcePath, finalPath)
+    await unlink(sourcePath)
     return {
       ...entry,
       musicFileName: finalFileName,
@@ -45,9 +58,16 @@ export const musicResumeConfig = {
     targets: MusicTarget[],
     input: string,
     outputDir: string,
-    opts: MusicGenOptions
+    opts: MusicGenOptions,
+    context: GenerationResumeRunContext<MusicTarget, Step7MusicMetadata, MusicGenOptions>
   ) => {
-    const { metadata } = await runMusicTargets(targets, input, outputDir, opts)
+    const { metadata } = await runMusicTargets(targets, input, outputDir, {
+      ...opts,
+      mediaResume: {
+        recordedFileNames: context.existingEntries.flatMap(recordedMusicFiles),
+        useProviderNames: true
+      }
+    })
     return await finalizeMusicResumeArtifacts(metadata, outputDir)
   },
   buildEstimates: async (opts: EstimateMusicCostOptions) => await buildMusicEstimates(opts),

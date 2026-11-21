@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
+import { generateComicPages } from '~/cli/commands/visuals/comic/comic-commands/generate-images/generate-comic-pages'
 import { generatePanelImages } from '~/cli/commands/visuals/comic/comic-commands/generate-images/generate-panel-images'
 import { isComicProviderError, runComicImageWorkItems } from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-image-work-items'
-import { runComicCreditPreflight } from '~/cli/commands/visuals/comic/comic-utils/credit-preflight'
 import { createImageRunStats } from '~/cli/commands/visuals/comic/comic-image-services/image-costs'
 import { coerceAndValidateGenerateImages } from '~/cli/commands/visuals/comic/comic-utils/cli-args'
 import { generateImagesCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
@@ -13,7 +13,7 @@ import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
 import { AppProviderError } from '~/utils/error-handler'
 import promptsConfig from '~/cli/commands/visuals/comic/comic-prompts/prompts.json'
-import type { ComicImageRunStop, ComicImageWorkItemResult, PageQaEntry, PageQaRequest, PanelBundleData } from '~/types'
+import type { ComicImageGenerationDependencies, ComicImageRunStop, ComicImageWorkItemResult, PanelBundleData } from '~/types'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
 import { createLiveLocationFixture } from '../../../../test-utils/live-location-reference-fixture'
@@ -65,7 +65,7 @@ describe('unattended comic image runs', () => {
 
   test('aborts the remaining work items on the first provider error and preserves what was written', async () => {
     const rendered: string[] = []
-    const ok = (): ComicImageWorkItemResult => ({ stats: createImageRunStats(), qaEntries: [] })
+    const ok = (): ComicImageWorkItemResult => ({ stats: createImageRunStats() })
     let stopRecord: ComicImageRunStop | undefined
     await expect(runComicImageWorkItems({
       concurrency: 1,
@@ -75,7 +75,6 @@ describe('unattended comic image runs', () => {
         return item === 'panel-02' ? { ...ok(), error: new AppProviderError('You have insufficient credit.', { status: 402, stage: 'openai' }) } : ok()
       },
       stats: createImageRunStats(),
-      qaEnabled: false,
       stopOnProviderError: true,
       describeItem: item => item,
       onStop: stop => { stopRecord = stop },
@@ -87,7 +86,7 @@ describe('unattended comic image runs', () => {
 
   test('keeps the default behavior of continuing past a provider error', async () => {
     const rendered: string[] = []
-    const ok = (): ComicImageWorkItemResult => ({ stats: createImageRunStats(), qaEntries: [] })
+    const ok = (): ComicImageWorkItemResult => ({ stats: createImageRunStats() })
     await expect(runComicImageWorkItems({
       concurrency: 1,
       items: ['panel-01', 'panel-02', 'panel-03'],
@@ -96,56 +95,65 @@ describe('unattended comic image runs', () => {
         return item === 'panel-02' ? { ...ok(), error: new AppProviderError('You have insufficient credit.', { status: 402, stage: 'openai' }) } : ok()
       },
       stats: createImageRunStats(),
-      qaEnabled: false,
       itemFailure: { message: count => `${count} image generation task(s) failed`, stage: 'comic:generate-images' },
     })).rejects.toThrow('1 image generation task(s) failed')
     expect(rendered).toEqual(['panel-01', 'panel-02', 'panel-03'])
   })
 
-  test('never requests a third panel image once the second panel hits a provider error', async () => {
+  const writeImage: NonNullable<ComicImageGenerationDependencies['writeImage']> = async (outputPath, imageBase64) => {
+    await mkdir(dirname(outputPath), { recursive: true })
+    await Bun.write(outputPath, Buffer.from(imageBase64, 'base64'))
+  }
+
+  test('never requests a third panel image once the second panel hits a provider error (transport mock; decoded PNG retained)', async () => {
     const sceneSlug = `stop-on-error-${crypto.randomUUID()}`
     const { runDirectory } = await createSceneFixture(sceneSlug, [1, 2, 3])
     const requestedPanels: number[] = []
-    const judgePage = async (request: PageQaRequest): Promise<PageQaEntry> => ({
-      pageNumber: request.pageNumber, panelNumbers: [request.pageNumber], outputFile: 'attempt.png', judgeModel: request.model, hardFailure: false,
-      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [request.pageNumber], issues: [] }, panels: [{ panelNumber: request.pageNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none', locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, blockingMatch: true, axisSideMatch: true, blockingAudit: [], dialogueAccuracy: true, dialogueIssueKind: 'none', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '' }], summary: 'Pass.' },
-      usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
-    })
-    await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2.5-flare'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2, 3], qa: true, maxRepairs: 0, stopOnProviderError: true }, {
+    await expect(generatePanelImages(sceneSlug, { model: 'gpt-image-2.6-flare', size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2, 3], stopOnProviderError: true }, {
       requestImage: async input => {
         const panelNumber = Number(/Sub-panel (\d+)/.exec(input.normalizedPrompt)?.[1] ?? 0)
         requestedPanels.push(panelNumber)
         if (panelNumber === 2) throw new AppProviderError('You have insufficient credit.', { status: 402, stage: 'openai' })
         return { mode: 'generate', result: { imageBase64: tinyPng.toString('base64') } }
       },
-      writeImage: async (outputPath, imageBase64) => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, Buffer.from(imageBase64, 'base64')) },
-      judgePage,
+      writeImage,
     })).rejects.toThrow('stopped=panel-02')
     expect(requestedPanels).toEqual([1, 2])
-    expect(await Bun.file(join(runDirectory, 'panels', 'test-run', 'panel-01.png')).exists()).toBe(true)
+    expect(await Bun.file(join(runDirectory, 'panels', 'test-run', 'panel-01.png')).bytes()).toEqual(new Uint8Array(tinyPng))
+    expect(await Bun.file(join(runDirectory, 'panels', 'panel-01.png')).exists()).toBe(true)
     expect(await Bun.file(join(runDirectory, 'panels', 'test-run', 'panel-03.png')).exists()).toBe(false)
   })
 
-  test('passes a healthy credit preflight and fails fast on a payment-required response', async () => {
-    expect(await runComicCreditPreflight({}, { listModels: async () => ({ status: 200 }) })).toEqual({ provider: 'openai', status: 'ok', authentication: 'accepted', operationAdmission: 'unverified' })
-    await expect(runComicCreditPreflight({}, { listModels: async () => ({ status: 402 }) })).rejects.toThrow('the OpenAI account has insufficient credit (HTTP 402). No image was generated.')
-    await expect(runComicCreditPreflight({}, { listModels: async () => ({ status: 401 }) })).rejects.toThrow('the configured OpenAI credential was rejected (HTTP 401)')
+  test('never requests a third grouped page once the second page hits a provider error (transport mock)', async () => {
+    const sceneSlug = `stop-on-error-pages-${crypto.randomUUID()}`
+    const { runDirectory } = await createSceneFixture(sceneSlug, [1, 2, 3, 4, 5, 6])
     let requests = 0
-    expect(await runComicCreditPreflight({ price: true }, { listModels: async () => { requests++; return { status: 200 } } })).toEqual({ provider: 'openai', status: 'skipped-price-mode' })
-    expect(requests).toBe(0)
+    await expect(generateComicPages(sceneSlug, { model: 'gpt-image-2.6-flare', size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: 'all', panelsPerImage: 2, stopOnProviderError: true }, {
+      requestImage: async () => {
+        requests++
+        if (requests === 2) throw new AppProviderError('You have insufficient credit.', { status: 402, stage: 'openai' })
+        return { mode: 'generate', result: { imageBase64: tinyPng.toString('base64') } }
+      },
+      writeImage,
+    })).rejects.toThrow(/stopped=.*abandoned=1/)
+    expect(requests).toBe(2)
+    expect(await Bun.file(join(runDirectory, 'pages', 'test-run', 'page-01-panels-01-02.png')).exists()).toBe(true)
+    expect(await Bun.file(join(runDirectory, 'pages', 'test-run', 'page-03-panels-05-06.png')).exists()).toBe(false)
+    // Grouped pages never fill canonical panel slots.
+    expect(await Bun.file(join(runDirectory, 'panels', 'panel-01.png')).exists()).toBe(false)
   })
 
-  test('parses the unattended flags and leaves them off by default', () => {
-    expect(parseArgs(['script.md', '--stop-on-provider-error', '--credit-preflight']).stopOnProviderError).toBe(true)
-    expect(parseArgs(['script.md', '--stop-on-provider-error', '--credit-preflight']).creditPreflight).toBe(true)
+  test('parses --stop-on-provider-error, leaves it off by default, and rejects the retired --credit-preflight flag', () => {
+    expect(parseArgs(['script.md', '--stop-on-provider-error']).stopOnProviderError).toBe(true)
     expect(parseArgs(['script.md']).stopOnProviderError).toBeUndefined()
-    expect(parseArgs(['script.md']).creditPreflight).toBeUndefined()
+    expect(() => parseArgs(['script.md', '--credit-preflight'])).toThrow()
   })
 
   test('states the per-bundle truth in the retired continuation prompt text', () => {
     const scenePrompts = (promptsConfig as { 'Scene Prompts': Record<string, string> })['Scene Prompts']
     for (const key of ['2nd Panel', '3rd Panel']) {
-      expect(scenePrompts[key]).toContain('Each final panel is generated from its own bundle; continuity is carried by the blocking ledger when a plan exists.')
+      expect(scenePrompts[key]).toContain('Each final panel is generated from its own bundle')
+      expect(scenePrompts[key]).not.toContain('blocking')
       expect(scenePrompts[key]).not.toContain('Continue from the previous panels of the scene')
     }
   })

@@ -39,18 +39,19 @@ Selectors and controls vary by workflow; provider membership does not imply ever
 key-presence snapshot (no secret forwarding)
                  |
                  v
-parallel tool setup: media / Defuddle / Whisperfile / documents / OCR
+managed bootstrap + shared native dependencies + private fonts
                  |
                  v
-host rendering prerequisite checks
+capability setup: media / documents / OCR / rendering
+                  Defuddle / alignment / Whisperfile
                  |
                  v
-readiness summary + provenance/timing
+functional readiness probes + provenance/timing summary
 ```
 
 `setup` installs tools; configuration flags on `setup`/`config` read or write defaults without installation. Full setup installs the default Whisperfile `tiny` bundle; lyric-video setup separately needs `small.en` when local transcription is used.
 
-macOS uses managed installations under `runtime/`; Linux also uses packaged/PATH tools. Resolution is `--bin-dir`, then managed tools, then non-macOS `PATH`. `AUTOSHOW_PROJECT_ROOT` relocates the mutable project/runtime root. `setup --doctor` checks readiness, and `--strict` exits 2 on any warning. See [setup](../commands/00-setup-and-utilities/setup.md) for platform prerequisites and step choices.
+Setup provisions tools, libraries, fonts, models, build helpers, caches, and internal state under `runtime/`. Application dependencies resolve through managed paths; `--bin-dir` selects a validated directory within runtime. `AUTOSHOW_PROJECT_ROOT` relocates the mutable project/runtime root. `setup --dry-run` previews work without mutation. `setup --doctor` checks readiness, and `--strict` exits 2 on any warning. See [setup](../commands/00-setup-and-utilities/setup.md) for platform prerequisites and step choices.
 
 ## Hosted Provider Env Checks
 

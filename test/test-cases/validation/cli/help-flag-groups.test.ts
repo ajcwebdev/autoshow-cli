@@ -175,10 +175,10 @@ const RUNTIME_DEFAULT_ALLOWLIST: Record<string, string> = {
   length: 'Omission means no export-length cap; accepted values are positive integer character-thousands, so no concrete accepted value represents the unlimited state.',
   'max-generation-slots': 'Omission allows all unresolved comic audio slots; any accepted positive integer adds a checkpoint limit, so no concrete value represents the unlimited state.',
   'max-model-cents': 'Omission disables per-model filtering; every finite non-negative amount imposes a ceiling and can exclude targets.',
-  'max-repairs': 'Comic generation defaults to two repairs, QA-only and revision plans default to zero, and character references reject the option entirely.',
   music: 'Setup persists music selectors only when supplied; no-saved-selection is absence rather than a provider value, and a seeded provider would create a configuration change.',
   only: 'Comic draft-scenes uses absence for the full pipeline; its accepted values select individual stages and contain no all-stages sentinel.',
   'panel-count': 'Treatment drafting has a concrete count default, but scene drafting leaves the count unconstrained unless supplied; a seeded count would require matching authored panel notes.',
+  panels: 'Comic review --panels is only valid with --use; omission adopts all declared scene panels for a complete run but must fail for a subset run, so no seeded selector preserves that distinction.',
   resolution: 'Video resolution defaults vary by provider/model, including Grok 480p, H3 2k, and H3 Max 768p; one parser value would override those choices.',
   size: 'Image sizing varies by provider/model; comic reference sketches also select portrait versus landscape by character/location, so a shared concrete size would override route defaults.',
   speaker: 'Treatment dialogue speaker assignments are repeatable; omission means narration only, and any seeded character key changes the cast and dialogue routing.',
@@ -205,5 +205,4 @@ const RUNTIME_DEFAULT_ALLOWLIST: Record<string, string> = {
   'tts-style': 'Omission preserves the ElevenLabs voice setting; every numeric value changes style, and eleven_v3 rejects the control.',
   'tts-text-normalization': 'Grok resolves false while ElevenLabs delegates to its provider setting and accepts a different value type; a shared seeded assignment would override that distinction.',
   'tts-true-peak': 'The ceiling depends on the chosen normalization policy: audiobook -3 dBTP or native loudness override -1.5; native without normalization and legacy-16k reject the control.',
-  variation: 'Omitted comic variations use canonical generation with legacy output paths; explicitly selecting canonical enables variation-specific output paths, so seeding canonical changes artifact locations.'
 }

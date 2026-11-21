@@ -166,7 +166,6 @@ describe('target scheduler contracts', () => {
           imageBackground: undefined,
           imageCount: undefined,
           imageInputs: undefined,
-          imageMask: undefined,
           imageResponseMode: undefined,
           imageCompression: undefined,
           imageProviderConcurrency: 2

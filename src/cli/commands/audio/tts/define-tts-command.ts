@@ -44,7 +44,7 @@ export const ttsCommand = defineCliCommand({
   const rawFlags = ctx.flags as Record<string, unknown>
   const configPathOverride = typeof rawFlags['config-path'] === 'string' ? rawFlags['config-path'] : undefined
   const configPath = await resolveConfigPath(configPathOverride)
-  const config = await loadConfig(configPath)
+  const config = await loadConfig(configPath, { allowLegacyFallback: configPathOverride === undefined })
   let providerNormalized = normalizeGenericProviderSelectorFlags(
     rawFlags,
     ctx.rawParsed.explicitFlags,

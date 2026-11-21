@@ -14,16 +14,16 @@ const imageAspectRatioLists = [
 
 export const imageGenFlags = {
   'aspect-ratio': strFlag(`Image aspect ratio: ${formatUniqueValueList(...imageAspectRatioLists)} (provider-specific support; omitted by default for provider sizing). OpenAI uses --size instead`),
-  size: strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini Nano Banana 2.1; Lite: 1K only), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI GPT Image 2.5 (default: auto), or ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok; default: 1K). Other defaults use provider sizing`),
-  quality: strFlag(`Image quality: ${formatValueList(IMAGE_GENERATION_QUALITIES)} (OpenAI, default: auto; xhigh/max require GPT Image 2.5); Grok Image 2.0: low|medium|auto (auto pins low for generation, medium for editing)`),
+  size: strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini Nano Banana 2.1), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI GPT Image 2.6 (default: auto), or ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok; default: 1K). Other defaults use provider sizing`),
+  quality: strFlag(`Image quality: ${formatValueList(IMAGE_GENERATION_QUALITIES)} (OpenAI, default: auto); Grok Image 2.0: low|medium|auto (auto pins low for generation, medium for editing)`),
   format: strFlag(`Image output format: ${formatValueList(OPENAI_IMAGE_FORMAT_VALUES)} (OpenAI). Default: png`),
-  background: strFlag(`Image background: ${formatValueList(OPENAI_IMAGE_BACKGROUND_VALUES)} (OpenAI, default: auto; transparent requires GPT Image 2.5 and png/webp)`),
+  background: strFlag(`Image background: ${formatValueList(OPENAI_IMAGE_BACKGROUND_VALUES)} (OpenAI, default: auto; transparent requires PNG or WebP)`),
   count: strFlag(`Number of images to generate in one provider request where supported: ${formatValuesByProvider([
     { provider: 'OpenAI', values: [formatRange(OPENAI_IMAGE_COUNT_RANGE)] },
     { provider: 'Grok', values: [formatRange(GROK_IMAGE_COUNT_RANGE)] }
   ])} (default: 1)`),
   input: strListFlag('Reference/source image path or URL for edit/reference workflows (repeatable; OpenAI, Grok, Gemini native; Grok: 5)'),
-  mask: strFlag('Mask image path for inpainting/edit workflows (OpenAI only)'),
+  mask: strFlag('Local PNG edit mask for the first --input (OpenAI only); transparent pixels mark the editable area'),
   'response-mode': strFlag(`Gemini native response mode: ${formatValueList(GEMINI_IMAGE_RESPONSE_MODES)} (default: image)`),
   compression: strFlag(`OpenAI output compression for jpeg/webp images, ${formatRange(OPENAI_IMAGE_COMPRESSION_RANGE)} (default: provider compression; requires --format jpeg or webp)`),
 } as const satisfies CliFlagsDefinition

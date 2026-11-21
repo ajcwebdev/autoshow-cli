@@ -65,6 +65,7 @@ const hasGeminiImageSignal = (output: string): boolean =>
     /\bgemini-image(?:-generate)?\b/i.test(output)
     || /\bGemini image\b/i.test(output)
     || /\bgemini-[\w.\-]+-image(?:-preview)?\b/i.test(output)
+    || /\bgemini-nano-banana-[\w.\-]+\b/i.test(output)
   )
 
 export const isGeminiImageAvailabilityFailure = (output: string): boolean => {

@@ -1,7 +1,7 @@
 import type { ActiveTarEntry, PaxAttributes, TarMetadataState } from './tar-stream-types'
-import { archiveError, readHeaderPath, readNullTerminated } from './tar-archive-guards'
+import { archiveError, readHeaderPath, readNullTerminated, readTarMtime } from './tar-archive-guards'
 
-const SUPPORTED_PAX_KEYS = new Set(['path', 'linkpath', 'size'])
+const SUPPORTED_PAX_KEYS = new Set(['path', 'linkpath', 'size', 'mtime'])
 const textDecoder = new TextDecoder('utf-8', { fatal: true })
 
 const parsePaxAttributes = (bytes: Buffer): PaxAttributes => {
@@ -46,6 +46,17 @@ const parsePaxSize = (value: string | undefined, fallback: number): number => {
   return parsed
 }
 
+const parseMtime = (value: string | undefined, header: Buffer): number => {
+  if (value !== undefined && !/^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/.test(value)) {
+    throw archiveError('PAX mtime is not a valid timestamp.')
+  }
+  const mtime = value === undefined ? readTarMtime(header, 136, 148) : Number(value)
+  if (!Number.isFinite(mtime) || Math.abs(mtime) > 8_640_000_000_000) {
+    throw archiveError('Tar entry mtime is outside the supported timestamp range.')
+  }
+  return mtime
+}
+
 const decodeLongMetadata = (chunks: Buffer[]): string => {
   const bytes = Buffer.concat(chunks)
   let end = bytes.byteLength
@@ -65,20 +76,30 @@ export const applyTarExtendedMetadata = (entry: ActiveTarEntry, metadata: TarMet
   const chunks = entry.metadataChunks
   if (!chunks) return
   if (entry.typeFlag === 'x') metadata.nextPax = parsePaxAttributes(Buffer.concat(chunks))
-  if (entry.typeFlag === 'g') metadata.globalPax = { ...metadata.globalPax, ...parsePaxAttributes(Buffer.concat(chunks)) }
+  if (entry.typeFlag === 'g') {
+    for (const [key, value] of Object.entries(parsePaxAttributes(Buffer.concat(chunks)))) {
+      if (value === '') delete metadata.globalPax[key]
+      else metadata.globalPax[key] = value
+    }
+  }
   if (entry.typeFlag === 'L') metadata.nextLongPath = decodeLongMetadata(chunks)
   if (entry.typeFlag === 'K') metadata.nextLongLink = decodeLongMetadata(chunks)
 }
 
 export const resolveTarEntryMetadata = (header: Buffer, headerSize: number, metadata: TarMetadataState) => {
-  const attributes = { ...metadata.globalPax, ...metadata.nextPax }
+  const attributes = { ...metadata.globalPax }
+  for (const [key, value] of Object.entries(metadata.nextPax)) {
+    if (value === '') delete attributes[key]
+    else attributes[key] = value
+  }
   const rawPath = attributes['path'] ?? metadata.nextLongPath ?? readHeaderPath(header)
   const linkName = attributes['linkpath'] ?? metadata.nextLongLink ?? readNullTerminated(header, 157, 257)
   const size = parsePaxSize(attributes['size'], headerSize)
+  const mtime = parseMtime(attributes['mtime'], header)
   metadata.nextPax = {}
   metadata.nextLongPath = undefined
   metadata.nextLongLink = undefined
-  return { rawPath, linkName, size }
+  return { rawPath, linkName, size, mtime }
 }
 
 export const assertTarMetadataConsumed = (metadata: TarMetadataState): void => {

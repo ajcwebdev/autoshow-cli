@@ -1,11 +1,10 @@
 import type { DirectoryEntry } from '~/types'
 import * as v from 'valibot'
-import type { ComicPanelSource, ImageGenerationModel, LocationView, PanelBundleData, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedLocationReference, ResolvedLocationReferenceView, ResolveLocationReferenceOptions, ResolvedReferenceImages } from '~/types'
+import type { ComicPanelSource, ImageGenerationModel, PanelBundleData, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedLocationReference, ResolvedLocationReferenceView, ResolvedReferenceImages } from '~/types'
 import { PanelBundleDataSchema } from '../schemas/schemas'
 import { loadAndVerifyCharacterReferenceSnapshot } from './character-reference-snapshot'
-import { loadCharacterCatalog } from './character-reference-config'
-import { resolveCharacterIdentityReferences, resolveRosterCharacterReferences } from './character-identity-card'
-import { describeLocationSnapshotView, requireCurrentLocationReferenceSync, LOCATION_VIEWS } from './location-reference'
+import { resolveCharacterIdentityReferences } from './character-identity-card'
+import { describeLocationSnapshotView, requireCurrentLocationReferenceSync } from './location-reference'
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
 export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
@@ -55,46 +54,28 @@ export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrima
   if (runDirectories.size !== 1) throw ValidationError('Mixed run directories are not allowed in one image request', { stage: 'comic:reference-snapshot' })
   const runDirectory = [...runDirectories][0]!
   const keys = orderedKeys(panels)
-  const blockingKeys = panels.flatMap(({ bundleData: { blocking } }) => blocking ? [
-    ...blocking.ledger.map(entry => entry.characterKey),
-    ...blocking.offFrameRoster.map(entry => entry.characterKey),
-    ...blocking.croppedOnStage.map(entry => entry.characterKey),
-    ...blocking.extrasInFrame.map(entry => entry.ensembleKey),
-  ] : [])
-  const catalogKeys = blockingKeys.length > 0 ? new Set<string>(loadCharacterCatalog(undefined, { fresh: true }).characterKeys) : undefined
-  const rosterKeys = blockingKeys.filter(key => catalogKeys?.has(key))
-  const manifest = loadAndVerifyCharacterReferenceSnapshot(runDirectory, undefined, [...keys, ...rosterKeys])
+  const manifest = loadAndVerifyCharacterReferenceSnapshot(runDirectory, undefined, keys)
   const characterReferences = resolveCharacterIdentityReferences(runDirectory, manifest, keys, { compose: options.composeDerived !== false })
-  const primaryCharacterRefs = characterReferences.map(reference => reference.path)
-  const rosterCharacterReferences = resolveRosterCharacterReferences(runDirectory, manifest, keys)
   return {
-    primaryCharacterRefs,
+    primaryCharacterRefs: characterReferences.map(reference => reference.path),
     missingPrimaryCharacterRefs: [],
     characterReferences,
-    ...(rosterCharacterReferences.length > 0 ? { rosterCharacterReferences } : {}),
   }
 }
 
 export const resolvePrimaryCharacterReferences = (panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData): PrimaryCharacterReferenceState =>
   resolvePrimaryCharacterReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
 
-export const selectLocationSnapshotView = (views: readonly ResolvedLocationReferenceView[], preferred?: LocationView | undefined): ResolvedLocationReferenceView => {
-  const selected = (preferred ? views.find(view => view.view === preferred) : undefined) ?? views[0]
+export const selectLocationSnapshotView = (views: readonly ResolvedLocationReferenceView[]): ResolvedLocationReferenceView => {
+  const selected = views[0]
   if (!selected) throw ValidationError('Location reference has no registered views', { stage: 'comic:location-reference' })
   return selected
 }
 
-const preferredViewForPanels = (panels: PanelPrimaryReferenceInput[], options: ResolveLocationReferenceOptions): LocationView | undefined => {
-  if (!options.cameraMatched || panels.length !== 1) return undefined
-  const nearestView = panels[0]?.bundleData.blocking?.camera.nearestView
-  return nearestView && (LOCATION_VIEWS as readonly string[]).includes(nearestView) ? nearestView : undefined
-}
-
-export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[], options: ResolveLocationReferenceOptions = {}): ResolvedLocationReference[] => {
+export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedLocationReference[] => {
   if (panels.length === 0) throw ValidationError('A location reference requires at least one panel', { stage: 'comic:location-reference' })
   const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
   if (runDirectories.size !== 1) throw ValidationError('Mixed run directories are not allowed in one image request', { stage: 'comic:location-reference' })
-  const preferredView = preferredViewForPanels(panels, options)
   const ordered: ResolvedLocationReference[] = []
   const seen = new Set<string>()
   for (const input of panels) {
@@ -104,7 +85,7 @@ export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryRefere
     if (seen.has(key)) continue
     const current = requireCurrentLocationReferenceSync(key, { requireCurrentSpecification: false })
     const views = current.views.map(view => ({ view: view.view, path: view.imagePath, label: describeLocationSnapshotView(current.entry.key, view.view) }))
-    const selected = selectLocationSnapshotView(views, preferredView)
+    const selected = selectLocationSnapshotView(views)
     seen.add(key)
     ordered.push({ key: current.entry.key, snapshotId: `live:${current.entry.key}`, specification: current.entry.specification, path: selected.path, view: selected.view, views })
   }
@@ -178,23 +159,21 @@ export const findMissingReferenceImageFiles = async (paths: string[]): Promise<s
 }
 
 export const resolveReferenceImages = (
-  panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData, model: ImageGenerationModel, options: { reserveSlots?: number | undefined } = {}
+  panelDirectory: string, entries: DirectoryEntry[], bundleData: PanelBundleData, model: ImageGenerationModel
 ): ResolvedReferenceImages => {
   const primary = resolvePrimaryCharacterReferences(panelDirectory, entries, bundleData)
   const prior: string[] = []
-  const locations = resolveLocationReferencesAcrossPanels([{ panelDirectory, entries, bundleData }], { cameraMatched: true })
+  const locations = resolveLocationReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
   const designs = resolveDesignReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
   const required = [...primary.primaryCharacterRefs, ...locations.map(location => location.path), ...designs.map(design => design.path)]
   const supplementalViews = locations.flatMap(location => location.view === 'establishing'
     ? []
     : location.views.filter(view => view.view === 'establishing' && view.path !== location.path).map(view => ({ key: location.key, ...view })))
-  const reserveSlots = supplementalViews.length > 0 ? Math.max(1, options.reserveSlots ?? 0) : options.reserveSlots
-  const limited = trimOptionalContinuityReferences(model, required, [...prior, ...supplementalViews.map(view => view.path)], { reserveSlots })
+  const limited = trimOptionalContinuityReferences(model, required, [...prior, ...supplementalViews.map(view => view.path)])
   if (limited.trimmed.length > 0) comicLog.line(`  Trimmed ${limited.trimmed.length} optional continuity reference(s) for ${model}`)
   return {
     ...buildResolved(limited.references, primary.primaryCharacterRefs, prior, locations.map(location => location.path), primary.missingPrimaryCharacterRefs),
     ...(primary.characterReferences ? { characterReferences: primary.characterReferences } : {}),
-    ...(primary.rosterCharacterReferences ? { rosterCharacterReferences: primary.rosterCharacterReferences } : {}),
     locationReferences: locations.map((location, index) => ({
       key: location.key,
       snapshotId: location.snapshotId,

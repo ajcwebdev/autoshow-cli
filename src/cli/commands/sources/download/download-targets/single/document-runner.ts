@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { basename } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import { ensureDirectory } from '~/utils/cli-utils'
@@ -130,17 +131,17 @@ export const logIncompleteOcrRunSummary = (
       category: 'pipeline',
       metadata: {
         automaticResume: 'skip-blocked-providers',
-        command: `bun autoshow resume ${extraction.outputDir} --provider provider=model`,
+        command: `${CLI_INVOCATION} resume ${extraction.outputDir} --provider provider=model`,
         outputDir: extraction.outputDir
       }
     })
   }
 
   if (retryableMissingCount > 0) {
-    l.write('warn', `Retry OCR with bun autoshow resume ${extraction.outputDir}`, {
+    l.write('warn', `Retry OCR with ${CLI_INVOCATION} resume ${extraction.outputDir}`, {
       category: 'pipeline',
       metadata: {
-        command: `bun autoshow resume ${extraction.outputDir}`,
+        command: `${CLI_INVOCATION} resume ${extraction.outputDir}`,
         outputDir: extraction.outputDir
       }
     })

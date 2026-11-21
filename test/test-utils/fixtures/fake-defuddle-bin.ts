@@ -4,7 +4,7 @@ import { join } from 'node:path'
 const FAKE_DEFUDDLE_VERSION = '0.17.0'
 
 const FAKE_DEFUDDLE_PREAMBLE: readonly string[] = [
-  '#!/usr/bin/env bun',
+  `#!${process.execPath}`,
   'const args = process.argv.slice(2)',
   `if (args[0] === '--version') { console.log('${FAKE_DEFUDDLE_VERSION}'); process.exit(0) }`,
   'if (process.env.AUTOSHOW_FAKE_DEFUDDLE_STDERR) console.error(process.env.AUTOSHOW_FAKE_DEFUDDLE_STDERR)'

@@ -7,8 +7,6 @@ import { estimateFinalPanelImagesPrice } from './comic-price-final-image-estimat
 import { estimateGenerateSketchesPrice } from './comic-price-sketch-estimates'
 import { priceNotice } from './price-estimate-logging'
 import { getSceneJsonPath } from './project-paths'
-import { estimateQaOnlyPanelAuditPrice } from './qa-only-price-estimate'
-import { estimateRevisionEvaluationPrice } from './revision-evaluation-price'
 
 export { estimateDraftScenesPrice } from './comic-price-llm-estimates'
 export { estimateDraftTreatmentPrice } from '../comic-commands/draft-treatment/treatment-price-estimate'
@@ -16,7 +14,7 @@ export { estimateCharacterSketchPrice, estimateLocationReferencePrice } from './
 
 const buildSketchPriceOptions = (options: GenerateImagesCommandOptions, sketchPanels: ReturnType<typeof panelSelectionToSketchRange>): Parameters<typeof estimateGenerateSketchesPrice>[0] => ({
   sceneSlug: options.sceneSlug,
-  ...(options.imageModels ? { imageModels: options.imageModels } : {}),
+  ...(options.imageModel ? { imageModel: options.imageModel } : {}),
   ...(options.size ? { size: options.size } : {}),
   ...(options.quality ? { quality: options.quality } : {}),
   ...(options.force !== undefined ? { force: options.force } : {}),
@@ -62,22 +60,10 @@ export const estimateGenerateImagesPrice = async (
     return
   }
 
-  if (options.qaOnly) {
-    await estimateQaOnlyPanelAuditPrice(options)
-    return
-  }
-
-  if (options.revisionPlan) {
-    await estimateRevisionEvaluationPrice(options)
-    return
-  }
-
   if (target === 'both') {
     const sketchPanels = panelSelectionToSketchRange(options.panels)
     await estimateGenerateSketchesPrice(buildSketchPriceOptions(options, sketchPanels))
   }
 
-  if (target === 'images' || target === 'both') {
-    await estimateFinalPanelImagesPrice(options)
-  }
+  await estimateFinalPanelImagesPrice(options)
 }

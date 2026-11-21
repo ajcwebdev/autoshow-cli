@@ -1,4 +1,4 @@
-import { STT_ENGINE_OPTION_CAPABILITIES, STT_ENGINE_PROVIDER_NAME } from '~/cli/commands/stt/stt-cli'
+import { STT_ENGINE_OPTION_CAPABILITIES, STT_ENGINE_PROVIDER_NAME, STT_NUMBER_FORMATS } from '~/cli/commands/stt/stt-cli'
 import type { ControlSpec, TranscribeEngine } from '~/types'
 import type { GenericOptionControl } from './generic-provider-option-selectors'
 
@@ -8,6 +8,8 @@ import type { GenericOptionControl } from './generic-provider-option-selectors'
 export const GENERIC_STT_OPTION_FLAGS = [
   'stt-language',
   'stt-verbatim',
+  'stt-filler-words',
+  'stt-number-format',
   'stt-response-format'
 ] as const
 
@@ -25,6 +27,12 @@ const controlForEngine = (
         : undefined
     case 'stt-verbatim':
       return options.verbatim ? { spec: { kind: 'boolean' } } : undefined
+    case 'stt-filler-words':
+      return options.fillerWords ? { spec: { kind: 'boolean' } } : undefined
+    case 'stt-number-format':
+      return options.numberFormat
+        ? { spec: { kind: 'string', normalize: (value) => value.trim().toLowerCase(), allowedValues: STT_NUMBER_FORMATS } }
+        : undefined
     case 'stt-response-format':
       return options.responseFormat
         ? { spec: { kind: 'string', normalize: (value) => value.trim().toLowerCase(), allowedValues: options.responseFormat.allowedValues }, ...(options.responseFormat.defaultValue !== undefined ? { defaultValue: options.responseFormat.defaultValue } : {}) }
@@ -56,11 +64,28 @@ const describeSpec = (spec: ControlSpec): string | undefined => {
   return undefined
 }
 
+const modelScopeForFlag = (flagName: GenericSttOptionFlag, engine: TranscribeEngine): readonly string[] | undefined => {
+  const options = STT_ENGINE_OPTION_CAPABILITIES[engine]
+  if (flagName === 'stt-filler-words') return options.fillerWords?.models
+  if (flagName === 'stt-number-format') return options.numberFormat?.models
+  return undefined
+}
+
+const providerLabel = (flagName: GenericSttOptionFlag, provider: string): string => {
+  const engine = Object.entries(STT_ENGINE_PROVIDER_NAME).find(([, name]) => name === provider)?.[0] as TranscribeEngine | undefined
+  const models = engine ? modelScopeForFlag(flagName, engine) : undefined
+  return models ? `${provider} (${models.join(', ')})` : provider
+}
+
 export const genericSttOptionDescription = (flagName: GenericSttOptionFlag, summary: string): string => {
   const controls = Object.values(sttControlsForFlag(flagName))
-  const providers = controls.map((control) => control.provider)
+  const providers = controls.map((control) => providerLabel(flagName, control.provider))
   const values = [...new Set(controls.map((control) => describeSpec(control.spec)).filter(Boolean))].join(', ')
-  return `${summary}: ${providers.join('/')} only. Use value with one selected provider, or provider=value with multiple providers.${values ? ` Accepted values: ${values}.` : ''}`
+  // A model-scoped capability is still addressed per provider, so a provider=value applies to every selected model of
+  // that provider and is refused when any of them lacks the capability.
+  const modelScoped = controls.some((control) => providerLabel(flagName, control.provider) !== control.provider)
+  const scopeNote = modelScoped ? ' A provider=value applies to every selected model of that provider, so select only the listed models of a model-scoped provider.' : ''
+  return `${summary}: ${providers.join('/')} only. Use value with one selected provider, or provider=value with multiple providers.${scopeNote}${values ? ` Accepted values: ${values}.` : ''}`
 }
 
 // Rendered `default` for each flag, per the scoped-repeatable convention: the array is what --help

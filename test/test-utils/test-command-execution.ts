@@ -109,7 +109,7 @@ const runCommandAttempt = async (
   const spawnEnv = spawnArgs[0] !== args[0] && !env['AUTOSHOW_PROJECT_ROOT']
     ? { ...env, AUTOSHOW_PROJECT_ROOT: process.cwd() }
     : env
-  const proc = Bun.spawn(['bun', '--no-env-file', ...spawnArgs], {
+  const proc = Bun.spawn([process.execPath, '--no-env-file', ...spawnArgs], {
     stdout: 'pipe',
     stderr: 'pipe',
     env: spawnEnv,

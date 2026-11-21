@@ -38,6 +38,17 @@ describe('config explicit flag and runtime exclusion contracts', () => {
     expect(overlap).toEqual([])
   })
 
+  test('setup diagnostics and installation controls never become saved defaults', () => {
+    const controls = {
+      doctor: true, strict: true, 'dry-run': true, step: 'rendering', 'force-redownload': true,
+      models: ['tiny'], 'network-check': 'serve', port: '8787', 'delay-seconds': '1',
+      'probe-url': 'http://127.0.0.1:8787', 'probe-client': 'fetch',
+      'bin-dir': 'runtime/bin', json: true, 'result-file': 'runtime/result.json', color: false
+    }
+    expect(buildConfigPatchFromFlags(controls, new Set(Object.keys(controls)))).toEqual({})
+    for (const name of Object.keys(controls)) expect(RUNTIME_ONLY_FLAGS.has(name)).toBe(true)
+  })
+
   test('prompt is not runtime-only, so the prompt config pass stays reachable', () => {
     expect(RUNTIME_ONLY_FLAGS.has('prompt')).toBe(false)
   })

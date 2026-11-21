@@ -5,7 +5,21 @@ export const RUNTIME_TOOL_IDS = [
   'mutool',
   'ebook-convert',
   'tesseract',
-  'qpdf'
+  'qpdf',
+  'magick',
+  'convert',
+  'identify',
+  'pango-view',
+  'fc-match',
+  'fc-cache',
+  'cmake',
+  'pkgconf',
+  'pkg-config',
+  'ninja',
+  'meson',
+  'python3',
+  'bun',
+  'deno'
 ] as const
 
 export type RuntimeToolId = typeof RUNTIME_TOOL_IDS[number]
@@ -21,6 +35,7 @@ export type ResolvedRuntimeTool = {
 export type ResolveRuntimeToolOptions = {
   overrideBinDir?: string
   exists?: (path: string) => boolean
+  realpath?: (path: string) => string
   which?: (command: string) => string | null
   platform?: NodeJS.Platform
 }

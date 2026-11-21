@@ -80,25 +80,31 @@ describe('removed text selections reject before dispatch', () => {
   }))
 })
 
+// The last column names a same-service replacement from retired-model-rates.ts; such IDs reject with that successor
+// instead of listing allowed values.
 const fullyRemoved = [
-  ['gemini', 'gemini-3.6-flash', 'gemini-4-argon, gemini-4-carbon, gemini-3.8-flash', 'gemini-3.8-flash'],
-  ['gemini', 'gemini-3.5-flash', 'gemini-4-argon, gemini-4-carbon, gemini-3.8-flash', 'gemini-3.8-flash'],
-  ['grok', 'grok-4.5', 'grok-4.7', 'grok-4.7'],
-  ['openai', 'gpt-5.6-terra', 'gpt-6-astra, gpt-6.1-sol, gpt-6.1-terra, gpt-6-luna', 'gpt-6.1-sol, gpt-6-luna'],
-  ['anthropic', 'claude-fable-5-1', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5'],
+  ['gemini', 'gemini-3.6-flash', 'gemini-4-argon, gemini-4-carbon, gemini-3.8-flash', 'gemini-3.8-flash', undefined],
+  ['gemini', 'gemini-3.5-flash', 'gemini-4-argon, gemini-4-carbon, gemini-3.8-flash', 'gemini-3.8-flash', undefined],
+  ['grok', 'grok-4.5', 'grok-4.7', 'grok-4.7', 'grok-4.7'],
+  ['openai', 'gpt-5.6-terra', 'gpt-6-astra, gpt-6.1-sol, gpt-6.1-terra, gpt-6-luna', 'gpt-6.1-sol, gpt-6-luna', undefined],
+  ['anthropic', 'claude-fable-5-1', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5', undefined],
 ] as const
 
 const writeRemoved = [
-  ['anthropic', 'claude-fable-5', 'claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2'],
+  ['anthropic', 'claude-fable-5', 'claude-fable-5-2'],
 ] as const
+
+const rejectionMessage = (model: string, selector: string, allowed: string, replacement: string | undefined): string => replacement
+  ? `Model "${model}" is retired for ${selector}. Use "${replacement}" instead.`
+  : `Invalid model "${model}" for ${selector}. Allowed values: ${allowed}`
 
 const ocrFlag = (provider: string) => `${provider}-ocr`
 const ocrConfigKey = (provider: string) => `${provider}Ocr`
 
 describe('write-only catalog removals stay valid for OCR; fully removed IDs reject everywhere', () => {
-  for (const [provider, model, allowed] of writeRemoved) {
+  for (const [provider, model, replacement] of writeRemoved) {
     test(`${provider}/${model}: write parse, config and resume reject; OCR parse and config still accept`, async () => await withLocalTestDir('write-only-removed-selection', async root => {
-      const writeMessage = `Invalid model "${model}" for --llm ${provider}[=model]. Allowed values: ${allowed}`
+      const writeMessage = rejectionMessage(model, `--llm ${provider}[=model]`, '', replacement)
       expect(() => parseWrite(provider, model)).toThrow(writeMessage)
       expect(() => resolveLlmReasoningOptions(provider, model, undefined)).toThrow('Unsupported write model')
       expect(() => buildConfigPatchFromFlags({ [provider]: model }, new Set([provider]))).toThrow('Unsupported configured model')
@@ -121,10 +127,10 @@ describe('write-only catalog removals stay valid for OCR; fully removed IDs reje
     }))
   }
 
-  for (const [provider, model, writeAllowed, ocrAllowed] of fullyRemoved) {
+  for (const [provider, model, writeAllowed, ocrAllowed, replacement] of fullyRemoved) {
     test(`${provider}/${model}: write and OCR selections, OCR config and resume all reject locally`, async () => await withLocalTestDir('fully-removed-selection', async root => {
-      expect(() => parseWrite(provider, model)).toThrow(`Invalid model "${model}" for --llm ${provider}[=model]. Allowed values: ${writeAllowed}`)
-      expect(() => buildOptsFromFlags({ [ocrFlag(provider)]: model })).toThrow(`Invalid model "${model}" for --provider/--ocr ${provider}[=model]. Allowed values: ${ocrAllowed}`)
+      expect(() => parseWrite(provider, model)).toThrow(rejectionMessage(model, `--llm ${provider}[=model]`, writeAllowed, replacement))
+      expect(() => buildOptsFromFlags({ [ocrFlag(provider)]: model })).toThrow(rejectionMessage(model, `--provider/--ocr ${provider}[=model]`, ocrAllowed, replacement))
       expect(() => buildConfigPatchFromFlags({ [ocrFlag(provider)]: model }, new Set([ocrFlag(provider)]))).toThrow()
       const configPath = join(root, 'config.json')
       await Bun.write(configPath, JSON.stringify({ defaults: { extract: { ocr: { [ocrConfigKey(provider)]: [model] } } } }))

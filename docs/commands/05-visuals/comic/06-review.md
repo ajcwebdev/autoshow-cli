@@ -1,36 +1,35 @@
 # comic review
 
-Build a local review sheet or map supplied notes into staging directives. Both read existing scene artifacts without provider calls or source/scene mutation; there is no `--price` flag.
+Build a local review sheet of the current panel selection, preview a candidate image run beside it, or explicitly adopt that run's panels. Review reads existing scene artifacts without provider calls and never changes the source script or scene; there is no `--price` flag.
 
 ## Options
 
-With no mode flag, write the HTML sheet. `--export-doc` adds a shared-document export. `--notes <path>` processes reviewer notes instead; empty paths or combining notes/export are rejected. Notes need the character catalog; the sheet does not.
+- No mode flag: write the HTML review sheet of the current selection.
+- `--export-doc`: also write a shared-document export.
+- `--run <image-run-id>`: show that image run's candidates beside the corresponding current selections. Use the run ID reported by [generate-images](./03-generate-images.md#outputs-and-selection).
+- `--use`: adopt the named run's individual panel candidates as the selection; requires `--run`.
+- `--panels all|range|list`: with `--use`, the panels to adopt. Omitted means every declared scene panel; a run that produced only some panels requires an explicit `--panels`.
+
+The hidden `review-notes` and `review-sheet` aliases and the `--notes` option are retired and rejected.
 
 ## Examples
 
-Use [setup](./00-comic-overview.md#setup) variables and a reviewed scene. [Publish canonical panels](./00-comic-overview.md#4-build-panel-prompts-generate-images-and-review) first if images should appear; nested candidates are not selected automatically.
+Use [setup](./00-comic-overview.md#setup) variables and a reviewed scene. Panels selected automatically during generation appear without any publication step.
 
 ```bash
 bun --no-env-file autoshow comic review "$SCRIPT" --export-doc --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
-bun --no-env-file autoshow comic review "$SCRIPT" --notes "$ROOT/review-notes.md" --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
+bun --no-env-file autoshow comic review "$SCRIPT" --output-dir "$RUN" --run "$IMAGE_RUN"
+bun --no-env-file autoshow comic review "$SCRIPT" --output-dir "$RUN" --run "$IMAGE_RUN" --use --panels 3
 ```
+
+The second command previews run `$IMAGE_RUN` against the current selection; the third replaces only panel 3. `--use` does not require a prior preview.
 
 ## Review sheet
 
-`metadata/review/review-sheet.html` shows panel sources, description, shot, cast, speech, stage board, canonical image, and retained QA. Missing images or QA are explicit. Notes collect under `### Panel NN` headings. `--export-doc` also writes `metadata/review/export-doc.md` with image links and note space. Files are replaced in place; keep relative run layout when sharing the HTML.
+`metadata/review/review-sheet.html` shows panel sources, description, shot, cast, speech, and the selected image. With `--run`, review reads each individual panel candidate and compares its current PNG checksum and dimensions with the run record before displaying it. The sheet identifies missing, changed, or unreadable candidates for each panel. Grouped pages and grids appear with their panel ranges. `--export-doc` also writes `metadata/review/export-doc.md` with image links and note space under `### Panel NN` headings. Files are replaced in place; keep the relative run layout when sharing the HTML. The sheet, preview, and export never change any selection.
 
-## Notes processing
+## Adopting candidates
 
-A `### Panel NN` heading opens a note section; another heading at levels 1–3 ends it. Empty sections are ignored; no note text fails. Unknown panels are unmatched; unresolved script lines are reported. Each mapped note targets the panel's first source segment.
+`--use` resolves the run with the same verified lookup as preview, then checks every requested panel before replacing any: the candidate must be an individual final panel of that run inside the scene workspace, with its recorded hash and dimensions matching the selected set. Unknown or ambiguous runs, missing panels, stale hashes, mismatched dimensions, and grouped pages or grids are rejected without changing the selection. Prior selected bytes and provenance are preserved, and repeating the same `--use` is a no-op.
 
-The first matching lexical cue chooses the directive:
-
-- Axis/crossed-line/swapped-side wording → `**BREAK-180:** {panel: N}`.
-- Wardrobe/costume/wearing → `**COSTUME:** {character: key}`.
-- Extras/crowd/background people → `**EXTRAS:** {group: <ensemble-key>}`.
-- Camera/framing/close-up → `**CAMERA:** {panel: N}`.
-- Otherwise → `**BLOCKING:** {state: <state-id>, location: key}`.
-
-This is cue matching, not semantic judging. Costume keys prefer recognized panel characters, then the panel's first character; unresolved values remain placeholders. Fill placeholders and review mappings before use.
-
-`metadata/review/review-notes-<run-id>.md` records mapped/unmatched notes and paste-ready directives, also printed to the terminal. Paste accepted directives after their target source beat, refresh structure/rebind, then [reconcile and rebuild prompts](./01-draft-scenes.md#reconcile-from-directives). Reconcile handles camera, axis, costume, and extras; general blocking prose needs a reviewed plan edit.
+Adoption is local. The next [slideshow](./05-generate-slideshow.md) render uses the replaced panels and reuses existing audio.

@@ -17,7 +17,7 @@ export type ImageResult = {
 export type ImageTarget = ProviderTargetBase<ImageProvider> & {
   requestSettings: Record<string, unknown>
   ignoredSettings?: readonly string[] | undefined
-  run: (prompt: string, outputDir: string, opts: ImageGenOptions) => Promise<ImageResult>
+  run: (prompt: string, outputDir: string, opts: ImageGenOptions, recoveryDir?: string) => Promise<ImageResult>
 }
 
 export type ImageCostEstimate = CostEstimateBase<ImageProvider> & {

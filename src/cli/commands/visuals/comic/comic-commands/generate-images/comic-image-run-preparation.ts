@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -16,9 +17,8 @@ import { beginSceneRun, findLatestSceneRunDirectory } from '../../comic-utils/sc
 import { assertPanelPromptSourceCoverage } from '../../comic-utils/source-coverage-utils'
 import { ScenePromptDataSchema } from '../../schemas/schemas'
 import { DEFAULT_FINAL_PANELS_PER_IMAGE, DEFAULT_SKETCH_PANELS_PER_IMAGE, validateComicGridOptions } from './comic-page-utils'
-import { getImagePromptVariationLabel } from './prompt-variations'
-
 import { DEFAULT_IMAGE_QUALITY, DEFAULT_IMAGE_SIZE } from './comic-image-run-defaults'
+
 const getGenerateImagesTarget = (target: GenerateImagesCommandOptions['target']): GenerateImagesTarget => {
   return target ?? 'images'
 }
@@ -51,7 +51,7 @@ export const prepareComicImageRun = async (options: GenerateImagesCommandOptions
 
   const target = getGenerateImagesTarget(options.target)
   const checkPanelPromptSourceCoverage = dependencies.checkPanelPromptSourceCoverage ?? assertPanelPromptSourceCoverage
-  const models = options.imageModels ?? [DEFAULT_IMAGE_MODEL]
+  const model = options.imageModel ?? DEFAULT_IMAGE_MODEL
   const size: ImageGenerationSize = options.size ?? DEFAULT_IMAGE_SIZE
   const quality: ImageGenerationQuality = options.quality ?? DEFAULT_IMAGE_QUALITY
   const finalPanelsPerImage = options.panelsPerImage ?? DEFAULT_FINAL_PANELS_PER_IMAGE
@@ -62,7 +62,7 @@ export const prepareComicImageRun = async (options: GenerateImagesCommandOptions
   const startedAt = Date.now()
   const totals = createImageRunStats()
 
-  validateImageSizeForModels(size, models)
+  validateImageSizeForModels(size, [model])
   validateComicGridOptions(options.grid, {
     target,
     size,
@@ -80,7 +80,7 @@ export const prepareComicImageRun = async (options: GenerateImagesCommandOptions
 
   if (!(await checkScenesExist(sceneSlug)) || !(await checkPromptsExist(sceneSlug))) {
     throw InfraError(
-      `Reviewed schemaVersion 4 scene and panel bundles are required. Run "bun autoshow comic draft-scenes ${options.scriptPath}" explicitly; generate-images never drafts or upgrades artifacts.`,
+      `Reviewed schemaVersion 4 scene and panel bundles are required. Run "${CLI_INVOCATION} comic draft-scenes ${options.scriptPath}" explicitly; generate-images never drafts or upgrades artifacts.`,
       { stage: 'comic:generate-images' },
     )
   }
@@ -89,7 +89,7 @@ export const prepareComicImageRun = async (options: GenerateImagesCommandOptions
       v.parse(ScenePromptDataSchema, JSON.parse(await Bun.file(getSceneJsonPath(sceneSlug)).text()))
     } catch (error) {
       throw InfraError(
-        `Reviewed schemaVersion 4 scene JSON is required. Run "bun autoshow comic draft-scenes ${options.scriptPath}" explicitly; older scenes cannot enter controlled image generation.`,
+        `Reviewed schemaVersion 4 scene JSON is required. Run "${CLI_INVOCATION} comic draft-scenes ${options.scriptPath}" explicitly; older scenes cannot enter controlled image generation.`,
         { stage: 'comic:generate-images', cause: error instanceof Error ? error : undefined },
       )
     }
@@ -103,7 +103,7 @@ export const prepareComicImageRun = async (options: GenerateImagesCommandOptions
   ])
   comicLog.line('config', [
     `target=${target}`,
-    `models=${models.join(',')}`,
+    `model=${model}`,
     `size=${size}`,
     `quality=${quality}`,
     `concurrency=${concurrency}`,
@@ -112,16 +112,11 @@ export const prepareComicImageRun = async (options: GenerateImagesCommandOptions
     `finalPanelsPerImage=${finalPanelsPerImage}`,
     `sketchPanelsPerImage=${sketchPanelsPerImage}`,
     options.grid ? `grid=${options.grid.columns}x${options.grid.rows}` : undefined,
-    options.variations !== undefined
-      ? `variations=${options.variations.map(getImagePromptVariationLabel).join(',')}`
-      : undefined,
     options.force ? 'force=true' : undefined,
-    options.qaOnly ? 'qaOnly=true' : undefined,
-    options.revisionPlan ? `revisionPlan=${options.revisionPlan}` : undefined,
   ])
 
   if (canonicalManifest && (canonicalManifest.command !== 'comic' || !canonicalManifest.source)) throw InfraError('Comic image generation found a canonical manifest for another workflow.', { stage: 'comic:generate-images' })
-  return { sceneSlug, sceneRunDir, canonicalManifest, target, models, size, quality, finalPanelsPerImage, sketchPanelsPerImage, concurrency, runId, recoveryOptions, startedAt, totals }
+  return { sceneSlug, sceneRunDir, canonicalManifest, target, model, size, quality, finalPanelsPerImage, sketchPanelsPerImage, concurrency, runId, recoveryOptions, startedAt, totals }
 }
 
 export type PreparedComicImageRun = Awaited<ReturnType<typeof prepareComicImageRun>>

@@ -72,7 +72,7 @@ export const logGenCompleted = (
 export const resolveMaxCentsFromFlags = async (flags: Record<string, unknown>): Promise<number | undefined> => {
   const configPathOverride = typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined
   const configPath = await resolveConfigPath(configPathOverride)
-  const config = await loadConfig(configPath)
+  const config = await loadConfig(configPath, { allowLegacyFallback: configPathOverride === undefined })
   return resolveMaxCents(config.pricing)
 }
 

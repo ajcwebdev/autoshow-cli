@@ -26,6 +26,10 @@ const coerceSttOptionValue = (
   const control = sttControlsForFlag(flagName)[provider]
   if (!control) throw UsageError(`--${flagName} does not apply to ${provider} STT.`)
   const spec = control.spec
+  // Filler words change the billed transcript's content, so an unrecognized value is an error rather than true.
+  if (flagName === 'stt-filler-words' && typeof value === 'string' && !['true', 'false'].includes(value.trim().toLowerCase())) {
+    throw sttControlUsageError(provider, flagName, 'expected true or false')
+  }
   const raw = spec.kind === 'number'
     ? Number(value)
     : spec.kind === 'boolean'
@@ -38,6 +42,37 @@ const coerceSttOptionValue = (
     spec,
     sttControlUsageError as never
   ) as string | number | boolean
+}
+
+// --stt-verbatim is shorthand for filler words kept and spoken numbers. Explicit values that agree with it are
+// accepted; a contradiction is refused before any target is built.
+const resolveTranscriptStyleControls = (
+  genericOption: (flagName: GenericSttOptionFlag, provider: string) => string | number | boolean | undefined
+): Pick<SttRuntimeOptions, 'sttFillerWordsByProvider' | 'sttNumberFormatByProvider'> => {
+  const fillerWords: Record<string, boolean> = {}
+  const numberFormat: Record<string, 'written' | 'spoken'> = {}
+  for (const provider of Object.keys(sttControlsForFlag('stt-filler-words'))) {
+    const value = genericOption('stt-filler-words', provider)
+    if (value !== undefined) fillerWords[provider] = value === true
+  }
+  for (const provider of Object.keys(sttControlsForFlag('stt-number-format'))) {
+    const value = genericOption('stt-number-format', provider)
+    if (value === 'written' || value === 'spoken') numberFormat[provider] = value
+  }
+  for (const provider of Object.keys(sttControlsForFlag('stt-verbatim'))) {
+    if (genericOption('stt-verbatim', provider) !== true) continue
+    const conflicts = [
+      ...(fillerWords[provider] === false ? ['--stt-filler-words false'] : []),
+      ...(numberFormat[provider] === 'written' ? ['--stt-number-format written'] : [])
+    ]
+    if (conflicts.length > 0) {
+      throw UsageError(`--stt-verbatim for ${provider} keeps filler words and spoken numbers; it cannot be combined with ${conflicts.join(' or ')}.`)
+    }
+  }
+  return {
+    ...(Object.keys(fillerWords).length > 0 ? { sttFillerWordsByProvider: fillerWords } : {}),
+    ...(Object.keys(numberFormat).length > 0 ? { sttNumberFormatByProvider: numberFormat } : {})
+  }
 }
 
 export const STT_MODEL_KEYS = [
@@ -79,6 +114,7 @@ export const buildSttOptions = (ctx: ResolvedFlagContext): SttRuntimeOptions => 
     scrapecreatorsLang: (genericOption('stt-language', 'scrapecreators') as string | undefined) ?? 'en',
     grokSttVerbatim: (genericOption('stt-verbatim', 'grok') as boolean | undefined) === true,
     deepinfraSttResponseFormat: genericOption('stt-response-format', 'deepinfra') as string | undefined,
+    ...resolveTranscriptStyleControls(genericOption),
     captionExportFlags: mergedFlags['captions'] === true ? Object.fromEntries(Object.entries(mergedFlags).filter(([key]) => key.startsWith('caption-') || key === 'embed-captions')) : undefined,
     nativeSubtitles: readBooleanFlag(mergedFlags, 'native-subtitles'),
     diarization: typeof mergedFlags['diarization'] === 'boolean' ? mergedFlags['diarization'] : undefined,

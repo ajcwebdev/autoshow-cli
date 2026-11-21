@@ -5,11 +5,29 @@ import { join } from 'node:path'
 import { renderPangoLayer } from '~/cli/commands/audio/music/lyrics-video/lyrics-overlay-renderer'
 import { combineCharacterSketchSheet } from '~/cli/commands/visuals/comic/comic-commands/character-sketch/character-sketch-sheet'
 import { exec } from '~/utils/cli-utils'
+import { getImageMagickBinary, hasRuntimeTool } from '~/utils/runtime-paths'
+import { requireRenderingPrerequisites, supportsImageMagickTiffRead } from '~/cli/commands/setup-and-utilities/setup/rendering-readiness'
+
+test('rendering readiness accepts current and earlier TIFF format tables and rejects unavailable readers', () => {
+  for (const formats of [
+    '   Format  Mode  Description\n     TIFF* rw+   Tagged Image File Format\n',
+    '     TIFF* TIFF      rw+ Tagged Image File Format\n',
+    '     TIFF  r--   Tagged Image File Format\n'
+  ]) expect(supportsImageMagickTiffRead(formats)).toBe(true)
+  for (const formats of [
+    '     TIFF* -w+   Tagged Image File Format\n',
+    '     TIFF* TIFF      --- Tagged Image File Format\n',
+    '     TIFF64* rw+   Tagged Image File Format\n',
+    '     PNG* rw+ Portable Network Graphics\n',
+    '     TIFF* reader unavailable\n'
+  ]) expect(supportsImageMagickTiffRead(formats)).toBe(false)
+})
 
 test('synthetic sheets and TIFF retain dimensions; lyric text wraps on transparent pixels', async () => {
+  await requireRenderingPrerequisites()
   const directory = await mkdtemp(join(tmpdir(), 'autoshow-render-prereqs-'))
-  const convert = Bun.which('magick') ?? Bun.which('convert')
-  expect(convert).toBeTruthy()
+  expect(hasRuntimeTool('magick') || hasRuntimeTool('convert')).toBe(true)
+  const convert = getImageMagickBinary()
   try {
     const first = join(directory, 'first.png'), second = join(directory, 'second.png'), sheet = join(directory, 'sheet.png')
     expect((await exec(convert!, ['-size', '16x24', 'xc:none', '-fill', 'red', '-draw', 'rectangle 4,4 12,20', first])).exitCode).toBe(0)

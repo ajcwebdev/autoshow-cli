@@ -10,6 +10,8 @@
     "Models": [
       "https://www.assemblyai.com/docs/getting-started/models.md",
       "https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model.md",
+      "https://www.assemblyai.com/docs/pre-recorded-audio/assemblyai-stt-3-7-migration-guide.md",
+      "https://www.assemblyai.com/docs/getting-started/model-versions-and-deprecations.md",
       "https://www.assemblyai.com/docs/pre-recorded-audio/universal-3-5-pro.md"
     ],
     "STT": [

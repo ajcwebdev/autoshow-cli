@@ -6,10 +6,10 @@ import {
   getMusicModelMeta,
   getRetiredModelRate
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { estimateImageCosts } from '~/cli/commands/visuals/image/image-utils/image-pricing'
-import { isOpenAIImage25Model } from '~/cli/commands/setup-and-utilities/models/image-models'
-import { computeOpenAIImageUsageCostCents } from '~/cli/commands/visuals/image/image-utils/openai-image-pricing'
+import { usesOpenAIImageTokenCalculator } from '~/cli/commands/setup-and-utilities/models/image-models'
+import { computeOpenAIImageUsageCostCents, estimateOpenAIGptImageOutput } from '~/cli/commands/visuals/image/image-utils/openai-image-pricing'
 import { estimateVideoCost } from '~/cli/commands/visuals/video/video-utils/video-pricing'
+import { GEMINI_DEFAULT_BILLED_DURATION_SECONDS } from '~/cli/commands/visuals/video/video-utils/video-normalization'
 import { isCostSource, isTokenPricedOcrProvider } from '~/types'
 import { estimateOpenAITtsCost, readOpenAITtsEstimate } from '~/cli/commands/audio/tts/tts-services/tts-openai/openai-tts-pricing'
 import { OPENAI_TOKEN_TTS_MODEL } from '~/cli/commands/audio/tts/tts-services/tts-openai/openai-tts-request'
@@ -150,7 +150,12 @@ const estimateRetiredVideoFallbackCost = (entry: Step6VideoMetadata): number | u
   const meta = getRetiredModelRate('video', entry.videoGenService, entry.videoGenModel)
   if (!meta) return undefined
 
-  const durationSeconds = typeof entry.videoDuration === 'number' ? entry.videoDuration : 5
+  // A provider-selected Gemini Omni length was budgeted at the documented 10-second default while the model was
+  // active; repricing a finished run after retirement must not silently switch to the legacy 5-second fallback.
+  const unspecifiedDurationSeconds = entry.videoGenService === 'gemini' && entry.videoGenModel.startsWith('gemini-omni-')
+    ? GEMINI_DEFAULT_BILLED_DURATION_SECONDS
+    : 5
+  const durationSeconds = typeof entry.videoDuration === 'number' ? entry.videoDuration : unspecifiedDurationSeconds
   const resolution = entry.videoResolution ?? '720p'
   const resolutionRate = meta.costPerSecondByResolutionCents?.[resolution]
   if (typeof resolutionRate === 'number') return durationSeconds * resolutionRate
@@ -204,14 +209,14 @@ const computeImageFallbackCost = (
 ): number => {
   if (
     metadata.imageService === 'openai'
-    && isOpenAIImage25Model(metadata.imageModel)
+    && usesOpenAIImageTokenCalculator(metadata.imageModel)
   ) {
-    const estimate = estimateImageCosts({
-      openaiImageModels: [metadata.imageModel],
+    // Calls the calculator directly so retired GPT Image IDs reprice from their historical rates instead of
+    // failing active-model selection.
+    const costPerImageCents = estimateOpenAIGptImageOutput(metadata.imageModel, {
       imageSize: metadata.imageSize,
       imageQuality: metadata.imageQuality
-    })[0]
-    const costPerImageCents = estimate?.costPerImageCents ?? getImageCost(metadata.imageService, metadata.imageModel)
+    }).costPerImageCents
     return costPerImageCents * imageCount
   }
 

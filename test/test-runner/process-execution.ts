@@ -37,7 +37,7 @@ export const prebuildTestCliBundle = async (artifacts: TestRunArtifacts): Promis
   await mkdir(join(artifacts.rootDir, '.test-cache'), { recursive: true })
   const commandText = `bun build src/cli/create-cli.ts --target=bun --outfile ${bundlePath}`
   await appendRunnerLog(artifacts, `\n=== PREBUILD CLI ${commandText} ===\n`)
-  const proc = Bun.spawn(['bun', '--no-env-file', 'build', 'src/cli/create-cli.ts', '--target=bun', '--outfile', bundlePath], {
+  const proc = Bun.spawn([process.execPath, '--no-env-file', 'build', 'src/cli/create-cli.ts', '--target=bun', '--outfile', bundlePath], {
     env: childEnv(),
     stdout: 'pipe',
     stderr: 'pipe',
@@ -191,7 +191,7 @@ export const runBunTest = async (
 ): Promise<number> => {
   const args = buildBunTestArgs(files, artifacts, passthroughArgs, extraArgs)
   await appendRunnerLog(artifacts, `\n=== START bun ${args.join(' ')} ===\n`)
-  const proc = Bun.spawn(['bun', '--no-env-file', ...args], {
+  const proc = Bun.spawn([process.execPath, '--no-env-file', ...args], {
     env: buildTestWorkerEnv(files, artifacts, preserveTestOutput, envOverrides),
     stdout: 'pipe',
     stderr: 'pipe',

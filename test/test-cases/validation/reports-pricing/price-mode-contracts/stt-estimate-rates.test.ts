@@ -32,6 +32,7 @@ describe('price mode contracts', () => {
     const estimated = computeEstimatedCosts({
       audioDurationSeconds,
       sttTargets: [
+        { service: 'assemblyai', model: 'assemblyai-stt-3-7' },
         { service: 'assemblyai', model: 'universal-3-5-pro' },
         { service: 'assemblyai', model: 'universal-2' }
       ]
@@ -43,10 +44,13 @@ describe('price mode contracts', () => {
       cost: step.cost,
       costMultiplier: step.costMultiplier
     }))).toEqual([
+      { provider: 'assemblyai', model: 'assemblyai-stt-3-7', cost: 23, costMultiplier: 1 },
       { provider: 'assemblyai', model: 'universal-3-5-pro', cost: 23, costMultiplier: 1 },
       { provider: 'assemblyai', model: 'universal-2', cost: 17, costMultiplier: 1 }
     ])
-    expect(estimated.totalCost).toBe(40)
+    expect(estimated.totalCost).toBe(63)
+    expect(computeSttCost('assemblyai', 'assemblyai-stt-3-7', audioDurationSeconds, { enabled: false })).toBe(21)
+    expect(computeSttCost('assemblyai', 'assemblyai-stt-3-7', audioDurationSeconds, { enabled: true })).toBe(23)
   })
 
   test('Gemini and Gladia estimates use current Solaria-3 rates and retired Solaria-1 rates', () => {

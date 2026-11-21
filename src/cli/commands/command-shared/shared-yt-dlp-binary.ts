@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { getConfiguredBinDir, getYtDlpBinaryPath, ytDlpManagedBinaryPath } from '~/utils/runtime-paths'
+import { assertRuntimeContainedPath, getConfiguredBinDir, getYtDlpBinaryPath, ytDlpManagedBinaryPath } from '~/utils/runtime-paths'
 import type { ResolvedYtDlpBinary, ResolveYtDlpBinaryOptions } from '~/types'
 
 export const resolveYtDlpBinaryInfo = (
@@ -10,13 +10,11 @@ export const resolveYtDlpBinaryInfo = (
   const exists = options.exists ?? existsSync
   const overrideDir = (options.overrideBinDir ?? getConfiguredBinDir())?.trim()
   if (overrideDir) {
-    const override = join(overrideDir, 'yt-dlp')
-    if (exists(override)) return { path: override, source: 'override' }
+    const override = join(assertRuntimeContainedPath(overrideDir, options.realpath), 'yt-dlp')
+    if (exists(override)) return { path: assertRuntimeContainedPath(override, options.realpath), source: 'override' }
   }
-  if (exists(managedPath)) return { path: managedPath, source: 'managed' }
-  if ((options.platform ?? process.platform) === 'darwin') return undefined
-  const pathBinary = (options.which ?? ((command: string) => Bun.which(command)))('yt-dlp')
-  return pathBinary ? { path: pathBinary, source: 'path' } : undefined
+  if (exists(managedPath)) return { path: assertRuntimeContainedPath(managedPath, options.realpath), source: 'managed' }
+  return undefined
 }
 
 const resolveYtDlpBinary = (

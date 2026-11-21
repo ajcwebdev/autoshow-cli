@@ -1,46 +1,55 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
-import {
-  parseComicPageQaResult,
-  resolveComicQaProvider
-} from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-page-qa'
-import { runQaOnlyPanelAudit } from '~/cli/commands/visuals/comic/comic-commands/generate-images/qa-only-panel-audit'
+import { readdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import { generateComicPages } from '~/cli/commands/visuals/comic/comic-commands/generate-images/generate-comic-pages'
+import { generatePanelImages } from '~/cli/commands/visuals/comic/comic-commands/generate-images/generate-panel-images'
 import { setupPageContractFixtures } from './comic-page-contract-fixtures'
-const { tinyPng, repairAssessment, createSceneFixture } = setupPageContractFixtures()
+const { createSceneFixture, fakeImageProvider } = setupPageContractFixtures()
 
-describe('page QA parsing and audit routing', () => {
-  test('routes panel QA through supported vision providers', () => {
-    expect(resolveComicQaProvider('gpt-6.1-sol')).toBe('openai')
-    expect(resolveComicQaProvider('gemini-3.8-flash')).toBe('gemini')
-    expect(() => resolveComicQaProvider('grok-4.5')).toThrow('supports OpenAI and Gemini')
-  })
+const baseOptions = { model: 'gpt-image-2.6-flare', size: '1536x1024', quality: 'high', force: false, concurrency: 1 } as const
+const RETIRED_VARIATION_PREFIXES = [
+  'Render as clean production animation stills with stable volumes and readable silhouettes.',
+  'Add cinematic depth with layered foreground and background while preserving the comic contract.',
+]
 
-  test('normalizes a single-panel judge bookkeeping number to the requested canonical panel', () => {
-    const payload = { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, blockingMatch: true, axisSideMatch: true, blockingAudit: [], dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '', repairAssessment: repairAssessment() }], summary: 'Pass.' }
-    const normalized = parseComicPageQaResult(JSON.stringify(payload), [4])
-    expect(normalized.panelStructure.observedPanelOrder).toEqual([4])
-    expect(normalized.panels[0]?.panelNumber).toBe(4)
-  })
+const expectAnchorContract = (prompt: string | undefined): void => {
+  expect(prompt).toContain('immutable canonical location reference')
+  expect(prompt).toContain('Preserve canonical anchor assemblies component by component.')
+  expect(prompt).toContain('Loose tools, generic clutter, speakers, lamps, or other plausible props never substitute for a named computer, keyboard')
+  expect(prompt).toContain('Occlusion is not an allowed continuity outcome')
+  expect(prompt).toContain('move its entire canonical region outside the crop instead of hiding it')
+}
 
-  test('QA-only audits canonical panels without changing their bytes or invoking an image path', async () => {
-    const sceneSlug = `qa-only-${crypto.randomUUID()}`
+describe('canonical location anchor prompt contract', () => {
+  test('an individual panel dispatches the base prompt with its prose shot plan, anchor guidance and no guide, ledger or variation prefix', async () => {
+    const sceneSlug = `anchor-panel-${crypto.randomUUID()}`
     const { runDirectory } = await createSceneFixture(sceneSlug)
-    const panelPath = join(runDirectory, 'panels', 'panel-01.png')
-    await mkdir(dirname(panelPath), { recursive: true })
-    await Bun.write(panelPath, tinyPng)
-    const before = await Bun.file(panelPath).arrayBuffer()
-    const result = await runQaOnlyPanelAudit({ sceneSlug, scriptPath: 'script.md', qaOnly: true, qa: true, qaModel: 'gemini-3.8-flash', maxRepairs: 0, panels: [1], concurrency: 1 }, {
-      runId: 'test-audit',
-      judgePage: async request => ({ pageNumber: request.pageNumber, panelNumbers: [1], outputFile: 'panel-01.png', judgeModel: request.model, hardFailure: true, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['framing'], editInstructions: 'Use the authored framing.' }], summary: 'Framing mismatch.' }, usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15, costUsd: 0.01 } }),
-    })
-    expect(result.entries).toHaveLength(1)
-    expect(result.entries[0]?.hardFailure).toBe(true)
-    expect(Buffer.from(await Bun.file(panelPath).arrayBuffer())).toEqual(Buffer.from(before))
-    const audit = JSON.parse(await Bun.file(join(result.reportDirectory, 'qa-only-audit.json')).text())
-    expect(audit.imageGenerationCalls).toBe(0)
-    expect(audit.imageRepairCalls).toBe(0)
-    expect(audit.canonicalImagesModified).toBe(false)
-    expect(await Bun.file(join(result.reportDirectory, 'page-qa-report.json')).exists()).toBe(true)
+    const provider = fakeImageProvider()
+    await generatePanelImages(sceneSlug, { ...baseOptions, runId: 'run-a', panels: [1] }, provider)
+    expect(provider.calls).toHaveLength(1)
+    const prompt = provider.calls[0]?.normalizedPrompt
+    expect(prompt?.startsWith('Create one final comic page image from the ordered panel data below.')).toBe(true)
+    expect(prompt).toContain('Exhaustive prose shot plan: Medium eye-level shot 1; hero is screen left, facing right; exclude all unlisted cast.')
+    expect(prompt).toContain('This is a trailing single-panel page.')
+    expectAnchorContract(prompt)
+    for (const retired of [...RETIRED_VARIATION_PREFIXES, 'Blocking ledger', 'blocking layout', 'Off-frame exclusion', 'roster']) {
+      expect(prompt).not.toContain(retired)
+    }
+    expect(provider.calls[0]?.referenceImages).toHaveLength(2)
+    expect(await readdir(join(runDirectory, 'panels', 'run-a'))).toEqual(['panel-01.png'])
+  })
+
+  test('a grouped page carries the same anchor guidance for every sub-panel without an environment-anchor artifact', async () => {
+    const sceneSlug = `anchor-page-${crypto.randomUUID()}`
+    const { runDirectory } = await createSceneFixture(sceneSlug)
+    const provider = fakeImageProvider()
+    await generateComicPages(sceneSlug, { ...baseOptions, runId: 'run-a', panels: [1, 2], panelsPerImage: 2 }, provider)
+    expect(provider.calls).toHaveLength(1)
+    const prompt = provider.calls[0]?.normalizedPrompt
+    expectAnchorContract(prompt)
+    expect(prompt).toContain('Use a strict left-to-right two-panel layout')
+    for (const retired of RETIRED_VARIATION_PREFIXES) expect(prompt).not.toContain(retired)
+    expect(await Bun.file(join(runDirectory, 'panels', 'run-a', 'environment-anchor.png')).exists()).toBe(false)
+    expect(await Bun.file(join(runDirectory, 'pages', 'run-a', 'environment-anchor.png')).exists()).toBe(false)
   })
 })

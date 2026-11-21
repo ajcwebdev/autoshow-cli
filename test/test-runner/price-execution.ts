@@ -41,7 +41,7 @@ export const buildPriceSpawnArgs = (entry: PriceCommandSpec, artifacts: TestRunA
   const cliArgs = bundle && spawnArgs[0] === 'src/cli/create-cli.ts'
     ? [bundle, ...spawnArgs.slice(1)]
     : spawnArgs
-  return ['bun', '--no-env-file', ...cliArgs]
+  return [process.execPath, '--no-env-file', ...cliArgs]
 }
 
 export const executePriceCommand = async (

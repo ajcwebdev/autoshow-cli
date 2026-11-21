@@ -8,14 +8,11 @@ import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from './image-size'
 import { loadCharacterCatalog } from './character-reference-config'
 import { validateReferenceImageCount } from './reference-capabilities'
 import { describeMixedLocationLineage, LOCATION_VIEWS, readLocationReferenceCatalog, readLocationSketchManifest, requireCurrentLocationReference } from './location-reference'
-import { DEFAULT_LLM_MODEL, DEFAULT_QA_MODEL } from './cli-args'
+import { DEFAULT_LLM_MODEL } from './cli-args'
 import { priceDetails, priceLine, priceNotice } from './price-estimate-logging'
-import { JUDGE_COST_BASIS_NOTE, printImageEstimateTable } from './comic-price-output'
+import { printImageEstimateTable } from './comic-price-output'
 import { ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL, estimateTokens } from './comic-price-llm-estimates'
 import { estimateLlmCostFromRegistry } from './structured-script-utils/llm-cost'
-
-export const LOCATION_JUDGE_ESTIMATED_INPUT_UNITS_PER_CALL = 5000
-export const LOCATION_JUDGE_ESTIMATED_OUTPUT_UNITS_PER_CALL = 1200
 
 export const estimateCharacterSketchPrice = async (
   options: CharacterSketchCommandOptions
@@ -69,19 +66,13 @@ type LocationPricePlan = {
   model: string
   size: ImageGenerationSize
   quality: ImageGenerationQuality
-  qaEnabled: boolean
-  maxRepairs: number
   view: LocationView
 }
-
-type LocationPriceModels = { aggregationCalls: number; aggregationModel: string; judgeModel: string }
 
 const resolveLocationPricePlan = (options: ReferenceSketchCommandOptions): LocationPricePlan => ({
   model: options.imageModels?.[0] ?? DEFAULT_IMAGE_MODEL,
   size: options.size ?? '1536x1024',
   quality: options.quality ?? 'high',
-  qaEnabled: options.qa ?? true,
-  maxRepairs: options.maxRepairs ?? 2,
   view: options.view ?? 'establishing',
 })
 
@@ -91,63 +82,11 @@ const assertLocationPriceTarget = (options: ReferenceSketchCommandOptions, view:
   if (options.revise && (!registered.entry || !registered.target)) throw UsageError(`Cannot revise unregistered ${view} view for location "${options.location}"`)
 }
 
-const logLocationCallPlan = (options: ReferenceSketchCommandOptions, plan: LocationPricePlan, models: LocationPriceModels, lineageWarning: string | undefined): void => {
-  const { view, qaEnabled, maxRepairs } = plan
-  const { aggregationModel, aggregationCalls, judgeModel } = models
-  priceDetails(
-    'Comic - Price Estimate: reference-sketch --location',
-    [
-      ['Location', options.location],
-      ['View', view],
-      ['Location-spec aggregation model', aggregationModel],
-      ['Location-spec aggregation calls', aggregationCalls],
-      ['Initial image calls', 1],
-      ['Judge model', judgeModel],
-      ['Initial judge calls', qaEnabled ? 1 : 0],
-      ['Maximum additional image repairs', qaEnabled ? maxRepairs : 0],
-      ['Maximum additional judge calls', qaEnabled ? maxRepairs : 0]
-    ],
-    {
-      command: 'reference-sketch',
-      location: options.location,
-      view,
-      aggregationModel,
-      aggregationCalls,
-      initialImageCalls: 1,
-      judgeModel,
-      initialJudgeCalls: qaEnabled ? 1 : 0,
-      maximumAdditionalImageRepairs: qaEnabled ? maxRepairs : 0,
-      maximumAdditionalJudgeCalls: qaEnabled ? maxRepairs : 0,
-      ...(lineageWarning ? { lineage: 'mixed' } : {})
-    }
-  )
-}
-
-type LocationModeledTotals = {
-  model: string
-  imageCostPerCall: number | null
-  maximumImageCalls: number
-  maximumJudgeCalls: number
-  judgeCost: number
-  aggregationCost: number
-}
-
-const logLocationModeledTotal = (totals: LocationModeledTotals): void => {
-  const { model, imageCostPerCall, maximumImageCalls, maximumJudgeCalls, judgeCost, aggregationCost } = totals
-  if (imageCostPerCall === null) {
-    priceLine(`Maximum modeled total: ~${formatCost(judgeCost + aggregationCost)} + n/a (${model} has no per-image estimate)`, { maximumImageCalls, maximumJudgeCalls, judgeCost, aggregationCost, hasUnknownPricing: true })
-  } else {
-    const imageCost = imageCostPerCall * maximumImageCalls
-    const maximumModeledCost = imageCost + judgeCost + aggregationCost
-    priceLine(`Maximum modeled total: ~${formatCost(maximumModeledCost)} (${maximumImageCalls} image call${maximumImageCalls === 1 ? '' : 's'} plus ${maximumJudgeCalls} judge call${maximumJudgeCalls === 1 ? '' : 's'})`, { maximumImageCalls, maximumJudgeCalls, imageCost, judgeCost, aggregationCost, maximumModeledCost, hasUnknownPricing: false })
-  }
-}
-
 export const estimateLocationReferencePrice = async (
   options: ReferenceSketchCommandOptions
 ): Promise<void> => {
-  const plan = resolveLocationPricePlan(options)
-  const { model, size, quality, qaEnabled, maxRepairs, view } = plan
+  const { model, size, quality, view } = resolveLocationPricePlan(options)
+  if ((options.imageModels?.length ?? 1) !== 1) throw UsageError('reference-sketch accepts exactly one --provider')
   validateImageSizeForModels(size, [model])
   const catalog = await readLocationReferenceCatalog()
   const manifest = await readLocationSketchManifest()
@@ -162,56 +101,55 @@ export const estimateLocationReferencePrice = async (
       location: options.location,
       view,
       imageCalls: 0,
-      judgeCalls: 0,
+      aggregationCalls: 0,
       totalCost: 0,
       dryRun: true
     })
     return
   }
+  const imageCalls = 1
   const aggregationCalls = entry ? 0 : 1
   const aggregationModel = options.llmModel ?? DEFAULT_LLM_MODEL
-  const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
   const lineageWarning = describeMixedLocationLineage(options.location!, view, registration?.views.find(item => item.view === 'establishing'))
   if (lineageWarning) priceNotice(lineageWarning, { command: 'reference-sketch', location: options.location, view, lineage: 'mixed' })
-  logLocationCallPlan(options, plan, { aggregationCalls, aggregationModel, judgeModel }, lineageWarning)
-  printImageEstimateTable([model], quality, size, 1, 'initial location view')
-  if (qaEnabled && maxRepairs > 0) printImageEstimateTable([model], quality, size, maxRepairs, 'maximum location retry')
-  const maximumImageCalls = 1 + (qaEnabled ? maxRepairs : 0)
-  const imageCostPerCall = estimateImageOutputCost(model, quality, size)
-  const maximumJudgeCalls = qaEnabled ? 1 + maxRepairs : 0
-  const judgeInputUnits = maximumJudgeCalls * LOCATION_JUDGE_ESTIMATED_INPUT_UNITS_PER_CALL
-  const judgeOutputUnits = maximumJudgeCalls * LOCATION_JUDGE_ESTIMATED_OUTPUT_UNITS_PER_CALL
-  const judgeCost = maximumJudgeCalls > 0 ? estimateLlmCostFromRegistry(judgeModel, judgeInputUnits, judgeOutputUnits) : 0
   const aggregationInputUnits = aggregationCalls > 0 ? (await collectLocationSourceScripts(options.location!)).reduce((total, script) => total + estimateTokens(script.content), 0) : 0
   const aggregationOutputUnits = aggregationCalls * ESTIMATED_OUTPUT_TOKENS_PER_LLM_CALL
   const aggregationCost = aggregationCalls > 0 ? estimateLlmCostFromRegistry(aggregationModel, aggregationInputUnits, aggregationOutputUnits) : 0
   priceDetails(
-    'Comic Location QA Price Estimate',
+    'Comic - Price Estimate: reference-sketch --location',
     [
-      ['Judge model', judgeModel],
-      ['Maximum judge calls', maximumJudgeCalls],
-      ['Heuristic judge input units', judgeInputUnits],
-      ['Heuristic judge output units', judgeOutputUnits],
-      ['Maximum judge cost', formatCost(judgeCost)],
+      ['Location', options.location],
+      ['View', view],
+      ['Mode', options.revise ? 'revision' : 'new view'],
+      ['Image model', model],
+      ['Image calls', imageCalls],
+      ['Location-spec aggregation model', aggregationModel],
+      ['Location-spec aggregation calls', aggregationCalls],
       ['Location-spec aggregation cost', formatCost(aggregationCost)]
     ],
     {
       command: 'reference-sketch',
       location: options.location,
       view,
-      judgeModel,
-      maximumJudgeCalls,
-      judgeInputUnits,
-      judgeOutputUnits,
-      judgeCost,
+      revise: options.revise ?? false,
+      model,
+      imageCalls,
       aggregationModel,
       aggregationCalls,
       aggregationInputUnits,
       aggregationOutputUnits,
-      aggregationCost
+      aggregationCost,
+      ...(lineageWarning ? { lineage: 'mixed' } : {})
     }
   )
-  priceLine(JUDGE_COST_BASIS_NOTE, { visionUsageModeled: false })
-  logLocationModeledTotal({ model, imageCostPerCall, maximumImageCalls, maximumJudgeCalls, judgeCost, aggregationCost })
+  printImageEstimateTable([model], quality, size, imageCalls, 'location view')
+  const imageCostPerCall = estimateImageOutputCost(model, quality, size)
+  if (imageCostPerCall === null) {
+    priceLine(`Modeled total: ~${formatCost(aggregationCost)} + n/a (${model} has no per-image estimate)`, { imageCalls, aggregationCost, hasUnknownPricing: true })
+  } else {
+    const imageCost = imageCostPerCall * imageCalls
+    const totalCost = imageCost + aggregationCost
+    priceLine(`Modeled total: ~${formatCost(totalCost)} (${imageCalls} image call${aggregationCalls > 0 ? ' plus location-spec drafting' : ''})`, { imageCalls, imageCost, aggregationCost, totalCost, hasUnknownPricing: false })
+  }
   priceLine('Dry run: no provider calls and no files written.', { dryRun: true })
 }

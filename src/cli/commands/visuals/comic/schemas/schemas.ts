@@ -1,7 +1,6 @@
 import * as v from 'valibot'
 import type { CharacterCatalogService, CharacterKey } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
-import { buildPanelBlockingJsonSchema, CompiledPanelBlockingSchema, PanelBlockingCitationSchema } from './blocking-plan-schemas'
 
 const STRUCTURED_SCRIPT_BEAT_TYPES = ['narration', 'dialogue', 'direction', 'transition', 'panel-note'] as const
 const CharacterKeySchema = v.pipe(
@@ -29,8 +28,6 @@ const AuthoredCharacterDetailsSchema = v.strictObject({
   generationReference: v.optional(CharacterReferenceImagePathSchema),
   generationInstructions: v.optional(v.string()),
   sceneTextRules: v.optional(v.array(CharacterSceneTextRuleSchema)),
-  variantOf: v.optional(CharacterKeySchema),
-  distinguishFrom: v.optional(v.array(v.strictObject({ characterKey: v.string(), cue: v.string() }))),
   wardrobe: v.optional(v.strictObject({
     colorTokens: v.array(v.string()),
     never: v.optional(v.array(v.string())),
@@ -51,10 +48,6 @@ const CharacterSketchPromptsSchema = v.object({
   Front: v.string(),
   'Three-Quarter': v.string(),
   Profile: v.string(),
-})
-const ImagePromptVariationsSchema = v.object({
-  'animation-polish': v.string(),
-  'cinematic-depth': v.string(),
 })
 
 const StructuredScriptMetadataEntrySchema = v.strictObject({
@@ -115,25 +108,6 @@ const StructuredSoundscapeSchema = v.strictObject({
   cues: v.array(SoundscapeCueSchema),
   ambientBeds: v.array(AmbientBedSchema),
 })
-const StagingLineIndexSchema = v.pipe(v.number(), v.integer(), v.minValue(0))
-const StagingPlacementFields = {
-  lineIndex: StagingLineIndexSchema,
-  afterSegmentId: v.nullable(v.string()),
-}
-const StagingPanelTargetSchema = v.union([v.pipe(v.number(), v.integer(), v.minValue(1)), v.literal('next')])
-const StagingBlockingDirectiveSchema = v.strictObject({ ...StagingPlacementFields, state: v.string(), location: v.string(), text: v.string() })
-const StagingCameraDirectiveSchema = v.strictObject({ ...StagingPlacementFields, panel: StagingPanelTargetSchema, text: v.string() })
-const StagingCostumeDirectiveSchema = v.strictObject({ ...StagingPlacementFields, character: v.string(), text: v.string() })
-const StagingExtrasDirectiveSchema = v.strictObject({ ...StagingPlacementFields, group: v.string(), count: v.nullable(v.number()), exclude: v.array(v.string()), text: v.string() })
-const StagingSkipPanelsDirectiveSchema = v.strictObject({ lineIndex: StagingLineIndexSchema, reason: v.string() })
-export const StructuredStagingSchema = v.strictObject({
-  blocking: v.array(StagingBlockingDirectiveSchema),
-  camera: v.array(StagingCameraDirectiveSchema),
-  axisBreaks: v.array(StagingCameraDirectiveSchema),
-  costume: v.array(StagingCostumeDirectiveSchema),
-  extras: v.array(StagingExtrasDirectiveSchema),
-  skipPanels: v.nullable(StagingSkipPanelsDirectiveSchema),
-})
 const StructuredScriptBeatSchema = v.strictObject({
   index: v.number(),
   type: v.picklist(STRUCTURED_SCRIPT_BEAT_TYPES),
@@ -185,7 +159,6 @@ const PanelSchema = v.strictObject({
   sourceSegmentIds: v.array(v.string()),
   locationKey: v.string(),
   designReferences: v.optional(v.array(DesignReferenceSchema)),
-  blocking: v.optional(PanelBlockingCitationSchema),
 })
 const PanelBundlePanelSchema = v.strictObject({
   number: v.number(),
@@ -204,7 +177,6 @@ const PanelBundlePanelSchema = v.strictObject({
   designReferences: v.optional(v.array(DesignReferenceSchema)),
   designSnapshotId: v.optional(v.string()),
   designReferenceKeys: v.optional(v.array(v.string())),
-  blocking: v.optional(PanelBlockingCitationSchema),
 })
 export const CharacterReferenceSchema = v.strictObject({
   schemaVersion: v.literal(3),
@@ -215,9 +187,47 @@ export const PromptsConfigSchema = v.object({
   'Scene Prompts': ScenePromptsSchema,
   'Sketch Prompts': SketchPromptsSchema,
   'Character Sketch Prompts': CharacterSketchPromptsSchema,
-  'Image Prompt Variations': ImagePromptVariationsSchema,
 })
-export const StructuredScriptDataSchema = v.strictObject({
+const RETIRED_PLAN_FIELDS = {
+  structure: { record: ['staging'], panel: [] },
+  scene: { record: ['blockingPlanSha256'], panel: ['blocking'] },
+  bundle: { record: ['blocking', 'planSha256'], panel: ['blocking'] },
+} as const satisfies Record<string, { record: readonly string[]; panel: readonly string[] }>
+
+type RetiredPlanRecordKind = keyof typeof RETIRED_PLAN_FIELDS
+
+const isPlainRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
+ * Historical structure v5, scene v4 and bundle v4 records may carry fields from the retired blocking workflow
+ * (structured staging directives, per-panel camera citations, compiled blocking and plan hashes). Those fields never
+ * carried scene text, cast, speech, panel numbering or source citations, so they are dropped from an in-memory copy
+ * before strict validation. The artifact on disk is never rewritten.
+ */
+export const stripRetiredPlanFields = (kind: RetiredPlanRecordKind, value: unknown): unknown => {
+  if (!isPlainRecord(value)) return value
+  const fields: { record: readonly string[]; panel: readonly string[] } = RETIRED_PLAN_FIELDS[kind]
+  const panels = value['panels']
+  const hasRecordField = fields.record.some(field => Object.hasOwn(value, field))
+  const hasPanelField = Array.isArray(panels) && panels.some(panel => isPlainRecord(panel) && fields.panel.some(field => Object.hasOwn(panel, field)))
+  if (!hasRecordField && !hasPanelField) return value
+  const copy: Record<string, unknown> = { ...value }
+  for (const field of fields.record) delete copy[field]
+  if (hasPanelField && Array.isArray(panels)) {
+    copy['panels'] = panels.map(panel => {
+      if (!isPlainRecord(panel)) return panel
+      const panelCopy: Record<string, unknown> = { ...panel }
+      for (const field of fields.panel) delete panelCopy[field]
+      return panelCopy
+    })
+  }
+  return copy
+}
+
+const withRetiredPlanFieldsStripped = <TSchema extends v.GenericSchema>(kind: RetiredPlanRecordKind, schema: TSchema) =>
+  v.pipe(v.unknown(), v.transform(value => stripRetiredPlanFields(kind, value)), schema)
+
+const StructuredScriptRecordSchema = v.strictObject({
   schemaVersion: v.literal(5),
   scriptSlug: v.string(),
   sourceFile: v.string(),
@@ -233,24 +243,23 @@ export const StructuredScriptDataSchema = v.strictObject({
   characterKeys: v.array(CharacterKeySchema),
   beats: v.array(StructuredScriptBeatSchema),
   sourceSegments: v.array(StructuredScriptSourceSegmentSchema),
-  staging: v.optional(StructuredStagingSchema),
 })
-export const ScenePromptDataSchema = v.strictObject({
+export const StructuredScriptDataSchema = withRetiredPlanFieldsStripped('structure', StructuredScriptRecordSchema)
+const ScenePromptRecordSchema = v.strictObject({
   schemaVersion: v.literal(4),
   title: v.string(),
   location: v.string(),
   panels: v.array(PanelSchema),
-  blockingPlanSha256: v.optional(v.string()),
 })
-export const PanelBundleDataSchema = v.strictObject({
+export const ScenePromptDataSchema = withRetiredPlanFieldsStripped('scene', ScenePromptRecordSchema)
+const PanelBundleRecordSchema = v.strictObject({
   schemaVersion: v.literal(4),
   snapshotId: v.optional(v.string()),
   title: v.string(),
   location: v.string(),
   panels: v.array(PanelBundlePanelSchema),
-  blocking: v.optional(CompiledPanelBlockingSchema),
-  planSha256: v.optional(v.string()),
 })
+export const PanelBundleDataSchema = withRetiredPlanFieldsStripped('bundle', PanelBundleRecordSchema)
 export const STRUCTURED_SCRIPT_JSON_SCHEMA_NAME = 'structured_script_data_v5'
 const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: 'null' as const }] })
 const characterArray = (keys: readonly string[]) => ({
@@ -325,22 +334,17 @@ export const buildStructuredScriptJsonSchema = (characterKeys: readonly string[]
   },
 })
 
-export const buildSceneJsonSchema = (characterKeys: readonly string[], options: { cameraSetupIds?: readonly string[] | undefined; stageStateIds?: readonly string[] | undefined; segmentIds?: readonly string[] | undefined } = {}) => {
-  const planPresent = options.cameraSetupIds !== undefined
-  return {
-    name: 'scene_prompt_data_v4', strict: true,
-    schema: { type: 'object' as const, properties: {
-      schemaVersion: { type: 'integer', enum: [4] }, title: { type: 'string' }, location: { type: 'string' },
-      panels: { type: 'array', items: { type: 'object', properties: {
-        number: { type: 'integer' }, description: { type: 'string' }, shotPlan: { type: 'string' }, characterKeys: characterArray(characterKeys), sourceSegmentIds: { type: 'array', items: { type: 'string' } }, locationKey: { type: 'string' },
-        designReferences: { type: 'array', items: { type: 'object', properties: { key: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }, sourcePath: { type: 'string', pattern: '^input/.+\\.(?:png|webp|jpg|jpeg)$' }, usage: { type: 'string' } }, required: ['key', 'sourcePath', 'usage'], additionalProperties: false } },
-        speech: { type: 'array', items: { type: 'object', properties: { speaker: speakerJsonSchema(characterKeys), line: { type: 'string' }, tone: nullable({ type: 'string' }) }, required: ['speaker', 'line', 'tone'], additionalProperties: false } },
-        ...(planPresent ? { blocking: buildPanelBlockingJsonSchema({ characterKeys, segmentIds: options.segmentIds, cameraSetupIds: options.cameraSetupIds, stageStateIds: options.stageStateIds }) } : {}),
-      }, required: ['number', 'description', 'shotPlan', 'characterKeys', 'speech', 'sourceSegmentIds', 'locationKey', 'designReferences', ...(planPresent ? ['blocking'] : [])], additionalProperties: false } },
-      ...(planPresent ? { blockingPlanSha256: nullable({ type: 'string' }) } : {}),
-    }, required: ['schemaVersion', 'title', 'location', 'panels', ...(planPresent ? ['blockingPlanSha256'] : [])], additionalProperties: false },
-  }
-}
+export const buildSceneJsonSchema = (characterKeys: readonly string[]) => ({
+  name: 'scene_prompt_data_v4', strict: true,
+  schema: { type: 'object' as const, properties: {
+    schemaVersion: { type: 'integer', enum: [4] }, title: { type: 'string' }, location: { type: 'string' },
+    panels: { type: 'array', items: { type: 'object', properties: {
+      number: { type: 'integer' }, description: { type: 'string' }, shotPlan: { type: 'string' }, characterKeys: characterArray(characterKeys), sourceSegmentIds: { type: 'array', items: { type: 'string' } }, locationKey: { type: 'string' },
+      designReferences: { type: 'array', items: { type: 'object', properties: { key: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }, sourcePath: { type: 'string', pattern: '^input/.+\\.(?:png|webp|jpg|jpeg)$' }, usage: { type: 'string' } }, required: ['key', 'sourcePath', 'usage'], additionalProperties: false } },
+      speech: { type: 'array', items: { type: 'object', properties: { speaker: speakerJsonSchema(characterKeys), line: { type: 'string' }, tone: nullable({ type: 'string' }) }, required: ['speaker', 'line', 'tone'], additionalProperties: false } },
+    }, required: ['number', 'description', 'shotPlan', 'characterKeys', 'speech', 'sourceSegmentIds', 'locationKey', 'designReferences'], additionalProperties: false } },
+  }, required: ['schemaVersion', 'title', 'location', 'panels'], additionalProperties: false },
+})
 
 const assertKnownUniqueKeys = (values: readonly string[], catalog: CharacterCatalogService, context: string): void => {
   const seen = new Set<string>()

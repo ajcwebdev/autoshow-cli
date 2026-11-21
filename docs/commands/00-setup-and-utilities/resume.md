@@ -12,6 +12,8 @@ bun autoshow resume <outputDirs...> [flags]
 
 - Supports extract STT/OCR/article, write, TTS, image, video, music, and single-scene comic manifests. X Spaces cannot resume.
 - Standalone/extract runs preserve successes, retry eligible missing/failed targets, and permit additive selections. Write runs only explicitly selected providers; no selection is a no-op.
+- Image, video, and music resumes take turns updating a run. If an interrupted request left a file that the manifest cannot identify, execution stops before dispatching that target again. Inspect the path in the error and preserve the files. Move them aside only if you intend to purchase another attempt.
+- Video retries use each target's saved resolution for both pricing and generation. An explicit `--resolution` overrides it. New targets and older records without a resolution use the normal command settings.
 - Parent extract batches recover their children. Multiple directories run sequentially with the same flags; failures are collected without stopping later directories.
 - `--price` plans the same remaining/additive work without provider calls or writes. Execution updates the existing run; incomplete/failed backfills exit 2. A successful no-op can leave unselected targets incomplete, so inspect manifest status.
 - Split STT reuses completed `split-attempts/` segments only when source audio, model, segment, and options match.
@@ -92,21 +94,21 @@ Standalone/extract recovery accepts `--batch-concurrency`, `--provider-concurren
 
 ## Comic Recovery
 
-Create a local structure-only run from the character-free scene above; omit providers to avoid generation:
+Create a local prepare-only run from the character-free scene above; omit providers to avoid generation:
 
 ```bash
-bun autoshow comic draft-scenes output/resume-example/comic-inputs/scene.md --only structure --characters-root output/resume-example/comic-inputs/characters --output-dir output/resume-example/comic --config-path output/resume-example/empty-config.json
+bun autoshow comic draft-scenes output/resume-example/comic-inputs/scene.md --only prepare --characters-root output/resume-example/comic-inputs/characters --output-dir output/resume-example/comic --config-path output/resume-example/empty-config.json
 bun autoshow resume output/resume-example/comic --price --json
 bun autoshow resume output/resume-example/comic
 ```
 
-This creates structured script/manifest with unrequested image/audio/presentation stages; recovery is a ready, zero-cost no-op. Use the [comic stages](../05-visuals/comic/00-comic-overview.md) to record actual generation requests first, retaining source/catalog files.
+This creates the structured script, draft prompt, and manifest with unrequested image/audio/presentation stages; recovery is a ready, zero-cost no-op. Use the [comic stages](../05-visuals/comic/00-comic-overview.md) to record actual generation requests first, retaining source/catalog files.
 
 Recovery continues requested image, audio, then presentation using recorded choices. Compatible completed stages are reused; unrequested stages stay unrequested. Configuration never supplies replacement providers. The original `--max-generation-slots` limit is not restored; audio recovery finishes remaining slots.
 
 Price JSON exposes `data.comicPlans`, readiness, and stage actions `reuse`, `resume`, `not-requested`, `blocked`, or `after-audio`. Blocked totals include only priceable work; execution refuses blockers. Invalid manifests and missing sources fail inspection. Changed inputs/casting, missing original intent, stale presentation dependencies, or unpriceable remaining work block recovery.
 
-Interrupted `generate-audio --slideshow` finishes locally after audio recovery. Presentation-only recovery requires complete upstream media and canonical `panels/panel-NN.png`; it never prepares sources, generates missing assets, promotes variants, changes approvals/providers, or runs forced regeneration/audits/revisions.
+Interrupted `generate-audio --slideshow` finishes locally after audio recovery. Presentation-only recovery requires complete upstream media and selected `panels/panel-NN.png`; it never prepares sources, generates missing assets, replaces panel selections, changes approvals/providers, or forces regeneration. Image recovery finishes an interrupted first panel selection from its verified candidate, reuses completed images from older runs without a QA report, and blocks unfinished multi-model, explicit-variation, or judge-dependent intents until remaining image work is selected explicitly with one model.
 
 Accept `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`, logging controls, and `--json --result-file`. `--require-shared-budget` allows configured price inspection, but budgeted resume execution remains unsupported and fails before dispatch. Reject provider, rendering, configuration, catalog, output-path, and concurrency overrides. Explicit ambiguous redispatch may repurchase unresolved TTS slots while reusing completed audio; it does not authorize blocked sound effects.
 
@@ -115,6 +117,12 @@ Accept `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`, logging controls,
 Resume sends retained `prompt.md` and avoids overwrites with provider/numeric filename suffixes. `--prompt` selects validation presets for new outputs while saved text is still sent; omit it to retain the original preset. Custom-schema restrictions above still apply.
 
 ## Extract And TTS Options
+
+STT resume keeps the canonical records of every stored target it does not dispatch: provider entries (metadata such as `hostedConcurrency`, recorded settings, and results that live only in `result.json` sidecars stay there), cost and timing steps (including retired models; totals are re-summed with the new steps), and `resolvedStep2` selection origins. `prompt.md` is rewritten only when a newly run transcript outranks its stored source (speaker labels, diarization, and speaker-count hints).
+
+When at least one stored success is kept and the stored `step1.audioFileName` (inside the run or a relative path such as `../../sources/x.mp3`) still exists with the recorded `audioFileSize`, `step1` is reused unchanged: new providers are staged from that stored audio without re-downloading a URL or YouTube source or copying media into the run, and their costs use the stored `durationSeconds`. The lossless audio profile still stages from the original source. If the stored audio is missing or its size differs, resume acquires `step1.url` as a fresh run would: URL and YouTube sources download again and may differ from the original, the media is copied into the run, and `step1` is re-derived.
+
+`--stt-filler-words`, `--stt-number-format`, and `--stt-verbatim` are compared by the request each model actually sends. For AssemblyAI-STT-3.7, explicit `false` and `written` equal an unset run; for Grok, `--stt-verbatim true` equals `--stt-filler-words true --stt-number-format spoken`. Any other difference fails before dispatch.
 
 OCR `--ocr-provider-mode` defaults to the stored mode; an explicit mismatch fails. TTS rejects `--tts-book` and restores compatible chunking, mastering, export, and pronunciation settings. Canonical pre-mastering runs retain legacy chunk plans/delivery when no override is explicit. Voice, casting, synthesis, and output-plan changes must remain compatible or fail before dispatch. Preserve cached audio and inspect `--price` before ambiguous redispatch.
 

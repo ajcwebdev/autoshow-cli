@@ -55,27 +55,20 @@ describe('voice and comic audited help contracts', () => {
     await expect(conflict.command!.handler(asCtx(conflict))).rejects.toThrow('Positional subject key conflicts with --subject-key')
   })
 
-  test('revision comparison count is inferred while promotion still requires explicit authorization', () => {
-    expect(imageOptions(['--revision-plan', 'plan.json', '--promote', 'clear-winners'])).toMatchObject({
-      comparisonPasses: 2, promote: 'clear-winners', maxRepairs: 0, panelsPerImage: 1,
-    })
-    expect(imageOptions(['--revision-plan', 'plan.json', '--comparison-passes', '2', '--promote', 'clear-winners']).comparisonPasses).toBe(2)
-    expect(() => imageOptions(['--revision-plan', 'plan.json'])).toThrow('--revision-plan requires --promote clear-winners')
-    expect(() => imageOptions(['--revision-plan', 'plan.json', '--comparison-passes', '1', '--promote', 'clear-winners'])).toThrow('--revision-plan requires --comparison-passes 2')
-    expect(() => imageOptions(['--comparison-passes', '2'])).toThrow('require --revision-plan')
-  })
-
-  test('comic image help includes effective defaults and omits the fixed comparison override', async () => {
+  test('comic image help states the one-model contract and effective defaults without retired QA, revision, or variation controls', async () => {
     const result = (await loadHelp(['comic', 'generate-images', '--help'])).stdout
     const text = helpText(result)
-    expect(getCommandFlagsSection(result)).not.toContain('--comparison-passes')
+    const flags = getCommandFlagsSection(result)
+    for (const retired of ['--qa', '--qa-provider', '--max-repairs', '--qa-only', '--continuity-qa', '--labels', '--trusted-anchor-panel', '--bloopers', '--revision-plan', '--comparison-passes', '--promote', '--variation', '--credit-preflight', '--blocking-hard-keys', '--blocking-layout-guide']) {
+      expect(flags).not.toMatch(new RegExp(`${retired}(?![\\w-])`))
+    }
     expect(text).toContain('default: 1536x1024')
     expect(text).toContain('default: high')
-    expect(text).toContain('default: canonical')
-    expect(text).toContain('default: 2 for generation, 0 for --qa-only or --revision-plan')
-    expect(text).toContain('requires explicit --promote clear-winners authorization')
-    expect(imageOptions([]).maxRepairs).toBe(2)
-    expect(imageOptions(['--qa-only']).maxRepairs).toBe(0)
+    expect(text).toContain('Exactly one image provider[=model] per run')
+    expect(text).toContain('Each run uses exactly one --provider provider[=model]; run a separate invocation for another model')
+    expect(text).toContain('The first valid individual panel fills an empty slot at panels/panel-NN.png')
+    expect(text).not.toContain('default: canonical')
+    expect(imageOptions([])).not.toHaveProperty('maxRepairs')
   })
 
   test('reference help specifies one provider and separate character and location defaults', async () => {

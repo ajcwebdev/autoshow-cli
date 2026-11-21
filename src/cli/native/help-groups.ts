@@ -37,7 +37,6 @@ export const HELP_FLAG_GROUPS = [
   ['comic-panels', 'Panel Selection'],
   ['comic-reference', 'Reference Sheet'],
   ['comic-image', 'Image Options'],
-  ['comic-qa', 'Image QA'],
   ['comic-stages', 'Scene Drafting'],
   ['comic-treatment', 'Treatment Drafting'],
   ['comic-audio', 'Comic Audio'],

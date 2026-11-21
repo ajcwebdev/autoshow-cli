@@ -2,13 +2,13 @@ import type { FinalImageEstimateResult, GenerateImagesCommandOptions } from '~/t
 import { InternalError } from '~/utils/error-handler'
 import { DEFAULT_FINAL_PANELS_PER_IMAGE, validateComicGridOptions } from '../comic-commands/generate-images/comic-page-utils'
 import { validateImageSizeForModels } from './image-size'
-import { estimateFinalImagePricing, estimatePageMode, estimatePanelMode, estimateQaWork, normalizeFinalImageEstimateRequest } from './final-image-price-estimate'
+import { estimateFinalImagePricing, estimatePageMode, estimatePanelMode, normalizeFinalImageEstimateRequest } from './final-image-price-estimate'
 import { loadFinalImageEstimateInventory } from './final-image-price-inventory'
 import { printFinalImageEstimate } from './comic-price-output'
 
 export const buildFinalPanelImageEstimate = async (options: GenerateImagesCommandOptions): Promise<FinalImageEstimateResult> => {
   const request = normalizeFinalImageEstimateRequest(options)
-  validateImageSizeForModels(request.size, request.models)
+  validateImageSizeForModels(request.size, [request.model])
   validateComicGridOptions(request.mode === 'grid' ? request.grid : undefined, {
     target: 'images',
     size: request.size,
@@ -23,29 +23,13 @@ export const buildFinalPanelImageEstimate = async (options: GenerateImagesComman
   }
 
   if (request.mode === 'page' && loaded.inventory.mode === 'page') {
-    const modeEstimate = estimatePageMode(request, loaded.inventory)
-    const qaWork = estimateQaWork(request, modeEstimate, loaded.inventory)
-    return {
-      status: 'ready',
-      request,
-      inventory: loaded.inventory,
-      modeEstimate,
-      qaWork,
-      pricing: estimateFinalImagePricing(request, modeEstimate, qaWork, loaded.inventory),
-    }
+    const modeEstimate = estimatePageMode(loaded.inventory)
+    return { status: 'ready', request, inventory: loaded.inventory, modeEstimate, pricing: estimateFinalImagePricing(request, modeEstimate, loaded.inventory) }
   }
 
   if (request.mode !== 'page' && loaded.inventory.mode !== 'page') {
     const modeEstimate = estimatePanelMode(request, loaded.inventory)
-    const qaWork = estimateQaWork(request, modeEstimate, loaded.inventory)
-    return {
-      status: 'ready',
-      request,
-      inventory: loaded.inventory,
-      modeEstimate,
-      qaWork,
-      pricing: estimateFinalImagePricing(request, modeEstimate, qaWork, loaded.inventory),
-    }
+    return { status: 'ready', request, inventory: loaded.inventory, modeEstimate, pricing: estimateFinalImagePricing(request, modeEstimate, loaded.inventory) }
   }
   throw InternalError('Comic image estimate inventory does not match the selected mode.')
 }

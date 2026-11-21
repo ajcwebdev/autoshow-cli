@@ -45,6 +45,8 @@ const removedOcr = [
   ...routePairs('deepinfra', ['removed/deepinfra-ocr-model']),
 ]
 const removedStt = [
+  // Deprecated but still selectable by explicit name, so excluded from the default dashboard filter.
+  ...routePairs('assemblyai', ['universal-3-5-pro']),
   ...routePairs('happyscribe', ['auto']),
   ...routePairs('rev', ['machine']),
   ...routePairs('supadata', ['auto']),
@@ -52,7 +54,7 @@ const removedStt = [
   ...routePairs('cloudflare', ['@cf/deepgram/nova-3']),
 ]
 const diarizedStt = [
-  ...routePairs('assemblyai', ['universal-3-5-pro']), ...routePairs('deepgram', ['nova-3']),
+  ...routePairs('assemblyai', ['assemblyai-stt-3-7']), ...routePairs('deepgram', ['nova-3']),
   ...routePairs('gemini-stt', ['gemini-3.5-transcribe']), ...routePairs('gladia', ['solaria-3']),
   ...routePairs('grok', ['grok-voice-transcribe-2.0']), ...routePairs('mistral', ['voxtral-mini-2602']),
   ...routePairs('soniox', ['stt-async-v5']), ...routePairs('speechmatics', ['melia-1']),
@@ -71,6 +73,22 @@ const activeTts = [
   ...routePairs('inworld', ['realtime-tts-2']),
 ]
 
+// Generation-media routes come from the image, video and music registries; retired IDs keep only historical rates.
+const activeImage = [
+  ...routePairs('gemini', ['gemini-nano-banana-2.1']),
+  ...routePairs('openai', ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst']),
+  ...routePairs('grok', ['grok-imagine-image-2.0']),
+]
+const retiredImage = [
+  ...routePairs('gemini', ['gemini-3.1-flash-lite-image', 'gemini-3.1-flash-image-preview']),
+  ...routePairs('openai', ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst', 'gpt-image-2']),
+  ...routePairs('grok', ['grok-imagine-image']), ...routePairs('recraft', ['recraftv4_1']),
+]
+const activeVideo = [...routePairs('gemini', ['gemini-omni-1.2-flash']), ...routePairs('grok', ['grok-imagine-video-1.5', 'grok-imagine-video-1.5-lite'])]
+const retiredVideo = [...routePairs('gemini', ['gemini-omni-1.1-flash', 'veo-3.1-generate-preview']), ...routePairs('grok', ['grok-imagine-video']), ...routePairs('minimax', ['MiniMax-Hailuo-2.3'])]
+const activeMusic = [...routePairs('elevenlabs', ['music_v2', 'music_v2_5']), ...routePairs('minimax', ['music-3.0']), ...routePairs('gemini', ['lyria-3.5'])]
+const retiredMusic = [...routePairs('elevenlabs', ['music_v1']), ...routePairs('minimax', ['music-2.6']), ...routePairs('gemini', ['lyria-3-clip-preview'])]
+
 describe('benchmark dashboard live CLI availability snapshot', () => {
   const mappings = [
     { tab: 'write', active: activeWrite, retired: removedWrite },
@@ -80,6 +98,9 @@ describe('benchmark dashboard live CLI availability snapshot', () => {
     { tab: 'stt-without-speakers', active: nonDiarizedStt, retired: [...removedStt, ...localStt] },
     { tab: 'url', active: ['defuddle', 'spider', 'zyte'].map(value => [value, value] as [string, string]), retired: ['firecrawl', 'glm-reader', 'supadata'].map(value => [value, value] as [string, string]) },
     { tab: 'tts', active: activeTts, retired: [...routePairs('mistral', ['voxtral-tts']), ...routePairs('openai', ['tts-1', 'tts-1-hd'])] },
+    { tab: 'image', active: activeImage, retired: [...retiredImage, ...activeVideo] },
+    { tab: 'video', active: activeVideo, retired: [...retiredVideo, ...activeImage] },
+    { tab: 'music', active: activeMusic, retired: [...retiredMusic, ...activeTts] },
   ]
 
   for (const { tab, active, retired } of mappings) {
@@ -102,6 +123,18 @@ describe('benchmark dashboard live CLI availability snapshot', () => {
     expect(supportedDashboardProviderKeys('ocr', dashboard([['tesseract', 'tesseract']]))).toEqual([])
     expect(supportedDashboardProviderKeys('stt-local', dashboard([['whisperfile', 'tiny'], ['whisperfile/fake', 'fake']], 'local'))).toEqual(['whisperfile'])
     expect(supportedDashboardProviderKeys('tts', dashboard([['tesseract', 'tesseract']], 'local'))).toEqual([])
+  })
+
+  test('keeps STT settings-variant rows whose base route and model are supported', () => {
+    const model = dashboard([
+      ['assemblyai/assemblyai-stt-3-7[fillerWords=true]', 'assemblyai-stt-3-7'],
+      ['assemblyai/assemblyai-stt-3-7[audioProfile=lossless,speakerCount=2]', 'assemblyai-stt-3-7'],
+      ['assemblyai/retired-model[fillerWords=true]', 'retired-model'],
+    ])
+    expect(supportedDashboardProviderKeys('stt-with-speakers', model)).toEqual([
+      'assemblyai/assemblyai-stt-3-7[audioProfile=lossless,speakerCount=2]',
+      'assemblyai/assemblyai-stt-3-7[fillerWords=true]',
+    ])
   })
 
   test('matches complete slash-bearing identities and fails closed for mismatched models and unknown tabs', () => {

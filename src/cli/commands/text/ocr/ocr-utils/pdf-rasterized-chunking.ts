@@ -1,6 +1,6 @@
 import { copyFileExact } from '~/utils/bun-file-io'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
+import { createRuntimeTempDirectory } from '~/utils/runtime-state'
 import { join } from 'node:path'
 import { renderPageToImage } from '~/cli/commands/sources/download/document/mutool-utils'
 import type { OcrPreparationCache, OcrPdfChunkRange, PdfChunkLocalTools, PdfChunkPreparationState, PdfChunkPreparationSummary, PdfChunkSplitLogMode, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
@@ -113,7 +113,7 @@ export const createRasterizedSinglePagePdfChunk = async (options: {
     })
   }
 
-  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-pdf-raster-'))
+  const tempDir = await createRuntimeTempDirectory('autoshow-ocr-pdf-raster-')
   const imagePath = join(tempDir, `page-${String(options.range.startPage).padStart(6, '0')}.png`)
   const dpi = Math.max(1, Math.floor(options.dpi ?? DEFAULT_RASTERIZED_PDF_CHUNK_DPI))
 

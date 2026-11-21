@@ -1,7 +1,9 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import { commandExists, exec } from '~/utils/cli-utils'
+import { exec } from '~/utils/cli-utils'
 import { InfraError, InternalError } from '~/utils/error-handler'
+import { getImageMagickBinary, hasRuntimeTool } from '~/utils/runtime-paths'
 import { COMIC_GRID_PANEL_SIZE, getComicGridCapacity } from './comic-page-utils'
 import type { ComicGridCellSize, ComposeComicGridPageInput } from '~/types'
 
@@ -17,14 +19,9 @@ const parseGridPanelSize = (): ComicGridCellSize => {
 const DEFAULT_GRID_CELL_SIZE = parseGridPanelSize()
 
 const resolveImageMagickCommand = (): string => {
-  if (commandExists('magick')) {
-    return 'magick'
-  }
-  if (commandExists('convert')) {
-    return 'convert'
-  }
+  if (hasRuntimeTool('magick') || hasRuntimeTool('convert')) return getImageMagickBinary()
   throw InfraError(
-    'Comic grid composition requires ImageMagick. Install ImageMagick so `magick` or `convert` is available on PATH.',
+    `Comic grid composition requires managed ImageMagick. Run ${CLI_INVOCATION} setup --step rendering.`,
     { stage: 'comic:grid-compose' }
   )
 }
@@ -42,6 +39,7 @@ export const composeComicGridPage = async (
   }
 
   const cellSize = input.cellSize ?? DEFAULT_GRID_CELL_SIZE
+  const cellGeometry = `${cellSize.width}x${cellSize.height}`
   const canvasWidth = input.grid.columns * cellSize.width
   const canvasHeight = input.grid.rows * cellSize.height
   const compositeArgs = input.sources.flatMap((source, index) => {
@@ -49,7 +47,9 @@ export const composeComicGridPage = async (
     const row = Math.floor(index / input.grid.columns)
 
     return [
-      source,
+      '(', source, '+repage', '-resize', cellGeometry,
+      '-gravity', 'center', '-background', 'white', '-extent', cellGeometry, '+repage', ')',
+      '-gravity', 'northwest',
       '-geometry',
       `+${column * cellSize.width}+${row * cellSize.height}`,
       '-composite',

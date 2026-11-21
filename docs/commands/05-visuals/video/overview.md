@@ -6,7 +6,7 @@ Generate video from text or images with Gemini and Grok. Configure `GEMINI_API_K
 
 ```bash
 bun autoshow video "a red kite above a field" --provider grok=grok-imagine-video-1.5-lite --duration 5 --resolution 720p --price
-bun autoshow video input/examples/image/harborlight-mug.png --provider gemini=gemini-omni-1.1-flash --price
+bun autoshow video input/examples/image/harborlight-mug.png --provider gemini=gemini-omni-1.2-flash --price
 bun autoshow video "a rainy neon street, slow camera pan" --all-providers --max-model-cents 100 --price
 ```
 
@@ -30,7 +30,7 @@ Media flags require an explicit/saved mode, except positional images. Media refe
 `--input-video` supplies an edit/extend source, while `--reference-video` supplies reference material. Grok rejects video references; select Gemini explicitly for them. Stored-interaction extension does not forward added reference images; use an uploaded source for that combination. Audio references and voice editing have no CLI surface.
 
 ```bash
-bun autoshow video "transition this campsite from dusk to night" --provider gemini=gemini-omni-1.1-flash --mode interpolate --input-image input/examples/video/harborlight-start.png --last-frame input/examples/video/harborlight-end.png --aspect-ratio 9:16 --price
+bun autoshow video "transition this campsite from dusk to night" --provider gemini=gemini-omni-1.2-flash --mode interpolate --input-image input/examples/video/harborlight-start.png --last-frame input/examples/video/harborlight-end.png --aspect-ratio 9:16 --price
 bun autoshow video "an explorer in the teal jacket and gold glasses walks beside the harbor" --provider grok=grok-imagine-video-1.5 --mode reference-to-video --reference-image input/examples/video/harborlight-jacket.png --reference-image input/examples/video/harborlight-glasses.png --price
 ```
 
@@ -56,16 +56,16 @@ The [bundled fixtures](../../../../input/examples/harborlight-README.md) include
 
 ### Gemini Omni
 
-`gemini-omni-1.1-flash` supports all modes. Explicit duration must be an integer from 3–10 seconds; omission leaves duration to the provider and estimates 10 seconds. Resolution is `360p`, `720p` (default), `1080p`, or `4k`; aspect ratio is `16:9` (default) or `9:16`. Higher resolutions are described as upscaled in the registry.
+`gemini-omni-1.2-flash` supports all modes and replaces the retired `gemini-omni-1.1-flash`, which Google routes to 1.2 from 2026-12-03; selecting 1.1 fails before dispatch and names 1.2. Explicit duration must be an integer from 3–10 seconds; omission leaves duration to the provider and estimates 10 seconds. The CLI does not yet expose 1.2's 11–15 second outputs. Resolution is `360p`, `720p` (default), `1080p`, or `4k`, each with its own published per-second rate; aspect ratio is `16:9` (default) or `9:16`. Higher resolutions are described as upscaled in the registry.
 
-Gemini reference videos are limited to three MP4s of at most three seconds each; uploaded edit/extend sources must be at most ten seconds. These differ from reusable generated interaction IDs. Confirm project access, retention, and regional eligibility in the [Omni documentation](https://ai.google.dev/gemini-api/docs/omni) before spending; CLI validation does not prove live account eligibility. The CLI exposes no audio toggle. Estimates omit input/context and thinking/text charges; review the complete sequence, including retries, rather than treating output estimates as caps.
+Gemini accepts up to six reference images. Reference videos are limited to three MP4s of at most three seconds each. Uploaded edit/extend sources must be at most ten seconds. These differ from reusable generated interaction IDs. Confirm project access, retention, and regional eligibility in the [Omni documentation](https://ai.google.dev/gemini-api/docs/omni) before spending; CLI validation does not prove live account eligibility. The CLI exposes no audio toggle. Estimates omit input/context and thinking/text charges; review the complete sequence, including retries, rather than treating output estimates as caps.
 
 #### Generate a base, then edit it
 
 Keep the same Gemini API project/key for every turn. Preflight the base and planned edit/extension together. After authorization, run the base command without `--price`, using a new directory or compatible saved work:
 
 ```bash
-bun autoshow video "a teal camping mug beside a glowing lantern, slow camera orbit" --provider gemini=gemini-omni-1.1-flash --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-base --price
+bun autoshow video "a teal camping mug beside a glowing lantern, slow camera orbit" --provider gemini=gemini-omni-1.2-flash --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-base --price
 ```
 
 A price-only run creates no interaction ID. Read one from the completed base manifest with this local guard; it checks recorded completion and identity, not remote retention or access:
@@ -75,9 +75,9 @@ GEMINI_INTERACTION_ID="$(bun --no-env-file -e '
 const manifest = await Bun.file(process.argv[1]).json();
 const item = manifest.items?.[0];
 const videos = Array.isArray(item?.metadata?.video) ? item.metadata.video : [];
-const matches = videos.filter(video => video.videoGenService === "gemini" && video.videoGenModel === "gemini-omni-1.1-flash");
+const matches = videos.filter(video => video.videoGenService === "gemini" && video.videoGenModel === "gemini-omni-1.2-flash");
 const video = matches[0];
-const succeeded = item?.providers?.some(provider => provider.service === "gemini" && provider.model === "gemini-omni-1.1-flash" && provider.status === "succeeded");
+const succeeded = item?.providers?.some(provider => provider.service === "gemini" && provider.model === "gemini-omni-1.2-flash" && provider.status === "succeeded");
 if (manifest.command !== "video" || manifest.scope !== "single" || manifest.items?.length !== 1 || item?.status !== "full" || !succeeded || matches.length !== 1 || typeof video?.providerRequestId !== "string" || !video.providerRequestId.trim()) {
   throw new Error("Expected one completed Gemini Omni base with a providerRequestId");
 }
@@ -88,7 +88,7 @@ console.log(video.providerRequestId.trim());
 Preview the edit, then remove `--price` only within the approved sequence:
 
 ```bash
-bun autoshow video "change the lantern glow to amber; preserve the mug and camera movement" --provider gemini=gemini-omni-1.1-flash --mode edit --previous-interaction-id "${GEMINI_INTERACTION_ID:?Read the completed base interaction first}" --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-edit --price
+bun autoshow video "change the lantern glow to amber; preserve the mug and camera movement" --provider gemini=gemini-omni-1.2-flash --mode edit --previous-interaction-id "${GEMINI_INTERACTION_ID:?Read the completed base interaction first}" --duration 3 --resolution 720p --aspect-ratio 16:9 --output-dir output/gemini-omni-edit --price
 ```
 
 `--mode extend` appends another 3–10 seconds and is another purchase. Reusing the base ID branches from the base; to extend the edit, read its new `providerRequestId`. Deleted/expired interactions cannot be reused, and a local MP4 is not an interaction ID. The bundled 24-second dialogue clip exceeds the uploaded-source limit.

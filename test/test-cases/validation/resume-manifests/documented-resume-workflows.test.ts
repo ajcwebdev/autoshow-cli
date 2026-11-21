@@ -252,15 +252,17 @@ test('partial JSON leaf prompt-file recovery rejects replacing its custom schema
   }
 }, 30_000)
 
-test('the guide creates a local structure-only comic manifest whose unrequested stages remain a byte-identical no-op', async () => {
+test('the guide creates a local prepare-only comic manifest whose unrequested stages remain a byte-identical no-op', async () => {
   const w = await createWorkspace()
   const output = join(w.root, 'comic')
-  await w.success(['comic', 'draft-scenes', join(w.root, 'comic-inputs/scene.md'), '--only', 'structure', '--characters-root', join(w.root, 'comic-inputs/characters'), '--output-dir', output])
+  await w.success(['comic', 'draft-scenes', join(w.root, 'comic-inputs/scene.md'), '--only', 'prepare', '--characters-root', join(w.root, 'comic-inputs/characters'), '--output-dir', output])
   const manifest = await readManifest(output)
   expect(manifest).toMatchObject({ command: 'comic', scope: 'single' })
   expect(manifest!.items).toHaveLength(1)
   const structured = await Bun.file(join(output, 'metadata/structured-script.json')).json()
   expect(structured.sourceSegments.length).toBeGreaterThan(0)
+  expect((await Bun.file(join(output, 'metadata/draft-prompt.md')).text()).length).toBeGreaterThan(0)
+  expect(await w.calls()).toEqual([])
   const before = await Bun.file(join(output, 'manifest.json')).text()
   const source = await Bun.file(join(output, 'metadata/structured-script.json')).text()
   const result = await w.success(['resume', output, '--price'], undefined, false)

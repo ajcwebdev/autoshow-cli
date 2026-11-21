@@ -1,9 +1,9 @@
 import { afterEach } from 'bun:test'
 import { mkdir, rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/command-shared/characters-root'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/visuals/comic/comic-utils/scene-run-context'
-import type { PageQaEntry, PanelBundleData } from '~/types'
+import type { ComicImageRequestInput, GeneratedImageResponse, PanelBundleData } from '~/types'
 import { makeTempDir } from '../../../../test-utils/temp-dirs'
 import { createLiveCharacterFixture } from '../../../../test-utils/live-character-reference-fixture'
 import { createLiveLocationFixture } from '../../../../test-utils/live-location-reference-fixture'
@@ -14,35 +14,6 @@ export const setupPageContractFixtures = () => {
   const sha = new Bun.CryptoHasher('sha256').update(tinyPng).digest('hex')
 
   const cargoBayLocation = { key: 'cargo-bay', raw: 'cargo-bay' }
-
-  const repairAssessment = (overrides: Partial<NonNullable<PageQaEntry['result']['panels'][number]['repairAssessment']>> = {}): NonNullable<PageQaEntry['result']['panels'][number]['repairAssessment']> => ({
-    issueVisibility: 'not-assessable', expectedBenefit: 'none', editScope: 'bounded', editIsolation: 'isolated-single-region', collateralRisk: 'low', confidence: 'high', recommendation: 'retain-current', preservationRequirements: [], rationale: 'No material repair is warranted.', ...overrides,
-  })
-
-  const repairComparisonResponse = (pass: 1 | 2, outcome: 'winner' | 'tie' | 'worse'): string => {
-    const candidateIsA = pass === 2
-    const candidateLabel = candidateIsA ? 'image-a' : 'image-b'
-    const originalLabel = candidateIsA ? 'image-b' : 'image-a'
-    const candidateStatus = outcome === 'tie' ? 'visible' : 'not-visible'
-    const originalStatus = 'visible'
-    return JSON.stringify({
-      targetedDefectStatusImageA: candidateIsA ? candidateStatus : originalStatus,
-      targetedDefectStatusImageB: candidateIsA ? originalStatus : candidateStatus,
-      targetedDefectLowerIn: outcome === 'tie' ? 'neither' : candidateLabel,
-      differenceMeaningful: outcome !== 'tie',
-      majorRegressionImageA: outcome === 'worse' && candidateIsA,
-      majorRegressionImageB: outcome === 'worse' && !candidateIsA,
-      nonTargetDifferenceLevel: outcome === 'worse' ? 'major' : 'none',
-      preservationRequirementsSatisfiedImageA: !(outcome === 'worse' && candidateIsA),
-      preservationRequirementsSatisfiedImageB: !(outcome === 'worse' && !candidateIsA),
-      nonTargetDifferences: outcome === 'worse' ? ['A principal cast member disappeared.'] : [],
-      fullContractPreference: outcome === 'winner' ? candidateLabel : outcome === 'worse' ? originalLabel : 'tie',
-      confidence: 'high',
-      regressionsImageA: outcome === 'worse' && candidateIsA ? ['A principal cast member disappeared.'] : [],
-      regressionsImageB: outcome === 'worse' && !candidateIsA ? ['A principal cast member disappeared.'] : [],
-      rationale: outcome === 'winner' ? 'The candidate clearly fixes the visible issue without regression.' : outcome === 'worse' ? 'The candidate fixes the target but loses required cast.' : 'The images are materially equivalent.',
-    })
-  }
 
   const panelBundle = (panelNumber: number): PanelBundleData => ({
     schemaVersion: 4, snapshotId: 'character-snapshot',
@@ -106,10 +77,17 @@ export const setupPageContractFixtures = () => {
     return { runDirectory, locationSheets }
   }
 
+  /** Fake provider that returns the decodable PNG fixture and writes it exactly, recording every dispatched request. */
+  const fakeImageProvider = (calls: ComicImageRequestInput[] = []) => ({
+    calls,
+    requestImage: async (input: ComicImageRequestInput): Promise<GeneratedImageResponse> => { calls.push(input); return { mode: 'generate', result: { imageBase64: tinyPng.toString('base64') } } },
+    writeImage: async (outputPath: string) => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) },
+  })
+
   afterEach(async () => {
     resetSceneRunContext()
     configureCharactersRoot('input/characters')
     await Promise.all(temporaryDirectories.splice(0).map(path => rm(path, { recursive: true, force: true })))
   })
-  return { temporaryDirectories, tinyPng, sha, cargoBayLocation, repairAssessment, repairComparisonResponse, panelBundle, createSceneFixture, createMultiLocationFixture }
+  return { temporaryDirectories, tinyPng, sha, cargoBayLocation, panelBundle, createSceneFixture, createMultiLocationFixture, fakeImageProvider }
 }

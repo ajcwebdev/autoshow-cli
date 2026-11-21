@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { isExtractCommand } from '~/cli/commands/command-shared/process-command-kinds'
 import { getYtDlpBinary, hasYtDlpBinary } from '~/cli/commands/command-shared/shared-yt-dlp-binary'
 import { isHtmlArticleTarget, isLikelyUrl } from '~/cli/commands/sources/metadata/metadata-targets/metadata-input-classifier'
@@ -58,10 +59,10 @@ export const resolveProcessTargetDoubleDash = (
   }
 
   if (doubleDash.length > 1) {
-    throw UsageError(`Too many positional inputs for "${command}": ${doubleDash.join(' ')}. Run: bun autoshow help ${command}`)
+    throw UsageError(`Too many positional inputs for "${command}": ${doubleDash.join(' ')}. Run: ${CLI_INVOCATION} help ${command}`)
   }
 
-  throw UsageError(`Missing input for "${command}". Run: bun autoshow help ${command}`)
+  throw UsageError(`Missing input for "${command}". Run: ${CLI_INVOCATION} help ${command}`)
 }
 
 const runRawYtDlp = async (args: string[]): Promise<void> => {
@@ -177,7 +178,7 @@ const resolveNormalizedProcessOptions = async (input: {
 }> => {
   const configPathOverride = typeof input.rawFlags['config-path'] === 'string' ? input.rawFlags['config-path'] : undefined
   const resolvedConfigPath = await resolveConfigPath(configPathOverride)
-  const config = await loadConfig(resolvedConfigPath)
+  const config = await loadConfig(resolvedConfigPath, { allowLegacyFallback: configPathOverride === undefined })
   const configExplicitFlags = input.rawParsed.explicitFlags
   const mergedFlags = mergeConfigIntoRawFlags(
     input.rawFlags,
@@ -235,7 +236,7 @@ const planTargetExecutionPhase = async (input: {
   if (singleRouting?.family === 'unsupported') throw UsageError(buildUnsupportedExtractInputMessage(input.resolvedTarget))
   if (plan.kind === 'single' && !isLikelyUrl(plan.target) && !(await fileExists(plan.target))) {
     const { extractSpaceIdsFromText } = await import('~/cli/commands/text/url/url-services/x-spaces/input')
-    if (!extractSpaceIdsFromText(plan.target).includes(plan.target.trim())) throw UsageError(`Input does not exist: ${plan.target}. Run: bun autoshow help ${input.command}`)
+    if (!extractSpaceIdsFromText(plan.target).includes(plan.target.trim())) throw UsageError(`Input does not exist: ${plan.target}. Run: ${CLI_INVOCATION} help ${input.command}`)
   }
   const batchPlan = await planProcessTargetBatchExecution(plan, input.command, input.options, input.resolvedTarget)
   const preflightTargets = batchPlan ? batchPlan.items : plan.kind === 'single' ? [plan.target] : []
@@ -315,7 +316,7 @@ export const handleProcessTarget = async (
   rawParsed: Pick<CliRawParsed, 'doubleDash' | 'explicitFlags' | 'flagOccurrences'>
 ): Promise<void> => {
   if (command === 'write') {
-    throw UsageError('write no longer runs through extract. Use bun autoshow write <file.md|.txt>.')
+    throw UsageError(`write no longer runs through extract. Use ${CLI_INVOCATION} write <file.md|.txt>.`)
   }
   const doubleDash = resolveProcessTargetDoubleDash(command, target, rawParsed.doubleDash)
   if (doubleDash.kind === 'raw-yt-dlp') {

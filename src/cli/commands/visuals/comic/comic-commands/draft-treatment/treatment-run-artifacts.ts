@@ -1,3 +1,4 @@
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { mkdir } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 import type { TreatmentCatalogMergeReport } from '~/types'
@@ -44,8 +45,8 @@ export const buildTreatmentMergeReportMarkdown = (report: TreatmentCatalogMergeR
 }): string => {
   const list = (values: readonly string[]): string => values.length > 0 ? values.map(value => `- \`${value}\``).join('\n') : '- none'
   const referenceCommands = [
-    ...report.charactersAdded.map(key => `bun autoshow comic reference-sketch --character ${key}`),
-    ...report.locationsAdded.map(key => `bun autoshow comic reference-sketch --location ${key}`),
+    ...report.charactersAdded.map(key => `${CLI_INVOCATION} comic reference-sketch --character ${key}`),
+    ...report.locationsAdded.map(key => `${CLI_INVOCATION} comic reference-sketch --location ${key}`),
   ]
   const voiceSubjects = ['role:narrator', ...context.speakers]
   return [
@@ -80,15 +81,14 @@ export const buildTreatmentMergeReportMarkdown = (report: TreatmentCatalogMergeR
     '## Next steps',
     '',
     '```bash',
-    `bun autoshow comic draft-scenes ${context.shorthand} --only structure`,
+    `${CLI_INVOCATION} comic draft-scenes ${context.shorthand} --only prepare`,
     ...referenceCommands,
-    `bun autoshow comic draft-scenes ${context.shorthand} --only prompt`,
-    `bun autoshow comic draft-scenes ${context.shorthand} --only scene --panel-count ${context.panelCount} --no-blocking`,
-    `bun autoshow comic draft-scenes ${context.shorthand} --only panel-prompts --no-blocking`,
-    `bun autoshow comic generate-images ${context.shorthand} --target images --panels 1-${context.panelCount}`,
-    ...voiceSubjects.map(subject => `bun autoshow voice import ${subject} --provider <provider> --model <model> --voice-id <id>`),
-    `bun autoshow comic generate-audio ${context.shorthand} --provider <provider>=<model>`,
-    `bun autoshow comic generate-slideshow ${context.shorthand}`,
+    `${CLI_INVOCATION} comic draft-scenes ${context.shorthand} --only scene --panel-count ${context.panelCount}`,
+    `${CLI_INVOCATION} comic draft-scenes ${context.shorthand} --only panel-prompts`,
+    `${CLI_INVOCATION} comic generate-images ${context.shorthand} --target images --panels 1-${context.panelCount}`,
+    ...voiceSubjects.map(subject => `${CLI_INVOCATION} voice import ${subject} --provider <provider> --model <model> --voice-id <id>`),
+    `${CLI_INVOCATION} comic generate-audio ${context.shorthand} --provider <provider>=<model>`,
+    `${CLI_INVOCATION} comic generate-slideshow ${context.shorthand}`,
     '```',
     '',
   ].join('\n')

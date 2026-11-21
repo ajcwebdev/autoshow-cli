@@ -2,8 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   runConcurrentSetupTasks,
   runCapture,
-  runInherit,
-  shouldReportReclaimedBuildTrees
+  runInherit
 } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { formatSetupElapsed, formatSetupHeartbeatLine } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
 import { setCompactSetupMode } from '~/utils/setup-output-mode'
@@ -163,8 +162,4 @@ describe('setup progress contracts', () => {
     expect(formatSetupElapsed(250_000)).toBe('4m 10s')
   })
 
-  test('an empty build tree is not reported as reclaimed disk', () => {
-    expect(shouldReportReclaimedBuildTrees(8192)).toBe(false)
-    expect(shouldReportReclaimedBuildTrees(64 * 1024 * 1024)).toBe(true)
-  })
 })

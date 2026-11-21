@@ -48,7 +48,7 @@ describe('video provider REST contracts', () => {
     await withTempDir(async (dir) => {
       const { imagePath } = await writeMediaFixtures(dir)
       await runGeminiVideoGen(undefined, dir, {
-        model: 'gemini-omni-1.1-flash',
+        model: 'gemini-omni-1.2-flash',
         mode: 'image-to-video',
         inputImage: imagePath
       })

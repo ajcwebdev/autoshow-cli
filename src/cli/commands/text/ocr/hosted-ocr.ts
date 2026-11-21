@@ -2,7 +2,8 @@ import { basename, extname, join } from 'node:path'
 import { getExtractLimits } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import type { DocumentMetadata, ExtractionOptions, HostedDirectImageFormatSet, HostedDirectImageInputStrategy, HostedExtractOcrEngine, HostedOcrIdentity, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
-import { commandExists, exec } from '~/utils/cli-utils'
+import { exec } from '~/utils/cli-utils'
+import { getImageMagickBinary, hasRuntimeTool } from '~/utils/runtime-paths'
 import { statPath as stat } from '~/utils/bun-file-io'
 import { UsageError, InfraError } from '~/utils/error-handler'
 import { resolveCredential } from '~/utils/validate/env-utils'
@@ -119,11 +120,7 @@ const normalizeHostedImageWithImageMagick = async (
   tempDir: string,
   outputStem: string
 ): Promise<{ filePath: string, format: DocumentMetadata['format'] }> => {
-  const imageMagickCommand = commandExists('magick')
-    ? 'magick'
-    : commandExists('convert')
-      ? 'convert'
-      : undefined
+  const imageMagickCommand = hasRuntimeTool('magick') || hasRuntimeTool('convert') ? getImageMagickBinary() : undefined
   if (!imageMagickCommand) {
     throw UsageError(getHostedDirectImageSupportError(engine))
   }

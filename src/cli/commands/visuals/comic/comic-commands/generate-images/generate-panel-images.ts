@@ -1,71 +1,82 @@
-import { existsSync } from 'node:fs'
-import { mkdir, readdir } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { readdir } from 'node:fs/promises'
+import { basename, relative } from 'node:path'
 import type {
-  ComicImageGenerationDependencies, DirectoryEntry, GeneratePanelImagesOptions,
-  ImagePromptVariation, PageQaEntry,
+  ComicBaseImageRequestInput,
+  ComicImageGenerationDependencies,
+  DirectoryEntry,
+  GeneratePanelImagesOptions,
+  ImageRunStats,
   PanelRenderContext,
   PanelRenderResult
 } from '~/types'
+import { CLI_INVOCATION } from '~/cli/cli-invocation'
+import * as appLog from '~/utils/app-logger/app-logger'
 import { ValidationError } from '~/utils/error-handler'
-import { sha256Bytes } from '~/utils/value-helpers'
 import { createImage } from '../../comic-image-services/comic-image-targets'
-import {
-  createImageRunStats
-} from '../../comic-image-services/image-costs'
+import { createImageRunStats } from '../../comic-image-services/image-costs'
 import { writeGeneratedImage } from '../../comic-image-services/image-writer'
-import { shouldUseBlockingLayoutGuide } from '../../comic-utils/blocking-layout-guide'
-import { getBlockingPanelLayoutGuidePath, getBlockingPlanPathForWorkspace } from '../../comic-utils/blocking-plan-paths'
-import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { err } from '../../comic-utils/comic-logger'
-import {
-  extractPanelBundleData,
-  getPanelNumberFromName,
-  getPromptBundleFilename,
-  resolveReferenceImages,
-  resolveScenePanelDirectories
-} from '../../comic-utils/panel-prompt-utils'
-import { getPanelPromptsDirectory, getPanelsDirectory, getSceneOutputDirectory } from '../../comic-utils/project-paths'
+import { findMissingReferenceImageFiles, getPanelNumberFromName, resolveScenePanelDirectories } from '../../comic-utils/panel-prompt-utils'
+import { readRecordedComicImageEvidence } from '../../comic-utils/panel-selection'
+import { getPanelPromptsDirectory, getSceneOutputDirectory, normalizeProjectPath } from '../../comic-utils/project-paths'
+import { getPanelComicImagePath } from '../../comic-utils/scene-utils'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
-import { loadPromptsConfig } from '../../comic-utils/scene-utils'
+import { generateComicBaseImage, verifyReusableComicImage } from './comic-base-image-request'
 import { runComicImageWorkItems } from './comic-image-work-items'
-import { judgeComicPage } from './comic-page-qa'
 import { selectComicPanels } from './comic-page-utils'
-import { preparePanelPrompt, preparePanelRepairRequest } from './comic-panel-request-preparation'
-import { presentPanelRepairResult, recordPanelRepairResult } from './comic-panel-result-presentation'
-import { failedQaRepairEvidenceFromError, generateWithQaRepair } from './panel-qa-pipeline'
+import { preparePanelImageRequest, preparePanelPrompt } from './comic-panel-request-preparation'
+import { presentPanelImageResult } from './comic-panel-result-presentation'
+import { recordAndPublishPanelCandidate } from './comic-run-candidates'
+
+const reuseSelectedPanel = async (
+  request: ComicBaseImageRequestInput,
+  recordedHashes: ReadonlyMap<string, string>,
+  stats: ImageRunStats
+): Promise<boolean> => {
+  if (request.options.force) return false
+  const selectedPath = getPanelComicImagePath(request.sceneSlug, request.itemNumber)
+  if (!await Bun.file(selectedPath).exists()) return false
+  const relativePath = normalizeProjectPath(relative(getSceneOutputDirectory(request.sceneSlug), selectedPath))
+  const evidence = await verifyReusableComicImage(selectedPath, `selected panel ${request.itemNumber}`)
+  const recordedHash = recordedHashes.get(relativePath)
+  if (recordedHash !== undefined && recordedHash !== evidence.sha256) {
+    // Same rule as review: a valid canonical whose bytes differ from the record is an existing selection of unrecorded
+    // origin. Keep it, leave the record alone, and never block or buy the other panels because of it.
+    appLog.write('warn', `Selected panel ${request.itemNumber} at ${relativePath} differs from its recorded selection; keeping it as an existing selection (origin not recorded). Use "${CLI_INVOCATION} comic review --use" to record a choice or --force to regenerate.`, {
+      category: 'command',
+      metadata: { panelNumber: request.itemNumber, path: relativePath, recordedSha256: recordedHash, sha256: evidence.sha256 },
+    })
+  }
+  // A retained run candidate must still be verified and recorded by the publication step.
+  if (await Bun.file(request.outputPath).exists()) return false
+  presentPanelImageResult({ status: 'skipped', outputPath: selectedPath, durationMs: 0 }, { ...request, outputPath: selectedPath }, stats)
+  return true
+}
 
 const renderSinglePanel = async (
-  panelEntry: DirectoryEntry,
-  ctx: PanelRenderContext
+  request: ComicBaseImageRequestInput,
+  recordedHashes: ReadonlyMap<string, string>
 ): Promise<PanelRenderResult> => {
-  const resultStats = createImageRunStats()
-  const qaEntries: Array<{ directory: string; entry: PageQaEntry }> = []
-  const { sceneSlug, sceneDirectory, options, variations } = ctx
-
-
+  const { sceneSlug, options, stats } = request
   try {
-    const prepared = await preparePanelPrompt(panelEntry, sceneDirectory)
-    await mkdir(getPanelsDirectory(sceneSlug), { recursive: true })
-
-    for (const variation of variations) {
-      for (const model of options.models) {
-        const request = await preparePanelRepairRequest(prepared, ctx, variation, model)
-        const repairResult = await generateWithQaRepair(request)
-
-        recordPanelRepairResult(resultStats, qaEntries, options, repairResult, dirname(request.outputPath))
-
-        await presentPanelRepairResult(repairResult, request, ctx, variation, resultStats)
-      }
-    }
+    // A different run may have filled this slot since preflight.
+    if (!await Bun.file(request.outputPath).exists() && await reuseSelectedPanel(request, recordedHashes, stats)) return { stats }
+    const result = await generateComicBaseImage(request)
+    await recordAndPublishPanelCandidate({
+      sceneSlug,
+      runId: options.runId,
+      model: options.model,
+      panelNumber: request.itemNumber,
+      outputPath: result.outputPath,
+      generatedEvidence: result.generatedEvidence,
+    })
+    presentPanelImageResult(result, request, stats)
   } catch (error) {
-    const failure = failedQaRepairEvidenceFromError(error)
-    if (failure) recordPanelRepairResult(resultStats, qaEntries, options, failure, failure.outputDirectory)
-    err(`Failed to generate ${sceneSlug}/${panelEntry.name}:`, error instanceof Error ? error.message : String(error))
-    return { stats: resultStats, qaEntries, error }
+    err(`Failed to generate ${sceneSlug}/${basename(request.outputPath, '.png')}:`, error instanceof Error ? error.message : String(error))
+    return { stats, error }
   }
 
-  return { stats: resultStats, qaEntries }
+  return { stats }
 }
 
 const assertPanelDirectoryNames = (panelDirectories: DirectoryEntry[]): void => {
@@ -76,27 +87,47 @@ const assertPanelDirectoryNames = (panelDirectories: DirectoryEntry[]): void => 
   }
 }
 
+const preparePendingPanelRequests = async (
+  panelDirectories: DirectoryEntry[],
+  ctx: PanelRenderContext,
+  recordedHashes: ReadonlyMap<string, string>,
+  stats: ImageRunStats
+): Promise<ComicBaseImageRequestInput[]> => {
+  const preflightFailures: string[] = []
+  const pending: ComicBaseImageRequestInput[] = []
+  for (const panelEntry of panelDirectories) {
+    try {
+      const prepared = await preparePanelPrompt(panelEntry, ctx.sceneDirectory)
+      const request = preparePanelImageRequest(prepared, ctx)
+      validateReferenceImageCount(ctx.options.model, request.referenceImages.length, `Image references for ${panelEntry.name}`)
+      const missing = await findMissingReferenceImageFiles(request.referenceImages)
+      if (missing.length > 0) {
+        preflightFailures.push(...missing)
+        continue
+      }
+      if (!await reuseSelectedPanel(request, recordedHashes, stats)) pending.push(request)
+    } catch (error) {
+      preflightFailures.push(`${panelEntry.name}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+  if (preflightFailures.length > 0) {
+    throw ValidationError(`Image preflight failed before any provider calls:\n- ${Array.from(new Set(preflightFailures)).join('\n- ')}`, { stage: 'comic:generate-images' })
+  }
+  return pending
+}
+
 export const generatePanelImages = async (
   sceneSlug: string,
   options: GeneratePanelImagesOptions,
   dependencies: ComicImageGenerationDependencies = {},
 ) => {
   const stats = createImageRunStats()
-  const useModelSpecificFilenames = options.models.length > 1
-  const variations: ImagePromptVariation[] = options.variations ?? ['canonical']
-  const useVariationOutputPaths = options.variations !== undefined
   const requestImage = dependencies.requestImage ?? (async input => await createImage(input.normalizedPrompt, input.referenceImages, input.model, input.size, input.quality))
   const writeImage = dependencies.writeImage ?? writeGeneratedImage
-  const judge = dependencies.judgePage ?? judgeComicPage
-  const qaEnabled = options.qa ?? true
-  const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
-  const maxRepairs = options.maxRepairs ?? 2
   let hostedRequestIndex = 0
   const nextHostedIndex = () => hostedRequestIndex++
 
-  const prompts = useVariationOutputPaths ? await loadPromptsConfig() : undefined
   const sceneDirectory = getPanelPromptsDirectory(sceneSlug)
-
   const sceneEntries = await readdir(sceneDirectory, { withFileTypes: true })
   let panelDirectories = resolveScenePanelDirectories(sceneEntries, sceneDirectory, undefined)
 
@@ -105,79 +136,29 @@ export const generatePanelImages = async (
       panelNumber: getPanelNumberFromName(entry.name)!,
       entry,
     }))
-    const selected = selectComicPanels(
-      panelSources,
-      options.panels,
-      undefined,
-      sceneSlug,
-    )
-    panelDirectories = selected.map(s => s.entry)
+    panelDirectories = selectComicPanels(panelSources, options.panels, undefined, sceneSlug).map(selected => selected.entry)
   }
 
   assertPanelDirectoryNames(panelDirectories)
-
-  const preflightFailures: string[] = []
-  const blockingPlanPath = getBlockingPlanPathForWorkspace(getSceneOutputDirectory(sceneSlug))
-  const blockingPlanSha256 = existsSync(blockingPlanPath) ? sha256Bytes(new Uint8Array(await Bun.file(blockingPlanPath).arrayBuffer())) : null
-  for (const panelEntry of panelDirectories) {
-    const panelDirectory = join(sceneDirectory, panelEntry.name)
-    try {
-      const panelEntries = await readdir(panelDirectory, { withFileTypes: true })
-      const promptFilename = getPromptBundleFilename(panelDirectory, panelEntries)
-      const bundleData = extractPanelBundleData(await Bun.file(join(panelDirectory, promptFilename)).text())
-      if (bundleData.planSha256 !== undefined && bundleData.planSha256 !== blockingPlanSha256) {
-        preflightFailures.push(`Panel bundle plan hash ${bundleData.planSha256} does not match metadata/blocking-plan.json ${blockingPlanSha256 ?? 'missing'}; rerun draft-scenes --only panel-prompts`)
-      }
-      for (const model of options.models) {
-        const useBlockingLayoutGuide = options.blockingLayoutGuide === true && shouldUseBlockingLayoutGuide(bundleData.blocking)
-        const reservedSlots = (qaEnabled && maxRepairs > 0 ? 1 : 0) + (useBlockingLayoutGuide ? 1 : 0)
-        const references = resolveReferenceImages(panelDirectory, panelEntries, bundleData, model, { reserveSlots: reservedSlots })
-        const blockingLayoutPath = useBlockingLayoutGuide ? getBlockingPanelLayoutGuidePath(sceneSlug, getPanelNumberFromName(panelEntry.name)!) : undefined
-        const allReferences = blockingLayoutPath ? [...references.all, blockingLayoutPath] : references.all
-        validateReferenceImageCount(model, allReferences.length + (qaEnabled && maxRepairs > 0 ? 1 : 0), `Image and QA references for ${panelEntry.name}`)
-        const missing = await Promise.all(allReferences.map(async path => await Bun.file(path).exists() ? null : path))
-        preflightFailures.push(...missing.filter((path): path is string => path !== null))
-      }
-    } catch (error) {
-      preflightFailures.push(`${panelEntry.name}: ${error instanceof Error ? error.message : String(error)}`)
-    }
-  }
-  if (preflightFailures.length > 0) {
-    throw ValidationError(`Image preflight failed before any provider calls:\n- ${Array.from(new Set(preflightFailures)).join('\n- ')}`, { stage: 'comic:generate-images' })
-  }
 
   const renderContext: PanelRenderContext = {
     sceneSlug,
     sceneDirectory,
     options,
-    variations,
-    useVariationOutputPaths,
-    useModelSpecificFilenames,
-    prompts,
     requestImage,
     writeImage,
-    judge,
-    requestRepairComparison: dependencies.requestRepairComparison,
-    qaEnabled,
-    judgeModel,
-    maxRepairs,
     nextHostedIndex,
   }
+  const { panelHashes } = await readRecordedComicImageEvidence(getSceneOutputDirectory(sceneSlug))
+  const pending = await preparePendingPanelRequests(panelDirectories, renderContext, panelHashes, stats)
 
   return await runComicImageWorkItems({
     concurrency: options.concurrency,
-    items: panelDirectories,
-    render: async panelEntry => await renderSinglePanel(panelEntry, renderContext),
+    items: pending,
+    render: async request => await renderSinglePanel(request, panelHashes),
     stats,
-    qaEnabled,
-    qaHardFailure: {
-      message: count => `${count} panel QA hard failure(s); generated artifacts and QA reports were preserved.`,
-      stage: 'comic:panel-qa',
-    },
     ...(options.stopOnProviderError === true ? { stopOnProviderError: true } : {}),
-    describeItem: panelEntry => panelEntry.name,
+    describeItem: request => basename(request.outputPath, '.png'),
     itemFailure: { message: count => `${count} image generation task(s) failed`, stage: 'comic:generate-images' }
   })
 }
-
-export { resolveEpisodeLabel } from './comic-panel-result-presentation'

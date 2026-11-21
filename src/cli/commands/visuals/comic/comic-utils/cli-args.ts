@@ -1,5 +1,4 @@
 import { REFERENCE_LOCATION_ONLY_FLAGS } from '~/cli/flags/reference-option-contract'
-import { getUnknownFlagSpellings } from '~/cli/native/unknown-flag-spellings'
 import { parseHostedConcurrencyMode } from '~/cli/options/option-resolution/flag-readers'
 import type {
   ComicParsedArgs,
@@ -7,12 +6,12 @@ import type {
   ParsedDraftTreatmentArgs,
   ParsedGenerateImagesArgs,
   ParsedReferenceSketchArgs,
-  ParsedReviewNotesArgs,
-  ParsedReviewSheetArgs
+  ParsedReviewArgs
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
-import { assignSharedImageOptions, enabledFlag, parseComicLlmSelector, parseComicQaSelector, parseConcurrencyValue, parseMaxRepairs, readScriptPath, stringFlag } from './comic-argument-readers'
-import { applyComicBlockingHardKeys, applyComicContinuityPolicy, applyComicQaOnlyPolicy, applyComicRevisionPolicy, finalizeComicImageOptions, validateComicImageTarget } from './comic-image-option-policies'
+import { assignSharedImageRenderOptions, enabledFlag, parseComicLlmSelector, parseConcurrencyValue, readScriptPath, readSingleComicImageSelector, stringFlag } from './comic-argument-readers'
+import { finalizeComicImageOptions, validateComicImageTarget } from './comic-image-option-policies'
+import { parsePanelSelector } from '../comic-commands/generate-images/comic-page-utils'
 import { coerceComicImageScalars } from './comic-image-scalar-options'
 import {
   validateImageSizeForModels,
@@ -27,7 +26,7 @@ import {
   TREATMENT_VOICE_PACINGS
 } from '../comic-commands/draft-treatment/treatment-defaults'
 
-export { DEFAULT_LLM_MODEL, DEFAULT_QA_MODEL } from './comic-argument-defaults'
+export { DEFAULT_LLM_MODEL } from './comic-argument-defaults'
 
 export const REFERENCE_SKETCH_COMMAND = 'reference-sketch'
 export const DRAFT_SCENES_COMMAND = 'draft-scenes'
@@ -35,12 +34,11 @@ export const DRAFT_TREATMENT_COMMAND = 'draft-treatment'
 export const GENERATE_IMAGES_COMMAND = 'generate-images'
 export const GENERATE_AUDIO_COMMAND = 'generate-audio'
 export const REVIEW_COMMAND = 'review'
-export const REVIEW_NOTES_COMMAND = 'review-notes'
-export const REVIEW_SHEET_COMMAND = 'review-sheet'
 
-import { DRAFT_SCENES_ONLY_VALUES } from '~/cli/flags/comic-stage-contract'
+import { DRAFT_SCENES_ONLY_VALUES, RETIRED_PREPARE_ONLY_VALUES } from '~/cli/flags/comic-stage-contract'
 
 const DRAFT_SCENES_ONLY_OPTIONS = new Set<string>(DRAFT_SCENES_ONLY_VALUES)
+const RETIRED_PREPARE_ONLY_OPTIONS = new Set<string>(RETIRED_PREPARE_ONLY_VALUES)
 
 const TWO_DIGIT_PATTERN = /^\d{2}$/
 const KEBAB_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -74,22 +72,16 @@ const listFlag = (parsed: ComicParsedArgs, name: string): string[] => {
 const assertPanelCountCombination = (output: ParsedDraftCommandArgs): void => {
   if (output.panelCount === undefined) return
   if (output.only !== undefined && output.only !== 'scene') throw UsageError('--panel-count only applies to the scene stage; use --only scene or a full run')
-  if (output.rebind) throw UsageError('--panel-count cannot be combined with --rebind')
-  if (output.reconcileFromDirectives) throw UsageError('--panel-count cannot be combined with --reconcile-from-directives')
 }
 
-const assertReconcileCombination = (output: ParsedDraftCommandArgs): void => {
-  if (!output.reconcileFromDirectives) return
-  if (output.only !== undefined) throw UsageError('--reconcile-from-directives cannot be combined with --only; it is a standalone no-provider pass over the reviewed scene')
-  if (output.rebind) throw UsageError('--reconcile-from-directives cannot be combined with --rebind')
-  if (output.blockingPlan !== undefined) throw UsageError('--reconcile-from-directives cannot be combined with --blocking-plan')
-}
-
-const assertBlockingStageCombination = (output: ParsedDraftCommandArgs): void => {
-  if (output.rebind && output.only !== 'blocking') throw UsageError('--rebind requires --only blocking')
-  if (output.rebind && output.blockingPlan !== undefined) throw UsageError('--rebind cannot be combined with --blocking-plan')
-  if (output.blockingPlan !== undefined && output.only !== undefined && output.only !== 'blocking') throw UsageError('--blocking-plan only applies to the blocking stage; use --only blocking or a full run')
-  if (output.blocking === false && (output.only === 'blocking' || output.blockingPlan !== undefined || output.rebind)) throw UsageError('--no-blocking cannot be combined with --only blocking, --blocking-plan, or --rebind')
+const parseDraftScenesOnly = (only: string): NonNullable<ParsedDraftCommandArgs['only']> => {
+  if (RETIRED_PREPARE_ONLY_OPTIONS.has(only)) {
+    throw UsageError(`--only ${only} was merged into the local prepare stage; use --only prepare to build metadata/structured-script.json and metadata/draft-prompt.md together`)
+  }
+  if (!DRAFT_SCENES_ONLY_OPTIONS.has(only)) {
+    throw UsageError(`Invalid only "${only}". Expected one of: ${DRAFT_SCENES_ONLY_VALUES.join(', ')}`)
+  }
+  return only as NonNullable<ParsedDraftCommandArgs['only']>
 }
 
 export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDraftCommandArgs => {
@@ -100,27 +92,16 @@ export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDra
   const concurrency = stringFlag(parsed, 'provider-concurrency')
   const concurrencyMode = stringFlag(parsed, 'concurrency-mode')
   if (enabledFlag(parsed, 'price') === true) output.price = true
-  if (llmModel !== undefined) output.llmModel = parseComicLlmSelector(llmModel, 'provider')
-  if (only !== undefined) {
-    if (!DRAFT_SCENES_ONLY_OPTIONS.has(only)) {
-      throw UsageError(`Invalid only "${only}". Expected one of: ${DRAFT_SCENES_ONLY_VALUES.join(', ')}`)
-    }
-    output.only = only as NonNullable<ParsedDraftCommandArgs['only']>
+  if (only !== undefined) output.only = parseDraftScenesOnly(only)
+  if (output.only === 'prepare' && parsed.rawParsed.explicitFlags.has('provider')) {
+    throw UsageError('--provider cannot be combined with --only prepare; the prepare stage is local and makes no provider call')
   }
+  if (llmModel !== undefined) output.llmModel = parseComicLlmSelector(llmModel, 'provider')
   if (concurrency !== undefined) output.concurrency = parseConcurrencyValue(concurrency)
   output.concurrencyMode = parseHostedConcurrencyMode(concurrencyMode)
-  const blocking = enabledFlag(parsed, 'blocking')
-  if (blocking !== undefined) output.blocking = blocking
-  const blockingPlan = stringFlag(parsed, 'blocking-plan')
-  if (parsed.rawParsed.explicitFlags.has('blocking-plan') && !blockingPlan) throw UsageError('--blocking-plan requires a plan JSON file path')
-  if (blockingPlan !== undefined) output.blockingPlan = blockingPlan
-  if (enabledFlag(parsed, 'rebind') === true) output.rebind = true
-  if (enabledFlag(parsed, 'reconcile-from-directives') === true) output.reconcileFromDirectives = true
   const panelCount = stringFlag(parsed, 'panel-count')
   if (panelCount !== undefined) output.panelCount = parsePanelCount(panelCount)
   assertPanelCountCombination(output)
-  assertReconcileCombination(output)
-  assertBlockingStageCombination(output)
   return output
 }
 
@@ -183,36 +164,26 @@ export const coerceAndValidateDraftTreatment = (parsed: ComicParsedArgs): Parsed
   return output
 }
 
-export const coerceAndValidateReviewNotes = (parsed: ComicParsedArgs, commandName = REVIEW_COMMAND): ParsedReviewNotesArgs => {
+export const coerceAndValidateReview = (parsed: ComicParsedArgs): ParsedReviewArgs => {
   const scriptPath = readScriptPath(parsed)
-  if (!scriptPath?.trim()) throw UsageError(`comic ${commandName} requires <script-path>.`)
-  const notes = stringFlag(parsed, 'notes')
-  if (!notes?.trim()) throw UsageError(`comic ${commandName} requires --notes <path> pointing at a Markdown file with ### Panel NN headings`)
-  return { showHelp: false, scriptPath, notes }
-}
-
-export const coerceAndValidateReviewSheet = (parsed: ComicParsedArgs, commandName = REVIEW_COMMAND): ParsedReviewSheetArgs => {
-  const scriptPath = readScriptPath(parsed)
-  if (!scriptPath?.trim()) throw UsageError(`comic ${commandName} requires <script-path>.`)
-  const output: ParsedReviewSheetArgs = { showHelp: false, scriptPath }
+  if (!scriptPath?.trim()) throw UsageError(`comic ${REVIEW_COMMAND} requires <script-path>.`)
+  const output: ParsedReviewArgs = { showHelp: false, scriptPath }
   if (enabledFlag(parsed, 'export-doc') === true) output.exportDoc = true
+  const run = stringFlag(parsed, 'run')
+  if (parsed.rawParsed.explicitFlags.has('run') && !run?.trim()) throw UsageError('--run requires an image run ID reported by comic generate-images')
+  if (run !== undefined) output.run = run.trim()
+  const use = enabledFlag(parsed, 'use') === true
+  if (use && output.run === undefined) throw UsageError('--use requires --run <image-run-id>; name the image run whose candidates should become the selected panels')
+  if (use) output.use = true
+  const panels = stringFlag(parsed, 'panels')
+  if (panels !== undefined) {
+    if (!use) throw UsageError('--panels requires --run <image-run-id> --use')
+    output.panels = parsePanelSelector(panels)
+  }
   return output
 }
 
-export const coerceAndValidateReview = (parsed: ComicParsedArgs): ParsedReviewNotesArgs | ParsedReviewSheetArgs => {
-  if (parsed.rawParsed.explicitFlags.has('notes')) {
-    if (parsed.rawParsed.explicitFlags.has('export-doc')) {
-      throw UsageError('comic review --notes cannot be combined with --export-doc. Omit --notes to export the review sheet.')
-    }
-    return coerceAndValidateReviewNotes(parsed, REVIEW_COMMAND)
-  }
-  return coerceAndValidateReviewSheet(parsed, REVIEW_COMMAND)
-}
-
 const assertReferenceSketchCombination = (output: ParsedReferenceSketchArgs): void => {
-  if (output.imageModels && output.imageModels.length !== 1) {
-    throw UsageError('comic reference-sketch accepts exactly one --provider')
-  }
   if (Number(Boolean(output.character)) + Number(Boolean(output.location)) !== 1) {
     throw UsageError('Exactly one of --character or --location is required')
   }
@@ -223,7 +194,6 @@ const assertReferenceSketchCombination = (output: ParsedReferenceSketchArgs): vo
 }
 
 export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): ParsedReferenceSketchArgs => {
-  if (parsed.rawParsed.explicitFlags.has('qa-only') || getUnknownFlagSpellings(parsed.rawParsed).includes('--qa-only')) throw UsageError('--qa-only is not supported by comic reference-sketch; use comic generate-images for panel audits.')
   if (stringFlag(parsed, 'character')) {
     const unsupported = REFERENCE_LOCATION_ONLY_FLAGS.find(name => parsed.rawParsed.explicitFlags.has(name))
     if (unsupported) throw UsageError(`--${unsupported} is only valid with --location`)
@@ -233,8 +203,6 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
   const location = stringFlag(parsed, 'location')
   const view = stringFlag(parsed, 'view')
   const llmModel = stringFlag(parsed, 'llm-provider')
-  const qaModel = stringFlag(parsed, 'qa-provider')
-  const maxRepairs = stringFlag(parsed, 'max-repairs')
   const notes = stringFlag(parsed, 'notes')
   const concurrency = stringFlag(parsed, 'provider-concurrency')
   const concurrencyMode = stringFlag(parsed, 'concurrency-mode')
@@ -247,27 +215,21 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
     output.view = view
   }
   if (llmModel !== undefined) output.llmModel = parseComicLlmSelector(llmModel, 'llm-provider')
-  if (qaModel !== undefined) output.qaModel = parseComicQaSelector(qaModel, 'qa-provider')
-  const qa = enabledFlag(parsed, 'qa')
-  if (qa !== undefined) output.qa = qa
-  if (maxRepairs !== undefined) output.maxRepairs = parseMaxRepairs(maxRepairs)
   if (enabledFlag(parsed, 'revise') === true) output.revise = true
   if (notes !== undefined) output.notes = notes
   if (concurrency !== undefined) output.concurrency = parseConcurrencyValue(concurrency)
   output.concurrencyMode = parseHostedConcurrencyMode(concurrencyMode)
   if (enabledFlag(parsed, 'price') === true) output.price = true
-  assignSharedImageOptions(parsed, output)
+  const imageModel = readSingleComicImageSelector(parsed, REFERENCE_SKETCH_COMMAND)
+  if (imageModel !== undefined) output.imageModels = [imageModel]
+  assignSharedImageRenderOptions(parsed, output)
 
   assertReferenceSketchCombination(output)
   return output
 }
 
 export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): ParsedGenerateImagesArgs => {
-  const state = coerceComicImageScalars(parsed)
-  validateComicImageTarget(state)
-  applyComicQaOnlyPolicy(state)
-  applyComicBlockingHardKeys(state)
-  applyComicContinuityPolicy(state)
-  applyComicRevisionPolicy(state)
-  return finalizeComicImageOptions(state)
+  const output = coerceComicImageScalars(parsed)
+  validateComicImageTarget(output)
+  return finalizeComicImageOptions(output)
 }

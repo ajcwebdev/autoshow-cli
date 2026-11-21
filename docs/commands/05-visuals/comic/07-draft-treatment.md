@@ -59,4 +59,4 @@ The run's `metadata/treatment/` holds rendered `script.md`, `merge-report.md`, m
 
 ## Walkthrough: harborlight-camp
 
-Review the new script and catalogs, then follow the [main sequence](./00-comic-overview.md#walkthrough-harborlight) using its actual script path/count and a fresh pinned run. Preserve the original four-panel example.
+Review the new script and catalogs, then follow the [main sequence](./00-comic-overview.md#walkthrough-harborlight) using its actual script path/count and a fresh pinned run: `draft-scenes --only prepare` (local), `draft-scenes --only scene --panel-count <generated count>`, register any added references, `draft-scenes --only panel-prompts`, then `generate-images`. The treatment run's suggested next commands follow the same stages. Preserve the original four-panel example.

@@ -23,13 +23,15 @@ The licensed two-speaker MP4, matching stereo WAV, saved transcript, and subtitl
 
 ## Reproduction
 
-Run from the repository root with Bun, ImageMagick 7 (`magick`), and an installed Chromium, Chrome, or Edge browser:
+Run from the repository root after installing the managed rendering tools with `bun autoshow setup --step rendering`:
 
 ```sh
 bun src/tools/create-harborlight-fixtures.ts
 ```
 
-If the browser is not on the executable search path or in a standard macOS application location, set `AUTOSHOW_FIXTURE_BROWSER` to its executable. The utility reads the SVG/Markdown originals, renders eight raster images, and writes two PDFs locally. It uses a disposable browser profile, disables background networking, and makes no provider calls or asset/model downloads. Only its own temporary rendering directory is removed. Existing runtime outputs, catalogs, recordings, and purchased audio are untouched.
+The utility uses managed ImageMagick and an optional browser contained in `runtime/`. On macOS ARM64, the first invocation provisions a pinned official Chrome-for-Testing browser; later invocations reuse its verified installation. Set `AUTOSHOW_FIXTURE_BROWSER` only to a compatible browser executable already contained in `runtime/`; global executable searches and standard application locations are not used. The downloaded browser must pass macOS signature and security assessment before it can run.
+
+The utility reads the SVG/Markdown originals, renders eight raster images, and writes two PDFs locally. It uses a disposable profile under `runtime/tmp/`, disables browser background networking, and makes no provider calls. First-use browser provisioning downloads the browser package; it does not download models or source assets. Only its own temporary rendering directory is removed. Existing runtime outputs, catalogs, recordings, and purchased audio are untouched.
 
 The same source and renderer versions reproduce the same files. Raster bytes may vary across browser/ImageMagick versions; the SVG and Markdown originals define the content. The PDF writer uses standard PDF fonts and fixed metadata dates, without external dependencies or absolute checkout paths.
 

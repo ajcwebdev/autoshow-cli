@@ -57,7 +57,7 @@ const fixture = async () => {
   const specification = 'Fixed straight loading rail and a round hatch.'
   await writeFile(join(locations, 'cargo-bay--reference.png'), 'current-canonical-location')
   await writeFile(join(locations, 'locations-reference.json'), JSON.stringify({ schemaVersion: 1, styleImage: '../characters/hero.png', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }))
-  await writeFile(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: hash(specification), views: [{ view: 'establishing', generationId: 'canonical-location', image: 'cargo-bay--reference.png', imageSha256: hash('current-canonical-location'), model: 'gpt-image-2.5-sunburst', createdAt: '2026-10-26T00:00:00Z' }] }] }))
+  await writeFile(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: hash(specification), views: [{ view: 'establishing', generationId: 'canonical-location', image: 'cargo-bay--reference.png', imageSha256: hash('current-canonical-location'), model: 'gpt-image-2.6-sunburst', createdAt: '2026-10-26T00:00:00Z' }] }] }))
   await mkdir(join(root, 'input', 'designs'), { recursive: true })
   await writeFile(join(root, 'input', 'designs', 'marker.png'), 'current-canonical-design')
   return { root, ...await addWorkspace(root, '01-first') }
@@ -76,6 +76,15 @@ describe('live reference workspace migration', () => {
     expect(await readFile(f.path, 'utf8')).toBe(f.content)
     expect(existsSync(join(f.assets, 'character-references', 'retired', 'reference.png'))).toBe(true)
     expect(existsSync(join(f.root, 'output', '.autoshow-workspace-leases'))).toBe(false)
+  })
+
+  test('identifies retained canonical assets from panel cast, location, and designs only, without roster references to uncast characters', async () => {
+    const f = await fixture()
+    await createLiveCharacterFixture(f.root, ['hero', 'rival'].map(key => ({ key, name: key, description: key, aliases: [key.toUpperCase()], image: `${key}.png`, outlineSheet: `${key}.png` })))
+    const result = await migrateLiveComicReferences({ root: f.root })
+    // hero.png, the location view, the design, and the four catalog/manifest files; the uncast rival.png is not a retained reference.
+    expect(result).toMatchObject({ operation: 'dry-run', bundlesValidated: 1, canonicalReferenceFilesValidated: 7 })
+    expect(await readFile(f.path, 'utf8')).toBe(f.content)
   })
 
   test('apply removes only frozen reference material and preserves reviewed content and canonical files', async () => {

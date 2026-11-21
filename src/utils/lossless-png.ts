@@ -17,8 +17,8 @@ const assertSupportedChunkType = (type: string): void => {
   if (type === 'acTL' || type === 'fcTL' || type === 'fdAT') throw new AppValidationError('Animated PNG lossless normalization is unsupported')
   if (type[0] === type[0]!.toUpperCase() && !['IHDR', 'PLTE', 'IDAT', 'IEND'].includes(type)) throw new AppValidationError('Unsupported critical PNG chunk')
 }
-const chunks = (bytes: Uint8Array): Chunk[] => {
-  if (!equal(bytes.subarray(0, 8), signature)) throw new AppValidationError('Lossless PNG normalization requires valid PNG bytes')
+export const readPngChunks = (bytes: Uint8Array, validateType?: (type: string) => void): Chunk[] => {
+  if (!equal(bytes.subarray(0, 8), signature)) throw new AppValidationError('Invalid PNG signature')
   const result: Chunk[] = []
   let offset = 8, ended = false
   while (offset + 12 <= bytes.length) {
@@ -26,7 +26,7 @@ const chunks = (bytes: Uint8Array): Chunk[] => {
     if (offset + length + 12 > bytes.length) throw new AppValidationError('Truncated PNG chunk')
     const type = Buffer.from(bytes.subarray(offset + 4, offset + 8)).toString('ascii')
     if (!/^[A-Za-z]{4}$/.test(type) || Bun.hash.crc32(bytes.subarray(offset + 4, offset + length + 8)) !== view.getUint32(length + 8)) throw new AppValidationError('Invalid PNG chunk checksum/type')
-    assertSupportedChunkType(type)
+    validateType?.(type)
     result.push({ type, data: bytes.subarray(offset + 8, offset + length + 8) })
     offset += length + 12
     if (type === 'IEND') { ended = true; break }
@@ -82,6 +82,65 @@ const readPngColorModel = (records: readonly Chunk[], color: number): PngColorMo
   return { color, palette, transparency, transparent }
 }
 
+// Adam7 passes in transmission order (starting column, starting row, horizontal and vertical step).
+const adam7 = [[0, 0, 8, 8], [4, 0, 8, 8], [0, 4, 4, 8], [2, 0, 4, 4], [0, 2, 2, 4], [1, 0, 2, 2], [0, 1, 1, 2]] as const
+
+const stillImageData = (chunks: Chunk[], color: number, depth: number): Buffer => {
+  const idat = chunks.filter(chunk => chunk.type === 'IDAT')
+  const first = chunks.findIndex(chunk => chunk.type === 'IDAT')
+  const last = chunks.findLastIndex(chunk => chunk.type === 'IDAT')
+  if (!idat.length || last - first + 1 !== idat.length) throw new AppValidationError('Missing or nonconsecutive PNG image data')
+  const palette = chunks.findIndex(chunk => chunk.type === 'PLTE')
+  const transparency = chunks.findIndex(chunk => chunk.type === 'tRNS')
+  if (palette !== chunks.findLastIndex(chunk => chunk.type === 'PLTE') || transparency !== chunks.findLastIndex(chunk => chunk.type === 'tRNS')
+    || palette > first || transparency > first || (transparency >= 0 && palette > transparency)) throw new AppValidationError('Invalid PNG palette/transparency order')
+  if (palette >= 0) {
+    const size = chunks[palette]!.data.length
+    if (color === 0 || color === 4 || !size || size > 768 || size % 3 || (color === 3 && size / 3 > 2 ** depth)) throw new AppValidationError('Invalid PNG palette')
+  }
+  return Buffer.concat(idat.map(chunk => chunk.data))
+}
+
+/** Decode packed sample rows for all legal still PNG color/depth combinations without allocating an RGBA canvas. */
+export const verifyPngSamples = (bytes: Uint8Array): { width: number, height: number } => {
+  const chunks = readPngChunks(bytes, assertSupportedChunkType)
+  const header = chunks[0]!.data
+  if (header.length !== 13) throw new AppValidationError('Invalid PNG header')
+  const view = new DataView(header.buffer, header.byteOffset, header.byteLength)
+  const width = view.getUint32(0), height = view.getUint32(4), depth = header[8]!, color = header[9]!
+  const channels = ({ 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 } as Record<number, number>)[color]
+  const depths = color === 0 ? [1, 2, 4, 8, 16] : color === 3 ? [1, 2, 4, 8] : [8, 16]
+  if (!width || !height || width * height > maximumPixels || !channels || !depths.includes(depth)
+    || header[10] !== 0 || header[11] !== 0 || header[12]! > 1) throw new AppValidationError('Invalid or oversized PNG header')
+  const model = readPngColorModel(chunks, color)
+  const compressed = stillImageData(chunks, color, depth)
+  const bits = channels * depth
+  const passes = header[12] ? adam7 : [[0, 0, 1, 1] as const]
+  const geometries = passes.map(([x, y, dx, dy]) => {
+    const columns = Math.max(0, Math.ceil((width - x) / dx))
+    return { width: columns, height: Math.max(0, Math.ceil((height - y) / dy)), channels: Math.ceil(bits / 8), stride: Math.ceil(columns * bits / 8) }
+  }).filter(pass => pass.width && pass.height)
+  const size = geometries.reduce((sum, pass) => sum + pass.height * (pass.stride + 1), 0)
+  const inflated = inflateSync(compressed, { maxOutputLength: size })
+  if (inflated.length !== size) throw new AppValidationError('PNG scanline size mismatch')
+  let offset = 0
+  for (const pass of geometries) {
+    const samples = unfilterScanlines(inflated.subarray(offset), pass)
+    offset += pass.height * (pass.stride + 1)
+    if (color !== 3) continue
+    const entries = model.palette!.length / 3
+    for (let y = 0; y < pass.height; y++) {
+      for (let x = 0; x < pass.width; x++) {
+        const bit = x * depth
+        const packed = samples[y * pass.stride + Math.floor(bit / 8)]!
+        const index = (packed >> (8 - depth - bit % 8)) & ((1 << depth) - 1)
+        if (index >= entries) throw new AppValidationError('PNG palette index outside palette')
+      }
+    }
+  }
+  return { width, height }
+}
+
 const grayRgba = (samples: Uint8Array, source: number, { color, transparent }: PngColorModel): number[] => {
   const gray = samples[source]!
   return [gray, gray, gray, color === 4 ? samples[source + 1]! : transparent?.getUint16(0) === gray ? 0 : 255]
@@ -108,7 +167,7 @@ const expandToRgba8 = (samples: Uint8Array, geometry: ScanlineGeometry, model: P
 
 /** Exact RGBA8 samples, row-major, with no color transform or premultiplication. Unsupported PNG encodings fail closed. */
 export const decodePngRgba8 = (bytes: Uint8Array) => {
-  const records = chunks(bytes), geometry = readPngHeader(records[0]!.data)
+  const records = readPngChunks(bytes, assertSupportedChunkType), geometry = readPngHeader(records[0]!.data)
   const samples = unfilterScanlines(inflateScanlines(records, geometry), geometry)
   const pixels = expandToRgba8(samples, geometry, readPngColorModel(records, geometry.color))
   const { width, height } = geometry
@@ -187,7 +246,7 @@ export const losslesslyCompressPng = async (original: Uint8Array) => {
   headerView.setUint32(0, width); headerView.setUint32(4, height); header[8] = 8; header[9] = color
   // Preserve color/physical interpretation; channel-specific bKGD and incidental
   // timestamps/text are not part of the image's RGBA samples.
-  const preserved = chunks(original).filter(c => ['cHRM', 'gAMA', 'iCCP', 'sRGB', 'pHYs'].includes(c.type)).map(c => pngChunk(c.type, c.data))
+  const preserved = readPngChunks(original, assertSupportedChunkType).filter(c => ['cHRM', 'gAMA', 'iCCP', 'sRGB', 'pHYs'].includes(c.type)).map(c => pngChunk(c.type, c.data))
   const bytes = Buffer.concat([signature, pngChunk('IHDR', header), ...preserved,
     pngChunk('IDAT', deflateSync(filtered, { level: 9, strategy: constants.Z_FILTERED })), pngChunk('IEND', new Uint8Array())])
   const verified = decodePngRgba8(bytes)

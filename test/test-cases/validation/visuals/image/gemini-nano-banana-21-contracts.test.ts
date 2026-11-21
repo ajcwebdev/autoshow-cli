@@ -22,9 +22,9 @@ const response = (data = png, text = false) => jsonResponse({ candidates: [{ con
 const opts = (extra = {}) => buildOptsFromFlags({ 'gemini-image': [model], ...extra })
 
 describe('Nano Banana 2.1 local dispatch and decoded artifact contracts (quality unmeasured)', () => {
-  test('bare Gemini keeps Lite; all-provider expansion adds the high-resolution sibling', () => {
-    expect(buildOptsFromFlags({ 'gemini-image': true }).geminiImageModels).toEqual(['gemini-3.1-flash-lite-image'])
-    expect(collectImageTargets(buildOptsFromFlags({ 'all-image': true })).filter(t => t.service === 'gemini').map(t => t.model)).toEqual(['gemini-3.1-flash-lite-image', model])
+  test('bare Gemini and all-provider expansion select Nano Banana 2.1, the only Gemini image model since Lite retired', () => {
+    expect(buildOptsFromFlags({ 'gemini-image': true }).geminiImageModels).toEqual([model])
+    expect(collectImageTargets(buildOptsFromFlags({ 'all-image': true })).filter(t => t.service === 'gemini').map(t => t.model)).toEqual([model])
   })
   test('every documented resolution and ratio passes through actual mocked generation dispatch', async () => {
     const ratios = ['1:1', '1:4', '1:8', '2:3', '3:2', '3:4', '4:1', '4:3', '4:5', '5:4', '8:1', '9:16', '16:9', '21:9']

@@ -16,8 +16,6 @@ export type SceneDraftResponse = {
   returnedModel?: string | undefined
 }
 
-export type SceneDraftRetryReason = 'blocking' | 'panel-count' | 'both'
-
 export type ScenePanelCountContract = {
   panelCount: number
   panelNoteSegmentIds: string[]
@@ -26,7 +24,6 @@ export type ScenePanelCountContract = {
 export type GenerateSceneJsonOptions = HostedConcurrencyRuntimeOptions & {
   model: LlmModel
   concurrency?: number | undefined
-  blocking?: boolean | undefined
   panelCount?: number | undefined
   requestScene?: ((request: SceneDraftRequest) => Promise<SceneDraftResponse>) | undefined
 }

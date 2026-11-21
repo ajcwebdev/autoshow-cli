@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import type { ImageGenerationModel, ImagePromptVariation, PromptsConfig, ScenePrompts } from '~/types'
+import type { ComicFinalImageLocation, ImageGenerationModel, LegacyComicFinalImageLocation, PromptsConfig, ScenePrompts } from '~/types'
 import { PromptsConfigSchema } from '../schemas/schemas'
 import { parseJsonFile } from './json-prompt-utils'
 import { err } from './comic-logger'
@@ -111,36 +111,28 @@ export const getPageComicImageFilename = (
   return `${pageFilename}.png`
 }
 
-const getFinalImageOutputDirectory = (
-  rootDirectory: string,
-  model?: ImageGenerationModel,
-  variation?: ImagePromptVariation,
-  runId?: string
-): string => {
-  const baseDirectory = runId ? join(rootDirectory, runId) : rootDirectory
+const getRunScopedDirectory = (rootDirectory: string, runId?: string): string =>
+  runId ? join(rootDirectory, runId) : rootDirectory
 
-  if (!variation) {
-    return model ? join(baseDirectory, model) : baseDirectory
-  }
-
-  if (!model) {
-    throw InternalError(`Model is required for variation output path "${variation}"`, { stage: 'comic:scene-utils' })
-  }
-
-  return join(baseDirectory, variation, model)
+const getLegacyFinalImageOutputDirectory = (rootDirectory: string, location: LegacyComicFinalImageLocation): string => {
+  const baseDirectory = getRunScopedDirectory(rootDirectory, location.runId)
+  return location.variation
+    ? join(baseDirectory, location.variation, location.model)
+    : join(baseDirectory, location.model)
 }
 
 export const getPanelComicImagePath = (
   sceneSlug: string,
   panelNumber: number,
-  model?: ImageGenerationModel,
-  variation?: ImagePromptVariation,
-  runId?: string
-): string => {
-  const dir = getPanelsDirectory(sceneSlug)
-  const filename = getPanelComicImageFilename(panelNumber)
-  return join(getFinalImageOutputDirectory(dir, model, variation, runId), filename)
-}
+  location: ComicFinalImageLocation = {}
+): string => join(getRunScopedDirectory(getPanelsDirectory(sceneSlug), location.runId), getPanelComicImageFilename(panelNumber))
+
+/** Historical multi-model or explicit-variation candidate location. Never used as a destination for new runs. */
+export const getLegacyPanelComicImagePath = (
+  sceneSlug: string,
+  panelNumber: number,
+  location: LegacyComicFinalImageLocation
+): string => join(getLegacyFinalImageOutputDirectory(getPanelsDirectory(sceneSlug), location), getPanelComicImageFilename(panelNumber))
 
 export const getSketchComicImagePath = (
   sceneSlug: string,
@@ -159,11 +151,13 @@ export const getPageComicImagePath = (
   sceneSlug: string,
   pageNumber: number,
   panelNumbers: number[],
-  model?: ImageGenerationModel,
-  variation?: ImagePromptVariation,
-  runId?: string
-): string => {
-  const dir = getPagesDirectory(sceneSlug)
-  const filename = getPageComicImageFilename(pageNumber, panelNumbers)
-  return join(getFinalImageOutputDirectory(dir, model, variation, runId), filename)
-}
+  location: ComicFinalImageLocation = {}
+): string => join(getRunScopedDirectory(getPagesDirectory(sceneSlug), location.runId), getPageComicImageFilename(pageNumber, panelNumbers))
+
+/** Historical multi-model or explicit-variation page location. Never used as a destination for new runs. */
+export const getLegacyPageComicImagePath = (
+  sceneSlug: string,
+  pageNumber: number,
+  panelNumbers: number[],
+  location: LegacyComicFinalImageLocation
+): string => join(getLegacyFinalImageOutputDirectory(getPagesDirectory(sceneSlug), location), getPageComicImageFilename(pageNumber, panelNumbers))
