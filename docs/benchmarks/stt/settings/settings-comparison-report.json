@@ -3,7 +3,7 @@
   "kind": "stt-settings-comparison-report",
   "category": "stt",
   "scoringVersion": 2.1,
-  "generatedAt": "2026-11-21T06:53:49.565Z",
+  "generatedAt": "2026-11-21T07:49:49.033Z",
   "settingsRoot": "docs/benchmarks/stt/settings",
   "baselineRoot": "docs/benchmarks/stt/with-speakers",
   "recordings": [
@@ -19,8 +19,8 @@
   ],
   "headlineBasis": "common-recording-set",
   "variantCount": 14,
-  "pairedRunCount": 37,
-  "unpairedRunCount": 19,
+  "pairedRunCount": 51,
+  "unpairedRunCount": 5,
   "variants": [
     {
       "variantId": "assemblyai-3-7-filler-words",
@@ -1708,7 +1708,7 @@
     },
     {
       "variantId": "gladia-solaria-3-speaker-count",
-      "label": "--speaker-count <reference>",
+      "label": "speaker-count=2|12|6",
       "baseline": {
         "service": "gladia",
         "model": "solaria-3"
@@ -1723,83 +1723,409 @@
         "gladia=solaria-3",
         "--diarization",
         "--speaker-count",
-        "<reference>"
+        "2"
       ],
       "pairs": [
         {
           "recordingId": "1-audio",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/gladia-solaria-3-speaker-count__1-audio",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/1-audio",
+          "variantProviderKey": "gladia/solaria-3[speaker-count=2]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/1-audio/consensus-transcription.txt",
+            "sha256": "cc06c3ab31407c7c3ee03c3a111c150a605768cf293693285dd27169a49a91fb"
+          },
+          "variant": {
+            "providerKey": "gladia/solaria-3[speaker-count=2]",
+            "score": 99.04761904761905,
+            "legacyScore": 97.2972972972973,
+            "speakerAwareWER": 0.009523809523809525,
+            "textOnlyWER": 0.009708737864077669,
+            "legacySpeakerAwareWER": 0.02702702702702703,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 6,
+              "neutralEdits": 2,
+              "forgivenByView": {
+                "disfluency": 0,
+                "orthographic": 2,
+                "numberFormat": 2
+              },
+              "remaining": {
+                "speakerAttribution": 0,
+                "numberFormat": 0,
+                "otherLexical": 2
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 1,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 0.9997222222222223,
+            "processingTimeMs": 11009
+          },
+          "baseline": {
+            "providerKey": "gladia/solaria-3",
+            "score": 99.04761904761905,
+            "legacyScore": 97.2972972972973,
+            "speakerAwareWER": 0.009523809523809525,
+            "textOnlyWER": 0.009708737864077669,
+            "legacySpeakerAwareWER": 0.02702702702702703,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 6,
+              "neutralEdits": 2,
+              "forgivenByView": {
+                "disfluency": 0,
+                "orthographic": 2,
+                "numberFormat": 2
+              },
+              "remaining": {
+                "speakerAttribution": 0,
+                "numberFormat": 0,
+                "otherLexical": 2
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 1,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 1.0096399072222222,
+            "processingTimeMs": 8773
+          },
+          "delta": {
+            "score": 0,
+            "legacyScore": 0,
+            "speakerAwareWER": 0,
+            "textOnlyWER": 0,
+            "strictEdits": 0,
+            "neutralEdits": 0,
+            "forgivenDisfluency": 0,
+            "forgivenOrthographic": 0,
+            "forgivenNumberFormat": 0,
+            "remainingSpeakerAttribution": 0,
+            "remainingNumberFormat": 0,
+            "remainingOtherLexical": 0,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0,
+            "costCents": -0.009917684999999898,
+            "processingTimeMs": 2236
+          }
         },
         {
           "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/gladia-solaria-3-speaker-count__2022-09-30-widgets-fsjam-40-minutes",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes",
+          "variantProviderKey": "gladia/solaria-3[speaker-count=2]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes/consensus-transcription.txt",
+            "sha256": "8b9853c4b5820036a318b0e0e59c03fdf8692edff6aa7dc2b8e4e7a41a3bf0cd"
+          },
+          "variant": {
+            "providerKey": "gladia/solaria-3[speaker-count=2]",
+            "score": 98.16625916870416,
+            "legacyScore": 97.36842105263158,
+            "speakerAwareWER": 0.018337408312958436,
+            "textOnlyWER": 0.01763690182535767,
+            "legacySpeakerAwareWER": 0.02631578947368421,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 217,
+              "neutralEdits": 150,
+              "forgivenByView": {
+                "disfluency": 4,
+                "orthographic": 41,
+                "numberFormat": 22
+              },
+              "remaining": {
+                "speakerAttribution": 7,
+                "numberFormat": 5,
+                "otherLexical": 138
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9984966173891255,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 41.05638888888889,
+            "processingTimeMs": 25857
+          },
+          "baseline": {
+            "providerKey": "gladia/solaria-3",
+            "score": 97.99560009777561,
+            "legacyScore": 97.38054814455494,
+            "speakerAwareWER": 0.02004399902224395,
+            "textOnlyWER": 0.01750924784217016,
+            "legacySpeakerAwareWER": 0.02619451855445064,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 216,
+              "neutralEdits": 164,
+              "forgivenByView": {
+                "disfluency": 5,
+                "orthographic": 32,
+                "numberFormat": 15
+              },
+              "remaining": {
+                "speakerAttribution": 24,
+                "numberFormat": 4,
+                "otherLexical": 136
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.7304032056098172,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 41.05706666666667,
+            "processingTimeMs": 39279
+          },
+          "delta": {
+            "score": 0.1706590709285507,
+            "legacyScore": -0.012127091923360922,
+            "speakerAwareWER": -0.0017065907092855132,
+            "textOnlyWER": 0.00012765398318751245,
+            "strictEdits": 1,
+            "neutralEdits": -14,
+            "forgivenDisfluency": -1,
+            "forgivenOrthographic": 9,
+            "forgivenNumberFormat": 7,
+            "remainingSpeakerAttribution": -17,
+            "remainingNumberFormat": 1,
+            "remainingOtherLexical": 2,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.26809341177930834,
+            "costCents": -0.0006777777777813299,
+            "processingTimeMs": -13422
+          }
         },
         {
           "recordingId": "2023-03-15-jsjam-qwik-misko-hevery",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/gladia-solaria-3-speaker-count__2023-03-15-jsjam-qwik-misko-hevery",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/2023-03-15-jsjam-qwik-misko-hevery",
+          "variantProviderKey": "gladia/solaria-3[speaker-count=12]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/2023-03-15-jsjam-qwik-misko-hevery/consensus-transcription.txt",
+            "sha256": "5f5ed03b2fd3fc493f6b976264495b349451d4a2eca31ce1e9d29c1bcbefb7f7"
+          },
+          "variant": {
+            "providerKey": "gladia/solaria-3[speaker-count=12]",
+            "score": 96.80415459902127,
+            "legacyScore": 95.92494587442869,
+            "speakerAwareWER": 0.03195845400978728,
+            "textOnlyWER": 0.02941472751082905,
+            "legacySpeakerAwareWER": 0.04075054125571326,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 847,
+              "neutralEdits": 640,
+              "forgivenByView": {
+                "disfluency": 81,
+                "orthographic": 83,
+                "numberFormat": 43
+              },
+              "remaining": {
+                "speakerAttribution": 56,
+                "numberFormat": 7,
+                "otherLexical": 577
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9901358260600114,
+            "providerSpeakerCount": 12,
+            "referenceSpeakerCount": 12,
+            "costCents": 114.74777777777778,
+            "processingTimeMs": 64521
+          },
+          "baseline": {
+            "providerKey": "gladia/solaria-3",
+            "score": 96.79916109058225,
+            "legacyScore": 95.94900168390666,
+            "speakerAwareWER": 0.03200838909417757,
+            "textOnlyWER": 0.029616198247204593,
+            "legacySpeakerAwareWER": 0.04050998316093336,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 842,
+              "neutralEdits": 641,
+              "forgivenByView": {
+                "disfluency": 78,
+                "orthographic": 79,
+                "numberFormat": 44
+              },
+              "remaining": {
+                "speakerAttribution": 51,
+                "numberFormat": 7,
+                "otherLexical": 583
+              }
+            },
+            "speakerCountAbsoluteError": 1,
+            "wordAttributionAccuracy": 0.9950904392764858,
+            "providerSpeakerCount": 13,
+            "referenceSpeakerCount": 12,
+            "costCents": 114.74777777777778,
+            "processingTimeMs": 76344
+          },
+          "delta": {
+            "score": 0.00499350843902846,
+            "legacyScore": -0.02405580947797148,
+            "speakerAwareWER": -0.000049935084390287376,
+            "textOnlyWER": -0.0002014707363755426,
+            "strictEdits": 5,
+            "neutralEdits": -1,
+            "forgivenDisfluency": 3,
+            "forgivenOrthographic": 4,
+            "forgivenNumberFormat": -1,
+            "remainingSpeakerAttribution": 5,
+            "remainingNumberFormat": 0,
+            "remainingOtherLexical": -6,
+            "speakerCountAbsoluteError": -1,
+            "wordAttributionAccuracy": -0.004954613216474391,
+            "costCents": 0,
+            "processingTimeMs": -11823
+          }
         },
         {
           "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/gladia-solaria-3-speaker-count__2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "variantProviderKey": "gladia/solaria-3[speaker-count=6]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt",
+            "sha256": "0b40c081fd375e1e0a37be6beb6ed6fed341061fbdac93c6c15ea0249161d5e1"
+          },
+          "variant": {
+            "providerKey": "gladia/solaria-3[speaker-count=6]",
+            "score": 97.67441860465115,
+            "legacyScore": 97.04004643064422,
+            "speakerAwareWER": 0.023255813953488372,
+            "textOnlyWER": 0.021739130434782608,
+            "legacySpeakerAwareWER": 0.02959953569355775,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 51,
+              "neutralEdits": 39,
+              "forgivenByView": {
+                "disfluency": 4,
+                "orthographic": 8,
+                "numberFormat": 0
+              },
+              "remaining": {
+                "speakerAttribution": 3,
+                "numberFormat": 0,
+                "otherLexical": 36
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9987722529158993,
+            "providerSpeakerCount": 6,
+            "referenceSpeakerCount": 6,
+            "costCents": 10.166666666666666,
+            "processingTimeMs": 29969
+          },
+          "baseline": {
+            "providerKey": "gladia/solaria-3",
+            "score": 97.85330948121646,
+            "legacyScore": 97.21416134648868,
+            "speakerAwareWER": 0.02146690518783542,
+            "textOnlyWER": 0.020531400966183576,
+            "legacySpeakerAwareWER": 0.027858386535113175,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 48,
+              "neutralEdits": 36,
+              "forgivenByView": {
+                "disfluency": 6,
+                "orthographic": 6,
+                "numberFormat": 0
+              },
+              "remaining": {
+                "speakerAttribution": 3,
+                "numberFormat": 0,
+                "otherLexical": 33
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9969306322897483,
+            "providerSpeakerCount": 6,
+            "referenceSpeakerCount": 6,
+            "costCents": 10.166666666666666,
+            "processingTimeMs": 10705
+          },
+          "delta": {
+            "score": -0.17889087656530478,
+            "legacyScore": -0.1741149158444557,
+            "speakerAwareWER": 0.001788908765652953,
+            "textOnlyWER": 0.0012077294685990322,
+            "strictEdits": 3,
+            "neutralEdits": 3,
+            "forgivenDisfluency": -2,
+            "forgivenOrthographic": 2,
+            "forgivenNumberFormat": 0,
+            "remainingSpeakerAttribution": 0,
+            "remainingNumberFormat": 0,
+            "remainingOtherLexical": 3,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.0018416206261510082,
+            "costCents": 0,
+            "processingTimeMs": 19264
+          }
         }
       ],
-      "pairedRecordings": [],
-      "unpairedRecordings": [
-        {
-          "recordingId": "1-audio",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        },
-        {
-          "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        },
-        {
-          "recordingId": "2023-03-15-jsjam-qwik-misko-hevery",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        },
-        {
-          "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        }
+      "pairedRecordings": [
+        "1-audio",
+        "2022-09-30-widgets-fsjam-40-minutes",
+        "2023-03-15-jsjam-qwik-misko-hevery",
+        "2023-04-05-jsjam-react-miami-2023-10-minutes"
       ],
-      "meanDelta": null,
-      "commonSetMeanDelta": null
+      "unpairedRecordings": [],
+      "meanDelta": {
+        "score": -0.0008095742994314037,
+        "legacyScore": -0.05257445431144703,
+        "speakerAwareWER": 0.00000809574299428812,
+        "textOnlyWER": 0.0002834781788527505,
+        "strictEdits": 2.25,
+        "neutralEdits": -3,
+        "forgivenDisfluency": 0,
+        "forgivenOrthographic": 3.75,
+        "forgivenNumberFormat": 1.5,
+        "remainingSpeakerAttribution": -3,
+        "remainingNumberFormat": 0.25,
+        "remainingOtherLexical": -0.25,
+        "speakerCountAbsoluteError": -0.25,
+        "wordAttributionAccuracy": 0.06624510479724624,
+        "costCents": -0.002648865694445307,
+        "processingTimeMs": -936.25
+      },
+      "commonSetMeanDelta": {
+        "score": -0.0027439352122513583,
+        "legacyScore": -0.06208066925593888,
+        "speakerAwareWER": 0.000027439352122479953,
+        "textOnlyWER": 0.00044512781726218156,
+        "strictEdits": 1.3333333333333333,
+        "neutralEdits": -3.6666666666666665,
+        "forgivenDisfluency": -1,
+        "forgivenOrthographic": 3.6666666666666665,
+        "forgivenNumberFormat": 2.3333333333333335,
+        "remainingSpeakerAttribution": -5.666666666666667,
+        "remainingNumberFormat": 0.3333333333333333,
+        "remainingOtherLexical": 1.6666666666666667,
+        "speakerCountAbsoluteError": 0,
+        "wordAttributionAccuracy": 0.08997834413515311,
+        "costCents": -0.003531820925927076,
+        "processingTimeMs": 2692.6666666666665
+      }
     },
     {
       "variantId": "lossless-assemblyai-3-7",
@@ -2224,7 +2550,7 @@
     },
     {
       "variantId": "lossless-deepgram-nova-3",
-      "label": "--stt-audio-profile lossless",
+      "label": "stt-audio-profile=lossless",
       "baseline": {
         "service": "deepgram",
         "model": "nova-3"
@@ -2244,78 +2570,404 @@
       "pairs": [
         {
           "recordingId": "1-audio",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/lossless-deepgram-nova-3__1-audio",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/1-audio",
+          "variantProviderKey": "deepgram/nova-3[stt-audio-profile=lossless]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/1-audio/consensus-transcription.txt",
+            "sha256": "cc06c3ab31407c7c3ee03c3a111c150a605768cf293693285dd27169a49a91fb"
+          },
+          "variant": {
+            "providerKey": "deepgram/nova-3[stt-audio-profile=lossless]",
+            "score": 95.23809523809523,
+            "legacyScore": 92.34234234234235,
+            "speakerAwareWER": 0.047619047619047616,
+            "textOnlyWER": 0.02912621359223301,
+            "legacySpeakerAwareWER": 0.07657657657657657,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 17,
+              "neutralEdits": 10,
+              "forgivenByView": {
+                "disfluency": 1,
+                "orthographic": 4,
+                "numberFormat": 2
+              },
+              "remaining": {
+                "speakerAttribution": 4,
+                "numberFormat": 0,
+                "otherLexical": 6
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.7475247524752475,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 0.42702802633333337,
+            "processingTimeMs": 3597
+          },
+          "baseline": {
+            "providerKey": "deepgram/nova-3",
+            "score": 95.23809523809523,
+            "legacyScore": 89.63963963963964,
+            "speakerAwareWER": 0.047619047619047616,
+            "textOnlyWER": 0.02912621359223301,
+            "legacySpeakerAwareWER": 0.1036036036036036,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 23,
+              "neutralEdits": 10,
+              "forgivenByView": {
+                "disfluency": 7,
+                "orthographic": 4,
+                "numberFormat": 2
+              },
+              "remaining": {
+                "speakerAttribution": 4,
+                "numberFormat": 0,
+                "otherLexical": 6
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.7475247524752475,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 0.42702802633333337,
+            "processingTimeMs": 2858
+          },
+          "delta": {
+            "score": 0,
+            "legacyScore": 2.702702702702709,
+            "speakerAwareWER": 0,
+            "textOnlyWER": 0,
+            "strictEdits": -6,
+            "neutralEdits": 0,
+            "forgivenDisfluency": -6,
+            "forgivenOrthographic": 0,
+            "forgivenNumberFormat": 0,
+            "remainingSpeakerAttribution": 0,
+            "remainingNumberFormat": 0,
+            "remainingOtherLexical": 0,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0,
+            "costCents": 0,
+            "processingTimeMs": 739
+          }
         },
         {
           "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/lossless-deepgram-nova-3__2022-09-30-widgets-fsjam-40-minutes",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes",
+          "variantProviderKey": "deepgram/nova-3[stt-audio-profile=lossless]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes/consensus-transcription.txt",
+            "sha256": "8b9853c4b5820036a318b0e0e59c03fdf8692edff6aa7dc2b8e4e7a41a3bf0cd"
+          },
+          "variant": {
+            "providerKey": "deepgram/nova-3[stt-audio-profile=lossless]",
+            "score": 96.29357798165138,
+            "legacyScore": 95.02789231142373,
+            "speakerAwareWER": 0.03706422018348624,
+            "textOnlyWER": 0.026409971615451066,
+            "legacySpeakerAwareWER": 0.04972107688576279,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 410,
+              "neutralEdits": 303,
+              "forgivenByView": {
+                "disfluency": -1,
+                "orthographic": 105,
+                "numberFormat": 3
+              },
+              "remaining": {
+                "speakerAttribution": 90,
+                "numberFormat": 3,
+                "otherLexical": 210
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9060055513499874,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 17.36512,
+            "processingTimeMs": 10123
+          },
+          "baseline": {
+            "providerKey": "deepgram/nova-3",
+            "score": 96.31714180839349,
+            "legacyScore": 95.22192578219743,
+            "speakerAwareWER": 0.03682858191606509,
+            "textOnlyWER": 0.02579928403900753,
+            "legacySpeakerAwareWER": 0.047780742178025706,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 394,
+              "neutralEdits": 301,
+              "forgivenByView": {
+                "disfluency": 0,
+                "orthographic": 90,
+                "numberFormat": 3
+              },
+              "remaining": {
+                "speakerAttribution": 91,
+                "numberFormat": 3,
+                "otherLexical": 207
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.6938698284561049,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 17.36512,
+            "processingTimeMs": 8929
+          },
+          "delta": {
+            "score": -0.02356382674210522,
+            "legacyScore": -0.1940334707737037,
+            "speakerAwareWER": 0.00023563826742115102,
+            "textOnlyWER": 0.0006106875764435374,
+            "strictEdits": 16,
+            "neutralEdits": 2,
+            "forgivenDisfluency": -1,
+            "forgivenOrthographic": 15,
+            "forgivenNumberFormat": 0,
+            "remainingSpeakerAttribution": -1,
+            "remainingNumberFormat": 0,
+            "remainingOtherLexical": 3,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.2121357228938825,
+            "costCents": 0,
+            "processingTimeMs": 1194
+          }
         },
         {
           "recordingId": "2023-03-15-jsjam-qwik-misko-hevery",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/lossless-deepgram-nova-3__2023-03-15-jsjam-qwik-misko-hevery",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/2023-03-15-jsjam-qwik-misko-hevery",
+          "variantProviderKey": "deepgram/nova-3[stt-audio-profile=lossless]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/2023-03-15-jsjam-qwik-misko-hevery/consensus-transcription.txt",
+            "sha256": "5f5ed03b2fd3fc493f6b976264495b349451d4a2eca31ce1e9d29c1bcbefb7f7"
+          },
+          "variant": {
+            "providerKey": "deepgram/nova-3[stt-audio-profile=lossless]",
+            "score": 95.97523219814241,
+            "legacyScore": 93.63483281212413,
+            "speakerAwareWER": 0.04024767801857585,
+            "textOnlyWER": 0.036466203283973,
+            "legacySpeakerAwareWER": 0.06365167187875873,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 1323,
+              "neutralEdits": 806,
+              "forgivenByView": {
+                "disfluency": 50,
+                "orthographic": 459,
+                "numberFormat": 8
+              },
+              "remaining": {
+                "speakerAttribution": 85,
+                "numberFormat": 18,
+                "otherLexical": 703
+              }
+            },
+            "speakerCountAbsoluteError": 1,
+            "wordAttributionAccuracy": 0.9846010265982268,
+            "providerSpeakerCount": 11,
+            "referenceSpeakerCount": 12,
+            "costCents": 48.53870578016667,
+            "processingTimeMs": 29939
+          },
+          "baseline": {
+            "providerKey": "deepgram/nova-3",
+            "score": 96.1949465694597,
+            "legacyScore": 93.76954534520087,
+            "speakerAwareWER": 0.03805053430540298,
+            "textOnlyWER": 0.033796716026997076,
+            "legacySpeakerAwareWER": 0.06230454654799134,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 1295,
+              "neutralEdits": 762,
+              "forgivenByView": {
+                "disfluency": 57,
+                "orthographic": 466,
+                "numberFormat": 10
+              },
+              "remaining": {
+                "speakerAttribution": 97,
+                "numberFormat": 17,
+                "otherLexical": 648
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9873306443272314,
+            "providerSpeakerCount": 12,
+            "referenceSpeakerCount": 12,
+            "costCents": 48.53266666666667,
+            "processingTimeMs": 16416
+          },
+          "delta": {
+            "score": -0.21971437131729488,
+            "legacyScore": -0.13471253307673692,
+            "speakerAwareWER": 0.0021971437131728735,
+            "textOnlyWER": 0.002669487256975925,
+            "strictEdits": 28,
+            "neutralEdits": 44,
+            "forgivenDisfluency": -7,
+            "forgivenOrthographic": -7,
+            "forgivenNumberFormat": -2,
+            "remainingSpeakerAttribution": -12,
+            "remainingNumberFormat": 1,
+            "remainingOtherLexical": 55,
+            "speakerCountAbsoluteError": 1,
+            "wordAttributionAccuracy": -0.0027296177290045964,
+            "costCents": 0.006039113500001747,
+            "processingTimeMs": 13523
+          }
         },
         {
           "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/lossless-deepgram-nova-3__2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "variantProviderKey": "deepgram/nova-3[stt-audio-profile=lossless]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt",
+            "sha256": "0b40c081fd375e1e0a37be6beb6ed6fed341061fbdac93c6c15ea0249161d5e1"
+          },
+          "variant": {
+            "providerKey": "deepgram/nova-3[stt-audio-profile=lossless]",
+            "score": 96.66070363744782,
+            "legacyScore": 95.18282066163668,
+            "speakerAwareWER": 0.033392963625521764,
+            "textOnlyWER": 0.028985507246376812,
+            "legacySpeakerAwareWER": 0.0481717933836332,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 83,
+              "neutralEdits": 56,
+              "forgivenByView": {
+                "disfluency": -3,
+                "orthographic": 30,
+                "numberFormat": 0
+              },
+              "remaining": {
+                "speakerAttribution": 8,
+                "numberFormat": 0,
+                "otherLexical": 48
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9784349969192853,
+            "providerSpeakerCount": 6,
+            "referenceSpeakerCount": 6,
+            "costCents": 4.3,
+            "processingTimeMs": 18019
+          },
+          "baseline": {
+            "providerKey": "deepgram/nova-3",
+            "score": 96.42218246869409,
+            "legacyScore": 95.0667440510737,
+            "speakerAwareWER": 0.03577817531305903,
+            "textOnlyWER": 0.030797101449275364,
+            "legacySpeakerAwareWER": 0.04933255948926291,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 85,
+              "neutralEdits": 60,
+              "forgivenByView": {
+                "disfluency": -3,
+                "orthographic": 28,
+                "numberFormat": 0
+              },
+              "remaining": {
+                "speakerAttribution": 10,
+                "numberFormat": 0,
+                "otherLexical": 50
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9703886489821099,
+            "providerSpeakerCount": 6,
+            "referenceSpeakerCount": 6,
+            "costCents": 4.3,
+            "processingTimeMs": 2927
+          },
+          "delta": {
+            "score": 0.23852116875373497,
+            "legacyScore": 0.11607661056298468,
+            "speakerAwareWER": -0.0023852116875372684,
+            "textOnlyWER": -0.0018115942028985518,
+            "strictEdits": -2,
+            "neutralEdits": -4,
+            "forgivenDisfluency": 0,
+            "forgivenOrthographic": 2,
+            "forgivenNumberFormat": 0,
+            "remainingSpeakerAttribution": -2,
+            "remainingNumberFormat": 0,
+            "remainingOtherLexical": -2,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.008046347937175402,
+            "costCents": 0,
+            "processingTimeMs": 15092
+          }
         }
       ],
-      "pairedRecordings": [],
-      "unpairedRecordings": [
-        {
-          "recordingId": "1-audio",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        },
-        {
-          "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        },
-        {
-          "recordingId": "2023-03-15-jsjam-qwik-misko-hevery",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        },
-        {
-          "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        }
+      "pairedRecordings": [
+        "1-audio",
+        "2022-09-30-widgets-fsjam-40-minutes",
+        "2023-03-15-jsjam-qwik-misko-hevery",
+        "2023-04-05-jsjam-react-miami-2023-10-minutes"
       ],
-      "meanDelta": null,
-      "commonSetMeanDelta": null
+      "unpairedRecordings": [],
+      "meanDelta": {
+        "score": -0.001189257326416282,
+        "legacyScore": 0.6225083273538132,
+        "speakerAwareWER": 0.000011892573264189049,
+        "textOnlyWER": 0.0003671451576302276,
+        "strictEdits": 9,
+        "neutralEdits": 10.5,
+        "forgivenDisfluency": -3.5,
+        "forgivenOrthographic": 2.5,
+        "forgivenNumberFormat": -0.5,
+        "remainingSpeakerAttribution": -3.75,
+        "remainingNumberFormat": 0.25,
+        "remainingOtherLexical": 14,
+        "speakerCountAbsoluteError": 0.25,
+        "wordAttributionAccuracy": 0.054363113275513325,
+        "costCents": 0.0015097783750004368,
+        "processingTimeMs": 7637
+      },
+      "commonSetMeanDelta": {
+        "score": 0.07165244733720992,
+        "legacyScore": 0.8749152808306633,
+        "speakerAwareWER": -0.0007165244733720391,
+        "textOnlyWER": -0.00040030220881833817,
+        "strictEdits": 2.6666666666666665,
+        "neutralEdits": -0.6666666666666666,
+        "forgivenDisfluency": -2.3333333333333335,
+        "forgivenOrthographic": 5.666666666666667,
+        "forgivenNumberFormat": 0,
+        "remainingSpeakerAttribution": -1,
+        "remainingNumberFormat": 0,
+        "remainingOtherLexical": 0.3333333333333333,
+        "speakerCountAbsoluteError": 0,
+        "wordAttributionAccuracy": 0.07339402361035263,
+        "costCents": 0,
+        "processingTimeMs": 5675
+      }
     },
     {
       "variantId": "lossless-gemini-3-5-transcribe",
@@ -2740,7 +3392,7 @@
     },
     {
       "variantId": "lossless-gladia-solaria-3",
-      "label": "--stt-audio-profile lossless",
+      "label": "stt-audio-profile=lossless",
       "baseline": {
         "service": "gladia",
         "model": "solaria-3"
@@ -2760,27 +3412,181 @@
       "pairs": [
         {
           "recordingId": "1-audio",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/lossless-gladia-solaria-3__1-audio",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/1-audio",
+          "variantProviderKey": "gladia/solaria-3[stt-audio-profile=lossless]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/1-audio/consensus-transcription.txt",
+            "sha256": "cc06c3ab31407c7c3ee03c3a111c150a605768cf293693285dd27169a49a91fb"
+          },
+          "variant": {
+            "providerKey": "gladia/solaria-3[stt-audio-profile=lossless]",
+            "score": 99.04761904761905,
+            "legacyScore": 97.2972972972973,
+            "speakerAwareWER": 0.009523809523809525,
+            "textOnlyWER": 0.009708737864077669,
+            "legacySpeakerAwareWER": 0.02702702702702703,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 6,
+              "neutralEdits": 2,
+              "forgivenByView": {
+                "disfluency": 0,
+                "orthographic": 2,
+                "numberFormat": 2
+              },
+              "remaining": {
+                "speakerAttribution": 0,
+                "numberFormat": 0,
+                "otherLexical": 2
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 1,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 1.0096399072222222,
+            "processingTimeMs": 22437
+          },
+          "baseline": {
+            "providerKey": "gladia/solaria-3",
+            "score": 99.04761904761905,
+            "legacyScore": 97.2972972972973,
+            "speakerAwareWER": 0.009523809523809525,
+            "textOnlyWER": 0.009708737864077669,
+            "legacySpeakerAwareWER": 0.02702702702702703,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 6,
+              "neutralEdits": 2,
+              "forgivenByView": {
+                "disfluency": 0,
+                "orthographic": 2,
+                "numberFormat": 2
+              },
+              "remaining": {
+                "speakerAttribution": 0,
+                "numberFormat": 0,
+                "otherLexical": 2
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 1,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 1.0096399072222222,
+            "processingTimeMs": 8773
+          },
+          "delta": {
+            "score": 0,
+            "legacyScore": 0,
+            "speakerAwareWER": 0,
+            "textOnlyWER": 0,
+            "strictEdits": 0,
+            "neutralEdits": 0,
+            "forgivenDisfluency": 0,
+            "forgivenOrthographic": 0,
+            "forgivenNumberFormat": 0,
+            "remainingSpeakerAttribution": 0,
+            "remainingNumberFormat": 0,
+            "remainingOtherLexical": 0,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0,
+            "costCents": 0,
+            "processingTimeMs": 13664
+          }
         },
         {
           "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/lossless-gladia-solaria-3__2022-09-30-widgets-fsjam-40-minutes",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes",
+          "variantProviderKey": "gladia/solaria-3[stt-audio-profile=lossless]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes/consensus-transcription.txt",
+            "sha256": "8b9853c4b5820036a318b0e0e59c03fdf8692edff6aa7dc2b8e4e7a41a3bf0cd"
+          },
+          "variant": {
+            "providerKey": "gladia/solaria-3[stt-audio-profile=lossless]",
+            "score": 98.14180929095355,
+            "legacyScore": 97.34416686878487,
+            "speakerAwareWER": 0.018581907090464547,
+            "textOnlyWER": 0.01788357178095708,
+            "legacySpeakerAwareWER": 0.026558331312151347,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 219,
+              "neutralEdits": 152,
+              "forgivenByView": {
+                "disfluency": 4,
+                "orthographic": 41,
+                "numberFormat": 22
+              },
+              "remaining": {
+                "speakerAttribution": 7,
+                "numberFormat": 5,
+                "otherLexical": 140
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9984960521368592,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 41.05706666666667,
+            "processingTimeMs": 42187
+          },
+          "baseline": {
+            "providerKey": "gladia/solaria-3",
+            "score": 97.99560009777561,
+            "legacyScore": 97.38054814455494,
+            "speakerAwareWER": 0.02004399902224395,
+            "textOnlyWER": 0.01750924784217016,
+            "legacySpeakerAwareWER": 0.02619451855445064,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 216,
+              "neutralEdits": 164,
+              "forgivenByView": {
+                "disfluency": 5,
+                "orthographic": 32,
+                "numberFormat": 15
+              },
+              "remaining": {
+                "speakerAttribution": 24,
+                "numberFormat": 4,
+                "otherLexical": 136
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.7304032056098172,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 41.05706666666667,
+            "processingTimeMs": 39279
+          },
+          "delta": {
+            "score": 0.14620919317793835,
+            "legacyScore": -0.036381275770068555,
+            "speakerAwareWER": -0.0014620919317794023,
+            "textOnlyWER": 0.0003743239387869225,
+            "strictEdits": 3,
+            "neutralEdits": -12,
+            "forgivenDisfluency": -1,
+            "forgivenOrthographic": 9,
+            "forgivenNumberFormat": 7,
+            "remainingSpeakerAttribution": -17,
+            "remainingNumberFormat": 1,
+            "remainingOtherLexical": 4,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.268092846527042,
+            "costCents": 0,
+            "processingTimeMs": 2908
+          }
         },
         {
           "recordingId": "2023-03-15-jsjam-qwik-misko-hevery",
@@ -2796,42 +3602,142 @@
         },
         {
           "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/lossless-gladia-solaria-3__2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "variantProviderKey": "gladia/solaria-3[stt-audio-profile=lossless]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt",
+            "sha256": "0b40c081fd375e1e0a37be6beb6ed6fed341061fbdac93c6c15ea0249161d5e1"
+          },
+          "variant": {
+            "providerKey": "gladia/solaria-3[stt-audio-profile=lossless]",
+            "score": 97.67441860465115,
+            "legacyScore": 97.1561230412072,
+            "speakerAwareWER": 0.023255813953488372,
+            "textOnlyWER": 0.021739130434782608,
+            "legacySpeakerAwareWER": 0.028438769587928032,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 49,
+              "neutralEdits": 39,
+              "forgivenByView": {
+                "disfluency": 4,
+                "orthographic": 6,
+                "numberFormat": 0
+              },
+              "remaining": {
+                "speakerAttribution": 3,
+                "numberFormat": 0,
+                "otherLexical": 36
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9987722529158993,
+            "providerSpeakerCount": 6,
+            "referenceSpeakerCount": 6,
+            "costCents": 10.166666666666666,
+            "processingTimeMs": 27510
+          },
+          "baseline": {
+            "providerKey": "gladia/solaria-3",
+            "score": 97.85330948121646,
+            "legacyScore": 97.21416134648868,
+            "speakerAwareWER": 0.02146690518783542,
+            "textOnlyWER": 0.020531400966183576,
+            "legacySpeakerAwareWER": 0.027858386535113175,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 48,
+              "neutralEdits": 36,
+              "forgivenByView": {
+                "disfluency": 6,
+                "orthographic": 6,
+                "numberFormat": 0
+              },
+              "remaining": {
+                "speakerAttribution": 3,
+                "numberFormat": 0,
+                "otherLexical": 33
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9969306322897483,
+            "providerSpeakerCount": 6,
+            "referenceSpeakerCount": 6,
+            "costCents": 10.166666666666666,
+            "processingTimeMs": 10705
+          },
+          "delta": {
+            "score": -0.17889087656530478,
+            "legacyScore": -0.058038305281485236,
+            "speakerAwareWER": 0.001788908765652953,
+            "textOnlyWER": 0.0012077294685990322,
+            "strictEdits": 1,
+            "neutralEdits": 3,
+            "forgivenDisfluency": -2,
+            "forgivenOrthographic": 0,
+            "forgivenNumberFormat": 0,
+            "remainingSpeakerAttribution": 0,
+            "remainingNumberFormat": 0,
+            "remainingOtherLexical": 3,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.0018416206261510082,
+            "costCents": 0,
+            "processingTimeMs": 16805
+          }
         }
       ],
-      "pairedRecordings": [],
+      "pairedRecordings": [
+        "1-audio",
+        "2022-09-30-widgets-fsjam-40-minutes",
+        "2023-04-05-jsjam-react-miami-2023-10-minutes"
+      ],
       "unpairedRecordings": [
-        {
-          "recordingId": "1-audio",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        },
-        {
-          "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        },
         {
           "recordingId": "2023-03-15-jsjam-qwik-misko-hevery",
           "status": "skipped",
           "reason": "Lossless float32 WAV (48000 Hz, 1 ch, ~1.30 GB): 1,300,228,096 B exceeds the 1,048,576,000 B upload cap for gladia/solaria-3. The CLI would auto-split it into FLAC segments with chunk-scoped speaker labels, unlike the unsplit default-profile baseline, so the result would not isolate the audio profile."
-        },
-        {
-          "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
         }
       ],
-      "meanDelta": null,
-      "commonSetMeanDelta": null
+      "meanDelta": {
+        "score": -0.010893894462455478,
+        "legacyScore": -0.031473193683851264,
+        "speakerAwareWER": 0.00010893894462451689,
+        "textOnlyWER": 0.0005273511357953183,
+        "strictEdits": 1.3333333333333333,
+        "neutralEdits": -3,
+        "forgivenDisfluency": -1,
+        "forgivenOrthographic": 3,
+        "forgivenNumberFormat": 2.3333333333333335,
+        "remainingSpeakerAttribution": -5.666666666666667,
+        "remainingNumberFormat": 0.3333333333333333,
+        "remainingOtherLexical": 2.3333333333333335,
+        "speakerCountAbsoluteError": 0,
+        "wordAttributionAccuracy": 0.089978155717731,
+        "costCents": 0,
+        "processingTimeMs": 11125.666666666666
+      },
+      "commonSetMeanDelta": {
+        "score": -0.010893894462455478,
+        "legacyScore": -0.031473193683851264,
+        "speakerAwareWER": 0.00010893894462451689,
+        "textOnlyWER": 0.0005273511357953183,
+        "strictEdits": 1.3333333333333333,
+        "neutralEdits": -3,
+        "forgivenDisfluency": -1,
+        "forgivenOrthographic": 3,
+        "forgivenNumberFormat": 2.3333333333333335,
+        "remainingSpeakerAttribution": -5.666666666666667,
+        "remainingNumberFormat": 0.3333333333333333,
+        "remainingOtherLexical": 2.3333333333333335,
+        "speakerCountAbsoluteError": 0,
+        "wordAttributionAccuracy": 0.089978155717731,
+        "costCents": 0,
+        "processingTimeMs": 11125.666666666666
+      }
     },
     {
       "variantId": "lossless-grok-voice-2-0",
@@ -3882,7 +4788,7 @@
     },
     {
       "variantId": "lossless-speechmatics-melia-1",
-      "label": "--stt-audio-profile lossless",
+      "label": "stt-audio-profile=lossless",
       "baseline": {
         "service": "speechmatics",
         "model": "melia-1"
@@ -3902,27 +4808,181 @@
       "pairs": [
         {
           "recordingId": "1-audio",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/lossless-speechmatics-melia-1__1-audio",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/1-audio",
+          "variantProviderKey": "speechmatics/melia-1[stt-audio-profile=lossless]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/1-audio/consensus-transcription.txt",
+            "sha256": "cc06c3ab31407c7c3ee03c3a111c150a605768cf293693285dd27169a49a91fb"
+          },
+          "variant": {
+            "providerKey": "speechmatics/melia-1[stt-audio-profile=lossless]",
+            "score": 99.52380952380952,
+            "legacyScore": 96.3963963963964,
+            "speakerAwareWER": 0.004761904761904762,
+            "textOnlyWER": 0.0048543689320388345,
+            "legacySpeakerAwareWER": 0.036036036036036036,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 8,
+              "neutralEdits": 1,
+              "forgivenByView": {
+                "disfluency": 5,
+                "orthographic": 2,
+                "numberFormat": 0
+              },
+              "remaining": {
+                "speakerAttribution": 0,
+                "numberFormat": 0,
+                "otherLexical": 1
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 1,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 0.21351401316666668,
+            "processingTimeMs": 3478
+          },
+          "baseline": {
+            "providerKey": "speechmatics/melia-1",
+            "score": 100,
+            "legacyScore": 96.3963963963964,
+            "speakerAwareWER": 0,
+            "textOnlyWER": 0,
+            "legacySpeakerAwareWER": 0.036036036036036036,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 8,
+              "neutralEdits": 0,
+              "forgivenByView": {
+                "disfluency": 4,
+                "orthographic": 4,
+                "numberFormat": 0
+              },
+              "remaining": {
+                "speakerAttribution": 0,
+                "numberFormat": 0,
+                "otherLexical": 0
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 1,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 0.21351401316666668,
+            "processingTimeMs": 2803
+          },
+          "delta": {
+            "score": -0.4761904761904816,
+            "legacyScore": 0,
+            "speakerAwareWER": 0.004761904761904762,
+            "textOnlyWER": 0.0048543689320388345,
+            "strictEdits": 0,
+            "neutralEdits": 1,
+            "forgivenDisfluency": 1,
+            "forgivenOrthographic": -2,
+            "forgivenNumberFormat": 0,
+            "remainingSpeakerAttribution": 0,
+            "remainingNumberFormat": 0,
+            "remainingOtherLexical": 1,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0,
+            "costCents": 0,
+            "processingTimeMs": 675
+          }
         },
         {
           "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/lossless-speechmatics-melia-1__2022-09-30-widgets-fsjam-40-minutes",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes",
+          "variantProviderKey": "speechmatics/melia-1[stt-audio-profile=lossless]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/2022-09-30-widgets-fsjam-40-minutes/consensus-transcription.txt",
+            "sha256": "8b9853c4b5820036a318b0e0e59c03fdf8692edff6aa7dc2b8e4e7a41a3bf0cd"
+          },
+          "variant": {
+            "providerKey": "speechmatics/melia-1[stt-audio-profile=lossless]",
+            "score": 97.76228906823185,
+            "legacyScore": 97.25927722532137,
+            "speakerAwareWER": 0.022377109317681585,
+            "textOnlyWER": 0.022082408092770785,
+            "legacySpeakerAwareWER": 0.02740722774678632,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 226,
+              "neutralEdits": 183,
+              "forgivenByView": {
+                "disfluency": 7,
+                "orthographic": 31,
+                "numberFormat": 5
+              },
+              "remaining": {
+                "speakerAttribution": 4,
+                "numberFormat": 3,
+                "otherLexical": 176
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.9998744349573079,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 8.68256,
+            "processingTimeMs": 56390
+          },
+          "baseline": {
+            "providerKey": "speechmatics/melia-1",
+            "score": 97.38354322044259,
+            "legacyScore": 96.89546446762066,
+            "speakerAwareWER": 0.02616456779557403,
+            "textOnlyWER": 0.024176637473788086,
+            "legacySpeakerAwareWER": 0.031045355323793353,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 256,
+              "neutralEdits": 214,
+              "forgivenByView": {
+                "disfluency": 9,
+                "orthographic": 30,
+                "numberFormat": 3
+              },
+              "remaining": {
+                "speakerAttribution": 19,
+                "numberFormat": 0,
+                "otherLexical": 195
+              }
+            },
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.7325128720331533,
+            "providerSpeakerCount": 2,
+            "referenceSpeakerCount": 2,
+            "costCents": 8.68256,
+            "processingTimeMs": 22744
+          },
+          "delta": {
+            "score": 0.37874584778926135,
+            "legacyScore": 0.363812757700714,
+            "speakerAwareWER": -0.003787458477892445,
+            "textOnlyWER": -0.0020942293810173006,
+            "strictEdits": -30,
+            "neutralEdits": -31,
+            "forgivenDisfluency": -2,
+            "forgivenOrthographic": 1,
+            "forgivenNumberFormat": 2,
+            "remainingSpeakerAttribution": -15,
+            "remainingNumberFormat": 3,
+            "remainingOtherLexical": -19,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.2673615629241546,
+            "costCents": 0,
+            "processingTimeMs": 33646
+          }
         },
         {
           "recordingId": "2023-03-15-jsjam-qwik-misko-hevery",
@@ -3938,42 +4998,142 @@
         },
         {
           "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked).",
-          "variantDir": null,
-          "baselineDir": null,
-          "variantProviderKey": null,
-          "referenceSource": null,
-          "variant": null,
-          "baseline": null,
-          "delta": null
+          "status": "paired",
+          "reason": null,
+          "variantDir": "docs/benchmarks/stt/settings/lossless-speechmatics-melia-1__2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "baselineDir": "docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes",
+          "variantProviderKey": "speechmatics/melia-1[stt-audio-profile=lossless]",
+          "referenceSource": {
+            "schemaVersion": 1,
+            "path": "docs/benchmarks/stt/with-speakers/2023-04-05-jsjam-react-miami-2023-10-minutes/consensus-transcription.txt",
+            "sha256": "0b40c081fd375e1e0a37be6beb6ed6fed341061fbdac93c6c15ea0249161d5e1"
+          },
+          "variant": {
+            "providerKey": "speechmatics/melia-1[stt-audio-profile=lossless]",
+            "score": 97.85330948121646,
+            "legacyScore": 95.937318630296,
+            "speakerAwareWER": 0.02146690518783542,
+            "textOnlyWER": 0.01932367149758454,
+            "legacySpeakerAwareWER": 0.04062681369704005,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 70,
+              "neutralEdits": 36,
+              "forgivenByView": {
+                "disfluency": 14,
+                "orthographic": 18,
+                "numberFormat": 2
+              },
+              "remaining": {
+                "speakerAttribution": 4,
+                "numberFormat": 0,
+                "otherLexical": 32
+              }
+            },
+            "speakerCountAbsoluteError": 1,
+            "wordAttributionAccuracy": 0.9987730061349693,
+            "providerSpeakerCount": 7,
+            "referenceSpeakerCount": 6,
+            "costCents": 2.15,
+            "processingTimeMs": 16346
+          },
+          "baseline": {
+            "providerKey": "speechmatics/melia-1",
+            "score": 97.19737626714371,
+            "legacyScore": 96.05339524085896,
+            "speakerAwareWER": 0.02802623732856291,
+            "textOnlyWER": 0.025966183574879228,
+            "legacySpeakerAwareWER": 0.03946604759141033,
+            "errorAttribution": {
+              "method": "cumulative-view-ablation-plus-aligned-token-inspection",
+              "strictEdits": 68,
+              "neutralEdits": 47,
+              "forgivenByView": {
+                "disfluency": 6,
+                "orthographic": 13,
+                "numberFormat": 2
+              },
+              "remaining": {
+                "speakerAttribution": 4,
+                "numberFormat": 0,
+                "otherLexical": 43
+              }
+            },
+            "speakerCountAbsoluteError": 1,
+            "wordAttributionAccuracy": 0.9987692307692307,
+            "providerSpeakerCount": 7,
+            "referenceSpeakerCount": 6,
+            "costCents": 2.15,
+            "processingTimeMs": 4966
+          },
+          "delta": {
+            "score": 0.6559332140727463,
+            "legacyScore": -0.11607661056295626,
+            "speakerAwareWER": -0.00655933214072749,
+            "textOnlyWER": -0.006642512077294688,
+            "strictEdits": 2,
+            "neutralEdits": -11,
+            "forgivenDisfluency": 8,
+            "forgivenOrthographic": 5,
+            "forgivenNumberFormat": 0,
+            "remainingSpeakerAttribution": 0,
+            "remainingNumberFormat": 0,
+            "remainingOtherLexical": -11,
+            "speakerCountAbsoluteError": 0,
+            "wordAttributionAccuracy": 0.00000377536573858972,
+            "costCents": 0,
+            "processingTimeMs": 11380
+          }
         }
       ],
-      "pairedRecordings": [],
+      "pairedRecordings": [
+        "1-audio",
+        "2022-09-30-widgets-fsjam-40-minutes",
+        "2023-04-05-jsjam-react-miami-2023-10-minutes"
+      ],
       "unpairedRecordings": [
-        {
-          "recordingId": "1-audio",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        },
-        {
-          "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
-        },
         {
           "recordingId": "2023-03-15-jsjam-qwik-misko-hevery",
           "status": "skipped",
           "reason": "Lossless float32 WAV (48000 Hz, 1 ch, ~1.30 GB): 1,300,228,096 B exceeds the 1,073,741,824 B upload cap for speechmatics/melia-1. The CLI would auto-split it into FLAC segments with chunk-scoped speaker labels, unlike the unsplit default-profile baseline, so the result would not isolate the audio profile."
-        },
-        {
-          "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
-          "status": "not-run",
-          "reason": "Planned; no run directory (not yet run or blocked)."
         }
       ],
-      "meanDelta": null,
-      "commonSetMeanDelta": null
+      "meanDelta": {
+        "score": 0.18616286189050868,
+        "legacyScore": 0.0825787157125859,
+        "speakerAwareWER": -0.0018616286189050573,
+        "textOnlyWER": -0.0012941241754243847,
+        "strictEdits": -9.333333333333334,
+        "neutralEdits": -13.666666666666666,
+        "forgivenDisfluency": 2.3333333333333335,
+        "forgivenOrthographic": 1.3333333333333333,
+        "forgivenNumberFormat": 0.6666666666666666,
+        "remainingSpeakerAttribution": -5,
+        "remainingNumberFormat": 1,
+        "remainingOtherLexical": -9.666666666666666,
+        "speakerCountAbsoluteError": 0,
+        "wordAttributionAccuracy": 0.0891217794299644,
+        "costCents": 0,
+        "processingTimeMs": 15233.666666666666
+      },
+      "commonSetMeanDelta": {
+        "score": 0.18616286189050868,
+        "legacyScore": 0.0825787157125859,
+        "speakerAwareWER": -0.0018616286189050573,
+        "textOnlyWER": -0.0012941241754243847,
+        "strictEdits": -9.333333333333334,
+        "neutralEdits": -13.666666666666666,
+        "forgivenDisfluency": 2.3333333333333335,
+        "forgivenOrthographic": 1.3333333333333333,
+        "forgivenNumberFormat": 0.6666666666666666,
+        "remainingSpeakerAttribution": -5,
+        "remainingNumberFormat": 1,
+        "remainingOtherLexical": -9.666666666666666,
+        "speakerCountAbsoluteError": 0,
+        "wordAttributionAccuracy": 0.0891217794299644,
+        "costCents": 0,
+        "processingTimeMs": 15233.666666666666
+      }
     },
     {
       "variantId": "assemblyai-3-5-pro-rerun-2026-11-20",
@@ -4398,7 +5558,7 @@
   "notes": [
     "Every delta is variant minus its default-settings baseline (same service/model) on the same recording, both scored now with the current scoring code against the variant's verified reference-source.json reference.",
     "Headline means use the common recording set paired by every variant with at least one paired recording (1-audio, 2022-09-30-widgets-fsjam-40-minutes, 2023-04-05-jsjam-react-miami-2023-10-minutes); the \"all covered\" score mean uses every recording a variant pairs.",
-    "Variants with unpaired recordings (skipped, not run, failed, or missing a baseline) are listed under Coverage and never averaged silently: gladia-solaria-3-speaker-count, lossless-deepgram-nova-3, lossless-gladia-solaria-3, lossless-grok-voice-2-0, lossless-mistral-voxtral-mini-2602, lossless-soniox-stt-async-v5, lossless-speechmatics-melia-1.",
+    "Variants with unpaired recordings (skipped, not run, failed, or missing a baseline) are listed under Coverage and never averaged silently: lossless-gladia-solaria-3, lossless-grok-voice-2-0, lossless-mistral-voxtral-mini-2602, lossless-soniox-stt-async-v5, lossless-speechmatics-melia-1.",
     "Positive score, legacy-score, and word-attribution deltas favor the variant; positive WER, edit-count, speaker-count-error, cost, and time deltas favor the baseline. Forgiven-by-view edit deltas show how much more (positive) form variation the variant produced that the neutral view forgave.",
     "The baseline rows come from the with-speakers archive and were recorded on an earlier date, so deltas also include any provider-side model drift; the run-to-run control variant estimates that noise for one route."
   ]

@@ -3,7 +3,7 @@
   "note": "Run bun src/tools/stt-settings-benchmark.ts --price. Every variant adds --diarization. runs holds one record per dispatch attempt (appended, never replaced; refused attempts are 0¢). approvals holds explicit user approvals of the TOTAL cumulative ledger spend; --run --approved-budget-cents N must not exceed the latest approval the user gave and must cover recorded spend plus the --max-model-cents headroom of every remaining run.",
   "benchmarkDate": "2026-11-20",
   "outputBase": "docs/benchmarks/stt/settings",
-  "cumulativeSpentCents": 456.8298789436111,
+  "cumulativeSpentCents": 757.7107355593887,
   "approvals": [
     {
       "approvedAt": "2026-11-21",
@@ -393,9 +393,9 @@
       "recordingId": "1-audio",
       "attempt": 1,
       "status": "refused",
-      "reason": "Gladia upload rejected with 401 \"gladia user not found\" before any transcription job was created",
       "actualCents": 0,
       "recordedAt": "2026-11-21T06:08:40.419Z",
+      "reason": "Gladia upload rejected with 401 \"gladia user not found\" before any transcription job was created",
       "archivedPath": "output/2026-11-21_stt-settings-failed-attempts/gladia-solaria-3-speaker-count__1-audio__invalid-auth",
       "note": "Reconciled manually on 2026-11-21: the directory was moved to archivedPath and its ledger record deleted; restored here as a 0¢ attempt."
     },
@@ -467,9 +467,9 @@
       "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
       "attempt": 1,
       "status": "refused",
-      "reason": "AssemblyAI lossless WAV upload socket closed before any transcript job was created (AssemblyAI bills per transcript job); attempt 2 completed",
       "actualCents": 0,
       "recordedAt": "2026-11-21T06:13:33.544Z",
+      "reason": "AssemblyAI lossless WAV upload socket closed before any transcript job was created (AssemblyAI bills per transcript job); attempt 2 completed",
       "archivedPath": "output/2026-11-21_stt-settings-failed-attempts/lossless-assemblyai-3-7__2023-04-05-jsjam-react-miami-2023-10-minutes__upload-socket-closed",
       "note": "Reconciled manually on 2026-11-21: the directory was moved to archivedPath and its ledger record deleted; restored here as a 0¢ attempt."
     },
@@ -487,9 +487,9 @@
       "recordingId": "1-audio",
       "attempt": 1,
       "status": "refused",
-      "reason": "Deepgram rejected the request with 401 INVALID_AUTH; no transcription was performed",
       "actualCents": 0,
       "recordedAt": "2026-11-21T06:14:28.669Z",
+      "reason": "Deepgram rejected the request with 401 INVALID_AUTH; no transcription was performed",
       "archivedPath": "output/2026-11-21_stt-settings-failed-attempts/lossless-deepgram-nova-3__1-audio__invalid-auth",
       "note": "Reconciled manually on 2026-11-21: the directory was moved to archivedPath and its ledger record deleted; restored here as a 0¢ attempt."
     },
@@ -615,11 +615,137 @@
       "recordingId": "1-audio",
       "attempt": 1,
       "status": "refused",
-      "reason": "SPEECHMATICS_API_KEY was not set; the CLI failed before any provider request",
       "actualCents": 0,
       "recordedAt": "2026-11-21T06:22:41.106Z",
+      "reason": "SPEECHMATICS_API_KEY was not set; the CLI failed before any provider request",
       "archivedPath": "output/2026-11-21_stt-settings-failed-attempts/lossless-speechmatics-melia-1__1-audio__missing-api-key",
       "note": "Reconciled manually on 2026-11-21: the directory was moved to archivedPath and its ledger record deleted; restored here as a 0¢ attempt."
+    },
+    {
+      "variantId": "gladia-solaria-3-speaker-count",
+      "recordingId": "1-audio",
+      "status": "completed",
+      "estimatedCents": 1.0096399072222222,
+      "recordedAt": "2026-11-21T07:43:16.562Z",
+      "attempt": 2,
+      "actualCents": 0.9997222222222223
+    },
+    {
+      "variantId": "gladia-solaria-3-speaker-count",
+      "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
+      "status": "completed",
+      "estimatedCents": 41.05706666666667,
+      "recordedAt": "2026-11-21T07:43:42.816Z",
+      "attempt": 1,
+      "actualCents": 41.05638888888889
+    },
+    {
+      "variantId": "gladia-solaria-3-speaker-count",
+      "recordingId": "2023-03-15-jsjam-qwik-misko-hevery",
+      "status": "completed",
+      "estimatedCents": 114.76205630194445,
+      "recordedAt": "2026-11-21T07:44:48.416Z",
+      "attempt": 1,
+      "actualCents": 114.74777777777778
+    },
+    {
+      "variantId": "gladia-solaria-3-speaker-count",
+      "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
+      "status": "completed",
+      "estimatedCents": 10.166666666666666,
+      "recordedAt": "2026-11-21T07:45:19.067Z",
+      "attempt": 1,
+      "actualCents": 10.166666666666666
+    },
+    {
+      "variantId": "lossless-deepgram-nova-3",
+      "recordingId": "1-audio",
+      "status": "completed",
+      "estimatedCents": 0.42702802633333337,
+      "recordedAt": "2026-11-21T07:45:22.915Z",
+      "attempt": 2,
+      "actualCents": 0.42702802633333337
+    },
+    {
+      "variantId": "lossless-deepgram-nova-3",
+      "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
+      "status": "completed",
+      "estimatedCents": 17.36512,
+      "recordedAt": "2026-11-21T07:45:35.739Z",
+      "attempt": 1,
+      "actualCents": 17.36512
+    },
+    {
+      "variantId": "lossless-deepgram-nova-3",
+      "recordingId": "2023-03-15-jsjam-qwik-misko-hevery",
+      "status": "completed",
+      "estimatedCents": 48.53870578016667,
+      "recordedAt": "2026-11-21T07:46:13.342Z",
+      "attempt": 1,
+      "actualCents": 48.53870578016667
+    },
+    {
+      "variantId": "lossless-deepgram-nova-3",
+      "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
+      "status": "completed",
+      "estimatedCents": 4.3,
+      "recordedAt": "2026-11-21T07:46:32.208Z",
+      "attempt": 1,
+      "actualCents": 4.3
+    },
+    {
+      "variantId": "lossless-gladia-solaria-3",
+      "recordingId": "1-audio",
+      "status": "completed",
+      "estimatedCents": 1.0096399072222222,
+      "recordedAt": "2026-11-21T07:46:54.897Z",
+      "attempt": 1,
+      "actualCents": 1.0096399072222222
+    },
+    {
+      "variantId": "lossless-gladia-solaria-3",
+      "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
+      "status": "completed",
+      "estimatedCents": 41.05706666666667,
+      "recordedAt": "2026-11-21T07:47:39.815Z",
+      "attempt": 1,
+      "actualCents": 41.05706666666667
+    },
+    {
+      "variantId": "lossless-gladia-solaria-3",
+      "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
+      "status": "completed",
+      "estimatedCents": 10.166666666666666,
+      "recordedAt": "2026-11-21T07:48:08.307Z",
+      "attempt": 1,
+      "actualCents": 10.166666666666666
+    },
+    {
+      "variantId": "lossless-speechmatics-melia-1",
+      "recordingId": "1-audio",
+      "status": "completed",
+      "estimatedCents": 0.21351401316666668,
+      "recordedAt": "2026-11-21T07:48:12.222Z",
+      "attempt": 2,
+      "actualCents": 0.21351401316666668
+    },
+    {
+      "variantId": "lossless-speechmatics-melia-1",
+      "recordingId": "2022-09-30-widgets-fsjam-40-minutes",
+      "status": "completed",
+      "estimatedCents": 8.68256,
+      "recordedAt": "2026-11-21T07:49:11.733Z",
+      "attempt": 1,
+      "actualCents": 8.68256
+    },
+    {
+      "variantId": "lossless-speechmatics-melia-1",
+      "recordingId": "2023-04-05-jsjam-react-miami-2023-10-minutes",
+      "status": "completed",
+      "estimatedCents": 2.15,
+      "recordedAt": "2026-11-21T07:49:29.104Z",
+      "attempt": 1,
+      "actualCents": 2.15
     }
   ]
 }

@@ -49,7 +49,7 @@ On 2026-11-21 the user approved "up to $7.33" for the settings-variant batch: 73
 
 ## Speaker Counts
 
-`--speaker-count` uses the distinct line-leading `[speaker-N]` labels in each consensus reference: 1-audio 2, widgets 2, Qwik 13, React Miami 6.
+`--speaker-count` uses the distinct line-leading `[speaker-N]` labels in each consensus reference. The current counts are 2 for 1-audio, 2 for widgets, 12 for Qwik, and 6 for React Miami. The earlier AssemblyAI Qwik run requested 13 speakers and the Gladia run requested 12. Each run's `variant.json` preserves its actual request.
 
 ## Lossless Feasibility
 
