@@ -105,7 +105,7 @@ autoshow() (
 )
 ```
 
-The optional `AUTOSHOW_REQUIRED_IMAGE_MODEL` line requires exactly one matching OpenAI image selection for image-producing commands; all-provider selection fails. Help, version, and `comic generate-images --qa-only` are exempt. Violations exit 64 before pricing/output setup. Remove the line for unrestricted models.
+The optional `AUTOSHOW_REQUIRED_IMAGE_MODEL` line requires exactly one matching OpenAI image selection for image-producing commands; all-provider selection fails. Help and version are exempt. Violations exit 64 before pricing/output setup. Remove the line for unrestricted models.
 
 `/app/runtime` retains installed tools, package/model/font caches, temporary workspaces, locks, voice assets, identities, and the default `runtime/autoshow.json`. The optional `/home/bun` mount supplies a stable user home for explicit browser-cookie integration; application caches remain under runtime. Custom Linux users need host-owned writable runtime and output directories. Keep credentials and identity/voice state out of broad evidence uploads. `AUTOSHOW_IMAGE` selects a tag or digest.
 

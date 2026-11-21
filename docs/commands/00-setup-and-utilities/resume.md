@@ -94,21 +94,21 @@ Standalone/extract recovery accepts `--batch-concurrency`, `--provider-concurren
 
 ## Comic Recovery
 
-Create a local structure-only run from the character-free scene above; omit providers to avoid generation:
+Create a local prepare-only run from the character-free scene above; omit providers to avoid generation:
 
 ```bash
-bun autoshow comic draft-scenes output/resume-example/comic-inputs/scene.md --only structure --characters-root output/resume-example/comic-inputs/characters --output-dir output/resume-example/comic --config-path output/resume-example/empty-config.json
+bun autoshow comic draft-scenes output/resume-example/comic-inputs/scene.md --only prepare --characters-root output/resume-example/comic-inputs/characters --output-dir output/resume-example/comic --config-path output/resume-example/empty-config.json
 bun autoshow resume output/resume-example/comic --price --json
 bun autoshow resume output/resume-example/comic
 ```
 
-This creates structured script/manifest with unrequested image/audio/presentation stages; recovery is a ready, zero-cost no-op. Use the [comic stages](../05-visuals/comic/00-comic-overview.md) to record actual generation requests first, retaining source/catalog files.
+This creates the structured script, draft prompt, and manifest with unrequested image/audio/presentation stages; recovery is a ready, zero-cost no-op. Use the [comic stages](../05-visuals/comic/00-comic-overview.md) to record actual generation requests first, retaining source/catalog files.
 
 Recovery continues requested image, audio, then presentation using recorded choices. Compatible completed stages are reused; unrequested stages stay unrequested. Configuration never supplies replacement providers. The original `--max-generation-slots` limit is not restored; audio recovery finishes remaining slots.
 
 Price JSON exposes `data.comicPlans`, readiness, and stage actions `reuse`, `resume`, `not-requested`, `blocked`, or `after-audio`. Blocked totals include only priceable work; execution refuses blockers. Invalid manifests and missing sources fail inspection. Changed inputs/casting, missing original intent, stale presentation dependencies, or unpriceable remaining work block recovery.
 
-Interrupted `generate-audio --slideshow` finishes locally after audio recovery. Presentation-only recovery requires complete upstream media and canonical `panels/panel-NN.png`; it never prepares sources, generates missing assets, promotes variants, changes approvals/providers, or runs forced regeneration/audits/revisions.
+Interrupted `generate-audio --slideshow` finishes locally after audio recovery. Presentation-only recovery requires complete upstream media and selected `panels/panel-NN.png`; it never prepares sources, generates missing assets, replaces panel selections, changes approvals/providers, or forces regeneration. Image recovery finishes an interrupted first panel selection from its verified candidate, reuses completed images from older runs without a QA report, and blocks unfinished multi-model, explicit-variation, or judge-dependent intents until remaining image work is selected explicitly with one model.
 
 Accept `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`, logging controls, and `--json --result-file`. `--require-shared-budget` allows configured price inspection, but budgeted resume execution remains unsupported and fails before dispatch. Reject provider, rendering, configuration, catalog, output-path, and concurrency overrides. Explicit ambiguous redispatch may repurchase unresolved TTS slots while reusing completed audio; it does not authorize blocked sound effects.
 

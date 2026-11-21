@@ -2,32 +2,20 @@ import { existsSync, statSync } from 'node:fs'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import type { CharacterCatalogEntry, CharacterKey, CharacterReferenceConfig } from '~/types'
 
-import { asCharacterKey, CHARACTER_KEY_PATTERN, fail, freezeEntry, normalizeCharacterLookup } from './character-catalog-validation'
+import { asCharacterKey, fail, freezeEntry, normalizeCharacterLookup } from './character-catalog-validation'
 const SUPPORTED_SOURCE_EXTENSIONS = /\.(?:png|webp|jpe?g)$/i
 
 type AuthoredCharacter = CharacterReferenceConfig['characters'][number]
 
-const validateDistinguishFromCues = (authored: AuthoredCharacter, key: CharacterKey, configPath: string, byKey: Map<CharacterKey, CharacterCatalogEntry>): void => {
-  for (const cue of authored.distinguishFrom ?? []) {
-    if (!CHARACTER_KEY_PATTERN.test(cue.characterKey) || !byKey.has(cue.characterKey as CharacterKey)) fail(configPath, `Character "${key}" distinguishFrom "${cue.characterKey}" is not a catalog key`)
-    if (!cue.cue.trim()) fail(configPath, `Character "${key}" distinguishFrom "${cue.characterKey}" must carry a non-empty cue`)
-  }
-}
-
-const validateCharacterRelations = (authored: AuthoredCharacter, configPath: string, byKey: Map<CharacterKey, CharacterCatalogEntry>): void => {
+const validateWardrobeTokens = (authored: AuthoredCharacter, configPath: string): void => {
   const key = asCharacterKey(authored.key)
-  if (authored.variantOf !== undefined) {
-    if (authored.variantOf === key) fail(configPath, `Character "${key}" variantOf "${authored.variantOf}" cannot name itself`)
-    if (!byKey.has(authored.variantOf)) fail(configPath, `Character "${key}" variantOf "${authored.variantOf}" is not a catalog key`)
-  }
-  validateDistinguishFromCues(authored, key, configPath, byKey)
   for (const [index, token] of (authored.wardrobe?.colorTokens ?? []).entries()) {
     if (!token.trim()) fail(configPath, `Character "${key}" wardrobe colorTokens[${index}] must not be blank`)
   }
 }
 
-const validateCharacterCatalogRelations = (config: CharacterReferenceConfig, configPath: string, byKey: Map<CharacterKey, CharacterCatalogEntry>): void => {
-  for (const authored of config.characters) validateCharacterRelations(authored, configPath, byKey)
+const validateCharacterCatalogRelations = (config: CharacterReferenceConfig, configPath: string): void => {
+  for (const authored of config.characters) validateWardrobeTokens(authored, configPath)
 }
 
 type CatalogIndexState = {
@@ -149,7 +137,7 @@ export const buildCharacterCatalogIndex = (root: string, configPath: string, con
 
   for (const authored of config.characters) indexCharacter(state, authored)
 
-  validateCharacterCatalogRelations(config, configPath, state.byKey)
+  validateCharacterCatalogRelations(config, configPath)
 
   for (const group of config.groupAliases) indexGroupAlias(state, group)
 

@@ -80,22 +80,22 @@ describe('comic compact logging contracts', () => {
         scriptPath: 'input/scripts/01-script/01-co-work-smarter.md',
         sceneSlug: '01-co-work-smarter',
       }, {
-        runStructureScripts: async () => comicLog.line('structured-script generated', ['path=structured-script.json']),
-        runDraftPrompts: async () => comicLog.line('draft-prompt generated', ['path=draft-prompt.md']),
-        runBlockingPlan: async () => comicLog.line('blocking-plan generated', ['file=blocking-plan.json', 'model=gpt-5.1', 'tokens=2,400', 'cost=$0.02', 'api=0.20s', 'attempts=1', 'states=2', 'cameras=3']),
+        runPrepare: async () => {
+          comicLog.line('draft-prompt generated', ['file=draft-prompt.md', 'sourceSegments=4'])
+          return { structuredScriptPath: 'structured-script.json', draftPromptPath: 'draft-prompt.md', sourceSegments: 4, durationMs: 0 }
+        },
         runSceneDraft: async () => comicLog.line('scene-json generated', ['model=gpt-5.1', 'tokens=1,200', 'cost=$0.01', 'api=0.10s']),
         runPanelPrompts: async () => comicLog.line('panel-prompts generated', ['panels=4', 'coverage=4/4']),
       })
     })
 
     expect((captured.stdout.match(/comic draft-scenes/g) ?? [])).toHaveLength(1)
-    expect(captured.stdout).toContain('stages=structure,prompt,blocking,scene,panel-prompts')
-    expect(captured.stdout).toContain('structured-script generated')
+    expect(captured.stdout).toContain('stages=prepare,scene,panel-prompts')
     expect(captured.stdout).toContain('draft-prompt generated')
-    expect(captured.stdout).toContain('blocking-plan generated')
+    expect(captured.stdout).not.toContain('blocking')
     expect(captured.stdout).toContain('scene-json generated')
     expect(captured.stdout).toContain('panel-prompts generated')
-    expect(captured.stdout).toContain('summary stages=5')
+    expect(captured.stdout).toContain('summary stages=3')
     expect(captured.stdout).toContain(`output directory: ${getSceneOutputDirectory(SCENE_SLUG)}`)
     expectRemovedFragmentsAbsent(captured.stdout)
   })

@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-All 19 records are Accepted. Verification is Pending for ADR-002, ADR-012, and ADR-017; the others are Passed within their stated verification limits. Passing local contracts does not establish live-provider or subjective media quality. The next ADR is **020**.
+All 19 records are Accepted. Verification is Pending for ADR-002 and ADR-012; the others are Passed within their stated verification limits. Passing local contracts does not establish live-provider or subjective media quality. The next ADR is **020**.
 
 ## Records
 
@@ -30,7 +30,7 @@ All 19 records are Accepted. Verification is Pending for ADR-002, ADR-012, and A
 - [Type cleanup reviews](ADR-003-type-surface-cleanup-and-architecture-mirroring.md#follow-up-actions)
 - [Deprecated alias removal](ADR-006-top-level-command-boundaries-and-deprecations.md#follow-up-actions)
 - [TTS listening review and delivery tools](ADR-012-tts-synthesis-voice-management-and-delivery.md#follow-up-actions)
-- [Comic validation and design decisions](ADR-017-comic-script-and-scene-authoring.md#follow-up-actions)
+- [Comic authoring design decisions](ADR-017-comic-script-and-scene-authoring.md#follow-up-actions)
 
 ## Maintenance
 

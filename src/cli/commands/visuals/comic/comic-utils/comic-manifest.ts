@@ -1,6 +1,9 @@
 import type {
   CanonicalComicItemMetadata,
+  ComicPresentationPlan,
+  ComicSelectionPresentationSnapshot,
   ComicSourceIdentity,
+  ComicStageArtifactRef,
   PipelineManifest,
   PipelineManifestItem,
   PipelineProviderState,
@@ -8,16 +11,20 @@ import type {
   StructuredScriptArtifactRef,
 } from '~/types'
 import { UsageError } from '~/utils/error-handler'
+import { isRecord } from '~/utils/value-helpers'
+import { readComicImageUsageCheckpoint } from './comic-image-usage-checkpoint'
 import {
   createManifest,
   readManifest,
   updateManifest,
   writeManifest,
 } from '../../../command-shared/pipeline-manifest'
-import { canonicalTtsJson } from '../../../audio/tts/script-to-audio/contract-identity'
+import { canonicalTtsJson, hashCanonicalTtsValue } from '../../../audio/tts/script-to-audio/contract-identity'
+import { readContainedArtifactFile } from '../../../audio/tts/script-to-audio/safe-artifact-store'
 import { computeSceneRunIdentity } from './comic-audio-contracts'
 import { appendCurrentTtsProviderState } from '../../../audio/tts/script-to-audio/current-render-artifacts'
 import { aggregateComicStageStatus } from '../../../command-shared/pipeline-manifest/comic-stage-status'
+import { validateComicPresentationPlan } from './comic-presentation-plan'
 
 const notRequestedComicStage = () => ({
   requirement: 'not-requested' as const,
@@ -206,82 +213,170 @@ export const appendComicAudioProviderState = async (input: {
   }
 })
 
+/** Item metadata key holding comic-image provider states from earlier image runs (one entry per run and target). */
+export const COMIC_IMAGE_RUN_HISTORY_KEY = 'comicImageRunHistory'
+
+const providerRunId = (provider: PipelineProviderState): string | undefined => {
+  const runId = provider.metadata['runId']
+  return typeof runId === 'string' && runId.length > 0 ? runId : undefined
+}
+
+const sameImageRunTarget = (left: PipelineProviderState, right: PipelineProviderState): boolean =>
+  left.targetKey === right.targetKey && providerRunId(left) === providerRunId(right)
+
+const readImageRunHistory = (item: PipelineManifestItem): PipelineProviderState[] => {
+  const raw = item.metadata[COMIC_IMAGE_RUN_HISTORY_KEY]
+  if (raw === undefined) return []
+  if (!Array.isArray(raw)) throw UsageError(`Canonical comic ${COMIC_IMAGE_RUN_HISTORY_KEY} must be an array.`)
+  return raw.filter((entry): entry is PipelineProviderState => entry !== null && typeof entry === 'object' && !Array.isArray(entry)) as unknown as PipelineProviderState[]
+}
+
+/** Current and archived comic-image provider states, newest last. Historical multi-model runs keep one state per model. */
+export const listComicImageProviderStates = (item: PipelineManifestItem): PipelineProviderState[] => [
+  ...readImageRunHistory(item),
+  ...item.providers.filter(provider => provider.operation === 'comic-image'),
+]
+
+const imageAttemptUsage = (state: PipelineProviderState) => ({
+  status: state.status,
+  imagesGenerated: state.metadata['imagesGenerated'] ?? 0,
+  imagesSkipped: state.metadata['imagesSkipped'] ?? 0,
+  usage: state.metadata['usage'] ?? {},
+})
+
+/** Usage and generated counts span the run. Status and skipped counts describe this invocation. */
+const recordImageAttemptUsage = async (sceneRunDir: string, incoming: PipelineProviderState, previous: PipelineProviderState | undefined, attemptId: string): Promise<PipelineProviderState> => {
+  const recorded = previous?.metadata['usageByAttempt']
+  if (recorded !== undefined && !isRecord(recorded)) throw UsageError('Invalid comic image usage by attempt.')
+  const attempts: Record<string, unknown> = { ...recorded }
+  if (previous && recorded === undefined && previous.attempts > 0) attempts['previous'] = imageAttemptUsage(previous)
+  attempts[attemptId] = imageAttemptUsage(incoming)
+  let imagesGenerated = 0
+  const usage = new Map<string, number>()
+  for (const [id, attempt] of Object.entries(attempts)) {
+    if (!isRecord(attempt) || typeof attempt['imagesGenerated'] !== 'number' || !isRecord(attempt['usage'])) throw UsageError('Invalid comic image attempt usage.')
+    // A stopped process may have recorded returned usage and published panels before its terminal manifest write.
+    const shouldRecover = id !== attemptId && attempt['status'] === 'running'
+    const snapshot = shouldRecover ? await readComicImageUsageCheckpoint(sceneRunDir, incoming, id) : undefined
+    const observed = snapshot && snapshot.imagesGenerated > attempt['imagesGenerated']
+      ? snapshot
+      : { imagesGenerated: attempt['imagesGenerated'], usage: attempt['usage'] }
+    if (snapshot) attempts[id] = { ...attempt, ...observed }
+    imagesGenerated += observed.imagesGenerated
+    for (const [key, value] of Object.entries(observed.usage)) {
+      if (typeof value !== 'number' || !Number.isFinite(value)) throw UsageError(`Invalid comic image usage metric: ${key}.`)
+      usage.set(key, (usage.get(key) ?? 0) + value)
+    }
+  }
+  return {
+    ...incoming,
+    attempts: Object.keys(attempts).length,
+    metadata: { ...incoming.metadata, attemptId, imagesGenerated, usage: Object.fromEntries(usage), usageByAttempt: attempts },
+  }
+}
+
 export const updateComicImageManifest = async (input: {
   sceneRunDir: string
   sourceIdentity: ComicSourceIdentity
   providers: PipelineProviderState[]
-  artifactRefs: Array<{ path: string, sha256: string }>
-}): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, (manifest) => {
+  attemptId?: string
+  artifactRefs?: ComicStageArtifactRef[] | ((retained: ComicStageArtifactRef[]) => Promise<ComicStageArtifactRef[]>)
+}): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, async (manifest) => {
   if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) throw UsageError('Comic image generation can update only the exact canonical scene manifest.')
   const item = manifest.items[0]
   if (!item) throw UsageError('Canonical comic scene item is missing.')
   const prior = comicMetadata(item)
   const targetKeys = input.providers.map(provider => provider.targetKey as string)
   if (targetKeys.length === 0 || targetKeys.some(key => !key) || new Set(targetKeys).size !== targetKeys.length) throw UsageError('Comic image stage requires unique operation-scoped provider targets.')
-  const providers = [...item.providers.filter(provider => provider.operation !== 'comic-image'), ...input.providers]
+  const replaced = item.providers.filter(provider => provider.operation === 'comic-image')
+  const runHistory = readImageRunHistory(item)
+  const known = [...runHistory, ...replaced]
+  const archived = replaced.filter(provider => !input.providers.some(incoming => sameImageRunTarget(provider, incoming)))
+  const history = [
+    ...runHistory.filter(entry => !archived.some(provider => sameImageRunTarget(entry, provider)) && !input.providers.some(incoming => sameImageRunTarget(entry, incoming))),
+    ...archived,
+  ]
+  const incoming = await Promise.all(input.providers.map(provider => input.attemptId
+    ? recordImageAttemptUsage(input.sceneRunDir, provider, known.findLast(state => sameImageRunTarget(state, provider)), input.attemptId)
+    : provider))
+  const providers = [...item.providers.filter(provider => provider.operation !== 'comic-image'), ...incoming]
   const imageStage = {
     requirement: 'required' as const,
     status: providerBackedStageStatus(targetKeys, providers),
     execution: { kind: 'provider-targets' as const },
     targetKeys: targetKeys as [string, ...string[]],
-    artifactRefs: input.artifactRefs,
+    artifactRefs: typeof input.artifactRefs === 'function'
+      ? await input.artifactRefs(prior.stages.image.artifactRefs)
+      : input.artifactRefs ?? prior.stages.image.artifactRefs,
   }
   const stages = { ...prior.stages, image: imageStage }
   const required = Object.values(stages).filter(stage => stage.requirement === 'required')
   const status = aggregateComicStageStatus(required)
-  return { ...manifest, items: [{ ...item, status, providers, metadata: { ...item.metadata, comic: { ...prior, stages } } as never }] }
+  const metadata = {
+    ...item.metadata,
+    ...(history.length > 0 ? { [COMIC_IMAGE_RUN_HISTORY_KEY]: history } : {}),
+    comic: { ...prior, stages },
+  }
+  return { ...manifest, items: [{ ...item, status, providers, metadata: metadata as never }] }
 })
 
-export const recordComicImageRevision = async (input: {
-  sceneRunDir: string
-  evaluation: {
-    schemaVersion: 1
-    experimentId: string
-    planFingerprint: string
-    evidenceDirectory: string
-    imageProvider: { service: string; model: string; attempts: number; completed: number; ambiguous: number }
-    comparisonProvider: { service: string; model: string; attempts: number; completed: number; invalid: number }
-    promotedPanels: number[]
-    retainedOriginalPanels: number[]
-    actualCostUsd: number
-  }
-  artifactRefs: Array<{ path: string; sha256: string }>
-  publishFinal?: (() => Promise<Array<{ path: string; sha256: string }>>) | undefined
-  rollbackFinal?: (() => Promise<void>) | undefined
-}): Promise<PipelineManifest> => {
-  try {
-    return await updateManifest(input.sceneRunDir, async (manifest) => {
-      if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1) throw UsageError('Comic image revision can update only one canonical comic scene manifest.')
-      const item = manifest.items[0]
-      if (!item) throw UsageError('Canonical comic scene item is missing.')
-      const prior = comicMetadata(item)
-      const rawEvaluations = item.metadata['comicImageRevisionEvaluations']
-      if (rawEvaluations !== undefined && !Array.isArray(rawEvaluations)) throw UsageError('Canonical comic revision provenance must be an array.')
-      const evaluations = (rawEvaluations ?? []).filter((candidate): candidate is Record<string, unknown> => candidate !== null && typeof candidate === 'object' && !Array.isArray(candidate))
-      const withoutCurrent = evaluations.filter(candidate => candidate['planFingerprint'] !== input.evaluation.planFingerprint)
-      const imageStage = { ...prior.stages.image, artifactRefs: input.artifactRefs }
-      const next = {
-        ...manifest,
-        items: [{
-          ...item,
-          metadata: {
-            ...item.metadata,
-            comicImageRevisionEvaluations: [...withoutCurrent, input.evaluation],
-            comic: { ...prior, stages: { ...prior.stages, image: imageStage } },
-          } as never,
-        }],
-      }
-      if (input.publishFinal) {
-        const published = await input.publishFinal()
-        if (canonicalTtsJson(published) !== canonicalTtsJson(input.artifactRefs)) throw UsageError('Published comic revision panels do not match the canonical manifest update.')
-      }
-      return next
-    })
-  } catch (error) {
-    await input.rollbackFinal?.()
-    throw error
-  }
+type PanelRefUpdate = { path: string, sha256: string | null }
+
+const selectionChangesPresentation = async (
+  sceneRunDir: string,
+  presentation: CanonicalComicItemMetadata['presentation'],
+  panelRefs: PanelRefUpdate[],
+): Promise<boolean> => {
+  const { planRef, selectedPresentationId } = presentation
+  if (!selectedPresentationId || !planRef) return false
+  const stored = await readContainedArtifactFile(sceneRunDir, planRef.path)
+  if (stored.sha256 !== planRef.sha256) throw UsageError('Selected slideshow plan changed before panel adoption.')
+  const archive: { plan: ComicPresentationPlan } | ComicPresentationPlan = JSON.parse(stored.bytes.toString('utf8'))
+  const plan = validateComicPresentationPlan('plan' in archive ? archive.plan : archive)
+  if (plan.presentationId !== selectedPresentationId) throw UsageError('Selected slideshow is bound to a different presentation plan.')
+  const selected = new Map(panelRefs.map(ref => [ref.path, ref.sha256]))
+  return plan.inputs.panels.some(panel => selected.has(panel.path) && selected.get(panel.path) !== panel.sha256)
 }
+
+/** Rebind canonical image refs and invalidate a selected slideshow only when its own input bytes change. */
+export const updateComicImageSelectionRefs = async (input: {
+  sceneRunDir: string
+  refs: PanelRefUpdate[]
+  publish?: (priorRefs: ComicStageArtifactRef[], presentationBefore?: ComicSelectionPresentationSnapshot) => Promise<void>
+  rollback?: { panels: PanelRefUpdate[], presentationBefore?: ComicSelectionPresentationSnapshot | undefined }
+}): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, async (manifest) => {
+  if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1) throw UsageError('Comic panel selection can update only one canonical comic scene manifest.')
+  const item = manifest.items[0]
+  if (!item) throw UsageError('Canonical comic scene item is missing.')
+  const prior = comicMetadata(item)
+  const incoming = new Map(input.refs.map(ref => [ref.path, ref.sha256]))
+  const existingRefs = prior.stages.image.artifactRefs
+  const stages = { ...prior.stages }
+  let presentation = prior.presentation
+  let invalidated: ComicSelectionPresentationSnapshot | undefined
+  const restore = input.rollback?.presentationBefore
+  if (await selectionChangesPresentation(input.sceneRunDir, presentation, input.rollback?.panels ?? input.refs)) {
+    invalidated = { stage: stages.presentation, presentation, audioHash: hashCanonicalTtsValue(prior.audio) }
+    stages.presentation = { requirement: 'optional', status: 'incomplete', execution: { kind: 'local', state: 'missing' }, targetKeys: [], artifactRefs: [] }
+    presentation = {}
+  } else if (restore && !presentation.selectedPresentationId && stages.presentation.status === 'incomplete' && restore.audioHash === hashCanonicalTtsValue(prior.audio)) {
+    stages.presentation = restore.stage
+    presentation = restore.presentation
+  }
+  await input.publish?.(existingRefs.filter(ref => incoming.has(ref.path)), invalidated)
+  if (stages.image.requirement !== 'not-requested') {
+    const artifactRefs = existingRefs.flatMap(ref => {
+      const sha256 = incoming.get(ref.path)
+      incoming.delete(ref.path)
+      return sha256 === null ? [] : [{ path: ref.path, sha256: sha256 ?? ref.sha256 }]
+    })
+    for (const [path, sha256] of incoming) {
+      if (sha256 !== null) artifactRefs.push({ path, sha256 })
+    }
+    stages.image = { ...stages.image, artifactRefs }
+  }
+  return { ...manifest, items: [{ ...item, metadata: { ...item.metadata, comic: { ...prior, stages, presentation } } as never }] }
+})
 
 export const updateComicPresentationManifest = async (input: {
   sceneRunDir: string

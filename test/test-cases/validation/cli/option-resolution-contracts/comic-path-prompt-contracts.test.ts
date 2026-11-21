@@ -1,10 +1,11 @@
 import { describe,expect,test } from 'bun:test'
 import { join } from 'node:path'
+import * as v from 'valibot'
+import { PromptsConfigSchema } from '~/cli/commands/visuals/comic/schemas/schemas'
 import {
 buildComicPagePrompt,
 buildComicPagePromptData
 } from '~/cli/commands/visuals/comic/comic-commands/generate-images/comic-page-utils'
-import { applyImagePromptVariation } from '~/cli/commands/visuals/comic/comic-commands/generate-images/prompt-variations'
 import {
 buildSketchPrompt
 } from '~/cli/commands/visuals/comic/comic-commands/generate-sketches/generate-scene-sketches'
@@ -12,9 +13,12 @@ import {
 getSceneOutputDirectory
 } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import {
+getLegacyPageComicImagePath,
+getLegacyPanelComicImagePath,
 getPageComicImageFilename,
 getPageComicImagePath,
-getPanelComicImagePath
+getPanelComicImagePath,
+loadPromptsConfig
 } from '~/cli/commands/visuals/comic/comic-utils/scene-utils'
 import type { PanelBundleData,PromptsConfig } from '~/types'
 
@@ -28,33 +32,28 @@ describe('option resolution contracts', () => {
       expect(getPageComicImageFilename(1, [1, 3, 7])).toBe('page-01-panels-01_03_07.png')
     })
 
-  test('comic final image paths nest under the resolved run directory; variations add prefixes', () => {
+  test('comic final image paths keep canonical selections flat and nest new candidates by run ID without model or variation directories', () => {
       const base = getSceneOutputDirectory('scene-one')
       expect(getPanelComicImagePath('scene-one', 1)).toBe(join(base, 'panels', 'panel-01.png'))
-      expect(getPanelComicImagePath('scene-one', 1, 'gpt-image-2.6-flare')).toBe(join(base, 'panels', 'gpt-image-2.6-flare', 'panel-01.png'))
-      expect(getPanelComicImagePath('scene-one', 1, 'gpt-image-2.6-flare', 'animation-polish')).toBe(join(base, 'panels', 'animation-polish', 'gpt-image-2.6-flare', 'panel-01.png'))
-      expect(getPageComicImagePath('scene-one', 1, [1, 2], 'gpt-image-2.6-flare', 'cinematic-depth')).toBe(join(base, 'pages', 'cinematic-depth', 'gpt-image-2.6-flare', 'page-01-panels-01-02.png'))
+      expect(getPanelComicImagePath('scene-one', 1, { runId: 'run-a' })).toBe(join(base, 'panels', 'run-a', 'panel-01.png'))
+      expect(getPageComicImagePath('scene-one', 1, [1, 2], { runId: 'run-a' })).toBe(join(base, 'pages', 'run-a', 'page-01-panels-01-02.png'))
+      expect(getPanelComicImagePath('scene-one', 3, { runId: 'run-a' })).not.toBe(getPanelComicImagePath('scene-one', 3, { runId: 'run-b' }))
     })
 
-  test('comic final image prompt variations apply only non-canonical prompt prefixes', () => {
-      const prompts = {
-        'Image Prompt Variations': {
-          'animation-polish': 'Production animation instruction.',
-          'cinematic-depth': 'Cinematic depth instruction.',
-        },
-      } as unknown as PromptsConfig
-      const basePrompt = 'Base final prompt.'
+  test('comic historical multi-model and explicit-variation candidates stay readable at their legacy locations', () => {
+      const base = getSceneOutputDirectory('scene-one')
+      expect(getLegacyPanelComicImagePath('scene-one', 1, { runId: 'run-a', model: 'gpt-image-2.6-flare' })).toBe(join(base, 'panels', 'run-a', 'gpt-image-2.6-flare', 'panel-01.png'))
+      expect(getLegacyPanelComicImagePath('scene-one', 1, { runId: 'run-a', model: 'gpt-image-2.6-flare', variation: 'canonical' })).toBe(join(base, 'panels', 'run-a', 'canonical', 'gpt-image-2.6-flare', 'panel-01.png'))
+      expect(getLegacyPageComicImagePath('scene-one', 1, [1, 2], { runId: 'run-a', model: 'gpt-image-2.6-flare', variation: 'cinematic-depth' })).toBe(join(base, 'pages', 'run-a', 'cinematic-depth', 'gpt-image-2.6-flare', 'page-01-panels-01-02.png'))
+    })
 
-      expect(applyImagePromptVariation(basePrompt, 'canonical', prompts)).toBe(basePrompt)
-
-      const animationPrompt = applyImagePromptVariation(basePrompt, 'animation-polish', prompts)
-      const cinematicPrompt = applyImagePromptVariation(basePrompt, 'cinematic-depth', prompts)
-
-      expect(animationPrompt.startsWith('Production animation instruction.')).toBe(true)
-      expect(cinematicPrompt.startsWith('Cinematic depth instruction.')).toBe(true)
-      expect(animationPrompt).toContain(`\n\n${basePrompt}`)
-      expect(cinematicPrompt).toContain(`\n\n${basePrompt}`)
-      expect(animationPrompt).not.toBe(cinematicPrompt)
+  test('comic prompt configuration loads without the retired Image Prompt Variations section and tolerates a legacy copy', async () => {
+      const raw = await Bun.file(join(import.meta.dir, '../../../../../src/cli/commands/visuals/comic/comic-prompts/prompts.json')).json() as Record<string, unknown>
+      expect(raw).not.toHaveProperty('Image Prompt Variations')
+      const prompts = await loadPromptsConfig()
+      expect(Object.keys(prompts).sort()).toEqual(['Character Sketch Prompts', 'Scene Prompts', 'Sketch Prompts'])
+      const legacy = v.parse(PromptsConfigSchema, { ...raw, 'Image Prompt Variations': { 'animation-polish': 'Legacy prefix.', 'cinematic-depth': 'Legacy prefix.' } })
+      expect(legacy).not.toHaveProperty('Image Prompt Variations')
     })
 
   test('comic final page prompt preserves panel order and speech text', () => {
@@ -130,9 +129,7 @@ describe('option resolution contracts', () => {
       expect(prompt).toContain('Treat every named fixed anchor as a presence-and-geometry requirement')
       expect(prompt).toContain('Preserve fixed furniture footprint, silhouette, connectedness, orientation, edge count, and relationship to walls')
       expect(prompt).toContain('foreground placement caused by a new camera is allowed, physical relocation is not')
-      expect(prompt).toContain('Create shot diversity through camera distance, elevation, lens feel, foreground/background layering, pose, expression, eyeline, and selective cropping while staying on the declared side of the axis of action.')
-      expect(prompt).not.toContain('camera side')
-      expect(prompt).not.toContain('character blocking')
+      expect(prompt).toContain('Create shot diversity through camera distance, camera side, elevation, lens feel, foreground/background layering, character blocking, pose, expression, eyeline, and selective cropping.')
       expect(prompt).not.toContain('Where the prose shot plan and the ledger disagree')
       expect(prompt).not.toContain('Blocking ledger')
       expect(prompt).not.toContain('Source Segments')

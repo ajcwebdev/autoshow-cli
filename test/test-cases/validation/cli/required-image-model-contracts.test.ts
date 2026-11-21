@@ -24,7 +24,7 @@ test('standalone provider comparisons and prompt-text exemptions', () => {
   expect(() => check(['image', '--', '--help'])).toThrow()
   expect(() => check(['image', 'prompt --help --qa-only'])).toThrow()
   expect(() => check(['comic', 'reference-sketch', 'fixture', '--qa-only'])).toThrow()
-  expect(() => check(['comic', 'generate-images', 'fixture', '--qa-only'])).not.toThrow()
+  expect(() => check(['comic', 'generate-images', 'fixture', '--qa-only'])).toThrow('requires exactly --provider openai=gpt-image-2.6-flare')
   expect(() => check(['image', 'literal $() `text`', '--provider=openai=gpt-image-2.6-flare', '--price'])).not.toThrow()
 })
 test('resolved and resumed targets and internal repairs retain policy; absent environment unrestricted', async () => {

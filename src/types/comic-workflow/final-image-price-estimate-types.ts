@@ -1,23 +1,15 @@
-import type { BlockingHardKeyPolicy, ComicGridSpec, ComicPanelSelection, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePromptVariation, LlmModel, OpenAIImageInputEstimate } from '~/types'
-
-type FinalImageQaRequest =
-  | { enabled: false }
-  | { enabled: true; judgeModel: LlmModel; maxRepairs: number }
+import type { ComicGridSpec, ComicPanelSelection, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, OpenAIImageInputEstimate } from '~/types'
 
 export type FinalImageEstimateRequestBase = {
   sceneSlug: string
+  /** Run whose candidate destinations are checked; omitted for a fresh run, which always receives a new run ID. */
   runId?: string
-  models: readonly ImageGenerationModel[]
+  model: ImageGenerationModel
   size: ImageGenerationSize
   quality: ImageGenerationQuality
   force: boolean
   selection: ComicPanelSelection
   selectionSpecified: boolean
-  variations: readonly ImagePromptVariation[]
-  variationsSpecified: boolean
-  blockingLayoutGuide: boolean
-  blockingHardKeys?: BlockingHardKeyPolicy
-  qa: FinalImageQaRequest
 }
 
 export type FinalImageEstimateRequest =
@@ -26,11 +18,9 @@ export type FinalImageEstimateRequest =
   | (FinalImageEstimateRequestBase & { mode: 'grid'; grid: ComicGridSpec; panelsPerImage: number })
 
 export type FinalImageOutputInventory = {
-  model: ImageGenerationModel
-  variation: ImagePromptVariation
-  outputPath: string
+  /** Run-scoped destination used by dispatch, or null when no run ID exists yet. */
+  outputPath: string | null
   exists: boolean
-  qaReportReusable: boolean
 }
 
 export type FinalImagePageInventory = {
@@ -40,7 +30,8 @@ export type FinalImagePageInventory = {
     pageNumber: number
     panelNumbers: readonly number[]
     referenceCount: number
-    outputs: readonly FinalImageOutputInventory[]
+    output: FinalImageOutputInventory
+    pending: boolean
   }>
 }
 
@@ -51,17 +42,16 @@ export type FinalImagePanelInventory = {
     directoryName: string
     panelNumber: number
     referenceCount: number
-    variations: ReadonlyArray<{
-      variation: ImagePromptVariation
-      allModelsExist: boolean
-      qaReusable?: boolean
-      pendingQaCount?: number
-    }>
+    /** Run-scoped candidate written by dispatch. */
+    candidate: FinalImageOutputInventory
+    /** Canonical selected slot (`panels/panel-NN.png`). */
+    selection: { path: string; exists: boolean }
+    pending: boolean
   }>
   gridPages: ReadonlyArray<{
     pageNumber: number
     panelNumbers: readonly number[]
-    outputs: readonly FinalImageOutputInventory[]
+    output: FinalImageOutputInventory
   }>
 }
 
@@ -74,7 +64,6 @@ export type PageModeEstimate = {
   mode: 'page'
   totalOutputs: number
   skipped: number
-  outputsByModel: ReadonlyArray<{ model: ImageGenerationModel; outputs: number }>
 }
 
 export type PanelModeEstimate = {
@@ -92,57 +81,25 @@ export type PanelModeEstimate = {
 
 export type FinalImageModeEstimate = PageModeEstimate | PanelModeEstimate
 
-export type FinalImageQaWork =
-  | {
-    mode: 'page'
-    judgeModel: LlmModel
-    initialJudgeCalls: number
-    reusedReports: number
-    maximumAdditionalImageEdits: number
-    maximumAdditionalJudgeCalls: number
-    estimatedInputTokens: number
-    estimatedOutputTokens: number
-  }
-  | {
-    mode: 'panel'
-    judgeModel: LlmModel
-    initialJudgeCalls: number
-    maximumAdditionalImageEdits: number
-    maximumRepairQaCalls: number
-    maximumComparisonJudgeCalls: number
-    maximumAdditionalJudgeCalls: number
-    maximumTotalJudgeCalls: number
-    estimatedInputTokens: number
-    estimatedOutputTokens: number
-  }
-
 export type ImagePricingEstimate = {
   outputLabel: string
-  rows: ReadonlyArray<{
-    model: ImageGenerationModel
-    modelLabel: string
-    outputs: number
-    pricePerImage: number | null
-    subtotal: number | null
-  }>
-  knownTotal: number
-  hasUnknown: boolean
+  model: ImageGenerationModel
+  modelLabel: string
+  outputs: number
+  pricePerImage: number | null
+  subtotal: number | null
 }
 
 export type FinalImageInputEstimate = OpenAIImageInputEstimate & {
-  models: readonly ImageGenerationModel[]
-  initialCalls: number
-  initialReferenceInputs: number
-  maximumRepairCalls: number
-  maximumRepairReferenceInputs: number
+  model: ImageGenerationModel
+  calls: number
 }
 
 export type FinalImagePricingEstimate = {
   primary: ImagePricingEstimate
-  repair: ImagePricingEstimate | null
-  judgeCost: number | null
   imageInput: FinalImageInputEstimate | null
-  maximumModeledCost: number | null
+  /** Known image output plus modeled input cost, or null when any part is unpriced. */
+  estimatedTotal: number | null
 }
 
 export type FinalImageEstimateResult =
@@ -155,6 +112,5 @@ export type FinalImageEstimateResult =
     request: FinalImageEstimateRequest
     inventory: FinalImagePageInventory | FinalImagePanelInventory
     modeEstimate: FinalImageModeEstimate
-    qaWork: FinalImageQaWork | null
     pricing: FinalImagePricingEstimate
   }

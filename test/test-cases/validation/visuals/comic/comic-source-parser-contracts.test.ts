@@ -4,6 +4,7 @@ import { validateStructuredScriptSourceSpans } from '~/cli/commands/visuals/comi
 import {
 formatSourceSegmentsMarkdown
 } from '~/cli/commands/visuals/comic/comic-utils/source-coverage-utils'
+import { RETIRED_STAGING_LABELS } from '~/cli/commands/visuals/comic/comic-utils/structured-script-utils/retired-staging-labels'
 import { parseScriptMarkdownToStructuredData as parseStructuredScript } from '~/cli/commands/visuals/comic/comic-utils/structured-script-utils/structured-script-parser'
 import type {
 CharacterCatalogService
@@ -432,5 +433,92 @@ describe('comic source coverage contracts', () => {
     expect(dialogue[2]!.delivery).toBe('quietly')
     expect(parsed.beats.some(beat => beat.text.trim() === '')).toBe(false)
     expect(() => validateStructuredScriptSourceSpans(parsed, script)).not.toThrow()
+  })
+})
+
+describe('retired staging directive labels', () => {
+  const sceneLines = (body: string[]): string => ['# Episode Nine', '', '## Scene: "Probe"', '', '**INT. CARGO BAY - NIGHT**', '', ...body, ''].join('\n')
+  const parseError = (content: string, path = 'input/02-script/legacy-staging.md'): string => {
+    try {
+      parseScriptMarkdownToStructuredData(content, path)
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error)
+    }
+    throw new Error('expected the legacy staging script to be rejected')
+  }
+
+  test('lists exactly the six retired labels', () => {
+    expect([...RETIRED_STAGING_LABELS]).toEqual(['BLOCKING', 'CAMERA', 'BREAK-180', 'COSTUME', 'EXTRAS', 'SKIP-PANELS'])
+  })
+
+  for (const label of RETIRED_STAGING_LABELS) {
+    test(`rejects **${label}:** with file:line in inline, bold, separate-body and after-speaker forms`, () => {
+      // Line 7 is the first body line after the six-line header in sceneLines.
+      const forms: Array<{ name: string; body: string[]; line: number }> = [
+        { name: 'inline', body: [`**${label}:** {panel: 1} Low and wide.`], line: 7 },
+        { name: 'bold', body: [`**${label}: {panel: 1} Low and wide.**`], line: 7 },
+        { name: 'separate-body', body: [`**${label}:**`, '', '{panel: 1} Low and wide.'], line: 7 },
+        { name: 'lowercase inline', body: [`**${label.toLowerCase()}:** Low and wide.`], line: 7 },
+        { name: 'inline after a speaker', body: ['**CAPTAIN**', '', `**${label}:** Tight on the captain.`, '', 'Listen up.'], line: 9 },
+        { name: 'separate-body after a speaker', body: ['**CAPTAIN**', '', `**${label}:**`, '', 'Tight on the captain.', '', 'Listen up.'], line: 9 },
+      ]
+      for (const form of forms) {
+        const message = parseError(sceneLines(form.body))
+        expect(message, form.name).toContain('legacy-staging.md:' + form.line + ' **' + label + ':**')
+        expect(message, form.name).toContain('retired staging directive')
+        expect(message, form.name).toContain('draft-scenes --only prepare')
+      }
+    })
+  }
+
+  test('reports every occurrence in source order with its own line', () => {
+    const message = parseError(sceneLines(['**BLOCKING:**', '', 'Everyone waits.', '', '**CAPTAIN**', '', 'Listen.', '', '**SKIP-PANELS: {reason: recap}**']))
+    expect(message).toContain('uses retired staging directives')
+    const listed = message.split('\n').filter(line => line.startsWith('- '))
+    expect(listed).toEqual([
+      '- legacy-staging.md:7 **BLOCKING:** "**BLOCKING:**"',
+      '- legacy-staging.md:15 **SKIP-PANELS:** "**SKIP-PANELS: {reason: recap}**"',
+    ])
+  })
+
+  test('a label without a colon, a bracket note and prose mentions are not retired directives', () => {
+    const parsed = parseScriptMarkdownToStructuredData(sceneLines(['[CAMERA: a bracket note stays a panel note.]', '', 'The camera crew sets up the blocking for the scene.']), 'input/legacy-staging.md')
+    expect(parsed.beats.map(beat => [beat.type, beat.text])).toEqual([
+      ['panel-note', 'CAMERA: a bracket note stays a panel note.'],
+      ['direction', 'The camera crew sets up the blocking for the scene.'],
+    ])
+    expect(parsed).not.toHaveProperty('staging')
+  })
+
+  test('soundscape directives and panel notes still parse beside speech', () => {
+    const content = sceneLines(['[Panel 1: The captain at the door.]', '', '**SFX:** door hiss', '', '**CAPTAIN**', '', 'Everyone, listen up.', '', '**AMBIENCE:** engine hum', '', '[Panel 2: The engineer answers.]', '', '**ENGINEER**', '', 'We are listening.'])
+    const parsed = parseScriptMarkdownToStructuredData(content, 'input/legacy-staging.md')
+    expect(parsed.beats.map(beat => [beat.type, beat.text, beat.speakerLabel ?? null])).toEqual([
+      ['panel-note', 'Panel 1: The captain at the door.', null],
+      ['dialogue', 'Everyone, listen up.', 'CAPTAIN'],
+      ['panel-note', 'Panel 2: The engineer answers.', null],
+      ['dialogue', 'We are listening.', 'ENGINEER'],
+    ])
+    expect(parsed.scene.soundscape.cues.map(cue => cue.prompt)).toEqual(['door hiss'])
+    expect(parsed.scene.soundscape.ambientBeds.map(bed => bed.prompt)).toEqual(['engine hum'])
+    expect(() => validateStructuredScriptSourceSpans(parsed, content)).not.toThrow()
+  })
+
+  test('migrating each directive in place to a panel note or prose preserves speech and source ordering', () => {
+    const plain = sceneLines(['**CAPTAIN**', '', 'Everyone, listen up.', '', '**ENGINEER**', '', 'We are listening.'])
+    const legacy = sceneLines(['**BLOCKING:**', '', 'The crew gathers.', '', '**CAPTAIN**', '', '**CAMERA:** Tight on the captain.', '', 'Everyone, listen up.', '', '**ENGINEER**', '', 'We are listening.'])
+    expect(parseError(legacy)).toContain('legacy-staging.md:7 **BLOCKING:**')
+    const migrated = sceneLines(['The crew gathers.', '', '**CAPTAIN**', '', '_(tight on the captain)_', '', 'Everyone, listen up.', '', '[Panel note: tight on the engineer.]', '', '**ENGINEER**', '', 'We are listening.'])
+    const plainParsed = parseScriptMarkdownToStructuredData(plain, 'input/legacy-staging.md')
+    const migratedParsed = parseScriptMarkdownToStructuredData(migrated, 'input/legacy-staging.md')
+    const speech = (parsed: typeof plainParsed) => parsed.beats.filter(beat => beat.type === 'dialogue').map(beat => [beat.speakerLabel, beat.text])
+    expect(speech(migratedParsed)).toEqual(speech(plainParsed))
+    expect(migratedParsed.sourceSegments.map(segment => [segment.type, segment.text])).toEqual([
+      ['direction', 'The crew gathers.'],
+      ['dialogue', 'Everyone, listen up.'],
+      ['panel-note', 'Panel note: tight on the engineer.'],
+      ['dialogue', 'We are listening.'],
+    ])
+    expect(() => validateStructuredScriptSourceSpans(migratedParsed, migrated)).not.toThrow()
   })
 })

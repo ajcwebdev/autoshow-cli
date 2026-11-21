@@ -14,7 +14,7 @@ import { generateComicSlideshow } from '~/cli/commands/visuals/comic/comic-comma
 import { resolveComicScriptReference } from '~/cli/commands/visuals/comic/comic-utils/project-paths'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
-import { asCtx, parseRoot } from './shared'
+import { asCtx, expectUnknownCommand, parseRoot } from './shared'
 
 const parseGenerateImagesArgs = (args: string[]) =>
   coerceAndValidateGenerateImages(parseCommandInvocation(
@@ -60,9 +60,8 @@ test('comic draft-treatment requires the treatment path parameter', () => {
 
 test('comic draft-scenes panel-count only applies to the scene stage', () => {
   expect(() => parseDraftScenesArgs(['script.md', '--panel-count', 'ten'])).toThrow('Invalid panel count "ten"')
-  expect(() => parseDraftScenesArgs(['script.md', '--panel-count', '4', '--only', 'structure'])).toThrow('--panel-count only applies to the scene stage')
-  expect(() => parseDraftScenesArgs(['script.md', '--panel-count', '4', '--only', 'scene', '--rebind'])).toThrow('--panel-count cannot be combined with --rebind')
-  expect(() => parseDraftScenesArgs(['script.md', '--panel-count', '4', '--reconcile-from-directives'])).toThrow('--panel-count cannot be combined with --reconcile-from-directives')
+  expect(() => parseDraftScenesArgs(['script.md', '--panel-count', '4', '--only', 'prepare'])).toThrow('--panel-count only applies to the scene stage')
+  expect(() => parseDraftScenesArgs(['script.md', '--panel-count', '4', '--only', 'panel-prompts'])).toThrow('--panel-count only applies to the scene stage')
 })
 
 test('comic generate-images rejects invalid page selection flags', () => {
@@ -90,7 +89,7 @@ test('comic generate-slideshow validates local timing and audio-selection flags 
 test('comic generate-images rejects invalid and duplicate image models', () => {
   expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=not-a-model'])).toThrow('Invalid image model "not-a-model"')
   expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=gpt-image-2'])).toThrow('Invalid image model "gpt-image-2"')
-  expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=gpt-image-2.6-flare', '--provider', 'openai=gpt-image-2.6-flare'])).toThrow('Duplicate image model "gpt-image-2.6-flare" is not allowed')
+  expect(() => parseGenerateImagesArgs(['script.md', '--provider', 'openai=gpt-image-2.6-flare', '--provider', 'openai=gpt-image-2.6-flare'])).toThrow('accepts exactly one --provider')
 })
 
 test('comic shorthand resolution errors name the expected directory and prefix', async () => {
@@ -98,29 +97,17 @@ test('comic shorthand resolution errors name the expected directory and prefix',
     .rejects.toThrow('Expected exactly one Markdown file in "input/scripts/99-script" beginning with "01-"')
 })
 
-test('comic generate-images continuity flags require the QA-only audit chain', () => {
-  expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-only'])).toThrow('--continuity-only requires --continuity-qa')
-  expect(() => parseGenerateImagesArgs(['script.md', '--continuity-qa'])).toThrow('--continuity-qa requires --qa-only')
-  expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--labels', 'labels.json'])).toThrow('--labels requires --continuity-qa')
-  expect(() => parseGenerateImagesArgs(['script.md', '--qa-only', '--continuity-qa', '--trusted-anchor-panel', 'two'])).toThrow('Invalid trusted anchor panel "two"')
-})
-
 test('comic generate-images rejects the prompts target as invalid', () => {
   expect(() => parseGenerateImagesArgs(['script.md', '--target', 'prompts'])).toThrow('Invalid target "prompts"')
-})
-
-test('comic generate-images rejects variations with non-final targets', () => {
-  expect(() => parseGenerateImagesArgs(['script.md', '--target', 'sketches', '--variation', 'cinematic-depth']))
-    .toThrow('--variation only applies when --target is images or both')
 })
 
 test('comic draft-scenes rejects invalid concurrency values', () => {
   expect(() => parseDraftScenesArgs(['script.md', '--provider-concurrency', '0'])).toThrow('Invalid concurrency')
 })
 
-test('deprecated comic aliases remain registered for the compatibility release', () => {
+test('deprecated reference-voice alias remains registered while the review-notes and review-sheet aliases are retired', () => {
   expect(parseRoot(['comic', 'reference-voice']).command?.name).toBe('comic reference-voice list')
   expect(parseRoot(['comic', 'reference-voice', 'import', 'hero']).command?.name).toBe('comic reference-voice import')
-  expect(parseRoot(['comic', 'review-sheet', '02-01']).command?.name).toBe('comic review-sheet')
-  expect(parseRoot(['comic', 'review-notes', '02-01', '--notes', 'notes.md']).command?.name).toBe('comic review-notes')
+  expectUnknownCommand(['comic', 'review-sheet', '02-01'], 'comic review-sheet')
+  expectUnknownCommand(['comic', 'review-notes', '02-01', '--notes', 'notes.md'], 'comic review-notes')
 })

@@ -59,26 +59,25 @@ input/characters/
 input/locations/
   locations-reference.json
   location-sketches.json
-  location-plans.json
 
 output/<timestamp>_<scene-slug>/
   manifest.json
   metadata/
     structured-script.json
+    draft-prompt.md
     scene.json
-    blocking-plan.json
-    blocking/                       # compiled diagrams and ledger
     panel-prompts/                  # images read directly from current canonical roots
     review/
-  panels/                           # reviewed still panels
-  pages/                            # grouped pages
-  sketches/
-  qa/                               # image/continuity audits
+  panels/
+    panel-NN.png                    # selected still panels (first valid generation or review --use)
+    <run-id>/panel-NN.png           # per-run individual panel candidates
+  pages/<run-id>/                   # provider-generated grouped pages and local grids
+  sketches/<run-id>/
   audio/                            # retained scene audio/soundscape state and masters
   presentation/                     # derived plan, WAV, and MP4
 ```
 
-Reviewed source coverage and voice snapshots bind downstream work. Protected voice registrations, consent, and reference recordings remain outside run outputs and the visual catalog. Optional invalid candidates, review/reconciliation logs, and bloopers are diagnostic evidence, not canonical replacements. [Comic guides](../commands/05-visuals/comic/00-comic-overview.md) describe stage artifacts and recovery.
+Reviewed source coverage and voice snapshots bind downstream work. Protected voice registrations, consent, and reference recordings remain outside run outputs and the visual catalog. Optional invalid candidates and unselected run candidates are retained evidence, not canonical replacements; only an explicit `comic review --run <image-run-id> --use` replaces a selected panel. Older runs may also keep `<run-id>/<model>/` candidate directories, `qa/` reports, `metadata/blocking/` files, and `location-plans.json`; they are left in place, and new runs neither produce nor depend on them. [Comic guides](../commands/05-visuals/comic/00-comic-overview.md) describe stage artifacts and recovery.
 
 ## Metadata
 

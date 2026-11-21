@@ -2,7 +2,6 @@ import { referenceSketchCommand } from '../comic-commands/reference-sketch/refer
 import { draftScenesCommand } from '../comic-commands/draft-scenes/draft-scenes-command'
 import { draftTreatmentCommand } from '../comic-commands/draft-treatment/draft-treatment-command'
 import { generateImagesCommand } from '../comic-commands/generate-images/generate-images-command'
-import { reviewNotesCommand } from '../comic-commands/review/review-notes-command'
 import { reviewSheetCommand } from '../comic-commands/review/review-sheet-command'
 import {
   coerceAndValidateDraftScenes,
@@ -10,8 +9,6 @@ import {
   coerceAndValidateGenerateImages,
   coerceAndValidateReferenceSketch,
   coerceAndValidateReview,
-  coerceAndValidateReviewNotes,
-  coerceAndValidateReviewSheet,
 } from './cli-args'
 import { resolveComicScriptReference, resolveSceneSlug } from './project-paths'
 import {
@@ -23,7 +20,6 @@ import {
 } from './price-estimate'
 import { UsageError, rethrowAsUsage } from '~/utils/error-handler'
 import { withCharacterCatalog } from './character-reference-config'
-import { runComicCreditPreflight } from './credit-preflight'
 import type { CliCommandHandler } from '~/types'
 import { generateComicAudio } from '../comic-commands/generate-audio/generate-audio-command'
 import { generateComicSlideshow } from '../comic-commands/generate-slideshow/generate-slideshow-command'
@@ -107,38 +103,31 @@ export const handleGenerateImages: CliCommandHandler = async (ctx) => {
     hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: parsed.concurrencyMode ?? 'ramp' })
   }
   if (parsed.price) {
-    if (parsed.creditPreflight) await runComicCreditPreflight({ price: true })
     await estimateGenerateImagesPrice(options)
     l.report.result({ command: 'comic generate-images', price: true, sceneSlug }, 'Comic image price complete')
     return
   }
-  if (parsed.creditPreflight) await runComicCreditPreflight({})
   await generateImagesCommand(options)
   l.report.result({ command: 'comic generate-images', price: false, sceneSlug }, 'Comic image generation complete')
 }
 
 export const handleReview: CliCommandHandler = async (ctx) => {
-  const parsed = rethrowAsUsage(() => coerceAndValidateReview(ctx))
-  if ('notes' in parsed) await handleReviewNotes(ctx)
-  else await handleReviewSheet(ctx)
-}
-
-export const handleReviewNotes: CliCommandHandler = async (ctx) => {
-  const parsed = rethrowAsUsage(() => coerceAndValidateReviewNotes(ctx))
-  const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
+  const { showHelp: _showHelp, scriptPath: scriptReference, ...selection } = rethrowAsUsage(() => coerceAndValidateReview(ctx))
+  const scriptPath = await resolveComicScriptReferenceOrUsage(scriptReference)
   const sceneSlug = resolveSceneSlug(scriptPath)
-  const result = await withCharacterCatalog(async () => await reviewNotesCommand({ scriptPath, sceneSlug, notesPath: parsed.notes }))
-  l.report.result({ command: ctx.command?.name ?? 'comic review', price: false, sceneSlug }, 'Comic review notes complete')
-  return void result
-}
-
-export const handleReviewSheet: CliCommandHandler = async (ctx) => {
-  const parsed = rethrowAsUsage(() => coerceAndValidateReviewSheet(ctx))
-  const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
-  const sceneSlug = resolveSceneSlug(scriptPath)
-  const result = await reviewSheetCommand({ scriptPath, sceneSlug, ...(parsed.exportDoc ? { exportDoc: true } : {}) })
-  l.report.result({ command: ctx.command?.name ?? 'comic review', price: false, sceneSlug }, 'Comic review sheet complete')
-  return void result
+  const result = await reviewSheetCommand({ scriptPath, sceneSlug, ...selection })
+  const candidateIssues = result.panels.flatMap(({ panelNumber, candidate }) =>
+    candidate?.recordedSha256 && !candidate.imagePath ? [{ panelNumber, status: candidate.status }] : [])
+  const pageIssues = result.run?.pages.filter(page => !page.imagePath).map(({ pageNumber, status }) => ({ pageNumber, status })) ?? []
+  l.report.result({
+    command: 'comic review',
+    price: false,
+    sceneSlug,
+    ...(selection.run !== undefined ? { run: selection.run } : {}),
+    ...(selection.use ? { use: true } : {}),
+    ...(candidateIssues.length ? { candidateIssues } : {}),
+    ...(pageIssues.length ? { pageIssues } : {}),
+  }, selection.use ? 'Comic review selection complete' : 'Comic review sheet complete')
 }
 
 export const handleGenerateAudio: CliCommandHandler = async (ctx) => {

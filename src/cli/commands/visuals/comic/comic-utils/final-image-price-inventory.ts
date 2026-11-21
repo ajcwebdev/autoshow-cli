@@ -1,15 +1,12 @@
-import type { DirectoryEntry } from '~/types'
+import type { DirectoryEntry, FinalImageEstimateRequest, FinalImageInventory, FinalImageOutputInventory, FinalImagePageInventory, FinalImagePanelInventory, ImageGenerationModel, PanelDirectoryInventory } from '~/types'
 import { existsSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { FinalImageEstimateRequest, FinalImageInventory, FinalImageOutputInventory, FinalImagePageInventory, FinalImagePanelInventory, ImageGenerationModel, PanelDirectoryInventory } from '~/types'
 import {
   chunkComicGridPanels,
   chunkComicPagePanels,
-  buildComicPagePromptData,
   selectComicPanels,
 } from '../comic-commands/generate-images/comic-page-utils'
-import { readReusablePageQaEntry } from '../comic-commands/generate-images/comic-page-qa'
 import {
   applyReferenceImageLimits,
   extractPanelBundleData,
@@ -19,17 +16,12 @@ import {
   resolveDesignReferencesAcrossPanels,
   resolveLocationReferencesAcrossPanels,
   resolvePrimaryCharacterReferencesAcrossPanels,
-  resolveGroupedReferenceImages,
-  resolveReferenceImages,
 } from './panel-prompt-utils'
-import { validateReferenceImageCount } from './reference-capabilities'
-import { DEFAULT_IMAGE_MODEL } from './image-size'
 import { getPanelPromptsDirectory } from './project-paths'
 import {
   getPageComicImagePath,
   getPanelComicImagePath,
 } from './scene-utils'
-import { shouldUseBlockingLayoutGuide } from './blocking-layout-guide'
 
 const readPricePanelInput = async (
   panelPromptsDir: string,
@@ -42,103 +34,45 @@ const readPricePanelInput = async (
   return { panelDirectory, entries, bundleData }
 }
 
-export const validatePriceReferenceGroup = async (
+/**
+ * Counts the references dispatch sends for one group: required character, location and design references plus any
+ * optional prior references (such as earlier sketches), trimmed to the model's input limit exactly as dispatch trims them.
+ */
+export const inspectPriceReferenceGroup = async (
   panelPromptsDir: string,
   panelNumbers: readonly number[],
-  models: readonly ImageGenerationModel[],
-  blockingLayoutGuide = false,
-): Promise<number> => {
+  model: ImageGenerationModel,
+  priorRefs: readonly string[] = [],
+): Promise<{ referenceCount: number, characterKeys: string[] }> => {
   const panels = await Promise.all(panelNumbers.map(number => readPricePanelInput(panelPromptsDir, number)))
   const primary = resolvePrimaryCharacterReferencesAcrossPanels(panels, { composeDerived: false })
   const locations = resolveLocationReferencesAcrossPanels(panels)
   const designs = resolveDesignReferencesAcrossPanels(panels)
-  const blockingLayoutGuideCount = blockingLayoutGuide && panels.length === 1 && shouldUseBlockingLayoutGuide(panels[0]?.bundleData.blocking) ? 1 : 0
   const locationPlaceholders = locations.map((_, index) => `__location-${index + 1}__`)
   const designPlaceholders = designs.map((_, index) => `__design-${index + 1}__`)
-  const blockingLayoutPlaceholders = Array.from({ length: blockingLayoutGuideCount }, (_, index) => `__blocking-layout-${index + 1}__`)
 
-  for (const model of models) {
-    applyReferenceImageLimits(
-      [...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders, ...blockingLayoutPlaceholders],
-      [],
-      [...locationPlaceholders, ...designPlaceholders],
-      primary.missingPrimaryCharacterRefs,
-      model,
-    )
-  }
-  return primary.primaryCharacterRefs.length + locations.length + designs.length + blockingLayoutGuideCount
+  const resolved = applyReferenceImageLimits(
+    [...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders],
+    [...priorRefs],
+    [...locationPlaceholders, ...designPlaceholders],
+    primary.missingPrimaryCharacterRefs,
+    model,
+  )
+  const characterKeys = Array.from(new Set(panels.flatMap(panel => panel.bundleData.panels.flatMap(bundlePanel => bundlePanel.characterKeys))))
+  return { referenceCount: resolved.all.length, characterKeys }
 }
 
-const isCurrentPassingQaReusable = async (
-  request: FinalImageEstimateRequest,
-  panels: Awaited<ReturnType<typeof readPricePanelInput>>[],
-  itemNumber: number,
-  outputPath: string,
-  model: ImageGenerationModel,
-): Promise<boolean> => {
-  if (request.force || !request.qa.enabled || !existsSync(outputPath)) return false
-  const first = panels[0]
-  if (!first) return false
-  const grouped = request.mode === 'page'
-  const references = grouped
-    ? resolveGroupedReferenceImages(panels.map(panel => ({ panelDirectory: panel.panelDirectory, panelEntries: panel.entries, bundleData: panel.bundleData })), model)
-    : resolveReferenceImages(first.panelDirectory, first.entries, first.bundleData, model)
-  const current = {
-    pageNumber: itemNumber,
-    pagePath: outputPath,
-    panelData: grouped ? buildComicPagePromptData(panels.map(panel => panel.bundleData)) : first.bundleData,
-    identityCards: references.primaryCharacterRefs,
-    locationSheets: references.secondaryRefs,
-    designSheets: references.designReferences?.map(reference => reference.path),
-    characterReferences: references.characterReferences,
-    locationReferences: references.locationReferences,
-    designReferences: references.designReferences,
-    ...(!grouped && references.rosterCharacterReferences?.length ? { rosterCards: references.rosterCharacterReferences } : {}),
-    ...(request.blockingHardKeys?.length ? { blockingHardKeys: request.blockingHardKeys } : {}),
-    model: request.qa.judgeModel,
-  }
-  const entry = await readReusablePageQaEntry(outputPath, request.qa.judgeModel, current)
-  return entry !== undefined && !entry.hardFailure
-}
-
-export const resolveFinalImageOutputPathParts = (
-  request: FinalImageEstimateRequest,
-  model: ImageGenerationModel,
-  variation: FinalImageEstimateRequest['variations'][number],
-): { model?: ImageGenerationModel; variation?: typeof variation } => ({
-  ...(request.variationsSpecified
-    ? { model, variation }
-    : request.models.length > 1
-      ? { model }
-      : {}),
-})
-
-const buildPageOutputInventory = async (
-  request: Extract<FinalImageEstimateRequest, { mode: 'page' }>,
-  pageNumber: number,
-  panelNumbers: readonly number[],
+export const validatePriceReferenceGroup = async (
   panelPromptsDir: string,
-): Promise<FinalImageOutputInventory[]> => {
-  const panels = await Promise.all(panelNumbers.map(number => readPricePanelInput(panelPromptsDir, number)))
-  return await Promise.all(request.models.flatMap(model => request.variations.map(async variation => {
-    const pathParts = resolveFinalImageOutputPathParts(request, model, variation)
-    const outputPath = getPageComicImagePath(
-      request.sceneSlug,
-      pageNumber,
-      [...panelNumbers],
-      pathParts.model,
-      pathParts.variation,
-      request.runId,
-    )
-    return {
-      model,
-      variation,
-      outputPath,
-      exists: existsSync(outputPath),
-      qaReportReusable: await isCurrentPassingQaReusable(request, panels, pageNumber, outputPath, model),
-    }
-  })))
-}
+  panelNumbers: readonly number[],
+  model: ImageGenerationModel,
+): Promise<number> => (await inspectPriceReferenceGroup(panelPromptsDir, panelNumbers, model)).referenceCount
+
+/** Run-scoped output at the destination dispatch writes; a fresh run has no run ID yet, so nothing is reusable there. */
+const runScopedOutput = (outputPath: string | null): FinalImageOutputInventory => ({
+  outputPath,
+  exists: outputPath !== null && existsSync(outputPath),
+})
 
 const buildPageInventory = async (
   request: Extract<FinalImageEstimateRequest, { mode: 'page' }>,
@@ -151,28 +85,19 @@ const buildPageInventory = async (
     undefined,
     request.sceneSlug,
   )
-  const chunks = chunkComicPagePanels(selectedPanels, request.panelsPerImage)
   const pages = []
 
-  for (const chunk of chunks) {
-    const referenceCount = await validatePriceReferenceGroup(
-      panelPromptsDir,
-      chunk.panelNumbers,
-      request.models,
-      request.blockingLayoutGuide,
-    )
-    if (request.qa.enabled && request.qa.maxRepairs > 0) {
-      validateReferenceImageCount(
-        DEFAULT_IMAGE_MODEL,
-        referenceCount + 1,
-        `QA edits for page ${chunk.pageNumber}`,
-      )
-    }
+  for (const chunk of chunkComicPagePanels(selectedPanels, request.panelsPerImage)) {
+    const referenceCount = await validatePriceReferenceGroup(panelPromptsDir, chunk.panelNumbers, request.model)
+    const output = runScopedOutput(request.runId
+      ? getPageComicImagePath(request.sceneSlug, chunk.pageNumber, [...chunk.panelNumbers], { runId: request.runId })
+      : null)
     pages.push({
       pageNumber: chunk.pageNumber,
       panelNumbers: chunk.panelNumbers,
       referenceCount,
-      outputs: await buildPageOutputInventory(request, chunk.pageNumber, chunk.panelNumbers, panelPromptsDir),
+      output,
+      pending: request.force || !output.exists,
     })
   }
 
@@ -195,6 +120,20 @@ const selectPanelDirectories = (
   )
 }
 
+const buildGridInventory = (
+  request: Extract<FinalImageEstimateRequest, { mode: 'grid' }>,
+  panelNumbers: readonly number[],
+): FinalImagePanelInventory['gridPages'] => chunkComicGridPanels(
+  panelNumbers.map(panelNumber => ({ panelNumber })),
+  request.grid,
+).map(chunk => ({
+  pageNumber: chunk.pageNumber,
+  panelNumbers: chunk.panelNumbers,
+  output: runScopedOutput(request.runId
+    ? getPageComicImagePath(request.sceneSlug, chunk.pageNumber, chunk.panelNumbers, { runId: request.runId })
+    : null),
+}))
+
 const buildPanelInventory = async (
   request: Extract<FinalImageEstimateRequest, { mode: 'panel' | 'grid' }>,
   panelPromptsDir: string,
@@ -204,37 +143,18 @@ const buildPanelInventory = async (
   const panels = []
 
   for (const panel of selectedPanels) {
-    const source = await readPricePanelInput(panelPromptsDir, panel.panelNumber)
-    const referenceCount = await validatePriceReferenceGroup(
-      panelPromptsDir,
-      [panel.panelNumber],
-      request.models,
-      request.blockingLayoutGuide,
-    )
-    if (request.qa.enabled && request.qa.maxRepairs > 0) {
-      validateReferenceImageCount(
-        DEFAULT_IMAGE_MODEL,
-        referenceCount + 1,
-        `QA edits for panel ${panel.panelNumber}`,
-      )
-    }
+    const referenceCount = await validatePriceReferenceGroup(panelPromptsDir, [panel.panelNumber], request.model)
+    const candidate = runScopedOutput(request.runId
+      ? getPanelComicImagePath(request.sceneSlug, panel.panelNumber, { runId: request.runId })
+      : null)
+    const selectionPath = getPanelComicImagePath(request.sceneSlug, panel.panelNumber)
+    const selection = { path: selectionPath, exists: existsSync(selectionPath) }
     panels.push({
       ...panel,
       referenceCount,
-      variations: await Promise.all(request.variations.map(async variation => {
-        const outputs = await Promise.all(request.models.map(async model => {
-          const pathParts = resolveFinalImageOutputPathParts(request, model, variation)
-          const path = getPanelComicImagePath(
-            request.sceneSlug,
-            panel.panelNumber,
-            pathParts.model,
-            pathParts.variation,
-            request.runId,
-          )
-          return { exists: existsSync(path), qaReusable: await isCurrentPassingQaReusable(request, [source], panel.panelNumber, path, model) }
-        }))
-        return { variation, allModelsExist: outputs.every(output => output.exists), qaReusable: outputs.every(output => output.qaReusable), pendingQaCount: outputs.filter(output => !output.qaReusable).length }
-      })),
+      candidate,
+      selection,
+      pending: request.force || !(candidate.exists || selection.exists),
     })
   }
 
@@ -248,47 +168,14 @@ const buildPanelInventory = async (
   }
 }
 
-const buildGridInventory = (
-  request: Extract<FinalImageEstimateRequest, { mode: 'grid' }>,
-  panelNumbers: readonly number[],
-): FinalImagePanelInventory['gridPages'] => {
-  return chunkComicGridPanels(
-    panelNumbers.map(panelNumber => ({ panelNumber })),
-    request.grid,
-  ).map(chunk => ({
-    pageNumber: chunk.pageNumber,
-    panelNumbers: chunk.panelNumbers,
-    outputs: request.models.flatMap(model => request.variations.map(variation => {
-      const pathParts = resolveFinalImageOutputPathParts(request, model, variation)
-      const outputPath = getPageComicImagePath(
-        request.sceneSlug,
-        chunk.pageNumber,
-        chunk.panelNumbers,
-        pathParts.model,
-        pathParts.variation,
-        request.runId,
-      )
-      return {
-        model,
-        variation,
-        outputPath,
-        exists: existsSync(outputPath),
-        qaReportReusable: false,
-      }
-    })),
+export const listPanelDirectories = (entries: readonly DirectoryEntry[]): PanelDirectoryInventory[] => entries
+  .filter(entry => entry.isDirectory() && PANEL_DIRECTORY_PATTERN.test(entry.name))
+  .map(entry => ({
+    directoryName: entry.name,
+    panelNumber: getPanelNumberFromName(entry.name),
   }))
-}
-
-const listPanelDirectories = (entries: readonly DirectoryEntry[]): PanelDirectoryInventory[] => {
-  return entries
-    .filter(entry => entry.isDirectory() && PANEL_DIRECTORY_PATTERN.test(entry.name))
-    .map(entry => ({
-      directoryName: entry.name,
-      panelNumber: getPanelNumberFromName(entry.name),
-    }))
-    .filter((panel): panel is PanelDirectoryInventory => panel.panelNumber !== null)
-    .sort((left, right) => left.directoryName < right.directoryName ? -1 : left.directoryName > right.directoryName ? 1 : 0)
-}
+  .filter((panel): panel is PanelDirectoryInventory => panel.panelNumber !== null)
+  .sort((left, right) => left.directoryName < right.directoryName ? -1 : left.directoryName > right.directoryName ? 1 : 0)
 
 export const loadFinalImageEstimateInventory = async (
   request: FinalImageEstimateRequest,
@@ -296,8 +183,7 @@ export const loadFinalImageEstimateInventory = async (
   const panelPromptsDir = getPanelPromptsDirectory(request.sceneSlug)
   if (!existsSync(panelPromptsDir)) return { status: 'missing-prompts' }
 
-  const entries = await readdir(panelPromptsDir, { withFileTypes: true })
-  const panelDirectories = listPanelDirectories(entries)
+  const panelDirectories = listPanelDirectories(await readdir(panelPromptsDir, { withFileTypes: true }))
   if (panelDirectories.length === 0) return { status: 'empty' }
 
   if (request.mode === 'page') {

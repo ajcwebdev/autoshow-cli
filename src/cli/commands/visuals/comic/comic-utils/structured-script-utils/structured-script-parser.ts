@@ -1,7 +1,7 @@
 import { basename, resolve } from 'node:path'
 import * as v from 'valibot'
 import { StructuredScriptDataSchema } from '../../schemas/schemas'
-import type { BoldLabelClassification, CharacterCatalogService, CharacterKey, ClassifiedStructuredScriptBlock, ComicSourceIdentity, ExpandedScriptBlock, SoundDirectiveClassification, StagingDirectiveClassification, StructuredScriptBeat, StructuredScriptBeatInput, StructuredScriptData, StructuredScriptEnvelope, StructuredScriptParserOptions, StructuredScriptParserState, StructuredSourceSpan } from '~/types'
+import type { BoldLabelClassification, CharacterCatalogService, CharacterKey, ClassifiedStructuredScriptBlock, ComicSourceIdentity, ExpandedScriptBlock, SoundDirectiveClassification, StructuredScriptBeat, StructuredScriptBeatInput, StructuredScriptData, StructuredScriptEnvelope, StructuredScriptParserOptions, StructuredScriptParserState, StructuredSourceSpan } from '~/types'
 import { loadCharacterCatalog, normalizeCharacterLookup } from '../character-reference-config'
 import { getCharactersFromMentions, isUncataloguedSpokenSpeakerLabel, uniqueCharacters } from './character-detection'
 import { buildSourceSegmentsFromBeats } from './source-segments'
@@ -11,7 +11,7 @@ import { readLocationReferenceCatalogSync, resolveLocationCatalogEntry } from '.
 import { hashCanonicalTtsValue, sha256Bytes } from '../../../../audio/tts/script-to-audio/contract-identity'
 import { toPosixPath, toProjectDisplayPath } from '~/utils/runtime-paths'
 import { buildStructuredSoundscape, parseSoundscapeBlockDirective, stripInlineSoundscapeDirectives } from './soundscape-directives'
-import { buildStructuredStaging, parseStagingBlockDirective } from './staging-directives'
+import { assertNoRetiredStagingLabels } from './retired-staging-labels'
 
 const scalarOffset = (value: string, utf16Offset: number): number => [...value.slice(0, utf16Offset)].length
 
@@ -157,6 +157,7 @@ const parseStructuredScriptEnvelope = (
   options: StructuredScriptParserOptions = {},
 ): StructuredScriptEnvelope => {
   const scriptFile = basename(scriptPath)
+  assertNoRetiredStagingLabels(content, scriptPath)
   const normalized = normalizeLineEndings(content).trim()
   const lines = normalized.split('\n')
   const titleIndex = lines.findIndex(line => line.trim().startsWith('# '))
@@ -258,7 +259,6 @@ const createStructuredScriptParserState = (
   hasDialogueInCurrentTurn: false,
   continueDialogueAfterDirection: false,
   pendingSoundDirectivePrompt: false,
-  pendingStagingDirectivePrompt: false,
 })
 
 const resetSpeakerTurn = (state: StructuredScriptParserState): void => {
@@ -312,9 +312,6 @@ const classifyStructuredScriptBlock = (
   const soundDirective = parseSoundscapeBlockDirective(block)
   if (soundDirective) return { kind: 'sound-directive', waitsForPrompt: soundDirective.prompt === undefined }
   if (state.pendingSoundDirectivePrompt) return { kind: 'sound-directive-prompt' }
-  const stagingDirective = parseStagingBlockDirective(block)
-  if (stagingDirective) return { kind: 'staging-directive', waitsForPrompt: stagingDirective.prompt === undefined }
-  if (state.pendingStagingDirectivePrompt) return { kind: 'staging-directive-prompt' }
   const boldLine = extractSingleBoldLine(block)
   if (boldLine) return classifyBoldLabel(state, boldLine)
   if (isPanelNoteBlock(block)) return { kind: 'panel-note', block }
@@ -342,16 +339,6 @@ const handleSoundDirective = (
   classification: SoundDirectiveClassification,
 ): void => {
   state.pendingSoundDirectivePrompt = classification.kind === 'sound-directive'
-    ? classification.waitsForPrompt
-    : false
-  resetSpeakerTurn(state)
-}
-
-const handleStagingDirective = (
-  state: StructuredScriptParserState,
-  classification: StagingDirectiveClassification,
-): void => {
-  state.pendingStagingDirectivePrompt = classification.kind === 'staging-directive'
     ? classification.waitsForPrompt
     : false
   resetSpeakerTurn(state)
@@ -534,9 +521,6 @@ const dispatchStructuredScriptBlock = (
     case 'sound-directive':
     case 'sound-directive-prompt':
       return handleSoundDirective(state, classification)
-    case 'staging-directive':
-    case 'staging-directive-prompt':
-      return handleStagingDirective(state, classification)
     case 'bold-label':
       return handleBoldLabel(state, classification)
     case 'panel-note':
@@ -573,12 +557,6 @@ const finalizeStructuredScript = (
     sourceIdentityHash: sourceIdentity.identityHash,
   })
   const sceneLocation = resolveStructuredLocation(envelope.locationRaw, envelope)
-  const staging = buildStructuredStaging({
-    exactSource: envelope.content,
-    expandedBlocks: envelope.blocks,
-    sourceSegments,
-    sceneLocationKey: sceneLocation.key,
-  })
 
   return v.parse(StructuredScriptDataSchema, {
     schemaVersion: 5,
@@ -601,7 +579,6 @@ const finalizeStructuredScript = (
     characterKeys: uniqueCharacters(state.allCharacters),
     beats: normalizedBeats,
     sourceSegments,
-    ...(staging ? { staging } : {}),
   })
 }
 

@@ -7,6 +7,9 @@ import { musicCommand } from '~/cli/commands/audio/music/define-music-command'
 import { setupCommand } from '~/cli/commands/setup-and-utilities/setup/define-setup-command'
 import { referenceSketchCommandDefinition } from '~/cli/commands/visuals/comic/comic-utils/subcommand-help'
 import { SETUP_FOCUSED_MODE_FLAGS, SETUP_NETWORK_DEPENDENT_FLAGS } from '~/cli/flags/setup-mode-contract'
+import { COMMAND_DEFINITIONS } from '~/cli/command-definitions'
+import { dispatchNativeCli } from '~/cli/native/dispatcher'
+import { createNativeRootDefinition } from '~/cli/native/root-definition'
 import { asCtx, parseRoot } from './cli-usage-errors/shared'
 
 test('music price mode reports pinned single/batch directories without creating them or running tools', async () => {
@@ -52,9 +55,12 @@ test('music mode conflicts reject before any local or hosted work', async () => 
   ]) await expect(musicCommand.handler(asCtx(parseRoot(['music', ...args])))).rejects.toThrow('Do not')
 })
 
-test('reference handler rejects QA-only for either reference kind before catalog/provider access', async () => {
+test('reference sketch rejects the retired QA-only flag for either reference kind before catalog/provider access', async () => {
+  const comic = COMMAND_DEFINITIONS.find(command => command.name === 'comic')!
+  let handlerCalls = 0
+  const instrumented = { ...comic, subcommands: comic.subcommands!.map(sub => sub.name === referenceSketchCommandDefinition.name ? { ...sub, handler: () => { handlerCalls++ } } : sub) }
   for (const kind of ['character', 'location']) {
-    const parsed = parseRoot(['comic', 'reference-sketch', `--${kind}`, 'nonexistent-reference', '--qa-only'])
-    await expect(referenceSketchCommandDefinition.handler(asCtx(parsed))).rejects.toThrow('--qa-only')
+    await expect(dispatchNativeCli(['comic', 'reference-sketch', `--${kind}`, 'nonexistent-reference', '--qa-only'], createNativeRootDefinition(), [instrumented])).rejects.toThrow('Unexpected flag: --qa-only')
   }
+  expect(handlerCalls).toBe(0)
 })

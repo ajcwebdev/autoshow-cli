@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-17
-- **Date Updated:** 2026-11-14
+- **Date Updated:** 2026-11-20
 - **Verification Status:** Passed
 
 ## Context
@@ -18,7 +18,7 @@ Overlapping command responsibilities let saved defaults add unrequested paid wor
 - `tts`, `image`, `video`, and `music` execute independently with their own selection, pricing, and resume. `setup` and its `config` alias persist defaults for those commands.
 - Comic retains `draft-treatment`, `draft-scenes`, `reference-sketch`, `generate-images`, `generate-audio`, `generate-slideshow`, and `review` subcommands. Image, audio, and local slideshow stages remain independently runnable; `generate-audio --slideshow` provides the combined path.
 - Every command uses the native parser: inline assignments, `--`, last-wins scalar flags, early rejection of unknown flags or missing arguments, and equivalent `help <command>` / `<command> --help` output. [ADR-011](ADR-011-links-selection-grammar-and-refresh-metadata.md) owns the order-sensitive `links` grammar.
-- `voice <action>` is canonical for standalone and comic voice management. `comic review <script>` is canonical for local review. Deprecated `comic reference-voice`, `comic review-sheet`, and `comic review-notes` forward with matching validation/results and deprecation notices; ordinary comic help omits the voice alias.
+- `voice <action>` is canonical for standalone and comic voice management. `comic review <script>` is canonical for local review. Deprecated `comic reference-voice` forwards with matching validation/results and a deprecation notice; ordinary comic help omits it. The former `comic review-sheet` and `comic review-notes` aliases are retired and rejected.
 - `resume` owns pipeline recovery ([ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)) and recorded comic recovery ([ADR-013](ADR-013-comic-scene-audio-and-presentation.md)). Incompatible write manifests require a new text-only run.
 
 ## Trade-offs

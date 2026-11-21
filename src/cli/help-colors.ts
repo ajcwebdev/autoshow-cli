@@ -45,7 +45,6 @@ const HELP_GROUP_COLOR_BY_KEY: Readonly<Record<string, string>> = {
   'comic-panels': 'hotpink',
   'comic-reference': 'mediumaquamarine',
   'comic-image': 'hotpink',
-  'comic-qa': 'mediumpurple',
   'comic-stages': 'cornflowerblue',
   'comic-review': 'mediumaquamarine',
   'comic-run': 'springgreen',

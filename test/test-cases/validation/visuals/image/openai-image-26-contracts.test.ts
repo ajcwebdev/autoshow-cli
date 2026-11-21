@@ -14,7 +14,6 @@ import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/
 import { createImage } from '~/cli/commands/visuals/comic/comic-image-services/comic-image-targets'
 import { estimateImageOutputCost } from '~/cli/commands/visuals/comic/comic-image-services/image-costs'
 import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from '~/cli/commands/visuals/comic/comic-utils/image-size'
-import { REVISION_IMAGE_MODEL } from '~/cli/commands/visuals/comic/comic-commands/generate-images/revision-evaluation-config'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { parseCommandInvocation } from '~/cli/native/native-parser'
 import type { Step5Metadata } from '~/types'
@@ -57,11 +56,10 @@ describe('GPT Image 2.6 contracts', () => {
     }
   })
 
-  test('bare OpenAI, comic and revision default to 2.6 Flare; explicit selection, expansion and resume reach both models', () => {
+  test('bare OpenAI and comic default to 2.6 Flare; explicit selection, expansion and resume reach both models', () => {
     expect(resolveCheapestModelForFlag('openai-image')).toBe('gpt-image-2.6-flare')
     expect(buildOptsFromFlags({ 'openai-image': true }).openaiImageModels).toEqual(['gpt-image-2.6-flare'])
     expect(DEFAULT_IMAGE_MODEL).toBe('gpt-image-2.6-flare')
-    expect(REVISION_IMAGE_MODEL).toBe('gpt-image-2.6-flare')
     const expanded = collectImageTargets(buildOptsFromFlags({ 'all-image': true })).filter(target => target.service === 'openai')
     expect(expanded.map(target => target.model)).toEqual([...models])
     for (const model of models) {

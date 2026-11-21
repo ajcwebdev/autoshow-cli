@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { readFileBytes } from '~/utils/bun-file-io'
 import { mkdir, readdir } from 'node:fs/promises'
 import { statPath as stat } from '~/utils/bun-file-io'
@@ -120,4 +121,29 @@ export const resolveCompatibleComicSceneRun = async (input: {
     `No compatible existing comic scene run was found for ${sourceIdentity.canonicalPath}. Run comic draft-scenes first; this downstream workflow never creates a fresh scene run.`,
     ...(rejected.length > 0 ? [{ hints: [`Skipped incompatible candidates: ${rejected.join('; ')}`] }] : [])
   )
+}
+
+export const assertSceneRunSourceOwnership = async (sceneRunDir: string, sourceIdentity: ComicSourceIdentity, options: { requireExisting?: boolean } = {}): Promise<void> => {
+  const rejection = (detail: string) => UsageError(
+    `Scene output ${sceneRunDir} does not belong to ${sourceIdentity.canonicalPath} at its current bytes: ${detail}`,
+    { hints: ['Omit --output-dir to start a new run, or choose an empty or matching scene workspace.'] }
+  )
+  const manifest = await readManifest(sceneRunDir, { verifyArtifacts: false })
+  if (manifest) {
+    if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1) throw rejection('its manifest is not a single canonical comic scene')
+    if (canonicalTtsJson(manifest.source) !== canonicalTtsJson(sourceIdentity)) throw rejection('its manifest records another source identity')
+    return
+  }
+  const structuredPath = join(sceneRunDir, 'metadata/structured-script.json')
+  if (!existsSync(structuredPath)) {
+    if (options.requireExisting) throw rejection('no manifest or structured script records a source identity')
+    return
+  }
+  let embedded: unknown
+  try {
+    embedded = (JSON.parse(await Bun.file(structuredPath).text()) as { sourceIdentity?: unknown }).sourceIdentity
+  } catch (error) {
+    throw rejection(`metadata/structured-script.json is unreadable (${error instanceof Error ? error.message : String(error)})`)
+  }
+  if (canonicalTtsJson(embedded ?? null) !== canonicalTtsJson(sourceIdentity)) throw rejection('metadata/structured-script.json embeds another source identity')
 }

@@ -14,6 +14,7 @@ const SnapshotAssetSchema = v.strictObject({
 })
 const SnapshotCharacterSchema = v.strictObject({
   key: v.string(), name: v.string(), description: v.string(), sourceSketchVersion: v.string(), assets: v.array(SnapshotAssetSchema),
+  // Retired: written by snapshots captured before distinguishFrom was removed. Accepted so historical runs stay readable; never produced or used.
   distinguishFrom: v.optional(v.array(v.strictObject({ characterKey: v.string(), cue: v.string() }))),
 })
 export const CharacterReferenceManifestSchema = v.strictObject({
@@ -25,7 +26,7 @@ const describeCurrentCharacter = (character: CharacterCatalogEntry): string => {
   return [
     character.description,
     `Current canonical wardrobe: ${JSON.stringify(character.wardrobe)}.`,
-    'Use a named deviation state only when the reviewed panel explicitly declares that allowed state; otherwise use the current default color tokens. Prohibited wardrobe remains prohibited. Current canonical wardrobe takes precedence over older generic costume or color text in the scene or blocking ledger.',
+    'Use a named deviation state only when the reviewed panel explicitly declares that allowed state; otherwise use the current default color tokens. Prohibited wardrobe remains prohibited. Current canonical wardrobe takes precedence over older generic costume or color text in the scene.',
   ].join('\n')
 }
 
@@ -43,7 +44,6 @@ const currentCharacterReferences = (
       const registration = requireCurrentCharacterSketchSync(key, character, catalog.root)
       characters.push({
         key, name: character.name, description: describeCurrentCharacter(character),
-        distinguishFrom: (character.distinguishFrom ?? []).map(cue => ({ ...cue })),
         sourceSketchVersion: registration.generationId,
         assets: [
           { role: 'sketch-sheet', path: relative(resolve(runDirectory), character.outlineSheetPath).replace(/\\/g, '/'), sha256: registration.sheetSha256 },
@@ -78,23 +78,9 @@ const appendScenePanelCharacterKeys = (keys: string[], scenePath: string): void 
   }
 }
 
-const appendBlockingPlanRosterKeys = (keys: string[], planPath: string, catalog: CharacterCatalogService): void => {
-  if (!existsSync(planPath)) return
-  const plan = JSON.parse(readFileSync(planPath, 'utf8')) as { stageStates?: Array<{ characters?: Array<{ characterKey?: string }>; extras?: Array<{ ensembleKey?: string }> }> }
-  const catalogKeys = new Set<string>(catalog.characterKeys)
-  for (const state of plan.stageStates ?? []) {
-    for (const key of [...(state.characters ?? []).map(mark => mark.characterKey), ...(state.extras ?? []).map(extras => extras.ensembleKey)]) {
-      if (key && catalogKeys.has(key)) keys.push(key)
-    }
-  }
-}
-
-const sceneRosterKeys = (runDirectory: string, catalog: CharacterCatalogService): string[] => {
+const sceneCastKeys = (runDirectory: string): string[] => {
   const keys: string[] = []
-  const scenePath = join(runDirectory, 'metadata', 'scene.json')
-  appendScenePanelCharacterKeys(keys, scenePath)
-  const planPath = join(runDirectory, 'metadata', 'blocking-plan.json')
-  appendBlockingPlanRosterKeys(keys, planPath, catalog)
+  appendScenePanelCharacterKeys(keys, join(runDirectory, 'metadata', 'scene.json'))
   return [...new Set(keys)]
 }
 
@@ -105,7 +91,7 @@ export const loadAndVerifyCharacterReferenceSnapshot = (
   explicitKeys: readonly string[] = [],
 ): CharacterReferenceManifest => {
   const catalog = loadCharacterCatalog(undefined, { fresh: true })
-  return currentCharacterReferences(runDirectory, [...sceneRosterKeys(runDirectory, catalog), ...explicitKeys], catalog)
+  return currentCharacterReferences(runDirectory, [...sceneCastKeys(runDirectory), ...explicitKeys], catalog)
 }
 
 export const compileCharacterReferences = (

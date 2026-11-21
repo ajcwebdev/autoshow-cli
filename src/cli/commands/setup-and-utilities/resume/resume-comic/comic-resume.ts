@@ -5,13 +5,14 @@ import { beginSceneRun } from '../../../visuals/comic/comic-utils/scene-run-cont
 import { resolveCompatibleComicSceneRun } from '../../../visuals/comic/comic-utils/compatible-scene-run'
 import { readManifest } from '../../../command-shared/pipeline-manifest'
 import { validateComicRecoveryInputs } from '../../../visuals/comic/comic-utils/comic-recovery-intent'
+import { currentComicImageRecoveryInputs } from '../../../visuals/comic/comic-utils/comic-image-recovery'
 import { coerceAndValidateGenerateImages } from '../../../visuals/comic/comic-utils/cli-args'
 import { generateImagesCommand } from '../../../visuals/comic/comic-commands/generate-images/generate-images-command'
 import { generateComicAudio } from '../../../visuals/comic/comic-commands/generate-audio/generate-audio-command'
 import { generateComicSlideshow } from '../../../visuals/comic/comic-commands/generate-slideshow/generate-slideshow-command'
 import { canonicalTtsJson } from '../../../audio/tts/script-to-audio/contract-identity'
 import { inComicWorkspace, recoveryContext, stageOrder } from './comic-resume-context'
-import { planComicRecoveryStage } from './comic-resume-stage-planners'
+import { planComicRecoveryStage, resolveImageRecoveryFlags } from './comic-resume-stage-planners'
 import * as l from '~/utils/app-logger/app-logger'
 
 export const COMIC_RESUME_ALLOWED_FLAGS = new Set(['price', 'allow-ambiguous-redispatch', 'json', 'result-file', 'require-shared-budget', 'quiet', 'verbose', 'color', 'log-level', 'bin-dir'])
@@ -55,8 +56,11 @@ export const comicResumeHandler: ResumeHandler<{ allowAmbiguousRedispatch?: bool
         if (canonicalTtsJson(intent) !== canonicalTtsJson(plan.intents?.[stage])) throw UsageError(`Comic ${stage} recovery intent changed after planning; inspect resume --price again.`)
         configureCharactersRoot(intent.charactersRoot)
         beginSceneRun(compatible.sourceIdentity.scriptSlug, { outputDir: target.dir })
-        const ctx = recoveryContext(stage, plan.scriptPath, intent.flags, false, opts.allowAmbiguousRedispatch === true)
-        await validateComicRecoveryInputs(target.dir, intent)
+        const flags = stage === 'image'
+          ? resolveImageRecoveryFlags(compatible.sourceIdentity.scriptSlug, intent)
+          : intent.flags
+        const ctx = recoveryContext(stage, plan.scriptPath, flags, false, opts.allowAmbiguousRedispatch === true)
+        await validateComicRecoveryInputs(target.dir, stage === 'image' ? { ...intent, inputs: currentComicImageRecoveryInputs(intent) } : intent)
         if (stage === 'image') await generateImagesCommand({ ...coerceAndValidateGenerateImages(ctx), sceneSlug: compatible.sourceIdentity.scriptSlug, ...(intent.imageRunId ? { recoveryRunId: intent.imageRunId } : {}) })
         else if (stage === 'audio') await generateComicAudio(ctx, plan.scriptPath)
         else await generateComicSlideshow(ctx, plan.scriptPath)

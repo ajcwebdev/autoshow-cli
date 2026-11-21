@@ -8,7 +8,6 @@ import {
   getSceneJsonPath
 } from '../../comic-utils/project-paths'
 import { ScenePromptDataSchema } from '../../schemas/schemas'
-import type { SceneDraftPreparation } from './scene-draft-preparation'
 
 export const persistInvalidSceneCandidate = async (sceneSlug: string, parsed: unknown, validationError: unknown): Promise<void> => {
   const invalidOutputPath = getInvalidSceneJsonPath(sceneSlug)
@@ -29,7 +28,7 @@ export const persistInvalidSceneCandidate = async (sceneSlug: string, parsed: un
   }
 }
 
-export const publishSceneDraft = async (sceneSlug: string, validated: v.InferOutput<typeof ScenePromptDataSchema>, stats: DraftSceneRunStats, reviewModel: string, usage: ComicLlmResponseUsage, requestDurationMs: number, blockingPlan: SceneDraftPreparation['blockingPlan'], attempt: number): Promise<void> => {
+export const publishSceneDraft = async (sceneSlug: string, validated: v.InferOutput<typeof ScenePromptDataSchema>, stats: DraftSceneRunStats, reviewModel: string, usage: ComicLlmResponseUsage, requestDurationMs: number, attempt: number): Promise<void> => {
   const outputPath = getSceneJsonPath(sceneSlug)
   await mkdir(dirname(outputPath), { recursive: true })
   await Bun.write(outputPath, JSON.stringify(validated, null, 2))
@@ -41,7 +40,6 @@ export const publishSceneDraft = async (sceneSlug: string, validated: v.InferOut
     `tokens=${usage.total_tokens.toLocaleString()}`,
     `cost=${formatCompactCost(stats.totalCost)}`,
     `api=${formatDuration(requestDurationMs)}`,
-    blockingPlan ? `attempts=${attempt}` : undefined,
-    blockingPlan ? `blockingPlan=${blockingPlan.planSha256.slice(0, 12)}` : undefined,
+    attempt > 1 ? `attempts=${attempt}` : undefined,
   ])
 }

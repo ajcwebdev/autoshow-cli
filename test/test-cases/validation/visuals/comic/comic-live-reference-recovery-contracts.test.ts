@@ -158,7 +158,7 @@ describe('comic recovery binds current canonical references without materializin
     await expect(validateComicRecoveryInputs(f.workspace, intentFor(f.charactersRoot, current))).resolves.toBeUndefined()
   })
 
-  test('captures current descriptions, distinction cues, and location specifications without changing image registrations', async () => {
+  test('captures current descriptions and location specifications without changing image registrations', async () => {
     const f = await fixture()
     const original = await captureComicImageRecoveryInputs(f.workspace)
     const catalogPath = join(f.charactersRoot, 'characters-reference.json')
@@ -167,16 +167,12 @@ describe('comic recovery binds current canonical references without materializin
     await writeJson(catalogPath, catalog)
     const descriptionInputs = await captureComicImageRecoveryInputs(f.workspace)
     expect(descriptionInputs).not.toEqual(original)
-    catalog.characters[0].distinguishFrom = [{ characterKey: 'rival', cue: 'Hero has the green coat; Rival has the red coat.' }]
-    await writeJson(catalogPath, catalog)
-    const cueInputs = await captureComicImageRecoveryInputs(f.workspace)
-    expect(cueInputs).not.toEqual(descriptionInputs)
     const locationCatalogPath = join(f.project, 'input/locations/locations-reference.json')
     const locations = await readJson(locationCatalogPath)
     locations.locations[0].specification = 'The current bridge has a fixed console to the right of the door.'
     await writeJson(locationCatalogPath, locations)
     const specificationInputs = await captureComicImageRecoveryInputs(f.workspace)
-    expect(specificationInputs).not.toEqual(cueInputs)
+    expect(specificationInputs).not.toEqual(descriptionInputs)
     expect(specificationInputs.find(input => input.path === 'input/characters/hero.png')).toEqual(original.find(input => input.path === 'input/characters/hero.png'))
     expect(specificationInputs.find(input => input.path === 'input/locations/bridge.png')).toEqual(original.find(input => input.path === 'input/locations/bridge.png'))
     await expect(validateComicRecoveryInputs(f.workspace, intentFor(f.charactersRoot, specificationInputs))).resolves.toBeUndefined()

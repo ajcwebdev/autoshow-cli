@@ -95,7 +95,7 @@ describe('comic live canonical character references', () => {
     expect(() => loadAndVerifyCharacterReferenceSnapshot(f.runDirectory, undefined, ['hero'])).toThrow(/escapes the characters root/)
   })
 
-  test('resolves only the scene and explicit roster instead of unrelated unregistered characters', async () => {
+  test('resolves only the scene and explicit roster and ignores a leftover legacy blocking-plan.json', async () => {
     const root = await makeCatalog({}, { registerRoot: path => temporaryRoots.push(path) })
     configureCharactersRoot(root)
     const catalog = loadCharacterCatalog(root)
@@ -105,8 +105,10 @@ describe('comic live canonical character references', () => {
     const runDirectory = join(root, 'scene')
     await mkdir(join(runDirectory, 'metadata'), { recursive: true })
     await writeFile(join(runDirectory, 'metadata', 'scene.json'), JSON.stringify({ panels: [{ characterKeys: ['hero'] }] }))
-    await writeFile(join(runDirectory, 'metadata', 'blocking-plan.json'), JSON.stringify({ stageStates: [{ characters: [{ characterKey: 'hero' }], extras: [{ ensembleKey: 'anonymous-crew' }] }] }))
+    await writeFile(join(runDirectory, 'metadata', 'blocking-plan.json'), JSON.stringify({ stageStates: [{ characters: [{ characterKey: 'hero' }, { characterKey: 'sidekick' }], extras: [{ ensembleKey: 'anonymous-crew' }] }] }))
     expect(loadAndVerifyCharacterReferenceSnapshot(runDirectory).characters.map(character => character.key)).toEqual(['hero'])
+    // sidekick is unregistered, so reading the legacy plan roster would have failed the load.
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(runDirectory, undefined, ['sidekick'])).toThrow()
   })
 
   test('registry capabilities never trim required references and trim optional continuity deterministically', () => {

@@ -142,11 +142,16 @@ describe('audited help behavior', () => {
 
   test('reference sketch rejects unsupported controls before any execution and preserves location options', () => {
     const reference = (args: string[]) => coerceAndValidateReferenceSketch(parseCommandInvocation([referenceSketchCommandDefinition.name, ...args], referenceSketchCommandDefinition, GLOBAL_FLAG_DEFINITIONS))
-    for (const kind of ['character', 'location']) expect(() => reference([`--${kind}`, 'sample', '--qa-only'])).toThrow('Unexpected flag: --qa-only')
-    for (const args of [['--qa'], ['--no-qa'], ['--qa-provider', 'openai=gpt-6.1-sol'], ['--max-repairs', '0'], ['--llm-provider', 'openai=gpt-6.1-sol'], ['--view', 'side']]) expect(() => reference(['--character', 'sample', ...args])).toThrow('only valid with --location')
-    const location = reference(['--location', 'sample', '--qa-provider', 'openai=gpt-6.1-sol', '--max-repairs', '2', '--llm-provider', 'openai=gpt-6.1-sol', '--view', 'side'])
-    expect(location.qaModel).toBe('gpt-6.1-sol')
-    expect(location.maxRepairs).toBe(2)
+    for (const kind of ['character', 'location']) {
+      for (const retired of ['--qa-only', '--qa', '--no-qa', '--qa-provider', '--max-repairs']) {
+        const args = retired === '--qa-provider' ? [retired, 'openai=gpt-6.1-sol'] : retired === '--max-repairs' ? [retired, '0'] : [retired]
+        expect(() => reference([`--${kind}`, 'sample', ...args])).toThrow(`Unexpected flag: ${retired}`)
+      }
+    }
+    for (const args of [['--llm-provider', 'openai=gpt-6.1-sol'], ['--view', 'side']]) expect(() => reference(['--character', 'sample', ...args])).toThrow('only valid with --location')
+    const location = reference(['--location', 'sample', '--llm-provider', 'openai=gpt-6.1-sol', '--view', 'side'])
+    expect(location).not.toHaveProperty('qaModel')
+    expect(location).not.toHaveProperty('maxRepairs')
     expect(location.llmModel).toBe('gpt-6.1-sol')
     expect(location.view).toBe('side')
     expect(() => reference(['--character', 'sample'])).not.toThrow()

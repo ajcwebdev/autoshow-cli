@@ -21,7 +21,3 @@ export type ResolvedLocationReference = {
   view: LocationView
   views: ResolvedLocationReferenceView[]
 }
-
-export type ResolveLocationReferenceOptions = {
-  cameraMatched?: boolean | undefined
-}

@@ -103,8 +103,45 @@ const imageInputs = async (f: Awaited<ReturnType<typeof fixture>>) => {
   }
 }
 
-for (const models of [['gemini-nano-banana-2.1']] as const) {
-  test(`image recovery binds the original output directory and reuses completed panels with ${models.length} models`, async () => {
+test('image resume restores returned usage when a process stops after publishing a panel and before its terminal manifest write', async () => {
+  const f = await fixture()
+  await imageInputs(f)
+  const model = 'gemini-nano-banana-2.1'
+  process.env['GEMINI_API_KEY'] = 'fixture'
+  delete process.env['AUTOSHOW_REQUIRED_IMAGE_MODEL']
+  let purchases = 0
+  let resume = false
+  let stopped: { manifest: string, path: string, checkpoint: string } | undefined
+  installMockFetch(async call => {
+    if (!call.url.includes(`${model}:generateContent`)) throw new Error(`Unexpected provider call: ${call.url}`)
+    if (!resume && purchases === 1) {
+      const manifest = await Bun.file(f.target.manifestPath).text()
+      const provider = (await readManifest(f.run))!.items[0]!.providers.find(state => state.operation === 'comic-image')!
+      const path = join(f.run, 'metadata/image-usage', `${provider.metadata['attemptId']}.json`)
+      stopped = { manifest, path, checkpoint: await Bun.file(path).text() }
+      return new Response('Stop before the second panel', { status: 400 })
+    }
+    purchases++
+    return Response.json({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: Buffer.from(redDotPng).toString('base64') } }] } }] })
+  })
+  await expect(generateImagesCommand({ scriptPath: f.scriptPath, sceneSlug: f.structured.sourceIdentity.scriptSlug, target: 'images', imageModel: model, concurrency: 1, stopOnProviderError: true })).rejects.toThrow()
+  if (!stopped) throw new Error('The fixture did not reach the interruption point')
+  // Recreate the exact on-disk state before the catch block recorded failure and cleared the checkpoint.
+  await writeFile(stopped.path, stopped.checkpoint)
+  await writeFile(f.target.manifestPath, stopped.manifest)
+  const receipt = JSON.parse(stopped.checkpoint)
+  expect(receipt.imagesGenerated).toBe(1)
+  expect(receipt.usage.costUsd).toBeGreaterThan(0)
+  resume = true
+  await dispatchResume(f.run, {})
+  expect(purchases).toBe(2)
+  const final = (await readManifest(f.run))!.items[0]!.providers.find(state => state.operation === 'comic-image')!
+  expect(final).toMatchObject({ status: 'succeeded', attempts: 2, metadata: { runId: receipt.runId, imagesGenerated: 2, imagesSkipped: 1, usage: { costUsd: 2 * receipt.usage.costUsd } } })
+}, 20_000)
+
+{
+  const model = 'gemini-nano-banana-2.1'
+  test('image recovery binds the original run directory, reuses the completed panel and prices one image step without judging', async () => {
     const f = await fixture()
     await imageInputs(f)
     process.env['GEMINI_API_KEY'] = 'fixture'
@@ -112,42 +149,48 @@ for (const models of [['gemini-nano-banana-2.1']] as const) {
     let succeed = false
     let generated = 0
     const calls = installMockFetch(call => {
-      if (!models.some(model => call.url.includes(`${model}:generateContent`))) throw new Error(`Unexpected provider call: ${call.url}`)
+      if (!call.url.includes(`${model}:generateContent`)) throw new Error(`Unexpected provider call: ${call.url}`)
       if (generated === 1 && !succeed) return new Response('Fixture interruption', { status: 400 })
       generated++
       return Response.json({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: Buffer.from(redDotPng).toString('base64') } }] } }] })
     })
-    const failure = await generateImagesCommand({ scriptPath: f.scriptPath, sceneSlug: f.structured.sourceIdentity.scriptSlug, target: 'images', imageModels: [...models], panelsPerImage: 1, panels: 'all', qa: false, concurrency: 1, stopOnProviderError: true }).then(() => undefined, error => error)
+    const failure = await generateImagesCommand({ scriptPath: f.scriptPath, sceneSlug: f.structured.sourceIdentity.scriptSlug, target: 'images', imageModel: model, panelsPerImage: 1, panels: 'all', concurrency: 1, stopOnProviderError: true }).then(() => undefined, error => error)
     if (generated === 0) throw failure
     expect(failure).toBeInstanceOf(Error)
     expect(generated).toBe(1)
     const intent = (await comic(f.run)).recovery!.image!
     expect(intent.completed).toBe(false)
-    const panelPath = join(f.run, 'panels', intent.imageRunId!, ...(models.length > 1 ? [models[0]] : []), 'panel-01.png')
+    expect(intent.flags['provider']).toBe(`gemini=${model}`)
+    const panelPath = join(f.run, 'panels', intent.imageRunId!, 'panel-01.png')
+    // The first successful panel is selected immediately, so an interrupted run is already usable downstream.
+    expect(await Bun.file(join(f.run, 'panels/panel-01.png')).bytes()).toEqual(await Bun.file(panelPath).bytes())
     const retained = sha256Bytes(new Uint8Array(await Bun.file(panelPath).arrayBuffer()))
     const before = await hashes(f.run)
     const count = calls.length
     const plan = await planComicResume(f.target)
-    expect(plan.stages[0]).toMatchObject({ action: 'resume', steps: models.map((model, index) => expect.objectContaining({ model, imageCount: index === 0 ? 1 : 2 })) })
+    expect(plan.stages[0]).toMatchObject({ action: 'resume' })
+    expect(plan.stages[0]!.steps.map(step => step.step)).toEqual(['image'])
+    expect(plan.stages[0]!.steps[0]).toMatchObject({ model, imageCount: 1 })
     expect(plan.ready).toBe(true)
     expect(await hashes(f.run)).toEqual(before)
     expect(calls).toHaveLength(count)
     succeed = true
     await dispatchResume(f.run, {})
-    expect(generated).toBe(2 * models.length)
-    expect(calls).toHaveLength(count + 2 * models.length - 1)
+    expect(generated).toBe(2)
+    expect(calls).toHaveLength(count + 1)
     expect((await comic(f.run)).recovery?.image?.imageRunId).toBe(intent.imageRunId)
     expect(sha256Bytes(new Uint8Array(await Bun.file(panelPath).arrayBuffer()))).toBe(retained)
     expect(await Bun.file(join(dirname(panelPath), 'panel-02.png')).exists()).toBe(true)
     const imageProviders = (await readManifest(f.run))!.items[0]!.providers.filter(provider => provider.operation === 'comic-image')
-    expect(imageProviders).toHaveLength(models.length)
+    expect(imageProviders).toHaveLength(1)
     for (const provider of imageProviders) {
-      expect(provider.settings).toMatchObject({ schemaVersion: 1, settingsSchema: `${provider.service}.comic-image.v1`, request: { model: provider.model, size: expect.any(String), quality: 'high' }, local: { target: 'images', panelsPerImage: 1, qa: false, maxRepairs: 2, stopOnProviderError: true } })
+      expect(Object.keys(provider.settings?.local ?? {}).sort()).toEqual(['panels', 'panelsPerImage', 'stopOnProviderError', 'target'])
+      expect(provider.settings).toMatchObject({ schemaVersion: 1, settingsSchema: `${provider.service}.comic-image.v1`, request: { model: provider.model, size: expect.any(String), quality: 'high' }, local: { target: 'images', panelsPerImage: 1, stopOnProviderError: true } })
     }
     const completed = await hashes(f.run)
     await dispatchResume(f.run, {})
     expect(await hashes(f.run)).toEqual(completed)
-    expect(calls).toHaveLength(count + 2 * models.length - 1)
+    expect(calls).toHaveLength(count + 1)
     await writeFile(join(f.run, 'metadata/panel-prompts/panel-02/extra.json'), '{"changed":"prompt input"}')
     expect((await planComicResume(f.target)).stages[0]).toMatchObject({ action: 'blocked', detail: expect.stringContaining('inputs were added') })
   }, 20_000)
@@ -167,23 +210,28 @@ test('comic resume leaves unrequested stages and complete runs byte-identical wi
 })
 
 for (const panelsPerImage of [1, 2]) {
-  test(`image recovery prices unfinished QA on retained images with ${panelsPerImage} panels per image`, async () => {
+  test(`image recovery reuses retained images with ${panelsPerImage} panels per image, pricing zero images and no judge step`, async () => {
     const f = await fixture()
     await imageInputs(f)
     delete process.env['AUTOSHOW_REQUIRED_IMAGE_MODEL']
-    const options: GenerateImagesCommandOptions = { scriptPath: f.scriptPath, sceneSlug: f.structured.sourceIdentity.scriptSlug, target: 'images', imageModels: ['gemini-nano-banana-2.1'], panelsPerImage, qa: true, maxRepairs: 0, recoveryRunId: 'retained' }
+    const options: GenerateImagesCommandOptions = { scriptPath: f.scriptPath, sceneSlug: f.structured.sourceIdentity.scriptSlug, target: 'images', imageModel: 'gemini-nano-banana-2.1', panelsPerImage, recoveryRunId: 'retained' }
     await recordComicRecoveryIntent({ rootDir: f.run, sourceIdentity: f.structured.sourceIdentity, stage: 'image', flags: comicImageRecoveryFlags(options), inputs: await captureComicImageRecoveryInputs(f.run), imageRunId: options.recoveryRunId, planHash: comicImageRecoveryHash(options) })
     const files = panelsPerImage === 1 ? ['panels/retained/panel-01.png', 'panels/retained/panel-02.png'] : ['pages/retained/page-01-panels-01-02.png']
     for (const file of files) {
       await mkdir(dirname(join(f.run, file)), { recursive: true })
       await writeFile(join(f.run, file), redDotPng)
     }
+    // Historical QA evidence (failing verdict and a malformed report) must neither block reuse nor add work.
+    const qaDirectory = dirname(join(f.run, files[0]!))
+    await writeFile(join(qaDirectory, 'page-qa-report.json'), JSON.stringify({ pages: [{ pageNumber: 1, hardFailure: true }] }))
+    await writeFile(join(qaDirectory, 'qa-cache.json'), '{not json')
     const calls = installMockFetch(() => { throw new Error('Pricing must not dispatch QA or images') })
     const before = await hashes(f.run)
     const plan = await planComicResume(f.target)
     expect(plan.ready).toBe(true)
     expect(plan.stages[0]!.steps.filter(step => step.step === 'image').map(step => step.imageCount)).toEqual([0])
-    expect(plan.stages[0]!.steps.find(step => step.step === 'llm')?.totalCost).toBeGreaterThan(0)
+    expect(plan.stages[0]!.steps.map(step => step.step)).toEqual(['image'])
+    expect(plan.estimate.totalEstimatedCost).toBe(0)
     expect(await hashes(f.run)).toEqual(before)
     expect(calls).toHaveLength(0)
   })

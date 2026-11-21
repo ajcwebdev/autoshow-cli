@@ -1,19 +1,34 @@
 import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
-import { dirname, join, relative } from 'node:path'
+import { dirname, relative } from 'node:path'
 import * as v from 'valibot'
-import type { PageQaEntry, ReviewSheetCommandDependencies, ReviewSheetCommandOptions, ReviewSheetPanel, ReviewSheetPanelQa, ReviewSheetResult, ScenePromptData, StructuredScriptData } from '~/types'
+import type {
+  ComicPanelSelectionRecord,
+  ReviewSheetCandidate,
+  ReviewSheetCommandDependencies,
+  ReviewSheetCommandOptions,
+  ReviewSheetPanel,
+  ReviewSheetResult,
+  ReviewSheetSelectionChange,
+  ScenePromptData,
+  StructuredScriptData,
+} from '~/types'
 import { ScenePromptDataSchema, StructuredScriptDataSchema } from '../../schemas/schemas'
+import { createComicSourceIdentity } from '../../comic-utils/comic-audio-contracts'
+import { assertSceneRunSourceOwnership } from '../../comic-utils/compatible-scene-run'
 import { comicLog, err } from '../../comic-utils/comic-logger'
 import { parseJsonFile } from '../../comic-utils/json-prompt-utils'
-import { getBlockingPanelSvgPath } from '../../comic-utils/blocking-plan-paths'
-import { getPanelsDirectory, getSceneJsonPath, getSceneOutputDirectory, getStructuredScriptPath, normalizeProjectPath } from '../../comic-utils/project-paths'
+import { adoptRunCandidates, readImageRunRecord, readPanelSelections } from '../../comic-utils/panel-selection'
+import { getSceneJsonPath, getSceneOutputDirectory, getStructuredScriptPath, normalizeProjectPath } from '../../comic-utils/project-paths'
 import { getPanelComicImagePath } from '../../comic-utils/scene-utils'
 import { getReviewDirectory, getReviewExportDocPath, getReviewSheetPath } from './review-paths'
-import { InfraError } from '~/utils/error-handler'
+import { readReviewRunPreview } from './review-run-preview'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 
 const STAGE = 'comic:review-sheet'
+
+type ReviewSheetContent = Omit<ReviewSheetResult, 'outputPath' | 'exportDocPath' | 'changes'>
 
 const escapeHtml = (value: string): string => value
   .replace(/&/gu, '&amp;')
@@ -21,82 +36,49 @@ const escapeHtml = (value: string): string => value
   .replace(/>/gu, '&gt;')
   .replace(/"/gu, '&quot;')
 
-const inlineSvg = (svg: string): string => svg.replace(/^﻿/u, '').replace(/<\?xml[^>]*\?>\s*/u, '').trim()
-
 const describeSpeaker = (speaker: ScenePromptData['panels'][number]['speech'][number]['speaker']): string =>
   speaker.kind === 'character'
     ? `${speaker.characterKey}${speaker.offscreen ? ' (offscreen)' : ''}`
     : speaker.kind === 'caption' ? 'caption' : `voice labeled ${speaker.label}`
 
-const readPageQaEntries = async (sceneSlug: string, provided?: PageQaEntry[] | undefined): Promise<PageQaEntry[] | null> => {
-  if (provided) return provided
-  const reportPath = join(getPanelsDirectory(sceneSlug), 'page-qa-report.json')
-  if (!existsSync(reportPath)) return null
-  try {
-    const report = JSON.parse(await Bun.file(reportPath).text()) as { pages?: PageQaEntry[] }
-    return Array.isArray(report.pages) ? report.pages : null
-  } catch { return null }
+const describeSelection = (selection: ComicPanelSelectionRecord | null): string => {
+  if (!selection) return 'No panel selected yet.'
+  if (selection.origin === 'legacy') return 'Existing selection (origin not recorded).'
+  const how = selection.origin === 'first-generation' ? 'first generation' : 'chosen in review'
+  return `Run ${selection.runId} (${selection.service}/${selection.model}), ${how}.`
 }
 
-const collectReviewSheetPanelFailureKeys = (panel: PageQaEntry['result']['panels'][number], panelNumber: number): string[] => {
-  const hardFailureKeys: string[] = []
-  const prefix = `panel-${panelNumber}:`
-  if (!panel.requiredCastPresent) hardFailureKeys.push(`${prefix}requiredCastPresent`)
-  if (!panel.unexpectedCastAbsent) hardFailureKeys.push(`${prefix}unexpectedCastAbsent`)
-  if (panel.identityIssueKind === 'unmistakable-mismatch') hardFailureKeys.push(`${prefix}identityMatch`)
-  if (!panel.locationMatch) hardFailureKeys.push(`${prefix}locationMatch`)
-  if (!panel.setContinuityMatch) hardFailureKeys.push(`${prefix}setContinuityMatch`)
-  if (!panel.sourcePrecedence) hardFailureKeys.push(`${prefix}sourcePrecedence`)
-  if (!panel.shotPlanMatch) hardFailureKeys.push(`${prefix}shotPlanMatch`)
-  if (panel.blockingAudit && panel.blockingAudit.some(item => item.status !== 'on-mark' && item.status !== 'not-assessable')) hardFailureKeys.push(`${prefix}blockingAudit`)
-  if (panel.axisSideMatch === false) hardFailureKeys.push(`${prefix}axisSideMatch`)
-  if (panel.dialogueIssueKind === 'content') hardFailureKeys.push(`${prefix}dialogueAccuracy`)
-  if (!panel.speakerAttribution) hardFailureKeys.push(`${prefix}speakerAttribution`)
-  return hardFailureKeys
-}
-
-const summarizeQa = (entries: PageQaEntry[] | null, panelNumber: number, attempts: number): ReviewSheetPanelQa | null => {
-  if (!entries) return null
-  const entry = entries.find(candidate => candidate.panelNumbers.includes(panelNumber))
-  if (!entry) return null
-  const panel = entry.result.panels.find(candidate => candidate.panelNumber === panelNumber)
-  const hardFailureKeys = panel ? collectReviewSheetPanelFailureKeys(panel, panelNumber) : []
-  const route = entry.repairPolicy
-    ? `${entry.repairPolicy.action}${entry.repairPolicy.reason ? ` (${entry.repairPolicy.reason})` : ''}`
-    : entry.hardFailure ? 'unresolved' : 'none'
-  return {
-    attempts,
-    hardFailureKeys,
-    repairRoute: route,
-    lineage: entry.repairPolicy?.action === 'restart' ? 'restarted from canonical references' : entry.hardFailure ? 'edited' : 'initial generation',
+const describeCandidate = (candidate: ReviewSheetCandidate): string => {
+  switch (candidate.status) {
+    case 'missing': return candidate.recordedSha256 ? 'The recorded candidate file is missing.' : 'This run has no individual image for this panel.'
+    case 'invalid': return 'The recorded candidate could not be verified as a readable PNG.'
+    case 'changed': return 'The candidate file differs from the run record. Restore the recorded image to use this panel.'
+    case 'selected': return 'Same image as the current selection.'
+    case 'alternative': return 'Alternative to the current selection.'
   }
 }
 
-export const countReviewAttempts = async (sceneSlug: string, panelNumber: number): Promise<number> => {
-  const attemptsDirectory = join(getPanelsDirectory(sceneSlug), 'attempts', `panel-${String(panelNumber).padStart(2, '0')}`)
-  if (!existsSync(attemptsDirectory)) return 0
-  const entries = await Array.fromAsync(new Bun.Glob('attempt-*.png').scan({
-    cwd: attemptsDirectory,
-    onlyFiles: false,
-    followSymlinks: false,
-    dot: true
-  }))
-  return entries.filter(name => /^attempt-\d+\.png$/u.test(name)).length
-}
+const imageFigure = (path: string | null, alt: string, emptyText: string): string =>
+  path ? `<img src="${escapeHtml(path)}" alt="${escapeHtml(alt)}">` : `<p class="empty">${escapeHtml(emptyText)}</p>`
 
-export const buildReviewSheetHtml = (result: Omit<ReviewSheetResult, 'outputPath' | 'exportDocPath'>): string => {
+export const buildReviewSheetHtml = (result: ReviewSheetContent): string => {
+  const run = result.run
   const sections = result.panels.map(panel => [
     `<section class="panel" id="panel-${panel.panelNumber}">`,
     `<h2>Panel ${panel.panelNumber}</h2>`,
     '<div class="grid">',
     '<div class="art">',
-    panel.imagePath
-      ? `<img src="${escapeHtml(panel.imagePath)}" alt="Canonical panel ${panel.panelNumber}">`
-      : '<p class="empty">No canonical panel image is promoted yet.</p>',
-    '<div class="board">',
-    panel.stageBoardSvg ? panel.stageBoardSvg : '<p class="empty">No stage board: this scene has no blocking plan.</p>',
+    '<h3>Current selection</h3>',
+    imageFigure(panel.imagePath, `Selected panel ${panel.panelNumber}`, 'No panel selected yet.'),
+    `<p class="provenance">${escapeHtml(describeSelection(panel.selection))}</p>`,
     '</div>',
-    '</div>',
+    ...(run && panel.candidate ? [
+      '<div class="art">',
+      `<h3>Run ${escapeHtml(run.runId)}</h3>`,
+      ...(panel.candidate.imagePath ? [imageFigure(panel.candidate.imagePath, `Run ${run.runId} panel ${panel.panelNumber}`, '')] : []),
+      `<p class="provenance">${escapeHtml(describeCandidate(panel.candidate))}</p>`,
+      '</div>',
+    ] : []),
     '<div class="contract">',
     '<h3>Contract</h3>',
     `<p><strong>Description:</strong> ${escapeHtml(panel.description)}</p>`,
@@ -110,16 +92,26 @@ export const buildReviewSheetHtml = (result: Omit<ReviewSheetResult, 'outputPath
     panel.sourceSegments.length > 0
       ? `<ul>${panel.sourceSegments.map(item => `<li><code>${escapeHtml(item.id)}</code> ${escapeHtml(item.text)}</li>`).join('')}</ul>`
       : '<p class="empty">No source segments recorded.</p>',
-    '<h3>QA</h3>',
-    panel.qa
-      ? `<ul><li><strong>Attempts:</strong> ${panel.qa.attempts}</li><li><strong>Hard-failure keys:</strong> ${panel.qa.hardFailureKeys.length > 0 ? escapeHtml(panel.qa.hardFailureKeys.join(', ')) : 'none'}</li><li><strong>Repair route:</strong> ${escapeHtml(panel.qa.repairRoute)}</li><li><strong>Lineage:</strong> ${escapeHtml(panel.qa.lineage)}</li></ul>`
-      : '<p class="empty">QA evidence not retained.</p>',
     '<h3>Notes</h3>',
     `<textarea class="notes" data-panel="${panel.panelNumber}" rows="5" placeholder="Notes for panel ${panel.panelNumber}"></textarea>`,
     '</div>',
     '</div>',
     '</section>',
   ].join('\n'))
+  const deletedCandidate = result.panels.some(({ candidate }) => candidate?.status === 'missing' && candidate.recordedSha256 !== null)
+  const issues = run ? [
+    run.missingPanels.length > 0 ? `${deletedCandidate ? 'Missing individual image' : 'Subset run: no individual image'} for panel(s) ${run.missingPanels.join(', ')}.` : '',
+    run.changedPanels.length > 0 ? `Changed candidate files for panel(s) ${run.changedPanels.join(', ')}.` : '',
+    run.invalidPanels.length > 0 ? `Unverified candidate files for panel(s) ${run.invalidPanels.join(', ')}.` : '',
+  ].filter(Boolean).join(' ') : ''
+  const runSummary = run ? [
+    `<h2>Run ${escapeHtml(run.runId)}</h2>`,
+    `<p>Model <code>${escapeHtml(run.service)}/${escapeHtml(run.model)}</code>. ${escapeHtml(issues || 'Every panel has a candidate.')} Previewing changes no selection; adopt candidates with <code>comic review &lt;script-path&gt; --run ${escapeHtml(run.runId)} --use [--panels &lt;list&gt;]</code>.</p>`,
+    ...(run.pages.length > 0 ? [
+      '<h3>Pages and grids</h3>',
+      ...run.pages.map(page => `<figure>${imageFigure(page.imagePath, `Page ${page.pageNumber}`, page.status === 'missing' ? 'The recorded page file is missing.' : 'The recorded page could not be verified as a readable PNG.')}<figcaption>Page ${page.pageNumber}, panels ${escapeHtml(page.panelRange)} (${page.kind === 'local-grid' ? 'local grid' : 'provider page'}; not selectable as panels)</figcaption></figure>`),
+    ] : []),
+  ] : []
   return [
     '<!doctype html>',
     '<html lang="en">',
@@ -133,19 +125,20 @@ export const buildReviewSheetHtml = (result: Omit<ReviewSheetResult, 'outputPath
     'h1 { margin-top: 0; }',
     '.panel { border-top: 1px solid currentColor; padding-top: 1rem; margin-top: 1.5rem; }',
     '.grid { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; }',
-    '.art { flex: 1 1 22rem; min-width: 18rem; }',
+    '.art { flex: 1 1 18rem; min-width: 14rem; }',
     '.contract { flex: 1 1 22rem; min-width: 18rem; }',
     'img { max-width: 100%; height: auto; display: block; }',
-    '.board svg { max-width: 100%; height: auto; }',
-    '.empty { opacity: 0.7; font-style: italic; }',
+    'figure { margin: 0 0 1rem; max-width: 40rem; }',
+    '.empty, .provenance { opacity: 0.7; font-style: italic; }',
     'textarea.notes { width: 100%; font: inherit; }',
     'pre#collected { white-space: pre-wrap; border: 1px solid currentColor; padding: 0.75rem; }',
     '</style>',
     '</head>',
     '<body>',
     `<h1>Review sheet: ${escapeHtml(result.sceneTitle)}</h1>`,
-    `<p>Scene <code>${escapeHtml(result.sceneSlug)}</code>. ${result.panels.length} panels. This page makes no network request and generates nothing; it is a static reading and note-taking surface.</p>`,
-    '<p>Type notes below each panel, then press Collect notes to build a <code>### Panel NN</code> Markdown block for <code>comic review &lt;script-path&gt; --notes &lt;path&gt;</code>.</p>',
+    `<p>Scene <code>${escapeHtml(result.sceneSlug)}</code>. ${result.panels.length} panels. This page makes no network request and changes no selection; it is a static reading and note-taking surface.</p>`,
+    ...runSummary,
+    '<p>Type notes below each panel, then press Collect notes to build a <code>### Panel NN</code> Markdown block to keep with your revision notes.</p>',
     '<p><button type="button" id="collect">Collect notes</button></p>',
     '<pre id="collected">Collected notes appear here.</pre>',
     ...sections,
@@ -165,25 +158,47 @@ export const buildReviewSheetHtml = (result: Omit<ReviewSheetResult, 'outputPath
   ].join('\n')
 }
 
-export const buildReviewExportDoc = (result: Omit<ReviewSheetResult, 'outputPath' | 'exportDocPath'>): string => [
+export const buildReviewExportDoc = (result: ReviewSheetContent): string => [
   `# ${result.sceneTitle} panel export`,
   '',
-  `Scene \`${result.sceneSlug}\`. One heading per panel; write notes in the blank paragraph after each image so every note maps to its panel number.`,
+  `Scene \`${result.sceneSlug}\`. One heading per panel; write notes in the blank paragraph after each image so every note maps to its panel number.${result.run ? ` Candidates from run \`${result.run.runId}\` follow each current selection.` : ''}`,
   '',
   ...result.panels.flatMap(panel => [
     `### Panel ${panel.panelNumber}`,
     '',
-    panel.imagePath ? `![Panel ${panel.panelNumber}](${panel.imagePath})` : `_No canonical panel image is promoted for panel ${panel.panelNumber}._`,
+    panel.imagePath ? `![Panel ${panel.panelNumber}](${panel.imagePath})` : `_No panel is selected for panel ${panel.panelNumber}._`,
     '',
+    ...(result.run && panel.candidate ? [
+      panel.candidate.imagePath
+        ? `![Run ${result.run.runId} panel ${panel.panelNumber}](${panel.candidate.imagePath})`
+        : `_Run \`${result.run.runId}\`. ${describeCandidate(panel.candidate)}_`,
+      '',
+    ] : []),
     '',
   ]),
 ].join('\n')
+
+const assertSelectionOptions = (options: ReviewSheetCommandOptions): void => {
+  if (options.use && !options.run) throw ValidationError('--use requires --run <image-run-id>; nothing was changed.', { stage: STAGE })
+  if (options.panels !== undefined && !options.use) throw ValidationError('--panels chooses the panels to adopt and requires --run <image-run-id> --use.', { stage: STAGE })
+}
+
+const reportChanges = (changes: ReviewSheetSelectionChange[], runId: string): void => {
+  for (const change of changes) {
+    comicLog.line(change.changed ? `Panel ${change.panelNumber} selected from run ${runId}` : `Panel ${change.panelNumber} already uses run ${runId}`, [
+      change.previous ? `previous=${change.previous.origin === 'legacy' ? 'legacy' : change.previous.runId}` : 'previous=none',
+      `model=${change.current.model}`,
+      `sha256=${change.current.sha256.slice(0, 12)}`,
+    ])
+  }
+}
 
 export const reviewSheetCommand = async (
   options: ReviewSheetCommandOptions,
   dependencies: ReviewSheetCommandDependencies = {},
 ): Promise<ReviewSheetResult> => {
   try {
+    assertSelectionOptions(options)
     const sceneJsonPath = getSceneJsonPath(options.sceneSlug)
     if (!dependencies.scene && !existsSync(sceneJsonPath)) {
       throw InfraError(`Scene JSON not found at ${sceneJsonPath}. Run "${CLI_INVOCATION} comic draft-scenes ${options.scriptPath}" first.`, { stage: STAGE })
@@ -192,46 +207,67 @@ export const reviewSheetCommand = async (
     const structuredScript: StructuredScriptData | undefined = dependencies.structuredScript
       ?? (existsSync(getStructuredScriptPath(options.sceneSlug)) ? await parseJsonFile(getStructuredScriptPath(options.sceneSlug), StructuredScriptDataSchema) : undefined)
     const segmentsById = new Map((structuredScript?.sourceSegments ?? []).map(segment => [segment.id, segment.text]))
-    const pageQaEntries = await readPageQaEntries(options.sceneSlug, dependencies.pageQaEntries)
+    const sceneDirectory = getSceneOutputDirectory(options.sceneSlug)
     const outputPath = getReviewSheetPath(options.sceneSlug)
     const reviewDirectory = getReviewDirectory(options.sceneSlug)
 
-    const panels: ReviewSheetPanel[] = []
-    for (const panel of scene.panels) {
-      const svgPath = getBlockingPanelSvgPath(options.sceneSlug, panel.number)
+    if (options.use) {
+      const sourceBytes = new Uint8Array(await Bun.file(options.scriptPath).arrayBuffer())
+      await assertSceneRunSourceOwnership(sceneDirectory, await createComicSourceIdentity(options.scriptPath, sourceBytes), { requireExisting: true })
+    }
+    const record = options.run ? await readImageRunRecord(options.sceneSlug, options.run) : undefined
+    let changes: ReviewSheetSelectionChange[] = []
+    if (record && options.use) {
+      const before = await readPanelSelections(options.sceneSlug)
+      const adopted = await adoptRunCandidates({ sceneSlug: options.sceneSlug, runId: record.runId, ...(options.panels !== undefined ? { panels: options.panels } : {}) })
+      changes = adopted.map(current => {
+        const previous = before.get(current.panelNumber) ?? null
+        return { panelNumber: current.panelNumber, previous, current, changed: previous?.sha256 !== current.sha256 || previous.runId !== current.runId }
+      })
+      reportChanges(changes, record.runId)
+    }
+    const selections = await readPanelSelections(options.sceneSlug)
+    const preview = record ? await readReviewRunPreview(record, scene.panels.map(panel => panel.number), selections, sceneDirectory, reviewDirectory) : null
+    const run = preview?.run ?? null
+
+    const panels: ReviewSheetPanel[] = scene.panels.map(panel => {
       const imagePath = getPanelComicImagePath(options.sceneSlug, panel.number)
-      const attempts = await countReviewAttempts(options.sceneSlug, panel.number)
-      panels.push({
+      const selection = selections.get(panel.number) ?? null
+      return {
         panelNumber: panel.number,
         description: panel.description,
         shotPlan: panel.shotPlan,
         characterKeys: [...panel.characterKeys],
         speech: panel.speech.map(item => ({ speaker: describeSpeaker(item.speaker), line: item.line })),
         sourceSegments: panel.sourceSegmentIds.map(id => ({ id, text: segmentsById.get(id) ?? 'source segment text unavailable' })),
-        stageBoardSvg: existsSync(svgPath) ? inlineSvg(await Bun.file(svgPath).text()) : null,
         imagePath: existsSync(imagePath) ? normalizeProjectPath(relative(reviewDirectory, imagePath)) : null,
-        qa: summarizeQa(pageQaEntries, panel.number, attempts),
-      })
-    }
+        selection,
+        candidate: preview?.candidates.get(panel.number) ?? null,
+      }
+    })
 
-    const partial = { sceneSlug: options.sceneSlug, sceneTitle: scene.title, panels }
+    const content: ReviewSheetContent = { sceneSlug: options.sceneSlug, sceneTitle: scene.title, panels, run }
     await mkdir(dirname(outputPath), { recursive: true })
-    await Bun.write(outputPath, buildReviewSheetHtml(partial))
+    await Bun.write(outputPath, buildReviewSheetHtml(content))
     let exportDocPath: string | null = null
     if (options.exportDoc) {
       exportDocPath = getReviewExportDocPath(options.sceneSlug)
-      await Bun.write(exportDocPath, buildReviewExportDoc(partial))
+      await Bun.write(exportDocPath, buildReviewExportDoc(content))
     }
 
     comicLog.line('review-sheet generated', [
-      `file=${relative(getSceneOutputDirectory(options.sceneSlug), outputPath)}`,
+      `file=${relative(sceneDirectory, outputPath)}`,
       `panels=${panels.length}`,
-      `images=${panels.filter(panel => panel.imagePath !== null).length}`,
-      `boards=${panels.filter(panel => panel.stageBoardSvg !== null).length}`,
-      `qa=${pageQaEntries ? 'retained' : 'not-retained'}`,
-      exportDocPath ? `exportDoc=${relative(getSceneOutputDirectory(options.sceneSlug), exportDocPath)}` : undefined,
+      `selected=${panels.filter(panel => panel.imagePath !== null).length}`,
+      run ? `run=${run.runId}` : undefined,
+      run && run.missingPanels.length > 0 ? `missing=${run.missingPanels.join(',')}` : undefined,
+      run && run.changedPanels.length > 0 ? `changedCandidates=${run.changedPanels.join(',')}` : undefined,
+      run && run.invalidPanels.length > 0 ? `invalidCandidates=${run.invalidPanels.join(',')}` : undefined,
+      run && run.pages.length > 0 ? `pages=${run.pages.map(page => page.panelRange).join(',')}` : undefined,
+      options.use ? `changed=${changes.filter(change => change.changed).length}` : undefined,
+      exportDocPath ? `exportDoc=${relative(sceneDirectory, exportDocPath)}` : undefined,
     ].filter((part): part is string => part !== undefined))
-    return { ...partial, outputPath, exportDocPath }
+    return { ...content, outputPath, exportDocPath, changes }
   } catch (error) {
     err('Review sheet generation failed:', error instanceof Error ? error.message : String(error))
     throw error

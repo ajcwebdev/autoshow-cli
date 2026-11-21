@@ -78,6 +78,15 @@ describe('live reference workspace migration', () => {
     expect(existsSync(join(f.root, 'output', '.autoshow-workspace-leases'))).toBe(false)
   })
 
+  test('identifies retained canonical assets from panel cast, location, and designs only, without roster references to uncast characters', async () => {
+    const f = await fixture()
+    await createLiveCharacterFixture(f.root, ['hero', 'rival'].map(key => ({ key, name: key, description: key, aliases: [key.toUpperCase()], image: `${key}.png`, outlineSheet: `${key}.png` })))
+    const result = await migrateLiveComicReferences({ root: f.root })
+    // hero.png, the location view, the design, and the four catalog/manifest files; the uncast rival.png is not a retained reference.
+    expect(result).toMatchObject({ operation: 'dry-run', bundlesValidated: 1, canonicalReferenceFilesValidated: 7 })
+    expect(await readFile(f.path, 'utf8')).toBe(f.content)
+  })
+
   test('apply removes only frozen reference material and preserves reviewed content and canonical files', async () => {
     const f = await fixture()
     const result = await migrateLiveComicReferences({ root: f.root, apply: true })

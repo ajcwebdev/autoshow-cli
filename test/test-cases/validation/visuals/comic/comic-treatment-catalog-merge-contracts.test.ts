@@ -5,6 +5,7 @@ import type { CharacterReferenceConfig, LocationReferenceCatalog } from '~/types
 import { buildCharacterCatalogIndex } from '~/cli/commands/visuals/comic/comic-utils/character-catalog-index'
 import { resolveLocationCatalogEntry } from '~/cli/commands/visuals/comic/comic-utils/location-reference'
 import { mergeTreatmentCharacterCatalog, mergeTreatmentLocationCatalog } from '~/cli/commands/visuals/comic/comic-commands/draft-treatment/treatment-catalog-merge'
+import { buildTreatmentMergeReportMarkdown } from '~/cli/commands/visuals/comic/comic-commands/draft-treatment/treatment-run-artifacts'
 import { buildTreatmentFixtureDraft, makeTreatmentProjectRoot, tinyPng } from './comic-treatment-contract-fixtures'
 
 const draft = buildTreatmentFixtureDraft()
@@ -114,5 +115,16 @@ describe('comic treatment catalog merge contracts', () => {
     expect(index.byLookup.get('RUTH ALDER')).toEqual(['ranger-ruth'])
     await writeFile(join(root, 'lantern-ridge--style-seed.png'), tinyPng)
     expect(() => buildCharacterCatalogIndex(root, configPath, config)).not.toThrow()
+  })
+
+  test('the merge report next steps run prepare, scene and panel-prompts without retired selectors', () => {
+    const report = buildTreatmentMergeReportMarkdown(
+      { charactersAdded: ['ranger-ruth'], charactersSkipped: [], droppedAliases: [], locationsAdded: ['lantern-ridge'], locationsSkipped: [], styleImage: { action: 'kept', value: 'style.png' } },
+      { scriptPath: 'input/scripts/01-script/01-lantern-ridge.md', shorthand: '01-lantern-ridge', panelCount: 4, styleSeedPath: 'style.png', speakers: [] },
+    )
+    const draftSteps = report.split('\n').filter(line => line.includes('comic draft-scenes'))
+    expect(draftSteps.map(line => line.replace(/^.*comic draft-scenes 01-lantern-ridge /, ''))).toEqual(['--only prepare', '--only scene --panel-count 4', '--only panel-prompts'])
+    expect(report.indexOf('--only prepare')).toBeLessThan(report.indexOf('reference-sketch --character ranger-ruth'))
+    expect(report).not.toMatch(/--only (structure|prompt|blocking)\b|--blocking|--rebind/)
   })
 })

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-11-14
+- **Date Updated:** 2026-11-20
 - **Verification Status:** Passed
 
 ## Context
@@ -37,9 +37,9 @@ Price planning resolves the same targets, plans, and verified reuse, leaving unk
 
 ### Presentation
 
-`comic generate-slideshow` locally renders reviewed still panels and exactly one complete canonical dialogue/soundscape run. It never generates motion, alters panels, accepts untimed raw audio, or mutates source audio. `comic generate-audio --slideshow` checks visuals, panel coverage, and encoder readiness before paid synthesis and records presentation intent before dispatch.
+`comic generate-slideshow` locally renders selected still panels and exactly one complete canonical dialogue/soundscape run. It never generates motion, alters panels, accepts untimed raw audio, or mutates source audio. `comic generate-audio --slideshow` checks visuals, panel coverage, and encoder readiness before paid synthesis and records presentation intent before dispatch.
 
-Visuals come from the current reviewed run or a same-script run with exact source coverage/dialogue reconciliation; filenames alone prove nothing. Every consecutive canonical `panels/panel-NN.png` must exist with identical even dimensions. Those dimensions are preserved without crop, padding, or rescaling; missing panels are reported together. Audio selection prefers exactly one complete selected soundscape, otherwise exactly one dialogue run. Ambiguous candidates require `--audio-target provider=model`.
+Visuals come from the current run or a same-script run with exact source coverage/dialogue reconciliation; filenames alone prove nothing. Every consecutive selected `panels/panel-NN.png` (the first valid generated panel or an explicit `comic review --use` choice) must exist with identical even dimensions. Those dimensions are preserved without crop, padding, or rescaling; missing panels are reported together. Audio selection prefers exactly one complete selected soundscape, otherwise exactly one dialogue run. Ambiguous candidates require `--audio-target provider=model`.
 
 Dialogue/effects bind by exact source identity, speaker, and text. Inline effects belong to their segment's panel; block effects belong to the unique panel owning the nearest preceding action/panel note. Missing, duplicate, or ambiguous ownership fails.
 
@@ -55,7 +55,7 @@ Accepted controls are `--price`, `--allow-ambiguous-redispatch`, `--bin-dir`, an
 
 `resume --price` makes no calls or writes. JSON `data.comicPlans` reports readiness and stages; blocked totals cover only priceable work, and blocked execution is refused. Invalid manifests or missing sources fail inspection. Compatible completed work is reused, and unrequested stages stay unrequested.
 
-Recovery does not prepare sources, promote image variants, change references/approvals, force regeneration, or run audits/revision evaluations. Recorded audio can synthesize remaining slots; presentation-only recovery requires complete audio. Missing upstream media or changed dependencies block presentation. An interrupted `--slideshow` request finishes locally after audio recovery. [Explicit ambiguous TTS redispatch](ADR-005-cli-error-result-and-retry-contract.md) may repurchase an unresolved slot but never authorizes blocked SFX work.
+Recovery does not prepare sources, replace panel selections, change references/approvals, or force regeneration; it can finish an interrupted first panel selection from its verified candidate. Completed images from older runs are reused without a QA report; unfinished multi-model, explicit-variation, or judge-dependent image intents report the incompatibility and require an explicit single-model selection for remaining work, without moving or repurchasing retained candidates. Recorded audio can synthesize remaining slots; presentation-only recovery requires complete audio. Missing upstream media or changed dependencies block presentation. An interrupted `--slideshow` request finishes locally after audio recovery. [Explicit ambiguous TTS redispatch](ADR-005-cli-error-result-and-retry-contract.md) may repurchase an unresolved slot but never authorizes blocked SFX work.
 
 ## Trade-offs
 

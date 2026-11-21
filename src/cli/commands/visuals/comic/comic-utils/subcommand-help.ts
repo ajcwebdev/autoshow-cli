@@ -1,5 +1,4 @@
 import { CLI_INVOCATION } from '~/cli/cli-invocation'
-import { QA_ONLY_MODE_NOTES } from './comic-qa-only-contract'
 import { REFERENCE_LOCATION_OPTIONS_NOTE } from '~/cli/flags/reference-option-contract'
 import {
   draftScenesFlags,
@@ -7,8 +6,6 @@ import {
   comicGenerateAudioFlags,
   comicGenerateSlideshowFlags,
   comicReviewFlags,
-  comicReviewNotesFlags,
-  comicReviewSheetFlags,
   generateImagesFlags,
   referenceSketchFlags
 } from '~/cli/flags/comic-flags'
@@ -19,9 +16,7 @@ import {
   GENERATE_AUDIO_COMMAND,
   GENERATE_IMAGES_COMMAND,
   REFERENCE_SKETCH_COMMAND,
-  REVIEW_COMMAND,
-  REVIEW_NOTES_COMMAND,
-  REVIEW_SHEET_COMMAND
+  REVIEW_COMMAND
 } from './cli-args'
 import {
   handleDraftScenes,
@@ -31,12 +26,9 @@ import {
   handleGenerateSlideshow,
   handleReferenceSketch,
   handleReview,
-  handleReviewNotes,
-  handleReviewSheet,
 } from './subcommand-handlers'
 import type { CliCommandDefinition } from '~/types'
 import { referenceVoiceCommandDefinition } from '../comic-commands/reference-voice/reference-voice-command'
-import * as l from '~/utils/app-logger/app-logger'
 
 const SCRIPT_PATH_PARAMETER = {
   key: '<script-path>',
@@ -51,13 +43,12 @@ const TREATMENT_PATH_PARAMETER = {
 const ARTIFACT_NOTE = 'Comic artifacts are read from input and written under output.'
 
 const DRAFT_TREATMENT_DESCRIPTION = 'Adapt a prose treatment into a fixed-count episode script plus bootstrapped character and location catalog entries'
-const DRAFT_SCENES_DESCRIPTION = 'Run script markdown to structured script JSON to draft prompt bundles to a blocking plan to scene JSON to panel prompt bundles'
-const GENERATE_IMAGES_DESCRIPTION = 'Run panel prompt bundles to review sketches and/or final panel images'
+const DRAFT_SCENES_DESCRIPTION = 'Prepare the structured script and draft prompt locally, draft the scene JSON, then build panel prompt bundles'
+const GENERATE_IMAGES_DESCRIPTION = 'Generate review sketches and/or final panel images from panel prompt bundles with one image model per run'
 const REFERENCE_SKETCH_DESCRIPTION = 'Generate and register a character sheet or one canonical location view'
 const GENERATE_AUDIO_DESCRIPTION = 'Render approved character voices from an existing compatible structured comic scene'
-const GENERATE_SLIDESHOW_DESCRIPTION = 'Synchronize canonical still panels with one complete manifest-backed audio run using local FFmpeg'
-const REVIEW_NOTES_DESCRIPTION = 'Map a Markdown review-notes file onto reviewed panels and emit paste-ready staging directives'
-const REVIEW_SHEET_DESCRIPTION = 'Build a static per-panel review sheet with contracts, stage boards, canonical images, and QA evidence'
+const GENERATE_SLIDESHOW_DESCRIPTION = 'Synchronize the selected still panels with one complete manifest-backed audio run using local FFmpeg'
+const REVIEW_DESCRIPTION = 'Build the local review sheet of selected panels, preview an image run\'s candidates with --run, and adopt them explicitly with --use'
 
 export const draftTreatmentCommandDefinition = defineCliCommand({
   name: `comic ${DRAFT_TREATMENT_COMMAND}`,
@@ -74,7 +65,7 @@ export const draftTreatmentCommandDefinition = defineCliCommand({
       'Makes one structured LLM call plus one validator retry, then writes input/scripts/<episode>-script/<scene>-<slug>.md so the NN-SC shorthand works for every later stage.',
       'Narration is written under NARRATION labels; quoted lines from --speaker characters become their dialogue and every other quote is folded into narration.',
       'New characters and locations are merged into the catalogs without touching existing keys. The style seed PNG named by --style-seed must already exist under the characters root.',
-      `Continue with ${CLI_INVOCATION} comic ${DRAFT_SCENES_COMMAND} <episode>-<scene> --only structure, reference-sketch for every new key, then --only scene --panel-count <n>.`,
+      `Continue with ${CLI_INVOCATION} comic ${DRAFT_SCENES_COMMAND} <episode>-<scene> --only prepare, reference-sketch for every new key, then --only scene --panel-count <n>.`,
       ARTIFACT_NOTE
     ]
   }
@@ -89,13 +80,14 @@ export const draftScenesCommandDefinition = defineCliCommand({
     examples: [
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01`, 'Run every drafting stage for a scene'],
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} input/scripts/01-script/01-opening.md`, 'Run every drafting stage from an explicit script path'],
+      [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01 --only prepare`, 'Build the structured script and draft prompt locally without calling any provider'],
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01 --only panel-prompts`, 'Build only the panel prompt bundles'],
-      [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01 --only blocking --blocking-plan input/blocking/05-01.json`, 'Import a hand-authored blocking plan without calling any provider'],
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01 --price`, 'Estimate the drafting cost without calling any provider']
     ],
     notes: [
-      'Stages run in order: structure, prompt, blocking, scene, panel-prompts. --only runs a single stage; --no-blocking skips the blocking stage in a full run and drafts the scene plan-free.',
-      'The blocking stage binds to a reviewed metadata/scene.json automatically (writing metadata/blocking-bindings.json); --blocking-plan imports a plan and --rebind remaps citations, neither calling a provider.',
+      'Stages run in order: prepare, scene, panel-prompts. --only runs a single stage.',
+      'prepare is local: it parses the script into metadata/structured-script.json and builds metadata/draft-prompt.md from that exact structure, makes no provider call, and rejects --provider. The former --only structure and --only prompt selectors are replaced by --only prepare.',
+      'scene is the only hosted stage; after editing metadata/scene.json, --only panel-prompts rebuilds the bundles with zero provider calls.',
       `Panel prompt bundles produced here are consumed by ${CLI_INVOCATION} comic ${GENERATE_IMAGES_COMMAND}.`,
       ARTIFACT_NOTE
     ]
@@ -108,21 +100,18 @@ export const generateImagesCommandDefinition = defineCliCommand({
   parameters: [SCRIPT_PATH_PARAMETER],
   flags: generateImagesFlags,
   help: {
-    beforeFlags: QA_ONLY_MODE_NOTES,
-    topics: { audit: { description: 'QA-only constraints and judge options', groups: ['comic-qa'], notes: QA_ONLY_MODE_NOTES } },
     examples: [
       [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01`, 'Generate final panel images for a scene'],
       [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --target sketches --panels 1-4`, 'Generate review sketches for panels 1 through 4'],
       [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --panels-per-image 6`, 'Generate multi-panel page images'],
-      [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --qa-only --panels 1-5 --price`, 'Estimate a non-generating audit of existing canonical panels'],
-      [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --no-qa --price`, 'Estimate the image cost with QA disabled']
+      [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --panels 3 --provider openai`, 'Generate another version of panel 3 with one selected image model'],
+      [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --price`, 'Estimate the outstanding image cost without calling any provider']
     ],
     notes: [
       'Reviewed scene and panel prompt bundles are required; --force only regenerates image outputs.',
       `To rebuild panel prompts explicitly, run: ${CLI_INVOCATION} comic ${DRAFT_SCENES_COMMAND} <script-path> --only panel-prompts`,
-      'QA-only mode reads canonical individual panels and writes a separate audit report without generation, repairs, promotion, or image-manifest changes.',
-      'QA options (--qa, --qa-provider, --max-repairs) only apply when --target is images or both.',
-      'Revision mode uses exactly two order-swapped comparison judgments and requires explicit --promote clear-winners authorization. Only clear winners are promoted; candidates without that result remain separate.',
+      'Each run uses exactly one --provider provider[=model]; run a separate invocation for another model. Each run gets its own image run ID and candidate directory.',
+      'The first valid individual panel fills an empty slot at panels/panel-NN.png; later runs save alternatives for comic review --run <id> --use. Sketches and grouped or grid pages never fill a slot.',
       ARTIFACT_NOTE
     ]
   }
@@ -160,7 +149,7 @@ export const generateSlideshowCommandDefinition = defineCliCommand({
       ['bun autoshow comic generate-slideshow 05-01 --price', 'Report the zero-dollar local render cost without writes'],
     ],
     notes: [
-      'Every reviewed panel must exist as canonical panels/panel-NN.png with identical even dimensions.',
+      'Uses the selected panels: every reviewed panel must exist as panels/panel-NN.png with identical even dimensions. The first valid generated panel is selected automatically; comic review --run <id> --use replaces a selection.',
       'Only complete canonical AudioRun timelines are supported; raw WAV files cannot synchronize panels.',
       'Rendering is local and uses hard cuts only: no motion, transitions, rescaling, or provider calls.',
       ARTIFACT_NOTE,
@@ -173,7 +162,7 @@ export const referenceSketchCommandDefinition = defineCliCommand({
   description: REFERENCE_SKETCH_DESCRIPTION,
   flags: referenceSketchFlags,
   help: {
-    beforeFlags: [REFERENCE_LOCATION_OPTIONS_NOTE, '--qa-only is not supported here. Use comic generate-images --qa-only to audit existing panels.'],
+    beforeFlags: [REFERENCE_LOCATION_OPTIONS_NOTE],
     examples: [
       [`bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --character hero`, 'Generate a character reference sheet'],
       [`bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --location cargo-bay`, 'Generate a canonical location reference'],
@@ -192,72 +181,25 @@ export const referenceSketchCommandDefinition = defineCliCommand({
 
 export const reviewCommandDefinition = defineCliCommand({
   name: `comic ${REVIEW_COMMAND}`,
-  description: 'Build a local review sheet or map supplied review notes to staging directives',
+  description: REVIEW_DESCRIPTION,
   parameters: [SCRIPT_PATH_PARAMETER],
   flags: comicReviewFlags,
   help: {
     examples: [
-      ['bun autoshow comic review 02-01', 'Build the per-panel HTML review sheet'],
+      ['bun autoshow comic review 02-01', 'Build the per-panel HTML review sheet of the selected panels'],
       ['bun autoshow comic review 02-01 --export-doc', 'Also export a shared-document review sheet'],
-      ['bun autoshow comic review 02-01 --notes review/pass-2.md', 'Map supplied notes to paste-ready staging directives'],
+      ['bun autoshow comic review 02-01 --run <image-run-id>', 'Preview that run\'s candidates beside the current selection'],
+      ['bun autoshow comic review 02-01 --run <image-run-id> --use --panels 3', 'Select that run\'s panel 3'],
     ],
     notes: [
-      'Without --notes, writes metadata/review/review-sheet.html; --export-doc also writes metadata/review/export-doc.md.',
-      'Supplying --notes selects notes processing only and cannot be combined with --export-doc. Notes use Markdown ### Panel NN headings.',
-      'Notes processing writes metadata/review/review-notes-<run-id>.md and never rewrites the source script or reviewed scene.',
-      'Both modes read local artifacts and make no provider call. Only notes processing requires the character catalog.',
-      'Deprecated aliases: comic review-sheet and comic review-notes retain their original flags for one compatibility release.',
+      'Writes metadata/review/review-sheet.html; --export-doc also writes metadata/review/export-doc.md. Previewing and exporting never change a selection.',
+      '--run <image-run-id> shows the individual panel candidates from that comic generate-images run beside the current selection and marks panels the run did not produce.',
+      '--use adopts the --run candidates as the selected panels/panel-NN.png files; without --panels it adopts all declared scene panels, and a subset run requires an explicit --panels list. Every requested panel is validated before any selection changes.',
+      'Review is local and makes no provider call.',
       ARTIFACT_NOTE,
     ],
   },
 }, handleReview)
-
-export const reviewNotesCommandDefinition = defineCliCommand({
-  name: `comic ${REVIEW_NOTES_COMMAND}`,
-  description: REVIEW_NOTES_DESCRIPTION,
-  parameters: [SCRIPT_PATH_PARAMETER],
-  flags: comicReviewNotesFlags,
-  help: {
-    hidden: true,
-    examples: [
-      [`bun autoshow comic ${REVIEW_NOTES_COMMAND} 02-01 --notes docs/plans/episode-2-erik-review-notes.md`, 'Map review notes onto reviewed panels'],
-    ],
-    notes: [
-      'Deprecated: use comic review <script-path> --notes <path>. This alias is retained for one compatibility release.',
-      'The notes file is Markdown whose "### Panel NN" headings hold the note text for each reviewed panel.',
-      'Each note is classified as blocking, camera, axis-break, costume, or extras by a documented keyword table and rendered as a paste-ready script directive beside its target beat and script line.',
-      'The command reads metadata/scene.json and metadata/structured-script.json, writes metadata/review/review-notes-<run-id>.md, and makes no provider call.',
-      ARTIFACT_NOTE,
-    ],
-  },
-}, async (ctx) => {
-  l.warn('comic review-notes is deprecated; use comic review <script-path> --notes <path>.', { category: 'command' })
-  await handleReviewNotes(ctx)
-})
-
-export const reviewSheetCommandDefinition = defineCliCommand({
-  name: `comic ${REVIEW_SHEET_COMMAND}`,
-  description: REVIEW_SHEET_DESCRIPTION,
-  parameters: [SCRIPT_PATH_PARAMETER],
-  flags: comicReviewSheetFlags,
-  help: {
-    hidden: true,
-    examples: [
-      [`bun autoshow comic ${REVIEW_SHEET_COMMAND} 02-01`, 'Build the static per-panel review sheet'],
-      [`bun autoshow comic ${REVIEW_SHEET_COMMAND} 02-01 --export-doc`, 'Also write the shared-document export'],
-    ],
-    notes: [
-      'Deprecated: use comic review <script-path> [--export-doc]. This alias is retained for one compatibility release.',
-      'Writes metadata/review/review-sheet.html: one section per reviewed panel with its source segments, contract, stage board, canonical image, QA evidence, and a notes box.',
-      'The sheet is a single self-contained file with inline CSS and one small inline script; it loads no external resource and makes no provider call.',
-      'The notes box collects into the "### Panel NN" format that comic review <script-path> --notes <path> reads back.',
-      ARTIFACT_NOTE,
-    ],
-  },
-}, async (ctx) => {
-  l.warn('comic review-sheet is deprecated; use comic review <script-path> [--export-doc].', { category: 'command' })
-  await handleReviewSheet(ctx)
-})
 
 export const COMIC_SUBCOMMAND_DEFINITIONS = [
   draftTreatmentCommandDefinition,
@@ -268,6 +210,4 @@ export const COMIC_SUBCOMMAND_DEFINITIONS = [
   referenceSketchCommandDefinition,
   reviewCommandDefinition,
   referenceVoiceCommandDefinition,
-  reviewNotesCommandDefinition,
-  reviewSheetCommandDefinition,
 ] as const satisfies readonly CliCommandDefinition[]

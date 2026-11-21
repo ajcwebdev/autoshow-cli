@@ -81,11 +81,6 @@ export const VIDEO_GENERATION_SELECTION = deriveSelectionDescriptor(VIDEO_SELECT
 
 export const MUSIC_GENERATION_SELECTION = deriveSelectionDescriptor(MUSIC_SELECTION_ENTRIES, STANDALONE_MUSIC_PROVIDER_TARGETS)
 
-export const pickProviderTargets = <T extends Readonly<Record<string, string>>, K extends keyof T & string>(
-  targets: T,
-  keys: readonly K[]
-): Pick<T, K> => Object.fromEntries(keys.map((key) => [key, targets[key]])) as Pick<T, K>
-
 // Comic selects one image target per run from the standalone image providers.
 export const COMIC_IMAGE_PROVIDER_TARGETS = STANDALONE_IMAGE_PROVIDER_TARGETS
 
@@ -122,11 +117,8 @@ export const WRITE_LLM_PROVIDER_TARGETS = {
   grok: 'grok',
 } as const satisfies Record<string, string>
 
-// Comic's text roles use the shared LLM registry. The QA vision judge is restricted structurally:
-// openai and gemini are the only keys, so an unsupported provider is rejected by the shared selector
-// with a derived message instead of a hand-written capability check.
+// Comic's text roles use the shared LLM registry.
 export const COMIC_LLM_PROVIDER_TARGETS = WRITE_LLM_PROVIDER_TARGETS
-export const COMIC_QA_PROVIDER_TARGETS = pickProviderTargets(WRITE_LLM_PROVIDER_TARGETS, ['openai', 'gemini'])
 
 export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   WRITE_LLM_PROVIDER_TARGETS,

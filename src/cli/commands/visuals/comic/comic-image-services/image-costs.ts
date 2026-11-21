@@ -1,6 +1,6 @@
 import { estimateImageCosts } from '~/cli/commands/visuals/image/image-utils/image-pricing'
 import { resolveImageService, SERVICE_TO_IMAGE_MODELS_FIELD } from '../comic-utils/image-service'
-import type { EstimateImageCostOptions, GenerateWithQaRepairResult, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImageRunStats, PageQaEntry } from '~/types'
+import type { ComicImagePurchaseUsage, EstimateImageCostOptions, GeneratedImageUsage, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImageRunStats } from '~/types'
 
 export const createImageRunStats = (): ImageRunStats => ({
   imagesGenerated: 0,
@@ -53,33 +53,38 @@ export const updateImageRunStatsWithCostFallback = (
   stats: ImageRunStats,
   quality: ImageGenerationQuality,
   size: ImageGenerationSize
-): { costLabel: string; estimated: boolean } => {
+): { costLabel: string; estimated: boolean; costUsd: number } => {
   const estimatedCost = estimateImageOutputCost(model, quality, size)
   if (estimatedCost !== null) {
     stats.totalCost += estimatedCost
-    return { costLabel: `${formatCost(estimatedCost)} estimated`, estimated: true }
+    return { costLabel: `${formatCost(estimatedCost)} estimated`, estimated: true, costUsd: estimatedCost }
   }
 
-  return { costLabel: 'unavailable', estimated: false }
+  return { costLabel: 'unavailable', estimated: false, costUsd: 0 }
 }
 
-export const recordImageRepairAccounting = (
+export const recordBaseImageAccounting = (
   stats: ImageRunStats,
-  qaEntries: Array<{ directory: string; entry: PageQaEntry }>,
-  options: { quality: ImageGenerationQuality; size: ImageGenerationSize },
-  repairResult: GenerateWithQaRepairResult,
-  outputDirectory: string
-): void => {
-  stats.imagesGenerated += repairResult.imagesGenerated
-  stats.totalDurationMs += repairResult.totalDurationMs
-  stats.totalInputTokens += repairResult.totalInputTokens
-  stats.totalOutputTokens += repairResult.totalOutputTokens
-  stats.totalInputImageTokens += repairResult.imageInputUnits
-  stats.totalInputTextTokens += repairResult.textInputUnits
-  stats.totalOutputImageTokens += repairResult.imageOutputUnits
-  stats.totalCost += repairResult.totalCostUsd
-  for (const costEntry of repairResult.costEntries) {
-    updateImageRunStatsWithCostFallback(costEntry.model, stats, options.quality, options.size)
+  input: {
+    model: ImageGenerationModel
+    quality: ImageGenerationQuality
+    size: ImageGenerationSize
+    durationMs: number
+    usage?: GeneratedImageUsage | undefined
   }
-  if (repairResult.qaEntry) qaEntries.push({ directory: outputDirectory, entry: repairResult.qaEntry })
+): { costLabel: string; purchase: ComicImagePurchaseUsage } => {
+  const { costLabel, costUsd } = updateImageRunStatsWithCostFallback(input.model, stats, input.quality, input.size)
+  const purchase = {
+    costUsd,
+    durationMs: input.durationMs,
+    imageInputUnits: input.usage?.imageInputUnits ?? 0,
+    textInputUnits: input.usage?.textInputUnits ?? 0,
+    imageOutputUnits: input.usage?.outputUnits ?? 0,
+  }
+  stats.imagesGenerated += 1
+  stats.totalDurationMs += input.durationMs
+  stats.totalInputImageTokens += purchase.imageInputUnits
+  stats.totalInputTextTokens += purchase.textInputUnits
+  stats.totalOutputImageTokens += purchase.imageOutputUnits
+  return { costLabel, purchase }
 }

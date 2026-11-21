@@ -1,16 +1,15 @@
 import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import { existsSync } from 'node:fs'
-import type { DraftScenesCommandOptions, LogMetadata, StructureScriptsCommandOptions } from '~/types'
+import type { DraftScenesCommandOptions, LogMetadata } from '~/types'
 import { formatCost } from '../comic-image-services/image-costs'
 import { DEFAULT_LLM_MODEL } from './cli-args'
-import { getDraftPromptPath, getSceneJsonPath, getStructuredScriptPath } from './project-paths'
-import { getBlockingPromptPath } from './blocking-plan-paths'
+import { getSceneJsonPath, getStructuredScriptPath } from './project-paths'
 import { priceLine, priceNotice, priceRows } from './price-estimate-logging'
 import { estimateLlmCostFromRegistry } from './structured-script-utils/llm-cost'
-import { appendScenePlanSection, parseJsonFile, readBlockingPlanIfPresent, stripScenePlanSection } from './json-prompt-utils'
+import { parseJsonFile } from './json-prompt-utils'
 import { ScenePromptDataSchema, StructuredScriptDataSchema } from '../schemas/schemas'
-import { estimateBlockingPlanCalls } from '../comic-commands/draft-scenes/generate-blocking-plan'
 import { getDraftSceneStages } from '../comic-commands/draft-scenes/draft-scenes-command'
+import { buildPreparedScene, readPreparedScenePair } from '../comic-commands/draft-scenes/prepare-scene'
 
 export const ESTIMATED_OUTPUT_UNITS_PER_LLM_CALL = 800
 
@@ -20,7 +19,7 @@ export const SCENE_DRAFT_OUTPUT_UNITS_FIXED = 400
 
 export const SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL = 480
 
-export const SCENE_DRAFT_MAX_CALLS_WITH_PLAN = 2
+export const SCENE_DRAFT_MAX_CALLS_WITH_PANEL_COUNT = 2
 
 export const LLM_ESTIMATE_BASIS_NOTE = 'Estimates: input units ~ chars / 4, no cache discount, output ~800 units/call'
 
@@ -107,140 +106,80 @@ export const estimateScenePanelCount = async (sceneSlug: string): Promise<{ pane
   return { panelEstimate: 1, panelBasis: 'single-panel floor; no scene JSON or structured script found' }
 }
 
-export const estimateSceneDraftPrice = async (options: DraftScenesCommandOptions): Promise<void> => {
+
+const PREPARE_COMMAND_HINT = `Run "${CLI_INVOCATION} comic draft-scenes <script-path> --only prepare" first.`
+
+const resolveScenePricingInput = async (options: DraftScenesCommandOptions, prepareRuns: boolean): Promise<{ promptText: string; promptFile: string; panelEstimate: number; panelBasis: string } | string> => {
+  if (prepareRuns) {
+    if (!existsSync(options.scriptPath)) return `script file not found: ${options.scriptPath}`
+    const prepared = await buildPreparedScene(options.scriptPath)
+    const segments = prepared.structuredScript.sourceSegments.length
+    return {
+      promptText: prepared.draftPrompt,
+      promptFile: `${options.scriptPath} (draft prompt built in memory by prepare)`,
+      ...(segments > 0
+        ? { panelEstimate: segments, panelBasis: 'one panel per structured-script source segment (upper bound)' }
+        : { panelEstimate: 1, panelBasis: 'single-panel floor; the structured script has no source segments' }),
+    }
+  }
+  try {
+    const pair = await readPreparedScenePair(options.sceneSlug)
+    return { promptText: pair.draftPrompt, promptFile: `${options.sceneSlug}/metadata/draft-prompt.md`, ...await estimateScenePanelCount(options.sceneSlug) }
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error)
+  }
+}
+
+export const estimateSceneDraftPrice = async (options: DraftScenesCommandOptions, prepareRuns = false): Promise<void> => {
   const model = options.llmModel ?? DEFAULT_LLM_MODEL
-  const { sceneSlug } = options
-
-  const draftPromptPath = getDraftPromptPath(sceneSlug)
-
-  if (!existsSync(draftPromptPath)) {
-    priceNotice(`Comic - Price Estimate: draft-scenes --only scene: no draft prompt file found. Run "${CLI_INVOCATION} comic draft-scenes --only prompt" first.`, {
+  const input = await resolveScenePricingInput(options, prepareRuns)
+  if (typeof input === 'string') {
+    priceNotice(`Comic - Price Estimate: draft-scenes scene stage: ${input}${prepareRuns ? '' : ` ${PREPARE_COMMAND_HINT}`}`, {
       stage: 'draft-scenes:scene',
       model,
-      draftPromptPath
     })
     return
   }
-
-  const content = await Bun.file(draftPromptPath).text()
-  const blockingPlan = options.blocking === false ? undefined : await readBlockingPlanIfPresent(sceneSlug)
-  const promptText = blockingPlan ? appendScenePlanSection(content, blockingPlan.plan) : stripScenePlanSection(content)
   const { panelEstimate, panelBasis } = options.panelCount !== undefined
     ? { panelEstimate: options.panelCount, panelBasis: '--panel-count contract' }
-    : await estimateScenePanelCount(sceneSlug)
+    : input
   const outputUnitsPerCall = SCENE_DRAFT_OUTPUT_UNITS_FIXED + SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL * panelEstimate
-  const retryable = Boolean(blockingPlan) || options.panelCount !== undefined
-  const maximumCalls = retryable ? SCENE_DRAFT_MAX_CALLS_WITH_PLAN : 1
+  const panelCountRetry = options.panelCount !== undefined
+  const maximumCalls = panelCountRetry ? SCENE_DRAFT_MAX_CALLS_WITH_PANEL_COUNT : 1
   logLlmTokenEstimate(
-    'Comic - Price Estimate: draft-scenes --only scene',
+    'Comic - Price Estimate: draft-scenes scene stage',
     model,
     'promptFile',
-    `${sceneSlug}/metadata/draft-prompt.md`,
-    estimateTokens(promptText),
+    input.promptFile,
+    estimateTokens(input.promptText),
     {
       maximumCalls,
       outputUnitsPerCall,
-      basisNote: `Scene estimate: input units ~ chars / 4 (${blockingPlan ? 'including the blocking plan section' : 'no blocking plan section'}), no cache discount, output ${SCENE_DRAFT_OUTPUT_UNITS_FIXED} fixed units plus ${SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL} units per panel across an estimated ${panelEstimate} panel${panelEstimate === 1 ? '' : 's'} (${panelBasis}); maximum calls ${maximumCalls}${retryable ? ' including one retry that appends validator errors' : ''}`,
+      basisNote: `Scene estimate: input units ~ chars / 4, no cache discount, output ${SCENE_DRAFT_OUTPUT_UNITS_FIXED} fixed units plus ${SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL} units per panel across an estimated ${panelEstimate} panel${panelEstimate === 1 ? '' : 's'} (${panelBasis}); maximum calls ${maximumCalls}${panelCountRetry ? ' including one panel-count retry that appends validator errors' : ''}`,
       metadata: {
         stage: 'draft-scenes:scene',
         panelEstimate,
         panelBasis,
         outputUnitsFixed: SCENE_DRAFT_OUTPUT_UNITS_FIXED,
         outputUnitsPerPanel: SCENE_DRAFT_OUTPUT_UNITS_PER_PANEL,
-        blockingPlan: blockingPlan ? blockingPlan.planSha256 : null,
         panelCount: options.panelCount ?? null,
+        panelCountRetryCalls: panelCountRetry ? SCENE_DRAFT_MAX_CALLS_WITH_PANEL_COUNT - 1 : 0,
       },
     }
   )
 }
 
-export const estimateBlockingPlanPrice = async (options: DraftScenesCommandOptions): Promise<void> => {
-  const model = options.llmModel ?? DEFAULT_LLM_MODEL
-  const { sceneSlug } = options
-  if (options.rebind) {
-    priceLine('Comic - Price Estimate: draft-scenes --only blocking: --rebind remaps plan citations locally and makes no LLM or image generation API calls.', {
-      stage: 'draft-scenes:blocking',
-      llmCalls: 0,
-      imageCalls: 0,
-      maximumCalls: 0,
-      totalCost: 0
-    })
-    return
-  }
-  if (options.blockingPlan !== undefined) {
-    priceLine(`Comic - Price Estimate: draft-scenes --only blocking: --blocking-plan imports ${options.blockingPlan} locally and makes no LLM or image generation API calls.`, {
-      stage: 'draft-scenes:blocking',
-      importPath: options.blockingPlan,
-      llmCalls: 0,
-      imageCalls: 0,
-      maximumCalls: 0,
-      totalCost: 0
-    })
-    return
-  }
-  const structuredScriptPath = getStructuredScriptPath(sceneSlug)
-  if (!existsSync(structuredScriptPath)) {
-    priceNotice(`Comic - Price Estimate: draft-scenes --only blocking: no structured script found. Run "${CLI_INVOCATION} comic draft-scenes --only structure" first.`, {
-      stage: 'draft-scenes:blocking',
-      model,
-      structuredScriptPath
-    })
-    return
-  }
-  const structuredScript = await parseJsonFile(structuredScriptPath, StructuredScriptDataSchema)
-  const blockingPromptPath = getBlockingPromptPath(sceneSlug)
-  const promptText = existsSync(blockingPromptPath) ? await Bun.file(blockingPromptPath).text() : undefined
-  const estimate = estimateBlockingPlanCalls(structuredScript, { promptText })
-  const inputUnitsPerCall = estimate.inputUnitsPerCall + estimate.imageInputUnitsPerCall
-  const estimatedInput = inputUnitsPerCall * estimate.maxCalls
-  const estimatedOutput = estimate.outputUnitsPerCall * estimate.maxCalls
-  const inputCost = estimateLlmCost(model, inputUnitsPerCall, 0) * estimate.maxCalls
-  const totalCost = estimateLlmCost(model, inputUnitsPerCall, estimate.outputUnitsPerCall) * estimate.maxCalls
-  const outputCost = totalCost - inputCost
-  const promptFile = promptText ? `${sceneSlug}/metadata/blocking-prompt.md` : `${sceneSlug}/metadata/structured-script.json (blocking-prompt.md not yet written)`
-  priceRows(
-    'Comic - Price Estimate: draft-scenes --only blocking',
-    [{
-      model,
-      promptFile,
-      inputUnits: estimatedInput.toLocaleString(),
-      imageInputUnits: (estimate.imageInputUnitsPerCall * estimate.maxCalls).toLocaleString(),
-      outputUnits: estimatedOutput.toLocaleString(),
-      calls: estimate.maxCalls,
-      inputCost: `~${formatCost(inputCost)}`,
-      outputCost: `~${formatCost(outputCost)}`,
-      total: `~${formatCost(totalCost)}`
-    }],
-    ['promptFile', 'model', 'inputUnits', 'imageInputUnits', 'outputUnits', 'calls', 'inputCost', 'outputCost', 'total'],
-    {
-      stage: 'draft-scenes:blocking',
-      model,
-      promptFile,
-      maximumCalls: estimate.maxCalls,
-      inputUnitsPerCall: estimate.inputUnitsPerCall,
-      imageInputUnitsPerCall: estimate.imageInputUnitsPerCall,
-      outputUnitsPerCall: estimate.outputUnitsPerCall,
-      locationCount: estimate.locationCount,
-      segmentCount: estimate.segmentCount,
-      estimatedInput,
-      estimatedOutput,
-      inputCost,
-      outputCost,
-      totalCost
-    }
-  )
-  priceLine(`Blocking plan: maximum calls ${estimate.maxCalls} (one drafting call plus one automatic retry that appends validator errors), ${estimate.outputUnitsPerCall.toLocaleString()} output units per call, image input modeled at ${estimate.imageInputUnitsPerCall.toLocaleString()} units per call across ${estimate.locationCount} location establishing view${estimate.locationCount === 1 ? '' : 's'}; total ~${formatCost(totalCost)}`, {
-    stage: 'draft-scenes:blocking',
-    maximumCalls: estimate.maxCalls,
-    outputUnitsPerCall: estimate.outputUnitsPerCall,
-    imageInputUnitsPerCall: estimate.imageInputUnitsPerCall,
-    locationCount: estimate.locationCount,
-    totalCost
+export const estimatePreparePrice = (): void => {
+  priceLine('Comic - Price Estimate: draft-scenes prepare stage: local parsing and draft-prompt building make no LLM or image generation API calls.', {
+    stage: 'draft-scenes:prepare',
+    llmCalls: 0,
+    imageCalls: 0,
+    totalCost: 0
   })
 }
 
 export const estimatePanelPromptsPrice = (): void => {
-  priceLine('Comic - Price Estimate: draft-scenes --only panel-prompts: the panel-prompt stage makes no LLM or image generation API calls.', {
+  priceLine('Comic - Price Estimate: draft-scenes panel-prompts stage: the panel-prompt stage makes no LLM or image generation API calls.', {
     stage: 'draft-scenes:panel-prompts',
     llmCalls: 0,
     imageCalls: 0,
@@ -250,65 +189,7 @@ export const estimatePanelPromptsPrice = (): void => {
 
 export const estimateDraftScenesPrice = async (options: DraftScenesCommandOptions): Promise<void> => {
   const stages = getDraftSceneStages(options)
-
-  if (stages.includes('structure')) {
-    await estimateStructureScriptsPrice({
-      scriptPath: options.scriptPath,
-      sceneSlug: options.sceneSlug,
-      ...(options.llmModel ? { llmModel: options.llmModel } : {}),
-    })
-  }
-
-  if (stages.includes('prompt')) {
-    priceLine('Comic - Price Estimate: draft-scenes --only prompt: the prompt-bundle stage makes no LLM or image generation API calls.', {
-      stage: 'draft-scenes:prompt',
-      llmCalls: 0,
-      imageCalls: 0,
-      totalCost: 0
-    })
-  }
-
-  if (stages.includes('blocking')) {
-    await estimateBlockingPlanPrice(options)
-  }
-
-  if (stages.includes('scene')) {
-    await estimateSceneDraftPrice(options)
-  }
-
-  if (stages.includes('panel-prompts')) {
-    estimatePanelPromptsPrice()
-  }
-}
-
-export const estimateStructureScriptsPrice = async (options: StructureScriptsCommandOptions): Promise<void> => {
-  if (!options.llmModel) {
-    priceNotice('Comic - Price Estimate: draft-scenes --only structure: no --provider specified, so the structure stage makes no API calls.', {
-      stage: 'draft-scenes:structure',
-      llmCalls: 0,
-      totalCost: 0
-    })
-    return
-  }
-
-  const model = options.llmModel
-  const { scriptPath, sceneSlug } = options
-
-  if (!existsSync(scriptPath)) {
-    priceNotice(`Comic - Price Estimate: draft-scenes --only structure: script file not found: ${scriptPath}`, {
-      stage: 'draft-scenes:structure',
-      model,
-      scriptPath
-    })
-    return
-  }
-
-  const content = await Bun.file(scriptPath).text()
-  logLlmTokenEstimate(
-    'Comic - Price Estimate: draft-scenes --only structure',
-    model,
-    'scriptFile',
-    sceneSlug,
-    estimateTokens(content)
-  )
+  if (stages.includes('prepare')) estimatePreparePrice()
+  if (stages.includes('scene')) await estimateSceneDraftPrice(options, stages.includes('prepare'))
+  if (stages.includes('panel-prompts')) estimatePanelPromptsPrice()
 }

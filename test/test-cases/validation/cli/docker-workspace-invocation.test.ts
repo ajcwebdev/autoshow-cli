@@ -38,8 +38,8 @@ test('Linux ownership and unavailable Docker propagate without native fallback',
   expect((await invoke(['--version'], true)).args).toContain('--user')
   expect((await invoke(['--version'], false, true)).code).toBe(125)
 })
-test('QA-only reaches the container unchanged', async () => {
-  const args = ['comic', 'generate-images', 'fixture', '--qa-only']
+test('comic image arguments reach the container unchanged so the in-container model policy decides', async () => {
+  const args = ['comic', 'generate-images', 'fixture', '--provider', 'openai=gpt-image-2.6-flare']
   expect((await invoke(args)).args.slice(-args.length)).toEqual(args)
 })
 

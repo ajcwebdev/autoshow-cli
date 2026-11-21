@@ -120,23 +120,6 @@ const ensureCharacterIdentityCardSync = (
   return outputPath
 }
 
-export const resolveRosterCharacterReferences = (
-  runDirectory: string,
-  manifest: CharacterReferenceManifest,
-  panelCharacterKeys: readonly string[],
-): Array<{ key: string; name: string; path: string }> => {
-  const listed = new Set(panelCharacterKeys)
-  return manifest.characters
-    .filter(character => !listed.has(character.key))
-    .map(character => {
-      const { sheetPath } = getSources(runDirectory, character)
-      if (!existsSync(sheetPath)) {
-        throw ValidationError(`Snapshot ${manifest.snapshotId} roster card for "${character.key}" is missing its canonical reference image at ${sheetPath}`, { stage: 'comic:identity-card' })
-      }
-      return { key: character.key, name: character.name, path: sheetPath }
-    })
-}
-
 export const resolveCharacterIdentityReferences = (
   runDirectory: string,
   manifest: CharacterReferenceManifest,
@@ -159,7 +142,6 @@ export const resolveCharacterIdentityReferences = (
         : ensureCharacterIdentityCardSync(runDirectory, manifest, key)
     references.push({
       key, name: character.name, description: character.description, referenceIndex: references.length + 1, path,
-      ...(character.distinguishFrom !== undefined ? { distinguishFrom: character.distinguishFrom.map(cue => ({ ...cue })) } : {}),
     })
   }
   return references

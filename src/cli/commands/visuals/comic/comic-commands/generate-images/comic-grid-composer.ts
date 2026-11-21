@@ -39,6 +39,7 @@ export const composeComicGridPage = async (
   }
 
   const cellSize = input.cellSize ?? DEFAULT_GRID_CELL_SIZE
+  const cellGeometry = `${cellSize.width}x${cellSize.height}`
   const canvasWidth = input.grid.columns * cellSize.width
   const canvasHeight = input.grid.rows * cellSize.height
   const compositeArgs = input.sources.flatMap((source, index) => {
@@ -46,7 +47,9 @@ export const composeComicGridPage = async (
     const row = Math.floor(index / input.grid.columns)
 
     return [
-      source,
+      '(', source, '+repage', '-resize', cellGeometry,
+      '-gravity', 'center', '-background', 'white', '-extent', cellGeometry, '+repage', ')',
+      '-gravity', 'northwest',
       '-geometry',
       `+${column * cellSize.width}+${row * cellSize.height}`,
       '-composite',

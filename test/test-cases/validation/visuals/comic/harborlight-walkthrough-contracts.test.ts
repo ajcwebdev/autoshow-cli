@@ -1,11 +1,11 @@
 import { afterAll, expect, test } from 'bun:test'
 import { join } from 'node:path'
-import { readdir } from 'node:fs/promises'
+import { readdir, rm } from 'node:fs/promises'
 import { childEnv } from '~/utils/child-env'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { readManifest } from '~/cli/commands/command-shared/pipeline-manifest'
-import { prepareHarborlightComic, publishHarborlightPanels, writeHarborlightBlockingPlan } from '~/tools/prepare-harborlight-comic'
-import type { CanonicalComicItemMetadata, ScenePromptData, StructuredScriptData } from '~/types'
+import { prepareHarborlightComic } from '~/tools/prepare-harborlight-comic'
+import type { CanonicalComicItemMetadata, ComicPanelSelectionStore, ScenePromptData, StructuredScriptData } from '~/types'
 import { createStructuredScriptArtifactRef, computeSceneRunIdentity, validateVoiceReferenceManifest } from '~/cli/commands/visuals/comic/comic-utils/comic-audio-contracts'
 import { createComicDialoguePlan } from '~/cli/commands/visuals/comic/comic-utils/comic-dialogue-plan'
 import { writeVoiceReferenceManifest } from '~/cli/commands/visuals/comic/comic-utils/voice-reference-snapshot'
@@ -66,11 +66,7 @@ globalThis.fetch = async (input, init) => {
 }
 
 const prepareLocalStages = async (w: Awaited<ReturnType<typeof workspace>>) => {
-  await w.success(['draft-scenes', w.script, '--only', 'structure'])
-  await w.success(['draft-scenes', w.script, '--only', 'prompt'])
-  await writeHarborlightBlockingPlan(w.root)
-  await w.success(['draft-scenes', w.script, '--only', 'blocking', '--blocking-plan', join(w.root, 'blocking-plan.json')])
-  await w.success(['draft-scenes', w.script, '--only', 'blocking', '--rebind'])
+  await w.success(['draft-scenes', w.script, '--only', 'prepare'])
   const bytes = await Bun.file(join(w.run, 'metadata/structured-script.json')).text()
   return { bytes, structured: JSON.parse(bytes) as StructuredScriptData }
 }
@@ -82,29 +78,28 @@ const sceneResponse = (script: StructuredScriptData): ScenePromptData => {
     if (groups.length === 0) groups.push([])
     groups.at(-1)!.push(segment)
   }
-  return { schemaVersion: 4, title: 'The Lantern Path', location: 'EXT. HARBORLIGHT CAMP - DUSK', panels: groups.map((segments, index) => ({ number: index + 1, description: 'Papa Bear stands left and Mira right beside the stone fire ring. The timber bench is behind them. The portable lantern is between them.', shotPlan: 'Wide two-shot from the southern approach using path-side-wide; both adult human faces and the bench remain visible.', characterKeys: ['papa-bear', 'mira'], speech: segments.filter(segment => segment.type === 'dialogue').map(segment => ({ speaker: { kind: 'character' as const, characterKey: segment.speakerKey!, offscreen: false }, line: segment.text })), sourceSegmentIds: segments.map(segment => segment.id), locationKey: 'harborlight-camp', designReferences: [], blocking: { stageStateId: 'lantern-path', cameraSetupId: 'path-side-wide', croppedOnStage: [], axisBreak: null } })) }
+  return { schemaVersion: 4, title: 'The Lantern Path', location: 'EXT. HARBORLIGHT CAMP - DUSK', panels: groups.map((segments, index) => ({ number: index + 1, description: 'Papa Bear stands left and Mira right beside the stone fire ring. The timber bench is behind them. The portable lantern is between them.', shotPlan: 'Wide two-shot from the southern approach using path-side-wide; both adult human faces and the bench remain visible.', characterKeys: ['papa-bear', 'mira'], speech: segments.filter(segment => segment.type === 'dialogue').map(segment => ({ speaker: { kind: 'character' as const, characterKey: segment.speakerKey!, offscreen: false }, line: segment.text })), sourceSegmentIds: segments.map(segment => segment.id), locationKey: 'harborlight-camp', designReferences: [] })) }
 }
 
 const selectedImageRunId = async (run: string): Promise<string> => ((await readManifest(run))!.items[0]!.metadata['comic'] as unknown as CanonicalComicItemMetadata).recovery!.image!.imageRunId!
+const panelSelections = async (run: string): Promise<ComicPanelSelectionStore> => await Bun.file(join(run, 'metadata/panel-selections.json')).json() as ComicPanelSelectionStore
+const canonicalPanelHashes = async (run: string): Promise<string[]> => await Promise.all([1, 2, 3, 4].map(async panel => new Bun.CryptoHasher('sha256').update(new Uint8Array(await Bun.file(join(run, `panels/panel-0${panel}.png`)).arrayBuffer())).digest('hex')))
 
-test('original Harborlight inputs support real local parser, prompts, authored blocking import/rebind and bounded read-only quotes', async () => {
+test('original Harborlight inputs support the real local prepare stage and bounded read-only quotes', async () => {
   const w = await workspace(), { bytes, structured } = await prepareLocalStages(w)
   expect(structured.characterKeys).toEqual(expect.arrayContaining(['papa-bear', 'mira']))
   expect(structured.sourceSegments.filter(segment => segment.type === 'panel-note')).toHaveLength(4)
   expect(structured.sourceSegments.filter(segment => segment.type === 'dialogue').map(segment => segment.text)).toEqual(['Lantern ready?', 'Ready. I checked the wick.', 'Then let us mark the path home.', 'A light for whoever comes next.'])
   expect(structured.sourceSegments.filter(segment => segment.type === 'dialogue').every(segment => segment.sourceSpans.length > 0)).toBe(true)
-  const planPath = join(w.run, 'metadata/blocking-plan.json'), before = await Bun.file(planPath).text()
-  const plan = JSON.parse(before)
-  expect(plan.generatedBy.mode).toBe('import')
-  expect(plan.stageStates[0].startsAt.sourceSegmentSha256).toMatch(/^[a-f0-9]{64}$/)
-  for (const stage of ['blocking', 'scene']) {
-    const result = await w.success(['draft-scenes', w.script, '--only', stage, '--provider', 'openai=gpt-6.1-sol', ...(stage === 'scene' ? ['--panel-count', '4'] : []), '--price'])
-    expect(JSON.parse(result.stdout).data.price).toBe(true)
-    const estimate = result.stderr.trim().split('\n').map(line => JSON.parse(line)).find(event => typeof event.metadata?.totalCost === 'number')
-    expect(estimate.metadata.totalCost).toBeGreaterThan(0)
-    expect(estimate.metadata.maximumCalls).toBe(2)
-  }
-  expect(await Bun.file(planPath).text()).toBe(before)
+  const prompt = await Bun.file(join(w.run, 'metadata/draft-prompt.md')).text()
+  expect(prompt).toContain('Lantern ready?')
+  expect(await Bun.file(join(w.run, 'metadata/blocking-plan.json')).exists()).toBe(false)
+  const result = await w.success(['draft-scenes', w.script, '--only', 'scene', '--provider', 'openai=gpt-6.1-sol', '--panel-count', '4', '--price'])
+  expect(JSON.parse(result.stdout).data.price).toBe(true)
+  const estimate = result.stderr.trim().split('\n').map(line => JSON.parse(line)).find(event => typeof event.metadata?.totalCost === 'number')
+  expect(estimate.metadata.totalCost).toBeGreaterThan(0)
+  expect(estimate.metadata.maximumCalls).toBe(2)
+  expect(await Bun.file(join(w.run, 'metadata/draft-prompt.md')).text()).toBe(prompt)
   expect(await Bun.file(join(w.run, 'metadata/structured-script.json')).text()).toBe(bytes)
   expect(await Bun.file(join(w.run, 'metadata/scene.json')).exists()).toBe(false)
   expect(await w.calls()).toEqual([])
@@ -114,7 +109,7 @@ test('original Harborlight inputs support real local parser, prompts, authored b
   expect(await w.calls()).toEqual([])
 }, 30_000)
 
-test('controlled hosted scene, sketch sheet and final panels feed real snapshots, canonical publication and local review without quality claims', async () => {
+test('controlled hosted scene, sketch sheet and final panels select each first panel automatically; optional review changes nothing (no quality claims)', async () => {
   const w = await workspace(), { structured } = await prepareLocalStages(w)
   await Bun.write(w.sceneFile, JSON.stringify(sceneResponse(structured)))
   await w.success(['draft-scenes', w.script, '--only', 'scene', '--panel-count', '4', '--provider', 'openai=gpt-6.1-sol'], true)
@@ -124,7 +119,6 @@ test('controlled hosted scene, sketch sheet and final panels feed real snapshots
   await w.success(['review', w.script, '--export-doc'])
   const review = await Bun.file(join(w.run, 'metadata/review/export-doc.md')).text()
   expect(review.match(/### Panel/g)).toHaveLength(4)
-  await w.success(['review', w.script, '--notes', join(w.root, 'review-notes.md')])
   const noVoices = await w.cli(['generate-audio', w.script, '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--price'])
   expect(noVoices.code).not.toBe(0)
   expect(await w.calls()).toHaveLength(1)
@@ -133,26 +127,34 @@ test('controlled hosted scene, sketch sheet and final panels feed real snapshots
   const sketchRunId = await selectedImageRunId(w.run), sketchPath = join(w.run, `sketches/${sketchRunId}/panels-01-04.png`)
   expect(await Bun.file(sketchPath).exists()).toBe(true)
   const sketchBytes = new Uint8Array(await Bun.file(sketchPath).arrayBuffer())
-  await expect(publishHarborlightPanels(w.root, sketchRunId)).rejects.toThrow('Select one completed single-model canonical individual-panel run')
-  await w.success(['generate-images', w.script, '--target', 'images', '--provider', 'openai=gpt-image-2.6-flare', '--no-qa', '--max-repairs', '0'], true)
+  expect(await Bun.file(join(w.run, 'panels/panel-01.png')).exists()).toBe(false)
+  await w.success(['generate-images', w.script, '--target', 'images', '--provider', 'openai=gpt-image-2.6-flare'], true)
   expect((await w.calls()).filter(url => url.includes('/images/'))).toHaveLength(5)
   const imageRunId = await selectedImageRunId(w.run)
   expect(imageRunId).not.toBe(sketchRunId)
   const imageStates = (await readManifest(w.run))!.items[0]!.providers.filter(provider => provider.operation === 'comic-image')
   expect(imageStates).toHaveLength(1)
   expect(imageStates[0]).toMatchObject({ status: 'succeeded', model: 'gpt-image-2.6-flare', options: { target: 'images', panelsPerImage: 1 }, metadata: { runId: imageRunId } })
-  await publishHarborlightPanels(w.root, imageRunId)
+  // Each first valid individual panel filled its empty canonical slot during generation; sketches never do.
+  const store = await panelSelections(w.run)
+  const ordered = [...store.selections].sort((left, right) => left.panelNumber - right.panelNumber)
+  expect(ordered.map(selection => [selection.panelNumber, selection.runId, selection.origin, selection.candidatePath])).toEqual([1, 2, 3, 4].map(panel => [panel, imageRunId, 'first-generation', `panels/${imageRunId}/panel-0${panel}.png`]))
   expect(new Uint8Array(await Bun.file(sketchPath).arrayBuffer())).toEqual(sketchBytes)
+  const selected = await canonicalPanelHashes(w.run), storeText = await Bun.file(join(w.run, 'metadata/panel-selections.json')).text()
+  expect(selected).toEqual(ordered.map(selection => selection.sha256))
   await w.success(['review', w.script, '--export-doc'])
+  await w.success(['review', w.script, '--run', imageRunId, '--export-doc'])
   expect(await Bun.file(join(w.run, 'metadata/review/review-sheet.html')).text()).toContain('Papa Bear')
+  expect(await canonicalPanelHashes(w.run)).toEqual(selected)
+  expect(await Bun.file(join(w.run, 'metadata/panel-selections.json')).text()).toBe(storeText)
+  expect((await w.calls()).filter(url => url.includes('/images/'))).toHaveLength(5)
 }, 45_000)
 
-test('controlled synthetic dialogue supports decoded local audio and synchronized slideshow with missing/corrupt artifact rejection and reuse', async () => {
+test('controlled synthetic dialogue and first-generation panels render the synchronized slideshow without review, with missing/corrupt artifact rejection and reuse', async () => {
   const w = await workspace(process.env['AUTOSHOW_HARBORLIGHT_COMIC_ARTIFACT_ROOT']), { bytes, structured } = await prepareLocalStages(w)
   await Bun.write(w.sceneFile, JSON.stringify(sceneResponse(structured)))
   await w.success(['draft-scenes', w.script, '--only', 'scene', '--panel-count', '4', '--provider', 'openai=gpt-6.1-sol'], true)
   await w.success(['draft-scenes', w.script, '--only', 'panel-prompts'])
-  await w.success(['generate-images', w.script, '--target', 'images', '--provider', 'openai=gpt-image-2.6-flare', '--no-qa', '--max-repairs', '0'], true)
   // Test-only approved snapshot: never copied to user fixtures or presented as a reviewed real voice.
   const structuredRef = createStructuredScriptArtifactRef(bytes), sceneRunIdentity = computeSceneRunIdentity(structured.sourceIdentity, structuredRef), createdAt = (await readManifest(w.run))!.createdAt
   const dialogue = createComicDialoguePlan({ structuredScript: structured, sourceIdentity: structured.sourceIdentity, structuredScriptRef: structuredRef, sceneRunIdentity, createdAt })
@@ -165,23 +167,21 @@ test('controlled synthetic dialogue supports decoded local audio and synchronize
   await w.success([...audioArgs, '--price'])
   await w.success(audioArgs)
   expect(await w.calls()).toEqual(beforeCalls)
+  expect(beforeCalls.filter(url => url.includes('/images/'))).toHaveLength(0)
   const slide = ['generate-slideshow', w.script, '--audio-target', 'openai=gpt-4o-mini-tts-2025-12-15', '--fps', '24']
   const missing = await w.cli([...slide, '--price'])
   expect(missing.code).not.toBe(0)
   expect(missing.stdout + missing.stderr).toContain('Missing 4 canonical panel')
-  const imageRunId = await selectedImageRunId(w.run), candidate = join(w.run, `panels/${imageRunId}/panel-04.png`)
-  const candidateBytes = new Uint8Array(await Bun.file(candidate).arrayBuffer())
-  await Bun.write(candidate, new Uint8Array([0, 1, 2, 3]))
-  await expect(publishHarborlightPanels(w.root, imageRunId)).rejects.toThrow()
-  expect(await Bun.file(join(w.run, 'panels/panel-01.png')).exists()).toBe(false)
-  await Bun.write(candidate, candidateBytes)
-  await publishHarborlightPanels(w.root, imageRunId)
-  await expect(publishHarborlightPanels(w.root, imageRunId)).rejects.toThrow('Canonical panel already exists')
+  await w.success(['generate-images', w.script, '--target', 'images', '--provider', 'openai=gpt-image-2.6-flare'], true)
+  expect((await w.calls()).filter(url => url.includes('/images/'))).toHaveLength(4)
+  const imageCalls = await w.calls()
+  expect(await Bun.file(join(w.run, 'metadata/review')).exists()).toBe(false)
   const canonical = join(w.run, 'panels/panel-01.png'), panelBytes = new Uint8Array(await Bun.file(canonical).arrayBuffer())
   await Bun.write(canonical, new Uint8Array([0, 1, 2, 3]))
   const corruptPanel = await w.cli([...slide, '--price'])
   expect(corruptPanel.code).not.toBe(0)
-  expect(corruptPanel.stdout + corruptPanel.stderr).toContain('valid PNG')
+  // First-generation selections are recorded image-stage artifacts, so a corrupted selected panel fails manifest verification.
+  expect(corruptPanel.stdout + corruptPanel.stderr).toContain('artifact-graph')
   await Bun.write(canonical, panelBytes)
   await w.success([...slide, '--price'])
   await w.success(slide)
@@ -207,16 +207,34 @@ test('controlled synthetic dialogue supports decoded local audio and synchronize
   expect(corruptAudio.code).not.toBe(0)
   expect(corruptAudio.stdout + corruptAudio.stderr).toContain('artifact-graph')
   await w.success([...slide, '--price'])
-  expect(await w.calls()).toEqual(beforeCalls)
+  expect(await w.calls()).toEqual(imageCalls)
+  expect(await Bun.file(join(w.run, 'metadata/review')).exists()).toBe(false)
 }, 60_000)
+
+test('default preparation copies only the authored inputs into a fresh directory, without review notes or generated outputs', async () => {
+  const root = join(await dirs.make(), 'fresh')
+  await prepareHarborlightComic(root)
+  const files = (await readdir(root, { recursive: true })).map(path => path.split('\\').join('/')).sort()
+  expect(files).toEqual(['02-script', '02-script/01-harborlight-camp.md', 'characters', 'characters/character-sketches.json', 'characters/characters-reference.json', 'characters/mira.png', 'characters/papa-bear.png', 'empty-config.json', 'locations', 'locations/harborlight-camp--reference.png', 'locations/location-sketches.json', 'locations/locations-reference.json'])
+  expect(await Bun.file(join(root, 'review-notes.md')).exists()).toBe(false)
+  expect(await Bun.file(join(root, 'blocking-plan.json')).exists()).toBe(false)
+  const relativeRoot = `runtime/examples/harborlight-fresh-${crypto.randomUUID()}`
+  try {
+    const child = Bun.spawn([process.execPath, '--no-env-file', 'src/tools/prepare-harborlight-comic.ts', '--root', relativeRoot], { env: childEnv(), stdout: 'pipe', stderr: 'pipe' })
+    const [code, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()])
+    expect({ code, stderr }).toEqual({ code: 0, stderr: '' })
+    expect((await readdir(relativeRoot, { recursive: true })).map(path => path.split('\\').join('/')).sort()).toEqual(files)
+  } finally {
+    await rm(relativeRoot, { recursive: true, force: true })
+  }
+}, 10_000)
 
 test('preparation refuses existing workspaces and invalid CLI arguments before writing inputs', async () => {
   const w = await workspace(), original = await Bun.file(w.script).text()
   await expect(prepareHarborlightComic(w.root)).rejects.toThrow()
   expect(await Bun.file(w.script).text()).toBe(original)
-  await expect(writeHarborlightBlockingPlan(w.root)).rejects.toThrow()
   const root = `runtime/examples/harborlight-invalid-${crypto.randomUUID()}`
-  for (const args of [['--bogus', '--root', root], ['--root'], ['--plan', '--plan', '--root', root], ['--root', root, '--root', root]]) {
+  for (const args of [['--bogus', '--root', root], ['--root'], ['--plan', '--root', root], ['--publish-panels', 'run', '--root', root], ['--root', root, '--root', root]]) {
     const child = Bun.spawn([process.execPath, '--no-env-file', 'src/tools/prepare-harborlight-comic.ts', ...args], { env: childEnv({ set: { HOME: w.temporary } }), stdout: 'pipe', stderr: 'pipe' })
     expect(await child.exited).not.toBe(0)
     expect(await new Response(child.stderr).text()).toContain('Usage:')
@@ -224,8 +242,9 @@ test('preparation refuses existing workspaces and invalid CLI arguments before w
   expect(await Bun.file(join(root, 'empty-config.json')).exists()).toBe(false)
 }, 10_000)
 
-test('only the nine original comic source inputs are Git-eligible while private drawings, scripts and approvals stay ignored', async () => {
-  const sources = ['README.md', 'review-notes.md', 'papa-bear.svg', 'papa-bear.png', 'mira.svg', 'mira.png', 'harborlight-camp.svg', 'harborlight-camp.png', '02-script/01-harborlight-camp.md'].map(path => `input/examples/comic/harborlight/${path}`)
+test('only the eight original comic source inputs are Git-eligible while private drawings, scripts and approvals stay ignored', async () => {
+  expect(await Bun.file('input/examples/comic/harborlight/review-notes.md').exists()).toBe(false)
+  const sources = ['README.md', 'papa-bear.svg', 'papa-bear.png', 'mira.svg', 'mira.png', 'harborlight-camp.svg', 'harborlight-camp.png', '02-script/01-harborlight-camp.md'].map(path => `input/examples/comic/harborlight/${path}`)
   const privatePaths = ['private.png', 'private.svg', '02-script/02-private.md', 'characters/voice-registrations.json', 'audio/private.wav'].map(path => `input/examples/comic/harborlight/${path}`)
   for (const source of sources) expect(await Bun.file(source).exists()).toBe(true)
   const git = Bun.spawn(['git', 'check-ignore', '--no-index', '--stdin'], { env: childEnv(), stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' })

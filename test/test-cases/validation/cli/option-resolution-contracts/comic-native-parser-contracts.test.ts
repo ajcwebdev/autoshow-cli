@@ -51,7 +51,9 @@ describe('comic native parser definitions', () => {
   test('uses native inline assignment, separator, last-wins, and positional rules', () => {
     expect(parseGenerateImagesArgs(['script.md', '--panels-per-image=1', '--grid=2x3', '--grid=3x2']).grid)
       .toEqual({ columns: 3, rows: 2 })
-    expect(parseGenerateImagesArgs(['script.md', '--qa=false']).qa).toBe(false)
+    expect(parseGenerateImagesArgs(['script.md', '--force=false']).force).toBeUndefined()
+    expect(parseGenerateImagesArgs(['script.md', '--provider=gemini=gemini-nano-banana-2.1']).imageModel).toBe('gemini-nano-banana-2.1')
+    expect(() => parseGenerateImagesArgs(['script.md', '--qa=false'])).toThrow('Unexpected flag: --qa')
     expect(parseGenerateImagesArgs(['script.md', '--target=sketches', '--']).target).toBe('sketches')
     expect(() => parseGenerateImagesArgs(['script.md', 'extra.md']))
       .toThrow('Unexpected parameter "extra.md"')

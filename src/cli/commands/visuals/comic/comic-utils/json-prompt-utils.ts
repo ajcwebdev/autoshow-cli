@@ -1,39 +1,13 @@
-import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { basename, dirname } from 'node:path'
 import * as v from 'valibot'
 import { err, comicLog } from './comic-logger'
 import { StructuredScriptDataSchema } from '../schemas/schemas'
-import { BlockingPlanSchema } from '../schemas/blocking-plan-schemas'
 import { getCharacterReferenceAliases, loadCharacterCatalog } from './character-reference-config'
 import { getStructuredScriptPath, getDraftPromptPath } from './project-paths'
-import { getBlockingPlanPath, getBlockingPromptPath } from './blocking-plan-paths'
-import { buildScenePlanSection, SCENE_PLAN_SECTION_HEADING } from './blocking-plan-prompt'
-import { readLocationPlans } from './location-plan-records'
 import { formatRecapMontagePromptSection, resolveRecapMontageExpansions } from './recap-montage-utils'
-import { buildBlockingDrafterPromptFromInputs, loadBlockingPlanInputs } from '../comic-commands/draft-scenes/generate-blocking-plan'
 import { ValidationError } from '~/utils/error-handler'
-import { sha256Bytes } from '~/utils/value-helpers'
-import type { BlockingPlan, RecapMontageExpansion, StructuredScriptData } from '~/types'
-
-export const SCENE_PLAN_SECTION_MARKER = SCENE_PLAN_SECTION_HEADING
-
-export const stripScenePlanSection = (content: string): string => {
-  const index = content.indexOf(SCENE_PLAN_SECTION_MARKER)
-  return index === -1 ? content : content.slice(0, index).replace(/\s+$/, '')
-}
-
-export const appendScenePlanSection = (content: string, plan: BlockingPlan): string =>
-  `${stripScenePlanSection(content)}\n\n${buildScenePlanSection(plan)}`
-
-export const readBlockingPlanIfPresent = async (sceneSlug: string): Promise<{ plan: BlockingPlan; planPath: string; planSha256: string } | undefined> => {
-  const planPath = getBlockingPlanPath(sceneSlug)
-  if (!existsSync(planPath)) return undefined
-  const plan = await parseJsonFile(planPath, BlockingPlanSchema)
-  const planSha256 = sha256Bytes(new Uint8Array(await Bun.file(planPath).arrayBuffer()))
-  return { plan, planPath, planSha256 }
-}
-
+import type { RecapMontageExpansion, StructuredScriptData } from '~/types'
 
 export const parseJsonFile = async <TSchema extends v.GenericSchema>(
   filePath: string,
@@ -90,9 +64,7 @@ Set each panel's \`designReferences\` to an empty array during automated scene d
 
 Write an exhaustive prose \`shotPlan\` for every panel. It must explicitly specify camera distance, camera angle and position, composition, every visible character's position within the comic frame, depth, facing, pose, expression, eyeline, relationships to other characters and fixed location features, props, balloon placement, and exclusions.
 
-Canonical character canon is non-negotiable and has highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. If source staging contradicts character canon, preserve the narrative action but reinterpret the contradictory depiction so it obeys canon. Never repeat the contradiction in a panel description or shotPlan. After character canon, precedence is: (1) the scene blocking plan's stage marks, camera setups, and canonical location geometry when a plan section is present, (2) script-authored action, staging, and framing that does not contradict character canon or the plan, (3) exact script cast, dialogue, and speaker requirements, and (4) inferred shot-plan details only where the script and the plan are silent.
-
-When a \`## Scene blocking plan\` section is present below, every panel must also carry a \`blocking\` object citing \`cameraSetupId\` from the plan's camera setups, an optional \`stageStateId\` override, \`croppedOnStage\` entries (each with a reason) for on-stage characters the camera sees but the panel deliberately crops out, and \`axisBreak\` (null unless the panel deliberately crosses the action axis, in which case it cites one of the panel's own source segment ids with a reason). Omit \`blocking\` entirely when no plan section is present.
+Canonical character canon is non-negotiable and has highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. If source staging contradicts character canon, preserve the narrative action but reinterpret the contradictory depiction so it obeys canon. Never repeat the contradiction in a panel description or shotPlan. After character canon, precedence is: (1) script-authored action, staging, and framing that does not contradict character canon, (2) exact script cast, dialogue, and speaker requirements, and (3) inferred shot-plan details only where the script is silent.
 
 Canonical character descriptions and enforceable depiction rules:
 ${characterCanon}
@@ -112,7 +84,7 @@ ${formatCharacterAliasGuidance(aliases)}
     {
       "number": 1,
       "description": "Visual staging only.",
-      "shotPlan": "Exhaustive prose camera, composition, blocking, acting, eyeline, props, balloon placement, and exclusions plan.",
+      "shotPlan": "Exhaustive prose camera, composition, staging, acting, eyeline, props, balloon placement, and exclusions plan.",
       "characterKeys": ${exampleCharacterKeys},
       "speech": [
         {
@@ -171,51 +143,33 @@ const formatStructuredScriptPrompt = (
   ].join('\n')
 }
 
-const writeBlockingDrafterPrompt = async (sceneSlug: string): Promise<string | undefined> => {
-  const outputPath = getBlockingPromptPath(sceneSlug)
-  try {
-    const locationPlans = await readLocationPlans()
-    const inputs = await loadBlockingPlanInputs(sceneSlug, { locationPlans, requireEstablishingImages: false })
-    await mkdir(dirname(outputPath), { recursive: true })
-    await Bun.write(outputPath, buildBlockingDrafterPromptFromInputs(inputs))
-    comicLog.line('blocking-prompt generated', [`file=${basename(outputPath)}`, `locations=${inputs.locationKeys.length}`])
-    return outputPath
-  } catch (error) {
-    comicLog.line('blocking-prompt skipped', [`reason=${error instanceof Error ? error.message : String(error)}`])
-    return undefined
+/** Builds the scene-drafting prompt from an in-memory structure, including recap montage expansion. Writes nothing. */
+export const buildDraftPrompt = async (structuredScript: StructuredScriptData): Promise<{ content: string; sourceSegments: number; recapMontages: number }> => {
+  const recapMontageExpansions = await resolveRecapMontageExpansions(structuredScript)
+  return {
+    content: formatStructuredScriptPrompt(structuredScript, recapMontageExpansions),
+    sourceSegments: structuredScript.sourceSegments.length,
+    recapMontages: recapMontageExpansions.length,
   }
 }
 
+/** Writes metadata/draft-prompt.md. Reads metadata/structured-script.json when no structure is supplied. */
 export const generateJsonPrompt = async (
-  sceneSlug: string
+  sceneSlug: string,
+  structuredScript?: StructuredScriptData
 ): Promise<{ filesProcessed: number; sourceSegments: number; recapMontages: number }> => {
-  const stats = { filesProcessed: 0 }
-
   try {
-    const structuredScriptPath = getStructuredScriptPath(sceneSlug)
-    const structuredScript = await parseJsonFile(structuredScriptPath, StructuredScriptDataSchema)
-    const recapMontageExpansions = await resolveRecapMontageExpansions(structuredScript)
-
+    const structure = structuredScript ?? await parseJsonFile(getStructuredScriptPath(sceneSlug), StructuredScriptDataSchema)
+    const prompt = await buildDraftPrompt(structure)
     const outputPath = getDraftPromptPath(sceneSlug)
     await mkdir(dirname(outputPath), { recursive: true })
-    const existingPlan = await readBlockingPlanIfPresent(sceneSlug)
-    const basePrompt = formatStructuredScriptPrompt(structuredScript, recapMontageExpansions)
-    const combinedContent = existingPlan ? appendScenePlanSection(basePrompt, existingPlan.plan) : basePrompt
-
-    await Bun.write(outputPath, combinedContent)
-    stats.filesProcessed++
+    await Bun.write(outputPath, prompt.content)
     comicLog.line('draft-prompt generated', [
       `file=${basename(outputPath)}`,
-      `sourceSegments=${structuredScript.sourceSegments.length}`,
-      recapMontageExpansions.length > 0 ? `recapMontages=${recapMontageExpansions.length}` : undefined,
-      existingPlan ? `blockingPlan=${existingPlan.planSha256.slice(0, 12)}` : undefined,
+      `sourceSegments=${prompt.sourceSegments}`,
+      prompt.recapMontages > 0 ? `recapMontages=${prompt.recapMontages}` : undefined,
     ])
-    if (await writeBlockingDrafterPrompt(sceneSlug)) stats.filesProcessed++
-    return {
-      ...stats,
-      sourceSegments: structuredScript.sourceSegments.length,
-      recapMontages: recapMontageExpansions.length,
-    }
+    return { filesProcessed: 1, sourceSegments: prompt.sourceSegments, recapMontages: prompt.recapMontages }
   } catch (error) {
     err(
       `Failed to process ${sceneSlug}:`,

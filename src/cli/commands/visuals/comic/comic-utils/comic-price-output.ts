@@ -1,7 +1,6 @@
 import { CLI_INVOCATION } from '~/cli/cli-invocation'
 import type { ComicPriceModelRow, FinalImageEstimateResult, FinalImageInputEstimate, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePricingEstimate, LogMetadata } from '~/types'
 import { estimateImageOutputCost, formatCost } from '../comic-image-services/image-costs'
-import { getImagePromptVariationLabel } from '../comic-commands/generate-images/prompt-variations'
 import { isGeminiImageModel } from './image-service'
 import { priceDetails, priceLine, priceNotice, priceRows } from './price-estimate-logging'
 
@@ -9,9 +8,7 @@ export const IMAGE_ESTIMATE_BASIS_NOTE = 'Per-image output cost only. Image inpu
 
 export const GEMINI_IMAGE_ESTIMATE_NOTE = 'Gemini costs use the registry 1K output-image estimate; input and text/thinking output tokens are excluded. Actual token costs vary.'
 
-export const JUDGE_COST_BASIS_NOTE = 'Judge cost is separate from image-generation cost; actual vision token usage may vary. Each page-judge call is modeled at 8,000 input units (5,000 for the contract and its reference images, 1,000 for the blocking-ledger and audit-status paragraphs, and 2,000 for up to two low-detail roster identity cards) and 1,400 output units for the blockingAudit array.'
-
-export const PANEL_QA_BASIS_NOTE = 'Image input units are modeled at 1,000 per reference image and priced only when the registry exposes an image-input rate; text input and actual vision usage are not modeled, so provider charges may vary.'
+export const IMAGE_INPUT_BASIS_NOTE = 'Image input units are modeled at 1,000 per reference image and priced only when the registry exposes an image-input rate; text input and actual vision usage are not modeled, so provider charges may vary.'
 
 export const printImageInputEstimate = (estimate: FinalImageInputEstimate | null): void => {
   if (!estimate) return
@@ -19,19 +16,17 @@ export const printImageInputEstimate = (estimate: FinalImageInputEstimate | null
   priceLine(
     `Image input (modeled): ${estimate.totalUnits.toLocaleString('en-US')} units across ${estimate.referenceInputs.toLocaleString('en-US')} references${pricedLabel}`,
     {
-      models: [...estimate.models],
+      model: estimate.model,
+      calls: estimate.calls,
       unitsPerReference: estimate.unitsPerReference,
       referenceInputs: estimate.referenceInputs,
       imageInputUnits: estimate.totalUnits,
-      initialCalls: estimate.initialCalls,
-      initialReferenceInputs: estimate.initialReferenceInputs,
-      maximumRepairCalls: estimate.maximumRepairCalls,
-      maximumRepairReferenceInputs: estimate.maximumRepairReferenceInputs,
       ratePer1MCents: estimate.ratePer1MCents,
       costCents: estimate.costCents,
       priced: estimate.priced
     }
   )
+  priceLine(IMAGE_INPUT_BASIS_NOTE, { imageInputUnitsModeled: true, visionUsageModeled: false })
 }
 
 export const logImagePriceRows = (
@@ -111,14 +106,11 @@ export const printImageEstimateTable = (
 export const printFinalImageHeader = (result: FinalImageEstimateResult): void => {
   const { request } = result
   const modeLabel = request.mode === 'grid' ? ' (grid mode)' : request.mode === 'page' ? ' (page mode)' : ''
-  const variations = request.variationsSpecified
-    ? request.variations.map(getImagePromptVariationLabel)
-    : undefined
   priceDetails(
     `Comic - Price Estimate: generate-images${modeLabel}`,
     [
-      ['Models', request.models.join(', ')],
-      ...(variations ? [['Variations', variations.join(', ')] as const] : []),
+      ['Model', request.model],
+      ...(request.runId ? [['Run', request.runId] as const] : []),
       ['Size', request.size],
       ['Quality', request.quality],
       ...(request.mode === 'page' ? [['Panels per image', request.panelsPerImage] as const] : []),
@@ -129,8 +121,8 @@ export const printFinalImageHeader = (result: FinalImageEstimateResult): void =>
     {
       command: 'generate-images',
       mode: request.mode,
-      models: [...request.models],
-      ...(variations ? { variations } : {}),
+      model: request.model,
+      ...(request.runId ? { runId: request.runId } : {}),
       size: request.size,
       quality: request.quality,
       ...(request.mode === 'page' ? { panelsPerImage: request.panelsPerImage } : {}),
@@ -139,119 +131,14 @@ export const printFinalImageHeader = (result: FinalImageEstimateResult): void =>
   )
 }
 
+const toModelRow = (pricing: ImagePricingEstimate): ComicPriceModelRow => ({
+  modelLabel: pricing.modelLabel,
+  pricePerImage: pricing.pricePerImage,
+  subtotal: pricing.subtotal,
+})
+
 export const printImagePricingEstimate = (pricing: ImagePricingEstimate, title = 'Comic Image Price Estimate'): void => {
-  logImagePriceRows(
-    title,
-    pricing.rows,
-    pricing.rows[0]?.outputs ?? 0,
-    pricing.outputLabel,
-    pricing.rows.some(row => isGeminiImageModel(row.model))
-  )
-}
-
-export const printPagePricingEstimate = (pricing: ImagePricingEstimate): void => {
-  priceRows(
-    'Comic Page Price Estimate',
-    pricing.rows.map((row) => ({
-      model: row.modelLabel,
-      pages: row.outputs,
-      perImage: row.pricePerImage === null ? 'n/a' : formatCost(row.pricePerImage),
-      subtotal: row.subtotal === null ? 'n/a' : formatCost(row.subtotal)
-    })),
-    ['model', 'pages', 'perImage', 'subtotal'],
-    {
-      outputLabel: pricing.outputLabel,
-      knownTotal: pricing.knownTotal,
-      hasUnknownPricing: pricing.hasUnknown,
-      rows: pricing.rows.map((row) => ({
-        model: row.modelLabel,
-        outputs: row.outputs,
-        pricePerImage: row.pricePerImage,
-        subtotal: row.subtotal
-      }))
-    }
-  )
-  priceLine(`Subtotal: ~${formatCost(pricing.knownTotal)}${pricing.hasUnknown ? ' + n/a' : ''}`, {
-    knownTotal: pricing.knownTotal,
-    hasUnknownPricing: pricing.hasUnknown
-  })
-}
-
-export const printPageQaEstimate = (
-  result: Extract<FinalImageEstimateResult, { status: 'ready' }>,
-): void => {
-  const qa = result.qaWork
-  if (qa?.mode !== 'page') return
-
-  priceDetails(
-    'Comic Page QA Price Estimate',
-    [
-      ['Judge model', qa.judgeModel],
-      ['Initial judge calls', qa.initialJudgeCalls],
-      ...(qa.reusedReports > 0 ? [['Reused reports', qa.reusedReports] as const] : []),
-      ['Maximum additional image edits', qa.maximumAdditionalImageEdits],
-      ['Maximum additional judge calls', qa.maximumAdditionalJudgeCalls],
-      ['Heuristic judge tokens', `${qa.estimatedInputTokens.toLocaleString()} input + ${qa.estimatedOutputTokens.toLocaleString()} output`],
-      ['Heuristic judge cost', `~${formatCost(result.pricing.judgeCost ?? 0)}`]
-    ],
-    {
-      mode: 'page',
-      judgeModel: qa.judgeModel,
-      initialJudgeCalls: qa.initialJudgeCalls,
-      reusedReports: qa.reusedReports,
-      maximumAdditionalImageEdits: qa.maximumAdditionalImageEdits,
-      maximumAdditionalJudgeCalls: qa.maximumAdditionalJudgeCalls,
-      estimatedInputTokens: qa.estimatedInputTokens,
-      estimatedOutputTokens: qa.estimatedOutputTokens,
-      judgeCost: result.pricing.judgeCost ?? 0
-    }
-  )
-  if (result.pricing.repair) printImagePricingEstimate(result.pricing.repair, 'Comic Page Repair Price Estimate')
-  priceLine(JUDGE_COST_BASIS_NOTE, { visionTokenUsageModeled: false })
-}
-
-export const printPanelQaEstimate = (
-  result: Extract<FinalImageEstimateResult, { status: 'ready' }>,
-): void => {
-  const qa = result.qaWork
-  if (qa?.mode !== 'panel') return
-
-  priceDetails(
-    'Comic Panel QA Price Estimate',
-    [
-      ['Judge model', qa.judgeModel],
-      ['Initial judge calls', qa.initialJudgeCalls],
-      ['Maximum additional image edits', qa.maximumAdditionalImageEdits],
-      ['Maximum repair QA calls', qa.maximumRepairQaCalls],
-      ['Maximum order-swapped comparison calls', qa.maximumComparisonJudgeCalls],
-      ['Maximum additional judge calls', qa.maximumAdditionalJudgeCalls],
-      ['Maximum total judge calls', qa.maximumTotalJudgeCalls],
-      ['Maximum heuristic judge tokens', `${qa.estimatedInputTokens.toLocaleString()} input + ${qa.estimatedOutputTokens.toLocaleString()} output`],
-      ['Maximum heuristic judge cost', `~${formatCost(result.pricing.judgeCost ?? 0)}`],
-      [
-        'Maximum modeled cost',
-        result.pricing.maximumModeledCost === null
-          ? `n/a image output pricing + ~${formatCost(result.pricing.judgeCost ?? 0)} heuristic QA`
-          : `~${formatCost(result.pricing.maximumModeledCost)} (image outputs + heuristic QA)`
-      ]
-    ],
-    {
-      mode: 'panel',
-      judgeModel: qa.judgeModel,
-      initialJudgeCalls: qa.initialJudgeCalls,
-      maximumAdditionalImageEdits: qa.maximumAdditionalImageEdits,
-      maximumRepairQaCalls: qa.maximumRepairQaCalls,
-      maximumComparisonJudgeCalls: qa.maximumComparisonJudgeCalls,
-      maximumAdditionalJudgeCalls: qa.maximumAdditionalJudgeCalls,
-      maximumTotalJudgeCalls: qa.maximumTotalJudgeCalls,
-      estimatedInputTokens: qa.estimatedInputTokens,
-      estimatedOutputTokens: qa.estimatedOutputTokens,
-      judgeCost: result.pricing.judgeCost ?? 0,
-      maximumModeledCost: result.pricing.maximumModeledCost
-    }
-  )
-  if (result.pricing.repair) printImagePricingEstimate(result.pricing.repair, 'Comic Panel Repair Price Estimate')
-  priceLine(PANEL_QA_BASIS_NOTE, { imageInputUnitsModeled: true, visionUsageModeled: false })
+  logImagePriceRows(title, [toModelRow(pricing)], pricing.outputs, pricing.outputLabel, isGeminiImageModel(pricing.model))
 }
 
 export const printGridEstimate = (
@@ -277,20 +164,25 @@ export const printGridEstimate = (
       rows: grid.rows,
       capacity: grid.capacity,
       skipped: grid.skipped,
+      providerCalls: 0,
       totalCost: 0
     }
   )
-  priceLine('Grid pages are local ImageMagick composites and add no API cost.', { totalCost: 0 })
+  priceLine('Grid pages are local ImageMagick composites of individual panels and add no provider calls or API cost.', { providerCalls: 0, totalCost: 0 })
+}
+
+const printEstimatedTotal = (result: Extract<FinalImageEstimateResult, { status: 'ready' }>): void => {
+  const { estimatedTotal } = result.pricing
+  priceLine(
+    estimatedTotal === null ? 'Estimated total: n/a (unpriced image output or input)' : `Estimated total: ~${formatCost(estimatedTotal)}`,
+    { imageCalls: result.modeEstimate.totalOutputs, estimatedTotal }
+  )
 }
 
 export const printReadyFinalImageEstimate = (
   result: Extract<FinalImageEstimateResult, { status: 'ready' }>,
 ): void => {
-  if (
-    result.request.mode === 'page'
-    && result.inventory.mode === 'page'
-    && result.modeEstimate.mode === 'page'
-  ) {
+  if (result.inventory.mode === 'page' && result.modeEstimate.mode === 'page') {
     priceRows(
       'Comic Reference Preflight (pages)',
       result.inventory.pages.map((page) => ({ page: page.pageNumber, referencesRequired: page.referenceCount })),
@@ -302,20 +194,12 @@ export const printReadyFinalImageEstimate = (
     )
     priceRows(
       'Comic Pages',
-      [{
-        scene: result.request.sceneSlug,
-        pages: result.modeEstimate.totalOutputs,
-        skipped: result.modeEstimate.skipped
-      }],
+      [{ scene: result.request.sceneSlug, pages: result.modeEstimate.totalOutputs, skipped: result.modeEstimate.skipped }],
       ['scene', 'pages', 'skipped'],
-      {
-        scene: result.request.sceneSlug,
-        totalOutputs: result.modeEstimate.totalOutputs,
-        skipped: result.modeEstimate.skipped
-      }
+      { scene: result.request.sceneSlug, totalOutputs: result.modeEstimate.totalOutputs, skipped: result.modeEstimate.skipped }
     )
     if (result.modeEstimate.totalOutputs === 0) {
-      priceNotice('All page images already exist. Nothing to generate.', {
+      priceNotice('All page images already exist for this run. Nothing to generate.', {
         scene: result.request.sceneSlug,
         totalOutputs: 0,
         skipped: result.modeEstimate.skipped,
@@ -323,10 +207,10 @@ export const printReadyFinalImageEstimate = (
       })
       return
     }
-    printPagePricingEstimate(result.pricing.primary)
+    printImagePricingEstimate(result.pricing.primary, 'Comic Page Price Estimate')
     printImageInputEstimate(result.pricing.imageInput)
     priceLine('Grouped pages use current canonical character references followed by each distinct current location reference.')
-    printPageQaEstimate(result)
+    printEstimatedTotal(result)
     return
   }
 
@@ -339,20 +223,12 @@ export const printReadyFinalImageEstimate = (
   )
   priceRows(
     'Comic Panels',
-    [{
-      scene: result.request.sceneSlug,
-      panels: result.modeEstimate.totalOutputs,
-      skipped: result.modeEstimate.skipped
-    }],
+    [{ scene: result.request.sceneSlug, panels: result.modeEstimate.totalOutputs, skipped: result.modeEstimate.skipped }],
     ['scene', 'panels', 'skipped'],
-    {
-      scene: result.request.sceneSlug,
-      totalOutputs: result.modeEstimate.totalOutputs,
-      skipped: result.modeEstimate.skipped
-    }
+    { scene: result.request.sceneSlug, totalOutputs: result.modeEstimate.totalOutputs, skipped: result.modeEstimate.skipped }
   )
   if (result.modeEstimate.totalOutputs === 0) {
-    priceNotice('All panels already exist. Nothing to generate.', {
+    priceNotice('All selected panels already have an image. Nothing to generate.', {
       scene: result.request.sceneSlug,
       totalOutputs: 0,
       skipped: result.modeEstimate.skipped,
@@ -362,9 +238,9 @@ export const printReadyFinalImageEstimate = (
     return
   }
   printImagePricingEstimate(result.pricing.primary)
-  priceLine(`Initial image calls: ${result.modeEstimate.totalOutputs}`, { initialImageCalls: result.modeEstimate.totalOutputs })
+  priceLine(`Image calls: ${result.modeEstimate.totalOutputs}`, { imageCalls: result.modeEstimate.totalOutputs })
   printImageInputEstimate(result.pricing.imageInput)
-  printPanelQaEstimate(result)
+  printEstimatedTotal(result)
   printGridEstimate(result)
 }
 

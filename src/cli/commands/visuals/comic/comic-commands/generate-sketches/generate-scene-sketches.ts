@@ -5,10 +5,7 @@ import { join } from 'node:path'
 import * as v from 'valibot'
 import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import type { ComicImageGenerationDependencies, ComicPanelSource, PanelBundleData, GenerateSceneSketchesOptions, PromptsConfig, SketchPanelChunk } from '~/types'
-import {
-createImageRunStats,
-updateImageRunStatsWithCostFallback,
-} from '../../comic-image-services/image-costs'
+import { createImageRunStats, recordBaseImageAccounting } from '../../comic-image-services/image-costs'
 import {
 createImage,
 } from '../../comic-image-services/comic-image-targets'
@@ -36,7 +33,6 @@ import {
 DEFAULT_SKETCH_PANELS_PER_IMAGE,
 hasOnlyTrailingPanelSelectionMisses,
 } from '../generate-images/comic-page-utils'
-import { runWithConcurrency } from '~/utils/run-with-concurrency'
 import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 
 const SKETCH_CHUNK_SIZE = DEFAULT_SKETCH_PANELS_PER_IMAGE
@@ -286,15 +282,6 @@ const assertReferenceImageFilesPresent = (missingReferences: readonly string[], 
   }
 }
 
-type SketchImageResponse = { usage?: { imageInputUnits?: number | undefined; textInputUnits?: number | undefined; outputUnits?: number | undefined } | undefined }
-
-const recordSketchRequestUsage = (stats: ReturnType<typeof createImageRunStats>, requestDurationMs: number, imageResponse: SketchImageResponse): void => {
-  stats.totalDurationMs += requestDurationMs
-  stats.totalInputImageTokens += imageResponse.usage?.imageInputUnits ?? 0
-  stats.totalInputTextTokens += imageResponse.usage?.textInputUnits ?? 0
-  stats.totalOutputImageTokens += imageResponse.usage?.outputUnits ?? 0
-}
-
 export const generateSceneSketches = async (
   sceneSlug: string,
   options: GenerateSceneSketchesOptions,
@@ -315,8 +302,8 @@ export const generateSceneSketches = async (
   const writeImage = dependencies.writeImage ?? writeGeneratedImage
 
   const stats = createImageRunStats()
+  const { model } = options
   let errorCount = 0
-  const useModelSpecificFilenames = options.models.length > 1
 
   try {
     const sceneDirectory = getPanelPromptsDirectory(sceneSlug)
@@ -347,135 +334,117 @@ export const generateSceneSketches = async (
 
       const preflightFailures: string[] = []
       for (const chunk of selectedSketchChunks) {
-        for (const model of options.models) {
-          try {
-            const references = resolveGroupedReferenceImages(chunk.panels, model)
-            const missing = await findMissingReferenceImageFiles(references.all)
-            preflightFailures.push(...missing)
-          } catch (error) {
-            preflightFailures.push(`${formatSketchChunkLabel(chunk.startPanelNumber, chunk.endPanelNumber)}/${model}: ${error instanceof Error ? error.message : String(error)}`)
-          }
+        try {
+          const references = resolveGroupedReferenceImages(chunk.panels, model)
+          const missing = await findMissingReferenceImageFiles(references.all)
+          preflightFailures.push(...missing)
+        } catch (error) {
+          preflightFailures.push(`${formatSketchChunkLabel(chunk.startPanelNumber, chunk.endPanelNumber)}/${model}: ${error instanceof Error ? error.message : String(error)}`)
         }
       }
       if (preflightFailures.length > 0) {
         throw ValidationError(`Sketch preflight failed before any provider calls:\n- ${Array.from(new Set(preflightFailures)).join('\n- ')}`, { stage: 'comic:generate-sketches' })
       }
 
-      const sketchStreams = options.models.map(model => async () => {
-        const establishedCharacterSketches = new Map<string, string>()
-        let previousSketchPath: string | undefined
+      // Chunks run in order: each chunk can use earlier sketches from this run as continuity references.
+      const establishedCharacterSketches = new Map<string, string>()
+      let previousSketchPath: string | undefined
 
-        const recordEstablishedSketch = (characterKeys: string[], sketchPath: string) => {
-          characterKeys.forEach(key => {
-            if (!establishedCharacterSketches.has(key)) {
-              establishedCharacterSketches.set(key, sketchPath)
-            }
-          })
-        }
+      const recordEstablishedSketch = (characterKeys: string[], sketchPath: string) => {
+        characterKeys.forEach(key => {
+          if (!establishedCharacterSketches.has(key)) {
+            establishedCharacterSketches.set(key, sketchPath)
+          }
+        })
+      }
 
-        for (const sketchChunk of selectedSketchChunks) {
-          const chunkLabel = formatSketchChunkLabel(
-            sketchChunk.startPanelNumber,
-            sketchChunk.endPanelNumber,
+      for (const sketchChunk of selectedSketchChunks) {
+        const chunkLabel = formatSketchChunkLabel(
+          sketchChunk.startPanelNumber,
+          sketchChunk.endPanelNumber,
+        )
+
+        try {
+          const sketchPromptData = buildSketchPromptData(
+            sketchChunk.panels.map(panel => panel.bundleData)
           )
+          const normalizedPrompt = buildSketchPrompt(sketchPromptData, sketchPrompts)
+          const chunkCharacterKeys = getChunkCharacterKeys(sketchChunk.panels)
 
-          try {
-            const sketchPromptData = buildSketchPromptData(
-              sketchChunk.panels.map(panel => panel.bundleData)
-            )
-            const normalizedPrompt = buildSketchPrompt(sketchPromptData, sketchPrompts)
-            const chunkCharacterKeys = getChunkCharacterKeys(sketchChunk.panels)
-
-            const priorSketchCandidates = collectPriorSketchCandidates(chunkCharacterKeys, establishedCharacterSketches, previousSketchPath)
-            const priorSketchPaths: string[] = []
-            for (const candidate of priorSketchCandidates) {
-              if (priorSketchPaths.includes(candidate)) {
-                continue
-              }
-              if (await Bun.file(candidate).exists()) {
-                priorSketchPaths.push(candidate)
-              }
-            }
-
-            const resolvedReferences = resolveGroupedReferenceImages(
-              sketchChunk.panels,
-              model,
-              priorSketchPaths,
-            )
-
-            assertPrimaryCharacterReferencesStaged(resolvedReferences, chunkLabel)
-
-            const outputPath = getSketchComicImagePath(
-              sceneSlug,
-              sketchChunk.startPanelNumber,
-              sketchChunk.endPanelNumber,
-              useModelSpecificFilenames ? model : undefined,
-              options.runId
-            )
-
-            if (!options.force && await Bun.file(outputPath).exists()) {
-              stats.imagesSkipped++
-              recordEstablishedSketch(chunkCharacterKeys, outputPath)
-              previousSketchPath = outputPath
-              comicLog.output('skipped', 'sketch', [
-                `id=${chunkLabel}`,
-                `panels=${sketchChunk.startPanelNumber}-${sketchChunk.endPanelNumber}`,
-                `model=${model}`,
-                `refs=${resolvedReferences.all.length}`,
-                `path=${outputPath}`,
-              ])
+          const priorSketchCandidates = collectPriorSketchCandidates(chunkCharacterKeys, establishedCharacterSketches, previousSketchPath)
+          const priorSketchPaths: string[] = []
+          for (const candidate of priorSketchCandidates) {
+            if (priorSketchPaths.includes(candidate)) {
               continue
             }
+            if (await Bun.file(candidate).exists()) {
+              priorSketchPaths.push(candidate)
+            }
+          }
 
-            const missingReferences = await findMissingReferenceImageFiles(resolvedReferences.all)
-            assertReferenceImageFilesPresent(missingReferences, chunkLabel)
+          const resolvedReferences = resolveGroupedReferenceImages(
+            sketchChunk.panels,
+            model,
+            priorSketchPaths,
+          )
 
-            const requestStart = Date.now()
-            const imageResponse = await runComicHostedRequest(options, resolveComicImageProvider(model), 'comic-image', `${sceneSlug}:sketch:${model}`, hostedRequestIndex++, async () => await requestImage({
-              normalizedPrompt,
-              referenceImages: resolvedReferences.all,
-              model,
-              size: options.size,
-              quality: options.quality,
-            }))
-            const requestDurationMs = Date.now() - requestStart
-            recordSketchRequestUsage(stats, requestDurationMs, imageResponse)
+          assertPrimaryCharacterReferencesStaged(resolvedReferences, chunkLabel)
 
-            await writeImage(
-              outputPath,
-              imageResponse.result.imageBase64,
-              imageResponse.result.mimeType,
-            )
+          const outputPath = getSketchComicImagePath(
+            sceneSlug,
+            sketchChunk.startPanelNumber,
+            sketchChunk.endPanelNumber,
+            undefined,
+            options.runId
+          )
+
+          if (!options.force && await Bun.file(outputPath).exists()) {
+            stats.imagesSkipped++
             recordEstablishedSketch(chunkCharacterKeys, outputPath)
             previousSketchPath = outputPath
-
-            const { costLabel } = updateImageRunStatsWithCostFallback(
-              model,
-              stats,
-              options.quality,
-              options.size,
-            )
-
-            comicLog.output('generated', 'sketch', [
+            comicLog.output('skipped', 'sketch', [
               `id=${chunkLabel}`,
-              `panels=${sketchChunk.panels.map(panel => formatPanelDirectoryName(panel.panelNumber)).join(',')}`,
+              `panels=${sketchChunk.startPanelNumber}-${sketchChunk.endPanelNumber}`,
               `model=${model}`,
-              `mode=${imageResponse.mode}`,
               `refs=${resolvedReferences.all.length}`,
-              `cost=${costLabel}`,
-              `duration=${formatDuration(requestDurationMs)}`,
               `path=${outputPath}`,
             ])
-
-            stats.imagesGenerated++
-          } catch (error) {
-            errorCount++
-            err(`Failed to generate ${sceneSlug}/${chunkLabel}:`, error instanceof Error ? error.message : String(error))
+            continue
           }
-        }
-      })
 
-      await runWithConcurrency(options.concurrency, sketchStreams)
+          const missingReferences = await findMissingReferenceImageFiles(resolvedReferences.all)
+          assertReferenceImageFilesPresent(missingReferences, chunkLabel)
+
+          const requestStart = Date.now()
+          const imageResponse = await runComicHostedRequest(options, resolveComicImageProvider(model), 'comic-image', `${sceneSlug}:sketch:${model}`, hostedRequestIndex++, async () => await requestImage({
+            normalizedPrompt,
+            referenceImages: resolvedReferences.all,
+            model,
+            size: options.size,
+            quality: options.quality,
+          }))
+          const requestDurationMs = Date.now() - requestStart
+          const { costLabel, purchase } = recordBaseImageAccounting(stats, { model, quality: options.quality, size: options.size, durationMs: requestDurationMs, usage: imageResponse.usage })
+          await options.checkpointPurchase?.(purchase)
+          await writeImage(outputPath, imageResponse.result.imageBase64, imageResponse.result.mimeType)
+          recordEstablishedSketch(chunkCharacterKeys, outputPath)
+          previousSketchPath = outputPath
+
+          comicLog.output('generated', 'sketch', [
+            `id=${chunkLabel}`,
+            `panels=${sketchChunk.panels.map(panel => formatPanelDirectoryName(panel.panelNumber)).join(',')}`,
+            `model=${model}`,
+            `mode=${imageResponse.mode}`,
+            `refs=${resolvedReferences.all.length}`,
+            `cost=${costLabel}`,
+            `duration=${formatDuration(requestDurationMs)}`,
+            `path=${outputPath}`,
+          ])
+        } catch (error) {
+          errorCount++
+          err(`Failed to generate ${sceneSlug}/${chunkLabel}:`, error instanceof Error ? error.message : String(error))
+        }
+      }
     } catch (error) {
       err(`Failed to process scene ${sceneSlug}:`, error instanceof Error ? error.message : String(error))
       throw error
@@ -487,7 +456,7 @@ export const generateSceneSketches = async (
   }
 
   if (errorCount > 0) {
-    throw InfraError(`${errorCount} sketch generation task(s) failed`, { stage: 'comic:generate-sketches' })
+    throw InfraError(`${errorCount} sketch generation task(s) failed`, { stage: 'comic:generate-sketches', metadata: { imageRunStats: stats } })
   }
 
   return stats

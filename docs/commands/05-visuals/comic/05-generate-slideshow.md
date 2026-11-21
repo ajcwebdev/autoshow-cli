@@ -11,7 +11,7 @@ Locally synchronize canonical panel PNGs with one complete dialogue/soundscape r
 
 ## Examples
 
-Use [setup](./00-comic-overview.md#setup) variables, complete audio from [generate-audio](./04-generate-audio.md), all four canonical panels, and FFmpeg with a supported H.264 encoder:
+Use [setup](./00-comic-overview.md#setup) variables, complete audio from [generate-audio](./04-generate-audio.md), all four selected panels, and FFmpeg with a supported H.264 encoder:
 
 ```bash
 bun --no-env-file autoshow comic generate-slideshow "$SCRIPT" --audio-target elevenlabs=eleven_v3 --price --characters-root "$CAST" --output-dir "$RUN" --config-path "$CONFIG"
@@ -20,8 +20,8 @@ bun --no-env-file autoshow comic generate-slideshow "$SCRIPT" --audio-target ele
 
 ## Behavior
 
-Every consecutive `panels/panel-NN.png` must have identical even dimensions. Fallback discovery checks the sibling run named with the script slug, requiring exactly compatible reviewed visuals, source ownership, and dialogue reconciliation; arbitrary sibling directories or matching filenames are insufficient.
+Every consecutive selected `panels/panel-NN.png` must have identical even dimensions. Selections come from the first valid individual panel of [generate-images](./03-generate-images.md#outputs-and-selection) or an explicit [`review --use`](./06-review.md#adopting-candidates); no review step is required before rendering. Fallback discovery checks the sibling run named with the script slug, requiring exactly compatible reviewed visuals, source ownership, and dialogue reconciliation; arbitrary sibling directories or matching filenames are insufficient.
 
 Within-panel dialogue/effects retain timing and overlap; cross-panel events follow reviewed order. Inline effects belong to their spoken segment's panel, block effects to the nearest preceding action/panel note. Missing/ambiguous ownership fails. Untimed panels hold; ambience loops through the presentation, otherwise unused intervals stay silent.
 
-Rendering uses hard cuts, H.264/AAC, and original panel dimensions without motion, transitions, crop, or rescaling. Outputs are `presentation/presentation.json` and `presentation/final/slideshow.{wav,mp4}`. Identical completed inputs reuse the presentation; changed options replace derived files, preserving source audio. Save earlier derived versions separately if needed. [`resume`](../../00-setup-and-utilities/resume.md#comic-recovery) finishes a recorded interrupted presentation.
+Rendering uses hard cuts, H.264/AAC, and original panel dimensions without motion, transitions, crop, or rescaling. Outputs are `presentation/presentation.json` and `presentation/final/slideshow.{wav,mp4}`. Identical completed inputs reuse the presentation. Changing render options replaces the derived files and retains the source audio. When `review --use` changes a panel used by the slideshow, the manifest marks the presentation incomplete. Run `generate-slideshow` again to render the new art with the existing audio. The old render stays on disk until that command replaces it. Save earlier derived versions separately if needed. [`resume`](../../00-setup-and-utilities/resume.md#comic-recovery) finishes a recorded interrupted presentation.

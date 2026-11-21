@@ -1,27 +1,14 @@
-import type { ComicImageGenerationDependencies, ComicPageChunk, ComicPanelSource, GenerateComicPagesOptions, ImageGenerationModel, ImagePromptVariation, PromptsConfig } from '~/types'
+import type { ComicImageRequestFn, ComicImageWriteFn, ComicPageChunk, ComicPanelSource, GenerateComicPagesOptions } from '~/types'
 
 export type ComicPagePanelSource = ComicPanelSource & { normalizedPrompt: string }
 
 export type ComicPageGroup = ComicPageChunk<ComicPagePanelSource>
 
-export type PageWorkItem = {
-  variation: ImagePromptVariation
-  model: ImageGenerationModel
-  pageChunk: ComicPageGroup
-}
-
 export type PageRenderContext = {
   sceneSlug: string
   options: GenerateComicPagesOptions
-  useVariationOutputPaths: boolean
-  useModelSpecificFilenames: boolean
-  prompts?: PromptsConfig | undefined
-  requestImage: NonNullable<ComicImageGenerationDependencies['requestImage']>
-  writeImage: typeof import('~/cli/commands/visuals/comic/comic-image-services/image-writer').writeGeneratedImage
-  judgePage: NonNullable<ComicImageGenerationDependencies['judgePage']>
-  qaEnabled: boolean
-  judgeModel: string
-  maxRepairs: number
+  requestImage: ComicImageRequestFn
+  writeImage: ComicImageWriteFn
   nextHostedIndex: () => number
 }
 
